@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -194,9 +193,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private static void ParseCompression(this TiffDecoderCore options, TiffFrameMetadata entries)
+        private static void ParseCompression(this TiffDecoderCore options, TiffFrameMetadata tiffFrameMetaData)
         {
-            TiffCompression compression = entries.Compression;
+            TiffCompression compression = tiffFrameMetaData.Compression;
             switch (compression)
             {
                 case TiffCompression.None:
@@ -227,12 +226,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompression.CcittGroup3Fax:
                 {
                     options.CompressionType = TiffDecoderCompressionType.T4;
-                    IExifValue t4options = entries.ExifProfile.GetValue(ExifTag.T4Options);
-                    if (t4options != null)
-                    {
-                        var t4OptionValue = (FaxCompressionOptions)t4options.GetValue();
-                        options.FaxCompressionOptions = t4OptionValue;
-                    }
+                    options.FaxCompressionOptions = tiffFrameMetaData.FaxCompressionOptions;
 
                     break;
                 }
@@ -245,7 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 default:
                 {
-                    TiffThrowHelper.ThrowNotSupported("The specified TIFF compression format is not supported: " + compression);
+                    TiffThrowHelper.ThrowNotSupported($"The specified TIFF compression format {compression} is not supported");
                     break;
                 }
             }

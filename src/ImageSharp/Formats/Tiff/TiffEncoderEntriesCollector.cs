@@ -47,7 +47,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             public void Process<TPixel>(Image<TPixel> image)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
-                TiffFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+                ImageFrame<TPixel> rootFrame = image.Frames.RootFrame;
+                ExifProfile rootFrameExifProfile = rootFrame.Metadata.ExifProfile ?? new ExifProfile();
+                byte[] rootFrameXmpBytes = rootFrame.Metadata.XmpProfile;
 
                 var width = new ExifLong(ExifTagValue.ImageWidth)
                 {
@@ -67,9 +69,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.collector.Add(width);
                 this.collector.Add(height);
 
-                this.ProcessResolution(image.Metadata, frameMetadata);
-                this.ProcessProfiles(image.Metadata, frameMetadata);
-                this.ProcessMetadata(frameMetadata);
+                this.ProcessResolution(image.Metadata, rootFrameExifProfile);
+                this.ProcessProfiles(image.Metadata, rootFrameExifProfile, rootFrameXmpBytes);
+                this.ProcessMetadata(rootFrameExifProfile);
 
                 if (!this.collector.Entries.Exists(t => t.Tag == ExifTag.Software))
                 {
@@ -112,18 +114,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            private void ProcessResolution(ImageMetadata imageMetadata, TiffFrameMetadata frameMetadata)
+            private void ProcessResolution(ImageMetadata imageMetadata, ExifProfile exifProfile)
             {
                 UnitConverter.SetResolutionValues(
-                    frameMetadata.ExifProfile,
+                    exifProfile,
                     imageMetadata.ResolutionUnits,
                     imageMetadata.HorizontalResolution,
                     imageMetadata.VerticalResolution);
 
-                this.collector.Add(frameMetadata.ExifProfile.GetValue(ExifTag.ResolutionUnit).DeepClone());
+                this.collector.Add(exifProfile.GetValue(ExifTag.ResolutionUnit).DeepClone());
 
-                IExifValue xResolution = frameMetadata.ExifProfile.GetValue(ExifTag.XResolution)?.DeepClone();
-                IExifValue yResolution = frameMetadata.ExifProfile.GetValue(ExifTag.YResolution)?.DeepClone();
+                IExifValue xResolution = exifProfile.GetValue(ExifTag.XResolution)?.DeepClone();
+                IExifValue yResolution = exifProfile.GetValue(ExifTag.YResolution)?.DeepClone();
 
                 if (xResolution != null && yResolution != null)
                 {
@@ -132,9 +134,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            private void ProcessMetadata(TiffFrameMetadata frameMetadata)
+            private void ProcessMetadata(ExifProfile exifProfile)
             {
-                foreach (IExifValue entry in frameMetadata.ExifProfile.Values)
+                foreach (IExifValue entry in exifProfile.Values)
                 {
                     // todo: skip subIfd
                     if (entry.DataType == ExifDataType.Ifd)
@@ -175,9 +177,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            private void ProcessProfiles(ImageMetadata imageMetadata, TiffFrameMetadata tiffFrameMetadata)
+            private void ProcessProfiles(ImageMetadata imageMetadata, ExifProfile exifProfile, byte[] xmpProfile)
             {
-                ExifProfile exifProfile = tiffFrameMetadata.ExifProfile;
                 if (exifProfile != null && exifProfile.Parts != ExifParts.None)
                 {
                     foreach (IExifValue entry in exifProfile.Values)
@@ -194,7 +195,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
                 else
                 {
-                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.SubIFDOffset);
+                    exifProfile.RemoveValue(ExifTag.SubIFDOffset);
                 }
 
                 if (imageMetadata.IptcProfile != null)
@@ -209,7 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
                 else
                 {
-                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.IPTC);
+                    exifProfile.RemoveValue(ExifTag.IPTC);
                 }
 
                 if (imageMetadata.IccProfile != null)
@@ -223,22 +224,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
                 else
                 {
-                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.IccProfile);
+                    exifProfile.RemoveValue(ExifTag.IccProfile);
                 }
 
                 TiffMetadata tiffMetadata = imageMetadata.GetTiffMetadata();
-                if (tiffMetadata.XmpProfile != null)
+                if (xmpProfile != null)
                 {
                     var xmp = new ExifByteArray(ExifTagValue.XMP, ExifDataType.Byte)
                     {
-                        Value = tiffMetadata.XmpProfile
+                        Value = xmpProfile
                     };
 
                     this.collector.Add(xmp);
                 }
                 else
                 {
-                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.XMP);
+                    exifProfile.RemoveValue(ExifTag.XMP);
                 }
             }
         }

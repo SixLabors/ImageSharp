@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Rgb4BitPalette, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_With4Bit_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            // Note: The magick reference decoder does not support 4 bit tiff's, so we use our TIFF decoder instead.
+            //// Note: The magick reference decoder does not support 4 bit tiff's, so we use our TIFF decoder instead.
             TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffEncodingMode.ColorPalette, useExactComparer: false, compareTolerance: 0.001f, imageDecoder: new TiffDecoder());
 
         [Theory]

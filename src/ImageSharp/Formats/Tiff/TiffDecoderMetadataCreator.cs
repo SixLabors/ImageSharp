@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -16,64 +17,91 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffDecoderMetadataCreator
     {
-        public static ImageMetadata Create(List<TiffFrameMetadata> frames, bool ignoreMetadata, ByteOrder byteOrder)
+        public static ImageMetadata Create<TPixel>(List<ImageFrame<TPixel>> frames, List<TiffFrameMetadata> framesMetaData, bool ignoreMetadata, ByteOrder byteOrder)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (frames.Count < 1)
+            DebugGuard.IsTrue(frames.Count() == framesMetaData.Count, nameof(frames), "Image frames and frames metdadata should be the same size.");
+
+            if (framesMetaData.Count < 1)
             {
                 TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
             }
 
-            var coreMetadata = new ImageMetadata();
-            TiffFrameMetadata rootFrameMetadata = frames[0];
+            var imageMetaData = new ImageMetadata();
+            TiffFrameMetadata rootFrameMetadata = framesMetaData[0];
+            SetResolution(imageMetaData, rootFrameMetadata);
 
-            coreMetadata.ResolutionUnits = rootFrameMetadata.ResolutionUnit;
-            if (rootFrameMetadata.HorizontalResolution != null)
-            {
-                coreMetadata.HorizontalResolution = rootFrameMetadata.HorizontalResolution.Value;
-            }
-
-            if (rootFrameMetadata.VerticalResolution != null)
-            {
-                coreMetadata.VerticalResolution = rootFrameMetadata.VerticalResolution.Value;
-            }
-
-            TiffMetadata tiffMetadata = coreMetadata.GetTiffMetadata();
+            TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
             tiffMetadata.BitsPerPixel = GetBitsPerPixel(rootFrameMetadata);
 
             if (!ignoreMetadata)
             {
-                foreach (TiffFrameMetadata frame in frames)
+                for (int i = 0; i < frames.Count; i++)
                 {
-                    if (tiffMetadata.XmpProfile == null)
+                    ImageFrame<TPixel> frame = frames[i];
+                    ImageFrameMetadata frameMetaData = frame.Metadata;
+                    if (frameMetaData.XmpProfile == null)
                     {
-                        IExifValue<byte[]> val = frame.ExifProfile.GetValue(ExifTag.XMP);
+                        IExifValue<byte[]> val = frameMetaData.ExifProfile.GetValue(ExifTag.XMP);
                         if (val != null)
                         {
-                            tiffMetadata.XmpProfile = val.Value;
+                            frameMetaData.XmpProfile = val.Value;
                         }
                     }
 
-                    if (coreMetadata.IptcProfile == null)
+                    if (imageMetaData.IptcProfile == null)
                     {
-                        if (TryGetIptc(frame.ExifProfile.Values, out byte[] iptcBytes))
+                        if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                         {
-                            coreMetadata.IptcProfile = new IptcProfile(iptcBytes);
+                            imageMetaData.IptcProfile = new IptcProfile(iptcBytes);
                         }
                     }
 
-                    if (coreMetadata.IccProfile == null)
+                    if (imageMetaData.IccProfile == null)
                     {
-                        IExifValue<byte[]> val = frame.ExifProfile.GetValue(ExifTag.IccProfile);
+                        IExifValue<byte[]> val = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);
                         if (val != null)
                         {
-                            coreMetadata.IccProfile = new IccProfile(val.Value);
+                            imageMetaData.IccProfile = new IccProfile(val.Value);
                         }
                     }
                 }
             }
 
-            return coreMetadata;
+            return imageMetaData;
+        }
+
+        public static ImageMetadata Create(List<TiffFrameMetadata> framesMetaData, ByteOrder byteOrder)
+        {
+            if (framesMetaData.Count < 1)
+            {
+                TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
+            }
+
+            var imageMetaData = new ImageMetadata();
+            TiffFrameMetadata rootFrameMetadata = framesMetaData[0];
+            SetResolution(imageMetaData, rootFrameMetadata);
+
+            TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
+            tiffMetadata.ByteOrder = byteOrder;
+            tiffMetadata.BitsPerPixel = GetBitsPerPixel(rootFrameMetadata);
+
+            return imageMetaData;
+        }
+
+        private static void SetResolution(ImageMetadata imageMetaData, TiffFrameMetadata rootFrameMetadata)
+        {
+            imageMetaData.ResolutionUnits = rootFrameMetadata.ResolutionUnit;
+            if (rootFrameMetadata.HorizontalResolution != null)
+            {
+                imageMetaData.HorizontalResolution = rootFrameMetadata.HorizontalResolution.Value;
+            }
+
+            if (rootFrameMetadata.VerticalResolution != null)
+            {
+                imageMetaData.VerticalResolution = rootFrameMetadata.VerticalResolution.Value;
+            }
         }
 
         private static bool TryGetIptc(IReadOnlyList<IExifValue> exifValues, out byte[] iptcBytes)

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -70,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ConstructorEmpty()
         {
             new ExifProfile(null);
-            new ExifProfile(new byte[] { });
+            new ExifProfile(Array.Empty<byte>());
         }
 
         [Fact]
@@ -328,7 +327,7 @@ namespace SixLabors.ImageSharp.Tests
                 var junk = new StringBuilder();
                 for (int i = 0; i < 65600; i++)
                 {
-                    junk.Append("a");
+                    junk.Append('a');
                 }
 
                 var image = new Image<Rgba32>(100, 100);

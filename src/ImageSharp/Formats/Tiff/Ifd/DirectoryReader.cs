@@ -24,8 +24,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         public DirectoryReader(Stream stream) => this.stream = stream;
 
+        /// <summary>
+        /// Gets the byte order.
+        /// </summary>
         public ByteOrder ByteOrder { get; private set; }
 
+        /// <summary>
+        /// Reads image file directories.
+        /// </summary>
+        /// <returns>Image file directories.</returns>
         public IEnumerable<ExifProfile> Read()
         {
             this.ByteOrder = ReadByteOrder(this.stream);

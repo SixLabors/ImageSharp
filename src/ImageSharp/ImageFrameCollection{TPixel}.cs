@@ -79,6 +79,15 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        /// <summary>
+        /// Gets root frame accessor in unsafe manner without any checks.
+        /// </summary>
+        /// <remarks>
+        /// This property is most likely to be called from <see cref="Image{TPixel}"/> for indexing pixels.
+        /// <see cref="Image{TPixel}"/> already checks if it was disposed before querying for root frame.
+        /// </remarks>
+        internal ImageFrame<TPixel> RootFrameUnsafe => this.frames[0];
+
         /// <inheritdoc />
         protected override ImageFrame NonGenericRootFrame => this.RootFrame;
 

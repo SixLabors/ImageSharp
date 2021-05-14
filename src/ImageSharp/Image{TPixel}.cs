@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        private IPixelSource<TPixel> PixelSource => this.frames.RootFrame;
+        private IPixelSource<TPixel> PixelSource => this.frames.RootFrameUnsafe;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.

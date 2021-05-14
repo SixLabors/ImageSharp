@@ -67,7 +67,17 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        public new ImageFrame<TPixel> RootFrame => this.frames.Count > 0 ? this.frames[0] : null;
+        public new ImageFrame<TPixel> RootFrame
+        {
+            get
+            {
+                this.EnsureNotDisposed();
+
+                // frame collection would always contain at least 1 frame
+                // the only exception is when collection is disposed what is checked via EnsureNotDisposed() call
+                return this.frames[0];
+            }
+        }
 
         /// <inheritdoc />
         protected override ImageFrame NonGenericRootFrame => this.RootFrame;
@@ -80,20 +90,30 @@ namespace SixLabors.ImageSharp
         /// </value>
         /// <param name="index">The index.</param>
         /// <returns>The <see cref="ImageFrame{TPixel}"/> at the specified index.</returns>
-        public new ImageFrame<TPixel> this[int index] => this.frames[index];
+        public new ImageFrame<TPixel> this[int index]
+        {
+            get
+            {
+                this.EnsureNotDisposed();
+
+                return this.frames[index];
+            }
+        }
 
         /// <inheritdoc />
-        public override int IndexOf(ImageFrame frame)
-        {
-            return frame is ImageFrame<TPixel> specific ? this.IndexOf(specific) : -1;
-        }
+        public override int IndexOf(ImageFrame frame) => frame is ImageFrame<TPixel> specific ? this.IndexOf(specific) : -1;
 
         /// <summary>
         /// Determines the index of a specific <paramref name="frame"/> in the <seealso cref="ImageFrameCollection{TPixel}"/>.
         /// </summary>
         /// <param name="frame">The <seealso cref="ImageFrame{TPixel}"/> to locate in the <seealso cref="ImageFrameCollection{TPixel}"/>.</param>
         /// <returns>The index of item if found in the list; otherwise, -1.</returns>
-        public int IndexOf(ImageFrame<TPixel> frame) => this.frames.IndexOf(frame);
+        public int IndexOf(ImageFrame<TPixel> frame)
+        {
+            this.EnsureNotDisposed();
+
+            return this.frames.IndexOf(frame);
+        }
 
         /// <summary>
         /// Clones and inserts the <paramref name="source"/> into the <seealso cref="ImageFrameCollection{TPixel}"/> at the specified <paramref name="index"/>.
@@ -104,6 +124,8 @@ namespace SixLabors.ImageSharp
         /// <returns>The cloned <see cref="ImageFrame{TPixel}"/>.</returns>
         public ImageFrame<TPixel> InsertFrame(int index, ImageFrame<TPixel> source)
         {
+            this.EnsureNotDisposed();
+
             this.ValidateFrame(source);
             ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
             this.frames.Insert(index, clonedFrame);
@@ -117,6 +139,8 @@ namespace SixLabors.ImageSharp
         /// <returns>The cloned <see cref="ImageFrame{TPixel}"/>.</returns>
         public ImageFrame<TPixel> AddFrame(ImageFrame<TPixel> source)
         {
+            this.EnsureNotDisposed();
+
             this.ValidateFrame(source);
             ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
             this.frames.Add(clonedFrame);
@@ -131,6 +155,8 @@ namespace SixLabors.ImageSharp
         /// <returns>The new <see cref="ImageFrame{TPixel}"/>.</returns>
         public ImageFrame<TPixel> AddFrame(ReadOnlySpan<TPixel> source)
         {
+            this.EnsureNotDisposed();
+
             var frame = ImageFrame.LoadPixelData(
                 this.parent.GetConfiguration(),
                 source,
@@ -149,6 +175,7 @@ namespace SixLabors.ImageSharp
         public ImageFrame<TPixel> AddFrame(TPixel[] source)
         {
             Guard.NotNull(source, nameof(source));
+
             return this.AddFrame(source.AsSpan());
         }
 
@@ -159,6 +186,8 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidOperationException">Cannot remove last frame.</exception>
         public override void RemoveFrame(int index)
         {
+            this.EnsureNotDisposed();
+
             if (index == 0 && this.Count == 1)
             {
                 throw new InvalidOperationException("Cannot remove last frame.");
@@ -180,7 +209,12 @@ namespace SixLabors.ImageSharp
         /// <returns>
         ///   <c>true</c> if the <seealso cref="ImageFrameCollection{TPixel}"/> contains the specified frame; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(ImageFrame<TPixel> frame) => this.frames.Contains(frame);
+        public bool Contains(ImageFrame<TPixel> frame)
+        {
+            this.EnsureNotDisposed();
+
+            return this.frames.Contains(frame);
+        }
 
         /// <summary>
         /// Moves an <seealso cref="ImageFrame{TPixel}"/> from <paramref name="sourceIndex"/> to <paramref name="destinationIndex"/>.
@@ -189,6 +223,8 @@ namespace SixLabors.ImageSharp
         /// <param name="destinationIndex">The index to move the frame to.</param>
         public override void MoveFrame(int sourceIndex, int destinationIndex)
         {
+            this.EnsureNotDisposed();
+
             if (sourceIndex == destinationIndex)
             {
                 return;
@@ -208,6 +244,8 @@ namespace SixLabors.ImageSharp
         /// <returns>The new <see cref="Image{TPixel}"/> with the specified frame.</returns>
         public new Image<TPixel> ExportFrame(int index)
         {
+            this.EnsureNotDisposed();
+
             ImageFrame<TPixel> frame = this[index];
 
             if (this.Count == 1 && this.frames.Contains(frame))
@@ -228,6 +266,8 @@ namespace SixLabors.ImageSharp
         /// <returns>The new <see cref="Image{TPixel}"/> with the specified frame.</returns>
         public new Image<TPixel> CloneFrame(int index)
         {
+            this.EnsureNotDisposed();
+
             ImageFrame<TPixel> frame = this[index];
             ImageFrame<TPixel> clonedFrame = frame.Clone();
             return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.Metadata.DeepClone(), new[] { clonedFrame });
@@ -241,6 +281,8 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public new ImageFrame<TPixel> CreateFrame()
         {
+            this.EnsureNotDisposed();
+
             var frame = new ImageFrame<TPixel>(
                 this.parent.GetConfiguration(),
                 this.RootFrame.Width,

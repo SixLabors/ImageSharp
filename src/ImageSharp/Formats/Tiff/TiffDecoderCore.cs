@@ -179,8 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ImageFrameMetadata imageFrameMetaData = this.ignoreMetadata ?
                 new ImageFrameMetadata() :
                 new ImageFrameMetadata { ExifProfile = tags, XmpProfile = tags.GetValue(ExifTag.XMP)?.Value };
-            tiffFrameMetaData = imageFrameMetaData.GetTiffMetadata();
-            tiffFrameMetaData.Initialize(tags);
+            tiffFrameMetaData = new TiffFrameMetadata(tags);
 
             this.VerifyAndParse(tiffFrameMetaData);
 

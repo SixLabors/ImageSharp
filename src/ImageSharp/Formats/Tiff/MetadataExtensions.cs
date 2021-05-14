@@ -17,12 +17,5 @@ namespace SixLabors.ImageSharp
         /// <param name="metadata">The metadata this method extends.</param>
         /// <returns>The <see cref="TiffMetadata"/>.</returns>
         public static TiffMetadata GetTiffMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(TiffFormat.Instance);
-
-        /// <summary>
-        /// Gets the tiff format specific metadata for the image frame.
-        /// </summary>
-        /// <param name="metadata">The metadata this method extends.</param>
-        /// <returns>The <see cref="TiffFrameMetadata"/>.</returns>
-        public static TiffFrameMetadata GetTiffMetadata(this ImageFrameMetadata metadata) => metadata.GetFormatMetadata(TiffFormat.Instance);
     }
 }

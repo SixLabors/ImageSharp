@@ -112,9 +112,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
             TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
-            TiffFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+            TiffPhotometricInterpretation rootFramePhotometricInterpretation = GetRootFramePhotometricInterpretation(image);
             TiffPhotometricInterpretation photometricInterpretation = this.Mode == TiffEncodingMode.ColorPalette
-                ? TiffPhotometricInterpretation.PaletteColor : rootFrameMetaData.PhotometricInterpretation;
+                ? TiffPhotometricInterpretation.PaletteColor : rootFramePhotometricInterpretation;
 
             this.SetMode(tiffMetadata, photometricInterpretation);
             this.SetBitsPerPixel(tiffMetadata);
@@ -374,6 +374,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
                     break;
             }
+        }
+
+        private static TiffPhotometricInterpretation GetRootFramePhotometricInterpretation(Image image)
+        {
+            ExifProfile exifProfile = image.Frames.RootFrame.Metadata.ExifProfile;
+            TiffPhotometricInterpretation rootFramePhotometricInterpretation =
+                exifProfile?.GetValue(ExifTag.PhotometricInterpretation) != null
+                    ? (TiffPhotometricInterpretation)exifProfile?.GetValue(ExifTag.PhotometricInterpretation).Value
+                    : TiffPhotometricInterpretation.WhiteIsZero;
+            return rootFramePhotometricInterpretation;
         }
     }
 }

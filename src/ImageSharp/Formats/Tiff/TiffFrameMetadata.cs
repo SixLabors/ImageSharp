@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Provides Tiff specific metadata information for the frame.
     /// </summary>
-    public class TiffFrameMetadata : IDeepCloneable
+    internal class TiffFrameMetadata : IDeepCloneable
     {
         private const TiffPlanarConfiguration DefaultPlanarConfiguration = TiffPlanarConfiguration.Chunky;
 

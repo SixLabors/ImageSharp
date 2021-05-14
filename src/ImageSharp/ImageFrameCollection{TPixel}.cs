@@ -208,8 +208,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc />
-        public override bool Contains(ImageFrame frame) =>
-            frame is ImageFrame<TPixel> specific && this.Contains(specific);
+        public override bool Contains(ImageFrame frame)
+        {
+            this.EnsureNotDisposed();
+
+            return frame is ImageFrame<TPixel> specific && this.frames.Contains(specific);
+        }
 
         /// <summary>
         /// Determines whether the <seealso cref="ImageFrameCollection{TPixel}"/> contains the <paramref name="frame"/>.

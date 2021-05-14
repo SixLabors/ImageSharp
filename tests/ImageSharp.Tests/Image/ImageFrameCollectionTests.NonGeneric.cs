@@ -279,13 +279,14 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var image = new Image<Rgba32>(Configuration.Default, 10, 10);
                 var frameCollection = image.Frames;
+                var rgba32Array = new Rgba32[0];
 
                 image.Dispose(); // this should invalidate underlying collection as well
 
                 Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame((ImageFrame)null); });
-                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame((Rgba32[])null); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame(rgba32Array); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame((ImageFrame<Rgba32>)null); });
-                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame(stackalloc Rgba32[0]); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame(rgba32Array.AsSpan()); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CloneFrame(default); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.Contains(default); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CreateFrame(); });

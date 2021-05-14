@@ -335,7 +335,8 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        internal void Dispose()
+        /// <inheritdoc/>
+        protected override void DisposeManaged()
         {
             foreach (ImageFrame<TPixel> f in this.frames)
             {

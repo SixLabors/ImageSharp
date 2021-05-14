@@ -323,6 +323,48 @@ namespace SixLabors.ImageSharp.Tests
                 var frame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                 Assert.False(this.Image.Frames.Contains(frame));
             }
+
+            [Fact]
+            public void DisposeCall_NoThrowIfCalledMultiple()
+            {
+                var image = new Image<Rgba32>(Configuration.Default, 10, 10);
+                var frameCollection = image.Frames as ImageFrameCollection;
+
+                image.Dispose(); // this should invalidate underlying collection as well
+                frameCollection.Dispose();
+            }
+
+            [Fact]
+            public void PublicProperties_ThrowIfDisposed()
+            {
+                var image = new Image<Rgba32>(Configuration.Default, 10, 10);
+                var frameCollection = image.Frames as ImageFrameCollection;
+
+                image.Dispose(); // this should invalidate underlying collection as well
+
+                Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.RootFrame; });
+            }
+
+            [Fact]
+            public void PublicMethods_ThrowIfDisposed()
+            {
+                var image = new Image<Rgba32>(Configuration.Default, 10, 10);
+                var frameCollection = image.Frames as ImageFrameCollection;
+
+                image.Dispose(); // this should invalidate underlying collection as well
+
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CloneFrame(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.Contains(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CreateFrame(); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CreateFrame(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.ExportFrame(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.GetEnumerator(); });
+                Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.IndexOf(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.InsertFrame(default, default); });
+                Assert.Throws<ObjectDisposedException>(() => { frameCollection.RemoveFrame(default); });
+                Assert.Throws<ObjectDisposedException>(() => { frameCollection.MoveFrame(default, default); });
+            }
         }
     }
 }

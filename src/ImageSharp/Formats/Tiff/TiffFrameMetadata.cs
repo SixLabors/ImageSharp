@@ -217,17 +217,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <inheritdoc/>
         public IDeepCloneable DeepClone()
         {
-            var clone = new TiffFrameMetadata();
-
-            clone.FillOrder = this.FillOrder;
-            clone.Compression = this.Compression;
-            clone.FaxCompressionOptions = this.FaxCompressionOptions;
-            clone.SubfileType = this.SubfileType ?? TiffNewSubfileType.FullImage;
-            clone.OldSubfileType = this.OldSubfileType ?? TiffSubfileType.FullImage;
-            clone.HorizontalResolution = this.HorizontalResolution ?? ImageMetadata.DefaultHorizontalResolution;
-            clone.VerticalResolution = this.VerticalResolution ?? ImageMetadata.DefaultVerticalResolution;
-            clone.ResolutionUnit = this.ResolutionUnit;
-            clone.PlanarConfiguration = this.PlanarConfiguration;
+            var clone = new TiffFrameMetadata
+            {
+                FillOrder = this.FillOrder,
+                Compression = this.Compression,
+                FaxCompressionOptions = this.FaxCompressionOptions,
+                SubfileType = this.SubfileType ?? TiffNewSubfileType.FullImage,
+                OldSubfileType = this.OldSubfileType ?? TiffSubfileType.FullImage,
+                HorizontalResolution = this.HorizontalResolution ?? ImageMetadata.DefaultHorizontalResolution,
+                VerticalResolution = this.VerticalResolution ?? ImageMetadata.DefaultVerticalResolution,
+                ResolutionUnit = this.ResolutionUnit,
+                PlanarConfiguration = this.PlanarConfiguration
+            };
 
             if (this.ColorMap != null)
             {

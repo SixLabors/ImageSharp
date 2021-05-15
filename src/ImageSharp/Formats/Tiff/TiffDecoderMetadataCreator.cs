@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public static ImageMetadata Create<TPixel>(List<ImageFrame<TPixel>> frames, List<TiffFrameMetadata> framesMetaData, bool ignoreMetadata, ByteOrder byteOrder)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            DebugGuard.IsTrue(frames.Count() == framesMetaData.Count, nameof(frames), "Image frames and frames metdadata should be the same size.");
+            DebugGuard.IsTrue(frames.Count == framesMetaData.Count, nameof(frames), "Image frames and frames metadata should be the same size.");
 
             if (framesMetaData.Count < 1)
             {
@@ -50,12 +50,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         }
                     }
 
-                    if (imageMetaData.IptcProfile == null)
+                    if (imageMetaData.IptcProfile == null && TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                     {
-                        if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
-                        {
-                            imageMetaData.IptcProfile = new IptcProfile(iptcBytes);
-                        }
+                        imageMetaData.IptcProfile = new IptcProfile(iptcBytes);
                     }
 
                     if (imageMetaData.IccProfile == null)
@@ -146,8 +143,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     return true;
                 }
-
-                return false;
             }
 
             return false;

@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Metadata
         /// <summary>
         /// Gets or sets the XMP profile.
         /// </summary>
-        public byte[] XmpProfile { get; set; }
+        internal byte[] XmpProfile { get; set; }
 
         /// <inheritdoc/>
         public ImageFrameMetadata DeepClone() => new ImageFrameMetadata(this);

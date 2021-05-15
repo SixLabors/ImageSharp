@@ -748,5 +748,19 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Lerp(float value1, float value2, float amount)
             => ((value2 - value1) * amount) + value1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Accumulate(ref Vector<uint> accumulator, Vector<byte> values)
+        {
+            Vector.Widen(values, out Vector<ushort> shortLow, out Vector<ushort> shortHigh);
+
+            Vector.Widen(shortLow, out Vector<uint> intLow, out Vector<uint> intHigh);
+            accumulator += intLow;
+            accumulator += intHigh;
+
+            Vector.Widen(shortHigh, out intLow, out intHigh);
+            accumulator += intLow;
+            accumulator += intHigh;
+        }
     }
 }

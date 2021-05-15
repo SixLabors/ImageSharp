@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Vector.IsHardwareAccelerated)
             {
-                Vector<int> sumAccumulator = Vector<int>.Zero;
+                Vector<uint> sumAccumulator = Vector<uint>.Zero;
 
                 for (int xLeft = x - bytesPerPixel; x + Vector<byte>.Count <= scanline.Length; xLeft += Vector<byte>.Count)
                 {
@@ -99,23 +99,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     res.CopyTo(result.Slice(x + 1)); // + 1 to skip filter type
                     x += Vector<byte>.Count;
 
-                    Vector.Widen(
-                        Vector.Abs(Vector.AsVectorSByte(res)),
-                        out Vector<short> shortLow,
-                        out Vector<short> shortHigh);
-
-                    Vector.Widen(shortLow, out Vector<int> intLow, out Vector<int> intHigh);
-                    sumAccumulator += intLow;
-                    sumAccumulator += intHigh;
-
-                    Vector.Widen(shortHigh, out intLow, out intHigh);
-                    sumAccumulator += intLow;
-                    sumAccumulator += intHigh;
+                    Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
                 }
 
-                for (int i = 0; i < Vector<int>.Count; i++)
+                for (int i = 0; i < Vector<uint>.Count; i++)
                 {
-                    sum += sumAccumulator[i];
+                    sum += (int)sumAccumulator[i];
                 }
             }
 #endif

@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -57,7 +58,33 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Up(x) = Raw(x) - Prior(x)
             resultBaseRef = 2;
 
-            for (int x = 0; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
+            int x = 0;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Vector.IsHardwareAccelerated)
+            {
+                Vector<uint> sumAccumulator = Vector<uint>.Zero;
+
+                for (; x + Vector<byte>.Count <= scanline.Length;)
+                {
+                    Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+
+                    Vector<byte> res = scan - above;
+                    Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                    x += Vector<byte>.Count;
+
+                    Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
+                }
+
+                for (int i = 0; i < Vector<uint>.Count; i++)
+                {
+                    sum += (int)sumAccumulator[i];
+                }
+            }
+#endif
+
+            for (; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
             {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);

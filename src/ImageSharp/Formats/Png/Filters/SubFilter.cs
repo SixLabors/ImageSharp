@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -63,6 +64,30 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 res = scan;
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Vector.IsHardwareAccelerated)
+            {
+                Vector<uint> sumAccumulator = Vector<uint>.Zero;
+
+                for (int xLeft = x - bytesPerPixel; x + Vector<byte>.Count <= scanline.Length; xLeft += Vector<byte>.Count)
+                {
+                    Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector<byte> prev = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
+
+                    Vector<byte> res = scan - prev;
+                    Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                    x += Vector<byte>.Count;
+
+                    Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
+                }
+
+                for (int i = 0; i < Vector<uint>.Count; i++)
+                {
+                    sum += (int)sumAccumulator[i];
+                }
+            }
+#endif
 
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
             {

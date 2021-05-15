@@ -90,13 +90,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 
                 for (int xLeft = x - bytesPerPixel; x + Vector<byte>.Count <= scanline.Length; xLeft += Vector<byte>.Count)
                 {
-                    var scan = new Vector<byte>(scanline.Slice(x));
-                    var left = new Vector<byte>(scanline.Slice(xLeft));
-                    var above = new Vector<byte>(previousScanline.Slice(x));
-                    var upperLeft = new Vector<byte>(previousScanline.Slice(xLeft));
+                    Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector<byte> left = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
+                    Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+                    Vector<byte> upperLeft = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, xLeft));
 
                     Vector<byte> res = scan - PaethPredictor(left, above, upperLeft);
-                    res.CopyTo(result.Slice(x + 1)); // + 1 to skip filter type
+                    Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                     x += Vector<byte>.Count;
 
                     Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));

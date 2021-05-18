@@ -108,10 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
                 }
 
-                for (int i = 0; i < Vector256<int>.Count; i++)
-                {
-                    sum += sumAccumulator.GetElement(i);
-                }
+                sum += Numerics.EvenReduceSum(sumAccumulator);
             }
             else if (Vector.IsHardwareAccelerated)
             {

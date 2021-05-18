@@ -6,6 +6,11 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
+
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
     /// <summary>
@@ -66,7 +71,26 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Vector.IsHardwareAccelerated)
+            if (Avx2.IsSupported)
+            {
+                Vector256<byte> zero = Vector256<byte>.Zero;
+                Vector256<int> sumAccumulator = Vector256<int>.Zero;
+
+                for (int xLeft = x - bytesPerPixel; x + Vector256<byte>.Count <= scanline.Length; xLeft += Vector256<byte>.Count)
+                {
+                    Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector256<byte> prev = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
+
+                    Vector256<byte> res = Avx2.Subtract(scan, prev);
+                    Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                    x += Vector256<byte>.Count;
+
+                    sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
+                }
+
+                sum += Numerics.EvenReduceSum(sumAccumulator);
+            }
+            else if (Vector.IsHardwareAccelerated)
             {
                 Vector<uint> sumAccumulator = Vector<uint>.Zero;
 

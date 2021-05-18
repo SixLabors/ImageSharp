@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Fact]
-        public void PaethSimd()
+        public void PaethAvx2()
         {
             static void RunTest()
             {
@@ -112,6 +112,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 HwIntrinsics.AllowAll);
+        }
+
+        [Fact]
+        public void PaethVector()
+        {
+            static void RunTest()
+            {
+                var data = new TestData(PngFilterMethod.Paeth, Size);
+                data.TestFilter();
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
 
         [Fact]
@@ -128,8 +142,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 HwIntrinsics.DisableSIMD);
         }
 
+
         [Fact]
-        public void UpSimd()
+        public void UpAvx2()
         {
             static void RunTest()
             {
@@ -140,6 +155,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 HwIntrinsics.AllowAll);
+        }
+
+        [Fact]
+        public void UpVector()
+        {
+            static void RunTest()
+            {
+                var data = new TestData(PngFilterMethod.Up, Size);
+                data.TestFilter();
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
 
         [Fact]
@@ -157,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Fact]
-        public void SubSimd()
+        public void SubAvx2()
         {
             static void RunTest()
             {
@@ -168,6 +197,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 HwIntrinsics.AllowAll);
+        }
+
+        [Fact]
+        public void SubVector()
+        {
+            static void RunTest()
+            {
+                var data = new TestData(PngFilterMethod.Sub, Size);
+                data.TestFilter();
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
 
         public class TestData

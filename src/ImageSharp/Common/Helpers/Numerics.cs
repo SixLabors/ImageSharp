@@ -750,6 +750,23 @@ namespace SixLabors.ImageSharp
             => ((value2 - value1) * amount) + value1;
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+
+        /// <summary>
+        /// Accumulates 8-bit integers into <paramref name="accumulator"/> by
+        /// widening them to 32-bit integers and performing four additions.
+        /// </summary>
+        /// <remarks>
+        /// <code>byte(1, 2, 3, 4,  5, 6, 7, 8,  9, 10, 11, 12,  13, 14, 15, 16)</code>
+        /// is widened and added onto <paramref name="accumulator"/> as such:
+        /// <code>
+        ///  accumulator += i32(1, 2, 3, 4);
+        ///  accumulator += i32(5, 6, 7, 8);
+        ///  accumulator += i32(9, 10, 11, 12);
+        ///  accumulator += i32(13, 14, 15, 16);
+        /// </code>
+        /// </remarks>
+        /// <param name="accumulator">The accumulator destination.</param>
+        /// <param name="values">The values to accumulate.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Accumulate(ref Vector<uint> accumulator, Vector<byte> values)
         {

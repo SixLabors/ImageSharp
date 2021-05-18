@@ -91,6 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
+                Vector256<byte> zero = Vector256<byte>.Zero;
                 Vector256<int> sumAccumulator = Vector256<int>.Zero;
 
                 for (int xLeft = x - bytesPerPixel; x + Vector256<byte>.Count <= scanline.Length; xLeft += Vector256<byte>.Count)
@@ -104,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                     x += Vector256<byte>.Count;
 
-                    sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), Vector256<byte>.Zero).AsInt32());
+                    sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
                 }
 
                 for (int i = 0; i < Vector256<int>.Count; i++)

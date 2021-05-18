@@ -87,6 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
+                Vector256<byte> zero = Vector256<byte>.Zero;
                 Vector256<int> sumAccumulator = Vector256<int>.Zero;
                 Vector256<byte> allBitsSet = Avx2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
@@ -102,19 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                     x += Vector256<byte>.Count;
 
-                    Vector256<sbyte> absRes = Avx2.Abs(res.AsSByte()).AsSByte();
-                    Vector256<short> loRes16 = Avx2.UnpackLow(absRes, Vector256<sbyte>.Zero).AsInt16();
-                    Vector256<short> hiRes16 = Avx2.UnpackHigh(absRes, Vector256<sbyte>.Zero).AsInt16();
-
-                    Vector256<int> loRes32 = Avx2.UnpackLow(loRes16, Vector256<short>.Zero).AsInt32();
-                    Vector256<int> hiRes32 = Avx2.UnpackHigh(loRes16, Vector256<short>.Zero).AsInt32();
-                    sumAccumulator = Avx2.Add(sumAccumulator, loRes32);
-                    sumAccumulator = Avx2.Add(sumAccumulator, hiRes32);
-
-                    loRes32 = Avx2.UnpackLow(hiRes16, Vector256<short>.Zero).AsInt32();
-                    hiRes32 = Avx2.UnpackHigh(hiRes16, Vector256<short>.Zero).AsInt32();
-                    sumAccumulator = Avx2.Add(sumAccumulator, loRes32);
-                    sumAccumulator = Avx2.Add(sumAccumulator, hiRes32);
+                    sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
                 }
 
                 for (int i = 0; i < Vector256<int>.Count; i++)
@@ -124,6 +113,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
             else if (Sse2.IsSupported)
             {
+                Vector128<sbyte> zero8 = Vector128<sbyte>.Zero;
+                Vector128<short> zero16 = Vector128<short>.Zero;
                 Vector128<int> sumAccumulator = Vector128<int>.Zero;
                 Vector128<byte> allBitsSet = Sse2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
@@ -146,21 +137,21 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     }
                     else
                     {
-                        Vector128<sbyte> mask = Sse2.CompareGreaterThan(res.AsSByte(), Vector128<sbyte>.Zero);
+                        Vector128<sbyte> mask = Sse2.CompareGreaterThan(res.AsSByte(), zero8);
                         mask = Sse2.Xor(mask, allBitsSet.AsSByte());
                         absRes = Sse2.Xor(Sse2.Add(res.AsSByte(), mask), mask);
                     }
 
-                    Vector128<short> loRes16 = Sse2.UnpackLow(absRes, Vector128<sbyte>.Zero).AsInt16();
-                    Vector128<short> hiRes16 = Sse2.UnpackHigh(absRes, Vector128<sbyte>.Zero).AsInt16();
+                    Vector128<short> loRes16 = Sse2.UnpackLow(absRes, zero8).AsInt16();
+                    Vector128<short> hiRes16 = Sse2.UnpackHigh(absRes, zero8).AsInt16();
 
-                    Vector128<int> loRes32 = Sse2.UnpackLow(loRes16, Vector128<short>.Zero).AsInt32();
-                    Vector128<int> hiRes32 = Sse2.UnpackHigh(loRes16, Vector128<short>.Zero).AsInt32();
+                    Vector128<int> loRes32 = Sse2.UnpackLow(loRes16, zero16).AsInt32();
+                    Vector128<int> hiRes32 = Sse2.UnpackHigh(loRes16, zero16).AsInt32();
                     sumAccumulator = Sse2.Add(sumAccumulator, loRes32);
                     sumAccumulator = Sse2.Add(sumAccumulator, hiRes32);
 
-                    loRes32 = Sse2.UnpackLow(hiRes16, Vector128<short>.Zero).AsInt32();
-                    hiRes32 = Sse2.UnpackHigh(hiRes16, Vector128<short>.Zero).AsInt32();
+                    loRes32 = Sse2.UnpackLow(hiRes16, zero16).AsInt32();
+                    hiRes32 = Sse2.UnpackHigh(hiRes16, zero16).AsInt32();
                     sumAccumulator = Sse2.Add(sumAccumulator, loRes32);
                     sumAccumulator = Sse2.Add(sumAccumulator, hiRes32);
                 }

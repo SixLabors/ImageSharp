@@ -19,21 +19,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Initializes a new instance of the <see cref="TiffMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private TiffMetadata(TiffMetadata other)
-        {
-            this.ByteOrder = other.ByteOrder;
-            this.BitsPerPixel = other.BitsPerPixel;
-        }
+        private TiffMetadata(TiffMetadata other) => this.ByteOrder = other.ByteOrder;
 
         /// <summary>
         /// Gets or sets the byte order.
         /// </summary>
         public ByteOrder ByteOrder { get; set; }
-
-        /// <summary>
-        /// Gets or sets the number of bits per pixel for the root frame.
-        /// </summary>
-        public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffMetadata(this);

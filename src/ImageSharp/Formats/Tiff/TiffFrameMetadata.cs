@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
         /// </summary>
         /// <param name="frameTags">The Tiff frame directory tags.</param>
-        public TiffFrameMetadata(ExifProfile frameTags) => this.Initialize(frameTags);
+        public TiffFrameMetadata(ExifProfile frameTags) => this.Initialize(frameTags ?? new ExifProfile());
 
         /// <summary>
         /// Gets or sets a general indication of the kind of data contained in this subfile.
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets or sets the bits per pixel.
         /// </summary>
-        public int BitsPerPixel { get; set; }
+        public TiffBitsPerPixel BitsPerPixel { get; set; }
 
         /// <summary>
         /// Gets or sets the compression scheme used on the image data.
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.BitsPerSample = bits.GetBitsPerSample();
             }
 
-            this.BitsPerPixel = this.BitsPerSample.GetValueOrDefault().BitsPerPixel();
+            this.BitsPerPixel = (TiffBitsPerPixel)this.BitsPerSample.GetValueOrDefault().BitsPerPixel();
         }
 
         /// <summary>

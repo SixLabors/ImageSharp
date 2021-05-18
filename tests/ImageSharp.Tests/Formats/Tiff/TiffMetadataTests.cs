@@ -35,16 +35,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             var meta = new TiffMetadata
             {
-                BitsPerPixel = TiffBitsPerPixel.Bit8,
                 ByteOrder = ByteOrder.BigEndian,
             };
 
             var clone = (TiffMetadata)meta.DeepClone();
 
-            clone.BitsPerPixel = TiffBitsPerPixel.Bit24;
             clone.ByteOrder = ByteOrder.LittleEndian;
 
-            Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
             Assert.False(meta.ByteOrder == clone.ByteOrder);
         }
 
@@ -71,10 +68,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(Calliphora_BiColorUncompressed, TiffBitsPerPixel.Bit1)]
-        [InlineData(GrayscaleUncompressed, TiffBitsPerPixel.Bit8)]
-        [InlineData(RgbUncompressed, TiffBitsPerPixel.Bit24)]
-        public void Identify_DetectsCorrectBitPerPixel(string imagePath, TiffBitsPerPixel expectedBitsPerPixel)
+        [InlineData(Calliphora_BiColorUncompressed, 1)]
+        [InlineData(GrayscaleUncompressed, 8)]
+        [InlineData(RgbUncompressed, 24)]
+        public void Identify_DetectsCorrectBitPerPixel(string imagePath, int expectedBitsPerPixel)
         {
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
@@ -84,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
             Assert.NotNull(tiffMetadata);
-            Assert.Equal(expectedBitsPerPixel, tiffMetadata.BitsPerPixel);
+            Assert.Equal(expectedBitsPerPixel, imageInfo.PixelType.BitsPerPixel);
         }
 
         [Theory]
@@ -178,7 +175,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 TiffMetadata tiffMetaData = image.Metadata.GetTiffMetadata();
                 Assert.NotNull(tiffMetaData);
                 Assert.Equal(ByteOrder.LittleEndian, tiffMetaData.ByteOrder);
-                Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaData.BitsPerPixel);
+
+                var frameMetaData = new TiffFrameMetadata(exifProfile);
+                Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
 
                 var tiffFrameMetadata = new TiffFrameMetadata(exifProfile);
                 VerifyExpectedTiffFrameMetaDataIsPresent(tiffFrameMetadata);
@@ -250,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ExifProfile rootFrameExifProfileInput = rootFrameInput.Metadata.ExifProfile;
 
             Assert.Equal(TiffCompression.Lzw, frameMetaInput.Compression);
-            Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaInput.BitsPerPixel);
+            Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaInput.BitsPerPixel);
 
             // Save to Tiff
             var tiffEncoder = new TiffEncoder() { Mode = TiffEncodingMode.Rgb };
@@ -268,7 +267,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ExifProfile encodedImageExifProfile = rootFrameEncodedImage.Metadata.ExifProfile;
             byte[] encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
 
-            Assert.Equal(TiffBitsPerPixel.Bit24, tiffMetaDataEncodedImage.BitsPerPixel);
+            Assert.Equal(TiffBitsPerPixel.Bit24, tiffMetaDataEncodedRootFrame.BitsPerPixel);
             Assert.Equal(TiffCompression.None, tiffMetaDataEncodedRootFrame.Compression);
 
             Assert.Equal(inputMetaData.HorizontalResolution, encodedImageMetaData.HorizontalResolution);

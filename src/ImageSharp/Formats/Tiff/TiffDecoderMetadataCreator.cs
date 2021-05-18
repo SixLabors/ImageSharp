@@ -33,7 +33,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
-            tiffMetadata.BitsPerPixel = GetBitsPerPixel(rootFrameMetadata);
 
             if (!ignoreMetadata)
             {
@@ -82,7 +81,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
-            tiffMetadata.BitsPerPixel = GetBitsPerPixel(rootFrameMetadata);
 
             return imageMetaData;
         }

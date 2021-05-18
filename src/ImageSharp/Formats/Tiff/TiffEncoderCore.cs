@@ -110,21 +110,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
-            ImageMetadata metadata = image.Metadata;
-            TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
+            ExifProfile rootFrameExifProfile = image.Frames.RootFrame.Metadata.ExifProfile;
             TiffPhotometricInterpretation rootFramePhotometricInterpretation = GetRootFramePhotometricInterpretation(image);
             TiffPhotometricInterpretation photometricInterpretation = this.Mode == TiffEncodingMode.ColorPalette
                 ? TiffPhotometricInterpretation.PaletteColor : rootFramePhotometricInterpretation;
+            TiffBitsPerPixel? rootFrameBitsPerPixel = null;
+            if (rootFrameExifProfile != null)
+            {
+                rootFrameBitsPerPixel = new TiffFrameMetadata(rootFrameExifProfile).BitsPerPixel;
+            }
 
-            this.SetMode(tiffMetadata, photometricInterpretation);
-            this.SetBitsPerPixel(tiffMetadata);
+            this.SetMode(rootFrameBitsPerPixel, photometricInterpretation);
+            this.SetBitsPerPixel(rootFrameBitsPerPixel);
             this.SetPhotometricInterpretation();
 
             using (var writer = new TiffStreamWriter(stream))
             {
                 long firstIfdMarker = this.WriteHeader(writer);
 
-                // TODO: multiframing is not support
+                // TODO: multiframing is not supported
                 this.WriteImage(writer, image, firstIfdMarker);
             }
         }
@@ -264,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return nextIfdMarker;
         }
 
-        private void SetMode(TiffMetadata tiffMetadata, TiffPhotometricInterpretation photometricInterpretation)
+        private void SetMode(TiffBitsPerPixel? rootFrameBitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
         {
             // Make sure, that the fax compressions are only used together with the BiColor mode.
             if (this.CompressionType == TiffCompression.CcittGroup3Fax || this.CompressionType == TiffCompression.Ccitt1D)
@@ -282,10 +286,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            if (this.Mode == TiffEncodingMode.Default && tiffMetadata.BitsPerPixel != null)
+            if (this.Mode == TiffEncodingMode.Default && rootFrameBitsPerPixel.HasValue)
             {
-                // Preserve input bits per pixel, if no encoding mode was specified.
-                this.SetModeWithBitsPerPixel(tiffMetadata.BitsPerPixel, photometricInterpretation);
+                // Preserve input bits per pixel, if no encoding mode was specified and the input image has a bits per pixel set.
+                this.SetModeWithBitsPerPixel(rootFrameBitsPerPixel, photometricInterpretation);
 
                 return;
             }
@@ -319,9 +323,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private void SetBitsPerPixel(TiffMetadata tiffMetadata)
+        private void SetBitsPerPixel(TiffBitsPerPixel? rootFrameBitsPerPixel)
         {
-            this.BitsPerPixel ??= tiffMetadata.BitsPerPixel;
+            this.BitsPerPixel ??= rootFrameBitsPerPixel;
             switch (this.Mode)
             {
                 case TiffEncodingMode.BiColor:

@@ -49,9 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
-            TiffMetadata meta = output.Metadata.GetTiffMetadata();
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
+            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.None, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
 
@@ -73,9 +73,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
-            TiffMetadata meta = output.Metadata.GetTiffMetadata();
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            Assert.Equal(bitsPerPixel, meta.BitsPerPixel);
+            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            Assert.Equal(bitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.None, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
 
@@ -113,9 +113,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
-            TiffMetadata meta = output.Metadata.GetTiffMetadata();
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
+            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
 
@@ -140,8 +140,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
-            TiffMetadata meta = output.Metadata.GetTiffMetadata();
-            Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
+            ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
+            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
 
         [Theory]
@@ -163,9 +164,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
-            TiffMetadata meta = output.Metadata.GetTiffMetadata();
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            Assert.Equal(TiffBitsPerPixel.Bit1, meta.BitsPerPixel);
+            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            Assert.Equal(TiffBitsPerPixel.Bit1, frameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
 
@@ -367,7 +368,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 {
                     // The difference must be less than one row.
                     int stripBytes = (int)outputMeta.StripByteCounts[i];
-                    int widthBytes = (outputMeta.BitsPerPixel + 7) / 8 * rootFrame.Width;
+                    int widthBytes = ((int)outputMeta.BitsPerPixel + 7) / 8 * rootFrame.Width;
 
                     Assert.True((TiffConstants.DefaultStripSize - stripBytes) < widthBytes);
                 }
@@ -376,7 +377,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // Compare with reference.
             TestTiffEncoderCore(
                 provider,
-                (TiffBitsPerPixel)inputMeta.BitsPerPixel,
+                inputMeta.BitsPerPixel,
                 mode,
                 inputMeta.Compression);
         }

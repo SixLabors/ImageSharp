@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             int width = GetImageWidth(rootFrameExifProfile);
             int height = GetImageHeight(rootFrameExifProfile);
 
-            return new ImageInfo(new PixelTypeInfo(root.BitsPerPixel), width, height, metadata);
+            return new ImageInfo(new PixelTypeInfo((int)root.BitsPerPixel), width, height, metadata);
         }
 
         /// <summary>

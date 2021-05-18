@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Explicit)]
     internal partial struct Block8x8F : IEquatable<Block8x8F>
     {
         /// <summary>
@@ -27,29 +27,64 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public const int Size = 64;
 
 #pragma warning disable SA1600 // ElementsMustBeDocumented
+        [FieldOffset(0)]
         public Vector4 V0L;
+        [FieldOffset(16)]
         public Vector4 V0R;
 
+        [FieldOffset(32)]
         public Vector4 V1L;
+        [FieldOffset(48)]
         public Vector4 V1R;
 
+        [FieldOffset(64)]
         public Vector4 V2L;
+        [FieldOffset(80)]
         public Vector4 V2R;
 
+        [FieldOffset(96)]
         public Vector4 V3L;
+        [FieldOffset(112)]
         public Vector4 V3R;
 
+        [FieldOffset(128)]
         public Vector4 V4L;
+        [FieldOffset(144)]
         public Vector4 V4R;
 
+        [FieldOffset(160)]
         public Vector4 V5L;
+        [FieldOffset(176)]
         public Vector4 V5R;
 
+        [FieldOffset(192)]
         public Vector4 V6L;
+        [FieldOffset(208)]
         public Vector4 V6R;
 
+        [FieldOffset(224)]
         public Vector4 V7L;
+        [FieldOffset(240)]
         public Vector4 V7R;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [FieldOffset(0)]
+        public Vector256<float> V0;
+        [FieldOffset(32)]
+        public Vector256<float> V1;
+        [FieldOffset(64)]
+        public Vector256<float> V2;
+        [FieldOffset(96)]
+        public Vector256<float> V3;
+        [FieldOffset(128)]
+        public Vector256<float> V4;
+        [FieldOffset(160)]
+        public Vector256<float> V5;
+        [FieldOffset(192)]
+        public Vector256<float> V6;
+        [FieldOffset(224)]
+        public Vector256<float> V7;
+#endif
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
         /// <summary>

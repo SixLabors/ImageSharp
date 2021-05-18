@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 
 namespace SixLabors.ImageSharp.Metadata
 {
@@ -39,6 +41,8 @@ namespace SixLabors.ImageSharp.Metadata
             }
 
             this.ExifProfile = other.ExifProfile?.DeepClone();
+            this.IccProfile = other.IccProfile?.DeepClone();
+            this.IptcProfile = other.IptcProfile?.DeepClone();
             this.XmpProfile = other.XmpProfile != null ? new byte[other.XmpProfile.Length] : null;
             other.XmpProfile?.AsSpan().CopyTo(this.XmpProfile.AsSpan());
         }
@@ -52,6 +56,16 @@ namespace SixLabors.ImageSharp.Metadata
         /// Gets or sets the XMP profile.
         /// </summary>
         internal byte[] XmpProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of ICC profiles.
+        /// </summary>
+        public IccProfile IccProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the iptc profile.
+        /// </summary>
+        public IptcProfile IptcProfile { get; set; }
 
         /// <inheritdoc/>
         public ImageFrameMetadata DeepClone() => new ImageFrameMetadata(this);

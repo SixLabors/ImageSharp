@@ -133,8 +133,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using Image<TPixel> image = provider.GetImage(TiffDecoder);
 
-            Assert.NotNull(image.Metadata.IptcProfile);
-            IptcValue byline = image.Metadata.IptcProfile.Values.FirstOrDefault(data => data.Tag == IptcTag.Byline);
+            IptcProfile iptcProfile = image.Frames.RootFrame.Metadata.IptcProfile;
+            Assert.NotNull(iptcProfile);
+            IptcValue byline = iptcProfile.Values.FirstOrDefault(data => data.Tag == IptcTag.Byline);
             Assert.NotNull(byline);
             Assert.Equal("Studio Mantyniemi", byline.Value);
         }

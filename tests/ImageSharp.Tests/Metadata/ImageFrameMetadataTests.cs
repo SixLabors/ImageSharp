@@ -4,8 +4,10 @@
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
+using ExifProfile = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifProfile;
+using ExifTag = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifTag;
 
 namespace SixLabors.ImageSharp.Tests.Metadata
 {
@@ -43,10 +45,20 @@ namespace SixLabors.ImageSharp.Tests.Metadata
             var exifProfile = new ExifProfile();
             exifProfile.SetValue(ExifTag.Software, "UnitTest");
             exifProfile.SetValue(ExifTag.Artist, "UnitTest");
+            var iccProfile = new IccProfile()
+            {
+                Header = new IccProfileHeader()
+                {
+                    CmmType = "Unittest"
+                }
+            };
+            var iptcProfile = new ImageSharp.Metadata.Profiles.Iptc.IptcProfile();
             var metaData = new ImageFrameMetadata()
             {
                 XmpProfile = xmpProfile,
-                ExifProfile = exifProfile
+                ExifProfile = exifProfile,
+                IccProfile = iccProfile,
+                IptcProfile = iptcProfile
             };
 
             // act
@@ -56,11 +68,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata
             Assert.NotNull(clone);
             Assert.NotNull(clone.ExifProfile);
             Assert.NotNull(clone.XmpProfile);
+            Assert.NotNull(clone.IccProfile);
+            Assert.NotNull(clone.IptcProfile);
             Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
             Assert.True(metaData.ExifProfile.Values.Count == clone.ExifProfile.Values.Count);
             Assert.False(metaData.XmpProfile.Equals(clone.XmpProfile));
             Assert.True(metaData.XmpProfile.SequenceEqual(clone.XmpProfile));
             Assert.False(metaData.GetGifMetadata().Equals(clone.GetGifMetadata()));
+            Assert.False(metaData.IccProfile.Equals(clone.IccProfile));
+            Assert.False(metaData.IptcProfile.Equals(clone.IptcProfile));
         }
     }
 }

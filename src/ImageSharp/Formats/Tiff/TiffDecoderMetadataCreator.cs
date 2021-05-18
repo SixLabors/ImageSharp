@@ -40,18 +40,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     ImageFrame<TPixel> frame = frames[i];
                     ImageFrameMetadata frameMetaData = frame.Metadata;
-                    if (imageMetaData.IptcProfile == null && TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
+                    if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                     {
-                        imageMetaData.IptcProfile = new IptcProfile(iptcBytes);
+                        frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
                     }
 
-                    if (imageMetaData.IccProfile == null)
+                    IExifValue<byte[]> iccProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);
+                    if (iccProfileBytes != null)
                     {
-                        IExifValue<byte[]> val = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);
-                        if (val != null)
-                        {
-                            imageMetaData.IccProfile = new IccProfile(val.Value);
-                        }
+                        frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
                     }
                 }
             }

@@ -88,6 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             if (Avx2.IsSupported)
             {
                 Vector256<int> sumAccumulator = Vector256<int>.Zero;
+                Vector256<byte> allBitsSet = Avx2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
                 for (int xLeft = x - bytesPerPixel; x + Vector256<byte>.Count <= scanline.Length; xLeft += Vector256<byte>.Count)
                 {
@@ -95,7 +96,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
                     Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
 
-                    Vector256<byte> res = Avx2.Subtract(scan, Average(left, above));
+                    Vector256<byte> avg = Avx2.Xor(Avx2.Average(Avx2.Xor(left, allBitsSet), Avx2.Xor(above, allBitsSet)), allBitsSet);
+                    Vector256<byte> res = Avx2.Subtract(scan, avg);
+
                     Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                     x += Vector256<byte>.Count;
 
@@ -121,8 +124,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
             else if (Sse2.IsSupported)
             {
-                var allBitsSet = Vector128.Create((sbyte)-1);
                 Vector128<int> sumAccumulator = Vector128<int>.Zero;
+                Vector128<byte> allBitsSet = Sse2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
                 for (int xLeft = x - bytesPerPixel; x + Vector128<byte>.Count <= scanline.Length; xLeft += Vector128<byte>.Count)
                 {
@@ -130,7 +133,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     Vector128<byte> left = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
                     Vector128<byte> above = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
 
-                    Vector128<byte> res = Sse2.Subtract(scan, Average(left, above));
+                    Vector128<byte> avg = Sse2.Xor(Sse2.Average(Sse2.Xor(left, allBitsSet), Sse2.Xor(above, allBitsSet)), allBitsSet);
+                    Vector128<byte> res = Sse2.Subtract(scan, avg);
+
                     Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                     x += Vector128<byte>.Count;
 
@@ -142,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     else
                     {
                         Vector128<sbyte> mask = Sse2.CompareGreaterThan(res.AsSByte(), Vector128<sbyte>.Zero);
-                        mask = Sse2.Xor(mask, allBitsSet);
+                        mask = Sse2.Xor(mask, allBitsSet.AsSByte());
                         absRes = Sse2.Xor(Sse2.Add(res.AsSByte(), mask), mask);
                     }
 
@@ -189,37 +194,5 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Average(byte left, byte above) => (left + above) >> 1;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<byte> Average(Vector128<byte> left, Vector128<byte> above)
-        {
-            Vector128<ushort> loLeft16 = Sse2.UnpackLow(left, Vector128<byte>.Zero).AsUInt16();
-            Vector128<ushort> hiLeft16 = Sse2.UnpackHigh(left, Vector128<byte>.Zero).AsUInt16();
-
-            Vector128<ushort> loAbove16 = Sse2.UnpackLow(above, Vector128<byte>.Zero).AsUInt16();
-            Vector128<ushort> hiAbove16 = Sse2.UnpackHigh(above, Vector128<byte>.Zero).AsUInt16();
-
-            Vector128<ushort> div1 = Sse2.ShiftRightLogical(Sse2.Add(loLeft16, loAbove16), 1);
-            Vector128<ushort> div2 = Sse2.ShiftRightLogical(Sse2.Add(hiLeft16, hiAbove16), 1);
-
-            return Sse2.PackUnsignedSaturate(div1.AsInt16(), div2.AsInt16());
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<byte> Average(Vector256<byte> left, Vector256<byte> above)
-        {
-            Vector256<ushort> loLeft16 = Avx2.UnpackLow(left, Vector256<byte>.Zero).AsUInt16();
-            Vector256<ushort> hiLeft16 = Avx2.UnpackHigh(left, Vector256<byte>.Zero).AsUInt16();
-
-            Vector256<ushort> loAbove16 = Avx2.UnpackLow(above, Vector256<byte>.Zero).AsUInt16();
-            Vector256<ushort> hiAbove16 = Avx2.UnpackHigh(above, Vector256<byte>.Zero).AsUInt16();
-
-            Vector256<ushort> div1 = Avx2.ShiftRightLogical(Avx2.Add(loLeft16, loAbove16), 1);
-            Vector256<ushort> div2 = Avx2.ShiftRightLogical(Avx2.Add(hiLeft16, hiAbove16), 1);
-
-            return Avx2.PackUnsignedSaturate(div1.AsInt16(), div2.AsInt16());
-        }
-#endif
     }
 }

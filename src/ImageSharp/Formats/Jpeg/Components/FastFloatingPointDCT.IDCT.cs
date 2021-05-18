@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -188,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Vector256<float> mz1 = Avx.Add(my3, my5);
             Vector256<float> mz3 = Avx.Add(my1, my5);
 
-            Vector256<float> mz4 = Avx.Multiply(Avx.Add(mz0, mz1), w1_1758);
+            Vector256<float> mz4 = Avx.Multiply(Avx.Add(mz0, mz1), C_V_1_1758);
 
             if (Fma.IsSupported)
             {
@@ -227,7 +228,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             Vector256<float> my2 = s.V2;
             Vector256<float> my6 = s.V6;
-            mz4 = Avx.Multiply(Avx.Add(my2, my6), w0_5411);
+            mz4 = Avx.Multiply(Avx.Add(my2, my6), C_V_0_5411);
             Vector256<float> my0 = s.V0;
             Vector256<float> my4 = s.V4;
             mz0 = Avx.Add(my0, my4);

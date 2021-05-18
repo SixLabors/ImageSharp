@@ -40,15 +40,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     ImageFrame<TPixel> frame = frames[i];
                     ImageFrameMetadata frameMetaData = frame.Metadata;
-                    if (frameMetaData.XmpProfile == null)
-                    {
-                        IExifValue<byte[]> val = frameMetaData.ExifProfile.GetValue(ExifTag.XMP);
-                        if (val != null)
-                        {
-                            frameMetaData.XmpProfile = val.Value;
-                        }
-                    }
-
                     if (imageMetaData.IptcProfile == null && TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                     {
                         imageMetaData.IptcProfile = new IptcProfile(iptcBytes);
@@ -145,8 +136,5 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             return false;
         }
-
-        private static TiffBitsPerPixel GetBitsPerPixel(TiffFrameMetadata firstFrameMetaData)
-            => (TiffBitsPerPixel)firstFrameMetaData.BitsPerPixel;
     }
 }

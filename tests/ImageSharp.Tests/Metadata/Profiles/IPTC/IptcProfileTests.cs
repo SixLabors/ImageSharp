@@ -121,8 +121,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             using (Image<TPixel> image = provider.GetImage(TiffDecoder))
             {
-                Assert.NotNull(image.Metadata.IptcProfile);
-                var iptcValues = image.Metadata.IptcProfile.Values.ToList();
+                IptcProfile iptc = image.Frames.RootFrame.Metadata.IptcProfile;
+                Assert.NotNull(iptc);
+                var iptcValues = iptc.Values.ToList();
                 IptcProfileContainsExpectedValues(iptcValues);
             }
         }

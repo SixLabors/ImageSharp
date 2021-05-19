@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -110,18 +109,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
-            ExifProfile rootFrameExifProfile = image.Frames.RootFrame.Metadata.ExifProfile;
+
             TiffPhotometricInterpretation rootFramePhotometricInterpretation = GetRootFramePhotometricInterpretation(image);
             TiffPhotometricInterpretation photometricInterpretation = this.Mode == TiffEncodingMode.ColorPalette
-                ? TiffPhotometricInterpretation.PaletteColor : rootFramePhotometricInterpretation;
-            TiffBitsPerPixel? rootFrameBitsPerPixel = null;
-            if (rootFrameExifProfile != null)
-            {
-                rootFrameBitsPerPixel = new TiffFrameMetadata(rootFrameExifProfile).BitsPerPixel;
-            }
+                ? TiffPhotometricInterpretation.PaletteColor
+                : rootFramePhotometricInterpretation;
 
-            this.SetMode(rootFrameBitsPerPixel, photometricInterpretation);
+            TiffBitsPerPixel? rootFrameBitsPerPixel = image.Frames.RootFrame.Metadata.GetTiffMetadata().BitsPerPixel;
+
+            // TODO: This isn't correct.
+            // We're overwriting explicit BPP based upon the Mode. It should be the other way around.
+            // BPP should also be nullable and based upon the current TPixel if not set.
             this.SetBitsPerPixel(rootFrameBitsPerPixel);
+            this.SetMode(photometricInterpretation);
             this.SetPhotometricInterpretation();
 
             using (var writer = new TiffStreamWriter(stream))
@@ -144,9 +144,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             writer.Write(ByteOrderMarker);
             writer.Write(TiffConstants.HeaderMagicNumber);
-            long firstIfdMarker = writer.PlaceMarker();
-
-            return firstIfdMarker;
+            return writer.PlaceMarker();
         }
 
         /// <summary>
@@ -206,7 +204,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             int rowsPerStrip = TiffConstants.DefaultStripSize / bytesPerRow;
 
-            return rowsPerStrip > 0 ? (rowsPerStrip < height ? rowsPerStrip : height) : 1;
+            if (rowsPerStrip > 0)
+            {
+                if (rowsPerStrip < height)
+                {
+                    return rowsPerStrip;
+                }
+
+                return height;
+            }
+
+            return 1;
         }
 
         /// <summary>
@@ -219,6 +227,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             if (entries.Count == 0)
             {
+                // TODO: Perf. Throwhelper
                 throw new ArgumentException("There must be at least one entry per IFD.", nameof(entries));
             }
 
@@ -268,7 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return nextIfdMarker;
         }
 
-        private void SetMode(TiffBitsPerPixel? rootFrameBitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
+        private void SetMode(TiffPhotometricInterpretation photometricInterpretation)
         {
             // Make sure, that the fax compressions are only used together with the BiColor mode.
             if (this.CompressionType == TiffCompression.CcittGroup3Fax || this.CompressionType == TiffCompression.Ccitt1D)
@@ -286,19 +295,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            if (this.Mode == TiffEncodingMode.Default && rootFrameBitsPerPixel.HasValue)
-            {
-                // Preserve input bits per pixel, if no encoding mode was specified and the input image has a bits per pixel set.
-                this.SetModeWithBitsPerPixel(rootFrameBitsPerPixel, photometricInterpretation);
-
-                return;
-            }
-
-            if (this.BitsPerPixel != null)
-            {
-                // The user has specified a bits per pixel, so use that to determine the encoding mode.
-                this.SetModeWithBitsPerPixel(this.BitsPerPixel, photometricInterpretation);
-            }
+            // Use the bits per pixel to determine the encoding mode.
+            this.SetModeWithBitsPerPixel(this.BitsPerPixel, photometricInterpretation);
         }
 
         private void SetModeWithBitsPerPixel(TiffBitsPerPixel? bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
@@ -383,11 +381,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private static TiffPhotometricInterpretation GetRootFramePhotometricInterpretation(Image image)
         {
             ExifProfile exifProfile = image.Frames.RootFrame.Metadata.ExifProfile;
-            TiffPhotometricInterpretation rootFramePhotometricInterpretation =
-                exifProfile?.GetValue(ExifTag.PhotometricInterpretation) != null
-                    ? (TiffPhotometricInterpretation)exifProfile?.GetValue(ExifTag.PhotometricInterpretation).Value
-                    : TiffPhotometricInterpretation.WhiteIsZero;
-            return rootFramePhotometricInterpretation;
+            return exifProfile?.GetValue(ExifTag.PhotometricInterpretation) != null
+                ? (TiffPhotometricInterpretation)exifProfile?.GetValue(ExifTag.PhotometricInterpretation).Value
+                : TiffPhotometricInterpretation.WhiteIsZero;
         }
     }
 }

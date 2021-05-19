@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.None, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
@@ -73,8 +73,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
+
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(bitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.None, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
@@ -114,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
@@ -141,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
 
@@ -165,7 +166,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = new TiffFrameMetadata(exifProfile);
+            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
             Assert.Equal(TiffBitsPerPixel.Bit1, frameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
@@ -341,7 +342,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using var memStream = new MemoryStream();
             ExifProfile exifProfileInput = input.Frames.RootFrame.Metadata.ExifProfile;
             var inputCompression = (TiffCompression)exifProfileInput.GetValue(ExifTag.Compression).Value;
-            var inputMeta = new TiffFrameMetadata(exifProfileInput);
+            var inputMeta = TiffFrameMetadata.Parse(exifProfileInput);
 
             // act
             input.Save(memStream, tiffEncoder);
@@ -350,7 +351,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             ExifProfile exifProfileOutput = output.Frames.RootFrame.Metadata.ExifProfile;
-            var outputMeta = new TiffFrameMetadata(exifProfileOutput);
+            var outputMeta = TiffFrameMetadata.Parse(exifProfileOutput);
             ImageFrame<Rgba32> rootFrame = output.Frames.RootFrame;
 
             Number rowsPerStrip = exifProfileOutput.GetValue(ExifTag.RowsPerStrip) != null ? exifProfileOutput.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;

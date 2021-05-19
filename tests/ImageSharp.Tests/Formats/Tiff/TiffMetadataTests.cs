@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using (Image<TPixel> image = provider.GetImage(TiffDecoder))
             {
                 ExifProfile exifProfile = image.Frames.RootFrame.Metadata.ExifProfile;
-                var meta = new TiffFrameMetadata(exifProfile);
+                var meta = TiffFrameMetadata.Parse(exifProfile);
                 var cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
                 Assert.NotNull(cloneSameAsSampleMetaData);
                 Assert.Equal(TiffBitsPerSample.Bit4, cloneSameAsSampleMetaData.BitsPerSample);
@@ -196,10 +196,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.NotNull(tiffMetaData);
                 Assert.Equal(ByteOrder.LittleEndian, tiffMetaData.ByteOrder);
 
-                var frameMetaData = new TiffFrameMetadata(exifProfile);
+                var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
                 Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
 
-                var tiffFrameMetadata = new TiffFrameMetadata(exifProfile);
+                var tiffFrameMetadata = TiffFrameMetadata.Parse(exifProfile);
                 Assert.NotNull(frameMetaData);
                 Assert.Equal(TiffBitsPerSample.Bit4, frameMetaData.BitsPerSample);
             }
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using Image<TPixel> image = provider.GetImage(new TiffDecoder() { IgnoreMetadata = false });
 
             ImageMetadata inputMetaData = image.Metadata;
-            var frameMetaInput = new TiffFrameMetadata(image.Frames.RootFrame.Metadata.ExifProfile);
+            var frameMetaInput = TiffFrameMetadata.Parse(image.Frames.RootFrame.Metadata.ExifProfile);
             ImageFrame<TPixel> rootFrameInput = image.Frames.RootFrame;
             byte[] xmpProfileInput = rootFrameInput.Metadata.XmpProfile;
             ExifProfile exifProfileInput = rootFrameInput.Metadata.ExifProfile;
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             ImageMetadata encodedImageMetaData = encodedImage.Metadata;
             ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;
-            var tiffMetaDataEncodedRootFrame = new TiffFrameMetadata(rootFrameEncodedImage.Metadata.ExifProfile);
+            var tiffMetaDataEncodedRootFrame = TiffFrameMetadata.Parse(rootFrameEncodedImage.Metadata.ExifProfile);
             ExifProfile encodedImageExifProfile = rootFrameEncodedImage.Metadata.ExifProfile;
             byte[] encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
 

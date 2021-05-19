@@ -110,15 +110,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             IEnumerable<ExifProfile> directories = reader.Read();
 
             var frames = new List<ImageFrame<TPixel>>();
-            var tiffFramesMataData = new List<TiffFrameMetadata>();
             foreach (ExifProfile ifd in directories)
             {
-                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, out TiffFrameMetadata frameMetadata);
+                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd);
                 frames.Add(frame);
-                tiffFramesMataData.Add(frameMetadata);
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, tiffFramesMataData, this.ignoreMetadata, reader.ByteOrder);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.ignoreMetadata, reader.ByteOrder);
 
             // TODO: Tiff frames can have different sizes
             ImageFrame<TPixel> root = frames[0];
@@ -139,24 +137,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             this.inputStream = stream;
             var reader = new DirectoryReader(stream);
-
             IEnumerable<ExifProfile> directories = reader.Read();
 
-            var framesMetadata = new List<TiffFrameMetadata>();
-            foreach (ExifProfile ifd in directories)
-            {
-                var meta = new TiffFrameMetadata(ifd);
-                meta.Initialize(ifd);
-                framesMetadata.Add(meta);
-            }
-
-            TiffFrameMetadata root = framesMetadata[0];
             ExifProfile rootFrameExifProfile = directories.First();
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, reader.ByteOrder, rootFrameExifProfile);
+            var rootMetadata = TiffFrameMetadata.Parse(rootFrameExifProfile);
+
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(reader.ByteOrder, rootFrameExifProfile);
             int width = GetImageWidth(rootFrameExifProfile);
             int height = GetImageHeight(rootFrameExifProfile);
 
-            return new ImageInfo(new PixelTypeInfo((int)root.BitsPerPixel), width, height, metadata);
+            return new ImageInfo(new PixelTypeInfo((int)rootMetadata.BitsPerPixel), width, height, metadata);
         }
 
         /// <summary>
@@ -164,17 +154,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="tags">The IFD tags.</param>
-        /// <param name="tiffFrameMetaData">The tiff frame metadata.</param>
         /// <returns>
         /// The tiff frame.
         /// </returns>
-        private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, out TiffFrameMetadata tiffFrameMetaData)
+        private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ImageFrameMetadata imageFrameMetaData = this.ignoreMetadata ?
                 new ImageFrameMetadata() :
                 new ImageFrameMetadata { ExifProfile = tags, XmpProfile = tags.GetValue(ExifTag.XMP)?.Value };
-            tiffFrameMetaData = new TiffFrameMetadata(tags);
+
+            TiffFrameMetadata tiffFrameMetaData = imageFrameMetaData.GetTiffMetadata();
+            TiffFrameMetadata.Parse(tiffFrameMetaData, tags);
 
             this.VerifyAndParse(tags, tiffFrameMetaData);
 
@@ -220,9 +211,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
-            int stripBytes = bytesPerRow * height;
-
-            return stripBytes;
+            return bytesPerRow * height;
         }
 
         /// <summary>

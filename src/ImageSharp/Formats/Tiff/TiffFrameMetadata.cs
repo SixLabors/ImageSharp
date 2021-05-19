@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Provides Tiff specific metadata information for the frame.
     /// </summary>
-    internal class TiffFrameMetadata : IDeepCloneable
+    public class TiffFrameMetadata : IDeepCloneable
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
-        /// </summary>
-        /// <param name="frameTags">The Tiff frame directory tags.</param>
-        public TiffFrameMetadata(ExifProfile frameTags) => this.Initialize(frameTags ?? new ExifProfile());
+        private TiffFrameMetadata(TiffFrameMetadata other)
+        {
+            this.BitsPerSample = other.BitsPerSample;
+            this.BitsPerPixel = other.BitsPerPixel;
+        }
 
         /// <summary>
         /// Gets or sets the number of bits per component.
@@ -35,42 +35,54 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffBitsPerPixel BitsPerPixel { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class with a given ExifProfile.
+        /// Returns a new <see cref="TiffFrameMetadata"/> instance parsed from the given Exif profile.
         /// </summary>
-        /// <param name="frameTags">The Tiff frame directory tags.</param>
-        public void Initialize(ExifProfile frameTags)
+        /// <param name="profile">The Exif profile containing tiff frame directory tags to parse.
+        /// If null, a new instance is created and parsed instead.</param>
+        /// <returns>The <see cref="TiffFrameMetadata"/>.</returns>
+        internal static TiffFrameMetadata Parse(ExifProfile profile)
         {
-            TiffPhotometricInterpretation photometricInterpretation = frameTags.GetValue(ExifTag.PhotometricInterpretation) != null ?
-                (TiffPhotometricInterpretation)frameTags.GetValue(ExifTag.PhotometricInterpretation).Value : TiffPhotometricInterpretation.WhiteIsZero;
+            var meta = new TiffFrameMetadata();
+            Parse(meta, profile);
+            return meta;
+        }
 
-            ushort[] bits = frameTags.GetValue(ExifTag.BitsPerSample)?.Value;
+        /// <summary>
+        /// Parses the given Exif profile to populate the properties of the tiff frame meta data..
+        /// </summary>
+        /// <param name="meta">The tiff frame meta data.</param>
+        /// <param name="profile">The Exif profile containing tiff frame directory tags.</param>
+        internal static void Parse(TiffFrameMetadata meta, ExifProfile profile)
+        {
+            if (profile is null)
+            {
+                profile = new ExifProfile();
+            }
+
+            TiffPhotometricInterpretation photometricInterpretation = profile.GetValue(ExifTag.PhotometricInterpretation) != null
+                ? (TiffPhotometricInterpretation)profile.GetValue(ExifTag.PhotometricInterpretation).Value
+                : TiffPhotometricInterpretation.WhiteIsZero;
+
+            ushort[] bits = profile.GetValue(ExifTag.BitsPerSample)?.Value;
             if (bits == null)
             {
-                if (photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero || photometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
+                if (photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
+                    || photometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
                 {
-                    this.BitsPerSample = TiffBitsPerSample.Bit1;
+                    meta.BitsPerSample = TiffBitsPerSample.Bit1;
                 }
 
-                this.BitsPerSample = null;
+                meta.BitsPerSample = null;
             }
             else
             {
-                this.BitsPerSample = bits.GetBitsPerSample();
+                meta.BitsPerSample = bits.GetBitsPerSample();
             }
 
-            this.BitsPerPixel = (TiffBitsPerPixel)this.BitsPerSample.GetValueOrDefault().BitsPerPixel();
+            meta.BitsPerPixel = (TiffBitsPerPixel)meta.BitsPerSample.GetValueOrDefault().BitsPerPixel();
         }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone()
-        {
-            var clone = new TiffFrameMetadata
-            {
-                BitsPerSample = this.BitsPerSample,
-                BitsPerPixel = this.BitsPerPixel
-            };
-
-            return clone;
-        }
+        public IDeepCloneable DeepClone() => new TiffFrameMetadata(this);
     }
 }

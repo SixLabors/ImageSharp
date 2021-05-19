@@ -18,12 +18,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffDecoderMetadataCreator
     {
-        public static ImageMetadata Create<TPixel>(List<ImageFrame<TPixel>> frames, List<TiffFrameMetadata> framesMetaData, bool ignoreMetadata, ByteOrder byteOrder)
+        public static ImageMetadata Create<TPixel>(List<ImageFrame<TPixel>> frames, bool ignoreMetadata, ByteOrder byteOrder)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            DebugGuard.IsTrue(frames.Count == framesMetaData.Count, nameof(frames), "Image frames and frames metadata should be the same size.");
-
-            if (framesMetaData.Count < 1)
+            if (frames.Count < 1)
             {
                 TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
             }
@@ -58,13 +56,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return imageMetaData;
         }
 
-        public static ImageMetadata Create(List<TiffFrameMetadata> framesMetaData, ByteOrder byteOrder, ExifProfile exifProfile)
+        public static ImageMetadata Create(ByteOrder byteOrder, ExifProfile exifProfile)
         {
-            if (framesMetaData.Count < 1)
-            {
-                TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
-            }
-
             var imageMetaData = new ImageMetadata();
             SetResolution(imageMetaData, exifProfile);
 

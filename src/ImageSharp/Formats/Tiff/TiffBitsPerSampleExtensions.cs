@@ -71,22 +71,5 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             return TiffBitsPerSample.Unknown;
         }
-
-        /// <summary>
-        /// Gets the bits per pixel for the given bits per sample.
-        /// </summary>
-        /// <param name="tiffBitsPerSample">The tiff bits per sample.</param>
-        /// <returns>Bits per pixel.</returns>
-        public static int BitsPerPixel(this TiffBitsPerSample tiffBitsPerSample)
-        {
-            var bitsPerSample = tiffBitsPerSample.Bits();
-            int bitsPerPixel = 0;
-            foreach (var bits in bitsPerSample)
-            {
-                bitsPerPixel += bits;
-            }
-
-            return bitsPerPixel;
-        }
     }
 }

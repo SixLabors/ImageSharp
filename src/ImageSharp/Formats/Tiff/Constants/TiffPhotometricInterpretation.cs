@@ -9,12 +9,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
     public enum TiffPhotometricInterpretation : ushort
     {
         /// <summary>
-        /// Bilevel and grayscale:  0 is imaged as white. The maximum value is imaged as black.
+        /// Bilevel and grayscale: 0 is imaged as white. The maximum value is imaged as black.
         /// </summary>
         WhiteIsZero = 0,
 
         /// <summary>
-        /// Bilevel and grayscale:  0 is imaged as black. The maximum value is imaged as white.
+        /// Bilevel and grayscale: 0 is imaged as black. The maximum value is imaged as white.
         /// </summary>
         BlackIsZero = 1,
 

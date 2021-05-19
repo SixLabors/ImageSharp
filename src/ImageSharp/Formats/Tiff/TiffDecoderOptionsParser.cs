@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.Predictor = predictor;
             options.PhotometricInterpretation = exifProfile.GetValue(ExifTag.PhotometricInterpretation) != null ?
                 (TiffPhotometricInterpretation)exifProfile.GetValue(ExifTag.PhotometricInterpretation).Value : TiffPhotometricInterpretation.WhiteIsZero;
-            options.BitsPerSample = entries.BitsPerSample.GetValueOrDefault();
-            options.BitsPerPixel = entries.BitsPerSample.GetValueOrDefault().BitsPerPixel();
+            options.BitsPerPixel = entries.BitsPerPixel != null ? (int)entries.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
+            options.BitsPerSample = GetBitsPerSample(entries.BitsPerPixel);
 
             ParseColorType(options, exifProfile);
             ParseCompression(options, exifProfile);
@@ -273,5 +273,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
         }
+
+        private static TiffBitsPerSample GetBitsPerSample(TiffBitsPerPixel? bitsPerPixel) => bitsPerPixel switch
+        {
+            TiffBitsPerPixel.Bit1 => TiffBitsPerSample.Bit1,
+            TiffBitsPerPixel.Bit4 => TiffBitsPerSample.Bit4,
+            TiffBitsPerPixel.Bit8 => TiffBitsPerSample.Bit8,
+            TiffBitsPerPixel.Bit24 => TiffBitsPerSample.Bit24,
+            _ => TiffBitsPerSample.Bit24,
+        };
     }
 }

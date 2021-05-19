@@ -46,27 +46,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [WithFile(SampleMetadata, PixelTypes.Rgba32)]
-        public void TiffFrameMetadata_CloneIsDeep<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
-            {
-                ExifProfile exifProfile = image.Frames.RootFrame.Metadata.ExifProfile;
-                var meta = TiffFrameMetadata.Parse(exifProfile);
-                var cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
-                Assert.NotNull(cloneSameAsSampleMetaData);
-                Assert.Equal(TiffBitsPerSample.Bit4, cloneSameAsSampleMetaData.BitsPerSample);
-
-                var clone = (TiffFrameMetadata)meta.DeepClone();
-
-                clone.BitsPerSample = TiffBitsPerSample.Bit1;
-
-                Assert.False(meta.BitsPerSample == clone.BitsPerSample);
-            }
-        }
-
-        [Theory]
         [InlineData(Calliphora_BiColorUncompressed, 1)]
         [InlineData(GrayscaleUncompressed, 8)]
         [InlineData(RgbUncompressed, 24)]
@@ -198,10 +177,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
                 var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
                 Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
-
-                var tiffFrameMetadata = TiffFrameMetadata.Parse(exifProfile);
-                Assert.NotNull(frameMetaData);
-                Assert.Equal(TiffBitsPerSample.Bit4, frameMetaData.BitsPerSample);
             }
         }
 

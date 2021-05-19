@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -18,21 +17,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
         }
 
-        private TiffFrameMetadata(TiffFrameMetadata other)
-        {
-            this.BitsPerSample = other.BitsPerSample;
-            this.BitsPerPixel = other.BitsPerPixel;
-        }
-
         /// <summary>
-        /// Gets or sets the number of bits per component.
+        /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
         /// </summary>
-        public TiffBitsPerSample? BitsPerSample { get; set; }
+        /// <param name="other">The other tiff frame metadata.</param>
+        private TiffFrameMetadata(TiffFrameMetadata other) => this.BitsPerPixel = other.BitsPerPixel;
 
         /// <summary>
         /// Gets or sets the bits per pixel.
         /// </summary>
-        public TiffBitsPerPixel BitsPerPixel { get; set; }
+        public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <summary>
         /// Returns a new <see cref="TiffFrameMetadata"/> instance parsed from the given Exif profile.
@@ -54,32 +48,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="profile">The Exif profile containing tiff frame directory tags.</param>
         internal static void Parse(TiffFrameMetadata meta, ExifProfile profile)
         {
-            if (profile is null)
+            profile ??= new ExifProfile();
+
+            ushort[] bitsPerSample = profile.GetValue(ExifTag.BitsPerSample)?.Value;
+            meta.BitsPerPixel = BitsPerPixelFromBitsPerSample(bitsPerSample);
+        }
+
+        /// <summary>
+        /// Gets the bits per pixel for the given bits per sample.
+        /// </summary>
+        /// <param name="bitsPerSample">The tiff bits per sample.</param>
+        /// <returns>Bits per pixel.</returns>
+        private static TiffBitsPerPixel BitsPerPixelFromBitsPerSample(ushort[] bitsPerSample)
+        {
+            if (bitsPerSample == null)
             {
-                profile = new ExifProfile();
+                return TiffBitsPerPixel.Bit24;
             }
 
-            TiffPhotometricInterpretation photometricInterpretation = profile.GetValue(ExifTag.PhotometricInterpretation) != null
-                ? (TiffPhotometricInterpretation)profile.GetValue(ExifTag.PhotometricInterpretation).Value
-                : TiffPhotometricInterpretation.WhiteIsZero;
-
-            ushort[] bits = profile.GetValue(ExifTag.BitsPerSample)?.Value;
-            if (bits == null)
+            int bitsPerPixel = 0;
+            foreach (ushort bits in bitsPerSample)
             {
-                if (photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
-                    || photometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
-                {
-                    meta.BitsPerSample = TiffBitsPerSample.Bit1;
-                }
-
-                meta.BitsPerSample = null;
-            }
-            else
-            {
-                meta.BitsPerSample = bits.GetBitsPerSample();
+                bitsPerPixel += bits;
             }
 
-            meta.BitsPerPixel = (TiffBitsPerPixel)meta.BitsPerSample.GetValueOrDefault().BitsPerPixel();
+            return (TiffBitsPerPixel)bitsPerPixel;
         }
 
         /// <inheritdoc/>

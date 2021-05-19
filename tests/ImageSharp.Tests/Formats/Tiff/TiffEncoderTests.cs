@@ -358,7 +358,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.True(output.Height > (int)rowsPerStrip);
             Assert.True(exifProfileOutput.GetValue(ExifTag.StripOffsets)?.Value.Length > 1);
             Number[] stripByteCounts = exifProfileOutput.GetValue(ExifTag.StripByteCounts)?.Value;
+            Assert.NotNull(stripByteCounts);
             Assert.True(stripByteCounts.Length > 1);
+            Assert.NotNull(outputMeta.BitsPerPixel);
 
             foreach (Number sz in stripByteCounts)
             {
@@ -388,7 +390,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         private static void TestTiffEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
-            TiffBitsPerPixel bitsPerPixel,
+            TiffBitsPerPixel? bitsPerPixel,
             TiffEncodingMode mode,
             TiffCompression compression = TiffCompression.None,
             TiffPredictor predictor = TiffPredictor.None,

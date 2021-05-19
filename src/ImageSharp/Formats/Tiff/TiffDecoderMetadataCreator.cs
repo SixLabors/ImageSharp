@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -28,8 +29,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             var imageMetaData = new ImageMetadata();
-            TiffFrameMetadata rootFrameMetadata = framesMetaData[0];
-            SetResolution(imageMetaData, rootFrameMetadata);
+            ExifProfile exifProfileRootFrame = frames[0].Metadata.ExifProfile;
+
+            SetResolution(imageMetaData, exifProfileRootFrame);
 
             TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
@@ -56,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return imageMetaData;
         }
 
-        public static ImageMetadata Create(List<TiffFrameMetadata> framesMetaData, ByteOrder byteOrder)
+        public static ImageMetadata Create(List<TiffFrameMetadata> framesMetaData, ByteOrder byteOrder, ExifProfile exifProfile)
         {
             if (framesMetaData.Count < 1)
             {
@@ -64,8 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             var imageMetaData = new ImageMetadata();
-            TiffFrameMetadata rootFrameMetadata = framesMetaData[0];
-            SetResolution(imageMetaData, rootFrameMetadata);
+            SetResolution(imageMetaData, exifProfile);
 
             TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
@@ -73,17 +74,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return imageMetaData;
         }
 
-        private static void SetResolution(ImageMetadata imageMetaData, TiffFrameMetadata rootFrameMetadata)
+        private static void SetResolution(ImageMetadata imageMetaData, ExifProfile exifProfile)
         {
-            imageMetaData.ResolutionUnits = rootFrameMetadata.ResolutionUnit;
-            if (rootFrameMetadata.HorizontalResolution != null)
+            imageMetaData.ResolutionUnits = exifProfile != null ? UnitConverter.ExifProfileToResolutionUnit(exifProfile) : PixelResolutionUnit.PixelsPerInch;
+            double? horizontalResolution = exifProfile?.GetValue(ExifTag.XResolution)?.Value.ToDouble();
+            if (horizontalResolution != null)
             {
-                imageMetaData.HorizontalResolution = rootFrameMetadata.HorizontalResolution.Value;
+                imageMetaData.HorizontalResolution = horizontalResolution.Value;
             }
 
-            if (rootFrameMetadata.VerticalResolution != null)
+            double? verticalResolution = exifProfile?.GetValue(ExifTag.YResolution)?.Value.ToDouble();
+            if (verticalResolution != null)
             {
-                imageMetaData.VerticalResolution = rootFrameMetadata.VerticalResolution.Value;
+                imageMetaData.VerticalResolution = verticalResolution.Value;
             }
         }
 

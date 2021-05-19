@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Linq;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -12,36 +14,44 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffDecoderOptionsParser
     {
+        private const TiffPredictor DefaultPredictor = TiffPredictor.None;
+
+        private const TiffPlanarConfiguration DefaultPlanarConfiguration = TiffPlanarConfiguration.Chunky;
+
         /// <summary>
         /// Determines the TIFF compression and color types, and reads any associated parameters.
         /// </summary>
         /// <param name="options">The options.</param>
+        /// <param name="exifProfile">The exif profile of the frame to decode.</param>
         /// <param name="entries">The IFD entries container to read the image format information for.</param>
-        public static void VerifyAndParse(this TiffDecoderCore options, TiffFrameMetadata entries)
+        public static void VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata entries)
         {
-            if (entries.TileOffsets != null)
+            if (exifProfile.GetValue(ExifTag.TileOffsets)?.Value != null)
             {
                 TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
             }
 
-            if (entries.ExtraSamples != null)
+            if (exifProfile.GetValue(ExifTag.ExtraSamples)?.Value != null)
             {
                 TiffThrowHelper.ThrowNotSupported("ExtraSamples is not supported.");
             }
 
-            if (entries.FillOrder != TiffFillOrder.MostSignificantBitFirst)
+            TiffFillOrder fillOrder = (TiffFillOrder?)exifProfile.GetValue(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
+            if (fillOrder != TiffFillOrder.MostSignificantBitFirst)
             {
                 TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
             }
 
-            if (entries.Predictor == TiffPredictor.FloatingPoint)
+            TiffPredictor predictor = (TiffPredictor?)exifProfile.GetValue(ExifTag.Predictor)?.Value ?? DefaultPredictor;
+            if (predictor == TiffPredictor.FloatingPoint)
             {
                 TiffThrowHelper.ThrowNotSupported("TIFF images with FloatingPoint horizontal predictor are not supported.");
             }
 
-            if (entries.SampleFormat != null)
+            TiffSampleFormat[] sampleFormat = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
+            if (sampleFormat != null)
             {
-                foreach (TiffSampleFormat format in entries.SampleFormat)
+                foreach (TiffSampleFormat format in sampleFormat)
                 {
                     if (format != TiffSampleFormat.UnsignedInteger)
                     {
@@ -50,24 +60,43 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            if (entries.StripRowCounts != null)
+            if (exifProfile.GetValue(ExifTag.StripRowCounts)?.Value != null)
             {
                 TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
             }
 
-            entries.VerifyRequiredFieldsArePresent();
+            VerifyRequiredFieldsArePresent(exifProfile);
 
-            options.PlanarConfiguration = entries.PlanarConfiguration;
-            options.Predictor = entries.Predictor;
-            options.PhotometricInterpretation = entries.PhotometricInterpretation;
+            options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
+            options.Predictor = predictor;
+            options.PhotometricInterpretation = exifProfile.GetValue(ExifTag.PhotometricInterpretation) != null ?
+                (TiffPhotometricInterpretation)exifProfile.GetValue(ExifTag.PhotometricInterpretation).Value : TiffPhotometricInterpretation.WhiteIsZero;
             options.BitsPerSample = entries.BitsPerSample.GetValueOrDefault();
             options.BitsPerPixel = entries.BitsPerSample.GetValueOrDefault().BitsPerPixel();
 
-            ParseColorType(options, entries);
-            ParseCompression(options, entries);
+            ParseColorType(options, exifProfile);
+            ParseCompression(options, exifProfile);
         }
 
-        private static void ParseColorType(this TiffDecoderCore options, TiffFrameMetadata entries)
+        private static void VerifyRequiredFieldsArePresent(ExifProfile exifProfile)
+        {
+            if (exifProfile.GetValue(ExifTag.StripOffsets) == null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("StripOffsets are missing and are required for decoding the TIFF image!");
+            }
+
+            if (exifProfile.GetValue(ExifTag.StripByteCounts) == null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("StripByteCounts are missing and are required for decoding the TIFF image!");
+            }
+
+            if (exifProfile.GetValue(ExifTag.BitsPerSample) == null)
+            {
+                TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing which is required to decode the image!");
+            }
+        }
+
+        private static void ParseColorType(this TiffDecoderCore options, ExifProfile exifProfile)
         {
             switch (options.PhotometricInterpretation)
             {
@@ -166,7 +195,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 case TiffPhotometricInterpretation.PaletteColor:
                 {
-                    options.ColorMap = entries.ColorMap;
+                    options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
                     if (options.ColorMap != null)
                     {
                         if (options.BitsPerSample.Bits().Length != 1)
@@ -193,9 +222,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private static void ParseCompression(this TiffDecoderCore options, TiffFrameMetadata tiffFrameMetaData)
+        private static void ParseCompression(this TiffDecoderCore options, ExifProfile exifProfile)
         {
-            TiffCompression compression = tiffFrameMetaData.Compression;
+            TiffCompression compression = exifProfile.GetValue(ExifTag.Compression) != null ? (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value : TiffCompression.None;
             switch (compression)
             {
                 case TiffCompression.None:
@@ -226,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompression.CcittGroup3Fax:
                 {
                     options.CompressionType = TiffDecoderCompressionType.T4;
-                    options.FaxCompressionOptions = tiffFrameMetaData.FaxCompressionOptions;
+                    options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
 
                     break;
                 }

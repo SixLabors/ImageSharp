@@ -340,6 +340,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using Image<TPixel> input = provider.GetImage();
             using var memStream = new MemoryStream();
             ExifProfile exifProfileInput = input.Frames.RootFrame.Metadata.ExifProfile;
+            var inputCompression = (TiffCompression)exifProfileInput.GetValue(ExifTag.Compression).Value;
             var inputMeta = new TiffFrameMetadata(exifProfileInput);
 
             // act
@@ -352,11 +353,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var outputMeta = new TiffFrameMetadata(exifProfileOutput);
             ImageFrame<Rgba32> rootFrame = output.Frames.RootFrame;
 
-            Assert.True(output.Height > (int)outputMeta.RowsPerStrip);
-            Assert.True(outputMeta.StripOffsets.Length > 1);
-            Assert.True(outputMeta.StripByteCounts.Length > 1);
+            Number rowsPerStrip = exifProfileOutput.GetValue(ExifTag.RowsPerStrip) != null ? exifProfileOutput.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
+            Assert.True(output.Height > (int)rowsPerStrip);
+            Assert.True(exifProfileOutput.GetValue(ExifTag.StripOffsets)?.Value.Length > 1);
+            Number[] stripByteCounts = exifProfileOutput.GetValue(ExifTag.StripByteCounts)?.Value;
+            Assert.True(stripByteCounts.Length > 1);
 
-            foreach (Number sz in outputMeta.StripByteCounts)
+            foreach (Number sz in stripByteCounts)
             {
                 Assert.True((uint)sz <= TiffConstants.DefaultStripSize);
             }
@@ -364,10 +367,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // For uncompressed more accurate test.
             if (compression == TiffCompression.None)
             {
-                for (int i = 0; i < outputMeta.StripByteCounts.Length - 1; i++)
+                for (int i = 0; i < stripByteCounts.Length - 1; i++)
                 {
                     // The difference must be less than one row.
-                    int stripBytes = (int)outputMeta.StripByteCounts[i];
+                    int stripBytes = (int)stripByteCounts[i];
                     int widthBytes = ((int)outputMeta.BitsPerPixel + 7) / 8 * rootFrame.Width;
 
                     Assert.True((TiffConstants.DefaultStripSize - stripBytes) < widthBytes);
@@ -379,7 +382,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 provider,
                 inputMeta.BitsPerPixel,
                 mode,
-                inputMeta.Compression);
+                inputCompression);
         }
 
         private static void TestTiffEncoderCore<TPixel>(

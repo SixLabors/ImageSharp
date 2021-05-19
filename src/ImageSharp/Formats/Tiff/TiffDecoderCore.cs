@@ -150,10 +150,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 framesMetadata.Add(meta);
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, reader.ByteOrder);
-
             TiffFrameMetadata root = framesMetadata[0];
             ExifProfile rootFrameExifProfile = directories.First();
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, reader.ByteOrder, rootFrameExifProfile);
             int width = GetImageWidth(rootFrameExifProfile);
             int height = GetImageHeight(rootFrameExifProfile);
 
@@ -177,15 +176,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 new ImageFrameMetadata { ExifProfile = tags, XmpProfile = tags.GetValue(ExifTag.XMP)?.Value };
             tiffFrameMetaData = new TiffFrameMetadata(tags);
 
-            this.VerifyAndParse(tiffFrameMetaData);
+            this.VerifyAndParse(tags, tiffFrameMetaData);
 
             int width = GetImageWidth(tags);
             int height = GetImageHeight(tags);
             var frame = new ImageFrame<TPixel>(this.Configuration, width, height, imageFrameMetaData);
 
-            int rowsPerStrip = (int)tiffFrameMetaData.RowsPerStrip;
-            Number[] stripOffsets = tiffFrameMetaData.StripOffsets;
-            Number[] stripByteCounts = tiffFrameMetaData.StripByteCounts;
+            int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
+            Number[] stripOffsets = tags.GetValue(ExifTag.StripOffsets)?.Value;
+            Number[] stripByteCounts = tags.GetValue(ExifTag.StripByteCounts)?.Value;
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {

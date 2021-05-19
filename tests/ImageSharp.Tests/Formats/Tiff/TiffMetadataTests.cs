@@ -236,7 +236,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ExifProfile encodedImageExifProfile = rootFrameEncodedImage.Metadata.ExifProfile;
             byte[] encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
 
-            Assert.Equal(TiffBitsPerPixel.Bit24, tiffMetaDataEncodedRootFrame.BitsPerPixel);
+            Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaDataEncodedRootFrame.BitsPerPixel);
             Assert.Equal(TiffCompression.None, (TiffCompression)encodedImageExifProfile.GetValue(ExifTag.Compression).Value);
 
             Assert.Equal(inputMetaData.HorizontalResolution, encodedImageMetaData.HorizontalResolution);

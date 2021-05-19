@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             // TODO: This isn't correct.
             // We're overwriting explicit BPP based upon the Mode. It should be the other way around.
             // BPP should also be nullable and based upon the current TPixel if not set.
-            this.SetBitsPerPixel(rootFrameBitsPerPixel);
+            this.SetBitsPerPixel(rootFrameBitsPerPixel, photometricInterpretation);
             this.SetMode(photometricInterpretation);
             this.SetPhotometricInterpretation();
 
@@ -286,6 +286,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 if (this.Mode == TiffEncodingMode.Default)
                 {
                     this.Mode = TiffEncodingMode.BiColor;
+                    this.BitsPerPixel = TiffBitsPerPixel.Bit1;
                     return;
                 }
 
@@ -321,9 +322,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private void SetBitsPerPixel(TiffBitsPerPixel? rootFrameBitsPerPixel)
+        private void SetBitsPerPixel(TiffBitsPerPixel? rootFrameBitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
         {
             this.BitsPerPixel ??= rootFrameBitsPerPixel;
+
+            if (photometricInterpretation == TiffPhotometricInterpretation.PaletteColor)
+            {
+                if (this.BitsPerPixel != TiffBitsPerPixel.Bit8 && this.BitsPerPixel != TiffBitsPerPixel.Bit4)
+                {
+                    this.BitsPerPixel = TiffBitsPerPixel.Bit8;
+                }
+
+                return;
+            }
+
+            if (this.BitsPerPixel.HasValue)
+            {
+                return;
+            }
+
             switch (this.Mode)
             {
                 case TiffEncodingMode.BiColor:

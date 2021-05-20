@@ -42,12 +42,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] emitBuffer = new byte[64];
 
         /// <summary>
-        /// A buffer for reducing the number of stream writes when emitting Huffman tables. Max combined table lengths +
-        /// identifier.
-        /// </summary>
-        private readonly byte[] huffmanBuffer = new byte[179];
-
-        /// <summary>
         /// Gets or sets the subsampling method to use.
         /// </summary>
         private JpegSubsample? subsample;
@@ -635,30 +629,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 markerlen += 1 + 16 + s.Values.Length;
             }
 
+            // TODO: this magic constant (array size) should be defined by HuffmanSpec class
+            // This is a one-time call which can be stackalloc'ed or allocated directly in memory as method local array
+            // Allocation here would be better for GC so it won't live for entire encoding process
+            // TODO: if this is allocated on the heap - pin it right here or following copy code will corrupt memory
+            Span<byte> huffmanBuffer = stackalloc byte[179];
+            byte* huffmanBufferPtr = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(huffmanBuffer));
+
             this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
             for (int i = 0; i < specs.Length; i++)
             {
                 ref HuffmanSpec spec = ref specs[i];
+
                 int len = 0;
 
-                fixed (byte* huffman = this.huffmanBuffer)
-                fixed (byte* count = spec.Count)
-                fixed (byte* values = spec.Values)
+                // header
+                huffmanBuffer[len++] = headers[i];
+
+                // count
+                fixed (byte* countPtr = spec.Count)
                 {
-                    huffman[len++] = headers[i];
-
-                    for (int c = 0; c < spec.Count.Length; c++)
-                    {
-                        huffman[len++] = count[c];
-                    }
-
-                    for (int v = 0; v < spec.Values.Length; v++)
-                    {
-                        huffman[len++] = values[v];
-                    }
+                    int countLen = spec.Count.Length;
+                    Unsafe.CopyBlockUnaligned(huffmanBufferPtr + len, countPtr, (uint)countLen);
+                    len += countLen;
                 }
 
-                this.outputStream.Write(this.huffmanBuffer, 0, len);
+                // values
+                fixed (byte* valuesPtr = spec.Values)
+                {
+                    int valuesLen = spec.Values.Length;
+                    Unsafe.CopyBlockUnaligned(huffmanBufferPtr + len, valuesPtr, (uint)valuesLen);
+                    len += valuesLen;
+                }
+
+                this.outputStream.Write(huffmanBuffer, 0, len);
             }
         }
 

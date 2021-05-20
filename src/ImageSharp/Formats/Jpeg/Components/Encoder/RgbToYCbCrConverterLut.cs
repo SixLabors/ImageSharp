@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             ref Rgb24 rgbStart = ref rgbSpan[0];
 
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 ref Rgb24 c = ref Unsafe.Add(ref rgbStart, i);
 

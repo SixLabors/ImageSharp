@@ -183,23 +183,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
             this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
 
-            // Convert from a quality rating to a scaling factor.
-            int scale;
-            if (qlty < 50)
-            {
-                scale = 5000 / qlty;
-            }
-            else
-            {
-                scale = 200 - (qlty * 2);
-            }
-
-            // Initialize the quantization tables.
-            InitQuantizationTable(0, scale, ref this.luminanceQuantTable);
-            if (componentCount > 1)
-            {
-                InitQuantizationTable(1, scale, ref this.chrominanceQuantTable);
-            }
+            YCbCrEncoder<TPixel> scanEncoder = new YCbCrEncoder<TPixel>(stream, componentCount, qlty);
+            this.luminanceQuantTable = scanEncoder.LuminanceQuantizationTable;
+            this.chrominanceQuantTable = scanEncoder.ChrominanceQuantizationTable;
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
@@ -208,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteProfiles(metadata);
 
             // Write the quantization tables.
-            this.WriteDefineQuantizationTables();
+            this.WriteDefineQuantizationTables(ref scanEncoder.LuminanceQuantizationTable, ref scanEncoder.ChrominanceQuantizationTable);
 
             // Write the image dimensions.
             this.WriteStartOfFrame(image.Width, image.Height, componentCount);
@@ -669,7 +655,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the Define Quantization Marker and tables.
         /// </summary>
-        private void WriteDefineQuantizationTables()
+        private void WriteDefineQuantizationTables(ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable)
         {
             // Marker + quantization table lengths
             int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.Size));
@@ -681,8 +667,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             byte[] dqt = new byte[dqtCount];
             int offset = 0;
 
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref luminanceQuantTable);
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref chrominanceQuantTable);
 
             this.outputStream.Write(dqt, 0, dqtCount);
         }

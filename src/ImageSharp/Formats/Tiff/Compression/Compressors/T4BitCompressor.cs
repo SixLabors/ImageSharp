@@ -344,8 +344,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         {
             while (codeLength > 0)
             {
-                var bitNumber = (int)codeLength;
-                var bit = (code & (1 << (bitNumber - 1))) != 0;
+                int bitNumber = (int)codeLength;
+                bool bit = (code & (1 << (bitNumber - 1))) != 0;
                 if (bit)
                 {
                     BitWriterUtils.WriteBit(compressedData, this.bytePosition, this.bitPosition);

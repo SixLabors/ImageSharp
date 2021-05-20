@@ -31,15 +31,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(TiffEncodingMode.Default, TiffBitsPerPixel.Bit24)]
-        [InlineData(TiffEncodingMode.Rgb, TiffBitsPerPixel.Bit24)]
-        [InlineData(TiffEncodingMode.ColorPalette, TiffBitsPerPixel.Bit8)]
-        [InlineData(TiffEncodingMode.Gray, TiffBitsPerPixel.Bit8)]
-        [InlineData(TiffEncodingMode.BiColor, TiffBitsPerPixel.Bit1)]
-        public void EncoderOptions_SetEncodingMode_Works(TiffEncodingMode mode, TiffBitsPerPixel expectedBitsPerPixel)
+        [InlineData(null, TiffBitsPerPixel.Bit24)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffBitsPerPixel.Bit24)]
+        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffBitsPerPixel.Bit8)]
+        [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffBitsPerPixel.Bit8)]
+        public void EncoderOptions_SetPhotometricInterpretation_Works(TiffPhotometricInterpretation? photometricInterpretation, TiffBitsPerPixel expectedBitsPerPixel)
         {
             // arrange
-            var tiffEncoder = new TiffEncoder { Mode = mode };
+            var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation };
             using Image input = new Image<Rgb24>(10, 10);
             using var memStream = new MemoryStream();
 
@@ -81,30 +80,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(TiffEncodingMode.Default, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
-        [InlineData(TiffEncodingMode.Gray, TiffCompression.Deflate, TiffBitsPerPixel.Bit8, TiffCompression.Deflate)]
-        [InlineData(TiffEncodingMode.BiColor, TiffCompression.Deflate, TiffBitsPerPixel.Bit1, TiffCompression.Deflate)]
-        [InlineData(TiffEncodingMode.ColorPalette, TiffCompression.Deflate, TiffBitsPerPixel.Bit8, TiffCompression.Deflate)]
-        [InlineData(TiffEncodingMode.Default, TiffCompression.PackBits, TiffBitsPerPixel.Bit24, TiffCompression.PackBits)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.PackBits, TiffBitsPerPixel.Bit24, TiffCompression.PackBits)]
-        [InlineData(TiffEncodingMode.ColorPalette, TiffCompression.PackBits, TiffBitsPerPixel.Bit8, TiffCompression.PackBits)]
-        [InlineData(TiffEncodingMode.Gray, TiffCompression.PackBits, TiffBitsPerPixel.Bit8, TiffCompression.PackBits)]
-        [InlineData(TiffEncodingMode.BiColor, TiffCompression.PackBits, TiffBitsPerPixel.Bit1, TiffCompression.PackBits)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.Lzw, TiffBitsPerPixel.Bit24, TiffCompression.Lzw)]
-        [InlineData(TiffEncodingMode.Gray, TiffCompression.Lzw, TiffBitsPerPixel.Bit8, TiffCompression.Lzw)]
-        [InlineData(TiffEncodingMode.ColorPalette, TiffCompression.Lzw, TiffBitsPerPixel.Bit8, TiffCompression.Lzw)]
-        [InlineData(TiffEncodingMode.BiColor, TiffCompression.CcittGroup3Fax, TiffBitsPerPixel.Bit1, TiffCompression.CcittGroup3Fax)]
-        [InlineData(TiffEncodingMode.BiColor, TiffCompression.Ccitt1D, TiffBitsPerPixel.Bit1, TiffCompression.Ccitt1D)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.ItuTRecT43, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.ItuTRecT82, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.Jpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.OldDeflate, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.OldJpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        public void EncoderOptions_SetEncodingModeAndCompression_Works(TiffEncodingMode mode, TiffCompression compression, TiffBitsPerPixel expectedBitsPerPixel, TiffCompression expectedCompression)
+        [InlineData(null, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
+        [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate, TiffBitsPerPixel.Bit8, TiffCompression.Deflate)]
+        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffCompression.Deflate, TiffBitsPerPixel.Bit8, TiffCompression.Deflate)]
+        [InlineData(null, TiffCompression.PackBits, TiffBitsPerPixel.Bit24, TiffCompression.PackBits)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.PackBits, TiffBitsPerPixel.Bit24, TiffCompression.PackBits)]
+        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffCompression.PackBits, TiffBitsPerPixel.Bit8, TiffCompression.PackBits)]
+        [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits, TiffBitsPerPixel.Bit8, TiffCompression.PackBits)]
+        [InlineData(null, TiffCompression.Lzw, TiffBitsPerPixel.Bit24, TiffCompression.Lzw)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Lzw, TiffBitsPerPixel.Bit24, TiffCompression.Lzw)]
+        [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Lzw, TiffBitsPerPixel.Bit8, TiffCompression.Lzw)]
+        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffCompression.Lzw, TiffBitsPerPixel.Bit8, TiffCompression.Lzw)]
+        [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax, TiffBitsPerPixel.Bit1, TiffCompression.CcittGroup3Fax)]
+        [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Ccitt1D, TiffBitsPerPixel.Bit1, TiffCompression.Ccitt1D)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.ItuTRecT43, TiffBitsPerPixel.Bit24, TiffCompression.None)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.ItuTRecT82, TiffBitsPerPixel.Bit24, TiffCompression.None)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Jpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.OldDeflate, TiffBitsPerPixel.Bit24, TiffCompression.None)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.OldJpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
+        public void EncoderOptions_SetPhotometricInterpretationAndCompression_Works(TiffPhotometricInterpretation? photometricInterpretation, TiffCompression compression, TiffBitsPerPixel expectedBitsPerPixel, TiffCompression expectedCompression)
         {
             // arrange
-            var tiffEncoder = new TiffEncoder { Mode = mode, Compression = compression };
+            var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation, Compression = compression };
             using Image input = new Image<Rgb24>(10, 10);
             using var memStream = new MemoryStream();
 
@@ -115,8 +113,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
-            Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
+            TiffFrameMetadata rootFrameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(expectedBitsPerPixel, rootFrameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
         }
 
@@ -146,6 +144,72 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
 
+        [Fact]
+        public void TiffEncoder_PreservesBitsPerPixel_WhenInputIsL8()
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder();
+            using Image input = new Image<L8>(10, 10);
+            using var memStream = new MemoryStream();
+            var expectedBitsPerPixel = TiffBitsPerPixel.Bit8;
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
+            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
+            Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
+        }
+
+        [Theory]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffCompression.None)]
+        [WithFile(RgbLzwNoPredictor, PixelTypes.Rgba32, TiffCompression.Lzw)]
+        [WithFile(RgbDeflate, PixelTypes.Rgba32, TiffCompression.Deflate)]
+        [WithFile(RgbPackbits, PixelTypes.Rgba32, TiffCompression.PackBits)]
+        public void TiffEncoder_PreservesCompression<TPixel>(TestImageProvider<TPixel> provider, TiffCompression expectedCompression)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder();
+            using Image<TPixel> input = provider.GetImage();
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
+            Assert.Equal(expectedCompression, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
+        }
+
+        [Theory]
+        [WithFile(RgbLzwNoPredictor, PixelTypes.Rgba32, TiffPredictor.None)]
+        [WithFile(RgbLzwPredictor, PixelTypes.Rgba32, TiffPredictor.Horizontal)]
+        [WithFile(RgbDeflate, PixelTypes.Rgba32, TiffPredictor.None)]
+        [WithFile(RgbDeflatePredictor, PixelTypes.Rgba32, TiffPredictor.Horizontal)]
+        public void TiffEncoder_PreservesPredictor<TPixel>(TestImageProvider<TPixel> provider, TiffPredictor expectedPredictor)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder();
+            using Image<TPixel> input = provider.GetImage();
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
+            Assert.Equal(expectedPredictor, (TiffPredictor)exifProfile.GetValue(ExifTag.Predictor).Value);
+        }
+
         [Theory]
         [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffCompression.CcittGroup3Fax, TiffCompression.CcittGroup3Fax)]
         [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffCompression.Ccitt1D, TiffCompression.Ccitt1D)]
@@ -172,15 +236,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(TiffEncodingMode.ColorPalette, TiffCompression.CcittGroup3Fax)]
-        [InlineData(TiffEncodingMode.ColorPalette, TiffCompression.Ccitt1D)]
-        [InlineData(TiffEncodingMode.Gray, TiffCompression.Ccitt1D)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.Ccitt1D)]
-        public void TiffEncoder_IncompatibilityOptions(TiffEncodingMode mode, TiffCompression compression)
+        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffCompression.CcittGroup3Fax)]
+        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffCompression.Ccitt1D)]
+        public void TiffEncoder_IncompatibilityOptions_ThrowsImageFormatException(TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
         {
             // arrange
             using var input = new Image<Rgb24>(10, 10);
-            var encoder = new TiffEncoder() { Mode = mode, Compression = compression };
+            var encoder = new TiffEncoder() { PhotometricInterpretation = photometricInterpretation, Compression = compression };
             using var memStream = new MemoryStream();
 
             // act
@@ -190,154 +252,154 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb);
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Deflate);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate);
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Deflate, TiffPredictor.Horizontal);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Lzw);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, TiffCompression.Lzw);
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Lzw, TiffPredictor.Horizontal);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, TiffCompression.Lzw, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.PackBits);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, TiffCompression.PackBits);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Deflate);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Deflate, TiffPredictor.Horizontal);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Lzw);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Lzw);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Lzw, TiffPredictor.Horizontal);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Lzw, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.PackBits);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Rgb4BitPalette, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_With4Bit_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
             //// Note: The magick reference decoder does not support 4 bit tiff's, so we use our TIFF decoder instead.
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffEncodingMode.ColorPalette, useExactComparer: false, compareTolerance: 0.001f, imageDecoder: new TiffDecoder());
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.001f, imageDecoder: new TiffDecoder());
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.PackBits, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.PackBits, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Deflate, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Deflate, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Deflate, TiffPredictor.Horizontal, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Deflate, TiffPredictor.Horizontal, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Lzw, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Lzw, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Lzw, TiffPredictor.Horizontal, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Lzw, TiffPredictor.Horizontal, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.BiColor);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.BlackIsZero);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffEncodingMode.BiColor, TiffCompression.Deflate);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffEncodingMode.BiColor, TiffCompression.PackBits);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffEncodingMode.BiColor, TiffCompression.CcittGroup3Fax);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithModifiedHuffmanCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffEncodingMode.BiColor, TiffCompression.Ccitt1D);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Ccitt1D);
 
         [Theory]
-        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffEncodingMode.Gray, TiffCompression.PackBits)]
-        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffEncodingMode.ColorPalette, TiffCompression.Lzw)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffCompression.Deflate)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgb24, TiffEncodingMode.Rgb, TiffCompression.None)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffCompression.None)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgb48, TiffEncodingMode.Rgb, TiffCompression.None)]
-        public void TiffEncoder_StripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression)
+        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits)]
+        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Lzw)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgb24, TiffPhotometricInterpretation.Rgb, TiffCompression.None)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb, TiffCompression.None)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgb48, TiffPhotometricInterpretation.Rgb, TiffCompression.None)]
+        public void TiffEncoder_StripLength<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestStripLength(provider, mode, compression);
+            TestStripLength(provider, photometricInterpretation, compression);
 
         [Theory]
-        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffEncodingMode.BiColor, TiffCompression.CcittGroup3Fax)]
-        public void TiffEncoder_StripLength_OutOfBounds<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression)
+        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax)]
+        public void TiffEncoder_StripLength_OutOfBounds<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            //// CcittGroup3Fax compressed data length can be larger than the original length
-            Assert.Throws<Xunit.Sdk.TrueException>(() => TestStripLength(provider, mode, compression));
+            //// CcittGroup3Fax compressed data length can be larger than the original length.
+            Assert.Throws<Xunit.Sdk.TrueException>(() => TestStripLength(provider, photometricInterpretation, compression));
 
-        private static void TestStripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression)
+        private static void TestStripLength<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
-            var tiffEncoder = new TiffEncoder() { Mode = mode, Compression = compression };
+            var tiffEncoder = new TiffEncoder() { PhotometricInterpretation = photometricInterpretation, Compression = compression };
             using Image<TPixel> input = provider.GetImage();
             using var memStream = new MemoryStream();
             ExifProfile exifProfileInput = input.Frames.RootFrame.Metadata.ExifProfile;
@@ -384,14 +446,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TestTiffEncoderCore(
                 provider,
                 inputMeta.BitsPerPixel,
-                mode,
+                photometricInterpretation,
                 inputCompression);
         }
 
         private static void TestTiffEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             TiffBitsPerPixel? bitsPerPixel,
-            TiffEncodingMode mode,
+            TiffPhotometricInterpretation photometricInterpretation,
             TiffCompression compression = TiffCompression.None,
             TiffPredictor predictor = TiffPredictor.None,
             bool useExactComparer = true,
@@ -402,7 +464,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using Image<TPixel> image = provider.GetImage();
             var encoder = new TiffEncoder
             {
-                Mode = mode,
+                PhotometricInterpretation = photometricInterpretation,
                 BitsPerPixel = bitsPerPixel,
                 Compression = compression,
                 HorizontalPredictor = predictor

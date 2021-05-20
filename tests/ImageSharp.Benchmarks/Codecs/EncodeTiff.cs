@@ -61,8 +61,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void SystemDrawing()
         {
             ImageCodecInfo codec = FindCodecForType("image/tiff");
-            using var parameters = new EncoderParameters(1);
-            parameters.Param[0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression));
+            using var parameters = new EncoderParameters(1)
+            {
+                Param = {[0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression))}
+            };
 
             using var memoryStream = new MemoryStream();
             this.drawing.Save(memoryStream, codec, parameters);
@@ -71,15 +73,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Description = "ImageSharp Tiff")]
         public void TiffCore()
         {
-            TiffEncodingMode mode = TiffEncodingMode.Default;
+            TiffPhotometricInterpretation photometricInterpretation = TiffPhotometricInterpretation.Rgb;
 
-            // workaround for 1-bit bug
+            // Workaround for 1-bit bug
             if (this.Compression == TiffCompression.CcittGroup3Fax || this.Compression == TiffCompression.Ccitt1D)
             {
-                mode = TiffEncodingMode.BiColor;
+                photometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
             }
 
-            var encoder = new TiffEncoder() { Compression = this.Compression, Mode = mode };
+            var encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
             using var memoryStream = new MemoryStream();
             this.core.SaveAsTiff(memoryStream, encoder);
         }

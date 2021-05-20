@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -10,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
     internal static class TiffColorWriterFactory
     {
         public static TiffBaseColorWriter<TPixel> Create<TPixel>(
-            TiffEncodingMode mode,
+            TiffPhotometricInterpretation? photometricInterpretation,
             ImageFrame<TPixel> image,
             IQuantizer quantizer,
             MemoryAllocator memoryAllocator,
@@ -19,14 +20,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             int bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            switch (mode)
+            switch (photometricInterpretation)
             {
-                case TiffEncodingMode.ColorPalette:
+                case TiffPhotometricInterpretation.PaletteColor:
                     return new TiffPaletteWriter<TPixel>(image, quantizer, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
-                case TiffEncodingMode.Gray:
+                case TiffPhotometricInterpretation.BlackIsZero:
+                case TiffPhotometricInterpretation.WhiteIsZero:
+                    if (bitsPerPixel == 1)
+                    {
+                        return new TiffBiColorWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
+                    }
+
                     return new TiffGrayWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
-                case TiffEncodingMode.BiColor:
-                    return new TiffBiColorWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
                 default:
                     return new TiffRgbWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
             }

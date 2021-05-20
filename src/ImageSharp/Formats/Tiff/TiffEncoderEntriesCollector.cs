@@ -281,7 +281,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 if (encoder.HorizontalPredictor == TiffPredictor.Horizontal)
                 {
-                    if (encoder.Mode == TiffEncodingMode.Rgb || encoder.Mode == TiffEncodingMode.Gray || encoder.Mode == TiffEncodingMode.ColorPalette)
+                    if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb ||
+                        encoder.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor ||
+                        encoder.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
                     {
                         var predictor = new ExifShort(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
 
@@ -320,20 +322,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     case TiffPhotometricInterpretation.Rgb:
                         return TiffConstants.BitsPerSampleRgb8Bit;
+
                     case TiffPhotometricInterpretation.WhiteIsZero:
-                        if (encoder.Mode == TiffEncodingMode.BiColor)
+                        if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit1)
                         {
                             return TiffConstants.BitsPerSample1Bit;
                         }
 
                         return TiffConstants.BitsPerSample8Bit;
+
                     case TiffPhotometricInterpretation.BlackIsZero:
-                        if (encoder.Mode == TiffEncodingMode.BiColor)
+                        if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit1)
                         {
                             return TiffConstants.BitsPerSample1Bit;
                         }
 
                         return TiffConstants.BitsPerSample8Bit;
+
                     default:
                         return TiffConstants.BitsPerSampleRgb8Bit;
                 }
@@ -350,7 +355,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         // PackBits is allowed for all modes.
                         return (ushort)TiffCompression.PackBits;
                     case TiffCompression.Lzw:
-                        if (encoder.Mode == TiffEncodingMode.Rgb || encoder.Mode == TiffEncodingMode.Gray || encoder.Mode == TiffEncodingMode.ColorPalette)
+                        if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb ||
+                            encoder.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor ||
+                            encoder.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
                         {
                             return (ushort)TiffCompression.Lzw;
                         }
@@ -358,20 +365,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         break;
 
                     case TiffCompression.CcittGroup3Fax:
-                        if (encoder.Mode == TiffEncodingMode.BiColor)
-                        {
-                            return (ushort)TiffCompression.CcittGroup3Fax;
-                        }
-
-                        break;
+                        return (ushort)TiffCompression.CcittGroup3Fax;
 
                     case TiffCompression.Ccitt1D:
-                        if (encoder.Mode == TiffEncodingMode.BiColor)
-                        {
-                            return (ushort)TiffCompression.Ccitt1D;
-                        }
-
-                        break;
+                        return (ushort)TiffCompression.Ccitt1D;
                 }
 
                 return (ushort)TiffCompression.None;

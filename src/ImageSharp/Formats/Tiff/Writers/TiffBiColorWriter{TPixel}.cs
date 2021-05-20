@@ -36,16 +36,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <inheritdoc/>
         protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
         {
-            if (this.pixelsAsGray == null)
-            {
-                this.pixelsAsGray = this.MemoryAllocator.Allocate<byte>(height * this.Image.Width);
-            }
+            this.pixelsAsGray ??= this.MemoryAllocator.Allocate<byte>(height * this.Image.Width);
 
             Span<byte> pixelAsGraySpan = this.pixelsAsGray.Slice(0, height * this.Image.Width);
 
-            Span<TPixel> pixels = GetStripPixels(this.imageBlackWhite.GetRootFramePixelBuffer(), y, height);
+            Span<TPixel> pixelsBlackWhite = GetStripPixels(this.imageBlackWhite.GetRootFramePixelBuffer(), y, height);
 
-            PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixels, pixelAsGraySpan, pixels.Length);
+            PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixelsBlackWhite, pixelAsGraySpan, pixelsBlackWhite.Length);
 
             if (compressor.Method == TiffCompression.CcittGroup3Fax || compressor.Method == TiffCompression.Ccitt1D)
             {
@@ -54,11 +51,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             }
             else
             {
+                // Write uncompressed image.
                 int bytesPerStrip = this.BytesPerRow * height;
-                if (this.bitStrip == null)
-                {
-                    this.bitStrip = this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerStrip);
-                }
+                this.bitStrip ??= this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerStrip);
 
                 Span<byte> rows = this.bitStrip.Slice(0, bytesPerStrip);
                 rows.Clear();

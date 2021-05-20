@@ -32,5 +32,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNotSupported(string message) => throw new NotSupportedException(message);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowArgumentException(string message) => throw new ArgumentException(message);
     }
 }

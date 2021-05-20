@@ -22,16 +22,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <inheritdoc/>
-        public TiffCompression Compression { get; set; } = TiffCompression.None;
+        public TiffCompression? Compression { get; set; }
 
         /// <inheritdoc/>
-        public DeflateCompressionLevel CompressionLevel { get; set; } = DeflateCompressionLevel.DefaultCompression;
+        public DeflateCompressionLevel? CompressionLevel { get; set; }
 
         /// <inheritdoc/>
-        public TiffEncodingMode Mode { get; set; }
+        public TiffPhotometricInterpretation? PhotometricInterpretation { get; set; }
 
         /// <inheritdoc/>
-        public TiffPredictor HorizontalPredictor { get; set; }
+        public TiffPredictor? HorizontalPredictor { get; set; }
 
         /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }

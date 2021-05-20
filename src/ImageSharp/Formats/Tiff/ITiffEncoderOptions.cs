@@ -20,24 +20,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets the compression type to use.
         /// </summary>
-        TiffCompression Compression { get; }
+        TiffCompression? Compression { get; }
 
         /// <summary>
         /// Gets the compression level 1-9 for the deflate compression mode.
         /// <remarks>Defaults to <see cref="DeflateCompressionLevel.DefaultCompression"/>.</remarks>
         /// </summary>
-        DeflateCompressionLevel CompressionLevel { get; }
+        DeflateCompressionLevel? CompressionLevel { get; }
 
         /// <summary>
-        /// Gets the encoding mode to use. Possible options are RGB, RGB with a color palette, gray or BiColor.
-        /// If no mode is specified in the options, RGB will be used.
+        /// Gets the PhotometricInterpretation to use. Possible options are RGB, RGB with a color palette, gray or BiColor.
+        /// If no PhotometricInterpretation is specified or it is unsupported by the encoder, RGB will be used.
         /// </summary>
-        TiffEncodingMode Mode { get; }
+        TiffPhotometricInterpretation? PhotometricInterpretation { get; }
 
         /// <summary>
         /// Gets a value indicating which horizontal prediction to use. This can improve the compression ratio with deflate or lzw compression.
         /// </summary>
-        TiffPredictor HorizontalPredictor { get; }
+        TiffPredictor? HorizontalPredictor { get; }
 
         /// <summary>
         /// Gets the quantizer for creating a color palette image.

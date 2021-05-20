@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
             options.Predictor = predictor;
             options.PhotometricInterpretation = exifProfile.GetValue(ExifTag.PhotometricInterpretation) != null ?
-                (TiffPhotometricInterpretation)exifProfile.GetValue(ExifTag.PhotometricInterpretation).Value : TiffPhotometricInterpretation.WhiteIsZero;
+                (TiffPhotometricInterpretation)exifProfile.GetValue(ExifTag.PhotometricInterpretation).Value : TiffPhotometricInterpretation.BlackIsZero;
             options.BitsPerPixel = entries.BitsPerPixel != null ? (int)entries.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
             options.BitsPerSample = GetBitsPerSample(entries.BitsPerPixel);
 

@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaInput.BitsPerPixel);
 
             // Save to Tiff
-            var tiffEncoder = new TiffEncoder() { Mode = TiffEncodingMode.Rgb };
+            var tiffEncoder = new TiffEncoder() { PhotometricInterpretation = TiffPhotometricInterpretation.Rgb };
             using var ms = new MemoryStream();
             image.Save(ms, tiffEncoder);
 
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             byte[] encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
 
             Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaDataEncodedRootFrame.BitsPerPixel);
-            Assert.Equal(TiffCompression.None, (TiffCompression)encodedImageExifProfile.GetValue(ExifTag.Compression).Value);
+            Assert.Equal(TiffCompression.Lzw, (TiffCompression)encodedImageExifProfile.GetValue(ExifTag.Compression).Value);
 
             Assert.Equal(inputMetaData.HorizontalResolution, encodedImageMetaData.HorizontalResolution);
             Assert.Equal(inputMetaData.VerticalResolution, encodedImageMetaData.VerticalResolution);

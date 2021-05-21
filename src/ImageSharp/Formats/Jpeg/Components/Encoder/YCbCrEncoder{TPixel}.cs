@@ -14,10 +14,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     internal class YCbCrEncoder<TPixel>
     {
+        private const int EmitBufferSizeInBytes = 1024;
+
         /// <summary>
         /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
         /// </summary>
-        private byte[] emitBuffer = new byte[64];
+        private byte[] emitBuffer = new byte[EmitBufferSizeInBytes];
 
         /// <summary>
         /// The accumulated bits to write to the stream.
@@ -353,6 +355,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // Pad the last byte with 1's.
             this.Emit(0x7f, 7);
+            this.outputStream.Write(this.emitBuffer, 0, this.emitLen);
         }
 
         /// <summary>
@@ -420,8 +423,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             return dc;
         }
 
+        private int emitLen = 0;
+
         /// <summary>
-        /// Emits the least significant count of bits of bits to the bit-stream.
+        /// Emits the least significant count of bits to the stream write buffer.
         /// The precondition is bits
         /// <example>
         /// &lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16
@@ -442,23 +447,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             if (count >= 8)
             {
                 // Track length
-                int len = 0;
                 while (count >= 8)
                 {
                     byte b = (byte)(bits >> 24);
-                    this.emitBuffer[len++] = b;
+                    this.emitBuffer[this.emitLen++] = b;
                     if (b == byte.MaxValue)
                     {
-                        this.emitBuffer[len++] = byte.MinValue;
+                        this.emitBuffer[this.emitLen++] = byte.MinValue;
                     }
 
                     bits <<= 8;
                     count -= 8;
                 }
 
-                if (len > 0)
+                // This can emit 4 times of:
+                // 1 byte guaranteed
+                // 1 extra byte.MinValue byte if previous one was byte.MaxValue
+                // Thus writing (1 + 1) * 4 = 8 bytes max
+                // So we must check if emit buffer has extra 8 bytes, if not - call stream.Write
+                if (this.emitLen > EmitBufferSizeInBytes - 8)
                 {
-                    this.outputStream.Write(this.emitBuffer, 0, len);
+                    this.outputStream.Write(this.emitBuffer, 0, this.emitLen);
+                    this.emitLen = 0;
                 }
             }
 

@@ -193,9 +193,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             // Write the End Of Image marker.
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[1] = JpegConstants.Markers.EOI;
-            stream.Write(this.buffer, 0, 2);
+            this.WriteEndOfImageMarker();
+
             stream.Flush();
         }
 
@@ -693,6 +692,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[sosSize] = 0x3f; // Se - End of spectral selection.
             this.buffer[sosSize + 1] = 0x00; // Ah + Ah (Successive approximation bit position high + low)
             this.outputStream.Write(this.buffer, 0, sosSize + 2);
+        }
+
+        /// <summary>
+        /// Writes the EndOfImage marker.
+        /// </summary>
+        private void WriteEndOfImageMarker()
+        {
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.EOI;
+            this.outputStream.Write(this.buffer, 0, 2);
         }
 
         /// <summary>

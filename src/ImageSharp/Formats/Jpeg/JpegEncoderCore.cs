@@ -587,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 0x01
             };
 
-            if (this.colorType == JpegColorType.Luminance)
+            if (this.componentCount == 1)
             {
                 subsamples = stackalloc byte[]
                 {

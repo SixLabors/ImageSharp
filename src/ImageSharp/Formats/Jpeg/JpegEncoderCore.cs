@@ -86,9 +86,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly int? quality;
 
         /// <summary>
-        /// Gets or sets the subsampling method to use.
+        /// Component count.
         /// </summary>
-        private readonly JpegColorType? colorType;
+        private readonly int componentCount;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.quality = options.Quality;
             this.subsample = options.Subsample;
-            this.colorType = options.ColorType;
+            this.componentCount = (options.ColorType == JpegColorType.Luminance) ? 1 : 3;
         }
 
         /// <summary>
@@ -129,9 +129,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
 
-            // Compute number of components based on color type in options.
-            int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
-
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
             int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
             this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
@@ -153,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Block8x8F luminanceQuantTable = default;
             Block8x8F chrominanceQuantTable = default;
             InitQuantizationTable(0, scale, ref luminanceQuantTable);
-            if (componentCount > 1)
+            if (this.componentCount > 1)
             {
                 InitQuantizationTable(1, scale, ref chrominanceQuantTable);
             }
@@ -177,13 +174,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfScan(image, componentCount, cancellationToken);
 
             // Write the scan compressed data.
-            new HuffmanScanEncoder(stream).WriteStartOfScan(
-                image,
-                this.colorType,
-                this.subsample,
-                ref luminanceQuantTable,
-                ref chrominanceQuantTable,
-                cancellationToken);
+            var scanEncoder = new HuffmanScanEncoder(stream);
+            if (this.componentCount == 1)
+            {
+                scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
+            }
+            else
+            {
+                switch (subsample)
+                {
+                    case JpegSubsample.Ratio444:
+                        scanEncoder.Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        break;
+                    case JpegSubsample.Ratio420:
+                        scanEncoder.Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        break;
+                }
+            }
 
             // Write the End Of Image marker.
             this.buffer[0] = JpegConstants.Markers.XFF;

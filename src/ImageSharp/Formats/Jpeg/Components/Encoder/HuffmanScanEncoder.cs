@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
         /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
+        public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var unzig = ZigZag.CreateUnzigTable();
@@ -129,6 +129,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref unzig);
                 }
             }
+
+            // Pad the last byte with 1's.
+            this.Emit(0x7f, 7);
+            this.target.Write(this.emitBuffer, 0, this.emitLen);
         }
 
         /// <summary>
@@ -140,7 +144,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
         /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
+        public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -199,6 +203,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref unzig);
                 }
             }
+
+            // Pad the last byte with 1's.
+            this.Emit(0x7f, 7);
+            this.target.Write(this.emitBuffer, 0, this.emitLen);
         }
 
 
@@ -209,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
+        public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var unzig = ZigZag.CreateUnzigTable();
@@ -237,33 +245,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.Y,
                         ref luminanceQuantTable,
                         ref unzig);
-                }
-            }
-        }
-
-        public void WriteStartOfScan<TPixel>(
-            Image<TPixel> image,
-            JpegColorType? colorType,
-            JpegSubsample? subsample,
-            ref Block8x8F luminanceQuantTable,
-            ref Block8x8F chrominanceTable,
-            CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            if (colorType == JpegColorType.Luminance)
-            {
-                this.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
-            }
-            else
-            {
-                switch (subsample)
-                {
-                    case JpegSubsample.Ratio444:
-                        this.Encode444(image, ref luminanceQuantTable, ref chrominanceTable, cancellationToken);
-                        break;
-                    case JpegSubsample.Ratio420:
-                        this.Encode420(image, ref luminanceQuantTable, ref chrominanceTable, cancellationToken);
-                        break;
                 }
             }
 

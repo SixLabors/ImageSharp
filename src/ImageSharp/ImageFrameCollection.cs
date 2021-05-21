@@ -196,9 +196,9 @@ namespace SixLabors.ImageSharp
         /// </summary>
         protected void EnsureNotDisposed()
         {
-            if(this.isDisposed)
+            if (this.isDisposed)
             {
-                throw new ObjectDisposedException("Trying to execute an operation on a disposed image frame.");
+                ThrowHelper.ThrowObjectDisposedException(this.GetType());
             }
         }
 

@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp
         {
             if (this.isDisposed)
             {
-                throw new ObjectDisposedException("Trying to execute an operation on a disposed image.");
+                ThrowHelper.ThrowObjectDisposedException(this.GetType());
             }
         }
 

@@ -174,7 +174,8 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            this.DisposeManaged();
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
 
             this.isDisposed = true;
         }
@@ -204,7 +205,8 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Internal routine for freeing managed resources called from <see cref="Dispose"/>
         /// </summary>
-        protected abstract void DisposeManaged();
+        /// /// /// <param name="disposing">Whether to dispose of managed objects.</param>
+        protected abstract void Dispose(bool disposing);
 
         /// <summary>
         /// Implements <see cref="GetEnumerator"/>.

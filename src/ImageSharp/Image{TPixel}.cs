@@ -268,7 +268,13 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        protected override void DisposeManaged() => this.frames.Dispose();
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.frames.Dispose();
+            }
+        }
 
         /// <inheritdoc/>
         public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";

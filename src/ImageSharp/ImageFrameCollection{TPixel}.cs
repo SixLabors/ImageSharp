@@ -396,14 +396,17 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        protected override void DisposeManaged()
+        protected override void Dispose(bool disposing)
         {
-            foreach (ImageFrame<TPixel> f in this.frames)
+            if (disposing)
             {
-                f.Dispose();
-            }
+                foreach (ImageFrame<TPixel> f in this.frames)
+                {
+                    f.Dispose();
+                }
 
-            this.frames.Clear();
+                this.frames.Clear();
+            }
         }
 
         private ImageFrame<TPixel> CopyNonCompatibleFrame(ImageFrame source)

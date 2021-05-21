@@ -201,8 +201,8 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Save_ObjectDisposedException()
             {
+                using var stream = new MemoryStream();
                 var image = new Image<Rgba32>(this.configuration, 10, 10);
-                var stream = new MemoryStream();
                 var encoder = new JpegEncoder();
 
                 image.Dispose();

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <remarks>
         /// This is subject to change, 1024 seems to be the best value in terms of performance.
-        /// <see cref="YCbCrEncoder{TPixel}.Emit(uint, uint)"/> expects it to be at least 8 (see comments in method body).
+        /// <see cref="Emit(uint, uint)"/> expects it to be at least 8 (see comments in method body).
         /// </remarks>
         private const int EmitBufferSizeInBytes = 1024;
 
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private int emitLen = 0;
 
         /// <summary>
-        /// Emmited bits 'micro buffer' before being transfered to the <see cref="YCbCrEncoder{TPixel}.emitBuffer"/>.
+        /// Emmited bits 'micro buffer' before being transfered to the <see cref="emitBuffer"/>.
         /// </summary>
         private uint accumulatedBits;
 
@@ -82,6 +82,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
+        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         private void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -135,6 +137,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
+        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         private void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -203,6 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>

@@ -41,6 +41,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private Block8x8F luminanceQuantTable;
 
+        private Block8x8F temporalBlock1;
+        private Block8x8F temporalBlock2;
+
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
@@ -145,11 +148,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            // (Partially done with YCbCrForwardConverter<TPixel>)
-            Block8x8F temp1 = default;
-            Block8x8F temp2 = default;
-
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
@@ -176,8 +174,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref temp1,
-                        ref temp2,
                         ref onStackLuminanceQuantTable,
                         ref unzig);
 
@@ -185,8 +181,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref pixelConverter.Cb,
-                        ref temp1,
-                        ref temp2,
                         ref onStackChrominanceQuantTable,
                         ref unzig);
 
@@ -194,8 +188,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref pixelConverter.Cr,
-                        ref temp1,
-                        ref temp2,
                         ref onStackChrominanceQuantTable,
                         ref unzig);
                 }
@@ -216,9 +208,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             Block8x8F b = default;
             Span<Block8x8F> cb = stackalloc Block8x8F[4];
             Span<Block8x8F> cr = stackalloc Block8x8F[4];
-
-            Block8x8F temp1 = default;
-            Block8x8F temp2 = default;
 
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
@@ -253,8 +242,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             QuantIndex.Luminance,
                             prevDCY,
                             ref pixelConverter.Y,
-                            ref temp1,
-                            ref temp2,
                             ref onStackLuminanceQuantTable,
                             ref unzig);
                     }
@@ -264,8 +251,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref b,
-                        ref temp1,
-                        ref temp2,
                         ref onStackChrominanceQuantTable,
                         ref unzig);
 
@@ -274,8 +259,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref b,
-                        ref temp1,
-                        ref temp2,
                         ref onStackChrominanceQuantTable,
                         ref unzig);
                 }
@@ -322,8 +305,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref temp1,
-                        ref temp2,
                         ref onStackLuminanceQuantTable,
                         ref unzig);
                 }
@@ -372,16 +353,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             QuantIndex index,
             int prevDC,
             ref Block8x8F src,
-            ref Block8x8F tempDest1,
-            ref Block8x8F tempDest2,
             ref Block8x8F quant,
             ref ZigZag unZig)
         {
-            FastFloatingPointDCT.TransformFDCT(ref src, ref tempDest1, ref tempDest2);
+            ref Block8x8F refTemp1 = ref this.temporalBlock1;
+            ref Block8x8F refTemp2 = ref this.temporalBlock2;
 
-            Block8x8F.Quantize(ref tempDest1, ref tempDest2, ref quant, ref unZig);
+            FastFloatingPointDCT.TransformFDCT(ref src, ref refTemp1, ref refTemp2);
 
-            int dc = (int)tempDest2[0];
+            Block8x8F.Quantize(ref refTemp1, ref refTemp2, ref quant, ref unZig);
+
+            int dc = (int)refTemp2[0];
 
             // Emit the DC delta.
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
@@ -392,7 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             for (int zig = 1; zig < Block8x8F.Size; zig++)
             {
-                int ac = (int)tempDest2[zig];
+                int ac = (int)refTemp2[zig];
 
                 if (ac == 0)
                 {

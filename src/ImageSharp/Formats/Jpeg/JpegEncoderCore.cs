@@ -37,11 +37,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] buffer = new byte[20];
 
         /// <summary>
-        /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
-        /// </summary>
-        private readonly byte[] emitBuffer = new byte[64];
-
-        /// <summary>
         /// Gets or sets the subsampling method to use.
         /// </summary>
         private JpegSubsample? subsample;
@@ -55,26 +50,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Gets or sets the subsampling method to use.
         /// </summary>
         private readonly JpegColorType? colorType;
-
-        /// <summary>
-        /// The accumulated bits to write to the stream.
-        /// </summary>
-        private uint accumulatedBits;
-
-        /// <summary>
-        /// The accumulated bit count.
-        /// </summary>
-        private uint bitCount;
-
-        /// <summary>
-        /// The scaled chrominance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F chrominanceQuantTable;
-
-        /// <summary>
-        /// The scaled luminance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F luminanceQuantTable;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -123,8 +98,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
 
             YCbCrEncoder<TPixel> scanEncoder = new YCbCrEncoder<TPixel>(stream, componentCount, qlty);
-            this.luminanceQuantTable = scanEncoder.LuminanceQuantizationTable;
-            this.chrominanceQuantTable = scanEncoder.ChrominanceQuantizationTable;
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);

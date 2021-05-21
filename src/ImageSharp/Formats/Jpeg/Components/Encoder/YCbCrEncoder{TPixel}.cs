@@ -2,18 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
-    internal class YCbCrEncoder<TPixel>
-        where TPixel : unmanaged, IPixel<TPixel>
+    internal class YCbCrEncoder
     {
         /// <summary>
         /// Number of bytes cached before being written to target stream via Stream.Write(byte[], offest, count).
@@ -56,8 +53,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private Block8x8F temporalBlock1;
         private Block8x8F temporalBlock2;
-
-        private ImageFrame<TPixel> source;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -290,11 +285,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            // (Partially done with YCbCrForwardConverter<TPixel>)
-            Block8x8F temp1 = default;
-            Block8x8F temp2 = default;
-
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
 
             var unzig = ZigZag.CreateUnzigTable();

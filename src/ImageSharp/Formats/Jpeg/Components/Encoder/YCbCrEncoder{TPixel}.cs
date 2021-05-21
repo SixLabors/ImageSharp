@@ -13,21 +13,34 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     internal class YCbCrEncoder<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
+        /// <summary>
+        /// Number of bytes cached before being written to target stream via Stream.Write(byte[], offest, count).
+        /// </summary>
+        /// <remarks>
+        /// This is subject to change, 1024 seems to be the best value in terms of performance.
+        /// <see cref="YCbCrEncoder{TPixel}.Emit(uint, uint)"/> expects it to be at least 8 (see comments in method body).
+        /// </remarks>
         private const int EmitBufferSizeInBytes = 1024;
 
         /// <summary>
-        /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
+        /// A buffer for reducing the number of stream writes when emitting Huffman tables.
         /// </summary>
         private byte[] emitBuffer = new byte[EmitBufferSizeInBytes];
 
         /// <summary>
-        /// The accumulated bits to write to the stream.
+        /// Number of filled bytes in <see cref="emitBuffer"/> buffer
+        /// </summary>
+        private int emitLen = 0;
+
+        /// <summary>
+        /// Emmited bits 'micro buffer' before being transfered to the <see cref="YCbCrEncoder{TPixel}.emitBuffer"/>.
         /// </summary>
         private uint accumulatedBits;
 
         /// <summary>
-        /// The accumulated bit count.
+        /// Number of jagged bits stored in <see cref="accumulatedBits"/>
         /// </summary>
         private uint bitCount;
 
@@ -44,10 +57,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private Block8x8F temporalBlock1;
         private Block8x8F temporalBlock2;
 
+        private ImageFrame<TPixel> source;
+
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
-        private Stream outputStream;
+        private Stream target;
 
         /// <summary>
         /// Gets the counts the number of bits needed to hold an integer.
@@ -118,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         public YCbCrEncoder(Stream outputStream, int componentCount, int quality)
         {
-            this.outputStream = outputStream;
+            this.target = outputStream;
 
             // Convert from a quality rating to a scaling factor.
             int scale;
@@ -333,7 +348,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // Pad the last byte with 1's.
             this.Emit(0x7f, 7);
-            this.outputStream.Write(this.emitBuffer, 0, this.emitLen);
+            this.target.Write(this.emitBuffer, 0, this.emitLen);
         }
 
         /// <summary>
@@ -344,8 +359,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="index">The quantization table index.</param>
         /// <param name="prevDC">The previous DC value.</param>
         /// <param name="src">Source block</param>
-        /// <param name="tempDest1">Temporal block to be used as FDCT Destination</param>
-        /// <param name="tempDest2">Temporal block 2</param>
         /// <param name="quant">Quantization table</param>
         /// <param name="unZig">The 8x8 Unzig block.</param>
         /// <returns>The <see cref="int"/>.</returns>
@@ -401,8 +414,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             return dc;
         }
 
-        private int emitLen = 0;
-
         /// <summary>
         /// Emits the least significant count of bits to the stream write buffer.
         /// The precondition is bits
@@ -444,7 +455,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 // So we must check if emit buffer has extra 8 bytes, if not - call stream.Write
                 if (this.emitLen > EmitBufferSizeInBytes - 8)
                 {
-                    this.outputStream.Write(this.emitBuffer, 0, this.emitLen);
+                    this.target.Write(this.emitBuffer, 0, this.emitLen);
                     this.emitLen = 0;
                 }
             }

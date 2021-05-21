@@ -41,16 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private uint bitCount;
 
-        /// <summary>
-        /// The scaled chrominance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F chrominanceQuantTable;
-
-        /// <summary>
-        /// The scaled luminance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F luminanceQuantTable;
-
         private Block8x8F temporalBlock1;
         private Block8x8F temporalBlock2;
 
@@ -82,71 +72,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 8, 8, 8,
             };
 
-        /// <summary>
-        /// Gets the unscaled quantization tables in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from section K.1 after converting from natural to
-        /// zig-zag order.
-        /// </summary>
-        // The C# compiler emits this as a compile-time constant embedded in the PE file.
-        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
-        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
-            {
-                // Luminance.
-                16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
-                40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
-                57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
-                109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
-                100, 120, 92, 101, 103, 99,
-            };
-
-        /// <summary>
-        /// Gets the unscaled quantization tables in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from section K.1 after converting from natural to
-        /// zig-zag order.
-        /// </summary>
-        // The C# compiler emits this as a compile-time constant embedded in the PE file.
-        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
-        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
-            {
-                // Chrominance.
-                17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99,
-            };
-
-
-        public ref Block8x8F ChrominanceQuantizationTable => ref this.chrominanceQuantTable;
-
-        public ref Block8x8F LuminanceQuantizationTable => ref this.luminanceQuantTable;
-
-
-        public YCbCrEncoder(Stream outputStream, int componentCount, int quality)
+        public YCbCrEncoder(Stream outputStream)
         {
             this.target = outputStream;
-
-            // Convert from a quality rating to a scaling factor.
-            int scale;
-            if (quality < 50)
-            {
-                scale = 5000 / quality;
-            }
-            else
-            {
-                scale = 200 - (quality * 2);
-            }
-
-            // Initialize the quantization tables.
-            InitQuantizationTable(0, scale, ref this.luminanceQuantTable);
-            if (componentCount > 1)
-            {
-                InitQuantizationTable(1, scale, ref this.chrominanceQuantTable);
-            }
         }
 
         /// <summary>
@@ -155,12 +83,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        private void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
-            Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
-
             var unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
@@ -184,21 +109,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref onStackLuminanceQuantTable,
+                        ref luminanceQuantTable,
                         ref unzig);
 
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref pixelConverter.Cb,
-                        ref onStackChrominanceQuantTable,
+                        ref chrominanceQuantTable,
                         ref unzig);
 
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref pixelConverter.Cr,
-                        ref onStackChrominanceQuantTable,
+                        ref chrominanceQuantTable,
                         ref unzig);
                 }
             }
@@ -211,16 +136,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        private void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default;
             Span<Block8x8F> cb = stackalloc Block8x8F[4];
             Span<Block8x8F> cr = stackalloc Block8x8F[4];
-
-            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
-            Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
             var unzig = ZigZag.CreateUnzigTable();
 
@@ -252,7 +174,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             QuantIndex.Luminance,
                             prevDCY,
                             ref pixelConverter.Y,
-                            ref onStackLuminanceQuantTable,
+                            ref luminanceQuantTable,
                             ref unzig);
                     }
 
@@ -261,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref b,
-                        ref onStackChrominanceQuantTable,
+                        ref chrominanceQuantTable,
                         ref unzig);
 
                     Block8x8F.Scale16X16To8X8(ref b, cr);
@@ -269,7 +191,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref b,
-                        ref onStackChrominanceQuantTable,
+                        ref chrominanceQuantTable,
                         ref unzig);
                 }
             }
@@ -282,11 +204,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
-
             var unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
@@ -310,28 +230,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref onStackLuminanceQuantTable,
+                        ref luminanceQuantTable,
                         ref unzig);
                 }
             }
         }
 
-        public void WriteStartOfScan<TPixel>(Image<TPixel> image, JpegColorType? colorType, JpegSubsample? subsample, CancellationToken cancellationToken)
+        public void WriteStartOfScan<TPixel>(
+            Image<TPixel> image,
+            JpegColorType? colorType,
+            JpegSubsample? subsample,
+            ref Block8x8F luminanceQuantTable,
+            ref Block8x8F chrominanceTable,
+            CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (colorType == JpegColorType.Luminance)
             {
-                this.EncodeGrayscale(image, cancellationToken);
+                this.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
             }
             else
             {
                 switch (subsample)
                 {
                     case JpegSubsample.Ratio444:
-                        this.Encode444(image, cancellationToken);
+                        this.Encode444(image, ref luminanceQuantTable, ref chrominanceTable, cancellationToken);
                         break;
                     case JpegSubsample.Ratio420:
-                        this.Encode420(image, cancellationToken);
+                        this.Encode420(image, ref luminanceQuantTable, ref chrominanceTable, cancellationToken);
                         break;
                 }
             }
@@ -497,36 +423,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             if (bt > 0)
             {
                 this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt);
-            }
-        }
-
-
-        /// <summary>
-        /// Initializes quantization table.
-        /// </summary>
-        /// <param name="i">The quantization index.</param>
-        /// <param name="scale">The scaling factor.</param>
-        /// <param name="quant">The quantization table.</param>
-        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
-        {
-            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
-            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
-
-            for (int j = 0; j < Block8x8F.Size; j++)
-            {
-                int x = unscaledQuant[j];
-                x = ((x * scale) + 50) / 100;
-                if (x < 1)
-                {
-                    x = 1;
-                }
-
-                if (x > 255)
-                {
-                    x = 255;
-                }
-
-                quant[j] = x;
             }
         }
     }

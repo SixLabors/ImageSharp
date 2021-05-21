@@ -32,6 +32,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private const int QuantizationTableCount = 2;
 
         /// <summary>
+        /// Gets the unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
+            {
+                // Luminance.
+                16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
+                40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
+                57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
+                109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
+                100, 120, 92, 101, 103, 99,
+            };
+
+        /// <summary>
+        /// Gets the unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
+            {
+                // Chrominance.
+                17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99,
+            };
+
+
+        /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];
@@ -97,7 +136,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
             this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
 
-            YCbCrEncoder<TPixel> scanEncoder = new YCbCrEncoder<TPixel>(stream, componentCount, qlty);
+            // Convert from a quality rating to a scaling factor.
+            int scale;
+            if (qlty < 50)
+            {
+                scale = 5000 / qlty;
+            }
+            else
+            {
+                scale = 200 - (qlty * 2);
+            }
+
+            // Initialize the quantization tables.
+            // TODO: This looks ugly, should we write chrominance table for luminance-only images?
+            // If not - this can code can be simplified
+            Block8x8F luminanceQuantTable = default;
+            Block8x8F chrominanceQuantTable = default;
+            InitQuantizationTable(0, scale, ref luminanceQuantTable);
+            if (componentCount > 1)
+            {
+                InitQuantizationTable(1, scale, ref chrominanceQuantTable);
+            }
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
@@ -106,7 +165,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteProfiles(metadata);
 
             // Write the quantization tables.
-            this.WriteDefineQuantizationTables(ref scanEncoder.LuminanceQuantizationTable, ref scanEncoder.ChrominanceQuantizationTable);
+            this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
 
             // Write the image dimensions.
             this.WriteStartOfFrame(image.Width, image.Height, componentCount);
@@ -114,8 +173,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the Huffman tables.
             this.WriteDefineHuffmanTables(componentCount);
 
-            // Write the image data.
-            this.WriteStartOfScan(scanEncoder, image, componentCount, cancellationToken);
+            // Write the scan header.
+            this.WriteStartOfScan(image, componentCount, cancellationToken);
+
+            // Write the scan compressed data.
+            new YCbCrEncoder(stream).WriteStartOfScan(
+                image,
+                this.colorType,
+                this.subsample,
+                ref luminanceQuantTable,
+                ref chrominanceQuantTable,
+                cancellationToken);
 
             // Write the End Of Image marker.
             this.buffer[0] = JpegConstants.Markers.XFF;
@@ -573,7 +641,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="image">The pixel accessor providing access to the image pixels.</param>
         /// <param name="componentCount">The number of components in a pixel.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void WriteStartOfScan<TPixel>(YCbCrEncoder<TPixel> scanEncoder, Image<TPixel> image, int componentCount, CancellationToken cancellationToken)
+        private void WriteStartOfScan<TPixel>(Image<TPixel> image, int componentCount, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -618,9 +686,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[sosSize] = 0x3f; // Se - End of spectral selection.
             this.buffer[sosSize + 1] = 0x00; // Ah + Ah (Successive approximation bit position high + low)
             this.outputStream.Write(this.buffer, 0, sosSize + 2);
-
-
-            scanEncoder.WriteStartOfScan(image, this.colorType, this.subsample, cancellationToken);
         }
 
         /// <summary>
@@ -636,6 +701,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);
             this.outputStream.Write(this.buffer, 0, 4);
+        }
+
+        /// <summary>
+        /// Initializes quantization table.
+        /// </summary>
+        /// <param name="i">The quantization index.</param>
+        /// <param name="scale">The scaling factor.</param>
+        /// <param name="quant">The quantization table.</param>
+        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
+        {
+            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
+            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
+
+            for (int j = 0; j < Block8x8F.Size; j++)
+            {
+                int x = unscaledQuant[j];
+                x = ((x * scale) + 50) / 100;
+                if (x < 1)
+                {
+                    x = 1;
+                }
+
+                if (x > 255)
+                {
+                    x = 255;
+                }
+
+                quant[j] = x;
+            }
         }
     }
 }

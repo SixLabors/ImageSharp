@@ -142,7 +142,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -210,7 +209,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         private void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -291,7 +289,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -370,7 +367,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="tempDest2">Temporal block 2</param>
         /// <param name="quant">Quantization table</param>
         /// <param name="unZig">The 8x8 Unzig block.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         /// <returns>The <see cref="int"/>.</returns>
         private int WriteBlock(
             QuantIndex index,
@@ -435,7 +431,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <param name="bits">The packed bits.</param>
         /// <param name="count">The number of bits</param>
-        /// <param name="emitBufferBase">The reference to the emitBuffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void Emit(uint bits, uint count)
         {
@@ -481,7 +476,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <param name="index">The index of the Huffman encoder</param>
         /// <param name="value">The value to encode.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuff(HuffIndex index, int value)
         {
@@ -495,7 +489,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="index">The index of the Huffman encoder</param>
         /// <param name="runLength">The number of copies to encode.</param>
         /// <param name="value">The value to encode.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuffRLE(HuffIndex index, int runLength, int value)
         {

@@ -46,6 +46,41 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(SampleMetadata, PixelTypes.Rgba32)]
+        public void TiffFrameMetadata_CloneIsDeep<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
+            {
+                TiffFrameMetadata meta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+                var cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
+                VerifyExpectedTiffFrameMetaDataIsPresent(cloneSameAsSampleMetaData);
+
+                var clone = (TiffFrameMetadata)meta.DeepClone();
+
+                clone.BitsPerPixel = TiffBitsPerPixel.Bit8;
+                clone.Compression = TiffCompression.None;
+                clone.PhotometricInterpretation = TiffPhotometricInterpretation.CieLab;
+                clone.Predictor = TiffPredictor.Horizontal;
+
+                Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
+                Assert.False(meta.Compression == clone.Compression);
+                Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
+                Assert.False(meta.Predictor == clone.Predictor);
+            }
+        }
+
+        private static void VerifyExpectedTiffFrameMetaDataIsPresent(TiffFrameMetadata frameMetaData)
+        {
+            Assert.NotNull(frameMetaData);
+            Assert.NotNull(frameMetaData.BitsPerPixel);
+            Assert.Equal(TiffBitsPerSample.Bit4, (TiffBitsPerSample)frameMetaData.BitsPerPixel);
+            Assert.Equal(TiffCompression.Lzw, frameMetaData.Compression);
+            Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frameMetaData.PhotometricInterpretation);
+            Assert.Equal(TiffPredictor.None, frameMetaData.Predictor);
+        }
+
+        [Theory]
         [InlineData(Calliphora_BiColorUncompressed, 1)]
         [InlineData(GrayscaleUncompressed, 8)]
         [InlineData(RgbUncompressed, 24)]
@@ -99,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                     Assert.NotNull(rootFrameMetaData.XmpProfile);
                     Assert.NotNull(rootFrameMetaData.ExifProfile);
                     Assert.Equal(2599, rootFrameMetaData.XmpProfile.Length);
-                    Assert.Equal(30, rootFrameMetaData.ExifProfile.Values.Count);
+                    Assert.Equal(27, rootFrameMetaData.ExifProfile.Values.Count);
                 }
             }
         }
@@ -132,9 +167,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Length);
 
                 ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
+                TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
                 Assert.NotNull(exifProfile);
-                Assert.Equal(30, exifProfile.Values.Count);
-                Assert.Equal(TiffCompression.Lzw, (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value);
+
+                // The original exifProfile has 30 values, but 3 of those values will be stored in the TiffFrameMetaData
+                // and removed from the profile on decode.
+                Assert.Equal(27, exifProfile.Values.Count);
+                Assert.Equal(TiffCompression.Lzw, tiffFrameMetadata.Compression);
                 Assert.Equal("This is Название", exifProfile.GetValue(ExifTag.ImageDescription).Value);
                 Assert.Equal("This is Изготовитель камеры", exifProfile.GetValue(ExifTag.Make).Value);
                 Assert.Equal("This is Модель камеры", exifProfile.GetValue(ExifTag.Model).Value);
@@ -153,7 +192,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples)?.Value);
                 Assert.Equal(32u, exifProfile.GetValue(ExifTag.RowsPerStrip).Value);
                 Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat));
-                Assert.Equal(TiffPredictor.None, (TiffPredictor?)exifProfile.GetValue(ExifTag.Predictor)?.Value);
+                Assert.Equal(TiffPredictor.None, tiffFrameMetadata.Predictor);
                 Assert.Equal(PixelResolutionUnit.PixelsPerInch, UnitConverter.ExifProfileToResolutionUnit(exifProfile));
                 ushort[] colorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
                 Assert.NotNull(colorMap);
@@ -162,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(14392, colorMap[1]);
                 Assert.Equal(58596, colorMap[46]);
                 Assert.Equal(3855, colorMap[47]);
-                Assert.Equal(TiffPhotometricInterpretation.PaletteColor, (TiffPhotometricInterpretation)exifProfile.GetValue(ExifTag.PhotometricInterpretation).Value);
+                Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffFrameMetadata.PhotometricInterpretation);
                 Assert.Equal(1u, exifProfile.GetValue(ExifTag.SamplesPerPixel).Value);
 
                 ImageMetadata imageMetaData = image.Metadata;
@@ -213,12 +252,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using Image<TPixel> image = provider.GetImage(new TiffDecoder() { IgnoreMetadata = false });
 
             ImageMetadata inputMetaData = image.Metadata;
-            var frameMetaInput = TiffFrameMetadata.Parse(image.Frames.RootFrame.Metadata.ExifProfile);
             ImageFrame<TPixel> rootFrameInput = image.Frames.RootFrame;
+            TiffFrameMetadata frameMetaInput = rootFrameInput.Metadata.GetTiffMetadata();
             byte[] xmpProfileInput = rootFrameInput.Metadata.XmpProfile;
             ExifProfile exifProfileInput = rootFrameInput.Metadata.ExifProfile;
 
-            Assert.Equal(TiffCompression.Lzw, (TiffCompression)exifProfileInput.GetValue(ExifTag.Compression).Value);
+            Assert.Equal(TiffCompression.Lzw, frameMetaInput.Compression);
             Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaInput.BitsPerPixel);
 
             // Save to Tiff
@@ -232,12 +271,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             ImageMetadata encodedImageMetaData = encodedImage.Metadata;
             ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;
-            var tiffMetaDataEncodedRootFrame = TiffFrameMetadata.Parse(rootFrameEncodedImage.Metadata.ExifProfile);
+            TiffFrameMetadata tiffMetaDataEncodedRootFrame = rootFrameEncodedImage.Metadata.GetTiffMetadata();
             ExifProfile encodedImageExifProfile = rootFrameEncodedImage.Metadata.ExifProfile;
             byte[] encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
 
             Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaDataEncodedRootFrame.BitsPerPixel);
-            Assert.Equal(TiffCompression.Lzw, (TiffCompression)encodedImageExifProfile.GetValue(ExifTag.Compression).Value);
+            Assert.Equal(TiffCompression.Lzw, tiffMetaDataEncodedRootFrame.Compression);
 
             Assert.Equal(inputMetaData.HorizontalResolution, encodedImageMetaData.HorizontalResolution);
             Assert.Equal(inputMetaData.VerticalResolution, encodedImageMetaData.VerticalResolution);

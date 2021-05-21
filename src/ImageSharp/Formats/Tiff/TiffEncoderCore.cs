@@ -111,19 +111,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 : rootFramePhotometricInterpretation;
 
             ImageFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata;
-            ExifProfile rootFrameExifProfile = image.Frames.RootFrame.Metadata.ExifProfile;
-            TiffBitsPerPixel? rootFrameBitsPerPixel = rootFrameMetaData.GetTiffMetadata().BitsPerPixel;
+            TiffFrameMetadata rootFrameTiffMetaData = rootFrameMetaData.GetTiffMetadata();
+            TiffBitsPerPixel? rootFrameBitsPerPixel = rootFrameTiffMetaData.BitsPerPixel;
 
             // If the user has not chosen a predictor or compression, set the values from the decoded image, if present.
-            if (!this.HorizontalPredictor.HasValue && rootFrameExifProfile?.GetValue(ExifTag.Predictor) != null)
-            {
-                this.HorizontalPredictor = (TiffPredictor)rootFrameExifProfile?.GetValue(ExifTag.Predictor).Value;
-            }
-
-            if (!this.CompressionType.HasValue && rootFrameExifProfile?.GetValue(ExifTag.Compression) != null)
-            {
-                this.CompressionType = (TiffCompression)rootFrameExifProfile?.GetValue(ExifTag.Compression).Value;
-            }
+            this.HorizontalPredictor ??= rootFrameTiffMetaData.Predictor;
+            this.CompressionType ??= rootFrameTiffMetaData.Compression;
 
             this.SetBitsPerPixel(rootFrameBitsPerPixel, image.PixelType.BitsPerPixel, photometricInterpretation);
             this.SetPhotometricInterpretation(photometricInterpretation);

@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         /// <param name="tag">The tag of the EXIF value.</param>
         /// <returns>
-        /// The <see cref="bool"/>.
+        /// True, if the value was removed, otherwise false.
         /// </returns>
         public bool RemoveValue(ExifTag tag)
         {

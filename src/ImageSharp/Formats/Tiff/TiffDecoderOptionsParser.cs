@@ -14,8 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffDecoderOptionsParser
     {
-        private const TiffPredictor DefaultPredictor = TiffPredictor.None;
-
         private const TiffPlanarConfiguration DefaultPlanarConfiguration = TiffPlanarConfiguration.Chunky;
 
         /// <summary>
@@ -23,8 +21,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="exifProfile">The exif profile of the frame to decode.</param>
-        /// <param name="entries">The IFD entries container to read the image format information for.</param>
-        public static void VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata entries)
+        /// <param name="frameMetadata">The IFD entries container to read the image format information for current frame.</param>
+        public static void VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
         {
             if (exifProfile.GetValue(ExifTag.TileOffsets)?.Value != null)
             {
@@ -42,8 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
             }
 
-            TiffPredictor predictor = (TiffPredictor?)exifProfile.GetValue(ExifTag.Predictor)?.Value ?? DefaultPredictor;
-            if (predictor == TiffPredictor.FloatingPoint)
+            if (frameMetadata.Predictor == TiffPredictor.FloatingPoint)
             {
                 TiffThrowHelper.ThrowNotSupported("TIFF images with FloatingPoint horizontal predictor are not supported.");
             }
@@ -68,14 +65,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             VerifyRequiredFieldsArePresent(exifProfile);
 
             options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
-            options.Predictor = predictor;
-            options.PhotometricInterpretation = exifProfile.GetValue(ExifTag.PhotometricInterpretation) != null ?
-                (TiffPhotometricInterpretation)exifProfile.GetValue(ExifTag.PhotometricInterpretation).Value : TiffPhotometricInterpretation.BlackIsZero;
-            options.BitsPerPixel = entries.BitsPerPixel != null ? (int)entries.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
-            options.BitsPerSample = GetBitsPerSample(entries.BitsPerPixel);
+            options.Predictor = frameMetadata.Predictor ?? TiffFrameMetadata.DefaultPredictor;
+            options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffFrameMetadata.DefaultPhotometricInterpretation;
+            options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffFrameMetadata.DefaultBitsPerPixel;
+            options.BitsPerSample = GetBitsPerSample(frameMetadata.BitsPerPixel);
 
-            ParseColorType(options, exifProfile);
-            ParseCompression(options, exifProfile);
+            options.ParseColorType(exifProfile);
+            options.ParseCompression(frameMetadata.Compression, exifProfile);
         }
 
         private static void VerifyRequiredFieldsArePresent(ExifProfile exifProfile)
@@ -222,9 +218,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private static void ParseCompression(this TiffDecoderCore options, ExifProfile exifProfile)
+        private static void ParseCompression(this TiffDecoderCore options, TiffCompression? compression, ExifProfile exifProfile)
         {
-            TiffCompression compression = exifProfile.GetValue(ExifTag.Compression) != null ? (TiffCompression)exifProfile.GetValue(ExifTag.Compression).Value : TiffCompression.None;
             switch (compression)
             {
                 case TiffCompression.None:

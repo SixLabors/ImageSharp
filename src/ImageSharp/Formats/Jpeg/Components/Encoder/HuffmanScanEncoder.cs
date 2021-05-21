@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
-    internal class YCbCrEncoder
+    internal class HuffmanScanEncoder
     {
         /// <summary>
         /// Number of bytes cached before being written to target stream via Stream.Write(byte[], offest, count).
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 8, 8, 8,
             };
 
-        public YCbCrEncoder(Stream outputStream)
+        public HuffmanScanEncoder(Stream outputStream)
         {
             this.target = outputStream;
         }

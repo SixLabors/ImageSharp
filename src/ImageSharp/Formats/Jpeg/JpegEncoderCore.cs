@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfScan(image, componentCount, cancellationToken);
 
             // Write the scan compressed data.
-            new YCbCrEncoder(stream).WriteStartOfScan(
+            new HuffmanScanEncoder(stream).WriteStartOfScan(
                 image,
                 this.colorType,
                 this.subsample,

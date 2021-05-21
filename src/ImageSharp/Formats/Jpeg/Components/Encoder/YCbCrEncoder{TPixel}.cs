@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        public void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        public void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        private void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -331,6 +331,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
         }
 
+        public void WriteStartOfScan<TPixel>(Image<TPixel> image, JpegColorType? colorType, JpegSubsample? subsample, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (colorType == JpegColorType.Luminance)
+            {
+                this.EncodeGrayscale(image, cancellationToken);
+            }
+            else
+            {
+                switch (subsample)
+                {
+                    case JpegSubsample.Ratio444:
+                        this.Encode444(image, cancellationToken);
+                        break;
+                    case JpegSubsample.Ratio420:
+                        this.Encode420(image, cancellationToken);
+                        break;
+                }
+            }
+
+            // Pad the last byte with 1's.
+            this.Emit(0x7f, 7);
+        }
 
         /// <summary>
         /// Writes a block of pixel data using the given quantization table,

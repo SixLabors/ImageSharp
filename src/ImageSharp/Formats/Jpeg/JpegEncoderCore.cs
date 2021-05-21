@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the image data.
-            this.WriteStartOfScan(image, componentCount, cancellationToken);
+            this.WriteStartOfScan(scanEncoder, image, componentCount, cancellationToken);
 
             // Write the End Of Image marker.
             this.buffer[0] = JpegConstants.Markers.XFF;
@@ -969,7 +969,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="image">The pixel accessor providing access to the image pixels.</param>
         /// <param name="componentCount">The number of components in a pixel.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void WriteStartOfScan<TPixel>(Image<TPixel> image, int componentCount, CancellationToken cancellationToken)
+        private void WriteStartOfScan<TPixel>(YCbCrEncoder<TPixel> scanEncoder, Image<TPixel> image, int componentCount, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -1015,26 +1015,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[sosSize + 1] = 0x00; // Ah + Ah (Successive approximation bit position high + low)
             this.outputStream.Write(this.buffer, 0, sosSize + 2);
 
-            ref byte emitBufferBase = ref MemoryMarshal.GetReference<byte>(this.emitBuffer);
-            if (this.colorType == JpegColorType.Luminance)
-            {
-                this.EncodeGrayscale(image, cancellationToken, ref emitBufferBase);
-            }
-            else
-            {
-                switch (this.subsample)
-                {
-                    case JpegSubsample.Ratio444:
-                        this.Encode444(image, cancellationToken, ref emitBufferBase);
-                        break;
-                    case JpegSubsample.Ratio420:
-                        this.Encode420(image, cancellationToken, ref emitBufferBase);
-                        break;
-                }
-            }
 
-            // Pad the last byte with 1's.
-            this.Emit(0x7f, 7, ref emitBufferBase);
+            scanEncoder.WriteStartOfScan(image, this.colorType, this.subsample, cancellationToken);
+            //ref byte emitBufferBase = ref MemoryMarshal.GetReference<byte>(this.emitBuffer);
+            //if (this.colorType == JpegColorType.Luminance)
+            //{
+            //    scanEncoder.EncodeGrayscale(image, cancellationToken);
+            //}
+            //else
+            //{
+            //    switch (this.subsample)
+            //    {
+            //        case JpegSubsample.Ratio444:
+            //            scanEncoder.Encode444(image, cancellationToken);
+            //            break;
+            //        case JpegSubsample.Ratio420:
+            //            scanEncoder.Encode420(image, cancellationToken);
+            //            break;
+            //    }
+            //}
+
+            //// Pad the last byte with 1's.
+            //this.Emit(0x7f, 7, ref emitBufferBase);
         }
 
         /// <summary>

@@ -118,13 +118,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
-            cancellationToken.ThrowIfCancellationRequested();
 
-            const ushort max = JpegConstants.MaxLength;
-            if (image.Width >= max || image.Height >= max)
+            if (image.Width >= JpegConstants.MaxLength || image.Height >= JpegConstants.MaxLength)
             {
-                throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
+                JpegThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;

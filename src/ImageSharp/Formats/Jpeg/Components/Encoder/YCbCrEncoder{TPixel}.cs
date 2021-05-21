@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        public void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
+        public void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -178,8 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref temp1,
                         ref temp2,
                         ref onStackLuminanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
+                        ref unzig);
 
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
@@ -188,8 +187,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
+                        ref unzig);
 
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
@@ -198,8 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
+                        ref unzig);
                 }
             }
         }
@@ -212,7 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        public void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
+        public void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -259,8 +256,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             ref temp1,
                             ref temp2,
                             ref onStackLuminanceQuantTable,
-                            ref unzig,
-                            ref emitBufferBase);
+                            ref unzig);
                     }
 
                     Block8x8F.Scale16X16To8X8(ref b, cb);
@@ -271,8 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
+                        ref unzig);
 
                     Block8x8F.Scale16X16To8X8(ref b, cr);
                     prevDCCr = this.WriteBlock(
@@ -282,8 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
+                        ref unzig);
                 }
             }
         }
@@ -296,7 +290,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
+        public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -332,8 +326,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref temp1,
                         ref temp2,
                         ref onStackLuminanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
+                        ref unzig);
                 }
             }
         }
@@ -360,8 +353,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Block8x8F tempDest1,
             ref Block8x8F tempDest2,
             ref Block8x8F quant,
-            ref ZigZag unZig,
-            ref byte emitBufferBase)
+            ref ZigZag unZig)
         {
             FastFloatingPointDCT.TransformFDCT(ref src, ref tempDest1, ref tempDest2);
 
@@ -370,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int dc = (int)tempDest2[0];
 
             // Emit the DC delta.
-            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC, ref emitBufferBase);
+            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
 
             // Emit the AC components.
             var h = (HuffIndex)((2 * (int)index) + 1);
@@ -388,18 +380,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 {
                     while (runLength > 15)
                     {
-                        this.EmitHuff(h, 0xf0, ref emitBufferBase);
+                        this.EmitHuff(h, 0xf0);
                         runLength -= 16;
                     }
 
-                    this.EmitHuffRLE(h, runLength, ac, ref emitBufferBase);
+                    this.EmitHuffRLE(h, runLength, ac);
                     runLength = 0;
                 }
             }
 
             if (runLength > 0)
             {
-                this.EmitHuff(h, 0x00, ref emitBufferBase);
+                this.EmitHuff(h, 0x00);
             }
 
             return dc;
@@ -417,7 +409,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="count">The number of bits</param>
         /// <param name="emitBufferBase">The reference to the emitBuffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void Emit(uint bits, uint count, ref byte emitBufferBase)
+        private void Emit(uint bits, uint count)
         {
             count += this.bitCount;
             bits <<= (int)(32 - count);
@@ -431,10 +423,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 while (count >= 8)
                 {
                     byte b = (byte)(bits >> 24);
-                    Unsafe.Add(ref emitBufferBase, len++) = b;
+                    this.emitBuffer[len++] = b;
                     if (b == byte.MaxValue)
                     {
-                        Unsafe.Add(ref emitBufferBase, len++) = byte.MinValue;
+                        this.emitBuffer[len++] = byte.MinValue;
                     }
 
                     bits <<= 8;
@@ -458,10 +450,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="value">The value to encode.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuff(HuffIndex index, int value, ref byte emitBufferBase)
+        private void EmitHuff(HuffIndex index, int value)
         {
             uint x = HuffmanLut.TheHuffmanLut[(int)index].Values[value];
-            this.Emit(x & ((1 << 24) - 1), x >> 24, ref emitBufferBase);
+            this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 
         /// <summary>
@@ -472,7 +464,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="value">The value to encode.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuffRLE(HuffIndex index, int runLength, int value, ref byte emitBufferBase)
+        private void EmitHuffRLE(HuffIndex index, int runLength, int value)
         {
             int a = value;
             int b = value;
@@ -492,10 +484,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 bt = 8 + (uint)BitCountLut[a >> 8];
             }
 
-            this.EmitHuff(index, (int)((uint)(runLength << 4) | bt), ref emitBufferBase);
+            this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
             if (bt > 0)
             {
-                this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt, ref emitBufferBase);
+                this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt);
             }
         }
 

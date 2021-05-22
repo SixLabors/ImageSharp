@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// A buffer for reducing the number of stream writes when emitting Huffman tables.
         /// </summary>
-        private byte[] emitBuffer = new byte[EmitBufferSizeInBytes];
+        private readonly byte[] emitBuffer = new byte[EmitBufferSizeInBytes];
 
         /// <summary>
         /// Number of filled bytes in <see cref="emitBuffer"/> buffer
@@ -47,7 +47,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
-        private Stream target;
+        private readonly Stream target;
+
+        public HuffmanScanEncoder(Stream outputStream)
+        {
+            this.target = outputStream;
+        }
 
         /// <summary>
         /// Gets the counts the number of bits needed to hold an integer.
@@ -71,11 +76,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
                 8, 8, 8,
             };
-
-        public HuffmanScanEncoder(Stream outputStream)
-        {
-            this.target = outputStream;
-        }
 
         /// <summary>
         /// Encodes the image with no subsampling.
@@ -208,7 +208,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.Emit(0x7f, 7);
             this.target.Write(this.emitBuffer, 0, this.emitLen);
         }
-
 
         /// <summary>
         /// Encodes the image with no chroma, just luminance.

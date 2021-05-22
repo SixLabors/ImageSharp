@@ -86,9 +86,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly int? quality;
 
         /// <summary>
-        /// Component count.
+        /// Gets or sets the subsampling method to use.
         /// </summary>
-        private readonly int componentCount;
+        private readonly JpegColorType? colorType;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.quality = options.Quality;
             this.subsample = options.Subsample;
-            this.componentCount = (options.ColorType == JpegColorType.Luminance) ? 1 : 3;
+            this.colorType = options.ColorType;
         }
 
         /// <summary>
@@ -129,6 +129,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
 
+            // Compute number of components based on color type in options.
+            int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
+
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
             int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
             this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
@@ -150,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Block8x8F luminanceQuantTable = default;
             Block8x8F chrominanceQuantTable = default;
             InitQuantizationTable(0, scale, ref luminanceQuantTable);
-            if (this.componentCount > 1)
+            if (componentCount > 1)
             {
                 InitQuantizationTable(1, scale, ref chrominanceQuantTable);
             }
@@ -175,7 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Write the scan compressed data.
             var scanEncoder = new HuffmanScanEncoder(stream);
-            if (this.componentCount == 1)
+            if (this.colorType == JpegColorType.Luminance)
             {
                 scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
             }
@@ -586,7 +589,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 0x01
             };
 
-            if (this.componentCount == 1)
+            if (this.colorType == JpegColorType.Luminance)
             {
                 subsamples = stackalloc byte[]
                 {

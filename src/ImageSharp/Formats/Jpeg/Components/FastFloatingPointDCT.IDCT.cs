@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -171,14 +172,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             d.V4R = my3 - mb3;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         /// <summary>
-        /// Do IDCT internal operations on the given block.
+        /// Combined operation of <see cref="IDCT8x4_LeftPart(ref Block8x8F, ref Block8x8F)"/> and <see cref="IDCT8x4_RightPart(ref Block8x8F, ref Block8x8F)"/>
+        /// using AVX commands.
         /// </summary>
         /// <param name="s">Source</param>
         /// <param name="d">Destination</param>
         public static void IDCT8x8_Avx(ref Block8x8F s, ref Block8x8F d)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            Debug.Assert(Avx.IsSupported, "AVX is required to execute this method");
+
             Vector256<float> my1 = s.V1;
             Vector256<float> my7 = s.V7;
             Vector256<float> mz0 = Avx.Add(my1, my7);
@@ -191,40 +195,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             Vector256<float> mz4 = Avx.Multiply(Avx.Add(mz0, mz1), C_V_1_1758);
 
-            if (Fma.IsSupported)
-            {
-                mz2 = Fma.MultiplyAdd(mz2, C_V_n1_9615, mz4);
-                mz3 = Fma.MultiplyAdd(mz3, C_V_n0_3901, mz4);
-            }
-            else
-            {
-                mz2 = Avx.Add(Avx.Multiply(mz2, C_V_n1_9615), mz4);
-                mz3 = Avx.Add(Avx.Multiply(mz3, C_V_n0_3901), mz4);
-            }
-
+            mz2 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, mz2, C_V_n1_9615);
+            mz3 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, mz3, C_V_n0_3901);
             mz0 = Avx.Multiply(mz0, C_V_n0_8999);
             mz1 = Avx.Multiply(mz1, C_V_n2_5629);
 
+            Vector256<float> mb3 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz0, my7, C_V_0_2986), mz2);
+            Vector256<float> mb2 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz1, my5, C_V_2_0531), mz3);
+            Vector256<float> mb1 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz1, my3, C_V_3_0727), mz2);
+            Vector256<float> mb0 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz0, my1, C_V_1_5013), mz3);
 
-            Unsafe.SkipInit(out Vector256<float> mb3);
-            Unsafe.SkipInit(out Vector256<float> mb2);
-            Unsafe.SkipInit(out Vector256<float> mb1);
-            Unsafe.SkipInit(out Vector256<float> mb0);
-
-            if (Fma.IsSupported)
-            {
-                mb3 = Avx.Add(Fma.MultiplyAdd(my7, C_V_0_2986, mz0), mz2);
-                mb2 = Avx.Add(Fma.MultiplyAdd(my5, C_V_2_0531, mz1), mz3);
-                mb1 = Avx.Add(Fma.MultiplyAdd(my3, C_V_3_0727, mz1), mz2);
-                mb0 = Avx.Add(Fma.MultiplyAdd(my1, C_V_1_5013, mz0), mz3);
-            }
-            else
-            {
-                mb3 = Avx.Add(Avx.Add(Avx.Multiply(my7, C_V_0_2986), mz0), mz2);
-                mb2 = Avx.Add(Avx.Add(Avx.Multiply(my5, C_V_2_0531), mz1), mz3);
-                mb1 = Avx.Add(Avx.Add(Avx.Multiply(my3, C_V_3_0727), mz1), mz2);
-                mb0 = Avx.Add(Avx.Add(Avx.Multiply(my1, C_V_1_5013), mz0), mz3);
-            }
 
             Vector256<float> my2 = s.V2;
             Vector256<float> my6 = s.V6;
@@ -233,17 +213,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Vector256<float> my4 = s.V4;
             mz0 = Avx.Add(my0, my4);
             mz1 = Avx.Subtract(my0, my4);
-
-            if (Fma.IsSupported)
-            {
-                mz2 = Fma.MultiplyAdd(my6, C_V_n1_8477, mz4);
-                mz3 = Fma.MultiplyAdd(my2, C_V_0_7653, mz4);
-            }
-            else
-            {
-                mz2 = Avx.Add(Avx.Multiply(my6, C_V_n1_8477), mz4);
-                mz3 = Avx.Add(Avx.Multiply(my2, C_V_0_7653), mz4);
-            }
+            mz2 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, my6, C_V_n1_8477);
+            mz3 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, my2, C_V_0_7653);
 
             my0 = Avx.Add(mz0, mz3);
             my3 = Avx.Subtract(mz0, mz3);
@@ -258,7 +229,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             d.V5 = Avx.Subtract(my2, mb2);
             d.V3 = Avx.Add(my3, mb3);
             d.V4 = Avx.Subtract(my3, mb3);
-        }
 #endif
+        }
     }
 }

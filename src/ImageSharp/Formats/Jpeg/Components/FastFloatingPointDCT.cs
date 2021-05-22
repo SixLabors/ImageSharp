@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -196,14 +197,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             d.V7R = c0 - c3;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         /// <summary>
-        /// 
+        /// Combined operation of <see cref="FDCT8x4_LeftPart(ref Block8x8F, ref Block8x8F)"/> and <see cref="FDCT8x4_RightPart(ref Block8x8F, ref Block8x8F)"/>
+        /// using AVX commands.
         /// </summary>
         /// <param name="s">Source</param>
         /// <param name="d">Destination</param>
         private static void FDCT8x8_Avx(ref Block8x8F s, ref Block8x8F d)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            Debug.Assert(Avx.IsSupported, "AVX is required to execute this method");
+
             Vector256<float> t0 = Avx.Add(s.V0, s.V7);
             Vector256<float> t7 = Avx.Subtract(s.V0, s.V7);
             Vector256<float> t1 = Avx.Add(s.V1, s.V6);
@@ -224,36 +228,33 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Vector256<float> c2 = Avx.Subtract(t1, t2);
 
             // 2 6
+            d.V2 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(c2, C_V_0_5411), c3, C_V_1_3065);
             if (Fma.IsSupported)
             {
-                d.V2 = Fma.MultiplyAdd(c2, C_V_0_5411, Avx.Multiply(c3, C_V_1_3065));
                 d.V6 = Fma.MultiplySubtract(c3, C_V_0_5411, Avx.Multiply(c2, C_V_1_3065));
             }
             else
             {
-                d.V2 = Avx.Add(Avx.Multiply(c2, C_V_0_5411), Avx.Multiply(c3, C_V_1_3065));
                 d.V6 = Avx.Subtract(Avx.Multiply(c3, C_V_0_5411), Avx.Multiply(c2, C_V_1_3065));
             }
 
+            c3 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(t4, C_V_1_1758), t7, C_V_0_7856);
             if (Fma.IsSupported)
             {
-                c3 = Fma.MultiplyAdd(t4, C_V_1_1758, Avx.Multiply(t7, C_V_0_7856));
                 c0 = Fma.MultiplySubtract(t7, C_V_1_1758, Avx.Multiply(t4, C_V_0_7856));
             }
             else
             {
-                c3 = Avx.Add(Avx.Multiply(t4, C_V_1_1758), Avx.Multiply(t7, C_V_0_7856));
                 c0 = Avx.Subtract(Avx.Multiply(t7, C_V_1_1758), Avx.Multiply(t4, C_V_0_7856));
             }
 
+            c2 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(t5, C_V_1_3870), C_V_0_2758, t6);
             if (Fma.IsSupported)
             {
-                c2 = Fma.MultiplyAdd(t5, C_V_1_3870, Avx.Multiply(C_V_0_2758, t6));
                 c1 = Fma.MultiplySubtract(t6, C_V_1_3870, Avx.Multiply(C_V_0_2758, t5));
             }
             else
             {
-                c2 = Avx.Add(Avx.Multiply(t5, C_V_1_3870), Avx.Multiply(C_V_0_2758, t6));
                 c1 = Avx.Subtract(Avx.Multiply(t6, C_V_1_3870), Avx.Multiply(C_V_0_2758, t5));
             }
 
@@ -267,8 +268,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // 1 7
             d.V1 = Avx.Add(c0, c3);
             d.V7 = Avx.Subtract(c0, c3);
-        }
 #endif
+        }
 
         /// <summary>
         /// Performs 8x8 matrix Forward Discrete Cosine Transform

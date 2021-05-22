@@ -840,26 +840,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 Vector256<float> t0 = Avx.UnpackLow(r0, r1);
                 Vector256<float> t2 = Avx.UnpackLow(r2, r3);
                 Vector256<float> v = Avx.Shuffle(t0, t2, 0x4E);
-                d.V0 = Avx.Blend(t0, v, 0xCC);
-                d.V1 = Avx.Blend(t2, v, 0x33);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V0L) = Avx.Blend(t0, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V1L) = Avx.Blend(t2, v, 0x33);
 
                 Vector256<float> t4 = Avx.UnpackLow(r4, r5);
                 Vector256<float> t6 = Avx.UnpackLow(r6, r7);
                 v = Avx.Shuffle(t4, t6, 0x4E);
-                d.V4 = Avx.Blend(t4, v, 0xCC);
-                d.V5 = Avx.Blend(t6, v, 0x33);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V4L) = Avx.Blend(t4, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V5L) = Avx.Blend(t6, v, 0x33);
 
                 Vector256<float> t1 = Avx.UnpackHigh(r0, r1);
                 Vector256<float> t3 = Avx.UnpackHigh(r2, r3);
                 v = Avx.Shuffle(t1, t3, 0x4E);
-                d.V2 = Avx.Blend(t1, v, 0xCC);
-                d.V3 = Avx.Blend(t3, v, 0x33);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V2L) = Avx.Blend(t1, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V3L) = Avx.Blend(t3, v, 0x33);
 
                 Vector256<float> t5 = Avx.UnpackHigh(r4, r5);
                 Vector256<float> t7 = Avx.UnpackHigh(r6, r7);
                 v = Avx.Shuffle(t5, t7, 0x4E);
-                d.V6 = Avx.Blend(t5, v, 0xCC);
-                d.V7 = Avx.Blend(t7, v, 0x33);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V6L) = Avx.Blend(t5, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V7L) = Avx.Blend(t7, v, 0x33);
             }
             else
 #endif

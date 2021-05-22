@@ -1,9 +1,15 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -57,7 +63,52 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Up(x) = Raw(x) - Prior(x)
             resultBaseRef = 2;
 
-            for (int x = 0; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
+            int x = 0;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                Vector256<byte> zero = Vector256<byte>.Zero;
+                Vector256<int> sumAccumulator = Vector256<int>.Zero;
+
+                for (; x + Vector256<byte>.Count <= scanline.Length;)
+                {
+                    Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+
+                    Vector256<byte> res = Avx2.Subtract(scan, above);
+                    Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                    x += Vector256<byte>.Count;
+
+                    sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
+                }
+
+                sum += Numerics.EvenReduceSum(sumAccumulator);
+            }
+            else if (Vector.IsHardwareAccelerated)
+            {
+                Vector<uint> sumAccumulator = Vector<uint>.Zero;
+
+                for (; x + Vector<byte>.Count <= scanline.Length;)
+                {
+                    Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+
+                    Vector<byte> res = scan - above;
+                    Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                    x += Vector<byte>.Count;
+
+                    Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
+                }
+
+                for (int i = 0; i < Vector<uint>.Count; i++)
+                {
+                    sum += (int)sumAccumulator[i];
+                }
+            }
+#endif
+
+            for (; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
             {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);

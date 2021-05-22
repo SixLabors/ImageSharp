@@ -748,5 +748,82 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Lerp(float value1, float value2, float amount)
             => ((value2 - value1) * amount) + value1;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+        /// <summary>
+        /// Accumulates 8-bit integers into <paramref name="accumulator"/> by
+        /// widening them to 32-bit integers and performing four additions.
+        /// </summary>
+        /// <remarks>
+        /// <code>byte(1, 2, 3, 4,  5, 6, 7, 8,  9, 10, 11, 12,  13, 14, 15, 16)</code>
+        /// is widened and added onto <paramref name="accumulator"/> as such:
+        /// <code>
+        ///  accumulator += i32(1, 2, 3, 4);
+        ///  accumulator += i32(5, 6, 7, 8);
+        ///  accumulator += i32(9, 10, 11, 12);
+        ///  accumulator += i32(13, 14, 15, 16);
+        /// </code>
+        /// </remarks>
+        /// <param name="accumulator">The accumulator destination.</param>
+        /// <param name="values">The values to accumulate.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Accumulate(ref Vector<uint> accumulator, Vector<byte> values)
+        {
+            Vector.Widen(values, out Vector<ushort> shortLow, out Vector<ushort> shortHigh);
+
+            Vector.Widen(shortLow, out Vector<uint> intLow, out Vector<uint> intHigh);
+            accumulator += intLow;
+            accumulator += intHigh;
+
+            Vector.Widen(shortHigh, out intLow, out intHigh);
+            accumulator += intLow;
+            accumulator += intHigh;
+        }
+
+        /// <summary>
+        /// Reduces elements of the vector into one sum.
+        /// </summary>
+        /// <param name="accumulator">The accumulator to reduce.</param>
+        /// <returns>The sum of all elements.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ReduceSum(Vector128<int> accumulator)
+        {
+            if (Ssse3.IsSupported)
+            {
+                Vector128<int> hadd = Ssse3.HorizontalAdd(accumulator, accumulator);
+                Vector128<int> swapped = Sse2.Shuffle(hadd, 0x1);
+                Vector128<int> tmp = Sse2.Add(hadd, swapped);
+
+                // Vector128<int>.ToScalar() isn't optimized pre-net5.0 https://github.com/dotnet/runtime/pull/37882
+                return Sse2.ConvertToInt32(tmp);
+            }
+            else
+            {
+                int sum = 0;
+                for (int i = 0; i < Vector128<int>.Count; i++)
+                {
+                    sum += accumulator.GetElement(i);
+                }
+
+                return sum;
+            }
+        }
+
+        /// <summary>
+        /// Reduces even elements of the vector into one sum.
+        /// </summary>
+        /// <param name="accumulator">The accumulator to reduce.</param>
+        /// <returns>The sum of even elements.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int EvenReduceSum(Vector256<int> accumulator)
+        {
+            Vector128<int> vsum = Sse2.Add(accumulator.GetLower(), accumulator.GetUpper()); // add upper lane to lower lane
+            vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));                      // add high to low
+
+            // Vector128<int>.ToScalar() isn't optimized pre-net5.0 https://github.com/dotnet/runtime/pull/37882
+            return Sse2.ConvertToInt32(vsum);
+        }
+#endif
     }
 }

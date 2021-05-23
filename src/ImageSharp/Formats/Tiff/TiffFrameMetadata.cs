@@ -12,26 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     public class TiffFrameMetadata : IDeepCloneable
     {
         /// <summary>
-        /// The default predictor is None.
-        /// </summary>
-        public const TiffPredictor DefaultPredictor = TiffPredictor.None;
-
-        /// <summary>
-        /// The default bits per pixel is Bit24.
-        /// </summary>
-        public const TiffBitsPerPixel DefaultBitsPerPixel = TiffBitsPerPixel.Bit24;
-
-        /// <summary>
-        /// The default compression is None.
-        /// </summary>
-        public const TiffCompression DefaultCompression = TiffCompression.None;
-
-        /// <summary>
-        /// The default photometric interpretation is BlackIsZero.
-        /// </summary>
-        public const TiffPhotometricInterpretation DefaultPhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
         /// </summary>
         public TiffFrameMetadata()
@@ -42,7 +22,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
         /// </summary>
         /// <param name="other">The other tiff frame metadata.</param>
-        private TiffFrameMetadata(TiffFrameMetadata other) => this.BitsPerPixel = other.BitsPerPixel;
+        private TiffFrameMetadata(TiffFrameMetadata other)
+        {
+            this.BitsPerPixel = other.BitsPerPixel;
+            this.Compression = other.Compression;
+            this.PhotometricInterpretation = other.PhotometricInterpretation;
+            this.Predictor = other.Predictor;
+        }
 
         /// <summary>
         /// Gets or sets the bits per pixel.
@@ -84,17 +70,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="profile">The Exif profile containing tiff frame directory tags.</param>
         internal static void Parse(TiffFrameMetadata meta, ExifProfile profile)
         {
-            profile ??= new ExifProfile();
+            if (profile != null)
+            {
+                ushort[] bitsPerSample = profile.GetValue(ExifTag.BitsPerSample)?.Value;
+                meta.BitsPerPixel = BitsPerPixelFromBitsPerSample(bitsPerSample);
+                meta.Compression = (TiffCompression?)profile.GetValue(ExifTag.Compression)?.Value;
+                meta.PhotometricInterpretation =
+                    (TiffPhotometricInterpretation?)profile.GetValue(ExifTag.PhotometricInterpretation)?.Value;
+                meta.Predictor = (TiffPredictor?)profile.GetValue(ExifTag.Predictor)?.Value;
 
-            ushort[] bitsPerSample = profile.GetValue(ExifTag.BitsPerSample)?.Value;
-            meta.BitsPerPixel = BitsPerPixelFromBitsPerSample(bitsPerSample);
-            meta.Compression = (TiffCompression?)profile.GetValue(ExifTag.Compression)?.Value ?? DefaultCompression;
-            meta.PhotometricInterpretation = (TiffPhotometricInterpretation?)profile.GetValue(ExifTag.PhotometricInterpretation)?.Value ?? DefaultPhotometricInterpretation;
-            meta.Predictor = (TiffPredictor?)profile.GetValue(ExifTag.Predictor)?.Value ?? DefaultPredictor;
-
-            profile.RemoveValue(ExifTag.Compression);
-            profile.RemoveValue(ExifTag.PhotometricInterpretation);
-            profile.RemoveValue(ExifTag.Predictor);
+                profile.RemoveValue(ExifTag.BitsPerSample);
+                profile.RemoveValue(ExifTag.Compression);
+                profile.RemoveValue(ExifTag.PhotometricInterpretation);
+                profile.RemoveValue(ExifTag.Predictor);
+            }
         }
 
         /// <summary>
@@ -102,11 +91,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <param name="bitsPerSample">The tiff bits per sample.</param>
         /// <returns>Bits per pixel.</returns>
-        private static TiffBitsPerPixel BitsPerPixelFromBitsPerSample(ushort[] bitsPerSample)
+        private static TiffBitsPerPixel? BitsPerPixelFromBitsPerSample(ushort[] bitsPerSample)
         {
             if (bitsPerSample == null)
             {
-                return DefaultBitsPerPixel;
+                return null;
             }
 
             int bitsPerPixel = 0;
@@ -119,17 +108,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone()
-        {
-            var clone = new TiffFrameMetadata
-            {
-                BitsPerPixel = this.BitsPerPixel,
-                Compression = this.Compression,
-                PhotometricInterpretation = this.PhotometricInterpretation,
-                Predictor = this.Predictor
-            };
-
-            return clone;
-        }
+        public IDeepCloneable DeepClone() => new TiffFrameMetadata(this);
     }
 }

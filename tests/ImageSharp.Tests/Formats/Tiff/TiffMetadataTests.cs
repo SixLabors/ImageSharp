@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                     Assert.NotNull(rootFrameMetaData.XmpProfile);
                     Assert.NotNull(rootFrameMetaData.ExifProfile);
                     Assert.Equal(2599, rootFrameMetaData.XmpProfile.Length);
-                    Assert.Equal(27, rootFrameMetaData.ExifProfile.Values.Count);
+                    Assert.Equal(26, rootFrameMetaData.ExifProfile.Values.Count);
                 }
             }
         }
@@ -170,9 +170,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
                 Assert.NotNull(exifProfile);
 
-                // The original exifProfile has 30 values, but 3 of those values will be stored in the TiffFrameMetaData
+                // The original exifProfile has 30 values, but 4 of those values will be stored in the TiffFrameMetaData
                 // and removed from the profile on decode.
-                Assert.Equal(27, exifProfile.Values.Count);
+                Assert.Equal(26, exifProfile.Values.Count);
+                Assert.Equal(TiffBitsPerPixel.Bit4, tiffFrameMetadata.BitsPerPixel);
                 Assert.Equal(TiffCompression.Lzw, tiffFrameMetadata.Compression);
                 Assert.Equal("This is Название", exifProfile.GetValue(ExifTag.ImageDescription).Value);
                 Assert.Equal("This is Изготовитель камеры", exifProfile.GetValue(ExifTag.Make).Value);
@@ -213,9 +214,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 TiffMetadata tiffMetaData = image.Metadata.GetTiffMetadata();
                 Assert.NotNull(tiffMetaData);
                 Assert.Equal(ByteOrder.LittleEndian, tiffMetaData.ByteOrder);
-
-                var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
-                Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
             }
         }
 

@@ -62,19 +62,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
             }
 
-            VerifyRequiredFieldsArePresent(exifProfile);
+            VerifyRequiredFieldsArePresent(exifProfile, frameMetadata);
 
             options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
-            options.Predictor = frameMetadata.Predictor ?? TiffFrameMetadata.DefaultPredictor;
-            options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffFrameMetadata.DefaultPhotometricInterpretation;
-            options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffFrameMetadata.DefaultBitsPerPixel;
+            options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
+            options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
+            options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
             options.BitsPerSample = GetBitsPerSample(frameMetadata.BitsPerPixel);
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);
         }
 
-        private static void VerifyRequiredFieldsArePresent(ExifProfile exifProfile)
+        private static void VerifyRequiredFieldsArePresent(ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
         {
             if (exifProfile.GetValue(ExifTag.StripOffsets) == null)
             {
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowImageFormatException("StripByteCounts are missing and are required for decoding the TIFF image!");
             }
 
-            if (exifProfile.GetValue(ExifTag.BitsPerSample) == null)
+            if (frameMetadata.BitsPerPixel == null)
             {
                 TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing which is required to decode the image!");
             }

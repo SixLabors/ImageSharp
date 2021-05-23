@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [InlineData(TiffBitsPerPixel.Bit24)]
-        [InlineData(TiffBitsPerPixel.Bit8)] 
+        [InlineData(TiffBitsPerPixel.Bit8)]
         [InlineData(TiffBitsPerPixel.Bit4)]
         [InlineData(TiffBitsPerPixel.Bit1)]
         public void EncoderOptions_SetBitPerPixel_Works(TiffBitsPerPixel bitsPerPixel)
@@ -136,8 +136,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
-            ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
 
@@ -156,8 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // assert
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
-            ExifProfile exifProfile = output.Frames.RootFrame.Metadata.ExifProfile;
-            var frameMetaData = TiffFrameMetadata.Parse(exifProfile);
+            var frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
 
@@ -184,11 +182,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [WithFile(RgbLzwNoPredictor, PixelTypes.Rgba32, TiffPredictor.None)]
+        [WithFile(RgbLzwNoPredictor, PixelTypes.Rgba32, null)]
         [WithFile(RgbLzwPredictor, PixelTypes.Rgba32, TiffPredictor.Horizontal)]
-        [WithFile(RgbDeflate, PixelTypes.Rgba32, TiffPredictor.None)]
+        [WithFile(RgbDeflate, PixelTypes.Rgba32, null)]
         [WithFile(RgbDeflatePredictor, PixelTypes.Rgba32, TiffPredictor.Horizontal)]
-        public void TiffEncoder_PreservesPredictor<TPixel>(TestImageProvider<TPixel> provider, TiffPredictor expectedPredictor)
+        public void TiffEncoder_PreservesPredictor<TPixel>(TestImageProvider<TPixel> provider, TiffPredictor? expectedPredictor)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
@@ -228,20 +226,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(TiffBitsPerPixel.Bit1, frameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, frameMetaData.Compression);
-        }
-
-        [Theory]
-        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffCompression.CcittGroup3Fax)]
-        [InlineData(TiffPhotometricInterpretation.PaletteColor, TiffCompression.Ccitt1D)]
-        public void TiffEncoder_IncompatibilityOptions_ThrowsImageFormatException(TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
-        {
-            // arrange
-            using var input = new Image<Rgb24>(10, 10);
-            var encoder = new TiffEncoder() { PhotometricInterpretation = photometricInterpretation, Compression = compression };
-            using var memStream = new MemoryStream();
-
-            // act
-            Assert.Throws<ImageFormatException>(() => input.Save(memStream, encoder));
         }
 
         [Theory]
@@ -350,7 +334,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.BlackIsZero);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]

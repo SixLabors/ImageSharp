@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.Palette.Span);
-            var index = (byte)this.octree.GetPaletteIndex(color);
+            byte index = (byte)this.octree.GetPaletteIndex(color);
             match = Unsafe.Add(ref paletteRef, index);
             return index;
         }
@@ -175,21 +175,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.previousColor = default;
                 this.previousNode = null;
             }
-
-            /// <summary>
-            /// Gets the mask used when getting the appropriate pixels for a given node.
-            /// </summary>
-            private static ReadOnlySpan<byte> Mask => new byte[]
-            {
-                0b10000000,
-                0b1000000,
-                0b100000,
-                0b10000,
-                0b1000,
-                0b100,
-                0b10,
-                0b1
-            };
 
             /// <summary>
             /// Gets or sets the number of leaves in the tree
@@ -251,7 +236,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Palletize(Span<TPixel> palette, int colorCount, ref int paletteIndex)
             {
-                while (this.Leaves > colorCount - 1)
+                while (this.Leaves > colorCount)
                 {
                     this.Reduce();
                 }
@@ -517,7 +502,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                             child = this.children[i];
                             if (child != null)
                             {
-                                var childIndex = child.GetPaletteIndex(ref pixel, level + 1);
+                                int childIndex = child.GetPaletteIndex(ref pixel, level + 1);
                                 if (childIndex != 0)
                                 {
                                     return childIndex;
@@ -538,15 +523,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 [MethodImpl(InliningOptions.ShortMethod)]
                 private static int GetColorIndex(ref Rgba32 color, int level)
                 {
-                    DebugGuard.MustBeLessThan(level, Mask.Length, nameof(level));
-
                     int shift = 7 - level;
-                    ref byte maskRef = ref MemoryMarshal.GetReference(Mask);
-                    byte mask = Unsafe.Add(ref maskRef, level);
+                    byte mask = (byte)(1 << shift);
 
                     return ((color.R & mask) >> shift)
-                           | ((color.G & mask) >> (shift - 1))
-                           | ((color.B & mask) >> (shift - 2));
+                        | (((color.G & mask) >> shift) << 1)
+                        | (((color.B & mask) >> shift) << 2);
                 }
 
                 /// <summary>

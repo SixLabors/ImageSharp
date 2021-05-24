@@ -296,40 +296,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 markerlen += 1 + 16 + s.Values.Length;
             }
 
-            // TODO: this magic constant (array size) should be defined by HuffmanSpec class
-            // This is a one-time call which can be stackalloc'ed or allocated directly in memory as method local array
-            // Allocation here would be better for GC so it won't live for entire encoding process
-            // TODO: if this is allocated on the heap - pin it right here or following copy code will corrupt memory
-            Span<byte> huffmanBuffer = stackalloc byte[179];
-            byte* huffmanBufferPtr = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(huffmanBuffer));
-
             this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
             for (int i = 0; i < specs.Length; i++)
             {
-                ref HuffmanSpec spec = ref specs[i];
-
-                int len = 0;
-
-                // header
-                huffmanBuffer[len++] = headers[i];
-
-                // count
-                fixed (byte* countPtr = spec.Count)
-                {
-                    int countLen = spec.Count.Length;
-                    Unsafe.CopyBlockUnaligned(huffmanBufferPtr + len, countPtr, (uint)countLen);
-                    len += countLen;
-                }
-
-                // values
-                fixed (byte* valuesPtr = spec.Values)
-                {
-                    int valuesLen = spec.Values.Length;
-                    Unsafe.CopyBlockUnaligned(huffmanBufferPtr + len, valuesPtr, (uint)valuesLen);
-                    len += valuesLen;
-                }
-
-                this.outputStream.Write(huffmanBuffer, 0, len);
+                this.outputStream.WriteByte(headers[i]);
+                this.outputStream.Write(specs[i].Count);
+                this.outputStream.Write(specs[i].Values);
             }
         }
 

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using SixLabors.ImageSharp.Formats.Experimental.Webp;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;

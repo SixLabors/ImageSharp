@@ -7,7 +7,7 @@ using System.IO;
 
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader
+namespace SixLabors.ImageSharp.Formats.Webp.BitReader
 {
     /// <summary>
     /// Base class for VP8 and VP8L bitreader.

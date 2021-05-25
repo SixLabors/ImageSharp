@@ -9,10 +9,9 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp
+namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// EXPERIMENTAL:
     /// Image decoder for generating an image out of a webp stream.
     /// </summary>
     public sealed class WebpDecoder : IImageDecoder, IWebpDecoderOptions, IImageInfoDetector

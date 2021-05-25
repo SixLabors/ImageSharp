@@ -4,10 +4,10 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
+using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
+namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 {
     /// <summary>
     /// A bit writer for writing lossless webp streams.

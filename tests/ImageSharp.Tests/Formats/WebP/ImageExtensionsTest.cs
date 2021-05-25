@@ -4,7 +4,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Experimental.Webp;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 

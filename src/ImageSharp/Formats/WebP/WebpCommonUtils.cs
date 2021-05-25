@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp
+namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
     /// Utility methods for lossy and lossless webp format.

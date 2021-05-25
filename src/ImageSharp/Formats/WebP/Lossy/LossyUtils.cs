@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
+namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     internal static class LossyUtils
     {

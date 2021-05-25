@@ -10,7 +10,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
     /// Image transform methods for the lossless webp encoder.

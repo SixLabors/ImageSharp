@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
     /// Utility functions related to creating the huffman tables.

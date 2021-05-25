@@ -3,8 +3,8 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Experimental.Webp;
-using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.PixelFormats;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using SixLabors.ImageSharp.Tests.TestUtilities;

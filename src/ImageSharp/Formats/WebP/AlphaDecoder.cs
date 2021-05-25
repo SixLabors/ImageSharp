@@ -6,11 +6,11 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader;
-using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
+using SixLabors.ImageSharp.Formats.Webp.BitReader;
+using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp
+namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
     /// Implements decoding for lossy alpha chunks which may be compressed.

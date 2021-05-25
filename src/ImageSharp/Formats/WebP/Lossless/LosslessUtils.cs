@@ -11,7 +11,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
     /// Utility functions for the lossless decoder.

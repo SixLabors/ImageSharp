@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
     /// To perform backward reference every pixel at index index_ is considered and

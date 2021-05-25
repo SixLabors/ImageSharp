@@ -5,7 +5,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 
 using ImageMagick;
-using SixLabors.ImageSharp.Formats.Experimental.Webp;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 

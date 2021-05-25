@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
     /// Pair of histograms. Negative Idx1 value means that pair is out-of-date.

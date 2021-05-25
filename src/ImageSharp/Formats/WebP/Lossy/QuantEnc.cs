@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
+namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     /// <summary>
     /// Quantization methods.

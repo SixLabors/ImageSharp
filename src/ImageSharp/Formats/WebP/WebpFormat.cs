@@ -3,11 +3,10 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp
+namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// EXPERIMENTAL:
-    /// Registers the image encoders, decoders and mime type detectors for the WebP format
+    /// Registers the image encoders, decoders and mime type detectors for the Webp format
     /// </summary>
     public sealed class WebpFormat : IImageFormat<WebpMetadata>
     {

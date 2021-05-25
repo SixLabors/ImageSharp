@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader
+namespace SixLabors.ImageSharp.Formats.Webp.BitReader
 {
     /// <summary>
     /// A bit reader for reading lossless webp streams.

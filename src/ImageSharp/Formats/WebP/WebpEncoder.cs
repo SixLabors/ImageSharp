@@ -7,10 +7,9 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp
+namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// EXPERIMENTAL:
     /// Image encoder for writing an image to a stream in the WebP format.
     /// </summary>
     public sealed class WebpEncoder : IImageEncoder, IWebPEncoderOptions

@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp
+namespace SixLabors.ImageSharp.Formats.Webp
 {
 #pragma warning disable SA1201 // Elements should appear in the correct order
     internal static class WebpLookupTables

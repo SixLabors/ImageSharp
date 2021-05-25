@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp
+namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
     /// Provides WebP specific metadata information for the image.

@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
+namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 {
     internal abstract class BitWriterBase
     {

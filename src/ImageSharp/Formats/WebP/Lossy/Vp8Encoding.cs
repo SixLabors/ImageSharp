@@ -5,7 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
+namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     /// <summary>
     /// Methods for encoding a VP8 frame.

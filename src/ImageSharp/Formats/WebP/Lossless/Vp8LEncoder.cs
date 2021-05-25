@@ -8,11 +8,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter;
+using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
     /// Encoder for lossless webp images.

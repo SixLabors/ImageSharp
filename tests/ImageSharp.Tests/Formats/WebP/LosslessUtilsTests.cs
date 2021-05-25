@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
+using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 

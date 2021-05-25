@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
+using SixLabors.ImageSharp.Formats.Webp.Lossless;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
+namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     /// <summary>
     /// Iterator structure to iterate through macroblocks, pointing to the

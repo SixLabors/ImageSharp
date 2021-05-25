@@ -3,7 +3,7 @@
 
 using System.IO;
 
-using SixLabors.ImageSharp.Formats.Experimental.Webp;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 

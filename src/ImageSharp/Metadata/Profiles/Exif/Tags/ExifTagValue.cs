@@ -24,7 +24,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         GPSIFDOffset = 0x8825,
 
         /// <summary>
-        /// SubfileType
+        /// Indicates the identification of the Interoperability rule.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/privateifd/interoperability/interoperabilityindex.html
+        /// </summary>
+        [ExifTagDescription("R98", "Indicates a file conforming to R98 file specification of Recommended Exif Interoperability Rules (ExifR98) or to DCF basic file stipulated by Design Rule for Camera File System.")]
+        [ExifTagDescription("THM", "Indicates a file conforming to DCF thumbnail file stipulated by Design rule for Camera File System.")]
+        InteroperabilityIndex = 0x0001,
+
+        /// <summary>
+        /// A general indication of the kind of data contained in this subfile.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription(0U, "Full-resolution Image")]
         [ExifTagDescription(1U, "Reduced-resolution image")]
@@ -38,7 +47,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         SubfileType = 0x00FE,
 
         /// <summary>
-        /// OldSubfileType
+        /// A general indication of the kind of data contained in this subfile.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "Full-resolution Image")]
         [ExifTagDescription((ushort)2, "Reduced-resolution image")]
@@ -46,22 +56,26 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         OldSubfileType = 0x00FF,
 
         /// <summary>
-        /// ImageWidth
+        /// The number of columns in the image, i.e., the number of pixels per row.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         ImageWidth = 0x0100,
 
         /// <summary>
-        /// ImageLength
+        /// The number of rows of pixels in the image.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         ImageLength = 0x0101,
 
         /// <summary>
-        /// BitsPerSample
+        /// Number of bits per component.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         BitsPerSample = 0x0102,
 
         /// <summary>
-        /// Compression
+        /// Compression scheme used on the image data.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "Uncompressed")]
         [ExifTagDescription((ushort)2, "CCITT 1D")]
@@ -107,7 +121,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         Compression = 0x0103,
 
         /// <summary>
-        /// PhotometricInterpretation
+        /// The color space of the image data.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)0, "WhiteIsZero")]
         [ExifTagDescription((ushort)1, "BlackIsZero")]
@@ -126,7 +141,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         PhotometricInterpretation = 0x0106,
 
         /// <summary>
-        /// Thresholding
+        /// For black and white TIFF files that represent shades of gray, the technique used to convert from gray to black and white pixels.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "No dithering or halftoning")]
         [ExifTagDescription((ushort)2, "Ordered dither or halftone")]
@@ -134,49 +150,58 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         Thresholding = 0x0107,
 
         /// <summary>
-        /// CellWidth
+        /// The width of the dithering or halftoning matrix used to create a dithered or halftoned bilevel file.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         CellWidth = 0x0108,
 
         /// <summary>
-        /// CellLength
+        /// The length of the dithering or halftoning matrix used to create a dithered or halftoned bilevel file.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         CellLength = 0x0109,
 
         /// <summary>
-        /// FillOrder
+        /// The logical order of bits within a byte.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "Normal")]
         [ExifTagDescription((ushort)2, "Reversed")]
         FillOrder = 0x010A,
 
         /// <summary>
-        /// DocumentName
+        /// The name of the document from which this image was scanned.
+        /// See Section 12: Document Storage and Retrieval.
         /// </summary>
         DocumentName = 0x010D,
 
         /// <summary>
-        /// ImageDescription
+        /// A string that describes the subject of the image.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         ImageDescription = 0x010E,
 
         /// <summary>
-        /// Make
+        /// The scanner manufacturer.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         Make = 0x010F,
 
         /// <summary>
-        /// Model
+        /// The scanner model name or number.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         Model = 0x0110,
 
         /// <summary>
-        /// StripOffsets
+        /// For each strip, the byte offset of that strip.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         StripOffsets = 0x0111,
 
         /// <summary>
-        /// Orientation
+        /// The orientation of the image with respect to the rows and columns.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "Horizontal (normal)")]
         [ExifTagDescription((ushort)2, "Mirror horizontal")]
@@ -189,74 +214,88 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         Orientation = 0x0112,
 
         /// <summary>
-        /// SamplesPerPixel
+        /// The number of components per pixel.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         SamplesPerPixel = 0x0115,
 
         /// <summary>
-        /// RowsPerStrip
+        /// The number of rows per strip.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         RowsPerStrip = 0x0116,
 
         /// <summary>
-        /// StripByteCounts
+        /// For each strip, the number of bytes in the strip after compression.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         StripByteCounts = 0x0117,
 
         /// <summary>
-        /// MinSampleValue
+        /// The minimum component value used.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         MinSampleValue = 0x0118,
 
         /// <summary>
-        /// MaxSampleValue
+        /// The maximum component value used.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         MaxSampleValue = 0x0119,
 
         /// <summary>
-        /// XResolution
+        /// The number of pixels per ResolutionUnit in the ImageWidth direction.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         XResolution = 0x011A,
 
         /// <summary>
-        /// YResolution
+        /// The number of pixels per ResolutionUnit in the <see cref="ImageLength"/> direction.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         YResolution = 0x011B,
 
         /// <summary>
-        /// PlanarConfiguration
+        /// How the components of each pixel are stored.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "Chunky")]
         [ExifTagDescription((ushort)2, "Planar")]
         PlanarConfiguration = 0x011C,
 
         /// <summary>
-        /// PageName
+        /// The name of the page from which this image was scanned.
+        /// See Section 12: Document Storage and Retrieval.
         /// </summary>
         PageName = 0x011D,
 
         /// <summary>
-        /// XPosition
+        /// X position of the image.
+        /// See Section 12: Document Storage and Retrieval.
         /// </summary>
         XPosition = 0x011E,
 
         /// <summary>
-        /// YPosition
+        /// Y position of the image.
+        /// See Section 12: Document Storage and Retrieval.
         /// </summary>
         YPosition = 0x011F,
 
         /// <summary>
-        /// FreeOffsets
+        /// For each string of contiguous unused bytes in a TIFF file, the byte offset of the string.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         FreeOffsets = 0x0120,
 
         /// <summary>
-        /// FreeByteCounts
+        /// For each string of contiguous unused bytes in a TIFF file, the number of bytes in the string.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         FreeByteCounts = 0x0121,
 
         /// <summary>
-        /// GrayResponseUnit
+        /// The precision of the information contained in the GrayResponseCurve.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "0.1")]
         [ExifTagDescription((ushort)2, "0.001")]
@@ -266,12 +305,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         GrayResponseUnit = 0x0122,
 
         /// <summary>
-        /// GrayResponseCurve
+        /// For grayscale data, the optical density of each possible pixel value.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         GrayResponseCurve = 0x0123,
 
         /// <summary>
-        /// T4Options
+        /// Options for Group 3 Fax compression.
         /// </summary>
         [ExifTagDescription(0U, "2-Dimensional encoding")]
         [ExifTagDescription(1U, "Uncompressed")]
@@ -279,13 +319,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         T4Options = 0x0124,
 
         /// <summary>
-        /// T6Options
+        /// Options for Group 4 Fax compression.
         /// </summary>
         [ExifTagDescription(1U, "Uncompressed")]
         T6Options = 0x0125,
 
         /// <summary>
-        /// ResolutionUnit
+        /// The unit of measurement for XResolution and YResolution.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)1, "None")]
         [ExifTagDescription((ushort)2, "Inches")]
@@ -293,7 +334,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         ResolutionUnit = 0x0128,
 
         /// <summary>
-        /// PageNumber
+        /// The page number of the page from which this image was scanned.
+        /// See Section 12: Document Storage and Retrieval.
         /// </summary>
         PageNumber = 0x0129,
 
@@ -308,22 +350,26 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         TransferFunction = 0x012D,
 
         /// <summary>
-        /// Software
+        /// Name and version number of the software package(s) used to create the image.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         Software = 0x0131,
 
         /// <summary>
-        /// DateTime
+        /// Date and time of image creation.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         DateTime = 0x0132,
 
         /// <summary>
-        /// Artist
+        /// Person who created the image.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         Artist = 0x013B,
 
         /// <summary>
-        /// HostComputer
+        /// The computer and/or operating system in use at the time of image creation.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         HostComputer = 0x013C,
 
@@ -343,7 +389,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         PrimaryChromaticities = 0x013F,
 
         /// <summary>
-        /// ColorMap
+        /// A color map for palette color images.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         ColorMap = 0x0140,
 
@@ -391,6 +438,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         ConsecutiveBadFaxLines = 0x0148,
 
         /// <summary>
+        /// Offset to child IFDs.
+        /// See TIFF Supplement 1: Adobe Pagemaker 6.0.
+        /// Each value is an offset (from the beginning of the TIFF file, as always) to a child IFD. Child images provide extra information for the parent image - such as a subsampled version of the parent image.
+        /// TIFF data type is Long or 13, IFD. The IFD type is identical to LONG, except that it is only used to point to other valid IFDs.
+        /// </summary>
+        SubIFDs = 0x014A,
+
+        /// <summary>
         /// InkSet
         /// </summary>
         [ExifTagDescription((ushort)1, "CMYK")]
@@ -418,7 +473,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         TargetPrinter = 0x0151,
 
         /// <summary>
-        /// ExtraSamples
+        /// Description of extra components.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         [ExifTagDescription((ushort)0, "Unspecified")]
         [ExifTagDescription((ushort)1, "Associated Alpha")]
@@ -484,6 +540,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         [ExifTagDescription((ushort)0, "Higher resolution image does not exist")]
         [ExifTagDescription((ushort)1, "Higher resolution image exists")]
         OPIProxy = 0x015F,
+
+        /// <summary>
+        /// Used in the TIFF-FX standard to point to an IFD containing tags that are globally applicable to the complete TIFF file.
+        /// See RFC2301: TIFF-F/FX Specification.
+        /// It is recommended that a TIFF writer place this field in the first IFD, where a TIFF reader would find it quickly.
+        /// Each field in the GlobalParametersIFD is a TIFF field that is legal in any IFD. Required baseline fields should not be located in the GlobalParametersIFD, but should be in each image IFD. If a conflict exists between fields in the GlobalParametersIFD and in the image IFDs, then the data in the image IFD shall prevail.
+        /// </summary>
+        GlobalParametersIFD = 0x0190,
 
         /// <summary>
         /// ProfileType
@@ -638,6 +702,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         ImageID = 0x800D,
 
         /// <summary>
+        /// Annotation data, as used in 'Imaging for Windows'.
+        /// See Other Private TIFF tags: http://www.awaresystems.be/imaging/tiff/tifftags/private.html
+        /// </summary>
+        WangAnnotation = 0x80A4,
+
+        /// <summary>
         /// CFARepeatPatternDim
         /// </summary>
         CFARepeatPatternDim = 0x828D,
@@ -653,7 +723,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         BatteryLevel = 0x828F,
 
         /// <summary>
-        /// Copyright
+        /// Copyright notice.
+        /// See Section 8: Baseline Fields.
         /// </summary>
         Copyright = 0x8298,
 
@@ -668,44 +739,82 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         FNumber = 0x829D,
 
         /// <summary>
-        /// MDFileTag
+        /// Specifies the pixel data format encoding in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
         /// </summary>
+        [ExifTagDescription((ushort)2, "Squary root data format")]
+        [ExifTagDescription((ushort)128, "Linear data format")]
         MDFileTag = 0x82A5,
 
         /// <summary>
-        /// MDScalePixel
+        /// Specifies a scale factor in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
+        /// The scale factor is to be applies to each pixel before presenting it to the user.
         /// </summary>
         MDScalePixel = 0x82A6,
 
         /// <summary>
-        /// MDLabName
+        /// Used to specify the conversion from 16bit to 8bit in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
+        /// Since the display is only 9bit, the 16bit data must be converted before display.
+        /// 8bit value = (16bit value - low range ) * 255 / (high range - low range)
+        /// Count: n.
+        /// </summary>
+        [ExifTagDescription((ushort)0, "lowest possible")]
+        [ExifTagDescription((ushort)1, "low range")]
+        [ExifTagDescription("n-2", "high range")]
+        [ExifTagDescription("n-1", "highest possible")]
+        MDColorTable = 0x82A7,
+
+        /// <summary>
+        /// Name of the lab that scanned this file, as used in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
         /// </summary>
         MDLabName = 0x82A8,
 
         /// <summary>
-        /// MDSampleInfo
+        /// Information about the sample, as used in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
+        /// This information is entered by the person that scanned the file.
+        /// Note that the word 'sample' as used here, refers to the scanned sample, not an image channel.
         /// </summary>
         MDSampleInfo = 0x82A9,
 
         /// <summary>
-        /// MDPrepDate
+        /// Date the sample was prepared, as used in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
+        /// The format of this data is YY/MM/DD.
+        /// Note that the word 'sample' as used here, refers to the scanned sample, not an image channel.
         /// </summary>
         MDPrepDate = 0x82AA,
 
         /// <summary>
-        /// MDPrepTime
+        /// Time the sample was prepared, as used in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
+        /// Format of this data is HH:MM using the 24-hour clock.
+        /// Note that the word 'sample' as used here, refers to the scanned sample, not an image channel.
         /// </summary>
         MDPrepTime = 0x82AB,
 
         /// <summary>
-        /// MDFileUnits
+        /// Units for data in this file, as used in the Molecular Dynamics GEL file format.
+        /// See Molecular Dynamics GEL File Format and Private Tags: https://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
         /// </summary>
+        [ExifTagDescription("O.D.", "Densitometer")]
+        [ExifTagDescription("Counts", "PhosphorImager")]
+        [ExifTagDescription("RFU", "FluorImager")]
         MDFileUnits = 0x82AC,
 
         /// <summary>
         /// PixelScale
         /// </summary>
         PixelScale = 0x830E,
+
+        /// <summary>
+        /// IPTC (International Press Telecommunications Council) metadata.
+        /// See IPTC 4.1 specification.
+        /// </summary>
+        IPTC = 0x83BB,
 
         /// <summary>
         /// IntergraphPacketData
@@ -736,6 +845,40 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// ModelTransform
         /// </summary>
         ModelTransform = 0x85D8,
+
+        /// <summary>
+        /// Collection of Photoshop 'Image Resource Blocks' (Embedded Metadata).
+        /// See Extracting the Thumbnail from the PhotoShop private TIFF Tag: https://www.awaresystems.be/imaging/tiff/tifftags/docs/photoshopthumbnail.html
+        /// </summary>
+        Photoshop = 0x8649,
+
+        /// <summary>
+        /// ICC profile data.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/iccprofile.html
+        /// </summary>
+        IccProfile = 0x8773,
+
+        /// <summary>
+        /// Used in interchangeable GeoTIFF files.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/geokeydirectorytag.html
+        /// This tag is also know as 'ProjectionInfoTag' and 'CoordSystemInfoTag'
+        /// This tag may be used to store the GeoKey Directory, which defines and references the "GeoKeys".
+        /// </summary>
+        GeoKeyDirectoryTag = 0x87AF,
+
+        /// <summary>
+        /// Used in interchangeable GeoTIFF files.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/geodoubleparamstag.html
+        /// This tag is used to store all of the DOUBLE valued GeoKeys, referenced by the GeoKeyDirectoryTag. The meaning of any value of this double array is determined from the GeoKeyDirectoryTag reference pointing to it. FLOAT values should first be converted to DOUBLE and stored here.
+        /// </summary>
+        GeoDoubleParamsTag = 0x87B0,
+
+        /// <summary>
+        /// Used in interchangeable GeoTIFF files.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/geoasciiparamstag.html
+        /// This tag is used to store all of the ASCII valued GeoKeys, referenced by the GeoKeyDirectoryTag. Since keys use offsets into tags, any special comments may be placed at the beginning of this tag. For the most part, the only keys that are ASCII valued are "Citation" keys, giving documentation and references for obscure projections, datums, etc.
+        /// </summary>
+        GeoAsciiParamsTag = 0x87B1,
 
         /// <summary>
         /// ImageLayer
@@ -1185,6 +1328,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         RelatedSoundFile = 0xA004,
 
         /// <summary>
+        /// A pointer to the Exif-related Interoperability IFD.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/privateifd/interoperability.html
+        /// Interoperability IFD is composed of tags which stores the information to ensure the Interoperability.
+        /// The Interoperability structure of Interoperability IFD is same as TIFF defined IFD structure but does not contain the image data characteristically compared with normal TIFF IFD.
+        /// </summary>
+        InteroperabilityIFD = 0xA005,
+
+        /// <summary>
         /// FlashEnergy
         /// </summary>
         FlashEnergy = 0xA20B,
@@ -1539,5 +1690,41 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// GPSDifferential
         /// </summary>
         GPSDifferential = 0x001E,
+
+        /// <summary>
+        /// Used in the Oce scanning process.
+        /// Identifies the scanticket used in the scanning process.
+        /// Includes a trailing zero.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/docs/oce.html
+        /// </summary>
+        OceScanjobDescription = 0xC427,
+
+        /// <summary>
+        /// Used in the Oce scanning process.
+        /// Identifies the application to process the TIFF file that results from scanning.
+        /// Includes a trailing zero.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/docs/oce.html
+        /// </summary>
+        OceApplicationSelector = 0xC428,
+
+        /// <summary>
+        /// Used in the Oce scanning process.
+        /// This is the user's answer to an optional question embedded in the Oce scanticket, and presented to that user before scanning. It can serve in further determination of the workflow.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/docs/oce.html
+        /// </summary>
+        OceIdentificationNumber = 0xC429,
+
+        /// <summary>
+        /// Used in the Oce scanning process.
+        /// This tag encodes the imageprocessing done by the Oce ImageLogic module in the scanner to ensure optimal quality for certain workflows.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/docs/oce.html
+        /// </summary>
+        OceImageLogicCharacteristics = 0xC42A,
+
+        /// <summary>
+        /// Alias Sketchbook Pro layer usage description.
+        /// See https://www.awaresystems.be/imaging/tiff/tifftags/docs/alias.html
+        /// </summary>
+        AliasLayerMetadata = 0xC660,
     }
 }

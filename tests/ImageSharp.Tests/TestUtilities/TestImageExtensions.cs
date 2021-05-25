@@ -514,6 +514,31 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        public static Image<TPixel> CompareToOriginalMultiFrame<TPixel>(
+        this Image<TPixel> image,
+        ITestImageProvider provider,
+        ImageComparer comparer,
+        IImageDecoder referenceDecoder = null)
+        where TPixel : unmanaged, IPixel<TPixel>
+        {
+            string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
+            if (path == null)
+            {
+                throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
+            }
+
+            var testFile = TestFile.Create(path);
+
+            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(path);
+
+            using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
+            {
+                comparer.VerifySimilarity(original, image);
+            }
+
+            return image;
+        }
+
         /// <summary>
         /// Utility method for doing the following in one step:
         /// 1. Executing an operation (taken as a delegate)

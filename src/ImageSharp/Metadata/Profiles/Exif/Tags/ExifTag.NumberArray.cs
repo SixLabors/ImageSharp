@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<Number[]> StripOffsets { get; } = new ExifTag<Number[]>(ExifTagValue.StripOffsets);
 
         /// <summary>
+        /// Gets the StripByteCounts exif tag.
+        /// </summary>
+        public static ExifTag<Number[]> StripByteCounts { get; } = new ExifTag<Number[]>(ExifTagValue.StripByteCounts);
+
+        /// <summary>
         /// Gets the TileByteCounts exif tag.
         /// </summary>
         public static ExifTag<Number[]> TileByteCounts { get; } = new ExifTag<Number[]>(ExifTagValue.TileByteCounts);

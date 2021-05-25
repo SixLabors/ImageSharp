@@ -94,9 +94,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets a set of properties for the Congiguration.
+        /// Gets a set of properties for the Configuration.
         /// </summary>
-        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        /// <remarks>This can be used for storing global settings and defaults to be accessible to processors.</remarks>
         public IDictionary<object, object> Properties { get; } = new ConcurrentDictionary<object, object>();
 
         /// <summary>

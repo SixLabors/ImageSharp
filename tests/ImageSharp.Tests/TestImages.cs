@@ -545,22 +545,44 @@ namespace SixLabors.ImageSharp.Tests
                 public const string TwoTransforms11 = "WebP/lossless_vec_2_3.webp"; // color_indexing, predictor
                 public const string TwoTransforms12 = "WebP/lossless_vec_2_6.webp"; // substract_green, predictor
                 public const string TwoTransforms13 = "WebP/lossless_vec_2_9.webp"; // color_indexing, predictor
-                public const string ThreeTransforms1 = "WebP/color_cache_bits_11.webp"; // substract_green, predictor, cross_color
-                public const string ThreeTransforms2 = "WebP/lossless_vec_1_11.webp"; // color_indexing, predictor, cross_color
-                public const string ThreeTransforms3 = "WebP/lossless_vec_1_14.webp"; // substract_green, predictor, cross_color
-                public const string ThreeTransforms4 = "WebP/lossless_vec_1_15.webp"; // color_indexing, predictor, cross_color
-                public const string ThreeTransforms5 = "WebP/lossless_vec_2_11.webp"; // color_indexing, predictor, cross_color
-                public const string ThreeTransforms6 = "WebP/lossless_vec_2_14.webp"; // substract_green, predictor, cross_color
-                public const string ThreeTransforms7 = "WebP/lossless_vec_2_15.webp"; // color_indexing, predictor, cross_color
-                public const string BikeThreeTransforms = "WebP/bike_lossless.webp"; // substract_green, predictor, cross_color
+
+                public const string
+                    ThreeTransforms1 = "WebP/color_cache_bits_11.webp"; // substract_green, predictor, cross_color
+
+                public const string
+                    ThreeTransforms2 = "WebP/lossless_vec_1_11.webp"; // color_indexing, predictor, cross_color
+
+                public const string
+                    ThreeTransforms3 = "WebP/lossless_vec_1_14.webp"; // substract_green, predictor, cross_color
+
+                public const string
+                    ThreeTransforms4 = "WebP/lossless_vec_1_15.webp"; // color_indexing, predictor, cross_color
+
+                public const string
+                    ThreeTransforms5 = "WebP/lossless_vec_2_11.webp"; // color_indexing, predictor, cross_color
+
+                public const string
+                    ThreeTransforms6 = "WebP/lossless_vec_2_14.webp"; // substract_green, predictor, cross_color
+
+                public const string
+                    ThreeTransforms7 = "WebP/lossless_vec_2_15.webp"; // color_indexing, predictor, cross_color
+
+                public const string
+                    BikeThreeTransforms = "WebP/bike_lossless.webp"; // substract_green, predictor, cross_color
 
                 public const string BikeSmall = "WebP/bike_lossless_small.webp";
 
                 // Invalid / corrupted images
                 // Below images have errors according to webpinfo. The error message webpinfo gives is "Truncated data detected when parsing RIFF payload."
-                public const string LossLessCorruptImage1 = "WebP/lossless_big_random_alpha.webp"; // substract_green, predictor, cross_color.
+                public const string
+                    LossLessCorruptImage1 =
+                        "WebP/lossless_big_random_alpha.webp"; // substract_green, predictor, cross_color.
+
                 public const string LossLessCorruptImage2 = "WebP/lossless_vec_2_7.webp"; // color_indexing, predictor.
-                public const string LossLessCorruptImage3 = "WebP/lossless_color_transform.webp"; // cross_color, predictor
+
+                public const string
+                    LossLessCorruptImage3 = "WebP/lossless_color_transform.webp"; // cross_color, predictor
+
                 public const string LossLessCorruptImage4 = "WebP/near_lossless_75.webp"; // predictor, cross_color.
             }
 
@@ -651,6 +673,96 @@ namespace SixLabors.ImageSharp.Tests
                 // Issues
                 public const string Issue1594 = "WebP/issues/Issue1594.webp";
             }
+        }
+
+        public static class Tiff
+        {
+            public const string Benchmark_Path = "Tiff/Benchmarks/";
+            public const string Benchmark_BwFax3 = "medium_bw_Fax3.tiff";
+            public const string Benchmark_BwFax4 = "medium_bw_Fax4.tiff";
+            public const string Benchmark_BwRle = "medium_bw_Rle.tiff";
+            public const string Benchmark_GrayscaleUncompressed = "medium_grayscale_uncompressed.tiff";
+            public const string Benchmark_PaletteUncompressed = "medium_palette_uncompressed.tiff";
+            public const string Benchmark_RgbDeflate = "medium_rgb_deflate.tiff";
+            public const string Benchmark_RgbLzw = "medium_rgb_lzw.tiff";
+            public const string Benchmark_RgbPackbits = "medium_rgb_packbits.tiff";
+            public const string Benchmark_RgbUncompressed = "medium_rgb_uncompressed.tiff";
+
+            public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
+            public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
+            public const string Calliphora_GrayscaleLzw_Predictor = "Tiff/Calliphora_gray_lzw_predictor.tiff";
+            public const string Calliphora_GrayscaleDeflate = "Tiff/Calliphora_gray_deflate.tiff";
+            public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate_predictor.tiff";
+            public const string Calliphora_RgbJpeg = "Tiff/Calliphora_rgb_jpeg.tiff";
+            public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
+            public const string Calliphora_RgbLzwPredictor = "Tiff/Calliphora_rgb_lzw_predictor.tiff";
+            public const string Calliphora_RgbPaletteLzw = "Tiff/Calliphora_rgb_palette_lzw.tiff";
+            public const string Calliphora_RgbPaletteLzw_Predictor = "Tiff/Calliphora_rgb_palette_lzw_predictor.tiff";
+            public const string Calliphora_RgbPackbits = "Tiff/Calliphora_rgb_packbits.tiff";
+            public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
+            public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tiff";
+            public const string Fax3Uncompressed = "Tiff/ccitt_fax3_uncompressed.tiff";
+            public const string Calliphora_Fax3Compressed_WithEolPadding = "Tiff/Calliphora_ccitt_fax3_with_eol_padding.tiff";
+            public const string Calliphora_Fax4Compressed = "Tiff/Calliphora_ccitt_fax4.tiff";
+            public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
+            public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";
+
+            public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
+            public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
+            public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
+            public const string HuffmanRleAllMakeupCodes = "Tiff/huffman_rle_all_makeup_codes.tiff";
+
+            // Test case for an issue, that the last bits in a row got ignored.
+            public const string HuffmanRle_basi3p02 = "Tiff/basi3p02_huffman_rle.tiff";
+
+            public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
+            public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+            public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
+            public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
+            public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
+            public const string RgbDeflatePredictor = "Tiff/rgb_deflate_predictor.tiff";
+            public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
+            public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
+            public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
+            public const string RgbLzwNoPredictor = "Tiff/rgb_lzw_no_predictor.tiff";
+            public const string RgbLzwNoPredictorMultistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";
+            public const string RgbLzwNoPredictorMultistripMotorola = "Tiff/rgb_lzw_noPredictor_multistrip_Motorola.tiff";
+            public const string RgbLzwNoPredictorSinglestripMotorola = "Tiff/rgb_lzw_noPredictor_singlestrip_Motorola.tiff";
+            public const string RgbLzwMultistripPredictor = "Tiff/rgb_lzw_multistrip.tiff";
+            public const string RgbPackbits = "Tiff/rgb_packbits.tiff";
+            public const string RgbPackbitsMultistrip = "Tiff/rgb_packbits_multistrip.tiff";
+            public const string RgbUncompressed = "Tiff/rgb_uncompressed.tiff";
+            public const string RgbPalette = "Tiff/rgb_palette.tiff";
+            public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
+            public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
+
+            public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
+            public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
+
+            public const string RgbUncompressedTiled = "Tiff/rgb_uncompressed_tiled.tiff";
+            public const string MultiframeDifferentSizeTiled = "Tiff/multipage_ withPreview_differentSize_tiled.tiff";
+
+            public const string MultiframeLzwPredictor = "Tiff/multipage_lzw.tiff";
+            public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
+            public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
+            public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
+
+            public const string FillOrder2 = "Tiff/b0350_fillorder2.tiff";
+            public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
+
+            public const string Fax4_Motorola = "Tiff/moy.tiff";
+
+            public const string SampleMetadata = "Tiff/metadata_sample.tiff";
+
+            // Iptc data as long[] instead of byte[]
+            public const string InvalidIptcData = "Tiff/7324fcaff3aad96f27899da51c1bb5d9.tiff";
+            public const string IptcData = "Tiff/iptc.tiff";
+
+            public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
+
+            public static readonly string[] Metadata = { SampleMetadata };
+
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, FillOrder2, Calliphora_Fax4Compressed, Fax4_Motorola };
         }
     }
 }

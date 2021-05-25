@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -15,6 +16,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
     public class IptcProfileTests
     {
         private static JpegDecoder JpegDecoder => new JpegDecoder() { IgnoreMetadata = false };
+
+        private static TiffDecoder TiffDecoder => new TiffDecoder() { IgnoreMetadata = false };
 
         public static IEnumerable<object[]> AllIptcTags()
         {
@@ -100,32 +103,51 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Iptc, PixelTypes.Rgba32)]
-        public void ReadIptcMetadata_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public void ReadIptcMetadata_FromJpg_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(JpegDecoder))
             {
                 Assert.NotNull(image.Metadata.IptcProfile);
                 var iptcValues = image.Metadata.IptcProfile.Values.ToList();
-                ContainsIptcValue(iptcValues, IptcTag.Caption, "description");
-                ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, "description writer");
-                ContainsIptcValue(iptcValues, IptcTag.Headline, "headline");
-                ContainsIptcValue(iptcValues, IptcTag.SpecialInstructions, "special instructions");
-                ContainsIptcValue(iptcValues, IptcTag.Byline, "author");
-                ContainsIptcValue(iptcValues, IptcTag.BylineTitle, "author title");
-                ContainsIptcValue(iptcValues, IptcTag.Credit, "credits");
-                ContainsIptcValue(iptcValues, IptcTag.Source, "source");
-                ContainsIptcValue(iptcValues, IptcTag.Name, "title");
-                ContainsIptcValue(iptcValues, IptcTag.CreatedDate, "20200414");
-                ContainsIptcValue(iptcValues, IptcTag.City, "city");
-                ContainsIptcValue(iptcValues, IptcTag.SubLocation, "sublocation");
-                ContainsIptcValue(iptcValues, IptcTag.ProvinceState, "province-state");
-                ContainsIptcValue(iptcValues, IptcTag.Country, "country");
-                ContainsIptcValue(iptcValues, IptcTag.Category, "category");
-                ContainsIptcValue(iptcValues, IptcTag.Urgency, "1");
-                ContainsIptcValue(iptcValues, IptcTag.Keywords, "keywords");
-                ContainsIptcValue(iptcValues, IptcTag.CopyrightNotice, "copyright");
+                IptcProfileContainsExpectedValues(iptcValues);
             }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Tiff.IptcData, PixelTypes.Rgba32)]
+        public void ReadIptcMetadata_FromTiff_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
+            {
+                IptcProfile iptc = image.Frames.RootFrame.Metadata.IptcProfile;
+                Assert.NotNull(iptc);
+                var iptcValues = iptc.Values.ToList();
+                IptcProfileContainsExpectedValues(iptcValues);
+            }
+        }
+
+        private static void IptcProfileContainsExpectedValues(List<IptcValue> iptcValues)
+        {
+            ContainsIptcValue(iptcValues, IptcTag.Caption, "description");
+            ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, "description writer");
+            ContainsIptcValue(iptcValues, IptcTag.Headline, "headline");
+            ContainsIptcValue(iptcValues, IptcTag.SpecialInstructions, "special instructions");
+            ContainsIptcValue(iptcValues, IptcTag.Byline, "author");
+            ContainsIptcValue(iptcValues, IptcTag.BylineTitle, "author title");
+            ContainsIptcValue(iptcValues, IptcTag.Credit, "credits");
+            ContainsIptcValue(iptcValues, IptcTag.Source, "source");
+            ContainsIptcValue(iptcValues, IptcTag.Name, "title");
+            ContainsIptcValue(iptcValues, IptcTag.CreatedDate, "20200414");
+            ContainsIptcValue(iptcValues, IptcTag.City, "city");
+            ContainsIptcValue(iptcValues, IptcTag.SubLocation, "sublocation");
+            ContainsIptcValue(iptcValues, IptcTag.ProvinceState, "province-state");
+            ContainsIptcValue(iptcValues, IptcTag.Country, "country");
+            ContainsIptcValue(iptcValues, IptcTag.Category, "category");
+            ContainsIptcValue(iptcValues, IptcTag.Urgency, "1");
+            ContainsIptcValue(iptcValues, IptcTag.Keywords, "keywords");
+            ContainsIptcValue(iptcValues, IptcTag.CopyrightNotice, "copyright");
         }
 
         [Theory]

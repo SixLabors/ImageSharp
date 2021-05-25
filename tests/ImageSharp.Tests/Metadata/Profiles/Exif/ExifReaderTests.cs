@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    [Trait("Profile", "Exif")]
     public class ExifReaderTests
     {
         [Fact]

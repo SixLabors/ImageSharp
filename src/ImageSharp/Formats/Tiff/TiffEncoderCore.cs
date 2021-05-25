@@ -144,14 +144,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 ?? rootFrameTiffMetaData.Compression
                 ?? DefaultCompression;
 
-            // Make sure, the bits per pixel and PhotometricInterpretation have values which makes sense in combination with the other chosen values.
-            bitsPerPixel = this.SanitizeBitsPerPixel(bitsPerPixel, image.PixelType.BitsPerPixel, photometricInterpretation, compression);
-            photometricInterpretation = this.SanitizePhotometricInterpretation(photometricInterpretation, bitsPerPixel, compression);
-
-            this.BitsPerPixel = bitsPerPixel;
-            this.PhotometricInterpretation = photometricInterpretation;
-            this.CompressionType = compression;
-            this.HorizontalPredictor = predictor;
+            // Make sure, the Encoder options makes sense in combination with each other.
+            this.SanitizeAndSetEncoderOptions(bitsPerPixel, image.PixelType.BitsPerPixel, photometricInterpretation, compression, predictor);
 
             using (var writer = new TiffStreamWriter(stream))
             {
@@ -302,62 +296,49 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return nextIfdMarker;
         }
 
-        private TiffPhotometricInterpretation SanitizePhotometricInterpretation(TiffPhotometricInterpretation? photometricInterpretation, TiffBitsPerPixel? bitsPerPixel, TiffCompression compression)
+        private void SanitizeAndSetEncoderOptions(TiffBitsPerPixel? bitsPerPixel, int inputBitsPerPixel, TiffPhotometricInterpretation? photometricInterpretation, TiffCompression compression, TiffPredictor predictor)
         {
-            // Make sure, that the fax compressions are only used together with the WhiteIsZero.
-            if (compression == TiffCompression.CcittGroup3Fax || compression == TiffCompression.Ccitt1D)
-            {
-                // The ‚Äúnormal‚Äù PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
-                return TiffPhotometricInterpretation.WhiteIsZero;
-            }
-
-            // Use the bits per pixel to determine the photometric interpretation.
-            switch (bitsPerPixel)
-            {
-                case TiffBitsPerPixel.Bit1:
-                    return TiffPhotometricInterpretation.BlackIsZero;
-                case TiffBitsPerPixel.Bit4:
-                    return TiffPhotometricInterpretation.PaletteColor;
-                case TiffBitsPerPixel.Bit8:
-                    return photometricInterpretation == TiffPhotometricInterpretation.PaletteColor
-                        ? TiffPhotometricInterpretation.PaletteColor
-                        : TiffPhotometricInterpretation.BlackIsZero;
-            }
-
-            if (photometricInterpretation.HasValue)
-            {
-                return photometricInterpretation.Value;
-            }
-
-            return DefaultPhotometricInterpretation;
-        }
-
-        private TiffBitsPerPixel SanitizeBitsPerPixel(TiffBitsPerPixel? bitsPerPixel, int inputBitsPerPixel, TiffPhotometricInterpretation? photometricInterpretation, TiffCompression compression)
-        {
-            // Make sure Palette color is only used with 4 and 8 bit per pixel.
-            if (photometricInterpretation == TiffPhotometricInterpretation.PaletteColor)
-            {
-                if (bitsPerPixel != TiffBitsPerPixel.Bit8 && bitsPerPixel != TiffBitsPerPixel.Bit4)
-                {
-                    return TiffBitsPerPixel.Bit8;
-                }
-            }
-
-            if (compression == TiffCompression.Ccitt1D || compression == TiffCompression.CcittGroup3Fax)
-            {
-                return TiffBitsPerPixel.Bit1;
-            }
-
+            // BitsPerPixel should be the primary source of truth for the encoder options.
             if (bitsPerPixel.HasValue)
             {
-                return bitsPerPixel.Value;
+                switch (bitsPerPixel)
+                {
+                    case TiffBitsPerPixel.Bit1:
+                        if (compression == TiffCompression.Ccitt1D || compression == TiffCompression.CcittGroup3Fax || compression == TiffCompression.CcittGroup4Fax)
+                        {
+                            // The ìnormalî PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
+                            this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.WhiteIsZero, compression, TiffPredictor.None);
+                            break;
+                        }
+
+                        this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.BlackIsZero, compression, TiffPredictor.None);
+                        break;
+                    case TiffBitsPerPixel.Bit4:
+                        this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.PaletteColor, compression, TiffPredictor.None);
+                        break;
+                    case TiffBitsPerPixel.Bit8:
+                        this.SetEncoderOptions(bitsPerPixel, photometricInterpretation ?? TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
+                        break;
+                    default:
+                        this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);
+                        break;
+                }
+
+                return;
             }
 
             // If no photometric interpretation was chosen, the input image bit per pixel should be preserved.
-            if (photometricInterpretation == null)
+            if (!photometricInterpretation.HasValue)
             {
                 // At the moment only 8 and 32 bits per pixel can be preserved by the tiff encoder.
-                return inputBitsPerPixel == 8 ? TiffBitsPerPixel.Bit8 : DefaultBitsPerPixel;
+                if (inputBitsPerPixel == 8)
+                {
+                    this.SetEncoderOptions(TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
+                    return;
+                }
+
+                this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, predictor);
+                return;
             }
 
             switch (photometricInterpretation)
@@ -368,28 +349,33 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         this.CompressionType == TiffCompression.CcittGroup3Fax ||
                         this.CompressionType == TiffCompression.CcittGroup4Fax)
                     {
-                        return TiffBitsPerPixel.Bit1;
+                        this.SetEncoderOptions(TiffBitsPerPixel.Bit1, photometricInterpretation, compression, TiffPredictor.None);
+                        return;
                     }
                     else
                     {
-                        return TiffBitsPerPixel.Bit8;
+                        this.SetEncoderOptions(TiffBitsPerPixel.Bit8, photometricInterpretation, compression, predictor);
+                        return;
                     }
 
                 case TiffPhotometricInterpretation.PaletteColor:
-                    if (bitsPerPixel != TiffBitsPerPixel.Bit8 && bitsPerPixel != TiffBitsPerPixel.Bit4)
-                    {
-                        return TiffBitsPerPixel.Bit8;
-                    }
-                    else
-                    {
-                        return bitsPerPixel.Value;
-                    }
+                    this.SetEncoderOptions(TiffBitsPerPixel.Bit8, photometricInterpretation, compression, predictor);
+                    return;
 
                 case TiffPhotometricInterpretation.Rgb:
-                    return TiffBitsPerPixel.Bit24;
+                    this.SetEncoderOptions(TiffBitsPerPixel.Bit24, photometricInterpretation, compression, predictor);
+                    return;
             }
 
-            return DefaultBitsPerPixel;
+            this.SetEncoderOptions(DefaultBitsPerPixel, DefaultPhotometricInterpretation, compression, predictor);
+        }
+
+        private void SetEncoderOptions(TiffBitsPerPixel? bitsPerPixel, TiffPhotometricInterpretation? photometricInterpretation, TiffCompression compression, TiffPredictor predictor)
+        {
+            this.BitsPerPixel = bitsPerPixel;
+            this.PhotometricInterpretation = photometricInterpretation;
+            this.CompressionType = compression;
+            this.HorizontalPredictor = predictor;
         }
     }
 }

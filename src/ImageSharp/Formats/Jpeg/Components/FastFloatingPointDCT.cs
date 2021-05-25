@@ -229,34 +229,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             // 2 6
             d.V2 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(c2, C_V_0_5411), c3, C_V_1_3065);
-            if (Fma.IsSupported)
-            {
-                d.V6 = Fma.MultiplySubtract(c3, C_V_0_5411, Avx.Multiply(c2, C_V_1_3065));
-            }
-            else
-            {
-                d.V6 = Avx.Subtract(Avx.Multiply(c3, C_V_0_5411), Avx.Multiply(c2, C_V_1_3065));
-            }
+            d.V6 = SimdUtils.HwIntrinsics.MultiplySubstract(Avx.Multiply(c2, C_V_1_3065), c3, C_V_0_5411);
 
             c3 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(t4, C_V_1_1758), t7, C_V_0_7856);
-            if (Fma.IsSupported)
-            {
-                c0 = Fma.MultiplySubtract(t7, C_V_1_1758, Avx.Multiply(t4, C_V_0_7856));
-            }
-            else
-            {
-                c0 = Avx.Subtract(Avx.Multiply(t7, C_V_1_1758), Avx.Multiply(t4, C_V_0_7856));
-            }
+            c0 = SimdUtils.HwIntrinsics.MultiplySubstract(Avx.Multiply(t4, C_V_0_7856), t7, C_V_1_1758);
 
             c2 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(t5, C_V_1_3870), C_V_0_2758, t6);
-            if (Fma.IsSupported)
-            {
-                c1 = Fma.MultiplySubtract(t6, C_V_1_3870, Avx.Multiply(C_V_0_2758, t5));
-            }
-            else
-            {
-                c1 = Avx.Subtract(Avx.Multiply(t6, C_V_1_3870), Avx.Multiply(C_V_0_2758, t5));
-            }
+            c1 = SimdUtils.HwIntrinsics.MultiplySubstract(Avx.Multiply(C_V_0_2758, t5), t6, C_V_1_3870);
 
             // 3 5
             d.V3 = Avx.Subtract(c0, c2);

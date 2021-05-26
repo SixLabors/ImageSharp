@@ -3,9 +3,8 @@
 
 using System;
 using System.IO;
-
 using Moq;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -13,8 +12,6 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Formats;
-
     public partial class ImageTests
     {
         public class Save
@@ -23,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests
             public void DetectedEncoding()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "DetectedEncoding.png");
+                string file = Path.Combine(dir, "DetectedEncoding.png");
 
                 using (var image = new Image<Rgba32>(10, 10))
                 {
@@ -40,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests
             public void WhenExtensionIsUnknown_Throws()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
+                string file = Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
 
                 Assert.Throws<NotSupportedException>(
                     () =>
@@ -56,14 +53,14 @@ namespace SixLabors.ImageSharp.Tests
             public void SetEncoding()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "SetEncoding.dat");
+                string file = Path.Combine(dir, "SetEncoding.dat");
 
                 using (var image = new Image<Rgba32>(10, 10))
                 {
                     image.Save(file, new PngEncoder());
                 }
 
-                using (Image.Load(file, out var mime))
+                using (Image.Load(file, out IImageFormat mime))
                 {
                     Assert.Equal("image/png", mime.DefaultMimeType);
                 }
@@ -72,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void ThrowsWhenDisposed()
             {
-                var image = new Image<Rgba32>(5, 5);
+                using var image = new Image<Rgba32>(5, 5);
                 image.Dispose();
                 IImageEncoder encoder = Mock.Of<IImageEncoder>();
                 using (var stream = new MemoryStream())

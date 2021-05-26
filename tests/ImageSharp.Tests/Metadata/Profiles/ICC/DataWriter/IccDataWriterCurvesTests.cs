@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataCurves.OneDimensionalCurveTestData), MemberType = typeof(IccTestDataCurves))]
         internal void WriteOneDimensionalCurve(byte[] expected, IccOneDimensionalCurve data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteOneDimensionalCurve(data);
             byte[] output = writer.GetData();
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataCurves.ResponseCurveTestData), MemberType = typeof(IccTestDataCurves))]
         internal void WriteResponseCurve(byte[] expected, IccResponseCurve data, int channelCount)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteResponseCurve(data);
             byte[] output = writer.GetData();
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataCurves.ParametricCurveTestData), MemberType = typeof(IccTestDataCurves))]
         internal void WriteParametricCurve(byte[] expected, IccParametricCurve data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteParametricCurve(data);
             byte[] output = writer.GetData();
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataCurves.CurveSegmentTestData), MemberType = typeof(IccTestDataCurves))]
         internal void WriteCurveSegment(byte[] expected, IccCurveSegment data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteCurveSegment(data);
             byte[] output = writer.GetData();
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataCurves.FormulaCurveSegmentTestData), MemberType = typeof(IccTestDataCurves))]
         internal void WriteFormulaCurveElement(byte[] expected, IccFormulaCurveElement data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteFormulaCurveElement(data);
             byte[] output = writer.GetData();
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataCurves.SampledCurveSegmentTestData), MemberType = typeof(IccTestDataCurves))]
         internal void WriteSampledCurveElement(byte[] expected, IccSampledCurveElement data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteSampledCurveElement(data);
             byte[] output = writer.GetData();
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
             Assert.Equal(expected, output);
         }
 
-        private IccDataWriter CreateWriter()
+        private static IccDataWriter CreateWriter()
         {
             return new IccDataWriter();
         }

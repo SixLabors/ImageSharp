@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataPrimitives.AsciiWriteTestData), MemberType = typeof(IccTestDataPrimitives))]
         public void WriteAsciiString(byte[] expected, string data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteAsciiString(data);
             byte[] output = writer.GetData();
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataPrimitives.AsciiPaddingTestData), MemberType = typeof(IccTestDataPrimitives))]
         public void WriteAsciiStringPadded(byte[] expected, int length, string data, bool ensureNullTerminator)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteAsciiString(data, length, ensureNullTerminator);
             byte[] output = writer.GetData();
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [Fact]
         public void WriteAsciiStringWithNullWritesEmpty()
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             int count = writer.WriteAsciiString(null);
             byte[] output = writer.GetData();
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [Fact]
         public void WriteAsciiStringWithNegativeLengthThrowsArgumentException()
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             Assert.Throws<ArgumentOutOfRangeException>(() => writer.WriteAsciiString("abcd", -1, false));
         }
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [Fact]
         public void WriteUnicodeStringWithNullWritesEmpty()
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             int count = writer.WriteUnicodeString(null);
             byte[] output = writer.GetData();
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataPrimitives.Fix16TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void WriteFix16(byte[] expected, float data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteFix16(data);
             byte[] output = writer.GetData();
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataPrimitives.UFix16TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void WriteUFix16(byte[] expected, float data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteUFix16(data);
             byte[] output = writer.GetData();
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataPrimitives.U1Fix15TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void WriteU1Fix15(byte[] expected, float data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteU1Fix15(data);
             byte[] output = writer.GetData();
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
         [MemberData(nameof(IccTestDataPrimitives.UFix8TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void WriteUFix8(byte[] expected, float data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteUFix8(data);
             byte[] output = writer.GetData();
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
             Assert.Equal(expected, output);
         }
 
-        private IccDataWriter CreateWriter()
+        private static IccDataWriter CreateWriter()
         {
             return new IccDataWriter();
         }

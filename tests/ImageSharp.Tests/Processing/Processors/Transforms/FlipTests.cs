@@ -9,6 +9,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     [GroupOutput("Transforms")]
     public class FlipTests
     {

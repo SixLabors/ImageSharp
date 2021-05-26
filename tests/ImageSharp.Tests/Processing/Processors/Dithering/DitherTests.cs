@@ -10,6 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
+    [Trait("Category", "Processors")]
     public class DitherTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes =

@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
+    [Trait("Category", "Processors")]
     // ReSharper disable InconsistentNaming
     public class HistogramEqualizationTests
     {

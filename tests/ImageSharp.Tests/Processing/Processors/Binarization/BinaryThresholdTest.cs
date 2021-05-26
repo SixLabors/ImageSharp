@@ -4,12 +4,12 @@
 using System.Globalization;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Binarization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
+    [Trait("Category", "Processors")]
     public class BinaryThresholdTest
     {
         public static readonly TheoryData<float> BinaryThresholdValues

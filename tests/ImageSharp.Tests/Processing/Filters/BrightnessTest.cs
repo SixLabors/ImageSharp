@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
+    [Trait("Category", "Processors")]
     public class BrightnessTest : BaseImageOperationsExtensionTest
     {
         [Fact]

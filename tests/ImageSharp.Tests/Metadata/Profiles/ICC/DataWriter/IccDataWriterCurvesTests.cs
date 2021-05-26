@@ -6,6 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Icc
 {
+    [Trait("Profile", "Icc")]
     public class IccDataWriterCurvesTests
     {
         [Theory]

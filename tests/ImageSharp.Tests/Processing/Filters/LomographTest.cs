@@ -1,15 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Filters;
 using SixLabors.ImageSharp.Tests.Processing;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Processors.Filters;
-
+    [Trait("Category", "Processors")]
     public class LomographTest : BaseImageOperationsExtensionTest
     {
         [Fact]

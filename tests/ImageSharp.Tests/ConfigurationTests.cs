@@ -21,11 +21,11 @@ namespace SixLabors.ImageSharp.Tests
 
         public Configuration DefaultConfiguration { get; }
 
-        private readonly int expectedDefaultConfigurationCount = 5;
+        private readonly int expectedDefaultConfigurationCount = 6;
 
         public ConfigurationTests()
         {
-            // the shallow copy of configuration should behave exactly like the default configuration,
+            // The shallow copy of configuration should behave exactly like the default configuration,
             // so by using the copy, we test both the default and the copy.
             this.DefaultConfiguration = Configuration.CreateDefaultInstance().Clone();
             this.ConfigurationEmpty = new Configuration();

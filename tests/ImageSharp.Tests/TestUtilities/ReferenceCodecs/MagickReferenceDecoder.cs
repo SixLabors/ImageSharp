@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -10,6 +11,7 @@ using ImageMagick;
 using ImageMagick.Formats;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
@@ -75,23 +77,27 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             var settings = new MagickReadSettings();
             settings.SetDefines(bmpReadDefines);
 
-            using var magickImage = new MagickImage(stream, settings);
-            var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
-            MemoryGroup<TPixel> resultPixels = result.GetRootFramePixelBuffer().FastMemoryGroup;
-
-            using (IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe())
+            using var magickImageCollection = new MagickImageCollection(stream, settings);
+            var framesList = new List<ImageFrame<TPixel>>();
+            foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
             {
-                if (magickImage.Depth == 8)
+                var frame = new ImageFrame<TPixel>(configuration, magicFrame.Width, magicFrame.Height);
+                framesList.Add(frame);
+
+                MemoryGroup<TPixel> framePixels = frame.PixelBuffer.FastMemoryGroup;
+
+                using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
+                if (magicFrame.Depth == 8 || magicFrame.Depth == 1)
                 {
                     byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 
-                    FromRgba32Bytes(configuration, data, resultPixels);
+                    FromRgba32Bytes(configuration, data, framePixels);
                 }
-                else if (magickImage.Depth == 16)
+                else if (magicFrame.Depth == 16)
                 {
                     ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
                     Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());
-                    FromRgba64Bytes(configuration, bytes, resultPixels);
+                    FromRgba64Bytes(configuration, bytes, framePixels);
                 }
                 else
                 {
@@ -99,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 }
             }
 
-            return result;
+            return new Image<TPixel>(configuration, new ImageMetadata(), framesList);
         }
 
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);

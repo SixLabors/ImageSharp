@@ -36,6 +36,90 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
+        public override bool TrySetValue(object value)
+        {
+            if (base.TrySetValue(value))
+            {
+                return true;
+            }
+
+            switch (value)
+            {
+                case int val:
+                    return this.SetSingle(val);
+                case uint val:
+                    return this.SetSingle(val);
+                case short val:
+                    return this.SetSingle(val);
+                case ushort val:
+                    return this.SetSingle(val);
+                case int[] array:
+                    return this.SetArray(array);
+                case uint[] array:
+                    return this.SetArray(array);
+                case short[] array:
+                    return this.SetArray(array);
+                case ushort[] array:
+                    return this.SetArray(array);
+            }
+
+            return false;
+        }
+
         public override IExifValue DeepClone() => new ExifNumberArray(this);
+
+        private bool SetSingle(Number value)
+        {
+            this.Value = new[] { value };
+            return true;
+        }
+
+        private bool SetArray(int[] values)
+        {
+            var numbers = new Number[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = values[i];
+            }
+
+            this.Value = numbers;
+            return true;
+        }
+
+        private bool SetArray(uint[] values)
+        {
+            var numbers = new Number[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = values[i];
+            }
+
+            this.Value = numbers;
+            return true;
+        }
+
+        private bool SetArray(short[] values)
+        {
+            var numbers = new Number[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = values[i];
+            }
+
+            this.Value = numbers;
+            return true;
+        }
+
+        private bool SetArray(ushort[] values)
+        {
+            var numbers = new Number[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = values[i];
+            }
+
+            this.Value = numbers;
+            return true;
+        }
     }
 }

@@ -47,11 +47,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<ushort[]> TransferFunction { get; } = new ExifTag<ushort[]>(ExifTagValue.TransferFunction);
 
         /// <summary>
-        /// Gets the Predictor exif tag.
-        /// </summary>
-        public static ExifTag<ushort[]> Predictor { get; } = new ExifTag<ushort[]>(ExifTagValue.Predictor);
-
-        /// <summary>
         /// Gets the HalftoneHints exif tag.
         /// </summary>
         public static ExifTag<ushort[]> HalftoneHints { get; } = new ExifTag<ushort[]>(ExifTagValue.HalftoneHints);

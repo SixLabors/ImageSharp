@@ -20,15 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
-        private readonly Configuration configuration;
-
         private static TiffDecoder TiffDecoder => new TiffDecoder();
-
-        public TiffMetadataTests()
-        {
-            this.configuration = new Configuration();
-            this.configuration.AddTiff();
-        }
 
         [Fact]
         public void TiffMetadata_CloneIsDeep()
@@ -89,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
 
-            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
+            IImageInfo imageInfo = Image.Identify(stream);
 
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -105,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
 
-            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
+            IImageInfo imageInfo = Image.Identify(stream);
 
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -265,7 +257,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // Assert
             ms.Position = 0;
-            using var encodedImage = Image.Load<Rgba32>(this.configuration, ms);
+            using var encodedImage = Image.Load<Rgba32>(ms);
 
             ImageMetadata encodedImageMetaData = encodedImage.Metadata;
             ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;

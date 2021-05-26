@@ -28,14 +28,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
-        private readonly Configuration configuration;
-
-        public TiffDecoderTests()
-        {
-            this.configuration = new Configuration();
-            this.configuration.AddTiff();
-        }
-
         [Theory]
         [WithFileCollection(nameof(NotSupportedImages), PixelTypes.Rgba32)]
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
@@ -50,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo info = Image.Identify(this.configuration, stream);
+                IImageInfo info = Image.Identify(stream);
 
                 Assert.Equal(expectedPixelSize, info.PixelType?.BitsPerPixel);
                 Assert.Equal(expectedWidth, info.Width);
@@ -70,14 +62,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo info = Image.Identify(this.configuration, stream);
+                IImageInfo info = Image.Identify(stream);
 
                 Assert.NotNull(info.Metadata);
                 Assert.Equal(expectedByteOrder, info.Metadata.GetTiffMetadata().ByteOrder);
 
                 stream.Seek(0, SeekOrigin.Begin);
 
-                using var img = Image.Load(this.configuration, stream);
+                using var img = Image.Load(stream);
                 Assert.Equal(expectedByteOrder, img.Metadata.GetTiffMetadata().ByteOrder);
             }
         }

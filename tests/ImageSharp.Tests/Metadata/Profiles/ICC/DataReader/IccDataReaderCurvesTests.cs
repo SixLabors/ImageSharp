@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataCurves.OneDimensionalCurveTestData), MemberType = typeof(IccTestDataCurves))]
         internal void ReadOneDimensionalCurve(byte[] data, IccOneDimensionalCurve expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccOneDimensionalCurve output = reader.ReadOneDimensionalCurve();
 
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataCurves.ResponseCurveTestData), MemberType = typeof(IccTestDataCurves))]
         internal void ReadResponseCurve(byte[] data, IccResponseCurve expected, int channelCount)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccResponseCurve output = reader.ReadResponseCurve(channelCount);
 
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataCurves.ParametricCurveTestData), MemberType = typeof(IccTestDataCurves))]
         internal void ReadParametricCurve(byte[] data, IccParametricCurve expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccParametricCurve output = reader.ReadParametricCurve();
 
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataCurves.CurveSegmentTestData), MemberType = typeof(IccTestDataCurves))]
         internal void ReadCurveSegment(byte[] data, IccCurveSegment expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccCurveSegment output = reader.ReadCurveSegment();
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataCurves.FormulaCurveSegmentTestData), MemberType = typeof(IccTestDataCurves))]
         internal void ReadFormulaCurveElement(byte[] data, IccFormulaCurveElement expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccFormulaCurveElement output = reader.ReadFormulaCurveElement();
 
@@ -68,14 +68,14 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataCurves.SampledCurveSegmentTestData), MemberType = typeof(IccTestDataCurves))]
         internal void ReadSampledCurveElement(byte[] data, IccSampledCurveElement expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccSampledCurveElement output = reader.ReadSampledCurveElement();
 
             Assert.Equal(expected, output);
         }
 
-        private IccDataReader CreateReader(byte[] data)
+        private static IccDataReader CreateReader(byte[] data)
         {
             return new IccDataReader(data);
         }

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataLut.ClutTestData), MemberType = typeof(IccTestDataLut))]
         internal void ReadClut(byte[] data, IccClut expected, int inChannelCount, int outChannelCount, bool isFloat)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccClut output = reader.ReadClut(inChannelCount, outChannelCount, isFloat);
 
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataLut.Clut8TestData), MemberType = typeof(IccTestDataLut))]
         internal void ReadClut8(byte[] data, IccClut expected, int inChannelCount, int outChannelCount, byte[] gridPointCount)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccClut output = reader.ReadClut8(inChannelCount, outChannelCount, gridPointCount);
 
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataLut.Clut16TestData), MemberType = typeof(IccTestDataLut))]
         internal void ReadClut16(byte[] data, IccClut expected, int inChannelCount, int outChannelCount, byte[] gridPointCount)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccClut output = reader.ReadClut16(inChannelCount, outChannelCount, gridPointCount);
 
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataLut.ClutF32TestData), MemberType = typeof(IccTestDataLut))]
         internal void ReadClutF32(byte[] data, IccClut expected, int inChannelCount, int outChannelCount, byte[] gridPointCount)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccClut output = reader.ReadClutF32(inChannelCount, outChannelCount, gridPointCount);
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataLut.Lut8TestData), MemberType = typeof(IccTestDataLut))]
         internal void ReadLut8(byte[] data, IccLut expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccLut output = reader.ReadLut8();
 
@@ -68,14 +68,14 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
         [MemberData(nameof(IccTestDataLut.Lut16TestData), MemberType = typeof(IccTestDataLut))]
         internal void ReadLut16(byte[] data, IccLut expected, int count)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccLut output = reader.ReadLut16(count);
 
             Assert.Equal(expected, output);
         }
 
-        private IccDataReader CreateReader(byte[] data)
+        private static IccDataReader CreateReader(byte[] data)
         {
             return new IccDataReader(data);
         }

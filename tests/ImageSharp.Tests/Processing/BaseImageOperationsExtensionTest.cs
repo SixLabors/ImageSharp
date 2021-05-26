@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -9,7 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing
 {
-    public abstract class BaseImageOperationsExtensionTest
+    public abstract class BaseImageOperationsExtensionTest : IDisposable
     {
         protected readonly IImageProcessingContext operations;
         private readonly FakeImageOperationsProvider.FakeImageOperations<Rgba32> internalOperations;
@@ -58,5 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
             return Assert.IsType<T>(operation.GenericProcessor);
         }
+
+        public void Dispose() => this.source?.Dispose();
     }
 }

@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests
                 ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
                     () =>
                     {
-                        this.Collection.AddFrame(new Rgba32[0]);
+                        this.Collection.AddFrame(Array.Empty<Rgba32>());
                     });
 
                 Assert.StartsWith($"Parameter \"data\" ({typeof(int)}) must be greater than or equal to {100}, was {0}", ex.Message);
@@ -246,7 +246,7 @@ namespace SixLabors.ImageSharp.Tests
             public void AddFrameFromPixelData()
             {
                 Assert.True(this.Image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> imgSpan));
-                var pixelData = imgSpan.ToArray();
+                Rgba32[] pixelData = imgSpan.ToArray();
                 this.Image.Frames.AddFrame(pixelData);
                 Assert.Equal(2, this.Image.Frames.Count);
             }
@@ -276,46 +276,46 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void MoveFrame_LeavesFrameInCorrectLocation()
             {
-                for (var i = 0; i < 9; i++)
+                for (int i = 0; i < 9; i++)
                 {
                     this.Image.Frames.CreateFrame();
                 }
 
-                var frame = this.Image.Frames[4];
+                ImageFrame<Rgba32> frame = this.Image.Frames[4];
                 this.Image.Frames.MoveFrame(4, 7);
-                var newIndex = this.Image.Frames.IndexOf(frame);
+                int newIndex = this.Image.Frames.IndexOf(frame);
                 Assert.Equal(7, newIndex);
             }
 
             [Fact]
             public void IndexOf_ReturnsCorrectIndex()
             {
-                for (var i = 0; i < 9; i++)
+                for (int i = 0; i < 9; i++)
                 {
                     this.Image.Frames.CreateFrame();
                 }
 
-                var frame = this.Image.Frames[4];
-                var index = this.Image.Frames.IndexOf(frame);
+                ImageFrame<Rgba32> frame = this.Image.Frames[4];
+                int index = this.Image.Frames.IndexOf(frame);
                 Assert.Equal(4, index);
             }
 
             [Fact]
             public void Contains_TrueIfMember()
             {
-                for (var i = 0; i < 9; i++)
+                for (int i = 0; i < 9; i++)
                 {
                     this.Image.Frames.CreateFrame();
                 }
 
-                var frame = this.Image.Frames[4];
+                ImageFrame<Rgba32> frame = this.Image.Frames[4];
                 Assert.True(this.Image.Frames.Contains(frame));
             }
 
             [Fact]
             public void Contains_FalseIfNonMember()
             {
-                for (var i = 0; i < 9; i++)
+                for (int i = 0; i < 9; i++)
                 {
                     this.Image.Frames.CreateFrame();
                 }

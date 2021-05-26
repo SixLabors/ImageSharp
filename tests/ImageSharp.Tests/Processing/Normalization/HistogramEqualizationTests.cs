@@ -9,8 +9,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
-    [Trait("Category", "Processors")]
     // ReSharper disable InconsistentNaming
+    [Trait("Category", "Processors")]
     public class HistogramEqualizationTests
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
@@ -18,10 +18,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [Theory]
         [InlineData(256)]
         [InlineData(65536)]
-        public void GlobalHistogramEqualization_WithDifferentLumanceLevels(int luminanceLevels)
+        public void GlobalHistogramEqualization_WithDifferentLuminanceLevels(int luminanceLevels)
         {
             // Arrange
-            var pixels = new byte[]
+            byte[] pixels =
             {
                 52,  55,  61,  59,  70,  61,  76,  61,
                 62,  59,  55, 104,  94,  85,  59,  71,
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     }
                 }
 
-                var expected = new byte[]
+                byte[] expected =
                 {
                     0,    12,   53,   32,  146,   53,  174,   53,
                     57,   32,   12,  227,  219,  202,   32,  154,
@@ -150,13 +150,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new HistogramEqualizationOptions()
-                              {
-                                  Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
-                                  LuminanceLevels = 256,
-                                  ClipHistogram = true,
-                                  ClipLimit = 5,
-                                  NumberOfTiles = 10
-                              };
+                {
+                    Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                    LuminanceLevels = 256,
+                    ClipHistogram = true,
+                    ClipLimit = 5,
+                    NumberOfTiles = 10
+                };
                 image.Mutate(x => x.HistogramEqualization(options));
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);

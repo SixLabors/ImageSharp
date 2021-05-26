@@ -90,12 +90,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
                 PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("leading space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("trailing space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("empty"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("invalid characters"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("too large"));
+                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("leading space", System.StringComparison.Ordinal));
+                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("trailing space", System.StringComparison.Ordinal));
+                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("space", System.StringComparison.Ordinal));
+                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("empty", System.StringComparison.Ordinal));
+                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("invalid characters", System.StringComparison.Ordinal));
+                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("too large", System.StringComparison.Ordinal));
             }
         }
 
@@ -277,20 +277,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         private static void VerifyTextDataIsPresent(PngMetadata meta)
         {
             Assert.NotNull(meta);
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") &&
-                                                m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") &&
-                                                m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") &&
-                                                m.LanguageTag.Equals("chinese"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment", System.StringComparison.Ordinal) && m.Value.Equals("comment", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author", System.StringComparison.Ordinal) && m.Value.Equals("ImageSharp", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright", System.StringComparison.Ordinal) && m.Value.Equals("ImageSharp", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title", System.StringComparison.Ordinal) && m.Value.Equals("unittest", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description", System.StringComparison.Ordinal) && m.Value.Equals("compressed-text", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International", System.StringComparison.Ordinal) && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'", System.StringComparison.Ordinal) &&
+                                                m.LanguageTag.Equals("x-klingon", System.StringComparison.Ordinal) && m.TranslatedKeyword.Equals("warning", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2", System.StringComparison.Ordinal) && m.Value.Equals("ИМАГЕШАРП", System.StringComparison.Ordinal) && m.LanguageTag.Equals("rus", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational", System.StringComparison.Ordinal) && m.Value.Equals("la plume de la mante", System.StringComparison.Ordinal) &&
+                                                m.LanguageTag.Equals("fra", System.StringComparison.Ordinal) && m.TranslatedKeyword.Equals("foobar", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2", System.StringComparison.Ordinal) && m.Value.Equals("這是一個考驗", System.StringComparison.Ordinal) &&
+                                                m.LanguageTag.Equals("chinese", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang", System.StringComparison.Ordinal) && m.Value.Equals("this text chunk is missing a language tag", System.StringComparison.Ordinal));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword", System.StringComparison.Ordinal) && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort", System.StringComparison.Ordinal));
         }
     }
 }

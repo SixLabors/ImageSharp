@@ -371,7 +371,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            uint bt = (uint)Numerics.MinimumBitsToStore((uint)a);
+            uint bt = (uint)Numerics.MinimumBitsToStore16((uint)a);
 
             this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
             if (bt > 0)

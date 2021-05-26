@@ -23,6 +23,25 @@ namespace SixLabors.ImageSharp
         private const int ShuffleAlphaControl = 0b_11_11_11_11;
 #endif
 
+#if !SUPPORTS_BITOPERATIONS
+        private static ReadOnlySpan<byte> BitCountLut => new byte[]
+            {
+                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
+                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8,
+            };
+#endif
+
         /// <summary>
         /// Determine the Greatest CommonDivisor (GCD) of two numbers.
         /// </summary>
@@ -832,10 +851,24 @@ namespace SixLabors.ImageSharp
         /// <param name="number">Unsigned integer to store</param>
         /// <returns>Minimum number of bits needed to store given value</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int MinimumBitsToStore(uint number)
+        public static int MinimumBitsToStore16(uint number)
         {
+#if SUPPORTS_BITOPERATIONS
             const int bitInUnsignedInteger = sizeof(uint) * 8;
             return bitInUnsignedInteger - BitOperations.LeadingZeroCount(number);
+#else
+            int bt;
+            if (number < 0x100)
+            {
+                bt = BitCountLut[(int)number];
+            }
+            else
+            {
+                bt = 8 + BitCountLut[(int)(number >> 8)];
+            }
+
+            return bt;
+#endif
         }
     }
 }

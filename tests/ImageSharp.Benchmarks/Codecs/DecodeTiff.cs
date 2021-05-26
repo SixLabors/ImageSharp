@@ -9,7 +9,6 @@ using System.IO;
 
 using BenchmarkDotNet.Attributes;
 
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
@@ -23,7 +22,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     [Config(typeof(Config.ShortMultiFramework))]
     public class DecodeTiff
     {
-        private string prevImage = null;
+        private string prevImage;
 
         private byte[] data;
 
@@ -68,7 +67,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             if (this.configuration == null)
             {
                 this.configuration = new Configuration();
-                this.configuration.AddTiff();
                 this.configuration.StreamProcessingBufferSize = BufferSize;
             }
         }

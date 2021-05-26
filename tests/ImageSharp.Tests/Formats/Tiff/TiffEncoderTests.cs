@@ -22,14 +22,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         private static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
 
-        private static readonly Configuration Configuration;
-
-        static TiffEncoderTests()
-        {
-            Configuration = new Configuration();
-            Configuration.AddTiff();
-        }
-
         [Theory]
         [InlineData(null, TiffBitsPerPixel.Bit24)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffBitsPerPixel.Bit24)]
@@ -55,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.None, frameMetaData.Compression);
@@ -78,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
 
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(bitsPerPixel, frameMetaData.BitsPerPixel);
@@ -117,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata rootFrameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, rootFrameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, rootFrameMetaData.Compression);
@@ -143,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
@@ -162,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
@@ -185,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             Assert.Equal(expectedCompression, output.Frames.RootFrame.Metadata.GetTiffMetadata().Compression);
         }
 
@@ -207,7 +199,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedPredictor, frameMetadata.Predictor);
         }
@@ -230,7 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(TiffBitsPerPixel.Bit1, frameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, frameMetaData.Compression);
@@ -422,7 +414,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             ExifProfile exifProfileOutput = output.Frames.RootFrame.Metadata.ExifProfile;
             TiffFrameMetadata outputMeta = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             ImageFrame<Rgba32> rootFrame = output.Frames.RootFrame;

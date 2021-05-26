@@ -6,7 +6,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Icc
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
 {
     [Trait("Profile", "Icc")]
     public class IccDataReaderNonPrimitivesTests

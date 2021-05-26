@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
     [Trait("Category", "Processors")]
     [GroupOutput("Filters")]

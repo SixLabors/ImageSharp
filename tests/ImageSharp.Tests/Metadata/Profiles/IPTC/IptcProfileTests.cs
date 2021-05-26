@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             // arrange
             var profile = new IptcProfile();
             var value = new string('s', tag.MaxLength() + 1);
-            var expectedLength = tag.MaxLength();
+            int expectedLength = tag.MaxLength();
 
             // act
             profile.SetValue(tag, value);
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             // arrange
             var profile = new IptcProfile();
             var value = new string('s', tag.MaxLength() + 1);
-            var expectedLength = value.Length;
+            int expectedLength = value.Length;
 
             // act
             profile.SetValue(tag, value, false);

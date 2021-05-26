@@ -3,10 +3,9 @@
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
-using SixLabors.ImageSharp.Tests.Processing;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
     [Trait("Category", "Processors")]
     public class LomographTest : BaseImageOperationsExtensionTest

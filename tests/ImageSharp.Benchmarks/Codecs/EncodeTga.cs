@@ -40,17 +40,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         }
 
         [Benchmark(Baseline = true, Description = "Magick Tga")]
-        public void BmpImageMagick()
+        public void TgaMagick()
         {
             using var memoryStream = new MemoryStream();
             this.tgaMagick.Write(memoryStream, MagickFormat.Tga);
         }
 
         [Benchmark(Description = "ImageSharp Tga")]
-        public void BmpImageSharp()
+        public void TgaImageSharp()
         {
             using var memoryStream = new MemoryStream();
-            this.tgaCore.SaveAsBmp(memoryStream);
+            this.tgaCore.SaveAsTga(memoryStream);
         }
     }
 }

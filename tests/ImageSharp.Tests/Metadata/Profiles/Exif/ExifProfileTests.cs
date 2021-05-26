@@ -63,6 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
             Assert.NotNull(value);
             Assert.Equal(expected, value.Value);
+            image.Dispose();
         }
 
         [Fact]
@@ -157,6 +158,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             IExifValue<Rational> value2 = image.Metadata.ExifProfile.GetValue(ExifTag.FlashEnergy);
             Assert.NotNull(value2);
             Assert.Equal(new Rational(double.PositiveInfinity), value2.Value);
+
+            image.Dispose();
         }
 
         [Theory]
@@ -231,6 +234,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
             latitude = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
             Assert.Equal(expectedLatitude, latitude.Value);
+
+            image.Dispose();
         }
 
         [Theory]
@@ -252,13 +257,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             {
                 Assert.True(ExifTags.GetPart(exifProfileValue.Tag) == ExifParts.ExifTags);
             }
+
+            image.Dispose();
         }
 
         [Fact]
         public void RemoveEntry_Works()
         {
             // Arrange
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
+            using Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
             int profileCount = image.Metadata.ExifProfile.Values.Count;
 
             // Assert
@@ -311,7 +318,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
             TestProfile(profile);
 
-            Image<Rgba32> thumbnail = profile.CreateThumbnail<Rgba32>();
+            using Image<Rgba32> thumbnail = profile.CreateThumbnail<Rgba32>();
             Assert.NotNull(thumbnail);
             Assert.Equal(256, thumbnail.Width);
             Assert.Equal(170, thumbnail.Height);
@@ -337,7 +344,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
                 image.Metadata.ExifProfile = expectedProfile;
 
                 // Act
-                Image<Rgba32> reloadedImage = WriteAndRead(image, TestImageWriteFormat.Jpeg);
+                using Image<Rgba32> reloadedImage = WriteAndRead(image, TestImageWriteFormat.Jpeg);
 
                 // Assert
                 ExifProfile actualProfile = reloadedImage.Metadata.ExifProfile;
@@ -361,7 +368,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         {
             // This image contains an 802 byte EXIF profile
             // It has a tag with an index offset of 18,481,152 bytes (overrunning the data)
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateRgba32Image();
+            using Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateRgba32Image();
             Assert.NotNull(image);
 
             ExifProfile profile = image.Metadata.ExifProfile;
@@ -381,7 +388,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         public void TestArrayValueWithUnspecifiedSize()
         {
             // This images contains array in the exif profile that has zero components.
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Issues.InvalidCast520).CreateRgba32Image();
+            using Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Issues.InvalidCast520).CreateRgba32Image();
 
             ExifProfile profile = image.Metadata.ExifProfile;
             Assert.NotNull(profile);
@@ -409,7 +416,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             image.Metadata.ExifProfile = CreateExifProfile();
 
             // Act
-            Image<Rgba32> reloadedImage = WriteAndRead(image, imageFormat);
+            using Image<Rgba32> reloadedImage = WriteAndRead(image, imageFormat);
 
             // Assert
             ExifProfile actual = reloadedImage.Metadata.ExifProfile;
@@ -460,7 +467,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
         internal static ExifProfile GetExifProfile()
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
+            using Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
 
             ExifProfile profile = image.Metadata.ExifProfile;
             Assert.NotNull(profile);

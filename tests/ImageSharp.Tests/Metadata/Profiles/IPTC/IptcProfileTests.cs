@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             image.Metadata.IptcProfile.SetValue(IptcTag.Caption, expectedCaption);
 
             // act
-            Image<Rgba32> reloadedImage = WriteAndReadJpeg(image);
+            using Image<Rgba32> reloadedImage = WriteAndReadJpeg(image);
 
             // assert
             IptcProfile actual = reloadedImage.Metadata.IptcProfile;

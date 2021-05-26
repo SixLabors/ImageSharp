@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using SixLabors.ImageSharp.Memory;
@@ -53,29 +54,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             this.target = outputStream;
         }
-
-        /// <summary>
-        /// Gets the counts the number of bits needed to hold an integer.
-        /// </summary>
-        // The C# compiler emits this as a compile-time constant embedded in the PE file.
-        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
-        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> BitCountLut => new byte[]
-            {
-                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
-                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8,
-            };
 
         /// <summary>
         /// Encodes the image with no subsampling.
@@ -394,15 +372,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            uint bt;
-            if (a < 0x100)
-            {
-                bt = BitCountLut[a];
-            }
-            else
-            {
-                bt = 8 + (uint)BitCountLut[a >> 8];
-            }
+            uint bt = (uint)Numerics.MinimumBitsToStore((uint)a);
 
             this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
             if (bt > 0)

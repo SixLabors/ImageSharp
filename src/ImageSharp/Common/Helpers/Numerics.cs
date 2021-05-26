@@ -825,5 +825,17 @@ namespace SixLabors.ImageSharp
             return Sse2.ConvertToInt32(vsum);
         }
 #endif
+
+        /// <summary>
+        /// Calculates how many minimum bits needed to store given value.
+        /// </summary>
+        /// <param name="number">Unsigned integer to store</param>
+        /// <returns>Minimum number of bits needed to store given value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int MinimumBitsToStore(uint number)
+        {
+            const int bitInUnsignedInteger = sizeof(uint) * 8;
+            return bitInUnsignedInteger - BitOperations.LeadingZeroCount(number);
+        }
     }
 }

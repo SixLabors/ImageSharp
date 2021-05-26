@@ -125,7 +125,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default;
             Span<Block8x8F> cb = stackalloc Block8x8F[4];
             Span<Block8x8F> cr = stackalloc Block8x8F[4];

@@ -16,8 +16,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private const string TestImage = TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr;
         private const int EncodingQuality = 100;
 
-        // GDI+ uses 4:1:1 subsampling - https://stackoverflow.com/questions/745610/how-to-disable-subsampling-with-net-gdi
-        // ImageSharp lowest subsampling is 4:2:0 which is an okay approximation
+        // GDI+ uses 4:2:0 subsampling
         private const JpegSubsample EncodingSubsampling = JpegSubsample.Ratio420;
 
         // System.Drawing
@@ -103,6 +102,6 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 
 |                Method |     Mean |    Error |   StdDev | Ratio | RatioSD |
 |---------------------- |---------:|---------:|---------:|------:|--------:|
-| 'System.Drawing Jpeg' | 39.54 ms | 0.269 ms | 0.225 ms |  1.00 |    0.00 |
-|     'ImageSharp Jpeg' | 47.25 ms | 0.937 ms | 1.219 ms |  1.20 |    0.02 |
+| 'System.Drawing Jpeg' | 39.67 ms | 0.774 ms | 0.828 ms |  1.00 |    0.00 |
+|     'ImageSharp Jpeg' | 45.39 ms | 0.415 ms | 0.346 ms |  1.14 |    0.03 |
 */

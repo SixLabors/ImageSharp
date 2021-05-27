@@ -60,16 +60,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int iterMax = GetMaxItersForQuality(quality);
             int windowSize = GetWindowSizeForHashChain(quality, xSize);
             int pos;
+
+            if (size <= 2)
+            {
+                this.OffsetLength[0] = 0;
+                return;
+            }
+
             using IMemoryOwner<int> hashToFirstIndexBuffer = memoryAllocator.Allocate<int>(HashSize);
             Span<int> hashToFirstIndex = hashToFirstIndexBuffer.GetSpan();
 
             // Initialize hashToFirstIndex array to -1.
             hashToFirstIndex.Fill(-1);
 
-            var chain = new int[size];
+            int[] chain = new int[size];
 
             // Fill the chain linking pixels with the same hash.
-            var bgraComp = bgra[0] == bgra[1];
+            bool bgraComp = bgra.Length > 1 && bgra[0] == bgra[1];
             for (pos = 0; pos < size - 2;)
             {
                 uint hashCode;
@@ -78,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     // Consecutive pixels with the same color will share the same hash.
                     // We therefore use a different hash: the color and its repetition length.
-                    var tmp = new uint[2];
+                    uint[] tmp = new uint[2];
                     uint len = 1;
                     tmp[0] = bgra[pos];
 
@@ -168,7 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     pos = minPos - 1;
                 }
 
-                var bestBgra = bgra.Slice(bgraStart)[bestLength];
+                uint bestBgra = bgra.Slice(bgraStart)[bestLength];
 
                 for (; pos >= minPos && (--iter > 0); pos = chain[pos])
                 {
@@ -194,7 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 // We have the best match but in case the two intervals continue matching
                 // to the left, we have the best matches for the left-extended pixels.
-                var maxBasePosition = (uint)basePosition;
+                uint maxBasePosition = (uint)basePosition;
                 while (true)
                 {
                     this.OffsetLength[basePosition] = (bestDistance << BackwardReferenceEncoder.MaxLengthBits) | (uint)bestLength;
@@ -231,16 +238,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int FindLength(int basePosition)
-        {
-            return (int)(this.OffsetLength[basePosition] & ((1U << BackwardReferenceEncoder.MaxLengthBits) - 1));
-        }
+        public int FindLength(int basePosition) => (int)(this.OffsetLength[basePosition] & ((1U << BackwardReferenceEncoder.MaxLengthBits) - 1));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int FindOffset(int basePosition)
-        {
-            return (int)(this.OffsetLength[basePosition] >> BackwardReferenceEncoder.MaxLengthBits);
-        }
+        public int FindOffset(int basePosition) => (int)(this.OffsetLength[basePosition] >> BackwardReferenceEncoder.MaxLengthBits);
 
         /// <summary>
         /// Calculates the hash for a pixel pair.
@@ -252,7 +253,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             uint key = bgra[1] * HashMultiplierHi;
             key += bgra[0] * HashMultiplierLo;
-            key = key >> (32 - HashBits);
+            key >>= 32 - HashBits;
             return key;
         }
 
@@ -263,10 +264,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="quality">The quality.</param>
         /// <returns>Number of hash chain lookups.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetMaxItersForQuality(int quality)
-        {
-            return 8 + (quality * quality / 128);
-        }
+        private static int GetMaxItersForQuality(int quality) => 8 + (quality * quality / 128);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetWindowSizeForHashChain(int quality, int xSize)

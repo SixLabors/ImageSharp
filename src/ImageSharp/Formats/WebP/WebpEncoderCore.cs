@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;

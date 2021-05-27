@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
         public Vp8LEncoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method)
         {
-            var pixelCount = width * height;
+            int pixelCount = width * height;
             int initialSize = pixelCount * 2;
 
             this.quality = Numerics.Clamp(quality, 0, 100);
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                                                  (crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen);
                 this.UsePredictorTransform = (crunchConfig.EntropyIdx == EntropyIx.Spatial) ||
                                              (crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen);
-                this.UseCrossColorTransform = redAndBlueAlwaysZero ? false : this.UsePredictorTransform;
+                this.UseCrossColorTransform = !redAndBlueAlwaysZero && this.UsePredictorTransform;
                 this.AllocateTransformBuffer(width, height);
 
                 // Reset any parameter in the encoder that is set in the previous iteration.
@@ -335,14 +335,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int height = image.Height;
 
             // Check if we only deal with a small number of colors and should use a palette.
-            var usePalette = this.AnalyzeAndCreatePalette(image);
+            bool usePalette = this.AnalyzeAndCreatePalette(image);
 
             // Empirical bit sizes.
             this.HistoBits = GetHistoBits(this.method, usePalette, width, height);
             this.TransformBits = GetTransformBits(this.method, this.HistoBits);
 
             // Try out multiple LZ77 on images with few colors.
-            var nlz77s = (this.PaletteSize > 0 && this.PaletteSize <= 16) ? 2 : 1;
+            int nlz77s = (this.PaletteSize > 0 && this.PaletteSize <= 16) ? 2 : 1;
             EntropyIx entropyIdx = this.AnalyzeEntropy(image, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
             bool doNotCache = false;
@@ -382,7 +382,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Fill in the different LZ77s.
             foreach (CrunchConfig crunchConfig in crunchConfigs)
             {
-                for (var j = 0; j < nlz77s; ++j)
+                for (int j = 0; j < nlz77s; ++j)
                 {
                     crunchConfig.SubConfigs.Add(new CrunchSubConfig
                     {
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, bool useCache, CrunchConfig config, int cacheBits, int histogramBits)
         {
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
-            var histogramSymbols = new ushort[histogramImageXySize];
+            ushort[] histogramSymbols = new ushort[histogramImageXySize];
             var huffTree = new HuffmanTree[3 * WebpConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
@@ -452,8 +452,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, histogramBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
 
                 // Create Huffman bit lengths and codes for each histogram image.
-                var histogramImageSize = histogramImage.Count;
-                var bitArraySize = 5 * histogramImageSize;
+                int histogramImageSize = histogramImage.Count;
+                int bitArraySize = 5 * histogramImageSize;
                 var huffmanCodes = new HuffmanTreeCode[bitArraySize];
                 for (int i = 0; i < huffmanCodes.Length; i++)
                 {
@@ -601,7 +601,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, int quality)
         {
             int cacheBits = 0;
-            var histogramSymbols = new ushort[1]; // Only one tree, one symbol.
+            ushort[] histogramSymbols = new ushort[1]; // Only one tree, one symbol.
 
             var huffmanCodes = new HuffmanTreeCode[5];
             for (int i = 0; i < huffmanCodes.Length; i++)
@@ -728,8 +728,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private void StoreFullHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
         {
             int i;
-            var codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
-            var codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
+            byte[] codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
+            short[] codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
             var huffmanCode = new HuffmanTreeCode
             {
                 NumSymbols = WebpConstants.CodeLengthCodes,
@@ -738,9 +738,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             };
 
             this.bitWriter.PutBits(0, 1);
-            var numTokens = HuffmanUtils.CreateCompressedHuffmanTree(tree, tokens);
-            var histogram = new uint[WebpConstants.CodeLengthCodes + 1];
-            var bufRle = new bool[WebpConstants.CodeLengthCodes + 1];
+            int numTokens = HuffmanUtils.CreateCompressedHuffmanTree(tree, tokens);
+            uint[] histogram = new uint[WebpConstants.CodeLengthCodes + 1];
+            bool[] bufRle = new bool[WebpConstants.CodeLengthCodes + 1];
             for (i = 0; i < numTokens; i++)
             {
                 histogram[tokens[i].Code]++;
@@ -758,7 +758,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int ix = tokens[i].Code;
                 if (ix == 0 || ix == 17 || ix == 18)
                 {
-                    trimmedLength--;   // discount trailing zeros.
+                    trimmedLength--;   // Discount trailing zeros.
                     trailingZeroBits += codeLengthBitDepth[ix];
                     if (ix == 17)
                     {
@@ -775,8 +775,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
 
-            var writeTrimmedLength = trimmedLength > 1 && trailingZeroBits > 12;
-            var length = writeTrimmedLength ? trimmedLength : numTokens;
+            bool writeTrimmedLength = trimmedLength > 1 && trailingZeroBits > 12;
+            int length = writeTrimmedLength ? trimmedLength : numTokens;
             this.bitWriter.PutBits((uint)(writeTrimmedLength ? 1 : 0), 1);
             if (writeTrimmedLength)
             {
@@ -976,8 +976,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 prevRow = currentRow;
             }
 
-            var entropyComp = new double[(int)HistoIx.HistoTotal];
-            var entropy = new double[(int)EntropyIx.NumEntropyIx];
+            double[] entropyComp = new double[(int)HistoIx.HistoTotal];
+            double[] entropy = new double[(int)EntropyIx.NumEntropyIx];
             int lastModeToAnalyze = usePalette ? (int)EntropyIx.Palette : (int)EntropyIx.SpatialSubGreen;
 
             // Let's add one zero to the predicted histograms. The zeros are removed
@@ -1195,7 +1195,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                var buffer = new uint[PaletteInvSize];
+                uint[] buffer = new uint[PaletteInvSize];
 
                 // Try to find a perfect hash function able to go from a color to an index
                 // within 1 << PaletteInvSize in order to build a hash map to go from color to index in palette.
@@ -1246,8 +1246,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
                 else
                 {
-                    var idxMap = new uint[paletteSize];
-                    var paletteSorted = new uint[paletteSize];
+                    uint[] idxMap = new uint[paletteSize];
+                    uint[] paletteSorted = new uint[paletteSize];
                     PrepareMapToPalette(palette, paletteSize, paletteSorted, idxMap);
                     ApplyPaletteForWithIdxMap(width, height, palette, src, srcStride, dst, dstStride, tmpRow, idxMap, xBits, paletteSorted, paletteSize);
                 }
@@ -1464,7 +1464,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
 
-            var end = 5 * histogramImage.Count;
+            int end = 5 * histogramImage.Count;
             for (int i = 0; i < end; i++)
             {
                 int bitLength = huffmanCodes[i].NumSymbols;
@@ -1477,7 +1477,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Create Huffman trees.
-            var bufRle = new bool[maxNumSymbols];
+            bool[] bufRle = new bool[maxNumSymbols];
             var huffTree = new HuffmanTree[3 * maxNumSymbols];
             for (int i = 0; i < huffTree.Length; i++)
             {

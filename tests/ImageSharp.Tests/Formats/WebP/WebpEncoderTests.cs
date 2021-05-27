@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            var testOutputDetails = string.Concat("lossless", "_q", quality);
+            string testOutputDetails = string.Concat("lossless", "_q", quality);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
         }
 
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            var testOutputDetails = string.Concat("lossless", "_m", method);
+            string testOutputDetails = string.Concat("lossless", "_m", method);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
         }
 
@@ -67,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            var testOutputDetails = string.Concat("lossy", "_q", quality);
+            string testOutputDetails = string.Concat("lossy", "_q", quality);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
         }
 
@@ -91,8 +92,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            var testOutputDetails = string.Concat("lossy", "_m", method);
+            string testOutputDetails = string.Concat("lossy", "_m", method);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
+        }
+
+        [Fact]
+        public void Encode_Lossless_OneByOnePixel_Works()
+        {
+            // Just make sure, encoding 1 pixel by 1 pixel does not throw an exception.
+            using var image = new Image<Rgba32>(1, 1);
+            var encoder = new WebpEncoder() { Lossy = false };
+            using (var memStream = new MemoryStream())
+            {
+                image.SaveAsWebp(memStream, encoder);
+            }
         }
 
         private static ImageComparer GetComparer(int quality)

@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 // Keep the best backward references.
                 var histo = new Vp8LHistogram(worst, cacheBitsTmp);
-                var bitCost = histo.EstimateBits();
+                double bitCost = histo.EstimateBits();
 
                 if (lz77TypeBest == 0 || bitCost < bitCostBest)
                 {

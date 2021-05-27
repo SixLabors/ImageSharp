@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             ImageCodecInfo codec = FindCodecForType("image/tiff");
             using var parameters = new EncoderParameters(1)
             {
-                Param = {[0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression))}
+                Param = { [0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression)) }
             };
 
             using var memoryStream = new MemoryStream();
@@ -72,12 +72,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void TiffCore()
         {
             TiffPhotometricInterpretation photometricInterpretation = TiffPhotometricInterpretation.Rgb;
-
-            // Workaround for 1-bit bug
-            if (this.Compression == TiffCompression.CcittGroup3Fax || this.Compression == TiffCompression.Ccitt1D)
-            {
-                photometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
-            }
 
             var encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
             using var memoryStream = new MemoryStream();

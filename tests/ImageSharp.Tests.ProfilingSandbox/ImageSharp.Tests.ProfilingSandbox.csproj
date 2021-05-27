@@ -13,6 +13,7 @@
     <IsTestProject>false</IsTestProject>
     <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime>
     <Configurations>Debug;Release;Release-InnerLoop;Debug-InnerLoop</Configurations>
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
   <Choose>

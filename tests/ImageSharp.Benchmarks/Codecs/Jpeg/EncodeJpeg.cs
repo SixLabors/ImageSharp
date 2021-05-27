@@ -14,7 +14,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
     public class EncodeJpeg
     {
         private const string TestImage = TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr;
-        private const int EncodingQuality = 100;
+        // GDI+ most likely uses 75 as default quality - https://stackoverflow.com/questions/3957477/what-quality-level-does-image-save-use-for-jpeg-files
+        private const int EncodingQuality = 75;
 
         // GDI+ uses 4:2:0 subsampling
         private const JpegSubsample EncodingSubsampling = JpegSubsample.Ratio420;

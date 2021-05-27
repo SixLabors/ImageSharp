@@ -35,12 +35,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Emmited bits 'micro buffer' before being transfered to the <see cref="emitBuffer"/>.
         /// </summary>
-        private uint accumulatedBits;
+        private int accumulatedBits;
 
         /// <summary>
         /// Number of jagged bits stored in <see cref="accumulatedBits"/>
         /// </summary>
-        private uint bitCount;
+        private int bitCount;
 
         private Block8x8F temporalBlock1;
         private Block8x8F temporalBlock2;
@@ -303,10 +303,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="bits">The packed bits.</param>
         /// <param name="count">The number of bits</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void Emit(uint bits, uint count)
+        private void Emit(int bits, int count)
         {
             count += this.bitCount;
-            bits <<= (int)(32 - count);
+            bits <<= 32 - count;
             bits |= this.accumulatedBits;
 
             // Only write if more than 8 bits.
@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuff(int index, int value)
         {
-            uint x = HuffmanLut.TheHuffmanLut[index].Values[value];
+            int x = (int)HuffmanLut.TheHuffmanLut[index].Values[value];
             this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 
@@ -371,12 +371,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            uint bt = (uint)Numerics.MinimumBitsToStore16((uint)a);
+            int bt = Numerics.MinimumBitsToStore16((uint)a);
 
-            this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
+            this.EmitHuff(index, (runLength << 4) | bt);
             if (bt > 0)
             {
-                this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt);
+                this.Emit(b & ((1 << bt) - 1), bt);
             }
         }
     }

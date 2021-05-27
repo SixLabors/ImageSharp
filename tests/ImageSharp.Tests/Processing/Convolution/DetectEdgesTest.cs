@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 {
+    [Trait("Category", "Processors")]
     [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "OK. Used for TheoryData compatibility.")]
     public class DetectEdgesTest : BaseImageOperationsExtensionTest
     {

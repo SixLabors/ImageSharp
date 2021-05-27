@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 {
     [Trait("Profile", "Exif")]
     public class ExifTagDescriptionAttributeTests

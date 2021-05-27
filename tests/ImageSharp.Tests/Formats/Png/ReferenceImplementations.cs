@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests.Formats.Png.Utils
+namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     /// <summary>
     /// This class contains reference implementations to produce verification data for unit tests

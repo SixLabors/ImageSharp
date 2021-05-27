@@ -4,15 +4,16 @@
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Icc
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
 {
+    [Trait("Profile", "Icc")]
     public class IccDataReaderMultiProcessElementTests
     {
         [Theory]
         [MemberData(nameof(IccTestDataMultiProcessElements.MultiProcessElementTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadMultiProcessElement(byte[] data, IccMultiProcessElement expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccMultiProcessElement output = reader.ReadMultiProcessElement();
 
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataMultiProcessElements.CurveSetTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadCurveSetProcessElement(byte[] data, IccCurveSetProcessElement expected, int inChannelCount, int outChannelCount)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccCurveSetProcessElement output = reader.ReadCurveSetProcessElement(inChannelCount, outChannelCount);
 
@@ -34,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataMultiProcessElements.MatrixTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadMatrixProcessElement(byte[] data, IccMatrixProcessElement expected, int inChannelCount, int outChannelCount)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccMatrixProcessElement output = reader.ReadMatrixProcessElement(inChannelCount, outChannelCount);
 
@@ -45,14 +46,14 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataMultiProcessElements.ClutTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadClutProcessElement(byte[] data, IccClutProcessElement expected, int inChannelCount, int outChannelCount)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccClutProcessElement output = reader.ReadClutProcessElement(inChannelCount, outChannelCount);
 
             Assert.Equal(expected, output);
         }
 
-        private IccDataReader CreateReader(byte[] data)
+        private static IccDataReader CreateReader(byte[] data)
         {
             return new IccDataReader(data);
         }

@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    [Trait("Category", "Processors")]
     public class ResizeTests : BaseImageOperationsExtensionTest
     {
         [Fact]

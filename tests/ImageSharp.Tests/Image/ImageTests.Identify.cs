@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests
 
             private static readonly Size ExpectedImageSize = new Size(108, 202);
 
-            private byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
+            private static byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
             private IImageInfo LocalImageInfo => this.localImageInfoMock.Object;
 
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromBytes_GlobalConfiguration()
             {
-                IImageInfo info = Image.Identify(this.ActualImageBytes, out IImageFormat type);
+                IImageInfo info = Image.Identify(ActualImageBytes, out IImageFormat type);
 
                 Assert.Equal(ExpectedImageSize, info.Size());
                 Assert.Equal(ExpectedGlobalFormat, type);
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromStream_GlobalConfiguration()
             {
-                using (var stream = new MemoryStream(this.ActualImageBytes))
+                using (var stream = new MemoryStream(ActualImageBytes))
                 {
                     IImageInfo info = Image.Identify(stream, out IImageFormat type);
 
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromStream_GlobalConfiguration_NoFormat()
             {
-                using (var stream = new MemoryStream(this.ActualImageBytes))
+                using (var stream = new MemoryStream(ActualImageBytes))
                 {
                     IImageInfo info = Image.Identify(stream);
 
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromNonSeekableStream_GlobalConfiguration()
             {
-                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var stream = new MemoryStream(ActualImageBytes);
                 using var nonSeekableStream = new NonSeekableStream(stream);
 
                 IImageInfo info = Image.Identify(nonSeekableStream, out IImageFormat type);
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromNonSeekableStream_GlobalConfiguration_NoFormat()
             {
-                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var stream = new MemoryStream(ActualImageBytes);
                 using var nonSeekableStream = new NonSeekableStream(stream);
 
                 IImageInfo info = Image.Identify(nonSeekableStream);
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromStreamAsync_GlobalConfiguration_NoFormat()
             {
-                using (var stream = new MemoryStream(this.ActualImageBytes))
+                using (var stream = new MemoryStream(ActualImageBytes))
                 {
                     var asyncStream = new AsyncStreamWrapper(stream, () => false);
                     IImageInfo info = await Image.IdentifyAsync(asyncStream);
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromStreamAsync_GlobalConfiguration()
             {
-                using (var stream = new MemoryStream(this.ActualImageBytes))
+                using (var stream = new MemoryStream(ActualImageBytes))
                 {
                     var asyncStream = new AsyncStreamWrapper(stream, () => false);
                     (IImageInfo ImageInfo, IImageFormat Format) res = await Image.IdentifyWithFormatAsync(asyncStream);
@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromNonSeekableStreamAsync_GlobalConfiguration_NoFormat()
             {
-                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var stream = new MemoryStream(ActualImageBytes);
                 using var nonSeekableStream = new NonSeekableStream(stream);
 
                 var asyncStream = new AsyncStreamWrapper(nonSeekableStream, () => false);
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromNonSeekableStreamAsync_GlobalConfiguration()
             {
-                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var stream = new MemoryStream(ActualImageBytes);
                 using var nonSeekableStream = new NonSeekableStream(stream);
 
                 var asyncStream = new AsyncStreamWrapper(nonSeekableStream, () => false);

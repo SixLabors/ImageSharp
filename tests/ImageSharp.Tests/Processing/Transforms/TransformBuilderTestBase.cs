@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    [Trait("Category", "Processors")]
     public abstract class TransformBuilderTestBase<TBuilder>
     {
         private static readonly ApproximateFloatComparer Comparer = new ApproximateFloatComparer(1e-6f);

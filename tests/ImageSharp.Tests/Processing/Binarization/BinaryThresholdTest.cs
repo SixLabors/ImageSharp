@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
+    [Trait("Category", "Processors")]
     public class BinaryThresholdTest : BaseImageOperationsExtensionTest
     {
         [Fact]

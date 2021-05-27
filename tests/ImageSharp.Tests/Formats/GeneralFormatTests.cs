@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
 
                 using (var image2 = Image.Load<Rgba32>(serialized))
                 {
-                    image2.Save($"{path}/{file.FileName}");
+                    image2.Save($"{path}{Path.DirectorySeparatorChar}{file.FileName}");
                 }
             }
         }

@@ -257,10 +257,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int dc = (int)refTemp2[0];
 
             // Emit the DC delta.
-            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
+            this.EmitHuffRLE((2 * (int)index) + 0, 0, dc - prevDC);
 
             // Emit the AC components.
-            var h = (HuffIndex)((2 * (int)index) + 1);
+            int h = (2 * (int)index) + 1;
             int runLength = 0;
 
             for (int zig = 1; zig < Block8x8F.Size; zig++)
@@ -348,9 +348,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="index">The index of the Huffman encoder</param>
         /// <param name="value">The value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuff(HuffIndex index, int value)
+        private void EmitHuff(int index, int value)
         {
-            uint x = HuffmanLut.TheHuffmanLut[(int)index].Values[value];
+            uint x = HuffmanLut.TheHuffmanLut[index].Values[value];
             this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 
@@ -361,7 +361,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="runLength">The number of copies to encode.</param>
         /// <param name="value">The value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuffRLE(HuffIndex index, int runLength, int value)
+        private void EmitHuffRLE(int index, int runLength, int value)
         {
             int a = value;
             int b = value;

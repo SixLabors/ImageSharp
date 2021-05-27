@@ -344,7 +344,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuff(int index, int value)
         {
-            int x = (int)HuffmanLut.TheHuffmanLut[index].Values[value];
+            int x = HuffmanLut.TheHuffmanLut[index].Values[value];
             this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 

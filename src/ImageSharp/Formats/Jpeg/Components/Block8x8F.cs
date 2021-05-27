@@ -313,14 +313,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             if (Avx.IsSupported)
             {
                 var valueVec = Vector256.Create(value);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V0L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V0L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V1L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V1L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V2L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V2L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V3L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V3L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V4L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V4L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V5L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V5L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V6L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V6L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V7L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V7L), valueVec);
+                this.V0 = Avx.Multiply(this.V0, valueVec);
+                this.V1 = Avx.Multiply(this.V1, valueVec);
+                this.V2 = Avx.Multiply(this.V2, valueVec);
+                this.V3 = Avx.Multiply(this.V3, valueVec);
+                this.V4 = Avx.Multiply(this.V4, valueVec);
+                this.V5 = Avx.Multiply(this.V5, valueVec);
+                this.V6 = Avx.Multiply(this.V6, valueVec);
+                this.V7 = Avx.Multiply(this.V7, valueVec);
             }
             else
 #endif
@@ -354,45 +354,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V0L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V0L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V0L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V1L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V1L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V1L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V2L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V2L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V2L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V3L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V3L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V3L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V4L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V4L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V4L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V5L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V5L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V5L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V6L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V6L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V6L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V7L)
-                    = Avx.Multiply(
-                        Unsafe.As<Vector4, Vector256<float>>(ref this.V7L),
-                        Unsafe.As<Vector4, Vector256<float>>(ref other.V7L));
+                this.V0 = Avx.Multiply(this.V0, other.V0);
+                this.V1 = Avx.Multiply(this.V1, other.V1);
+                this.V2 = Avx.Multiply(this.V2, other.V2);
+                this.V3 = Avx.Multiply(this.V3, other.V3);
+                this.V4 = Avx.Multiply(this.V4, other.V4);
+                this.V5 = Avx.Multiply(this.V5, other.V5);
+                this.V6 = Avx.Multiply(this.V6, other.V6);
+                this.V7 = Avx.Multiply(this.V7, other.V7);
             }
             else
 #endif
@@ -427,14 +396,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             if (Avx.IsSupported)
             {
                 var valueVec = Vector256.Create(value);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V0L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V0L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V1L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V1L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V2L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V2L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V3L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V3L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V4L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V4L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V5L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V5L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V6L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V6L), valueVec);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V7L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V7L), valueVec);
+                this.V0 = Avx.Add(this.V0, valueVec);
+                this.V1 = Avx.Add(this.V1, valueVec);
+                this.V2 = Avx.Add(this.V2, valueVec);
+                this.V3 = Avx.Add(this.V3, valueVec);
+                this.V4 = Avx.Add(this.V4, valueVec);
+                this.V5 = Avx.Add(this.V5, valueVec);
+                this.V6 = Avx.Add(this.V6, valueVec);
+                this.V7 = Avx.Add(this.V7, valueVec);
             }
             else
 #endif
@@ -529,12 +498,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             var f2 = Vector256.Create(2f);
             var f025 = Vector256.Create(0.25f);
             Vector256<int> switchInnerDoubleWords = Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskSwitchInnerDWords8x32));
-            ref Vector256<float> destRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref destination);
+            ref Vector256<float> destRef = ref destination.V0;
 
             for (int i = 0; i < 2; i++)
             {
-                ref Vector256<float> in1 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(source), 2 * i));
-                ref Vector256<float> in2 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(source), (2 * i) + 1));
+                ref Vector256<float> in1 = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), 2 * i).V0;
+                ref Vector256<float> in2 = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), (2 * i) + 1).V0;
 
                 for (int j = 0; j < 8; j += 2)
                 {
@@ -588,8 +557,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 var vadd = Vector256.Create(.5F);
                 var vone = Vector256.Create(1f);
 
-                ref Vector256<float> aBase = ref Unsafe.AsRef(Unsafe.As<Vector4, Vector256<float>>(ref a.V0L));
-                ref Vector256<float> bBase = ref Unsafe.AsRef(Unsafe.As<Vector4, Vector256<float>>(ref b.V0L));
+                ref Vector256<float> aBase = ref a.V0;
+                ref Vector256<float> bBase = ref b.V0;
                 ref Vector256<float> aEnd = ref Unsafe.Add(ref aBase, 8);
 
                 do
@@ -840,26 +809,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 Vector256<float> t0 = Avx.UnpackLow(r0, r1);
                 Vector256<float> t2 = Avx.UnpackLow(r2, r3);
                 Vector256<float> v = Avx.Shuffle(t0, t2, 0x4E);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V0L) = Avx.Blend(t0, v, 0xCC);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V1L) = Avx.Blend(t2, v, 0x33);
+                d.V0 = Avx.Blend(t0, v, 0xCC);
+                d.V1 = Avx.Blend(t2, v, 0x33);
 
                 Vector256<float> t4 = Avx.UnpackLow(r4, r5);
                 Vector256<float> t6 = Avx.UnpackLow(r6, r7);
                 v = Avx.Shuffle(t4, t6, 0x4E);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V4L) = Avx.Blend(t4, v, 0xCC);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V5L) = Avx.Blend(t6, v, 0x33);
+                d.V4 = Avx.Blend(t4, v, 0xCC);
+                d.V5 = Avx.Blend(t6, v, 0x33);
 
                 Vector256<float> t1 = Avx.UnpackHigh(r0, r1);
                 Vector256<float> t3 = Avx.UnpackHigh(r2, r3);
                 v = Avx.Shuffle(t1, t3, 0x4E);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V2L) = Avx.Blend(t1, v, 0xCC);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V3L) = Avx.Blend(t3, v, 0x33);
+                d.V2 = Avx.Blend(t1, v, 0xCC);
+                d.V3 = Avx.Blend(t3, v, 0x33);
 
                 Vector256<float> t5 = Avx.UnpackHigh(r4, r5);
                 Vector256<float> t7 = Avx.UnpackHigh(r6, r7);
                 v = Avx.Shuffle(t5, t7, 0x4E);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V6L) = Avx.Blend(t5, v, 0xCC);
-                Unsafe.As<Vector4, Vector256<float>>(ref d.V7L) = Avx.Blend(t7, v, 0x33);
+                d.V6 = Avx.Blend(t5, v, 0xCC);
+                d.V7 = Avx.Blend(t7, v, 0x33);
             }
             else
 #endif

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -64,9 +64,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             var zero = Vector256.Create(0).AsByte();
 
             ref Vector256<byte> inRef = ref Unsafe.As<Rgb24, Vector256<byte>>(ref MemoryMarshal.GetReference(rgbSpan));
-            ref Vector256<float> destYRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref yBlock);
-            ref Vector256<float> destCbRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref cbBlock);
-            ref Vector256<float> destCrRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref crBlock);
+            ref Vector256<float> destYRef = ref yBlock.V0;
+            ref Vector256<float> destCbRef = ref cbBlock.V0;
+            ref Vector256<float> destCrRef = ref crBlock.V0;
 
             var extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(MoveFirst24BytesToSeparateLanes));
             var extractRgbMask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ExtractRgb));

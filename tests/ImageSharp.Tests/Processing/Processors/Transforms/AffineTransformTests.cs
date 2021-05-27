@@ -14,6 +14,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    [Trait("Category", "Processors")]
     public class AffineTransformTests
     {
         private readonly ITestOutputHelper output;

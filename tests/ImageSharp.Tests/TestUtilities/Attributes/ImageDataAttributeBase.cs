@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests
 
             if (!addedRows.Any())
             {
-                addedRows = new[] { new object[0] };
+                addedRows = new[] { Array.Empty<object>() };
             }
 
             bool firstIsProvider = this.FirstIsProvider(testMethod);

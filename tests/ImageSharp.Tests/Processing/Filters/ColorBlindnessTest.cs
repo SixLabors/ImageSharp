@@ -12,6 +12,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
+    [Trait("Category", "Processors")]
     public class ColorBlindnessTest : BaseImageOperationsExtensionTest
     {
         public static IEnumerable<object[]> TheoryData = new[]

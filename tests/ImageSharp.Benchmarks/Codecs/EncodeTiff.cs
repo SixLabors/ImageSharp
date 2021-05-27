@@ -43,8 +43,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             if (this.core == null)
             {
                 this.configuration = new Configuration();
-                this.configuration.AddTiff();
-
                 this.core = Image.Load<Rgba32>(this.configuration, this.TestImageFullPath);
                 this.drawing = System.Drawing.Image.FromFile(this.TestImageFullPath);
             }

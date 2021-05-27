@@ -108,9 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 }
             }
 
-            // Pad the last byte with 1's.
-            this.Emit(0x7f, 7);
-            this.target.Write(this.emitBuffer, 0, this.emitLen);
+            this.FlushInternalBuffer();
         }
 
         /// <summary>
@@ -181,9 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 }
             }
 
-            // Pad the last byte with 1's.
-            this.Emit(0x7f, 7);
-            this.target.Write(this.emitBuffer, 0, this.emitLen);
+            this.FlushInternalBuffer();
         }
 
         /// <summary>
@@ -224,9 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 }
             }
 
-            // Pad the last byte with 1's.
-            this.Emit(0x7f, 7);
-            this.target.Write(this.emitBuffer, 0, this.emitLen);
+            this.FlushInternalBuffer();
         }
 
         /// <summary>
@@ -375,6 +369,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             this.EmitHuff(index, (runLength << 4) | bt);
             this.Emit(b & ((1 << bt) - 1), bt);
+        }
+
+        /// <summary>
+        /// Writes remaining bytes from internal buffer to the target stream.
+        /// </summary>
+        /// <remarks>Pads last byte with 1's if necessary</remarks>
+        private void FlushInternalBuffer()
+        {
+            // pad last byte with 1's
+            int padBitsCount = 8 - (this.bitCount % 8);
+            if (padBitsCount != 0)
+            {
+                this.Emit(0xff, padBitsCount);
+            }
+
+            // flush remaining bytes
+            if (this.emitLen != 0)
+            {
+                this.target.Write(this.emitBuffer, 0, this.emitLen);
+            }
         }
     }
 }

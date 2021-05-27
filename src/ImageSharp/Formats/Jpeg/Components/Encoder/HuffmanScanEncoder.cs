@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <remarks>
         /// This is subject to change, 1024 seems to be the best value in terms of performance.
-        /// <see cref="Emit(uint, uint)"/> expects it to be at least 8 (see comments in method body).
+        /// <see cref="Emit(int, int)"/> expects it to be at least 8 (see comments in method body).
         /// </remarks>
         private const int EmitBufferSizeInBytes = 1024;
 
@@ -374,10 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int bt = Numerics.MinimumBitsToStore16((uint)a);
 
             this.EmitHuff(index, (runLength << 4) | bt);
-            if (bt > 0)
-            {
-                this.Emit(b & ((1 << bt) - 1), bt);
-            }
+            this.Emit(b & ((1 << bt) - 1), bt);
         }
     }
 }

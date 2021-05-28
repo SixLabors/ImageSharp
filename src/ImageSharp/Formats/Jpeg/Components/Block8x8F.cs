@@ -68,6 +68,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public Vector4 V7R;
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        /// <summary>
+        /// A number of rows of 8 scalar coefficients each in <see cref="Block8x8F"/>
+        /// </summary>
+        public const int RowCount = 8;
+
         [FieldOffset(0)]
         public Vector256<float> V0;
         [FieldOffset(32)]
@@ -557,19 +562,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 var vadd = Vector256.Create(.5F);
                 var vone = Vector256.Create(1f);
 
-                ref Vector256<float> aBase = ref a.V0;
-                ref Vector256<float> bBase = ref b.V0;
-                ref Vector256<float> aEnd = ref Unsafe.Add(ref aBase, 8);
-
-                do
+                for (int i = 0; i < RowCount; i++)
                 {
-                    Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, aBase), vone), vadd);
-                    Unsafe.Add(ref aBase, 0) = Avx.Add(Avx.Divide(aBase, bBase), voff);
-
-                    aBase = ref Unsafe.Add(ref aBase, 1);
-                    bBase = ref Unsafe.Add(ref bBase, 1);
+                    ref Vector256<float> aRow = ref Unsafe.Add(ref a.V0, i);
+                    ref Vector256<float> bRow = ref Unsafe.Add(ref b.V0, i);
+                    Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, aRow), vone), vadd);
+                    aRow = Avx.Add(Avx.Divide(aRow, bRow), voff);
                 }
-                while (Unsafe.IsAddressLessThan(ref aBase, ref aEnd));
             }
             else
 #endif

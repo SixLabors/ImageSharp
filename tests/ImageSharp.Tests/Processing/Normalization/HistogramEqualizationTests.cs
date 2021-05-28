@@ -174,29 +174,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 return;
             }
 
-            using Image<TPixel> image = provider.GetImage();
-
             // https://github.com/SixLabors/ImageSharp/discussions/1640
-            for (int i = 0; i < 2; i++)
+            // Test using isolated memory to ensure clean buffers for reference
+            provider.Configuration = Configuration.CreateDefaultInstance();
+            var options = new HistogramEqualizationOptions
             {
-                var options = new HistogramEqualizationOptions
-                {
-                    Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
-                    LuminanceLevels = 4096,
-                    ClipHistogram = false,
-                    ClipLimit = 350,
-                    NumberOfTiles = 8
-                };
+                Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                LuminanceLevels = 4096,
+                ClipHistogram = false,
+                ClipLimit = 350,
+                NumberOfTiles = 8
+            };
 
-                using Image<TPixel> processed = image.Clone(ctx =>
-                {
-                    ctx.HistogramEqualization(options);
-                    ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
-                });
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> referenceResult = image.Clone(ctx =>
+            {
+                ctx.HistogramEqualization(options);
+                ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
+            });
 
-                processed.DebugSave(provider);
-                processed.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            using Image<TPixel> processed = image.Clone(ctx =>
+            {
+                ctx.HistogramEqualization(options);
+                ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
+            });
+
+            ValidatorComparer.VerifySimilarity(referenceResult, processed);
         }
     }
 }

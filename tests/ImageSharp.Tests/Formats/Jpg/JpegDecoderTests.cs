@@ -150,11 +150,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             });
 
-            AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
-
+            var config = Configuration.CreateDefaultInstance();
+            config.FileSystem = new SingleStreamFileSystem(pausedStream);
             await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             {
-                using Image image = await Image.LoadAsync("someFakeFile", cts.Token);
+                using Image image = await Image.LoadAsync(config, "someFakeFile", cts.Token);
             });
         }
 
@@ -171,9 +171,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 pausedStream.Release();
             });
 
-            AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
+            var config = Configuration.CreateDefaultInstance();
+            config.FileSystem = new SingleStreamFileSystem(pausedStream);
 
-            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync("someFakeFile", cts.Token));
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(config, "someFakeFile", cts.Token));
         }
 
         // DEBUG ONLY!

@@ -139,7 +139,5 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         public override int ReadByte() => this.Await(() => this.innerStream.ReadByte());
 
         protected override void Dispose(bool disposing) => this.innerStream.Dispose();
-
-        public override ValueTask DisposeAsync() => this.innerStream.DisposeAsync();
     }
 }

@@ -169,6 +169,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         public unsafe void Issue1640<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
             using Image<TPixel> image = provider.GetImage();
 
             // https://github.com/SixLabors/ImageSharp/discussions/1640

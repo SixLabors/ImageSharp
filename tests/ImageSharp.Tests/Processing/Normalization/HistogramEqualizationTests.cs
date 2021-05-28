@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     NumberOfTiles = 8
                 };
 
-                Image<TPixel> processed = image.Clone(ctx =>
+                using Image<TPixel> processed = image.Clone(ctx =>
                 {
                     ctx.HistogramEqualization(options);
                     ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);

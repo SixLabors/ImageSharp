@@ -619,9 +619,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 for (int dx = x; dx < xlimit; dx++)
                                 {
                                     int luminance = GetLuminance(rowSpan[dx], this.luminanceLevels);
-
-                                    // This is safe. The index maxes out to the span length.
-                                    Unsafe.Add(ref histogramBase, luminance)++;
+                                    histogram[luminance]++;
                                 }
                             }
 

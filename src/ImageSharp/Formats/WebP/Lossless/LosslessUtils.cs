@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Returns the exact index where array1 and array2 are different. For an index
         /// inferior or equal to bestLenMatch, the return value just has to be strictly
-        /// inferior to best_lenMatch. The current behavior is to return 0 if this index
+        /// inferior to bestLenMatch match. The current behavior is to return 0 if this index
         /// is bestLenMatch, and the index itself otherwise.
         /// If no two elements are the same, it returns maxLimit.
         /// </summary>

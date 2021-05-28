@@ -369,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             this.nbBits -= 8;
             if ((bits & 0xff) != 0xff)
             {
-                var pos = this.pos;
+                uint pos = this.pos;
                 this.BitWriterResize(this.run + 1);
 
                 if ((bits & 0x100) != 0)
@@ -509,7 +509,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         private void WriteFilterHeader(Vp8BitWriter bitWriter)
         {
             Vp8FilterHeader hdr = this.enc.FilterHeader;
-            var useLfDelta = hdr.I4x4LfDelta != 0;
+            bool useLfDelta = hdr.I4x4LfDelta != 0;
             bitWriter.PutBitUniform(hdr.Simple ? 1 : 0);
             bitWriter.PutBits((uint)hdr.FilterLevel, 6);
             bitWriter.PutBits((uint)hdr.Sharpness, 3);
@@ -645,7 +645,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             uint profile = 0;
             int width = this.enc.Width;
             int height = this.enc.Height;
-            var vp8FrameHeader = new byte[WebpConstants.Vp8FrameHeaderSize];
+            byte[] vp8FrameHeader = new byte[WebpConstants.Vp8FrameHeaderSize];
 
             // Paragraph 9.1.
             uint bits = 0 // keyframe (1b)

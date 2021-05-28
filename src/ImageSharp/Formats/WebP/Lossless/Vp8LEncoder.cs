@@ -172,6 +172,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            image.Metadata.SyncProfiles();
+
             // Write the image size.
             int width = image.Width;
             int height = image.Height;

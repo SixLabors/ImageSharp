@@ -13,7 +13,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.WebP
 {
-    [Trait("Format", "Webp")]
+    [Trait("Format", "WebpLossless")]
     public class PredictorEncoderTests
     {
         [Fact]

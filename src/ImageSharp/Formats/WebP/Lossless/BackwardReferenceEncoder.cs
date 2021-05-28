@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void BackwardReferencesTraceBackwards(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refsSrc, Vp8LBackwardRefs refsDst)
         {
             int distArraySize = xSize * ySize;
-            var distArray = new ushort[distArraySize];
+            ushort[] distArray = new ushort[distArraySize];
 
             BackwardReferencesHashChainDistanceOnly(xSize, ySize, bgra, cacheBits, hashChain, refsSrc, distArray);
             int chosenPathSize = TraceBackwards(distArray, distArraySize);
@@ -242,7 +242,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             int pixCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
-            var literalArraySize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((cacheBits > 0) ? (1 << cacheBits) : 0);
+            int literalArraySize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((cacheBits > 0) ? (1 << cacheBits) : 0);
             var costModel = new CostModel(literalArraySize);
             int offsetPrev = -1;
             int lenPrev = -1;
@@ -511,11 +511,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void BackwardReferencesLz77Box(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChainBest, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
         {
             int pixelCount = xSize * ySize;
-            var windowOffsets = new int[WindowOffsetsSizeMax];
-            var windowOffsetsNew = new int[WindowOffsetsSizeMax];
+            int[] windowOffsets = new int[WindowOffsetsSizeMax];
+            int[] windowOffsetsNew = new int[WindowOffsetsSizeMax];
             int windowOffsetsSize = 0;
             int windowOffsetsNewSize = 0;
-            var counts = new short[xSize * ySize];
+            short[] counts = new short[xSize * ySize];
             int bestOffsetPrev = -1;
             int bestLengthPrev = -1;
 

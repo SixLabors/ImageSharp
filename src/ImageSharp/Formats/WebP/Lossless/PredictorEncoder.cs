@@ -94,8 +94,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxTileSize = 1 << bits;
             int tileXSize = LosslessUtils.SubSampleSize(width, bits);
             int tileYSize = LosslessUtils.SubSampleSize(height, bits);
-            var accumulatedRedHisto = new int[256];
-            var accumulatedBlueHisto = new int[256];
+            int[] accumulatedRedHisto = new int[256];
+            int[] accumulatedBlueHisto = new int[256];
             var prevX = default(Vp8LMultipliers);
             var prevY = default(Vp8LMultipliers);
             for (int tileY = 0; tileY < tileYSize; tileY++)
@@ -204,9 +204,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<byte> maxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
             float bestDiff = MaxDiffCost;
             int bestMode = 0;
-            var residuals = new uint[1 << WebpConstants.MaxTransformBits];
-            var histoArgb = new int[4][];
-            var bestHisto = new int[4][];
+            uint[] residuals = new uint[1 << WebpConstants.MaxTransformBits];
+            int[][] histoArgb = new int[4][];
+            int[][] bestHisto = new int[4][];
             for (int i = 0; i < 4; i++)
             {
                 histoArgb[i] = new int[256];
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
                 }
 
-                var curDiff = PredictionCostSpatialHistogram(accumulated, histoArgb);
+                float curDiff = PredictionCostSpatialHistogram(accumulated, histoArgb);
 
                 // Favor keeping the areas locally similar.
                 if (mode == leftMode)
@@ -448,7 +448,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return LosslessUtils.SubPixels(value, predict);
             }
 
-            var quantization = maxQuantization;
+            int quantization = maxQuantization;
             while (quantization >= maxDiff)
             {
                 quantization >>= 1;
@@ -464,7 +464,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 a = NearLosslessComponent((byte)(value >> 24), (byte)(predict >> 24), 0xff, quantization);
             }
 
-            var g = NearLosslessComponent((byte)((value >> 8) & 0xff), (byte)((predict >> 8) & 0xff), 0xff, quantization);
+            byte g = NearLosslessComponent((byte)((value >> 8) & 0xff), (byte)((predict >> 8) & 0xff), 0xff, quantization);
 
             if (usedSubtractGreen)
             {
@@ -478,8 +478,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 greenDiff = NearLosslessDiff(newGreen, (byte)((value >> 8) & 0xff));
             }
 
-            var r = NearLosslessComponent(NearLosslessDiff((byte)((value >> 16) & 0xff), greenDiff), (byte)((predict >> 16) & 0xff), (byte)(0xff - newGreen), quantization);
-            var b = NearLosslessComponent(NearLosslessDiff((byte)(value & 0xff), greenDiff), (byte)(predict & 0xff), (byte)(0xff - newGreen), quantization);
+            byte r = NearLosslessComponent(NearLosslessDiff((byte)((value >> 16) & 0xff), greenDiff), (byte)((predict >> 16) & 0xff), (byte)(0xff - newGreen), quantization);
+            byte b = NearLosslessComponent(NearLosslessDiff((byte)(value & 0xff), greenDiff), (byte)(predict & 0xff), (byte)(0xff - newGreen), quantization);
 
             return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
         }

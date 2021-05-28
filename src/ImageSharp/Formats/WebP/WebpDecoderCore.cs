@@ -84,11 +84,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.Metadata = new ImageMetadata();
             this.currentStream = stream;
 
-            var fileSize = this.ReadImageHeader();
+            uint fileSize = this.ReadImageHeader();
 
             using (this.webImageInfo = this.ReadVp8Info())
             {
-                if (this.webImageInfo.Features != null && this.webImageInfo.Features.Animation)
+                if (this.webImageInfo.Features is { Animation: true })
                 {
                     WebpThrowHelper.ThrowNotSupportedException("Animations are not supported");
                 }
@@ -384,7 +384,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             // The first 28 bits of the bitstream specify the width and height of the image.
             uint width = bitReader.ReadValue(WebpConstants.Vp8LImageSizeBits) + 1;
             uint height = bitReader.ReadValue(WebpConstants.Vp8LImageSizeBits) + 1;
-            if (width == 1 || height == 1)
+            if (width == 0 || height == 0)
             {
                 WebpThrowHelper.ThrowImageFormatException("invalid width or height read");
             }

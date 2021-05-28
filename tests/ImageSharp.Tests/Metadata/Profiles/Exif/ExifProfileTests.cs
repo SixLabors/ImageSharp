@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -27,7 +28,17 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             /// <summary>
             /// Writes a png file.
             /// </summary>
-            Png
+            Png,
+
+            /// <summary>
+            /// Writes a lossless webp file.
+            /// </summary>
+            WebpLossless,
+
+            /// <summary>
+            /// Writes a lossy webp file.
+            /// </summary>
+            WebpLossy
         }
 
         private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>
@@ -44,6 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.WebpLossless)]
+        [InlineData(TestImageWriteFormat.WebpLossy)]
         public void Constructor(TestImageWriteFormat imageFormat)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateRgba32Image();
@@ -92,6 +105,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.WebpLossless)]
+        [InlineData(TestImageWriteFormat.WebpLossy)]
         public void WriteFraction(TestImageWriteFormat imageFormat)
         {
             using (var memStream = new MemoryStream())
@@ -135,6 +150,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.WebpLossless)]
+        [InlineData(TestImageWriteFormat.WebpLossy)]
         public void ReadWriteInfinity(TestImageWriteFormat imageFormat)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
@@ -170,6 +187,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
          https://exiftool.org/TagNames/EXIF.html */
         [InlineData(TestImageWriteFormat.Jpeg, 16)]
         [InlineData(TestImageWriteFormat.Png, 16)]
+        [InlineData(TestImageWriteFormat.WebpLossless, 16)]
         public void SetValue(TestImageWriteFormat imageFormat, int expectedProfileValueCount)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
@@ -241,6 +259,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.WebpLossless)]
+        [InlineData(TestImageWriteFormat.WebpLossy)]
         public void WriteOnlyExifTags_Works(TestImageWriteFormat imageFormat)
         {
             // Arrange
@@ -327,7 +347,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         [Fact]
         public void ReadWriteLargeProfileJpg()
         {
-            ExifTag<string>[] tags = new[] { ExifTag.Software, ExifTag.Copyright, ExifTag.Model, ExifTag.ImageDescription };
+            ExifTag<string>[] tags = { ExifTag.Software, ExifTag.Copyright, ExifTag.Model, ExifTag.ImageDescription };
             foreach (ExifTag<string> tag in tags)
             {
                 // Arrange
@@ -344,7 +364,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
                 image.Metadata.ExifProfile = expectedProfile;
 
                 // Act
-                using Image<Rgba32> reloadedImage = WriteAndRead(image, TestImageWriteFormat.Jpeg);
+                Image<Rgba32> reloadedImage = WriteAndRead(image, TestImageWriteFormat.Jpeg);
 
                 // Assert
                 ExifProfile actualProfile = reloadedImage.Metadata.ExifProfile;
@@ -366,7 +386,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         [Fact]
         public void ExifTypeUndefined()
         {
-            // This image contains an 802 byte EXIF profile
+            // This image contains an 802 byte EXIF profile.
             // It has a tag with an index offset of 18,481,152 bytes (overrunning the data)
             using Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateRgba32Image();
             Assert.NotNull(image);
@@ -409,6 +429,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.WebpLossless)]
+        [InlineData(TestImageWriteFormat.WebpLossy)]
         public void WritingImagePreservesExifProfile(TestImageWriteFormat imageFormat)
         {
             // Arrange
@@ -483,6 +505,10 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
                     return WriteAndReadJpeg(image);
                 case TestImageWriteFormat.Png:
                     return WriteAndReadPng(image);
+                case TestImageWriteFormat.WebpLossless:
+                    return WriteAndReadWebp(image, lossy: false);
+                case TestImageWriteFormat.WebpLossy:
+                    return WriteAndReadWebp(image, lossy: true);
                 default:
                     throw new ArgumentException("Unexpected test image format, only Jpeg and Png are allowed");
             }
@@ -509,6 +535,18 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
                 memStream.Position = 0;
                 return Image.Load<Rgba32>(memStream);
+            }
+        }
+
+        private static Image<Rgba32> WriteAndReadWebp(Image<Rgba32> image, bool lossy)
+        {
+            using (var memStream = new MemoryStream())
+            {
+                image.SaveAsWebp(memStream, new WebpEncoder() { Lossy = lossy });
+                image.Dispose();
+
+                memStream.Position = 0;
+                return Image.Load<Rgba32>(memStream, new WebpDecoder());
             }
         }
 

@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 
         public Vp8LBitWriter Clone()
         {
-            var clonedBuffer = new byte[this.Buffer.Length];
+            byte[] clonedBuffer = new byte[this.Buffer.Length];
             System.Buffer.BlockCopy(this.Buffer, 0, clonedBuffer, 0, this.cur);
             return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
         }
@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             // If needed, make some room by flushing some bits out.
             if (this.cur + WriterBytes > this.end)
             {
-                var extraSize = this.end - this.cur + MinExtraSize;
+                int extraSize = this.end - this.cur + MinExtraSize;
                 this.BitWriterResize(extraSize);
             }
 

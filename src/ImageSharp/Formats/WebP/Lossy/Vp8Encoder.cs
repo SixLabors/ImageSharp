@@ -98,10 +98,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 : (method >= 3) ? Vp8RdLevel.RdOptBasic
                 : Vp8RdLevel.RdOptNone;
 
-            var pixelCount = width * height;
+            int pixelCount = width * height;
             this.Mbw = (width + 15) >> 4;
             this.Mbh = (height + 15) >> 4;
-            var uvSize = ((width + 1) >> 1) * ((height + 1) >> 1);
+            int uvSize = ((width + 1) >> 1) * ((height + 1) >> 1);
             this.Y = this.memoryAllocator.Allocate<byte>(pixelCount);
             this.U = this.memoryAllocator.Allocate<byte>(uvSize);
             this.V = this.memoryAllocator.Allocate<byte>(uvSize);
@@ -274,7 +274,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int uvStride = (yStride + 1) >> 1;
 
             var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
-            var alphas = new int[WebpConstants.MaxAlpha + 1];
+            int[] alphas = new int[WebpConstants.MaxAlpha + 1];
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
             int totalMb = this.Mbw * this.Mbw;
             this.alpha /= totalMb;
@@ -321,6 +321,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.AdjustFilterStrength();
 
             // Write bytes from the bitwriter buffer to the stream.
+            image.Metadata.SyncProfiles();
             this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height);
         }
 
@@ -367,7 +368,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             while (numPassLeft-- > 0)
             {
                 bool isLastPass = (MathF.Abs(stats.Dq) <= DqLimit) || (numPassLeft == 0) || (this.maxI4HeaderBits == 0);
-                var sizeP0 = this.OneStatPass(width, height, yStride, uvStride, rdOpt, nbMbs, stats);
+                long sizeP0 = this.OneStatPass(width, height, yStride, uvStride, rdOpt, nbMbs, stats);
                 if (sizeP0 == 0)
                 {
                     return;
@@ -517,25 +518,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private void AssignSegments(int[] alphas)
         {
             int nb = (this.SegmentHeader.NumSegments < NumMbSegments) ? this.SegmentHeader.NumSegments : NumMbSegments;
-            var centers = new int[NumMbSegments];
+            int[] centers = new int[NumMbSegments];
             int weightedAverage = 0;
-            var map = new int[WebpConstants.MaxAlpha + 1];
+            int[] map = new int[WebpConstants.MaxAlpha + 1];
             int n, k;
-            var accum = new int[NumMbSegments];
-            var distAccum = new int[NumMbSegments];
+            int[] accum = new int[NumMbSegments];
+            int[] distAccum = new int[NumMbSegments];
 
             // Bracket the input.
             for (n = 0; n <= WebpConstants.MaxAlpha && alphas[n] == 0; ++n)
             {
             }
 
-            var minA = n;
+            int minA = n;
             for (n = WebpConstants.MaxAlpha; n > minA && alphas[n] == 0; --n)
             {
             }
 
-            var maxA = n;
-            var rangeA = maxA - minA;
+            int maxA = n;
+            int rangeA = maxA - minA;
 
             // Spread initial centers evenly.
             for (k = 0, n = 1; k < nb; ++k, n += 2)
@@ -573,9 +574,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
 
                 // All point are classified. Move the centroids to the center of their respective cloud.
-                var displaced = 0;
+                int displaced = 0;
                 weightedAverage = 0;
-                var totalWeight = 0;
+                int totalWeight = 0;
                 for (n = 0; n < nb; ++n)
                 {
                     if (accum[n] != 0)
@@ -694,7 +695,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private void SetupFilterStrength()
         {
-            var filterSharpness = 0; // TODO: filterSharpness is hardcoded
+            int filterSharpness = 0; // TODO: filterSharpness is hardcoded
             var filterType = 1; // TODO: filterType is hardcoded
 
             // level0 is in [0..500]. Using '-f 50' as filter_strength is mid-filtering.
@@ -720,7 +721,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private void SetSegmentProbas()
         {
-            var p = new int[NumMbSegments];
+            int[] p = new int[NumMbSegments];
             int n;
 
             for (n = 0; n < this.Mbw * this.Mbh; ++n)
@@ -1078,7 +1079,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // i16x16
                 residual.Init(0, 1, this.Proba);
                 residual.SetCoeffs(rd.YDcLevels);
-                var res = residual.RecordCoeffs(it.TopNz[8] + it.LeftNz[8]);
+                int res = residual.RecordCoeffs(it.TopNz[8] + it.LeftNz[8]);
                 it.TopNz[8] = res;
                 it.LeftNz[8] = res;
                 residual.Init(1, 0, this.Proba);
@@ -1128,8 +1129,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
             int nz = 0;
             int n;
-            var dcTmp = new short[16];
-            var tmp = new short[16 * 16];
+            short[] dcTmp = new short[16];
+            short[] tmp = new short[16 * 16];
             Span<short> tmpSpan = tmp.AsSpan();
 
             for (n = 0; n < 16; n += 2)
@@ -1161,9 +1162,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private int ReconstructIntra4(Vp8EncIterator it, Vp8SegmentInfo dqm, Span<short> levels, Span<byte> src, Span<byte> yuvOut, int mode)
         {
             Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
-            var tmp = new short[16];
+            short[] tmp = new short[16];
             Vp8Encoding.FTransform(src, reference, tmp);
-            var nz = QuantEnc.QuantizeBlock(tmp, levels, dqm.Y1);
+            int nz = QuantEnc.QuantizeBlock(tmp, levels, dqm.Y1);
             Vp8Encoding.ITransform(reference, tmp, yuvOut, false);
 
             return nz;
@@ -1175,7 +1176,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
             int nz = 0;
             int n;
-            var tmp = new short[8 * 16];
+            short[] tmp = new short[8 * 16];
 
             for (n = 0; n < 8; n += 2)
             {

@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(source, nameof(source));
 
-            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            this.PixelBuffer = configuration.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.FastMemoryGroup.CopyTo(this.PixelBuffer.FastMemoryGroup);
         }
 

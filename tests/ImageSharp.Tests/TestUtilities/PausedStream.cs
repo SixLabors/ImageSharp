@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 {
     public class PausedStream : Stream
     {
-        private readonly SemaphoreSlim slim = new SemaphoreSlim(0);
+        private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0);
 
         private readonly CancellationTokenSource cancelationTokenSource = new CancellationTokenSource();
 
@@ -23,11 +23,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public void Release()
         {
-            this.slim.Release();
+            this.semaphore.Release();
             this.cancelationTokenSource.Cancel();
         }
 
-        public void Next() => this.slim.Release();
+        public void Next() => this.semaphore.Release();
 
         private void Wait()
         {
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
             try
             {
-                this.slim.Wait(this.cancelationTokenSource.Token);
+                this.semaphore.Wait(this.cancelationTokenSource.Token);
             }
             catch (OperationCanceledException)
             {

@@ -13,11 +13,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         private readonly SemaphoreSlim slim = new SemaphoreSlim(0);
 
         private readonly CancellationTokenSource cancelationTokenSource = new CancellationTokenSource();
-        private readonly TaskCompletionSource<object> waitReached = new TaskCompletionSource<object>();
 
         private readonly Stream innerStream;
+        private Action<Stream> onWaitingCallback;
 
-        public Task FirstWaitReached => this.waitReached.Task;
+        public void OnWaiting(Action<Stream> onWaitingCallback) => this.onWaitingCallback = onWaitingCallback;
+
+        public void OnWaiting(Action onWaitingCallback) => this.OnWaiting(_ => onWaitingCallback());
 
         public void Release()
         {
@@ -29,12 +31,12 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         private void Wait()
         {
-            this.waitReached.TrySetResult(null);
-
             if (this.cancelationTokenSource.IsCancellationRequested)
             {
                 return;
             }
+
+            this.onWaitingCallback?.Invoke(this.innerStream);
 
             try
             {

@@ -139,25 +139,16 @@ namespace SixLabors.ImageSharp.Tests
                 var encoder = new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression };
                 using var stream = new MemoryStream();
                 var asyncStream = new AsyncStreamWrapper(stream, () => false);
-                var pausedStream = new PausedStream(asyncStream);
-
                 var cts = new CancellationTokenSource();
 
-                var testTask = Task.Run(async () =>
+                var pausedStream = new PausedStream(asyncStream);
+                pausedStream.OnWaiting(s =>
                 {
-                    AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
-
-                    using var image = new Image<Rgba32>(5000, 5000);
-                    return await Assert.ThrowsAsync<TaskCanceledException>(async () => await image.SaveAsync(pausedStream, encoder, cts.Token));
+                    cts.Cancel();
+                    pausedStream.Release();
                 });
 
-                await pausedStream.FirstWaitReached;
-                cts.Cancel();
-
-                // allow testTask to try and continue now we know we have started but canceled
-                pausedStream.Release();
-
-                await testTask;
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await image.SaveAsync(pausedStream, encoder, cts.Token));
             }
         }
     }

@@ -315,26 +315,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(JpegSubsample.Ratio444)]
         public async Task Encode_IsCancellable(JpegSubsample subsample)
         {
-            using var pausedStream = new PausedStream(new MemoryStream());
             var cts = new CancellationTokenSource();
-
-            var testTask = Task.Run(async () =>
+            using var pausedStream = new PausedStream(new MemoryStream());
+            pausedStream.OnWaiting(s =>
             {
-                using var image = new Image<Rgba32>(5000, 5000);
-                return await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+                // after some writing
+                if (s.Position >= 500)
                 {
-                    var encoder = new JpegEncoder() { Subsample = subsample };
-                    await image.SaveAsync(pausedStream, encoder, cts.Token);
-                });
+                    cts.Cancel();
+                    pausedStream.Release();
+                }
+                else
+                {
+                    // allows this/next wait to unblock
+                    pausedStream.Next();
+                }
             });
 
-            await pausedStream.FirstWaitReached;
-            cts.Cancel();
-
-            // allow testTask to try and continue now we know we have started but canceled
-            pausedStream.Release();
-
-            await testTask;
+            using var image = new Image<Rgba32>(5000, 5000);
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            {
+                var encoder = new JpegEncoder() { Subsample = subsample };
+                await image.SaveAsync(pausedStream, encoder, cts.Token);
+            });
         }
     }
 }

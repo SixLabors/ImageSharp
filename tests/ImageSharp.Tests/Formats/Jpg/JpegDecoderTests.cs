@@ -127,53 +127,53 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
-        [Fact]
-        public async Task Decode_IsCancellable()
+        [Theory]
+        [InlineData(0)]
+        [InlineData(0.5)]
+        [InlineData(0.9)]
+        public async Task Decode_IsCancellable(int percentageOfStreamReadToCancel)
         {
+            var cts = new CancellationTokenSource();
             var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
-            var cts = new CancellationTokenSource();
-
-            var testTask = Task.Run(async () =>
+            pausedStream.OnWaiting(s =>
             {
-                AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
-
-                return await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+                if (s.Position >= s.Length * percentageOfStreamReadToCancel)
                 {
-                    using Image image = await Image.LoadAsync("someFakeFile", cts.Token);
-                });
+                    cts.Cancel();
+                    pausedStream.Release();
+                }
+                else
+                {
+                    // allows this/next wait to unblock
+                    pausedStream.Next();
+                }
             });
 
-            await pausedStream.FirstWaitReached;
-            cts.Cancel();
+            AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
 
-            // allow testTask to try and continue now we know we have started but canceled
-            pausedStream.Release();
-
-            await testTask;
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            {
+                using Image image = await Image.LoadAsync("someFakeFile", cts.Token);
+            });
         }
 
         [Fact]
         public async Task Identify_IsCancellable()
         {
-            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-            using var pausedStream = new PausedStream(file);
             var cts = new CancellationTokenSource();
 
-            var testTask = Task.Run(async () =>
+            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var pausedStream = new PausedStream(file);
+            pausedStream.OnWaiting(s =>
             {
-                AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
-
-                return await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync("someFakeFile", cts.Token));
+                cts.Cancel();
+                pausedStream.Release();
             });
 
-            await pausedStream.FirstWaitReached;
-            cts.Cancel();
+            AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
 
-            // allow testTask to try and continue now we know we have started but canceled
-            pausedStream.Release();
-
-            await testTask;
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync("someFakeFile", cts.Token));
         }
 
         // DEBUG ONLY!

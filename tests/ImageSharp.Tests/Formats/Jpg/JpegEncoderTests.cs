@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -309,29 +310,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal(values.Entries, actual.Entries);
         }
 
-        [Theory(Skip = "TODO: Too Flaky")]
-        [InlineData(JpegSubsample.Ratio420, 0)]
-        [InlineData(JpegSubsample.Ratio420, 3)]
-        [InlineData(JpegSubsample.Ratio420, 10)]
-        [InlineData(JpegSubsample.Ratio444, 0)]
-        [InlineData(JpegSubsample.Ratio444, 3)]
-        [InlineData(JpegSubsample.Ratio444, 10)]
-        public async Task Encode_IsCancellable(JpegSubsample subsample, int cancellationDelayMs)
+        [Theory]
+        [InlineData(JpegSubsample.Ratio420)]
+        [InlineData(JpegSubsample.Ratio444)]
+        public async Task Encode_IsCancellable(JpegSubsample subsample)
         {
-            using var image = new Image<Rgba32>(5000, 5000);
-            using var stream = new MemoryStream();
             var cts = new CancellationTokenSource();
-            if (cancellationDelayMs == 0)
+            using var pausedStream = new PausedStream(new MemoryStream());
+            pausedStream.OnWaiting(s =>
             {
-                cts.Cancel();
-            }
-            else
-            {
-                cts.CancelAfter(cancellationDelayMs);
-            }
+                // after some writing
+                if (s.Position >= 500)
+                {
+                    cts.Cancel();
+                    pausedStream.Release();
+                }
+                else
+                {
+                    // allows this/next wait to unblock
+                    pausedStream.Next();
+                }
+            });
 
-            var encoder = new JpegEncoder() { Subsample = subsample };
-            await Assert.ThrowsAsync<TaskCanceledException>(() => image.SaveAsync(stream, encoder, cts.Token));
+            using var image = new Image<Rgba32>(5000, 5000);
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            {
+                var encoder = new JpegEncoder() { Subsample = subsample };
+                await image.SaveAsync(pausedStream, encoder, cts.Token);
+            });
         }
     }
 }

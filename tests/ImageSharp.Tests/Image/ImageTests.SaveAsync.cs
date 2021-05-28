@@ -140,10 +140,15 @@ namespace SixLabors.ImageSharp.Tests
                 using var stream = new MemoryStream();
                 var asyncStream = new AsyncStreamWrapper(stream, () => false);
                 var cts = new CancellationTokenSource();
-                cts.CancelAfter(TimeSpan.FromTicks(1));
 
-                await Assert.ThrowsAnyAsync<TaskCanceledException>(() =>
-                    image.SaveAsync(asyncStream, encoder, cts.Token));
+                var pausedStream = new PausedStream(asyncStream);
+                pausedStream.OnWaiting(s =>
+                {
+                    cts.Cancel();
+                    pausedStream.Release();
+                });
+
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await image.SaveAsync(pausedStream, encoder, cts.Token));
             }
         }
     }

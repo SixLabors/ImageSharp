@@ -90,8 +90,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public override void Close() => this.Await(() => this.innerStream.Close());
 
-        public override void CopyTo(Stream destination, int bufferSize) => this.Await(() => this.innerStream.CopyTo(destination, bufferSize));
-
         public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) => this.Await(() => this.innerStream.CopyToAsync(destination, bufferSize, cancellationToken));
 
         public override bool CanRead => this.innerStream.CanRead;
@@ -116,6 +114,17 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => this.innerStream.ReadAsync(buffer, offset, count, cancellationToken));
 
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => this.innerStream.WriteAsync(buffer, offset, count, cancellationToken));
+
+        public override void WriteByte(byte value) => this.Await(() => this.innerStream.WriteByte(value));
+
+        public override int ReadByte() => this.Await(() => this.innerStream.ReadByte());
+
+        protected override void Dispose(bool disposing) => this.innerStream.Dispose();
+
+#if NETCOREAPP
+        public override void CopyTo(Stream destination, int bufferSize) => this.Await(() => this.innerStream.CopyTo(destination, bufferSize));
+
         public override int Read(Span<byte> buffer)
         {
             this.Wait();
@@ -130,14 +139,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             this.innerStream.Write(buffer);
         }
 
-        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => this.innerStream.WriteAsync(buffer, offset, count, cancellationToken));
-
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => this.innerStream.WriteAsync(buffer, cancellationToken));
-
-        public override void WriteByte(byte value) => this.Await(() => this.innerStream.WriteByte(value));
-
-        public override int ReadByte() => this.Await(() => this.innerStream.ReadByte());
-
-        protected override void Dispose(bool disposing) => this.innerStream.Dispose();
+#endif
     }
 }

@@ -49,44 +49,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// </summary>
         /// <param name="options">The <see cref="HistogramEqualizationOptions"/>.</param>
         /// <returns>The <see cref="HistogramEqualizationProcessor"/>.</returns>
-        public static HistogramEqualizationProcessor FromOptions(HistogramEqualizationOptions options)
+        public static HistogramEqualizationProcessor FromOptions(HistogramEqualizationOptions options) => options.Method switch
         {
-            HistogramEqualizationProcessor processor;
+            HistogramEqualizationMethod.Global
+            => new GlobalHistogramEqualizationProcessor(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit),
 
-            switch (options.Method)
-            {
-                case HistogramEqualizationMethod.Global:
-                    processor = new GlobalHistogramEqualizationProcessor(
-                        options.LuminanceLevels,
-                        options.ClipHistogram,
-                        options.ClipLimit);
-                    break;
+            HistogramEqualizationMethod.AdaptiveTileInterpolation
+            => new AdaptiveHistogramEqualizationProcessor(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit, options.NumberOfTiles),
 
-                case HistogramEqualizationMethod.AdaptiveTileInterpolation:
-                    processor = new AdaptiveHistogramEqualizationProcessor(
-                        options.LuminanceLevels,
-                        options.ClipHistogram,
-                        options.ClipLimit,
-                        options.NumberOfTiles);
-                    break;
+            HistogramEqualizationMethod.AdaptiveSlidingWindow
+            => new AdaptiveHistogramEqualizationSlidingWindowProcessor(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit, options.NumberOfTiles),
 
-                case HistogramEqualizationMethod.AdaptiveSlidingWindow:
-                    processor = new AdaptiveHistogramEqualizationSlidingWindowProcessor(
-                        options.LuminanceLevels,
-                        options.ClipHistogram,
-                        options.ClipLimit,
-                        options.NumberOfTiles);
-                    break;
-
-                default:
-                    processor = new GlobalHistogramEqualizationProcessor(
-                        options.LuminanceLevels,
-                        options.ClipHistogram,
-                        options.ClipLimit);
-                    break;
-            }
-
-            return processor;
-        }
+            _ => new GlobalHistogramEqualizationProcessor(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit),
+        };
     }
 }

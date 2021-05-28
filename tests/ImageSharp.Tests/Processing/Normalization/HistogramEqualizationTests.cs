@@ -141,6 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         /// See: https://github.com/SixLabors/ImageSharp/pull/984
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <param name="provider">The test image provider.</param>
         [Theory]
         [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
         [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]
@@ -160,6 +161,36 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 image.Mutate(x => x.HistogramEqualization(options));
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(5120, 9234, PixelTypes.L16)]
+        public unsafe void Issue1640<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            // https://github.com/SixLabors/ImageSharp/discussions/1640
+            for (int i = 0; i < 2; i++)
+            {
+                var options = new HistogramEqualizationOptions
+                {
+                    Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                    LuminanceLevels = 4096,
+                    ClipHistogram = false,
+                    ClipLimit = 350,
+                    NumberOfTiles = 8
+                };
+
+                Image<TPixel> processed = image.Clone(ctx =>
+                {
+                    ctx.HistogramEqualization(options);
+                    ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
+                });
+
+                processed.DebugSave(provider);
+                processed.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
     }

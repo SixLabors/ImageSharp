@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -126,61 +127,53 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
-        [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 0)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 15)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 30)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 15)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 30)]
-        public async Task Decode_IsCancellable(string fileName, int cancellationDelayMs)
+        [Fact]
+        public async Task Decode_IsCancellable()
         {
-            // Decoding these huge files took 300ms on i7-8650U in 2020. 30ms should be safe for cancellation delay.
-            string hugeFile = Path.Combine(
-                TestEnvironment.InputImagesDirectoryFullPath,
-                fileName);
+            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var pausedStream = new PausedStream(file);
+            var cts = new CancellationTokenSource();
 
-            const int numberOfRuns = 5;
-
-            for (int i = 0; i < numberOfRuns; i++)
+            var testTask = Task.Run(async () =>
             {
-                var cts = new CancellationTokenSource();
-                if (cancellationDelayMs == 0)
-                {
-                    cts.Cancel();
-                }
-                else
-                {
-                    cts.CancelAfter(cancellationDelayMs);
-                }
+                AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
 
-                try
+                return await Assert.ThrowsAsync<TaskCanceledException>(async () =>
                 {
-                    using Image image = await Image.LoadAsync(hugeFile, cts.Token);
-                }
-                catch (TaskCanceledException)
-                {
-                    // Successfully observed a cancellation
-                    return;
-                }
-            }
+                    using Image image = await Image.LoadAsync("someFakeFile", cts.Token);
+                });
+            });
 
-            throw new Exception($"No cancellation happened out of {numberOfRuns} runs!");
+            await pausedStream.FirstWaitReached;
+            cts.Cancel();
+
+            // allow testTask to try and continue now we know we have started but canceled
+            pausedStream.Release();
+
+            await testTask;
         }
 
-        [Theory(Skip = "Identify is too fast, doesn't work reliably.")]
-        [InlineData(TestImages.Jpeg.Baseline.Exif)]
-        [InlineData(TestImages.Jpeg.Progressive.Bad.ExifUndefType)]
-        public async Task Identify_IsCancellable(string fileName)
+        [Fact]
+        public async Task Identify_IsCancellable()
         {
-            string file = Path.Combine(
-                TestEnvironment.InputImagesDirectoryFullPath,
-                fileName);
-
+            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var pausedStream = new PausedStream(file);
             var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromTicks(1));
-            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(file, cts.Token));
+
+            var testTask = Task.Run(async () =>
+            {
+                AsyncLocalSwitchableFilesystem.ConfigureFileSystemStream(pausedStream);
+
+                return await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync("someFakeFile", cts.Token));
+            });
+
+            await pausedStream.FirstWaitReached;
+            cts.Cancel();
+
+            // allow testTask to try and continue now we know we have started but canceled
+            pausedStream.Release();
+
+            await testTask;
         }
 
         // DEBUG ONLY!

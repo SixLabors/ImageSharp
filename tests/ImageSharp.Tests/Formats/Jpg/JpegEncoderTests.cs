@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -310,28 +311,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(JpegSubsample.Ratio420, 0)]
-        [InlineData(JpegSubsample.Ratio420, 3)]
-        [InlineData(JpegSubsample.Ratio420, 10)]
-        [InlineData(JpegSubsample.Ratio444, 0)]
-        [InlineData(JpegSubsample.Ratio444, 3)]
-        [InlineData(JpegSubsample.Ratio444, 10)]
-        public async Task Encode_IsCancellable(JpegSubsample subsample, int cancellationDelayMs)
+        [InlineData(JpegSubsample.Ratio420)]
+        [InlineData(JpegSubsample.Ratio444)]
+        public async Task Encode_IsCancellable(JpegSubsample subsample)
         {
-            using var image = new Image<Rgba32>(5000, 5000);
-            using var stream = new MemoryStream();
+            using var pausedStream = new PausedStream(new MemoryStream());
             var cts = new CancellationTokenSource();
-            if (cancellationDelayMs == 0)
-            {
-                cts.Cancel();
-            }
-            else
-            {
-                cts.CancelAfter(cancellationDelayMs);
-            }
 
-            var encoder = new JpegEncoder() { Subsample = subsample };
-            await Assert.ThrowsAsync<TaskCanceledException>(() => image.SaveAsync(stream, encoder, cts.Token));
+            var testTask = Task.Run(async () =>
+            {
+                using var image = new Image<Rgba32>(5000, 5000);
+                return await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+                {
+                    var encoder = new JpegEncoder() { Subsample = subsample };
+                    await image.SaveAsync(pausedStream, encoder, cts.Token);
+                });
+            });
+
+            await pausedStream.FirstWaitReached;
+            cts.Cancel();
+
+            // allow testTask to try and continue now we know we have started but canceled
+            pausedStream.Release();
+
+            await testTask;
         }
     }
 }

@@ -46,14 +46,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private Span<Rgb24> rgbSpan;
 
+        public Span<Block8x8F> twinBlocksY;
+
         public static YCbCrForwardConverter<TPixel> Create()
         {
             var result = default(YCbCrForwardConverter<TPixel>);
 
             // creating rgb pixel bufferr
             // TODO: this is subject to discuss
-            result.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[200].AsSpan());
-            result.pixelSpan = new TPixel[64].AsSpan();
+            const int twoBlocksByteSizeWithPadding = 384 + 8; // converter.Convert comments for +8 padding
+            result.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[twoBlocksByteSizeWithPadding].AsSpan());
+            // TODO: this size should be configurable
+            result.pixelSpan = new TPixel[128].AsSpan();
+
+            result.twinBlocksY = new Block8x8F[2].AsSpan();
 
             // Avoid creating lookup tables, when vectorized converter is supported
             if (!RgbToYCbCrConverterVectorized.IsSupported)
@@ -70,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Convert(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows)
         {
             Memory.Buffer2D<TPixel> buffer = frame.PixelBuffer;
-            LoadAndStretchEdges(currentRows, this.pixelSpan, x, buffer.Width - x, buffer.Height - y);
+            LoadAndStretchEdges(currentRows, this.pixelSpan, x, buffer.Width - x, buffer.Height - y, new Size(8));
 
             PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelSpan, this.rgbSpan);
 
@@ -94,13 +100,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Convert420(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows, int idx)
         {
             Memory.Buffer2D<TPixel> buffer = frame.PixelBuffer;
-            LoadAndStretchEdges(currentRows, this.pixelSpan, x, Math.Min(8, buffer.Width - x), Math.Min(8, buffer.Height - y));
+            LoadAndStretchEdges(currentRows, this.pixelSpan, x, Math.Min(16, buffer.Width - x), Math.Min(8, buffer.Height - y), new Size(16, 8));
 
             PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelSpan, this.rgbSpan);
 
             if (RgbToYCbCrConverterVectorized.IsSupported)
             {
-                RgbToYCbCrConverterVectorized.Convert420(this.rgbSpan, ref this.Y, ref this.Cb, ref this.Cr, idx);
+                RgbToYCbCrConverterVectorized.Convert420_16x8(this.rgbSpan, this.twinBlocksY, ref this.Cb, ref this.Cr, idx);
             }
             else
             {
@@ -110,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         // TODO: add DebugGuard checks?
-        private static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, int startX, int width, int height)
+        private static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, int startX, int width, int height, Size areaSize)
         {
             //Guard.MustBeBetweenOrEqualTo(width, 1, 8, nameof(width));
             //Guard.MustBeBetweenOrEqualTo(height, 1, 8, nameof(width));
@@ -122,10 +128,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 
             uint byteWidth = (uint)(width * Unsafe.SizeOf<TPixel>());
-            int remainderXCount = 8 - width;
+            int remainderXCount = areaSize.Width - width;
 
             ref byte blockStart = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TPixel, byte>(dest));
-            int rowSizeInBytes = 8 * Unsafe.SizeOf<TPixel>();
+            int rowSizeInBytes = areaSize.Width * Unsafe.SizeOf<TPixel>();
 
             for (int y = 0; y < height; y++)
             {
@@ -144,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 }
             }
 
-            int remainderYCount = 8 - height;
+            int remainderYCount = areaSize.Height - height;
 
             if (remainderYCount == 0)
             {

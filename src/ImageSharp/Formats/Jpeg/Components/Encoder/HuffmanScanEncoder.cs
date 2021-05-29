@@ -123,8 +123,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<Block8x8F> temporalBlocks = stackalloc Block8x8F[2];
-
             var unzig = ZigZag.CreateUnzigTable();
 
             var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
@@ -140,18 +138,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 cancellationToken.ThrowIfCancellationRequested();
                 for (int x = 0; x < pixels.Width; x += 16)
                 {
-                    for (int i = 0; i < 4; i++)
+                    for(int i = 0; i < 2; i++)
                     {
-                        int xOff = (i & 1) * 8;
-                        int yOff = (i & 2) * 4;
-
+                        int yOff = i * 8;
                         currentRows.Update(pixelBuffer, y + yOff);
-                        pixelConverter.Convert420(frame, x + xOff, y + yOff, ref currentRows, i);
+                        pixelConverter.Convert420(frame, x, y, ref currentRows, i);
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
-                            ref pixelConverter.Y,
+                            ref pixelConverter.twinBlocksY[0],
+                            ref luminanceQuantTable,
+                            ref unzig);
+
+                        prevDCY = this.WriteBlock(
+                            QuantIndex.Luminance,
+                            prevDCY,
+                            ref pixelConverter.twinBlocksY[1],
                             ref luminanceQuantTable,
                             ref unzig);
                     }

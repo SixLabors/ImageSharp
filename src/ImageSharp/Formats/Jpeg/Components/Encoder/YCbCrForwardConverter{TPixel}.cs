@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Temporal 8x8 block to hold TPixel data
         /// </summary>
-        private GenericBlock8x8<TPixel> pixelBlock;
+        private Span<TPixel> pixelSpan;
 
         /// <summary>
         /// Temporal RGB block
@@ -52,6 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // creating rgb pixel bufferr
             // TODO: this is subject to discuss
             result.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[200].AsSpan());
+            result.pixelSpan = new TPixel[64].AsSpan();
 
             // Avoid creating lookup tables, when vectorized converter is supported
             if (!RgbToYCbCrConverterVectorized.IsSupported)
@@ -67,9 +69,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         public void Convert(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows)
         {
-            this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, ref currentRows);
+            Memory.Buffer2D<TPixel> buffer = frame.PixelBuffer;
+            LoadAndStretchEdges(currentRows, this.pixelSpan, x, buffer.Width - x, buffer.Height - y);
 
-            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), this.rgbSpan);
+            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelSpan, this.rgbSpan);
 
             ref Block8x8F yBlock = ref this.Y;
             ref Block8x8F cbBlock = ref this.Cb;
@@ -90,9 +93,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         public void Convert420(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows, int idx)
         {
-            this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, ref currentRows);
+            Memory.Buffer2D<TPixel> buffer = frame.PixelBuffer;
+            LoadAndStretchEdges(currentRows, this.pixelSpan, x, Math.Min(8, buffer.Width - x), Math.Min(8, buffer.Height - y));
 
-            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), this.rgbSpan);
+            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelSpan, this.rgbSpan);
 
             if (RgbToYCbCrConverterVectorized.IsSupported)
             {
@@ -102,6 +106,57 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             {
                 throw new NotSupportedException("This is not yet implemented");
                 //this.colorTables.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+            }
+        }
+
+        // TODO: add DebugGuard checks?
+        private static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, int startX, int width, int height)
+        {
+            //Guard.MustBeBetweenOrEqualTo(width, 1, 8, nameof(width));
+            //Guard.MustBeBetweenOrEqualTo(height, 1, 8, nameof(width));
+
+            // TODO: this is a strange check, most likely it was introduces due to 2x 8x8 blocks subsampling, should be gone after new 4:2:0 implementation
+            if (width <= 0 || height <= 0)
+            {
+                return;
+            }
+
+            uint byteWidth = (uint)(width * Unsafe.SizeOf<TPixel>());
+            int remainderXCount = 8 - width;
+
+            ref byte blockStart = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TPixel, byte>(dest));
+            int rowSizeInBytes = 8 * Unsafe.SizeOf<TPixel>();
+
+            for (int y = 0; y < height; y++)
+            {
+                Span<TPixel> row = source[y];
+
+                ref byte s = ref Unsafe.As<TPixel, byte>(ref row[startX]);
+                ref byte d = ref Unsafe.Add(ref blockStart, y * rowSizeInBytes);
+
+                Unsafe.CopyBlock(ref d, ref s, byteWidth);
+
+                ref TPixel last = ref Unsafe.Add(ref Unsafe.As<byte, TPixel>(ref d), width - 1);
+
+                for (int x = 1; x <= remainderXCount; x++)
+                {
+                    Unsafe.Add(ref last, x) = last;
+                }
+            }
+
+            int remainderYCount = 8 - height;
+
+            if (remainderYCount == 0)
+            {
+                return;
+            }
+
+            ref byte lastRowStart = ref Unsafe.Add(ref blockStart, (height - 1) * rowSizeInBytes);
+
+            for (int y = 1; y <= remainderYCount; y++)
+            {
+                ref byte remStart = ref Unsafe.Add(ref lastRowStart, rowSizeInBytes * y);
+                Unsafe.CopyBlock(ref remStart, ref lastRowStart, (uint)rowSizeInBytes);
             }
         }
     }

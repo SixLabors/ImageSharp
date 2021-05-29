@@ -88,36 +88,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
         /// </summary>
-        public void Convert420(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows, ref Block8x8F yBlock, int idx)
+        public void Convert420(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows, int idx)
         {
             this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, ref currentRows);
 
             PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), this.rgbSpan);
 
-            ref Block8x8F rSub = ref this.Y;
-            ref Block8x8F gSub = ref this.Cb;
-            ref Block8x8F bSub = ref this.Cr;
-
             if (RgbToYCbCrConverterVectorized.IsSupported)
             {
-                RgbToYCbCrConverterVectorized.Convert420(this.rgbSpan, ref yBlock, ref rSub, ref gSub, ref bSub, idx);
+                RgbToYCbCrConverterVectorized.Convert420(this.rgbSpan, ref this.Y, ref this.Cb, ref this.Cr, idx);
             }
             else
             {
                 throw new NotSupportedException("This is not yet implemented");
                 //this.colorTables.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
-            }
-        }
-
-        public void ConvertCbCr(ref Block8x8F cb, ref Block8x8F cr)
-        {
-            if (RgbToYCbCrConverterVectorized.IsSupported)
-            {
-                RgbToYCbCrConverterVectorized.ConvertCbCr(ref this.Y, ref this.Cb, ref this.Cr, ref cb, ref cr);
-            }
-            else
-            {
-                throw new NotSupportedException("This is not yet implemented");
             }
         }
     }

@@ -126,12 +126,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <remarks>Total size of rgb span must be 200 bytes</remarks>
         /// <param name="rgbSpan">Span of rgb pixels with size of 64</param>
-        /// <param name="yBlock">8x8 destination matrix of Luminance(Y) converted data</param>
-        /// <param name="rAcc"></param>
-        /// <param name="gAcc"></param>
-        /// <param name="bAcc"></param>
-        /// <param name="idx"></param>
-        public static void Convert420(ReadOnlySpan<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F rAcc, ref Block8x8F gAcc, ref Block8x8F bAcc, int idx)
+        /// <param name="yBlock">8x8 destination matrix of Luminance(Y) converted data</param>ф
+        public static void Convert420(ReadOnlySpan<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock, int idx)
         {
             Debug.Assert(IsSupported, "AVX2 is required to run this converter");
 
@@ -152,9 +148,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             int destOffset = (idx & 2) * 4 + (idx & 1);
 
-            ref Vector128<float> destRedRef   = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref rAcc), destOffset);
-            ref Vector128<float> destGreenRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref gAcc), destOffset);
-            ref Vector128<float> destBlueRef  = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref bAcc), destOffset);
+            ref Vector128<float> destCbRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref cbBlock), destOffset);
+            ref Vector128<float> destCrRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref crBlock), destOffset);
 
             var extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(MoveFirst24BytesToSeparateLanes));
             var extractRgbMask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ExtractRgb));
@@ -192,20 +187,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 int localDestOffset = (i & 1) * 4;
 
-                // red
-                Vector256<float> twoLane = Scale_8x4_4x2(rDataLanes);
-                Unsafe.Add(ref destRedRef, localDestOffset) = twoLane.GetLower();
-                Unsafe.Add(ref destRedRef, localDestOffset + 2) = twoLane.GetUpper();
+                r = Scale_8x4_4x2(rDataLanes);
+                g = Scale_8x4_4x2(gDataLanes);
+                b = Scale_8x4_4x2(bDataLanes);
 
-                // green
-                twoLane = Scale_8x4_4x2(gDataLanes);
-                Unsafe.Add(ref destGreenRef, localDestOffset) = twoLane.GetLower();
-                Unsafe.Add(ref destGreenRef, localDestOffset + 2) = twoLane.GetUpper();
+                // 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b))
+                Vector256<float> cb = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
+                Unsafe.Add(ref destCbRef, localDestOffset) = cb.GetLower();
+                Unsafe.Add(ref destCbRef, localDestOffset + 2) = cb.GetUpper();
 
-                // blue
-                twoLane = Scale_8x4_4x2(bDataLanes);
-                Unsafe.Add(ref destBlueRef, localDestOffset) = twoLane.GetLower();
-                Unsafe.Add(ref destBlueRef, localDestOffset + 2) = twoLane.GetUpper();
+                // 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b))
+                Vector256<float> cr = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
+                Unsafe.Add(ref destCrRef, localDestOffset) = cr.GetLower();
+                Unsafe.Add(ref destCrRef, localDestOffset + 2) = cr.GetUpper();
             }
 #endif
         }

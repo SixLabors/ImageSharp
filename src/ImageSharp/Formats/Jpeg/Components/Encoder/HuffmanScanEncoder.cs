@@ -146,29 +146,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         int yOff = (i & 2) * 4;
 
                         currentRows.Update(pixelBuffer, y + yOff);
-                        pixelConverter.Convert420(frame, x + xOff, y + yOff, ref currentRows, ref temporalBlocks[0], i);
+                        pixelConverter.Convert420(frame, x + xOff, y + yOff, ref currentRows, i);
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
-                            ref temporalBlocks[0],
+                            ref pixelConverter.Y,
                             ref luminanceQuantTable,
                             ref unzig);
                     }
 
-                    pixelConverter.ConvertCbCr(ref temporalBlocks[0], ref temporalBlocks[1]);
-
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
-                        ref temporalBlocks[0],
+                        ref pixelConverter.Cb,
                         ref chrominanceQuantTable,
                         ref unzig);
 
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
-                        ref temporalBlocks[1],
+                        ref pixelConverter.Cr,
                         ref chrominanceQuantTable,
                         ref unzig);
                 }

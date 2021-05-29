@@ -125,8 +125,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// Converts 8x8 Rgb24 pixel matrix to YCbCr pixel matrices with 4:2:0 subsampling
         /// </summary>
         /// <remarks>Total size of rgb span must be 200 bytes</remarks>
-        /// <param name="rgbSpan">Span of rgb pixels with size of 64</param>
-        /// <param name="yBlock">8x8 destination matrix of Luminance(Y) converted data</param>ф
         public static void Convert420(ReadOnlySpan<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock, int idx)
         {
             Debug.Assert(IsSupported, "AVX2 is required to run this converter");
@@ -207,12 +205,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Converts 16x8 Rgb24 pixels matrix to 2 Y 8x8 matrices with 4:2:0 subsampling
         /// </summary>
-        /// <param name="rgbSpan"></param>
-        /// <param name="yBlock0"></param>
-        /// <param name="yBlock1"></param>
-        /// <param name="cbBlock"></param>
-        /// <param name="crBlock"></param>
-        /// <param name="row"></param>
         public static void Convert420_16x8(ReadOnlySpan<Rgb24> rgbSpan, Span<Block8x8F> yBlocks, ref Block8x8F cbBlock, ref Block8x8F crBlock, int row)
         {
             Debug.Assert(IsSupported, "AVX2 is required to run this converter");
@@ -286,6 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<float> Scale_8x4_4x2(Span<Vector256<float>> v)
         {
@@ -335,5 +328,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 Unsafe.Add(ref destCrRef, i) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
             }
         }
+#endif
     }
 }

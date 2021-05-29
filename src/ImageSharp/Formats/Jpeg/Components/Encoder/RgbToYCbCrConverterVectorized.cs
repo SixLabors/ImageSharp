@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 #endif
 
         /// <summary>
-        /// Converts 8x8 Rgb24 pixel matrix to YCbCr pixel matrices
+        /// Converts 8x8 Rgb24 pixel matrix to YCbCr pixel matrices with 4:4:4 subsampling
         /// </summary>
         /// <remarks>Total size of rgb span must be 200 bytes</remarks>
         /// <param name="rgbSpan">Span of rgb pixels with size of 64</param>
@@ -119,6 +119,145 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 Unsafe.Add(ref destCrRef, i) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
             }
 #endif
+        }
+
+        /// <summary>
+        /// Converts 8x8 Rgb24 pixel matrix to YCbCr pixel matrices with 4:2:0 subsampling
+        /// </summary>
+        /// <remarks>Total size of rgb span must be 200 bytes</remarks>
+        /// <param name="rgbSpan">Span of rgb pixels with size of 64</param>
+        /// <param name="yBlock">8x8 destination matrix of Luminance(Y) converted data</param>
+        /// <param name="rAcc"></param>
+        /// <param name="gAcc"></param>
+        /// <param name="bAcc"></param>
+        /// <param name="idx"></param>
+        public static void Convert420(ReadOnlySpan<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F rAcc, ref Block8x8F gAcc, ref Block8x8F bAcc, int idx)
+        {
+            Debug.Assert(IsSupported, "AVX2 is required to run this converter");
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            var f0299 = Vector256.Create(0.299f);
+            var f0587 = Vector256.Create(0.587f);
+            var f0114 = Vector256.Create(0.114f);
+            var fn0168736 = Vector256.Create(-0.168736f);
+            var fn0331264 = Vector256.Create(-0.331264f);
+            var f128 = Vector256.Create(128f);
+            var fn0418688 = Vector256.Create(-0.418688f);
+            var fn0081312F = Vector256.Create(-0.081312F);
+            var f05 = Vector256.Create(0.5f);
+            var zero = Vector256.Create(0).AsByte();
+
+            ref Vector256<byte> rgbByteSpan = ref Unsafe.As<Rgb24, Vector256<byte>>(ref MemoryMarshal.GetReference(rgbSpan));
+            ref Vector256<float> destYRef = ref yBlock.V0;
+
+            int destOffset = (idx & 2) * 4 + (idx & 1);
+
+            ref Vector128<float> destRedRef   = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref rAcc), destOffset);
+            ref Vector128<float> destGreenRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref gAcc), destOffset);
+            ref Vector128<float> destBlueRef  = ref Unsafe.Add(ref Unsafe.As<Block8x8F, Vector128<float>>(ref bAcc), destOffset);
+
+            var extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(MoveFirst24BytesToSeparateLanes));
+            var extractRgbMask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ExtractRgb));
+            Vector256<byte> rgb, rg, bx;
+            Vector256<float> r, g, b;
+
+            Span<Vector256<float>> rDataLanes = stackalloc Vector256<float>[4];
+            Span<Vector256<float>> gDataLanes = stackalloc Vector256<float>[4];
+            Span<Vector256<float>> bDataLanes = stackalloc Vector256<float>[4];
+
+            const int bytesPerRgbStride = 24;
+            for (int i = 0; i < 2; i++)
+            {
+                // each 4 lanes - [0, 1, 2, 3] & [4, 5, 6, 7]
+                for (int j = 0; j < 4; j++)
+                {
+                    rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * (i * 4 + j))).AsUInt32(), extractToLanesMask).AsByte();
+
+                    rgb = Avx2.Shuffle(rgb, extractRgbMask);
+
+                    rg = Avx2.UnpackLow(rgb, zero);
+                    bx = Avx2.UnpackHigh(rgb, zero);
+
+                    r = Avx.ConvertToVector256Single(Avx2.UnpackLow(rg, zero).AsInt32());
+                    g = Avx.ConvertToVector256Single(Avx2.UnpackHigh(rg, zero).AsInt32());
+                    b = Avx.ConvertToVector256Single(Avx2.UnpackLow(bx, zero).AsInt32());
+
+                    // (0.299F * r) + (0.587F * g) + (0.114F * b);
+                    Unsafe.Add(ref destYRef, i * 4 + j) = SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f0114, b), f0587, g), f0299, r);
+
+                    rDataLanes[j] = r;
+                    gDataLanes[j] = g;
+                    bDataLanes[j] = b;
+                }
+
+                int localDestOffset = (i & 1) * 4;
+
+                // red
+                Vector256<float> twoLane = Scale_8x4_4x2(rDataLanes);
+                Unsafe.Add(ref destRedRef, localDestOffset) = twoLane.GetLower();
+                Unsafe.Add(ref destRedRef, localDestOffset + 2) = twoLane.GetUpper();
+
+                // green
+                twoLane = Scale_8x4_4x2(gDataLanes);
+                Unsafe.Add(ref destGreenRef, localDestOffset) = twoLane.GetLower();
+                Unsafe.Add(ref destGreenRef, localDestOffset + 2) = twoLane.GetUpper();
+
+                // blue
+                twoLane = Scale_8x4_4x2(bDataLanes);
+                Unsafe.Add(ref destBlueRef, localDestOffset) = twoLane.GetLower();
+                Unsafe.Add(ref destBlueRef, localDestOffset + 2) = twoLane.GetUpper();
+            }
+#endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<float> Scale_8x4_4x2(Span<Vector256<float>> v)
+        {
+            Vector256<int> switchInnerDoubleWords = Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskSwitchInnerDWords8x32));
+            var f025 = Vector256.Create(0.25f);
+
+            Vector256<float> topPairSum = SumHorizontalPairs(v[0], v[1]);
+            Vector256<float> botPairSum = SumHorizontalPairs(v[2], v[3]);
+
+            return Avx2.PermuteVar8x32(Avx.Multiply(SumVerticalPairs(topPairSum, botPairSum), f025), switchInnerDoubleWords);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<float> SumHorizontalPairs(Vector256<float> v0, Vector256<float> v1)
+            => Avx.Add(Avx.Shuffle(v0, v1, 0b10_00_10_00), Avx.Shuffle(v0, v1, 0b11_01_11_01));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<float> SumVerticalPairs(Vector256<float> v0, Vector256<float> v1)
+            => Avx.Add(Avx.Shuffle(v0, v1, 0b01_00_01_00), Avx.Shuffle(v0, v1, 0b11_10_11_10));
+
+        public static void ConvertCbCr(ref Block8x8F rBlock, ref Block8x8F gBlock, ref Block8x8F bBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
+        {
+            var fn0168736 = Vector256.Create(-0.168736f);
+            var fn0331264 = Vector256.Create(-0.331264f);
+            var f128 = Vector256.Create(128f);
+            var fn0418688 = Vector256.Create(-0.418688f);
+            var fn0081312F = Vector256.Create(-0.081312F);
+            var f05 = Vector256.Create(0.5f);
+
+            ref Vector256<float> destCbRef = ref cbBlock.V0;
+            ref Vector256<float> destCrRef = ref crBlock.V0;
+
+            ref Vector256<float> rRef = ref rBlock.V0;
+            ref Vector256<float> gRef = ref gBlock.V0;
+            ref Vector256<float> bRef = ref bBlock.V0;
+
+            for (int i = 0; i < 8; i++)
+            {
+                ref Vector256<float> r = ref Unsafe.Add(ref rRef, i);
+                ref Vector256<float> g = ref Unsafe.Add(ref gRef, i);
+                ref Vector256<float> b = ref Unsafe.Add(ref bRef, i);
+
+                // 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b))
+                Unsafe.Add(ref destCbRef, i) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
+
+                // 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b))
+                Unsafe.Add(ref destCrRef, i) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
+            }
         }
     }
 }

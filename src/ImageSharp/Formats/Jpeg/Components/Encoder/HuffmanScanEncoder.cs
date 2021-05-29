@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(frame, x, y, ref currentRows);
+                    pixelConverter.Convert444(frame, x, y, ref currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -123,9 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Block8x8F b = default;
-            Span<Block8x8F> cb = stackalloc Block8x8F[4];
-            Span<Block8x8F> cr = stackalloc Block8x8F[4];
+            Span<Block8x8F> temporalBlocks = stackalloc Block8x8F[2];
 
             var unzig = ZigZag.CreateUnzigTable();
 
@@ -148,32 +146,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         int yOff = (i & 2) * 4;
 
                         currentRows.Update(pixelBuffer, y + yOff);
-                        pixelConverter.Convert(frame, x + xOff, y + yOff, ref currentRows);
-
-                        cb[i] = pixelConverter.Cb;
-                        cr[i] = pixelConverter.Cr;
+                        pixelConverter.Convert420(frame, x + xOff, y + yOff, ref currentRows, ref temporalBlocks[0], i);
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
-                            ref pixelConverter.Y,
+                            ref temporalBlocks[0],
                             ref luminanceQuantTable,
                             ref unzig);
                     }
 
-                    Block8x8F.Scale16X16To8X8(ref b, cb);
+                    pixelConverter.ConvertCbCr(ref temporalBlocks[0], ref temporalBlocks[1]);
+
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
-                        ref b,
+                        ref temporalBlocks[0],
                         ref chrominanceQuantTable,
                         ref unzig);
 
-                    Block8x8F.Scale16X16To8X8(ref b, cr);
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
-                        ref b,
+                        ref temporalBlocks[1],
                         ref chrominanceQuantTable,
                         ref unzig);
                 }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -42,14 +43,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Temporal RGB block
         /// </summary>
-        private GenericBlock8x8<Rgb24> rgbBlock;
+        private Span<Rgb24> rgbSpan;
 
         public static YCbCrForwardConverter<TPixel> Create()
         {
             var result = default(YCbCrForwardConverter<TPixel>);
+
+            // creating rgb pixel bufferr
+            // TODO: this is subject to discuss
+            result.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[200].AsSpan());
+
+            // Avoid creating lookup tables, when vectorized converter is supported
             if (!RgbToYCbCrConverterVectorized.IsSupported)
             {
-                // Avoid creating lookup tables, when vectorized converter is supported
                 result.colorTables = RgbToYCbCrConverterLut.Create();
             }
 
@@ -63,8 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, ref currentRows);
 
-            Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
-            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), rgbSpan);
+            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), this.rgbSpan);
 
             ref Block8x8F yBlock = ref this.Y;
             ref Block8x8F cbBlock = ref this.Cb;
@@ -72,11 +77,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             if (RgbToYCbCrConverterVectorized.IsSupported)
             {
-                RgbToYCbCrConverterVectorized.Convert(rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+                RgbToYCbCrConverterVectorized.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
             }
             else
             {
-                this.colorTables.Convert(rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+                this.colorTables.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
             }
         }
     }

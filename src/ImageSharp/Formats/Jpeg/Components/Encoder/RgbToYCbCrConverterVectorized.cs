@@ -34,12 +34,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0
         };
 
-        private static ReadOnlySpan<byte> MoveLast24BytesToSeparateLanes => new byte[]
-        {
-            2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
-            5, 0, 0, 0, 6, 0, 0, 0, 7, 0, 0, 0, 1, 0, 0, 0
-        };
-
         private static ReadOnlySpan<byte> ExtractRgb => new byte[]
         {
             0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -102,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Extra mask & separate stride:7 calculations can be eliminated by simply providing rgb pixel span of slightly bigger size than pixels data need:
             // Total pixel data size is 192 bytes, avx registers need it to be 200 bytes
             const int bytesPerRgbStride = 24;
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < 8; i++)
             {
                 rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
 
@@ -124,26 +118,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 // 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b))
                 Unsafe.Add(ref destCrRef, i) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
             }
-
-            extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(MoveLast24BytesToSeparateLanes));
-            rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)160).AsUInt32(), extractToLanesMask).AsByte();
-            rgb = Avx2.Shuffle(rgb, extractRgbMask);
-
-            rg = Avx2.UnpackLow(rgb, zero);
-            bx = Avx2.UnpackHigh(rgb, zero);
-
-            r = Avx.ConvertToVector256Single(Avx2.UnpackLow(rg, zero).AsInt32());
-            g = Avx.ConvertToVector256Single(Avx2.UnpackHigh(rg, zero).AsInt32());
-            b = Avx.ConvertToVector256Single(Avx2.UnpackLow(bx, zero).AsInt32());
-
-            // (0.299F * r) + (0.587F * g) + (0.114F * b);
-            Unsafe.Add(ref destYRef, 7) = SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f0114, b), f0587, g), f0299, r);
-
-            // 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b))
-            Unsafe.Add(ref destCbRef, 7) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
-
-            // 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b))
-            Unsafe.Add(ref destCrRef, 7) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
 #endif
         }
     }

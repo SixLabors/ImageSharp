@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Convert(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows)
         {
             Memory.Buffer2D<TPixel> buffer = frame.PixelBuffer;
-            LoadAndStretchEdges(currentRows, this.pixelSpan, x, buffer.Width - x, buffer.Height - y, new Size(8));
+            LoadAndStretchEdges(currentRows, this.pixelSpan, x, y, new Size(8), new Size(buffer.Width, buffer.Height));
 
             PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelSpan, this.rgbSpan);
 
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Convert420(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows, int idx)
         {
             Memory.Buffer2D<TPixel> buffer = frame.PixelBuffer;
-            LoadAndStretchEdges(currentRows, this.pixelSpan, x, Math.Min(16, buffer.Width - x), Math.Min(8, buffer.Height - y), new Size(16, 8));
+            LoadAndStretchEdges(currentRows, this.pixelSpan, x, y, new Size(16, 8), new Size(buffer.Width, buffer.Height));
 
             PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelSpan, this.rgbSpan);
 
@@ -116,10 +116,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
 
-        private static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, int startX, int width, int height, Size areaSize)
+        private static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, int startX, int startY, Size areaSize, Size borders)
         {
-            DebugGuard.MustBeBetweenOrEqualTo(width, 1, areaSize.Width, nameof(width));
-            DebugGuard.MustBeBetweenOrEqualTo(height, 1, areaSize.Height, nameof(height));
+            int width = Math.Min(areaSize.Width, borders.Width - startX);
+            int height = Math.Min(areaSize.Height, borders.Height - startY);
 
             uint byteWidth = (uint)(width * Unsafe.SizeOf<TPixel>());
             int remainderXCount = areaSize.Width - width;

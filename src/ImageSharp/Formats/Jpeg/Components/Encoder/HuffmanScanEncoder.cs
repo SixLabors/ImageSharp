@@ -125,13 +125,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             var unzig = ZigZag.CreateUnzigTable();
 
-            var pixelConverter = YCbCrForwardConverter420<TPixel>.Create();
-
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
             RowOctet<TPixel> currentRows = default;
+
+            var pixelConverter = new YCbCrForwardConverter420<TPixel>(frame);
 
             for (int y = 0; y < pixels.Height; y += 16)
             {
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     {
                         int yOff = i * 8;
                         currentRows.Update(pixelBuffer, y + yOff);
-                        pixelConverter.Convert(frame, x, y, ref currentRows, i);
+                        pixelConverter.Convert(x, y, ref currentRows, i);
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,

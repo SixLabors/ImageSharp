@@ -27,9 +27,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
         }
 
+        public static int AvxRegisterRgbCompatibilityPadding
+        {
+            get
+            {
+                if (IsSupported)
+                {
+                    return 8;
+                }
+
+                return 0;
+            }
+        }
+
 #if SUPPORTS_RUNTIME_INTRINSICS
-        // TODO: documentation
-        public const int AvxRegisterRgbCompatibilityOffset = 8;
 
         private static ReadOnlySpan<byte> MoveFirst24BytesToSeparateLanes => new byte[]
         {
@@ -305,7 +316,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 #endif
         }
-
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

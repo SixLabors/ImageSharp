@@ -71,10 +71,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            var pixelConverter = YCbCrForwardConverter444<TPixel>.Create();
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
             RowOctet<TPixel> currentRows = default;
+
+            var pixelConverter = new YCbCrForwardConverter444<TPixel>(frame);
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(frame, x, y, ref currentRows);
+                    pixelConverter.Convert(x, y, ref currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,

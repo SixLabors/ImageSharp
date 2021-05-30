@@ -115,17 +115,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
         }
 
-        // TODO: add DebugGuard checks?
+
         private static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, int startX, int width, int height, Size areaSize)
         {
-            //Guard.MustBeBetweenOrEqualTo(width, 1, 8, nameof(width));
-            //Guard.MustBeBetweenOrEqualTo(height, 1, 8, nameof(width));
-
-            // TODO: this is a strange check, most likely it was introduces due to 2x 8x8 blocks subsampling, should be gone after new 4:2:0 implementation
-            if (width <= 0 || height <= 0)
-            {
-                return;
-            }
+            DebugGuard.MustBeBetweenOrEqualTo(width, 1, areaSize.Width, nameof(width));
+            DebugGuard.MustBeBetweenOrEqualTo(height, 1, areaSize.Height, nameof(height));
 
             uint byteWidth = (uint)(width * Unsafe.SizeOf<TPixel>());
             int remainderXCount = areaSize.Width - width;

@@ -28,6 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        // TODO: documentation
+        public const int AvxRegisterRgbCompatibilityOffset = 8;
+
         private static ReadOnlySpan<byte> MoveFirst24BytesToSeparateLanes => new byte[]
         {
             0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0,
@@ -205,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Converts 16x8 Rgb24 pixels matrix to 2 Y 8x8 matrices with 4:2:0 subsampling
         /// </summary>
-        public static void Convert420_16x8(ReadOnlySpan<Rgb24> rgbSpan, Span<Block8x8F> yBlocks, ref Block8x8F cbBlock, ref Block8x8F crBlock, int row)
+        public static void Convert420_16x8(ReadOnlySpan<Rgb24> rgbSpan, ref Block8x8F yBlockLeft, ref Block8x8F yBlockRight, ref Block8x8F cbBlock, ref Block8x8F crBlock, int row)
         {
             Debug.Assert(IsSupported, "AVX2 is required to run this converter");
 
@@ -241,7 +244,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             for (int i = 0; i < 4; i++)
             {
                 // 16x2 => 8x1
-                for (int j = 0; j < 4; j++)
+                // left 8x8 column conversions
+                for (int j = 0; j < 4; j += 2)
                 {
                     rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * (i * 4 + j))).AsUInt32(), extractToLanesMask).AsByte();
 
@@ -257,7 +261,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     int yBlockVerticalOffset = (i * 2) + ((j & 2) >> 1);
 
                     // (0.299F * r) + (0.587F * g) + (0.114F * b);
-                    Unsafe.Add(ref yBlocks[j & 1].V0, yBlockVerticalOffset) = SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f0114, b), f0587, g), f0299, r);
+                    Unsafe.Add(ref yBlockLeft.V0, yBlockVerticalOffset) = SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f0114, b), f0587, g), f0299, r);
+
+                    rDataLanes[j] = r;
+                    gDataLanes[j] = g;
+                    bDataLanes[j] = b;
+                }
+
+                // 16x2 => 8x1
+                // right 8x8 column conversions
+                for (int j = 1; j < 4; j += 2)
+                {
+                    rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * (i * 4 + j))).AsUInt32(), extractToLanesMask).AsByte();
+
+                    rgb = Avx2.Shuffle(rgb, extractRgbMask);
+
+                    rg = Avx2.UnpackLow(rgb, zero);
+                    bx = Avx2.UnpackHigh(rgb, zero);
+
+                    r = Avx.ConvertToVector256Single(Avx2.UnpackLow(rg, zero).AsInt32());
+                    g = Avx.ConvertToVector256Single(Avx2.UnpackHigh(rg, zero).AsInt32());
+                    b = Avx.ConvertToVector256Single(Avx2.UnpackLow(bx, zero).AsInt32());
+
+                    int yBlockVerticalOffset = (i * 2) + ((j & 2) >> 1);
+
+                    // (0.299F * r) + (0.587F * g) + (0.114F * b);
+                    Unsafe.Add(ref yBlockRight.V0, yBlockVerticalOffset) = SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f0114, b), f0587, g), f0299, r);
 
                     rDataLanes[j] = r;
                     gDataLanes[j] = g;

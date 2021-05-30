@@ -16,6 +16,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     internal ref struct YCbCrForwardConverter444<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // TODO: documentation
+        private const int RgbSpanByteSize = 8 * 8 * 3;
+        // TODO: documentation
+        private const int PixelSpanSize = 8 * 8;
+
+
         /// <summary>
         /// The Y component
         /// </summary>
@@ -37,16 +43,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private RgbToYCbCrConverterLut colorTables;
 
         /// <summary>
-        /// Temporal 8x8 block to hold TPixel data
+        /// Temporal 64-byte span to hold unconverted TPixel data
         /// </summary>
         private Span<TPixel> pixelSpan;
 
         /// <summary>
-        /// Temporal RGB block
+        /// Temporal 64-byte span to hold converted Rgb24 data
         /// </summary>
         private Span<Rgb24> rgbSpan;
-
-        public Span<Block8x8F> twinBlocksY;
 
         public static YCbCrForwardConverter444<TPixel> Create()
         {
@@ -54,12 +58,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // creating rgb pixel bufferr
             // TODO: this is subject to discuss
-            const int twoBlocksByteSizeWithPadding = 384 + 8; // converter.Convert comments for +8 padding
-            result.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[twoBlocksByteSizeWithPadding].AsSpan());
-            // TODO: this size should be configurable
-            result.pixelSpan = new TPixel[128].AsSpan();
+            // converter.Convert comments for +8 padding
+            result.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[RgbSpanByteSize + 8].AsSpan());
 
-            result.twinBlocksY = new Block8x8F[2].AsSpan();
+            // TODO: this is subject to discuss
+            result.pixelSpan = new TPixel[PixelSpanSize].AsSpan();
 
             // Avoid creating lookup tables, when vectorized converter is supported
             if (!RgbToYCbCrConverterVectorized.IsSupported)
@@ -91,27 +94,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             else
             {
                 this.colorTables.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
-            }
-        }
-
-        /// <summary>
-        /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
-        /// </summary>
-        public void Convert420(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows, int idx)
-        {
-            Memory.Buffer2D<TPixel> buffer = frame.PixelBuffer;
-            YCbCrForwardConverter<TPixel>.LoadAndStretchEdges(currentRows, this.pixelSpan, new Point(x, y), new Size(16, 8), new Size(buffer.Width, buffer.Height));
-
-            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelSpan, this.rgbSpan);
-
-            if (RgbToYCbCrConverterVectorized.IsSupported)
-            {
-                RgbToYCbCrConverterVectorized.Convert420_16x8(this.rgbSpan, this.twinBlocksY, ref this.Cb, ref this.Cr, idx);
-            }
-            else
-            {
-                throw new NotSupportedException("This is not yet implemented");
-                //this.colorTables.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
             }
         }
     }

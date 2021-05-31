@@ -4,7 +4,7 @@
 // ReSharper disable InconsistentNaming
 using System;
 using System.IO;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -37,6 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(SmallRgbDeflate, 24, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Calliphora_GrayscaleUncompressed, 8, 804, 1198, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(Flower4BitPalette, 4, 73, 43, 72, 72, PixelResolutionUnit.PixelsPerInch)]
         public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
@@ -90,6 +91,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgb4BitPalette, PixelTypes.Rgba32)]
+        [WithFile(Flower4BitPalette, PixelTypes.Rgba32)]
+        [WithFile(Flower4BitPaletteGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_4Bit_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsWindows)
+            {
+                TestTiffDecoder(provider, new SystemDrawingReferenceDecoder(), useExactComparer: false, 0.01f);
+            }
+        }
 
         [Theory]
         [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]
@@ -155,12 +169,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, ReferenceDecoder);
         }
 
-        private static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider)
+        private static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider, IImageDecoder referenceDecoder = null, bool useExactComparer = true, float compareTolerance = 0.001f)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage(TiffDecoder);
             image.DebugSave(provider);
-            image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
+            image.CompareToOriginal(
+                provider,
+                useExactComparer ? ImageComparer.Exact : ImageComparer.Tolerant(compareTolerance),
+                referenceDecoder ?? ReferenceDecoder);
         }
     }
 }

@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
             {
-                DebugGuard.IsTrue(plane == -1, "Excepted Chunky planar.");
+                DebugGuard.IsTrue(plane == -1, "Expected Chunky planar.");
                 bitsPerPixel = this.BitsPerPixel;
             }
             else

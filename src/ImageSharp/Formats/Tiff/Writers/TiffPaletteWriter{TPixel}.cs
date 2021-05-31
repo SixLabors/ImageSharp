@@ -55,23 +55,38 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <inheritdoc />
         protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
         {
-            Span<byte> pixels = GetStripPixels(((IPixelSource)this.quantizedImage).PixelBuffer, y, height);
+            Span<byte> indexedPixels = GetStripPixels(((IPixelSource)this.quantizedImage).PixelBuffer, y, height);
             if (this.BitsPerPixel == 4)
             {
-                using IMemoryOwner<byte> rows4bitBuffer = this.MemoryAllocator.Allocate<byte>(pixels.Length / 2);
+                int width = this.Image.Width;
+                int excess = (width % 2) * height;
+                int rows4BitBufferLength = indexedPixels.Length + excess;
+                using IMemoryOwner<byte> rows4bitBuffer = this.MemoryAllocator.Allocate<byte>(rows4BitBufferLength);
                 Span<byte> rows4bit = rows4bitBuffer.GetSpan();
-                int idx = 0;
-                for (int i = 0; i < rows4bit.Length; i++)
+                int idxPixels = 0;
+                int idx4bitRows = 0;
+                int halfWidth = width / 2;
+                for (int row = 0; row < height; row++)
                 {
-                    rows4bit[i] = (byte)((pixels[idx] << 4) | (pixels[idx + 1] & 0xF));
-                    idx += 2;
+                    for (int x = 0; x < halfWidth; x++)
+                    {
+                        rows4bit[idx4bitRows] = (byte)((indexedPixels[idxPixels] << 4) | (indexedPixels[idxPixels + 1] & 0xF));
+                        idxPixels += 2;
+                        idx4bitRows++;
+                    }
+
+                    // Make sure rows are byte-aligned.
+                    if (width % 2 != 0)
+                    {
+                        rows4bit[idx4bitRows++] = (byte)(indexedPixels[idxPixels++] << 4);
+                    }
                 }
 
-                compressor.CompressStrip(rows4bit, height);
+                compressor.CompressStrip(rows4bit.Slice(0, idx4bitRows), height);
             }
             else
             {
-                compressor.CompressStrip(pixels, height);
+                compressor.CompressStrip(indexedPixels, height);
             }
         }
 
@@ -91,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             PixelOperations<TPixel>.Instance.ToRgb48(this.Configuration, quantizedColors, quantizedColorRgb48);
 
             // It can happen that the quantized colors are less than the expected maximum per channel.
-            var diffToMaxColors = this.maxColors - quantizedColors.Length;
+            int diffToMaxColors = this.maxColors - quantizedColors.Length;
 
             // In a TIFF ColorMap, all the Red values come first, followed by the Green values,
             // then the Blue values. Convert the quantized palette to this format.

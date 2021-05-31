@@ -459,10 +459,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             private readonly Configuration configuration;
             private readonly MemoryAllocator memoryAllocator;
 
-            // Used for storing the minimum value for each CDF entry.
+            /// <summary>
+            /// Used for storing the minimum value for each CDF entry.
+            /// </summary>
             private readonly Buffer2D<int> cdfMinBuffer2D;
 
-            // Used for storing the LUT for each CDF entry.
+            /// <summary>
+            /// Used for storing the LUT for each CDF entry.
+            /// </summary>
             private readonly Buffer2D<int> cdfLutBuffer2D;
             private readonly int pixelsInTile;
             private readonly int sourceWidth;
@@ -596,6 +600,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         int y = this.tileYStartPositions[index].y;
                         int endY = Math.Min(y + this.tileHeight, this.sourceHeight);
                         Span<int> cdfMinSpan = this.cdfMinBuffer2D.GetRowSpan(cdfY);
+                        cdfMinSpan.Clear();
 
                         using IMemoryOwner<int> histogramBuffer = this.allocator.Allocate<int>(this.luminanceLevels);
                         Span<int> histogram = histogramBuffer.GetSpan();

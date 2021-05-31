@@ -141,6 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         /// See: https://github.com/SixLabors/ImageSharp/pull/984
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <param name="provider">The test image provider.</param>
         [Theory]
         [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
         [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]
@@ -161,6 +162,44 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
+        }
+
+        [Theory]
+        [WithTestPatternImages(5120, 9234, PixelTypes.L16)]
+        public unsafe void Issue1640<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            // https://github.com/SixLabors/ImageSharp/discussions/1640
+            // Test using isolated memory to ensure clean buffers for reference
+            provider.Configuration = Configuration.CreateDefaultInstance();
+            var options = new HistogramEqualizationOptions
+            {
+                Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                LuminanceLevels = 4096,
+                ClipHistogram = false,
+                ClipLimit = 350,
+                NumberOfTiles = 8
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> referenceResult = image.Clone(ctx =>
+            {
+                ctx.HistogramEqualization(options);
+                ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
+            });
+
+            using Image<TPixel> processed = image.Clone(ctx =>
+            {
+                ctx.HistogramEqualization(options);
+                ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
+            });
+
+            ValidatorComparer.VerifySimilarity(referenceResult, processed);
         }
     }
 }

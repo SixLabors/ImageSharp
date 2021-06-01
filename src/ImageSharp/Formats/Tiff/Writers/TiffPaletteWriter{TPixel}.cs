@@ -59,13 +59,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             if (this.BitsPerPixel == 4)
             {
                 int width = this.Image.Width;
-                int excess = (width % 2) * height;
-                int rows4BitBufferLength = (width / 2 * height) + excess;
+                int halfWidth = width >> 1;
+                int excess = (width & 1) * height; // (width % 2) * height
+                int rows4BitBufferLength = (halfWidth * height) + excess;
                 using IMemoryOwner<byte> rows4bitBuffer = this.MemoryAllocator.Allocate<byte>(rows4BitBufferLength);
                 Span<byte> rows4bit = rows4bitBuffer.GetSpan();
                 int idxPixels = 0;
                 int idx4bitRows = 0;
-                int halfWidth = width / 2;
                 for (int row = 0; row < height; row++)
                 {
                     for (int x = 0; x < halfWidth; x++)

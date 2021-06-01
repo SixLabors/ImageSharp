@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         Bit8 = 8,
 
         /// <summary>
+        /// Twelve bits per sample, each channel has 4 bits.
+        /// </summary>
+        Bit12 = 12,
+
+        /// <summary>
         /// 24 bits per sample, each color channel has 8 Bits.
         /// </summary>
         Bit24 = 24,

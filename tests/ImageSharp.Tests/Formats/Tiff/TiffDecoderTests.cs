@@ -106,6 +106,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(FlowerRgb444Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb444Planar, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_12Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsWindows)
+            {
+                TestTiffDecoder(provider, new SystemDrawingReferenceDecoder());
+            }
+        }
+
+        [Theory]
         [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(RgbDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(Calliphora_GrayscaleDeflate, PixelTypes.Rgba32)]

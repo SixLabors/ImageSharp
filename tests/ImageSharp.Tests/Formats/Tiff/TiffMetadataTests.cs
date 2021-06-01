@@ -288,10 +288,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal("This is Изготовитель камеры", exifProfileInput.GetValue(ExifTag.Make).Value);
             Assert.Equal("This is Авторские права", exifProfileInput.GetValue(ExifTag.Copyright).Value);
 
-            Assert.Equal(exifProfileInput.Values.Count, encodedImageExifProfile.Values.Count);
             Assert.Equal(exifProfileInput.GetValue(ExifTag.ImageDescription).Value, encodedImageExifProfile.GetValue(ExifTag.ImageDescription).Value);
             Assert.Equal(exifProfileInput.GetValue(ExifTag.Make).Value, encodedImageExifProfile.GetValue(ExifTag.Make).Value);
             Assert.Equal(exifProfileInput.GetValue(ExifTag.Copyright).Value, encodedImageExifProfile.GetValue(ExifTag.Copyright).Value);
+
+            // Note that the encoded profile has PlanarConfiguration explicitly set, which is missing in the original image profile.
+            Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration).Value);
+            Assert.Equal(exifProfileInput.Values.Count + 1, encodedImageExifProfile.Values.Count);
         }
     }
 }

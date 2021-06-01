@@ -306,7 +306,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     case TiffBitsPerPixel.Bit1:
                         if (compression == TiffCompression.Ccitt1D || compression == TiffCompression.CcittGroup3Fax || compression == TiffCompression.CcittGroup4Fax)
                         {
-                            // The ìnormalî PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
+                            // The ‚Äúnormal‚Äù PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
                             this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.WhiteIsZero, compression, TiffPredictor.None);
                             break;
                         }
@@ -318,6 +318,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         break;
                     case TiffBitsPerPixel.Bit8:
                         this.SetEncoderOptions(bitsPerPixel, photometricInterpretation ?? TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
+                        break;
+                    case TiffBitsPerPixel.Bit12:
+                        // Encoding 12 bits per pixel is not yet supported. Default to 24 bits.
+                        this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
                         break;
                     default:
                         this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);

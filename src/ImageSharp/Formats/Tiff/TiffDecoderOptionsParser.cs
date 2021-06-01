@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -179,7 +180,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
                     {
-                        options.ColorType = options.BitsPerSample == TiffBitsPerSample.Bit24 ? TiffColorType.Rgb888 : TiffColorType.Rgb;
+                        switch (options.BitsPerSample)
+                        {
+                            case TiffBitsPerSample.Bit24:
+                                options.ColorType = TiffColorType.Rgb888;
+                                break;
+                            case TiffBitsPerSample.Bit12:
+                                options.ColorType = TiffColorType.Rgb444;
+                                break;
+                            default:
+                                TiffThrowHelper.ThrowNotSupported("Bits per sample is nut supported.");
+                                break;
+                        }
                     }
                     else
                     {
@@ -274,8 +286,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             TiffBitsPerPixel.Bit1 => TiffBitsPerSample.Bit1,
             TiffBitsPerPixel.Bit4 => TiffBitsPerSample.Bit4,
             TiffBitsPerPixel.Bit8 => TiffBitsPerSample.Bit8,
+            TiffBitsPerPixel.Bit12 => TiffBitsPerSample.Bit12,
             TiffBitsPerPixel.Bit24 => TiffBitsPerSample.Bit24,
-            _ => TiffBitsPerSample.Bit24,
+            _ => throw new NotSupportedException("The bits per pixel are not supported"),
         };
     }
 }

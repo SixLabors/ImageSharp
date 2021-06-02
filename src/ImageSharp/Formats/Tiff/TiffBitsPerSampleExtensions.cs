@@ -43,9 +43,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (bitsPerSample.Length)
             {
                 case 3:
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSampleRgb8Bit[0] &&
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb8Bit[2] &&
                         bitsPerSample[1] == TiffConstants.BitsPerSampleRgb8Bit[1] &&
-                        bitsPerSample[2] == TiffConstants.BitsPerSampleRgb8Bit[2])
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb8Bit[0])
                     {
                         return TiffBitsPerSample.Bit24;
                     }

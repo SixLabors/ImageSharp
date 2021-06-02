@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
     public sealed class Image<TPixel> : Image
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private ImageFrameCollection<TPixel> frames;
+        private readonly ImageFrameCollection<TPixel> frames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class

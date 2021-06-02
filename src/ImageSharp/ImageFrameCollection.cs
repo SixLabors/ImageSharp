@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp
 {
@@ -198,14 +199,14 @@ namespace SixLabors.ImageSharp
         {
             if (this.isDisposed)
             {
-                ThrowHelper.ThrowObjectDisposedException(this.GetType());
+                ThrowObjectDisposedException(this.GetType());
             }
         }
 
         /// <summary>
-        /// Internal routine for freeing managed resources called from <see cref="Dispose"/>
+        /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        /// /// /// <param name="disposing">Whether to dispose of managed objects.</param>
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
         protected abstract void Dispose(bool disposing);
 
         /// <summary>
@@ -262,5 +263,8 @@ namespace SixLabors.ImageSharp
         /// <param name="backgroundColor">The background color.</param>
         /// <returns>The new frame.</returns>
         protected abstract ImageFrame NonGenericCreateFrame(Color backgroundColor);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowObjectDisposedException(Type type) => throw new ObjectDisposedException(type.Name);
     }
 }

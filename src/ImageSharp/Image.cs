@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
@@ -149,9 +150,9 @@ namespace SixLabors.ImageSharp
         protected void UpdateSize(Size size) => this.size = size;
 
         /// <summary>
-        /// Internal routine for freeing managed resources called from <see cref="Dispose"/>
+        /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        /// /// <param name="disposing">Whether to dispose of managed objects.</param>
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
         protected abstract void Dispose(bool disposing);
 
         /// <summary>
@@ -161,7 +162,7 @@ namespace SixLabors.ImageSharp
         {
             if (this.isDisposed)
             {
-                ThrowHelper.ThrowObjectDisposedException(this.GetType());
+                ThrowObjectDisposedException(this.GetType());
             }
         }
 
@@ -181,6 +182,9 @@ namespace SixLabors.ImageSharp
         /// <param name="visitor">The visitor.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         internal abstract Task AcceptAsync(IImageVisitorAsync visitor, CancellationToken cancellationToken);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowObjectDisposedException(Type type) => throw new ObjectDisposedException(type.Name);
 
         private class EncodeVisitor : IImageVisitor, IImageVisitorAsync
         {

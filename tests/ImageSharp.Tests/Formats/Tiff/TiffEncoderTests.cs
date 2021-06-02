@@ -78,6 +78,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [InlineData(TiffBitsPerPixel.Bit12)]
+        public void EncoderOptions_UnsupportedBitPerPixel_DefaultTo24Bits(TiffBitsPerPixel bitsPerPixel)
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder { BitsPerPixel = bitsPerPixel };
+            using Image input = new Image<Rgb24>(10, 10);
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(TiffBitsPerPixel.Bit24, frameMetaData.BitsPerPixel);
+        }
+
+        [Theory]
         [InlineData(null, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
         [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate, TiffBitsPerPixel.Bit8, TiffCompression.Deflate)]
@@ -300,8 +320,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Flower4BitPaletteGray, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_With4Bit_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            //// Note: The magick reference decoder does not support 4 bit tiff's, so we use our TIFF decoder instead.
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.003f, imageDecoder: new TiffDecoder());
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.003f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]

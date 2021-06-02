@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp
 {
@@ -11,8 +12,10 @@ namespace SixLabors.ImageSharp
     /// Encapsulates a pixel-agnostic collection of <see cref="ImageFrame"/> instances
     /// that make up an <see cref="Image"/>.
     /// </summary>
-    public abstract class ImageFrameCollection : IEnumerable<ImageFrame>
+    public abstract class ImageFrameCollection : IDisposable, IEnumerable<ImageFrame>
     {
+        private bool isDisposed;
+
         /// <summary>
         /// Gets the number of frames.
         /// </summary>
@@ -21,7 +24,15 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        public ImageFrame RootFrame => this.NonGenericRootFrame;
+        public ImageFrame RootFrame
+        {
+            get
+            {
+                this.EnsureNotDisposed();
+
+                return this.NonGenericRootFrame;
+            }
+        }
 
         /// <summary>
         /// Gets the root frame. (Implements <see cref="RootFrame"/>.)
@@ -36,7 +47,15 @@ namespace SixLabors.ImageSharp
         /// </value>
         /// <param name="index">The index.</param>
         /// <returns>The <see cref="ImageFrame"/> at the specified index.</returns>
-        public ImageFrame this[int index] => this.NonGenericGetFrame(index);
+        public ImageFrame this[int index]
+        {
+            get
+            {
+                this.EnsureNotDisposed();
+
+                return this.NonGenericGetFrame(index);
+            }
+        }
 
         /// <summary>
         /// Determines the index of a specific <paramref name="frame"/> in the <seealso cref="ImageFrameCollection"/>.
@@ -52,14 +71,24 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The <seealso cref="ImageFrame"/> to clone and insert into the <seealso cref="ImageFrameCollection"/>.</param>
         /// <exception cref="ArgumentException">Frame must have the same dimensions as the image.</exception>
         /// <returns>The cloned <see cref="ImageFrame"/>.</returns>
-        public ImageFrame InsertFrame(int index, ImageFrame source) => this.NonGenericInsertFrame(index, source);
+        public ImageFrame InsertFrame(int index, ImageFrame source)
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericInsertFrame(index, source);
+        }
 
         /// <summary>
         /// Clones the <paramref name="source"/> frame and appends the clone to the end of the collection.
         /// </summary>
         /// <param name="source">The raw pixel data to generate the <seealso cref="ImageFrame{TPixel}"/> from.</param>
         /// <returns>The cloned <see cref="ImageFrame{TPixel}"/>.</returns>
-        public ImageFrame AddFrame(ImageFrame source) => this.NonGenericAddFrame(source);
+        public ImageFrame AddFrame(ImageFrame source)
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericAddFrame(source);
+        }
 
         /// <summary>
         /// Removes the frame at the specified index and frees all freeable resources associated with it.
@@ -91,7 +120,12 @@ namespace SixLabors.ImageSharp
         /// <param name="index">The zero-based index of the frame to export.</param>
         /// <exception cref="InvalidOperationException">Cannot remove last frame.</exception>
         /// <returns>The new <see cref="Image{TPixel}"/> with the specified frame.</returns>
-        public Image ExportFrame(int index) => this.NonGenericExportFrame(index);
+        public Image ExportFrame(int index)
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericExportFrame(index);
+        }
 
         /// <summary>
         /// Creates an <see cref="Image{T}"/> with only the frame at the specified index
@@ -99,7 +133,12 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="index">The zero-based index of the frame to clone.</param>
         /// <returns>The new <see cref="Image{TPixel}"/> with the specified frame.</returns>
-        public Image CloneFrame(int index) => this.NonGenericCloneFrame(index);
+        public Image CloneFrame(int index)
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericCloneFrame(index);
+        }
 
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.
@@ -107,7 +146,12 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public ImageFrame CreateFrame() => this.NonGenericCreateFrame();
+        public ImageFrame CreateFrame()
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericCreateFrame();
+        }
 
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.
@@ -116,13 +160,54 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public ImageFrame CreateFrame(Color backgroundColor) => this.NonGenericCreateFrame(backgroundColor);
+        public ImageFrame CreateFrame(Color backgroundColor)
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericCreateFrame(backgroundColor);
+        }
 
         /// <inheritdoc />
-        public IEnumerator<ImageFrame> GetEnumerator() => this.NonGenericGetEnumerator();
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+
+            this.isDisposed = true;
+        }
+
+        /// <inheritdoc />
+        public IEnumerator<ImageFrame> GetEnumerator()
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericGetEnumerator();
+        }
 
         /// <inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+
+        /// <summary>
+        /// Throws <see cref="ObjectDisposedException"/> if the image frame is disposed.
+        /// </summary>
+        protected void EnsureNotDisposed()
+        {
+            if (this.isDisposed)
+            {
+                ThrowObjectDisposedException(this.GetType());
+            }
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
+        protected abstract void Dispose(bool disposing);
 
         /// <summary>
         /// Implements <see cref="GetEnumerator"/>.
@@ -178,5 +263,8 @@ namespace SixLabors.ImageSharp
         /// <param name="backgroundColor">The background color.</param>
         /// <returns>The new frame.</returns>
         protected abstract ImageFrame NonGenericCreateFrame(Color backgroundColor);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowObjectDisposedException(Type type) => throw new ObjectDisposedException(type.Name);
     }
 }

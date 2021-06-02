@@ -50,9 +50,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         return TiffBitsPerSample.Bit24;
                     }
 
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSampleRgb4Bit[0] &&
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb4Bit[2] &&
                         bitsPerSample[1] == TiffConstants.BitsPerSampleRgb4Bit[1] &&
-                        bitsPerSample[2] == TiffConstants.BitsPerSampleRgb4Bit[2])
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb4Bit[0])
                     {
                         return TiffBitsPerSample.Bit12;
                     }

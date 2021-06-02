@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                                 options.ColorType = TiffColorType.Rgb444;
                                 break;
                             default:
-                                TiffThrowHelper.ThrowNotSupported("Bits per sample is nut supported.");
+                                TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
                                 break;
                         }
                     }

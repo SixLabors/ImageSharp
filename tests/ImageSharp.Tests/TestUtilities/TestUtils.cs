@@ -7,7 +7,6 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -354,7 +353,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        public static string AsInvariantString(this FormattableString formattable) => System.FormattableString.Invariant(formattable);
+        public static string AsInvariantString(this FormattableString formattable) => FormattableString.Invariant(formattable);
 
         public static IResampler GetResampler(string name)
         {

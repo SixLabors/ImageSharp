@@ -1,8 +1,12 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 
 namespace SixLabors.ImageSharp.Metadata
 {
@@ -35,7 +39,33 @@ namespace SixLabors.ImageSharp.Metadata
             {
                 this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
             }
+
+            this.ExifProfile = other.ExifProfile?.DeepClone();
+            this.IccProfile = other.IccProfile?.DeepClone();
+            this.IptcProfile = other.IptcProfile?.DeepClone();
+            this.XmpProfile = other.XmpProfile != null ? new byte[other.XmpProfile.Length] : null;
+            other.XmpProfile?.AsSpan().CopyTo(this.XmpProfile.AsSpan());
         }
+
+        /// <summary>
+        /// Gets or sets the Exif profile.
+        /// </summary>
+        public ExifProfile ExifProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the XMP profile.
+        /// </summary>
+        internal byte[] XmpProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of ICC profiles.
+        /// </summary>
+        public IccProfile IccProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the iptc profile.
+        /// </summary>
+        public IptcProfile IptcProfile { get; set; }
 
         /// <inheritdoc/>
         public ImageFrameMetadata DeepClone() => new ImageFrameMetadata(this);

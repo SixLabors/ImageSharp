@@ -7,7 +7,6 @@ using System;
 
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Filters;
-using SixLabors.ImageSharp.Tests.Formats.Png.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
@@ -141,7 +140,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 RunTest,
                 HwIntrinsics.DisableSIMD);
         }
-
 
         [Fact]
         public void UpAvx2()

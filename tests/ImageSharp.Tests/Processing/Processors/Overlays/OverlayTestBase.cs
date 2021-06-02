@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
 {
+    [Trait("Category", "Processors")]
     [GroupOutput("Overlays")]
     public abstract class OverlayTestBase
     {

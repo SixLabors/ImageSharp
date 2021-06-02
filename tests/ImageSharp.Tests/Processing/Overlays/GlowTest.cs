@@ -1,14 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
+    [Trait("Category", "Processors")]
     public class GlowTest : BaseImageOperationsExtensionTest
     {
         [Fact]

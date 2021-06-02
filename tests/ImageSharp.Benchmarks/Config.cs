@@ -9,6 +9,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Reports;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
@@ -25,6 +26,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             }
 #endif
 
+            this.SummaryStyle = SummaryStyle.Default.WithMaxParameterColumnWidth(50);
         }
 
         public class MultiFramework : Config

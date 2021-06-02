@@ -142,6 +142,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
+            // TODO: We need a bulk per span equivalent.
             var vector = sourcePixel.ToVector4();
             return ColorNumerics.GetBT709Luminance(ref vector, luminanceLevels);
         }

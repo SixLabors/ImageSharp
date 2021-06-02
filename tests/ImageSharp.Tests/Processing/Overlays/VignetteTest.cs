@@ -3,11 +3,11 @@
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
+    [Trait("Category", "Processors")]
     public class VignetteTest : BaseImageOperationsExtensionTest
     {
         [Fact]

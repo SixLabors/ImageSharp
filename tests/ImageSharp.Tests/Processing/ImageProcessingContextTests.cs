@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Moq;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -12,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
     /// <summary>
     /// Contains test cases for default <see cref="IImageProcessingContext"/> implementation.
     /// </summary>
-    public class ImageProcessingContextTests
+    public class ImageProcessingContextTests : IDisposable
     {
         private readonly Image image = new Image<Rgba32>(10, 10);
 
@@ -195,5 +196,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
                 .Setup(p => p.CreatePixelSpecificProcessor(Configuration.Default, It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
                 .Returns(this.cloningProcessorImpl.Object);
         }
+
+        public void Dispose() => this.image?.Dispose();
     }
 }

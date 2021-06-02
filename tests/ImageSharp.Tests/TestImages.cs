@@ -558,6 +558,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbPalette = "Tiff/rgb_palette.tiff";
             public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
             public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
+            public const string Flower4BitPalette = "Tiff/flower-palette-04.tiff";
+            public const string Flower4BitPaletteGray = "Tiff/flower-minisblack-04.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

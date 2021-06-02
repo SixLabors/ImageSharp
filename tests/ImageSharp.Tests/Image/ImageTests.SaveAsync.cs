@@ -4,20 +4,18 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Moq;
-using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Tests.TestUtilities;
-
     public partial class ImageTests
     {
         public class SaveAsync
@@ -43,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
             public async Task WhenExtensionIsUnknown_Throws()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
+                string file = Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
 
                 await Assert.ThrowsAsync<NotSupportedException>(
                     async () =>
@@ -59,14 +57,14 @@ namespace SixLabors.ImageSharp.Tests
             public async Task SetEncoding()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "SetEncoding.dat");
+                string file = Path.Combine(dir, "SetEncoding.dat");
 
                 using (var image = new Image<Rgba32>(10, 10))
                 {
                     await image.SaveAsync(file, new PngEncoder());
                 }
 
-                using (Image.Load(file, out var mime))
+                using (Image.Load(file, out IImageFormat mime))
                 {
                     Assert.Equal("image/png", mime.DefaultMimeType);
                 }
@@ -142,10 +140,15 @@ namespace SixLabors.ImageSharp.Tests
                 using var stream = new MemoryStream();
                 var asyncStream = new AsyncStreamWrapper(stream, () => false);
                 var cts = new CancellationTokenSource();
-                cts.CancelAfter(TimeSpan.FromTicks(1));
 
-                await Assert.ThrowsAnyAsync<TaskCanceledException>(() =>
-                    image.SaveAsync(asyncStream, encoder, cts.Token));
+                var pausedStream = new PausedStream(asyncStream);
+                pausedStream.OnWaiting(s =>
+                {
+                    cts.Cancel();
+                    pausedStream.Release();
+                });
+
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await image.SaveAsync(pausedStream, encoder, cts.Token));
             }
         }
     }

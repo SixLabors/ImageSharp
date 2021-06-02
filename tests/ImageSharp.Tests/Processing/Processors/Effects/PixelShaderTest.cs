@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
+    [Trait("Category", "Processors")]
     [GroupOutput("Effects")]
     public class PixelShaderTest
     {

@@ -11,6 +11,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
+    [Trait("Category", "Processors")]
     public class BinaryDitherTests
     {
         public static readonly string[] CommonTestImages =

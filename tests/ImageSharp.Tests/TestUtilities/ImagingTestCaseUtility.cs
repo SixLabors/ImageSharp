@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests
                 details = '_' + details;
             }
 
-            return TestUtils.AsInvariantString($"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{details}{extension}");
+            return TestUtils.AsInvariantString($"{this.GetTestOutputDir()}{Path.DirectorySeparatorChar}{this.TestName}{pixName}{fn}{details}{extension}");
         }
 
         /// <summary>

@@ -296,10 +296,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Rgb4BitPalette, PixelTypes.Rgba32)]
+        [WithFile(Flower4BitPalette, PixelTypes.Rgba32)]
+        [WithFile(Flower4BitPaletteGray, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_With4Bit_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
             //// Note: The magick reference decoder does not support 4 bit tiff's, so we use our TIFF decoder instead.
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.001f, imageDecoder: new TiffDecoder());
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.003f, imageDecoder: new TiffDecoder());
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
@@ -460,7 +462,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TiffCompression compression = TiffCompression.None,
             TiffPredictor predictor = TiffPredictor.None,
             bool useExactComparer = true,
-            float compareTolerance = 0.01f,
+            float compareTolerance = 0.001f,
             IImageDecoder imageDecoder = null)
             where TPixel : unmanaged, IPixel<TPixel>
         {

@@ -74,6 +74,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         Rgb888,
 
         /// <summary>
+        /// RGB color image with 10 bits for each channel.
+        /// </summary>
+        Rgb101010,
+
+        /// <summary>
         /// RGB Full Color. Planar configuration of data.
         /// </summary>
         RgbPlanar,

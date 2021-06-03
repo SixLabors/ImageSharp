@@ -60,9 +60,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.Rgb222:
                     DebugGuard.IsTrue(
                         bitsPerSample.Length == 3
-                        && bitsPerSample[0] == 2
+                        && bitsPerSample[2] == 2
                         && bitsPerSample[1] == 2
-                        && bitsPerSample[2] == 2,
+                        && bitsPerSample[0] == 2,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);
@@ -70,9 +70,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.Rgb444:
                     DebugGuard.IsTrue(
                         bitsPerSample.Length == 3
-                        && bitsPerSample[0] == 4
+                        && bitsPerSample[2] == 4
                         && bitsPerSample[1] == 4
-                        && bitsPerSample[2] == 4,
+                        && bitsPerSample[0] == 4,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb444TiffColor<TPixel>();
@@ -80,9 +80,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.Rgb888:
                     DebugGuard.IsTrue(
                         bitsPerSample.Length == 3
-                        && bitsPerSample[0] == 8
+                        && bitsPerSample[2] == 8
                         && bitsPerSample[1] == 8
-                        && bitsPerSample[2] == 8,
+                        && bitsPerSample[0] == 8,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb888TiffColor<TPixel>();
@@ -90,9 +90,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.Rgb101010:
                     DebugGuard.IsTrue(
                         bitsPerSample.Length == 3
-                        && bitsPerSample[0] == 10
+                        && bitsPerSample[2] == 10
                         && bitsPerSample[1] == 10
-                        && bitsPerSample[2] == 10,
+                        && bitsPerSample[0] == 10,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);
@@ -100,9 +100,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.Rgb141414:
                     DebugGuard.IsTrue(
                         bitsPerSample.Length == 3
-                        && bitsPerSample[0] == 14
+                        && bitsPerSample[2] == 14
                         && bitsPerSample[1] == 14
-                        && bitsPerSample[2] == 14,
+                        && bitsPerSample[0] == 14,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);

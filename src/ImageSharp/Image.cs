@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
@@ -19,6 +20,8 @@ namespace SixLabors.ImageSharp
     /// </summary>
     public abstract partial class Image : IImage, IConfigurationProvider
     {
+        private bool isDisposed;
+
         private Size size;
         private readonly Configuration configuration;
 
@@ -80,8 +83,15 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         public void Dispose()
         {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
             this.Dispose(true);
             GC.SuppressFinalize(this);
+
+            this.isDisposed = true;
         }
 
         /// <summary>
@@ -89,7 +99,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if the stream or encoder is null.</exception>
         public void Save(Stream stream, IImageEncoder encoder)
         {
             Guard.NotNull(stream, nameof(stream));
@@ -148,7 +158,13 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
         /// </summary>
-        internal abstract void EnsureNotDisposed();
+        internal void EnsureNotDisposed()
+        {
+            if (this.isDisposed)
+            {
+                ThrowObjectDisposedException(this.GetType());
+            }
+        }
 
         /// <summary>
         /// Accepts a <see cref="IImageVisitor"/>.
@@ -166,6 +182,9 @@ namespace SixLabors.ImageSharp
         /// <param name="visitor">The visitor.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         internal abstract Task AcceptAsync(IImageVisitorAsync visitor, CancellationToken cancellationToken);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowObjectDisposedException(Type type) => throw new ObjectDisposedException(type.Name);
 
         private class EncodeVisitor : IImageVisitor, IImageVisitorAsync
         {

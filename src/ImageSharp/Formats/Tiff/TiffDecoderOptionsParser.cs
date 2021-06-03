@@ -182,6 +182,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         switch (options.BitsPerSample)
                         {
+                            case TiffBitsPerSample.Bit42:
+                                options.ColorType = TiffColorType.Rgb141414;
+                                break;
+
                             case TiffBitsPerSample.Bit30:
                                 options.ColorType = TiffColorType.Rgb101010;
                                 break;
@@ -297,6 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             TiffBitsPerPixel.Bit12 => TiffBitsPerSample.Bit12,
             TiffBitsPerPixel.Bit24 => TiffBitsPerSample.Bit24,
             TiffBitsPerPixel.Bit30 => TiffBitsPerSample.Bit30,
+            TiffBitsPerPixel.Bit42 => TiffBitsPerSample.Bit42,
             _ => throw new NotSupportedException("The bits per pixel are not supported"),
         };
     }

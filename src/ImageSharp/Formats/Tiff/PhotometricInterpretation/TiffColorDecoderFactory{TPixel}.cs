@@ -97,6 +97,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);
 
+                case TiffColorType.Rgb141414:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Length == 3
+                        && bitsPerSample[0] == 14
+                        && bitsPerSample[1] == 14
+                        && bitsPerSample[2] == 14,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbTiffColor<TPixel>(bitsPerSample);
+
                 case TiffColorType.PaletteColor:
                     DebugGuard.NotNull(bitsPerSample, "bitsPerSample");
                     DebugGuard.NotNull(colorMap, "colorMap");

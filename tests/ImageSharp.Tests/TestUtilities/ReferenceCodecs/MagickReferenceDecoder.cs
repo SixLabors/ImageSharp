@@ -25,10 +25,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         {
         }
 
-        public MagickReferenceDecoder(bool validate)
-        {
-            this.validate = validate;
-        }
+        public MagickReferenceDecoder(bool validate) => this.validate = validate;
 
         public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
 
@@ -93,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
                     FromRgba32Bytes(configuration, data, framePixels);
                 }
-                else if (magicFrame.Depth == 16)
+                else if (magicFrame.Depth == 16 || magicFrame.Depth == 14)
                 {
                     ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
                     Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());

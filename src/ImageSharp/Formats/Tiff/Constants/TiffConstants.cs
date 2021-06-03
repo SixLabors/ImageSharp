@@ -116,6 +116,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         public static readonly ushort[] BitsPerSampleRgb10Bit = { 10, 10, 10 };
 
         /// <summary>
+        /// The bits per sample for color images with 14 bits for each color channel.
+        /// </summary>
+        public static readonly ushort[] BitsPerSampleRgb14Bit = { 14, 14, 14 };
+
+        /// <summary>
         /// The list of mimetypes that equate to a tiff.
         /// </summary>
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/tiff", "image/tiff-fx" };

@@ -31,6 +31,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return TiffConstants.BitsPerSampleRgb8Bit;
                 case TiffBitsPerSample.Bit30:
                     return TiffConstants.BitsPerSampleRgb10Bit;
+                case TiffBitsPerSample.Bit42:
+                    return TiffConstants.BitsPerSampleRgb14Bit;
 
                 default:
                     return Array.Empty<ushort>();
@@ -47,6 +49,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (bitsPerSample.Length)
             {
                 case 3:
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb14Bit[2] &&
+                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb14Bit[1] &&
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb14Bit[0])
+                    {
+                        return TiffBitsPerSample.Bit42;
+                    }
+
                     if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb10Bit[2] &&
                         bitsPerSample[1] == TiffConstants.BitsPerSampleRgb10Bit[1] &&
                         bitsPerSample[0] == TiffConstants.BitsPerSampleRgb10Bit[0])

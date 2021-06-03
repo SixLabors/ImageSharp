@@ -319,8 +319,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     case TiffBitsPerPixel.Bit8:
                         this.SetEncoderOptions(bitsPerPixel, photometricInterpretation ?? TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
                         break;
+                    case TiffBitsPerPixel.Bit6:
                     case TiffBitsPerPixel.Bit12:
-                        // Encoding 12 bits per pixel is not yet supported. Default to 24 bits.
+                        // Encoding 12 and 6 bits per pixel is not yet supported. Default to 24 bits.
                         this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
                         break;
                     default:

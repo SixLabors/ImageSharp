@@ -19,6 +19,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         Bit4 = 4,
 
         /// <summary>
+        /// 6 bits per pixel. 2 bit for each color channel.
+        ///
+        /// Note: The TiffEncoder does not yet support 2 bits per color channel and will default to 24 bits per pixel instead.
+        /// </summary>
+        Bit6 = 6,
+
+        /// <summary>
         /// 8 bits per pixel, grayscale or color palette images.
         /// </summary>
         Bit8 = 8,
@@ -26,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// 12 bits per pixel. 4 bit for each color channel.
         ///
-        /// Note: The TiffEncoder does not yet support 4 bits per color channel and will default to 24 bits per pixel.
+        /// Note: The TiffEncoder does not yet support 4 bits per color channel and will default to 24 bits per pixel instead.
         /// </summary>
         Bit12 = 12,
 

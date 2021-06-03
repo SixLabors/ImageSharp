@@ -188,6 +188,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                             case TiffBitsPerSample.Bit12:
                                 options.ColorType = TiffColorType.Rgb444;
                                 break;
+                            case TiffBitsPerSample.Bit6:
+                                options.ColorType = TiffColorType.Rgb222;
+                                break;
                             default:
                                 TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
                                 break;
@@ -285,6 +288,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             TiffBitsPerPixel.Bit1 => TiffBitsPerSample.Bit1,
             TiffBitsPerPixel.Bit4 => TiffBitsPerSample.Bit4,
+            TiffBitsPerPixel.Bit6 => TiffBitsPerSample.Bit6,
             TiffBitsPerPixel.Bit8 => TiffBitsPerSample.Bit8,
             TiffBitsPerPixel.Bit12 => TiffBitsPerSample.Bit12,
             TiffBitsPerPixel.Bit24 => TiffBitsPerSample.Bit24,

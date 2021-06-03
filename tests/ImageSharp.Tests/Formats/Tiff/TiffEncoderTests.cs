@@ -79,6 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [InlineData(TiffBitsPerPixel.Bit12)]
+        [InlineData(TiffBitsPerPixel.Bit6)]
         public void EncoderOptions_UnsupportedBitPerPixel_DefaultTo24Bits(TiffBitsPerPixel bitsPerPixel)
         {
             // arrange

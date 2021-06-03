@@ -96,14 +96,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         public static readonly ushort[] BitsPerSample8Bit = { 8 };
 
         /// <summary>
-        /// The bits per sample for color images with 8 bits for each color channel.
+        /// The bits per sample for color images with 2 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb8Bit = { 8, 8, 8 };
+        public static readonly ushort[] BitsPerSampleRgb2Bit = { 2, 2, 2 };
 
         /// <summary>
         /// The bits per sample for color images with 4 bits for each color channel.
         /// </summary>
         public static readonly ushort[] BitsPerSampleRgb4Bit = { 4, 4, 4 };
+
+        /// <summary>
+        /// The bits per sample for color images with 8 bits for each color channel.
+        /// </summary>
+        public static readonly ushort[] BitsPerSampleRgb8Bit = { 8, 8, 8 };
 
         /// <summary>
         /// The list of mimetypes that equate to a tiff.

@@ -106,8 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
             else
             {
-                throw new NotSupportedException("This is not yet implemented");
-                //this.colorTables.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+                this.colorTables.Convert(this.rgbSpan, ref this.YLeft, ref this.YRight, ref this.Cb, ref this.Cr, idx);
             }
         }
     }

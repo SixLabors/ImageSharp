@@ -115,6 +115,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConvertPixelInto(
+            int r,
+            int g,
+            int b,
+            ref Block8x8F yResult,
+            int i)
+        {
+            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
+            yResult[i] = (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConvertPixelInto(
+            int r,
+            int g,
+            int b,
+            ref Block8x8F cbResult,
+            ref Block8x8F crResult,
+            int i)
+        {
+            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
+            cbResult[i] = (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
+
+            // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
+            crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
+        }
+
         public void Convert(Span<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
         {
             ref Rgb24 rgbStart = ref rgbSpan[0];
@@ -131,6 +159,68 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     ref cbBlock,
                     ref crBlock,
                     i);
+            }
+        }
+
+        public void Convert(Span<Rgb24> rgbSpan, ref Block8x8F yBlockLeft, ref Block8x8F yBlockRight, ref Block8x8F cbBlock, ref Block8x8F crBlock, int row)
+        {
+            ref Rgb24 rgbStart = ref rgbSpan[0];
+            for (int i = 0; i < 8; i += 2)
+            {
+                Span<int> r = stackalloc int[8];
+                Span<int> g = stackalloc int[8];
+                Span<int> b = stackalloc int[8];
+
+                for (int j = 0; j < 2; j++)
+                {
+                    // left
+                    ref Rgb24 stride = ref Unsafe.Add(ref rgbStart, (i + j) * 16);
+                    for (int k = 0; k < 8; k += 2)
+                    {
+                        int r0 = Unsafe.Add(ref stride, k).R;
+                        int g0 = Unsafe.Add(ref stride, k).G;
+                        int b0 = Unsafe.Add(ref stride, k).B;
+                        this.ConvertPixelInto(r0, g0, b0, ref yBlockLeft, (i + j) * 8 + k);
+
+                        int r1 = Unsafe.Add(ref stride, k + 1).R;
+                        int g1 = Unsafe.Add(ref stride, k + 1).G;
+                        int b1 = Unsafe.Add(ref stride, k + 1).B;
+                        this.ConvertPixelInto(r1, g1, b1, ref yBlockLeft, (i + j) * 8 + k + 1);
+
+                        int idx = k / 2;
+                        r[idx] += r0 + r1;
+                        g[idx] += g0 + g1;
+                        b[idx] += b0 + b1;
+                    }
+
+                    // right
+                    stride = ref Unsafe.Add(ref stride, 8);
+                    for (int k = 0; k < 8; k += 2)
+                    {
+                        int r0 = Unsafe.Add(ref stride, k).R;
+                        int g0 = Unsafe.Add(ref stride, k).G;
+                        int b0 = Unsafe.Add(ref stride, k).B;
+                        this.ConvertPixelInto(r0, g0, b0, ref yBlockRight, (i + j) * 8 + k);
+
+                        int r1 = Unsafe.Add(ref stride, k + 1).R;
+                        int g1 = Unsafe.Add(ref stride, k + 1).G;
+                        int b1 = Unsafe.Add(ref stride, k + 1).B;
+                        this.ConvertPixelInto(r1, g1, b1, ref yBlockRight, (i + j) * 8 + k + 1);
+
+                        int idx = 4 + (k / 2);
+                        r[idx] += r0 + r1;
+                        g[idx] += g0 + g1;
+                        b[idx] += b0 + b1;
+                    }
+                }
+
+                int writeIdx =
+                    row * Block8x8F.Size / 2 // upper or lower part
+                    + (i / 2) * 8;           // which row
+                for (int j = 0; j < 8; j++)
+                {
+                    this.ConvertPixelInto(r[j] / 4, g[j] / 4, b[j] / 4, ref cbBlock, ref crBlock, writeIdx + j);
+                }
             }
         }
 

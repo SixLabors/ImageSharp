@@ -248,6 +248,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(expectedCompression, frameMetaData.Compression);
         }
 
+        // This makes sure, that when decoding a planar tiff, the planar configuration is not carried over to the encoded image.
+        [Theory]
+        [WithFile(FlowerRgb444Planar, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodePlanar_AndReload_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, imageDecoder: new TiffDecoder());
+
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_Works<TPixel>(TestImageProvider<TPixel> provider)

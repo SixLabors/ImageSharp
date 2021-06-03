@@ -293,7 +293,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(exifProfileInput.GetValue(ExifTag.Copyright).Value, encodedImageExifProfile.GetValue(ExifTag.Copyright).Value);
 
             // Note that the encoded profile has PlanarConfiguration explicitly set, which is missing in the original image profile.
-            Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration).Value);
+            Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value);
             Assert.Equal(exifProfileInput.Values.Count + 1, encodedImageExifProfile.Values.Count);
         }
     }

@@ -167,9 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Rgb24 rgbStart = ref rgbSpan[0];
             for (int i = 0; i < 8; i += 2)
             {
-                Span<int> r = stackalloc int[8];
-                Span<int> g = stackalloc int[8];
-                Span<int> b = stackalloc int[8];
+                Span<int> rgbTriplets = stackalloc int[24]; // 8 pixels by 3 integers
 
                 for (int j = 0; j < 2; j++)
                 {
@@ -183,10 +181,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
                         this.ConvertPixelInto(px1.R, px1.G, px1.B, ref yBlockLeft, (i + j) * 8 + k + 1);
 
-                        int idx = k / 2;
-                        r[idx] += px0.R + px1.R;
-                        g[idx] += px0.G + px1.G;
-                        b[idx] += px0.B + px1.B;
+                        int idx = 3 * (k / 2);
+                        rgbTriplets[idx] += px0.R + px1.R;
+                        rgbTriplets[idx + 1] += px0.G + px1.G;
+                        rgbTriplets[idx + 2] += px0.B + px1.B;
                     }
 
                     // right
@@ -199,10 +197,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
                         this.ConvertPixelInto(px1.R, px1.G, px1.B, ref yBlockRight, (i + j) * 8 + k + 1);
 
-                        int idx = 4 + (k / 2);
-                        r[idx] += px0.R + px1.R;
-                        g[idx] += px0.G + px1.G;
-                        b[idx] += px0.B + px1.B;
+                        int idx = 3 * (4 + (k / 2));
+                        rgbTriplets[idx] += px0.R + px1.R;
+                        rgbTriplets[idx + 1] += px0.G + px1.G;
+                        rgbTriplets[idx + 2] += px0.B + px1.B;
 
                     }
                 }
@@ -212,7 +210,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     + (i / 2) * 8;           // which row
                 for (int j = 0; j < 8; j++)
                 {
-                    this.ConvertPixelInto(r[j] / 4, g[j] / 4, b[j] / 4, ref cbBlock, ref crBlock, writeIdx + j);
+                    int idx = j * 3;
+                    this.ConvertPixelInto(rgbTriplets[idx] / 4, rgbTriplets[idx + 1] / 4, rgbTriplets[idx + 2] / 4, ref cbBlock, ref crBlock, writeIdx + j);
                 }
             }
         }

@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,8 +15,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     internal readonly struct EuclideanPixelMap<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly Vector4[] vectorCache;
-        private readonly ConcurrentDictionary<TPixel, int> distanceCache;
+        private readonly Rgba32[] rgbaPalette;
+        private readonly ColorDistanceCache cache;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EuclideanPixelMap{TPixel}"/> struct.
@@ -29,11 +27,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public EuclideanPixelMap(Configuration configuration, ReadOnlyMemory<TPixel> palette)
         {
             this.Palette = palette;
-            this.vectorCache = new Vector4[palette.Length];
-
-            // Use the same rules across all target frameworks.
-            this.distanceCache = new ConcurrentDictionary<TPixel, int>(Environment.ProcessorCount, 31);
-            PixelOperations<TPixel>.Instance.ToVector4(configuration, this.Palette.Span, this.vectorCache);
+            this.rgbaPalette = new Rgba32[palette.Length];
+            this.cache = ColorDistanceCache.Create();
+            PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
         }
 
         /// <summary>
@@ -57,11 +53,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public int GetClosestColor(TPixel color, out TPixel match)
         {
             ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.Palette.Span);
+            Unsafe.SkipInit(out Rgba32 rgba);
+            color.ToRgba32(ref rgba);
 
             // Check if the color is in the lookup table
-            if (!this.distanceCache.TryGetValue(color, out int index))
+            if (!this.cache.TryGetValue(rgba, out short index))
             {
-                return this.GetClosestColorSlow(color, ref paletteRef, out match);
+                return this.GetClosestColorSlow(rgba, ref paletteRef, out match);
             }
 
             match = Unsafe.Add(ref paletteRef, index);
@@ -69,17 +67,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetClosestColorSlow(TPixel color, ref TPixel paletteRef, out TPixel match)
+        private int GetClosestColorSlow(Rgba32 rgba, ref TPixel paletteRef, out TPixel match)
         {
             // Loop through the palette and find the nearest match.
             int index = 0;
             float leastDistance = float.MaxValue;
-            var vector = color.ToVector4();
-            ref Vector4 vectorCacheRef = ref MemoryMarshal.GetReference<Vector4>(this.vectorCache);
+            ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference<Rgba32>(this.rgbaPalette);
             for (int i = 0; i < this.Palette.Length; i++)
             {
-                Vector4 candidate = Unsafe.Add(ref vectorCacheRef, i);
-                float distance = Vector4.DistanceSquared(vector, candidate);
+                Rgba32 candidate = Unsafe.Add(ref rgbaPaletteRef, i);
+                float distance = DistanceSquared(rgba, candidate);
 
                 // If it's an exact match, exit the loop
                 if (distance == 0)
@@ -97,9 +94,91 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             // Now I have the index, pop it into the cache for next time
-            this.distanceCache[color] = index;
+            this.cache.Add(rgba, (byte)index);
             match = Unsafe.Add(ref paletteRef, index);
             return index;
+        }
+
+        /// <summary>
+        /// Returns the Euclidean distance squared between two specified points.
+        /// </summary>
+        /// <param name="a">The first point.</param>
+        /// <param name="b">The second point.</param>
+        /// <returns>The distance squared.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static float DistanceSquared(Rgba32 a, Rgba32 b)
+        {
+            int deltaB = a.B - b.B;
+            int deltaG = a.G - b.G;
+            int deltaR = a.R - b.R;
+            int deltaA = a.A - b.A;
+            return (deltaB * deltaB) + (deltaG * deltaG) + (deltaR * deltaR) + (deltaA * deltaA);
+        }
+
+        /// <summary>
+        /// A cache for storing color distance matching results.
+        /// Not threadsafe but cache misses will be very rare and shouldn't
+        /// significantly negatively affect performance.
+        /// </summary>
+        /// <remarks>
+        /// The cache is limited to 2471625 entries at 4MB.
+        /// This could be halfed by reducing the alpha accuracy but this treats
+        /// gradients less well in gifs than our previous cache implementation.
+        /// </remarks>
+        private struct ColorDistanceCache
+        {
+            private const int IndexBits = 6;
+            private const int IndexAlphaBits = 3;
+            private const int IndexCount = (1 << IndexBits) + 1;
+            private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
+            private const int RgbShift = 8 - IndexBits;
+            private const int AlphaShift = 8 - IndexAlphaBits;
+            private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
+            private short[] table;
+
+            public static ColorDistanceCache Create()
+            {
+                ColorDistanceCache result = default;
+                short[] entries = new short[TableLength];
+                entries.AsSpan().Fill(-1);
+                result.table = entries;
+
+                return result;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Add(Rgba32 rgba, byte index)
+            {
+                int r = rgba.R >> RgbShift;
+                int g = rgba.G >> RgbShift;
+                int b = rgba.B >> RgbShift;
+                int a = rgba.A >> AlphaShift;
+                int idx = GetPaletteIndex(r, g, b, a);
+                this.table[idx] = index;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public bool TryGetValue(Rgba32 rgba, out short match)
+            {
+                int r = rgba.R >> RgbShift;
+                int g = rgba.G >> RgbShift;
+                int b = rgba.B >> RgbShift;
+                int a = rgba.A >> AlphaShift;
+                int idx = GetPaletteIndex(r, g, b, a);
+                match = this.table[idx];
+                return match > -1;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static int GetPaletteIndex(int r, int g, int b, int a)
+                => (r << ((IndexBits * 2) + IndexAlphaBits))
+                       + (r << (IndexBits + IndexAlphaBits + 1))
+                       + (g << (IndexBits + IndexAlphaBits))
+                       + (r << (IndexBits * 2))
+                       + (r << (IndexBits + 1))
+                       + (g << IndexBits)
+                       + ((r + g + b) << IndexAlphaBits)
+                       + r + g + b + a;
         }
     }
 }

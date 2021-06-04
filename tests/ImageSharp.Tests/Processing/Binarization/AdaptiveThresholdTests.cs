@@ -9,13 +9,14 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
+    [Trait("Category", "Processors")]
     public class AdaptiveThresholdTests : BaseImageOperationsExtensionTest
     {
         [Fact]
         public void AdaptiveThreshold_UsesDefaults_Works()
         {
             // arrange
-            var expectedThresholdLimit = .85f;
+            float expectedThresholdLimit = .85f;
             Color expectedUpper = Color.White;
             Color expectedLower = Color.Black;
 
@@ -33,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void AdaptiveThreshold_SettingThresholdLimit_Works()
         {
             // arrange
-            var expectedThresholdLimit = .65f;
+            float expectedThresholdLimit = .65f;
 
             // act
             this.operations.AdaptiveThreshold(expectedThresholdLimit);
@@ -65,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void AdaptiveThreshold_SettingUpperLowerWithThresholdLimit_Works()
         {
             // arrange
-            var expectedThresholdLimit = .77f;
+            float expectedThresholdLimit = .77f;
             Color expectedUpper = Color.HotPink;
             Color expectedLower = Color.Yellow;
 
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void AdaptiveThreshold_SettingUpperLowerWithThresholdLimit_WithRectangle_Works()
         {
             // arrange
-            var expectedThresholdLimit = .77f;
+            float expectedThresholdLimit = .77f;
             Color expectedUpper = Color.HotPink;
             Color expectedLower = Color.Yellow;
 

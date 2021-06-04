@@ -1,11 +1,12 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Icc
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.Various
 {
+    [Trait("Profile", "Icc")]
     public class IccProfileIdTests
     {
         [Fact]

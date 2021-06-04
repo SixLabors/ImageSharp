@@ -1,12 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    [Trait("Category", "Processors")]
     public class ProjectiveTransformBuilderTests : TransformBuilderTestBase<ProjectiveTransformBuilder>
     {
         protected override ProjectiveTransformBuilder CreateBuilder()

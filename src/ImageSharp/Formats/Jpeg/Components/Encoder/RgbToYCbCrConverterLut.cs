@@ -177,40 +177,33 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     ref Rgb24 stride = ref Unsafe.Add(ref rgbStart, (i + j) * 16);
                     for (int k = 0; k < 8; k += 2)
                     {
-                        int r0 = Unsafe.Add(ref stride, k).R;
-                        int g0 = Unsafe.Add(ref stride, k).G;
-                        int b0 = Unsafe.Add(ref stride, k).B;
-                        this.ConvertPixelInto(r0, g0, b0, ref yBlockLeft, (i + j) * 8 + k);
+                        Rgb24 px0 = Unsafe.Add(ref stride, k);
+                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockLeft, (i + j) * 8 + k);
 
-                        int r1 = Unsafe.Add(ref stride, k + 1).R;
-                        int g1 = Unsafe.Add(ref stride, k + 1).G;
-                        int b1 = Unsafe.Add(ref stride, k + 1).B;
-                        this.ConvertPixelInto(r1, g1, b1, ref yBlockLeft, (i + j) * 8 + k + 1);
+                        Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+                        this.ConvertPixelInto(px1.R, px1.G, px1.B, ref yBlockLeft, (i + j) * 8 + k + 1);
 
                         int idx = k / 2;
-                        r[idx] += r0 + r1;
-                        g[idx] += g0 + g1;
-                        b[idx] += b0 + b1;
+                        r[idx] += px0.R + px1.R;
+                        g[idx] += px0.G + px1.G;
+                        b[idx] += px0.B + px1.B;
                     }
 
                     // right
                     stride = ref Unsafe.Add(ref stride, 8);
                     for (int k = 0; k < 8; k += 2)
                     {
-                        int r0 = Unsafe.Add(ref stride, k).R;
-                        int g0 = Unsafe.Add(ref stride, k).G;
-                        int b0 = Unsafe.Add(ref stride, k).B;
-                        this.ConvertPixelInto(r0, g0, b0, ref yBlockRight, (i + j) * 8 + k);
+                        Rgb24 px0 = Unsafe.Add(ref stride, k);
+                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRight, (i + j) * 8 + k);
 
-                        int r1 = Unsafe.Add(ref stride, k + 1).R;
-                        int g1 = Unsafe.Add(ref stride, k + 1).G;
-                        int b1 = Unsafe.Add(ref stride, k + 1).B;
-                        this.ConvertPixelInto(r1, g1, b1, ref yBlockRight, (i + j) * 8 + k + 1);
+                        Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+                        this.ConvertPixelInto(px1.R, px1.G, px1.B, ref yBlockRight, (i + j) * 8 + k + 1);
 
                         int idx = 4 + (k / 2);
-                        r[idx] += r0 + r1;
-                        g[idx] += g0 + g1;
-                        b[idx] += b0 + b1;
+                        r[idx] += px0.R + px1.R;
+                        g[idx] += px0.G + px1.G;
+                        b[idx] += px0.B + px1.B;
+
                     }
                 }
 

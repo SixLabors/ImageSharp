@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
             else
             {
-                this.colorTables.Convert(this.rgbSpan, ref this.YLeft, ref this.YRight, ref this.Cb, ref this.Cr, idx);
+                this.colorTables.Convert420(this.rgbSpan, ref this.YLeft, ref this.YRight, ref this.Cb, ref this.Cr, idx);
             }
         }
     }

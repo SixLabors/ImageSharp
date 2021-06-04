@@ -142,8 +142,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             crResult = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
         }
 
-
-        public void Convert(Span<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
+        /// <summary>
+        /// Converts Rgb24 pixels into YCbCr color space with 4:4:4 subsampling sampling of luminance and chroma.
+        /// </summary>
+        /// <param name="rgbSpan">Span of Rgb24 pixel data</param>
+        /// <param name="yBlock">Resulting Y values block</param>
+        /// <param name="cbBlock">Resulting Cb values block</param>
+        /// <param name="crBlock">Resulting Cr values block</param>
+        public void Convert444(Span<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
         {
             ref Rgb24 rgbStart = ref rgbSpan[0];
 
@@ -162,8 +168,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
         }
 
-        public void Convert(Span<Rgb24> rgbSpan, ref Block8x8F yBlockLeft, ref Block8x8F yBlockRight, ref Block8x8F cbBlock, ref Block8x8F crBlock, int row)
+        /// <summary>
+        /// Converts Rgb24 pixels into YCbCr color space with 4:2:0 subsampling of luminance and chroma.
+        /// </summary>
+        /// <remarks>Calculates 2 out of 4 luminance blocks and half of chroma blocks. This method must be called twice per 4x 8x8 DCT blocks with different row param.</remarks>
+        /// <param name="rgbSpan">Span of Rgb24 pixel data</param>
+        /// <param name="yBlockLeft">First or "left" resulting Y block</param>
+        /// <param name="yBlockRight">Second or "right" resulting Y block</param>
+        /// <param name="cbBlock">Resulting Cb values block</param>
+        /// <param name="crBlock">Resulting Cr values block</param>
+        /// <param name="row">Row index of the 16x16 block, 0 or 1</param>
+        public void Convert420(Span<Rgb24> rgbSpan, ref Block8x8F yBlockLeft, ref Block8x8F yBlockRight, ref Block8x8F cbBlock, ref Block8x8F crBlock, int row)
         {
+            DebugGuard.MustBeBetweenOrEqualTo(row, 0, 1, nameof(row));
+
             ref float yBlockLeftRef = ref Unsafe.As<Block8x8F, float>(ref yBlockLeft);
             ref float yBlockRightRef = ref Unsafe.As<Block8x8F, float>(ref yBlockRight);
 
@@ -189,9 +207,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref float yBlockRef = ref Unsafe.Add(ref yBlockLeftRef, (i + j) * 8 + k);
 
                         Rgb24 px0 = Unsafe.Add(ref stride, k);
-                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
-
                         Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+
+                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
                         this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
 
                         int idx = 3 * (k / 2);
@@ -207,9 +225,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref float yBlockRef = ref Unsafe.Add(ref yBlockRightRef, (i + j) * 8 + k);
 
                         Rgb24 px0 = Unsafe.Add(ref stride, k);
-                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
-
                         Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+
+                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
                         this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
 
                         int idx = 3 * (4 + (k / 2));

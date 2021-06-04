@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F cb = default;
             Block8x8F cr = default;
 
-            target.Convert(data.AsSpan(), ref y, ref cb, ref cr);
+            target.Convert444(data.AsSpan(), ref y, ref cb, ref cr);
 
             Verify(data, ref y, ref cb, ref cr, new ApproximateColorSpaceComparer(1F));
         }

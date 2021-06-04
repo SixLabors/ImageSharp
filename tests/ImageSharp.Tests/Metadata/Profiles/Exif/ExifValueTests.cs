@@ -5,12 +5,12 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 {
     [Trait("Profile", "Exif")]
     public class ExifValueTests
     {
-        private ExifProfile profile;
+        private readonly ExifProfile profile;
 
         public ExifValueTests()
         {

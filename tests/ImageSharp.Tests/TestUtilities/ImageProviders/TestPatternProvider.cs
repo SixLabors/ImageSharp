@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -65,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests
             /// <summary>
             /// Draws the test pattern on an image by drawing 4 other patterns in the for quadrants of the image.
             /// </summary>
-            /// <param name="image">The image to rdaw on.</param>
+            /// <param name="image">The image to draw on.</param>
             private static void DrawTestPattern(Image<TPixel> image)
             {
                 // first lets split the image into 4 quadrants

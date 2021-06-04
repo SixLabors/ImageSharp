@@ -5,7 +5,7 @@ using System;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
+namespace SixLabors.ImageSharp.Tests.Processing.Convolution.Processors
 {
     public class LaplacianKernelFactoryTests
     {

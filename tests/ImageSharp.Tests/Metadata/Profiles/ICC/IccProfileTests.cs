@@ -5,8 +5,9 @@ using System;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Icc
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc
 {
+    [Trait("Profile", "Icc")]
     public class IccProfileTests
     {
         [Theory]

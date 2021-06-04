@@ -20,15 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
-        private readonly Configuration configuration;
-
         private static TiffDecoder TiffDecoder => new TiffDecoder();
-
-        public TiffMetadataTests()
-        {
-            this.configuration = new Configuration();
-            this.configuration.AddTiff();
-        }
 
         [Fact]
         public void TiffMetadata_CloneIsDeep()
@@ -89,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
 
-            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
+            IImageInfo imageInfo = Image.Identify(stream);
 
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -105,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
 
-            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
+            IImageInfo imageInfo = Image.Identify(stream);
 
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -265,7 +257,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // Assert
             ms.Position = 0;
-            using var encodedImage = Image.Load<Rgba32>(this.configuration, ms);
+            using var encodedImage = Image.Load<Rgba32>(ms);
 
             ImageMetadata encodedImageMetaData = encodedImage.Metadata;
             ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;
@@ -296,10 +288,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal("This is Изготовитель камеры", exifProfileInput.GetValue(ExifTag.Make).Value);
             Assert.Equal("This is Авторские права", exifProfileInput.GetValue(ExifTag.Copyright).Value);
 
-            Assert.Equal(exifProfileInput.Values.Count, encodedImageExifProfile.Values.Count);
             Assert.Equal(exifProfileInput.GetValue(ExifTag.ImageDescription).Value, encodedImageExifProfile.GetValue(ExifTag.ImageDescription).Value);
             Assert.Equal(exifProfileInput.GetValue(ExifTag.Make).Value, encodedImageExifProfile.GetValue(ExifTag.Make).Value);
             Assert.Equal(exifProfileInput.GetValue(ExifTag.Copyright).Value, encodedImageExifProfile.GetValue(ExifTag.Copyright).Value);
+
+            // Note that the encoded profile has PlanarConfiguration explicitly set, which is missing in the original image profile.
+            Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value);
+            Assert.Equal(exifProfileInput.Values.Count + 1, encodedImageExifProfile.Values.Count);
         }
     }
 }

@@ -21,10 +21,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return TiffConstants.BitsPerSample1Bit;
                 case TiffBitsPerSample.Bit4:
                     return TiffConstants.BitsPerSample4Bit;
+                case TiffBitsPerSample.Bit6:
+                    return TiffConstants.BitsPerSampleRgb2Bit;
                 case TiffBitsPerSample.Bit8:
                     return TiffConstants.BitsPerSample8Bit;
+                case TiffBitsPerSample.Bit12:
+                    return TiffConstants.BitsPerSampleRgb4Bit;
                 case TiffBitsPerSample.Bit24:
                     return TiffConstants.BitsPerSampleRgb8Bit;
+                case TiffBitsPerSample.Bit30:
+                    return TiffConstants.BitsPerSampleRgb10Bit;
+                case TiffBitsPerSample.Bit42:
+                    return TiffConstants.BitsPerSampleRgb14Bit;
 
                 default:
                     return Array.Empty<ushort>();
@@ -41,11 +49,39 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (bitsPerSample.Length)
             {
                 case 3:
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSampleRgb8Bit[0] &&
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb14Bit[2] &&
+                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb14Bit[1] &&
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb14Bit[0])
+                    {
+                        return TiffBitsPerSample.Bit42;
+                    }
+
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb10Bit[2] &&
+                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb10Bit[1] &&
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb10Bit[0])
+                    {
+                        return TiffBitsPerSample.Bit30;
+                    }
+
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb8Bit[2] &&
                         bitsPerSample[1] == TiffConstants.BitsPerSampleRgb8Bit[1] &&
-                        bitsPerSample[2] == TiffConstants.BitsPerSampleRgb8Bit[2])
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb8Bit[0])
                     {
                         return TiffBitsPerSample.Bit24;
+                    }
+
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb4Bit[2] &&
+                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb4Bit[1] &&
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb4Bit[0])
+                    {
+                        return TiffBitsPerSample.Bit12;
+                    }
+
+                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb2Bit[2] &&
+                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb2Bit[1] &&
+                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb2Bit[0])
+                    {
+                        return TiffBitsPerSample.Bit6;
                     }
 
                     break;

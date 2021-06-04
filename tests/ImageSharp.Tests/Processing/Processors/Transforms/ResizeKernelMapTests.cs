@@ -13,6 +13,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     public partial class ResizeKernelMapTests
     {
         private ITestOutputHelper Output { get; }

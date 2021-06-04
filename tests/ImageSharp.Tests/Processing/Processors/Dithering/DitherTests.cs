@@ -8,8 +8,9 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
 {
+    [Trait("Category", "Processors")]
     public class DitherTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes =

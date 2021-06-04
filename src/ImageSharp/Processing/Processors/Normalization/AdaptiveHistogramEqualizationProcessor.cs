@@ -22,10 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             bool clipHistogram,
             int clipLimit,
             int numberOfTiles)
-            : base(luminanceLevels, clipHistogram, clipLimit)
-        {
-            this.NumberOfTiles = numberOfTiles;
-        }
+            : base(luminanceLevels, clipHistogram, clipLimit) => this.NumberOfTiles = numberOfTiles;
 
         /// <summary>
         /// Gets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization.
@@ -34,8 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
         /// <inheritdoc />
         public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-        {
-            return new AdaptiveHistogramEqualizationProcessor<TPixel>(
+            => new AdaptiveHistogramEqualizationProcessor<TPixel>(
                 configuration,
                 this.LuminanceLevels,
                 this.ClipHistogram,
@@ -43,6 +39,5 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 this.NumberOfTiles,
                 source,
                 sourceRectangle);
-        }
     }
 }

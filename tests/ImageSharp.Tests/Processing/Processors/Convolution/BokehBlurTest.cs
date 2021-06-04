@@ -16,6 +16,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
+    [Trait("Category", "Processors")]
     public class BokehBlurTest
     {
         private static readonly string Components10x2 = @"

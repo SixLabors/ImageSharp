@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    [Trait("Category", "Processors")]
     public class PadTest : BaseImageOperationsExtensionTest
     {
         [Fact]

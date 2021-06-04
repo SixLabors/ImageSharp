@@ -10,6 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     [GroupOutput("Transforms")]
     public class SwizzleTests
     {

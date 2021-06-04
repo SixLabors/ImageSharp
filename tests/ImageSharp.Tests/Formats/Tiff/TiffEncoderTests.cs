@@ -22,14 +22,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         private static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
 
-        private static readonly Configuration Configuration;
-
-        static TiffEncoderTests()
-        {
-            Configuration = new Configuration();
-            Configuration.AddTiff();
-        }
-
         [Theory]
         [InlineData(null, TiffBitsPerPixel.Bit24)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffBitsPerPixel.Bit24)]
@@ -55,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.None, frameMetaData.Compression);
@@ -78,11 +70,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
 
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(bitsPerPixel, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.None, frameMetaData.Compression);
+        }
+
+        [Theory]
+        [InlineData(TiffBitsPerPixel.Bit42)]
+        [InlineData(TiffBitsPerPixel.Bit30)]
+        [InlineData(TiffBitsPerPixel.Bit12)]
+        [InlineData(TiffBitsPerPixel.Bit6)]
+        public void EncoderOptions_UnsupportedBitPerPixel_DefaultTo24Bits(TiffBitsPerPixel bitsPerPixel)
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder { BitsPerPixel = bitsPerPixel };
+            using Image input = new Image<Rgb24>(10, 10);
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(TiffBitsPerPixel.Bit24, frameMetaData.BitsPerPixel);
         }
 
         [Theory]
@@ -117,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata rootFrameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, rootFrameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, rootFrameMetaData.Compression);
@@ -143,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
@@ -162,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         }
@@ -185,7 +200,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             Assert.Equal(expectedCompression, output.Frames.RootFrame.Metadata.GetTiffMetadata().Compression);
         }
 
@@ -207,7 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedPredictor, frameMetadata.Predictor);
         }
@@ -230,11 +245,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(TiffBitsPerPixel.Bit1, frameMetaData.BitsPerPixel);
             Assert.Equal(expectedCompression, frameMetaData.Compression);
         }
+
+        // This makes sure, that when decoding a planar tiff, the planar configuration is not carried over to the encoded image.
+        [Theory]
+        [WithFile(FlowerRgb444Planar, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodePlanar_AndReload_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, imageDecoder: new TiffDecoder());
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
@@ -304,10 +325,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Rgb4BitPalette, PixelTypes.Rgba32)]
+        [WithFile(Flower4BitPalette, PixelTypes.Rgba32)]
+        [WithFile(Flower4BitPaletteGray, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_With4Bit_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            //// Note: The magick reference decoder does not support 4 bit tiff's, so we use our TIFF decoder instead.
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.001f, imageDecoder: new TiffDecoder());
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit4, TiffPhotometricInterpretation.PaletteColor, useExactComparer: false, compareTolerance: 0.003f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
@@ -422,7 +444,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(memStream);
             ExifProfile exifProfileOutput = output.Frames.RootFrame.Metadata.ExifProfile;
             TiffFrameMetadata outputMeta = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             ImageFrame<Rgba32> rootFrame = output.Frames.RootFrame;
@@ -468,7 +490,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TiffCompression compression = TiffCompression.None,
             TiffPredictor predictor = TiffPredictor.None,
             bool useExactComparer = true,
-            float compareTolerance = 0.01f,
+            float compareTolerance = 0.001f,
             IImageDecoder imageDecoder = null)
             where TPixel : unmanaged, IPixel<TPixel>
         {

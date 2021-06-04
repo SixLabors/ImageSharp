@@ -13,9 +13,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     public class EncodeJpeg
     {
+        [Params(50, 75, 95, 100)]
+        public int Quality;
+
         private const string TestImage = TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr;
-        // GDI+ most likely uses 75 as default quality - https://stackoverflow.com/questions/3957477/what-quality-level-does-image-save-use-for-jpeg-files
-        private const int EncodingQuality = 75;
 
         // GDI+ uses 4:2:0 subsampling
         private const JpegSubsample EncodingSubsampling = JpegSubsample.Ratio420;
@@ -41,14 +42,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
                 this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpCore.Metadata.ExifProfile = null;
-                this.encoder = new JpegEncoder { Quality = EncodingQuality, Subsample = EncodingSubsampling };
+                this.encoder = new JpegEncoder { Quality = Quality, Subsample = EncodingSubsampling };
 
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = SDImage.FromStream(this.bmpStream);
                 this.jpegCodec = GetEncoder(ImageFormat.Jpeg);
                 this.encoderParameters = new EncoderParameters(1);
                 // Quality cast to long is necessary
-                this.encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)EncodingQuality);
+                this.encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)Quality);
 
                 this.destinationStream = new MemoryStream();
             }

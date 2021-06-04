@@ -71,10 +71,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
             RowOctet<TPixel> currentRows = default;
+
+            var pixelConverter = new YCbCrForwardConverter444<TPixel>(frame);
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(frame, x, y, ref currentRows);
+                    pixelConverter.Convert(x, y, ref currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -123,13 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Block8x8F b = default;
-            Span<Block8x8F> cb = stackalloc Block8x8F[4];
-            Span<Block8x8F> cr = stackalloc Block8x8F[4];
-
             var unzig = ZigZag.CreateUnzigTable();
-
-            var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
@@ -137,43 +132,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
             RowOctet<TPixel> currentRows = default;
 
+            var pixelConverter = new YCbCrForwardConverter420<TPixel>(frame);
+
             for (int y = 0; y < pixels.Height; y += 16)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (int x = 0; x < pixels.Width; x += 16)
                 {
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < 2; i++)
                     {
-                        int xOff = (i & 1) * 8;
-                        int yOff = (i & 2) * 4;
-
+                        int yOff = i * 8;
                         currentRows.Update(pixelBuffer, y + yOff);
-                        pixelConverter.Convert(frame, x + xOff, y + yOff, ref currentRows);
-
-                        cb[i] = pixelConverter.Cb;
-                        cr[i] = pixelConverter.Cr;
+                        pixelConverter.Convert(x, y, ref currentRows, i);
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
-                            ref pixelConverter.Y,
+                            ref pixelConverter.YLeft,
+                            ref luminanceQuantTable,
+                            ref unzig);
+
+                        prevDCY = this.WriteBlock(
+                            QuantIndex.Luminance,
+                            prevDCY,
+                            ref pixelConverter.YRight,
                             ref luminanceQuantTable,
                             ref unzig);
                     }
 
-                    Block8x8F.Scale16X16To8X8(ref b, cb);
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
-                        ref b,
+                        ref pixelConverter.Cb,
                         ref chrominanceQuantTable,
                         ref unzig);
 
-                    Block8x8F.Scale16X16To8X8(ref b, cr);
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
-                        ref b,
+                        ref pixelConverter.Cr,
                         ref chrominanceQuantTable,
                         ref unzig);
                 }

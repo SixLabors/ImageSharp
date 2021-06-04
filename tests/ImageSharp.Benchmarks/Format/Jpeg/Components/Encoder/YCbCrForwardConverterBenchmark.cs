@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Format.Jpeg.Components.Encoder
             Block8x8F cb = default;
             Block8x8F cr = default;
 
-            this.converter.Convert(this.data.AsSpan(), ref y, ref cb, ref cr);
+            this.converter.Convert444(this.data.AsSpan(), ref y, ref cb, ref cr);
         }
 
         [Benchmark]

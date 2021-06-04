@@ -115,7 +115,41 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
         }
 
-        public void Convert(Span<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConvertPixelInto(
+            int r,
+            int g,
+            int b,
+            ref Block8x8F yResult,
+            int i)
+        {
+            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
+            yResult[i] = (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConvertPixelInto(int r, int g, int b, ref float yResult) =>
+            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
+            yResult = (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConvertPixelInto(int r, int g, int b, ref float cbResult, ref float crResult)
+        {
+            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
+            cbResult = (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
+
+            // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
+            crResult = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
+        }
+
+        /// <summary>
+        /// Converts Rgb24 pixels into YCbCr color space with 4:4:4 subsampling sampling of luminance and chroma.
+        /// </summary>
+        /// <param name="rgbSpan">Span of Rgb24 pixel data</param>
+        /// <param name="yBlock">Resulting Y values block</param>
+        /// <param name="cbBlock">Resulting Cb values block</param>
+        /// <param name="crBlock">Resulting Cr values block</param>
+        public void Convert444(Span<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
         {
             ref Rgb24 rgbStart = ref rgbSpan[0];
 
@@ -131,6 +165,84 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     ref cbBlock,
                     ref crBlock,
                     i);
+            }
+        }
+
+        /// <summary>
+        /// Converts Rgb24 pixels into YCbCr color space with 4:2:0 subsampling of luminance and chroma.
+        /// </summary>
+        /// <remarks>Calculates 2 out of 4 luminance blocks and half of chroma blocks. This method must be called twice per 4x 8x8 DCT blocks with different row param.</remarks>
+        /// <param name="rgbSpan">Span of Rgb24 pixel data</param>
+        /// <param name="yBlockLeft">First or "left" resulting Y block</param>
+        /// <param name="yBlockRight">Second or "right" resulting Y block</param>
+        /// <param name="cbBlock">Resulting Cb values block</param>
+        /// <param name="crBlock">Resulting Cr values block</param>
+        /// <param name="row">Row index of the 16x16 block, 0 or 1</param>
+        public void Convert420(Span<Rgb24> rgbSpan, ref Block8x8F yBlockLeft, ref Block8x8F yBlockRight, ref Block8x8F cbBlock, ref Block8x8F crBlock, int row)
+        {
+            DebugGuard.MustBeBetweenOrEqualTo(row, 0, 1, nameof(row));
+
+            ref float yBlockLeftRef = ref Unsafe.As<Block8x8F, float>(ref yBlockLeft);
+            ref float yBlockRightRef = ref Unsafe.As<Block8x8F, float>(ref yBlockRight);
+
+            // 0-31 or 32-63
+            // upper or lower part
+            int chromaWriteOffset = row * Block8x8F.Size / 2;
+            ref float cbBlockRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, float>(ref cbBlock), chromaWriteOffset);
+            ref float crBlockRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, float>(ref crBlock), chromaWriteOffset);
+
+            ref Rgb24 rgbStart = ref rgbSpan[0];
+
+            for (int i = 0; i < 8; i += 2)
+            {
+                // 8 pixels by 3 integers
+                Span<int> rgbTriplets = stackalloc int[24];
+
+                for (int j = 0; j < 2; j++)
+                {
+                    int yBlockWriteOffset = (i + j) * 8;
+                    ref Rgb24 stride = ref Unsafe.Add(ref rgbStart, (i + j) * 16);
+
+                    // left
+                    this.ConvertChunk420(ref stride, ref Unsafe.Add(ref yBlockLeftRef, yBlockWriteOffset), rgbTriplets);
+
+                    // right
+                    this.ConvertChunk420(ref Unsafe.Add(ref stride, 8), ref Unsafe.Add(ref yBlockRightRef, yBlockWriteOffset), rgbTriplets.Slice(12));
+                }
+
+                int writeIdx = 8 * (i / 2);
+                ref float cbWriteRef = ref Unsafe.Add(ref cbBlockRef, writeIdx);
+                ref float crWriteRef = ref Unsafe.Add(ref crBlockRef, writeIdx);
+                for (int j = 0; j < 8; j++)
+                {
+                    int idx = j * 3;
+                    this.ConvertPixelInto(
+                        rgbTriplets[idx] / 4,       // r
+                        rgbTriplets[idx + 1] / 4,   // g
+                        rgbTriplets[idx + 2] / 4,   // b
+                        ref Unsafe.Add(ref cbWriteRef, j),
+                        ref Unsafe.Add(ref crWriteRef, j));
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConvertChunk420(ref Rgb24 stride, ref float yBlock, Span<int> chromaRgbTriplet)
+        {
+            for (int k = 0; k < 8; k += 2)
+            {
+                ref float yBlockRef = ref Unsafe.Add(ref yBlock, k);
+
+                Rgb24 px0 = Unsafe.Add(ref stride, k);
+                Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+
+                this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
+                this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
+
+                int idx = 3 * (k / 2);
+                chromaRgbTriplet[idx] += px0.R + px1.R;
+                chromaRgbTriplet[idx + 1] += px0.G + px1.G;
+                chromaRgbTriplet[idx + 2] += px0.B + px1.B;
             }
         }
 

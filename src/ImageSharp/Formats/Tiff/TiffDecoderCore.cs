@@ -50,9 +50,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Gets or sets the number of bits per component of the pixel format used to decode the image.
+        /// Gets or sets the bits per sample.
         /// </summary>
-        public TiffBitsPerSample BitsPerSample { get; set; }
+        public ushort[] BitsPerSample { get; set; }
 
         /// <summary>
         /// Gets or sets the bits per pixel.
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
             else
             {
-                bitsPerPixel = this.BitsPerSample.Bits()[plane];
+                bitsPerPixel = this.BitsPerSample[plane];
             }
 
             int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int stripsPerPixel = this.BitsPerSample.Bits().Length;
+            int stripsPerPixel = this.BitsPerSample.Length;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
             int bitsPerPixel = this.BitsPerPixel;
 
@@ -243,7 +243,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
-                RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample.Bits(), this.ColorMap);
+                RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
 
                 for (int i = 0; i < stripsPerPlane; i++)
                 {
@@ -286,7 +286,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
-            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample.Bits(), this.ColorMap);
+            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {

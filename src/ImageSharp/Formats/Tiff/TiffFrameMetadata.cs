@@ -36,6 +36,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <summary>
+        /// Gets or sets number of bits per component.
+        /// </summary>
+        public ushort[] BitsPerSample { get; set; }
+
+        /// <summary>
         /// Gets or sets the compression scheme used on the image data.
         /// </summary>
         public TiffCompression? Compression { get; set; }
@@ -72,8 +77,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             if (profile != null)
             {
-                ushort[] bitsPerSample = profile.GetValue(ExifTag.BitsPerSample)?.Value;
-                meta.BitsPerPixel = BitsPerPixelFromBitsPerSample(bitsPerSample);
+                meta.BitsPerSample = profile.GetValue(ExifTag.BitsPerSample)?.Value;
+                meta.BitsPerPixel = BitsPerPixelFromBitsPerSample(meta.BitsPerSample);
                 meta.Compression = (TiffCompression?)profile.GetValue(ExifTag.Compression)?.Value;
                 meta.PhotometricInterpretation =
                     (TiffPhotometricInterpretation?)profile.GetValue(ExifTag.PhotometricInterpretation)?.Value;

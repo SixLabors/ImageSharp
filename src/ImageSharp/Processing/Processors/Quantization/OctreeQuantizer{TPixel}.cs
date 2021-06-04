@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Configuration = configuration;
             this.Options = options;
 
-            this.maxColors = this.Options.MaxColors;
+            this.maxColors = Math.Min(byte.MaxValue, this.Options.MaxColors);
             this.octree = new Octree(Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8));
-            this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
+            this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors + 1, AllocationOptions.Clean);
             this.palette = default;
             this.pixelMap = default;
             this.isDithering = !(this.Options.Dither is null);
@@ -90,14 +90,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
             int paletteIndex = 0;
+            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
             this.octree.Palletize(paletteSpan, this.maxColors, ref paletteIndex);
 
-            // Length of reduced palette + transparency.
-            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, Math.Min(paletteIndex + 2, this.maxColors));
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
             this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
-
             this.palette = result;
         }
 
@@ -118,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 return (byte)this.pixelMap.GetClosestColor(color, out match);
             }
 
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.Palette.Span);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
             byte index = (byte)this.octree.GetPaletteIndex(color);
             match = Unsafe.Add(ref paletteRef, index);
             return index;
@@ -254,7 +252,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             [MethodImpl(InliningOptions.ShortMethod)]
             public int GetPaletteIndex(TPixel color)
             {
-                Rgba32 rgba = default;
+                Unsafe.SkipInit(out Rgba32 rgba);
                 color.ToRgba32(ref rgba);
                 return this.root.GetPaletteIndex(ref rgba, 0);
             }
@@ -453,7 +451,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                             Vector3.Zero,
                             new Vector3(255));
 
-                        TPixel pixel = default;
+                        Unsafe.SkipInit(out TPixel pixel);
                         pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
                         palette[index] = pixel;
 

@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -142,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, this.maxColors);
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
             this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
             this.palette = result;
         }
@@ -170,7 +169,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             ReadOnlySpan<byte> tagSpan = this.tagsOwner.GetSpan();
             byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.Palette.Span);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
             match = Unsafe.Add(ref paletteRef, index);
             return index;
         }

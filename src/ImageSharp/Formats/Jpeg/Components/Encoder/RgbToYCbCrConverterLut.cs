@@ -200,45 +200,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 for (int j = 0; j < 2; j++)
                 {
-                    // left
+                    int yBlockWriteOffset = (i + j) * 8;
                     ref Rgb24 stride = ref Unsafe.Add(ref rgbStart, (i + j) * 16);
-                    for (int k = 0; k < 8; k += 2)
-                    {
-                        ref float yBlockRef = ref Unsafe.Add(ref yBlockLeftRef, (i + j) * 8 + k);
 
-                        Rgb24 px0 = Unsafe.Add(ref stride, k);
-                        Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
-
-                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
-                        this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
-
-                        int idx = 3 * (k / 2);
-                        rgbTriplets[idx] += px0.R + px1.R;
-                        rgbTriplets[idx + 1] += px0.G + px1.G;
-                        rgbTriplets[idx + 2] += px0.B + px1.B;
-                    }
+                    // left
+                    this.ConvertChunk420(ref stride, ref Unsafe.Add(ref yBlockLeftRef, yBlockWriteOffset), rgbTriplets);
 
                     // right
-                    stride = ref Unsafe.Add(ref stride, 8);
-                    for (int k = 0; k < 8; k += 2)
-                    {
-                        ref float yBlockRef = ref Unsafe.Add(ref yBlockRightRef, (i + j) * 8 + k);
-
-                        Rgb24 px0 = Unsafe.Add(ref stride, k);
-                        Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
-
-                        this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
-                        this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
-
-                        int idx = 3 * (4 + (k / 2));
-                        rgbTriplets[idx] += px0.R + px1.R;
-                        rgbTriplets[idx + 1] += px0.G + px1.G;
-                        rgbTriplets[idx + 2] += px0.B + px1.B;
-
-                    }
+                    this.ConvertChunk420(ref Unsafe.Add(ref stride, 8), ref Unsafe.Add(ref yBlockRightRef, yBlockWriteOffset), rgbTriplets.Slice(12));
                 }
 
                 int writeIdx = 8 * (i / 2);
+                ref float cbWriteRef = ref Unsafe.Add(ref cbBlockRef, writeIdx);
+                ref float crWriteRef = ref Unsafe.Add(ref crBlockRef, writeIdx);
                 for (int j = 0; j < 8; j++)
                 {
                     int idx = j * 3;
@@ -246,9 +220,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         rgbTriplets[idx] / 4,       // r
                         rgbTriplets[idx + 1] / 4,   // g
                         rgbTriplets[idx + 2] / 4,   // b
-                        ref Unsafe.Add(ref cbBlockRef, writeIdx + j),
-                        ref Unsafe.Add(ref crBlockRef, writeIdx + j));
+                        ref Unsafe.Add(ref cbWriteRef, j),
+                        ref Unsafe.Add(ref crWriteRef, j));
                 }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConvertChunk420(ref Rgb24 stride, ref float yBlock, Span<int> chromaRgbTriplet)
+        {
+            for (int k = 0; k < 8; k += 2)
+            {
+                ref float yBlockRef = ref Unsafe.Add(ref yBlock, k);
+
+                Rgb24 px0 = Unsafe.Add(ref stride, k);
+                Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+
+                this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
+                this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
+
+                int idx = 3 * (k / 2);
+                chromaRgbTriplet[idx] += px0.R + px1.R;
+                chromaRgbTriplet[idx + 1] += px0.G + px1.G;
+                chromaRgbTriplet[idx + 2] += px0.B + px1.B;
             }
         }
 

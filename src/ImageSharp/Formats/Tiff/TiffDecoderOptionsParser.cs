@@ -105,6 +105,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample[0];
+                    if (bitsPerChannel > 16)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
+                    }
+
                     switch (bitsPerChannel)
                     {
                         case 8:
@@ -143,6 +148,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample[0];
+                    if (bitsPerChannel > 16)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
+                    }
+
                     switch (bitsPerChannel)
                     {
                         case 8:

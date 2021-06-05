@@ -143,7 +143,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            if (this.isDithering)
+            {
+                this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            }
+
             this.palette = result;
         }
 

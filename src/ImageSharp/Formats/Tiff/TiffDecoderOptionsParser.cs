@@ -185,6 +185,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         ushort bitsPerChannel = options.BitsPerSample[0];
                         switch (bitsPerChannel)
                         {
+                            case 16:
+                                options.ColorType = TiffColorType.Rgb161616;
+                                break;
+
                             case 14:
                                 options.ColorType = TiffColorType.Rgb141414;
                                 break;

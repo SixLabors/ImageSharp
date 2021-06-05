@@ -100,15 +100,47 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, ReferenceDecoder, useExactComparer: false, 0.01f);
 
         [Theory]
+        [WithFile(Flower2BitPalette, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_2Bit_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, ReferenceDecoder, useExactComparer: false, 0.01f);
+
+        [Theory]
+        [WithFile(Flower2BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_2Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(FlowerRgb222Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb222Planar, PixelTypes.Rgba32)]
+        [WithFile(Flower6BitGray, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_6Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower8BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_8Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower10BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_10Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(FlowerRgb444Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb444Planar, PixelTypes.Rgba32)]
+        [WithFile(Flower12BitGray, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_12Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_14Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower16BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]

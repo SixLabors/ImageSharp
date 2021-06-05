@@ -31,11 +31,32 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         Bit8 = 8,
 
         /// <summary>
+        /// 10 bits per pixel, for gray images.
+        ///
+        /// Note: The TiffEncoder does not yet support 10 bits per pixel and will default to 24 bits per pixel instead.
+        /// </summary>
+        Bit10 = 10,
+
+        /// <summary>
         /// 12 bits per pixel. 4 bit for each color channel.
         ///
         /// Note: The TiffEncoder does not yet support 4 bits per color channel and will default to 24 bits per pixel instead.
         /// </summary>
         Bit12 = 12,
+
+        /// <summary>
+        /// 14 bits per pixel, for gray images.
+        ///
+        /// Note: The TiffEncoder does not yet support 14 bits per pixel images and will default to 24 bits per pixel instead.
+        /// </summary>
+        Bit14 = 14,
+
+        /// <summary>
+        /// 16 bits per pixel, for gray images.
+        ///
+        /// Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 24 bits per pixel instead.
+        /// </summary>
+        Bit16 = 16,
 
         /// <summary>
         /// 24 bits per pixel. One byte for each color channel.

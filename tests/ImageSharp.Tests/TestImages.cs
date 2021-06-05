@@ -568,6 +568,14 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerRgb444Planar = "Tiff/flower-rgb-planar-04.tiff";
             public const string FlowerRgb222Contiguous = "Tiff/flower-rgb-contig-02.tiff";
             public const string FlowerRgb222Planar = "Tiff/flower-rgb-planar-02.tiff";
+            public const string Flower2BitGray = "Tiff/flower-minisblack-02.tiff";
+            public const string Flower2BitPalette = "Tiff/flower-palette-02.tiff";
+            public const string Flower6BitGray = "Tiff/flower-minisblack-06.tiff";
+            public const string Flower8BitGray = "Tiff/flower-minisblack-08.tiff";
+            public const string Flower10BitGray = "Tiff/flower-minisblack-10.tiff";
+            public const string Flower12BitGray = "Tiff/flower-minisblack-12.tiff";
+            public const string Flower14BitGray = "Tiff/flower-minisblack-14.tiff";
+            public const string Flower16BitGray = "Tiff/flower-minisblack-16.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

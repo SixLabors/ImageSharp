@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F cb = default;
             Block8x8F cr = default;
 
-            RgbToYCbCrConverterVectorized.Convert(data.AsSpan(), ref y, ref cb, ref cr);
+            RgbToYCbCrConverterVectorized.Convert444(data.AsSpan(), ref y, ref cb, ref cr);
 
             Verify(data, ref y, ref cb, ref cr, new ApproximateColorSpaceComparer(0.0001F));
         }

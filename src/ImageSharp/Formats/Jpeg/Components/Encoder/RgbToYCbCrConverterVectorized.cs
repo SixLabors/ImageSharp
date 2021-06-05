@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="yBlock">8x8 destination matrix of Luminance(Y) converted data</param>
         /// <param name="cbBlock">8x8 destination matrix of Chrominance(Cb) converted data</param>
         /// <param name="crBlock">8x8 destination matrix of Chrominance(Cr) converted data</param>
-        public static void Convert(ReadOnlySpan<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
+        public static void Convert444(ReadOnlySpan<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
         {
             Debug.Assert(IsSupported, "AVX2 is required to run this converter");
 

@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Format.Jpeg.Components.Encoder
 
             if (RgbToYCbCrConverterVectorized.IsSupported)
             {
-                RgbToYCbCrConverterVectorized.Convert(this.data.AsSpan(), ref y, ref cb, ref cr);
+                RgbToYCbCrConverterVectorized.Convert444(this.data.AsSpan(), ref y, ref cb, ref cr);
             }
         }
     }

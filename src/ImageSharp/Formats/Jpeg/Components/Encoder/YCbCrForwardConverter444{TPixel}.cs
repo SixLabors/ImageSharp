@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             if (RgbToYCbCrConverterVectorized.IsSupported)
             {
-                RgbToYCbCrConverterVectorized.Convert(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+                RgbToYCbCrConverterVectorized.Convert444(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
             }
             else
             {

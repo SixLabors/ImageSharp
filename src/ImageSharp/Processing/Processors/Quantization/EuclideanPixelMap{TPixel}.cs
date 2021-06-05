@@ -116,11 +116,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <summary>
         /// A cache for storing color distance matching results.
-        /// Not threadsafe but cache misses will be very rare and shouldn't
-        /// significantly negatively affect performance.
         /// </summary>
         /// <remarks>
         /// The cache is limited to 646866 entries at 0.62MB.
+        /// TODO: How do we make this threadsafe?
         /// </remarks>
         private struct ColorDistanceCache
         {
@@ -169,13 +168,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             [MethodImpl(InliningOptions.ShortMethod)]
             private static int GetPaletteIndex(int r, int g, int b, int a)
                 => (r << ((IndexBits * 2) + IndexAlphaBits))
-                       + (r << (IndexBits + IndexAlphaBits + 1))
-                       + (g << (IndexBits + IndexAlphaBits))
-                       + (r << (IndexBits * 2))
-                       + (r << (IndexBits + 1))
-                       + (g << IndexBits)
-                       + ((r + g + b) << IndexAlphaBits)
-                       + r + g + b + a;
+                + (r << (IndexBits + IndexAlphaBits + 1))
+                + (g << (IndexBits + IndexAlphaBits))
+                + (r << (IndexBits * 2))
+                + (r << (IndexBits + 1))
+                + (g << IndexBits)
+                + ((r + g + b) << IndexAlphaBits)
+                + r + g + b + a;
         }
     }
 }

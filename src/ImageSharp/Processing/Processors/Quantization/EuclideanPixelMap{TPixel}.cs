@@ -72,10 +72,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // Loop through the palette and find the nearest match.
             int index = 0;
             float leastDistance = float.MaxValue;
-            ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference<Rgba32>(this.rgbaPalette);
-            for (int i = 0; i < this.Palette.Length; i++)
+            for (int i = 0; i < this.rgbaPalette.Length; i++)
             {
-                Rgba32 candidate = Unsafe.Add(ref rgbaPaletteRef, i);
+                Rgba32 candidate = this.rgbaPalette[i];
                 float distance = DistanceSquared(rgba, candidate);
 
                 // If it's an exact match, exit the loop

@@ -20,6 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly int maxColors;
+        private readonly int bitDepth;
         private readonly Octree octree;
         private IMemoryOwner<TPixel> paletteOwner;
         private ReadOnlyMemory<TPixel> palette;
@@ -41,9 +42,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Configuration = configuration;
             this.Options = options;
 
-            this.maxColors = Math.Min(byte.MaxValue, this.Options.MaxColors);
-            this.octree = new Octree(Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8));
-            this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors + 1, AllocationOptions.Clean);
+            this.maxColors = this.Options.MaxColors;
+            this.bitDepth = Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
+            this.octree = new Octree(this.bitDepth);
+            this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
             this.palette = default;
             this.pixelMap = default;
             this.isDithering = !(this.Options.Dither is null);
@@ -92,8 +94,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             int paletteIndex = 0;
             Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
-            this.octree.Palletize(paletteSpan, this.maxColors, ref paletteIndex);
 
+            // On very rare occasions, (blur.png), the quantizer does not preserve a
+            // transparent entry when palletizing the captured colors.
+            // To workaround this we ensure the palette ends with the default color
+            // for higher bit depths. Lower bit depths will correctly reduce the palette.
+            // TODO: Investigate more evenly reduced palette reduction.
+            int max = this.maxColors;
+            if (this.bitDepth == 8)
+            {
+                max--;
+            }
+
+            this.octree.Palletize(paletteSpan, max, ref paletteIndex);
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
             this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
             this.palette = result;

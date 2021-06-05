@@ -126,9 +126,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
 
+            // Slice again since maxColors has been updated since the buffer was created.
+            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan().Slice(0, this.maxColors);
             ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
-            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
-            for (int k = 0; k < this.maxColors; k++)
+            for (int k = 0; k < paletteSpan.Length; k++)
             {
                 this.Mark(ref this.colorCube[k], (byte)k);
 

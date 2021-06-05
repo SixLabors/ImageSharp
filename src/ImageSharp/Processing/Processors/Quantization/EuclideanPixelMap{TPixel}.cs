@@ -121,13 +121,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// significantly negatively affect performance.
         /// </summary>
         /// <remarks>
-        /// The cache is limited to 2471625 entries at 4MB.
-        /// This could be halfed by reducing the alpha accuracy but this treats
-        /// gradients less well in gifs than our previous cache implementation.
+        /// The cache is limited to 646866 entries at 0.62MB.
         /// </remarks>
         private struct ColorDistanceCache
         {
-            private const int IndexBits = 6;
+            private const int IndexBits = 5;
             private const int IndexAlphaBits = 3;
             private const int IndexCount = (1 << IndexBits) + 1;
             private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;

@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int padBitsCount = 8 - (this.bitCount % 8);
             if (padBitsCount != 0)
             {
-                this.Emit(0xff, padBitsCount);
+                this.Emit((1 << padBitsCount) - 1, padBitsCount);
             }
 
             // flush remaining bytes

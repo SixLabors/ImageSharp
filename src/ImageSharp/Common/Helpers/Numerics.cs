@@ -854,7 +854,7 @@ namespace SixLabors.ImageSharp
         /// <param name="number">Unsigned integer to store</param>
         /// <returns>Minimum number of bits needed to store given value</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int MinimumBitsToStore(uint number)
+        public static int MinimumBitsToStore16(uint number)
         {
 #if !SUPPORTS_BITOPERATIONS
             if (number < 0x100)

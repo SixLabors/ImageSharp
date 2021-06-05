@@ -107,11 +107,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         [MethodImpl(InliningOptions.ShortMethod)]
         private static float DistanceSquared(Rgba32 a, Rgba32 b)
         {
-            int deltaB = a.B - b.B;
-            int deltaG = a.G - b.G;
             int deltaR = a.R - b.R;
+            int deltaG = a.G - b.G;
+            int deltaB = a.B - b.B;
             int deltaA = a.A - b.A;
-            return (deltaB * deltaB) + (deltaG * deltaG) + (deltaR * deltaR) + (deltaA * deltaA);
+            return (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB) + (deltaA * deltaA);
         }
 
         /// <summary>

@@ -79,6 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [InlineData(TiffBitsPerPixel.Bit42)]
+        [InlineData(TiffBitsPerPixel.Bit36)]
         [InlineData(TiffBitsPerPixel.Bit30)]
         [InlineData(TiffBitsPerPixel.Bit12)]
         [InlineData(TiffBitsPerPixel.Bit10)]

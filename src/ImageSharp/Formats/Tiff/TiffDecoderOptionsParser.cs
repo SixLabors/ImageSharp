@@ -189,6 +189,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                                 options.ColorType = TiffColorType.Rgb141414;
                                 break;
 
+                            case 12:
+                                options.ColorType = TiffColorType.Rgb121212;
+                                break;
+
                             case 10:
                                 options.ColorType = TiffColorType.Rgb101010;
                                 break;

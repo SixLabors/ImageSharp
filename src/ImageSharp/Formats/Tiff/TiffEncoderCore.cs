@@ -325,6 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     case TiffBitsPerPixel.Bit14:
                     case TiffBitsPerPixel.Bit16:
                     case TiffBitsPerPixel.Bit30:
+                    case TiffBitsPerPixel.Bit36:
                     case TiffBitsPerPixel.Bit42:
                         // Encoding not yet supported bits per pixel will default to 24 bits.
                         this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);

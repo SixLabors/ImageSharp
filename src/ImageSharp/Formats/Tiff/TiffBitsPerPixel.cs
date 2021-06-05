@@ -71,6 +71,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         Bit30 = 30,
 
         /// <summary>
+        /// 36 bits per pixel. 12 bit for each color channel.
+        ///
+        /// Note: The TiffEncoder does not yet support 12 bits per color channel and will default to 24 bits per pixel instead.
+        /// </summary>
+        Bit36 = 36,
+
+        /// <summary>
         /// 42 bits per pixel. 14 bit for each color channel.
         ///
         /// Note: The TiffEncoder does not yet support 14 bits per color channel and will default to 24 bits per pixel instead.

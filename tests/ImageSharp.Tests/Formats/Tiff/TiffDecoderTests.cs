@@ -150,6 +150,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(FlowerRgb121212Contiguous, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_36Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(FlowerRgb141414Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb141414Planar, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_42Bit<TPixel>(TestImageProvider<TPixel> provider)

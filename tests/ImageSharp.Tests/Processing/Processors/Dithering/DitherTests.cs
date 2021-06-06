@@ -172,8 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
             provider.RunBufferCapacityLimitProcessorTest(
                 41,
                 c => c.Dither(dither),
-                name,
-                ImageComparer.TolerantPercentage(0.001f));
+                name);
         }
     }
 }

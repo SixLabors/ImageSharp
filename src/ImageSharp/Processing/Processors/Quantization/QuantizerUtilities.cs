@@ -126,62 +126,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             if (dither is null)
             {
-                var operation = new RowIntervalOperation<TFrameQuantizer, TPixel>(
-                    ref quantizer,
-                    source,
-                    destination,
-                    bounds);
+                int offsetY = bounds.Top;
+                int offsetX = bounds.Left;
 
-                ParallelRowIterator.IterateRowIntervals(
-                    quantizer.Configuration,
-                    bounds,
-                    in operation);
+                for (int y = bounds.Y; y < bounds.Height; y++)
+                {
+                    Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                    Span<byte> destinationRow = destination.GetWritablePixelRowSpanUnsafe(y - offsetY);
+
+                    for (int x = bounds.Left; x < bounds.Right; x++)
+                    {
+                        destinationRow[x - offsetX] = Unsafe.AsRef(quantizer).GetQuantizedColor(sourceRow[x], out TPixel _);
+                    }
+                }
 
                 return;
             }
 
             dither.ApplyQuantizationDither(ref quantizer, source, destination, bounds);
-        }
-
-        private readonly struct RowIntervalOperation<TFrameQuantizer, TPixel> : IRowIntervalOperation
-            where TFrameQuantizer : struct, IQuantizer<TPixel>
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            private readonly TFrameQuantizer quantizer;
-            private readonly ImageFrame<TPixel> source;
-            private readonly IndexedImageFrame<TPixel> destination;
-            private readonly Rectangle bounds;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(
-                ref TFrameQuantizer quantizer,
-                ImageFrame<TPixel> source,
-                IndexedImageFrame<TPixel> destination,
-                Rectangle bounds)
-            {
-                this.quantizer = quantizer;
-                this.source = source;
-                this.destination = destination;
-                this.bounds = bounds;
-            }
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
-            {
-                int offsetY = this.bounds.Top;
-                int offsetX = this.bounds.Left;
-
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                    Span<byte> destinationRow = this.destination.GetWritablePixelRowSpanUnsafe(y - offsetY);
-
-                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
-                    {
-                        destinationRow[x - offsetX] = Unsafe.AsRef(this.quantizer).GetQuantizedColor(sourceRow[x], out TPixel _);
-                    }
-                }
-            }
         }
     }
 }

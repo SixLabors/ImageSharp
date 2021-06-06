@@ -12,6 +12,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Gets the closest color to the supplied color based upon the Euclidean distance.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <para>
+    /// This class is not threadsafe and should not be accessed in parallel.
+    /// Doing so will result in non-idempotent results.
+    /// </para>
     internal readonly struct EuclideanPixelMap<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -118,8 +122,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// A cache for storing color distance matching results.
         /// </summary>
         /// <remarks>
-        /// The cache is limited to 646866 entries at 0.62MB.
-        /// TODO: How do we make this threadsafe?
+        /// <para>
+        /// The granularity of the cache has been determined based upon the current
+        /// suite of test images and provides the lowest possible memory usage while
+        /// providing enough match accuracy.
+        /// Entry count is currently limited to 646866 entries at 0.62MB.
+        /// </para>
         /// </remarks>
         private struct ColorDistanceCache
         {

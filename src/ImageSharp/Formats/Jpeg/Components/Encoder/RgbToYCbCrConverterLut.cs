@@ -229,20 +229,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ConvertChunk420(ref Rgb24 stride, ref float yBlock, Span<int> chromaRgbTriplet)
         {
-            for (int k = 0; k < 8; k += 2)
+            for (int i = 0; i < 8; i++)
             {
-                ref float yBlockRef = ref Unsafe.Add(ref yBlock, k);
+                Rgb24 px0 = Unsafe.Add(ref stride, i);
 
-                Rgb24 px0 = Unsafe.Add(ref stride, k);
-                Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+                this.ConvertPixelInto(px0.R, px0.G, px0.B, ref Unsafe.Add(ref yBlock, i));
 
-                this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
-                this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
-
-                int idx = 3 * (k / 2);
-                chromaRgbTriplet[idx] += px0.R + px1.R;
-                chromaRgbTriplet[idx + 1] += px0.G + px1.G;
-                chromaRgbTriplet[idx + 2] += px0.B + px1.B;
+                int idx = 3 * (i / 2);
+                chromaRgbTriplet[idx] += px0.R;
+                chromaRgbTriplet[idx + 1] += px0.G;
+                chromaRgbTriplet[idx + 2] += px0.B;
             }
         }
 

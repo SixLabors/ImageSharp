@@ -273,7 +273,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Apply floating point FDCT from src into dest
         /// </summary>
-        /// <remarks></remarks>
         /// <param name="src">Source</param>
         /// <param name="dest">Destination</param>
         /// <param name="temp">Temporary block provided by the caller for optimization</param>
@@ -466,7 +465,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Vector256<float> mb2 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz1, my5, C_V_2_0531), mz3);
             Vector256<float> mb1 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz1, my3, C_V_3_0727), mz2);
             Vector256<float> mb0 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz0, my1, C_V_1_5013), mz3);
-
 
             Vector256<float> my2 = s.V2;
             Vector256<float> my6 = s.V6;

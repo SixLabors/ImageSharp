@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -66,12 +65,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private Span<Rgb24> rgbSpan;
 
-        // TODO: docs
+        /// <summary>
+        /// Sampled pixel buffer size
+        /// </summary>
         private Size samplingAreaSize;
 
-        // TODO: docs
+        /// <summary>
+        /// <see cref="Configuration"/> for internal operations
+        /// </summary>
         private Configuration config;
-
 
         public YCbCrForwardConverter420(ImageFrame<TPixel> frame)
         {

@@ -63,7 +63,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.CompareBlocks(expected, actual, 1f);
             }
 
-
             // Inverse transform
             [Theory]
             [InlineData(1)]
@@ -181,7 +180,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
-
 
             // Forward transform
             [Theory]

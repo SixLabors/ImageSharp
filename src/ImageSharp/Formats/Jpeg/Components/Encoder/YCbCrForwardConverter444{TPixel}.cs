@@ -15,15 +15,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     internal ref struct YCbCrForwardConverter444<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // TODO: docs
+        /// <summary>
+        /// Number of pixels processed per single <see cref="Convert(int, int, ref RowOctet{TPixel})"/> call
+        /// </summary>
         private const int PixelsPerSample = 8 * 8;
 
-        // TODO: docs
+        /// <summary>
+        /// Total byte size of processed pixels converted from TPixel to <see cref="Rgb24"/>
+        /// </summary>
         private const int RgbSpanByteSize = PixelsPerSample * 3;
 
-        // TODO: docs
+        /// <summary>
+        /// <see cref="Size"/> of sampling area from given frame pixel buffer
+        /// </summary>
         private static readonly Size SampleSize = new Size(8, 8);
-
 
         /// <summary>
         /// The Y component
@@ -55,11 +60,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private Span<Rgb24> rgbSpan;
 
-        // TODO: docs
+        /// <summary>
+        /// Sampled pixel buffer size
+        /// </summary>
         private Size samplingAreaSize;
 
-        // TODO: docs
-        private readonly Configuration config;
+        /// <summary>
+        /// <see cref="Configuration"/> for internal operations
+        /// </summary>
+        private Configuration config;
 
         public YCbCrForwardConverter444(ImageFrame<TPixel> frame)
         {

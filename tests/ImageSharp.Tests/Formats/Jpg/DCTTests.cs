@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics.X86;
 #endif
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -159,26 +159,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void TransformIDCT(int seed)
             {
-                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
-                var srcBlock = default(Block8x8F);
-                srcBlock.LoadFrom(src);
+                static void RunTest(string serialized)
+                {
+                    int seed = FeatureTestRunner.Deserialize<int>(serialized);
 
-                var destBlock = default(Block8x8F);
+                    Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
+                    var srcBlock = default(Block8x8F);
+                    srcBlock.LoadFrom(src);
 
-                var expectedDest = new float[64];
-                var temp1 = new float[64];
-                var temp2 = default(Block8x8F);
+                    var destBlock = default(Block8x8F);
 
-                // reference
-                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(src, expectedDest, temp1);
+                    var expectedDest = new float[64];
+                    var temp1 = new float[64];
+                    var temp2 = default(Block8x8F);
 
-                // testee
-                FastFloatingPointDCT.TransformIDCT(ref srcBlock, ref destBlock, ref temp2);
+                    // reference
+                    ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(src, expectedDest, temp1);
 
-                var actualDest = new float[64];
-                destBlock.ScaledCopyTo(actualDest);
+                    // testee
+                    FastFloatingPointDCT.TransformIDCT(ref srcBlock, ref destBlock, ref temp2);
 
-                Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+                    var actualDest = new float[64];
+                    destBlock.ScaledCopyTo(actualDest);
+
+                    Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+                }
+
+                // 3 paths:
+                // 1. AllowAll - call avx/fma implementation
+                // 2. DisableFMA - call avx implementation without fma acceleration
+                // 3. DisableAvx - call fallback code of Vector4 implementation
+                //
+                // DisableSSE isn't needed because fallback Vector4 code will compile to either sse or fallback code with same result
+                FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                    RunTest,
+                    seed,
+                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX);
             }
 
             // Forward transform
@@ -276,26 +292,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void TransformFDCT(int seed)
             {
-                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
-                var srcBlock = default(Block8x8F);
-                srcBlock.LoadFrom(src);
+                static void RunTest(string serialized)
+                {
+                    int seed = FeatureTestRunner.Deserialize<int>(serialized);
 
-                var destBlock = default(Block8x8F);
+                    Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
+                    var srcBlock = default(Block8x8F);
+                    srcBlock.LoadFrom(src);
 
-                var expectedDest = new float[64];
-                var temp1 = new float[64];
-                var temp2 = default(Block8x8F);
+                    var destBlock = default(Block8x8F);
 
-                // reference
-                ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
+                    var expectedDest = new float[64];
+                    var temp1 = new float[64];
+                    var temp2 = default(Block8x8F);
 
-                // testee
-                FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
+                    // reference
+                    ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
 
-                var actualDest = new float[64];
-                destBlock.ScaledCopyTo(actualDest);
+                    // testee
+                    FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
 
-                Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+                    var actualDest = new float[64];
+                    destBlock.ScaledCopyTo(actualDest);
+
+                    Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+                }
+
+                // 3 paths:
+                // 1. AllowAll - call avx/fma implementation
+                // 2. DisableFMA - call avx implementation without fma acceleration
+                // 3. DisableAvx - call fallback code of Vector4 implementation
+                //
+                // DisableSSE isn't needed because fallback Vector4 code will compile to either sse or fallback code with same result
+                FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                    RunTest,
+                    seed,
+                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX);
             }
         }
     }

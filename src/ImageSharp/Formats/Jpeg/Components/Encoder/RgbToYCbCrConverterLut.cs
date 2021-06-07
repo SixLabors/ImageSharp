@@ -92,6 +92,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             return tables;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float CalculateY(byte r, byte g, byte b)
+        {
+            return (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float CalculateCb(byte r, byte g, byte b)
+        {
+            return (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float CalculateCr(byte r, byte g, byte b)
+        {
+            return (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
+        }
+
+
         /// <summary>
         /// Optimized method to allocates the correct y, cb, and cr values to the DCT blocks from the given r, g, b values.
         /// </summary>
@@ -113,33 +132,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
             crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ConvertPixelInto(
-            int r,
-            int g,
-            int b,
-            ref Block8x8F yResult,
-            int i)
-        {
-            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
-            yResult[i] = (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ConvertPixelInto(int r, int g, int b, ref float yResult) =>
-            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
-            yResult = (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ConvertPixelInto(int r, int g, int b, ref float cbResult, ref float crResult)
-        {
-            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
-            cbResult = (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
-
-            // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
-            crResult = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
         }
 
         /// <summary>
@@ -187,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // 0-31 or 32-63
             // upper or lower part
-            int chromaWriteOffset = row * Block8x8F.Size / 2;
+            int chromaWriteOffset = row * (Block8x8F.Size / 2);
             ref float cbBlockRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, float>(ref cbBlock), chromaWriteOffset);
             ref float crBlockRef = ref Unsafe.Add(ref Unsafe.As<Block8x8F, float>(ref crBlock), chromaWriteOffset);
 
@@ -195,51 +187,72 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             for (int i = 0; i < 8; i += 2)
             {
-                // 8 pixels by 3 integers
-                Span<int> rgbTriplets = stackalloc int[24];
+                int yBlockWriteOffset = i * 8;
+                ref Rgb24 stride = ref Unsafe.Add(ref rgbStart, i * 16);
 
-                for (int j = 0; j < 2; j++)
-                {
-                    int yBlockWriteOffset = (i + j) * 8;
-                    ref Rgb24 stride = ref Unsafe.Add(ref rgbStart, (i + j) * 16);
+                int chromaOffset = 8 * (i / 2);
 
-                    // left
-                    this.ConvertChunk420(ref stride, ref Unsafe.Add(ref yBlockLeftRef, yBlockWriteOffset), rgbTriplets);
+                // left
+                this.ConvertChunk420(
+                    ref stride,
+                    ref Unsafe.Add(ref yBlockLeftRef, yBlockWriteOffset),
+                    ref Unsafe.Add(ref cbBlockRef, chromaOffset),
+                    ref Unsafe.Add(ref crBlockRef, chromaOffset));
 
-                    // right
-                    this.ConvertChunk420(ref Unsafe.Add(ref stride, 8), ref Unsafe.Add(ref yBlockRightRef, yBlockWriteOffset), rgbTriplets.Slice(12));
-                }
-
-                int writeIdx = 8 * (i / 2);
-                ref float cbWriteRef = ref Unsafe.Add(ref cbBlockRef, writeIdx);
-                ref float crWriteRef = ref Unsafe.Add(ref crBlockRef, writeIdx);
-                for (int j = 0; j < 8; j++)
-                {
-                    int idx = j * 3;
-                    this.ConvertPixelInto(
-                        rgbTriplets[idx] / 4,       // r
-                        rgbTriplets[idx + 1] / 4,   // g
-                        rgbTriplets[idx + 2] / 4,   // b
-                        ref Unsafe.Add(ref cbWriteRef, j),
-                        ref Unsafe.Add(ref crWriteRef, j));
-                }
+                // right
+                this.ConvertChunk420(
+                    ref Unsafe.Add(ref stride, 8),
+                    ref Unsafe.Add(ref yBlockRightRef, yBlockWriteOffset),
+                    ref Unsafe.Add(ref cbBlockRef, chromaOffset + 4),
+                    ref Unsafe.Add(ref crBlockRef, chromaOffset + 4));
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ConvertChunk420(ref Rgb24 stride, ref float yBlock, Span<int> chromaRgbTriplet)
+        private void ConvertChunk420(ref Rgb24 stride, ref float yBlock, ref float cbBlock, ref float crBlock)
         {
-            for (int i = 0; i < 8; i++)
+            // jpeg 8x8 blocks are processed as 16x16 blocks with 16x8 subpasses (this is done for performance reasons)
+            // each row is 16 pixels wide thus +16 stride reference offset
+            // resulting luminance (Y`) are sampled at original resolution thus +8 reference offset
+            for (int k = 0; k < 8; k += 2)
             {
-                Rgb24 px0 = Unsafe.Add(ref stride, i);
+                ref float yBlockRef = ref Unsafe.Add(ref yBlock, k);
 
-                this.ConvertPixelInto(px0.R, px0.G, px0.B, ref Unsafe.Add(ref yBlock, i));
+                // top row
+                Rgb24 px0 = Unsafe.Add(ref stride, k);
+                Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
+                this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
+                this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
 
-                int idx = 3 * (i / 2);
-                chromaRgbTriplet[idx] += px0.R;
-                chromaRgbTriplet[idx + 1] += px0.G;
-                chromaRgbTriplet[idx + 2] += px0.B;
+                // bottom row
+                Rgb24 px2 = Unsafe.Add(ref stride, k + 16);
+                Rgb24 px3 = Unsafe.Add(ref stride, k + 17);
+                this.ConvertPixelInto(px2.R, px2.G, px2.B, ref Unsafe.Add(ref yBlockRef, 8));
+                this.ConvertPixelInto(px3.R, px3.G, px3.B, ref Unsafe.Add(ref yBlockRef, 9));
+
+                Unsafe.Add(ref cbBlock, k / 2) = this.CalculateAverageCb(px0, px1, px2, px3);
+                Unsafe.Add(ref crBlock, k / 2) = this.CalculateAverageCr(px0, px1, px2, px3);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float CalculateAverageCb(Rgb24 px0, Rgb24 px1, Rgb24 px2, Rgb24 px3)
+        {
+            return 0.25f
+                * (this.CalculateCb(px0.R, px0.G, px0.B)
+                + this.CalculateCb(px1.R, px1.G, px1.B)
+                + this.CalculateCb(px2.R, px2.G, px2.B)
+                + this.CalculateCb(px3.R, px3.G, px3.B));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float CalculateAverageCr(Rgb24 px0, Rgb24 px1, Rgb24 px2, Rgb24 px3)
+        {
+            return 0.25f
+                * (this.CalculateCr(px0.R, px0.G, px0.B)
+                + this.CalculateCr(px1.R, px1.G, px1.B)
+                + this.CalculateCr(px2.R, px2.G, px2.B)
+                + this.CalculateCr(px3.R, px3.G, px3.B));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

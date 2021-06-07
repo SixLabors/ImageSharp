@@ -88,27 +88,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
         }
 
-        public static YCbCrForwardConverter444<TPixel> Create()
-        {
-            var result = default(YCbCrForwardConverter444<TPixel>);
-
-            // creating rgb pixel bufferr
-            // TODO: this is subject to discuss
-            // converter.Convert comments for +8 padding
-            result.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[RgbSpanByteSize + 8].AsSpan());
-
-            // TODO: this is subject to discuss
-            result.pixelSpan = new TPixel[PixelsPerSample].AsSpan();
-
-            // Avoid creating lookup tables, when vectorized converter is supported
-            if (!RgbToYCbCrConverterVectorized.IsSupported)
-            {
-                result.colorTables = RgbToYCbCrConverterLut.Create();
-            }
-
-            return result;
-        }
-
         /// <summary>
         /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
         /// </summary>

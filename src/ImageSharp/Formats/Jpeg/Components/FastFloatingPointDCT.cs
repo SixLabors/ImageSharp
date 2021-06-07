@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         /// <param name="s">Source</param>
         /// <param name="d">Destination</param>
-        private static void FDCT8x8_Avx(ref Block8x8F s, ref Block8x8F d)
+        public static void FDCT8x8_Avx(ref Block8x8F s, ref Block8x8F d)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             Debug.Assert(Avx.IsSupported, "AVX is required to execute this method");

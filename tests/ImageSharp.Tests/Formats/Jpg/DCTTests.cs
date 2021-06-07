@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
@@ -22,56 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
             }
 
-            [Fact]
-            public void IDCT2D8x4_LeftPart()
-            {
-                float[] sourceArray = Create8x8FloatData();
-                var expectedDestArray = new float[64];
-
-                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D8x4_32f(sourceArray, expectedDestArray);
-
-                var source = default(Block8x8F);
-                source.LoadFrom(sourceArray);
-
-                var dest = default(Block8x8F);
-
-                FastFloatingPointDCT.IDCT8x4_LeftPart(ref source, ref dest);
-
-                var actualDestArray = new float[64];
-                dest.ScaledCopyTo(actualDestArray);
-
-                this.Print8x8Data(expectedDestArray);
-                this.Output.WriteLine("**************");
-                this.Print8x8Data(actualDestArray);
-
-                Assert.Equal(expectedDestArray, actualDestArray);
-            }
-
-            [Fact]
-            public void IDCT2D8x4_RightPart()
-            {
-                float[] sourceArray = Create8x8FloatData();
-                var expectedDestArray = new float[64];
-
-                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D8x4_32f(sourceArray.AsSpan(4), expectedDestArray.AsSpan(4));
-
-                var source = default(Block8x8F);
-                source.LoadFrom(sourceArray);
-
-                var dest = default(Block8x8F);
-
-                FastFloatingPointDCT.IDCT8x4_RightPart(ref source, ref dest);
-
-                var actualDestArray = new float[64];
-                dest.ScaledCopyTo(actualDestArray);
-
-                this.Print8x8Data(expectedDestArray);
-                this.Output.WriteLine("**************");
-                this.Print8x8Data(actualDestArray);
-
-                Assert.Equal(expectedDestArray, actualDestArray);
-            }
-
+            // Reference tests
             [Theory]
             [InlineData(1)]
             [InlineData(2)]
@@ -110,6 +61,121 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.CompareBlocks(expected, actual, 1f);
             }
 
+
+            // Inverse transform
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void IDCT8x4_LeftPart(int seed)
+            {
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
+                var srcBlock = default(Block8x8F);
+                srcBlock.LoadFrom(src);
+
+                var destBlock = default(Block8x8F);
+
+                var expectedDest = new float[64];
+
+                // reference
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D8x4_32f(src, expectedDest);
+
+                // testee
+                FastFloatingPointDCT.IDCT8x4_LeftPart(ref srcBlock, ref destBlock);
+
+                var actualDest = new float[64];
+                destBlock.ScaledCopyTo(actualDest);
+
+                Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+            }
+
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void IDCT8x4_RightPart(int seed)
+            {
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
+                var srcBlock = default(Block8x8F);
+                srcBlock.LoadFrom(src);
+
+                var destBlock = default(Block8x8F);
+
+                var expectedDest = new float[64];
+
+                // reference
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan(4));
+
+                // testee
+                FastFloatingPointDCT.IDCT8x4_RightPart(ref srcBlock, ref destBlock);
+
+                var actualDest = new float[64];
+                destBlock.ScaledCopyTo(actualDest);
+
+                Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+            }
+
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void IDCT8x8_Avx(int seed)
+            {
+                if (!Avx.IsSupported)
+                {
+                    this.Output.WriteLine("No AVX present, skipping test!");
+                    return;
+                }
+
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
+                var srcBlock = default(Block8x8F);
+                srcBlock.LoadFrom(src);
+
+                var destBlock = default(Block8x8F);
+
+                var expectedDest = new float[64];
+
+                // reference, left part
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D8x4_32f(src, expectedDest);
+
+                // reference, right part
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan(4));
+
+                // testee, whole 8x8
+                FastFloatingPointDCT.IDCT8x8_Avx(ref srcBlock, ref destBlock);
+
+                var actualDest = new float[64];
+                destBlock.ScaledCopyTo(actualDest);
+
+                Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+            }
+
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void TransformIDCT(int seed)
+            {
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
+                var srcBlock = default(Block8x8F);
+                srcBlock.LoadFrom(src);
+
+                var destBlock = default(Block8x8F);
+
+                var expectedDest = new float[64];
+                var temp1 = new float[64];
+                var temp2 = default(Block8x8F);
+
+                // reference
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(src, expectedDest, temp1);
+
+                // testee
+                FastFloatingPointDCT.TransformIDCT(ref srcBlock, ref destBlock, ref temp2);
+
+                var actualDest = new float[64];
+                destBlock.ScaledCopyTo(actualDest);
+
+                Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+            }
+
+
+            // Forward transform
             [Theory]
             [InlineData(1)]
             [InlineData(2)]
@@ -123,7 +189,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 var expectedDest = new float[64];
 
+                // reference
                 ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D8x4_32f(src, expectedDest);
+
+                // testee
                 FastFloatingPointDCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
 
                 var actualDest = new float[64];
@@ -145,8 +214,45 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 var expectedDest = new float[64];
 
+                // reference
                 ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan(4));
+
+                // testee
                 FastFloatingPointDCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
+
+                var actualDest = new float[64];
+                destBlock.ScaledCopyTo(actualDest);
+
+                Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+            }
+
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void FDCT8x8_Avx(int seed)
+            {
+                if (!Avx.IsSupported)
+                {
+                    this.Output.WriteLine("No AVX present, skipping test!");
+                    return;
+                }
+
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
+                var srcBlock = default(Block8x8F);
+                srcBlock.LoadFrom(src);
+
+                var destBlock = default(Block8x8F);
+
+                var expectedDest = new float[64];
+
+                // reference, left part
+                ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D8x4_32f(src, expectedDest);
+
+                // reference, right part
+                ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan(4));
+
+                // testee, whole 8x8
+                FastFloatingPointDCT.FDCT8x8_Avx(ref srcBlock, ref destBlock);
 
                 var actualDest = new float[64];
                 destBlock.ScaledCopyTo(actualDest);
@@ -169,7 +275,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var temp1 = new float[64];
                 var temp2 = default(Block8x8F);
 
+                // reference
                 ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
+
+                // testee
                 FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
 
                 var actualDest = new float[64];

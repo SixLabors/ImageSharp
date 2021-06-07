@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.True(comparer.Equals(res[i], target[i]), $"Pos {i}, Expected {target[i]} == {res[i]}");
+                Assert.True(comparer.Equals(res[i], target[i]), $"Pos {i}, Expected: {target[i]}, Got: {res[i]}");
             }
         }
 

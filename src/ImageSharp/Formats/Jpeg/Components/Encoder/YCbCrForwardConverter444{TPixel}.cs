@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // temporal pixel buffers
             this.pixelSpan = new TPixel[PixelsPerSample].AsSpan();
-            this.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[RgbSpanByteSize + RgbToYCbCrConverterVectorized.AvxRegisterRgbCompatibilityPadding].AsSpan());
+            this.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[RgbSpanByteSize + RgbToYCbCrConverterVectorized.AvxCompatibilityPadding].AsSpan());
 
             // frame data
             this.samplingAreaSize = new Size(frame.Width, frame.Height);

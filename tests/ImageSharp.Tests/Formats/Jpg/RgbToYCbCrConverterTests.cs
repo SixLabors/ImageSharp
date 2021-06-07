@@ -92,8 +92,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var cb = default(Block8x8F);
             var cr = default(Block8x8F);
 
-            RgbToYCbCrConverterVectorized.Convert420_16x8(data, ref yBlocks[0], ref yBlocks[1], ref cb, ref cr, 0);
-            RgbToYCbCrConverterVectorized.Convert420_16x8(data.Slice(16 * 8), ref yBlocks[2], ref yBlocks[3], ref cb, ref cr, 1);
+            RgbToYCbCrConverterVectorized.Convert420(data, ref yBlocks[0], ref yBlocks[1], ref cb, ref cr, 0);
+            RgbToYCbCrConverterVectorized.Convert420(data.Slice(16 * 8), ref yBlocks[2], ref yBlocks[3], ref cb, ref cr, 1);
 
             Verify420(data, yBlocks, ref cb, ref cr, new ApproximateFloatComparer(1F));
         }
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             ref Block8x8F crResult,
             ApproximateFloatComparer comparer)
         {
-            var tempBlock = default(Block8x8F);
+            var trueBlock = default(Block8x8F);
             var cbTrue = new Block8x8F[4];
             var crTrue = new Block8x8F[4];
 
@@ -133,31 +133,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // top left
             Copy8x8(data, tempData);
-            RgbToYCbCr(tempData, ref tempBlock, ref cbTrue[0], ref crTrue[0]);
-            VerifyBlock(ref yResult[0], ref tempBlock, comparer);
+            RgbToYCbCr(tempData, ref trueBlock, ref cbTrue[0], ref crTrue[0]);
+            VerifyBlock(ref yResult[0], ref trueBlock, comparer);
 
             // top right
             Copy8x8(data.Slice(8), tempData);
-            RgbToYCbCr(tempData, ref tempBlock, ref cbTrue[1], ref crTrue[1]);
-            VerifyBlock(ref yResult[1], ref tempBlock, comparer);
+            RgbToYCbCr(tempData, ref trueBlock, ref cbTrue[1], ref crTrue[1]);
+            VerifyBlock(ref yResult[1], ref trueBlock, comparer);
 
             // bottom left
             Copy8x8(data.Slice(8 * 16), tempData);
-            RgbToYCbCr(tempData, ref tempBlock, ref cbTrue[2], ref crTrue[2]);
-            VerifyBlock(ref yResult[2], ref tempBlock, comparer);
+            RgbToYCbCr(tempData, ref trueBlock, ref cbTrue[2], ref crTrue[2]);
+            VerifyBlock(ref yResult[2], ref trueBlock, comparer);
 
             // bottom right
             Copy8x8(data.Slice((8 * 16) + 8), tempData);
-            RgbToYCbCr(tempData, ref tempBlock, ref cbTrue[3], ref crTrue[3]);
-            VerifyBlock(ref yResult[3], ref tempBlock, comparer);
+            RgbToYCbCr(tempData, ref trueBlock, ref cbTrue[3], ref crTrue[3]);
+            VerifyBlock(ref yResult[3], ref trueBlock, comparer);
 
             // verify Cb
-            Scale16X16To8X8(ref tempBlock, cbTrue);
-            VerifyBlock(ref cbResult, ref tempBlock, comparer);
+            Scale16X16To8X8(ref trueBlock, cbTrue);
+            VerifyBlock(ref cbResult, ref trueBlock, comparer);
 
             // verify Cr
-            Scale16X16To8X8(ref tempBlock, crTrue);
-            VerifyBlock(ref crResult, ref tempBlock, comparer);
+            Scale16X16To8X8(ref trueBlock, crTrue);
+            VerifyBlock(ref crResult, ref trueBlock, comparer);
 
 
             // extracts 8x8 blocks from 16x8 memory region

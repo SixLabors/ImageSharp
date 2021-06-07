@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // temporal pixel buffers
             this.pixelSpan = new TPixel[PixelsPerSample].AsSpan();
-            this.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[RgbSpanByteSize + RgbToYCbCrConverterVectorized.AvxRegisterRgbCompatibilityPadding].AsSpan());
+            this.rgbSpan = MemoryMarshal.Cast<byte, Rgb24>(new byte[RgbSpanByteSize + RgbToYCbCrConverterVectorized.AvxCompatibilityPadding].AsSpan());
 
             // frame data
             this.samplingAreaSize = new Size(frame.Width, frame.Height);
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             if (RgbToYCbCrConverterVectorized.IsSupported)
             {
-                RgbToYCbCrConverterVectorized.Convert420_16x8(this.rgbSpan, ref this.YLeft, ref this.YRight, ref this.Cb, ref this.Cr, idx);
+                RgbToYCbCrConverterVectorized.Convert420(this.rgbSpan, ref this.YLeft, ref this.YRight, ref this.Cb, ref this.Cr, idx);
             }
             else
             {

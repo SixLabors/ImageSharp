@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
+#endif
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
@@ -118,7 +120,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void IDCT8x8_Avx(int seed)
             {
-                if (!Avx.IsSupported)
+#if SUPPORTS_RUNTIME_INTRINSICS
+                var skip = !Avx.IsSupported;
+#else
+                var skip = true;
+#endif
+
+                if (skip)
                 {
                     this.Output.WriteLine("No AVX present, skipping test!");
                     return;
@@ -231,7 +239,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void FDCT8x8_Avx(int seed)
             {
-                if (!Avx.IsSupported)
+#if SUPPORTS_RUNTIME_INTRINSICS
+                var skip = !Avx.IsSupported;
+#else
+                var skip = true;
+#endif
+                if (skip)
                 {
                     this.Output.WriteLine("No AVX present, skipping test!");
                     return;

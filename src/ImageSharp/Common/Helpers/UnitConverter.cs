@@ -100,12 +100,11 @@ namespace SixLabors.ImageSharp.Common.Helpers
         /// <summary>
         /// Sets the exif profile resolution values.
         /// </summary>
-        /// <param name="exifProfile">The exif profile.</param>
         /// <param name="unit">The resolution unit.</param>
         /// <param name="horizontal">The horizontal resolution value.</param>
         /// <param name="vertical">The vertical resolution value.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void SetResolutionValues(ExifProfile exifProfile, PixelResolutionUnit unit, double horizontal, double vertical)
+        public static (ushort, double?, double?) AdjustToExif(PixelResolutionUnit unit, double horizontal, double vertical)
         {
             switch (unit)
             {
@@ -114,30 +113,25 @@ namespace SixLabors.ImageSharp.Common.Helpers
                 case PixelResolutionUnit.PixelsPerCentimeter:
                     break;
                 case PixelResolutionUnit.PixelsPerMeter:
-                    {
-                        unit = PixelResolutionUnit.PixelsPerCentimeter;
-                        horizontal = UnitConverter.MeterToCm(horizontal);
-                        vertical = UnitConverter.MeterToCm(vertical);
-                    }
+                {
+                    unit = PixelResolutionUnit.PixelsPerCentimeter;
+                    horizontal = MeterToCm(horizontal);
+                    vertical = MeterToCm(vertical);
+                }
 
-                    break;
+                break;
                 default:
                     unit = PixelResolutionUnit.PixelsPerInch;
                     break;
             }
 
-            exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)(unit + 1));
-
+            ushort exifUnit = (ushort)(unit + 1);
             if (unit == PixelResolutionUnit.AspectRatio)
             {
-                exifProfile.RemoveValue(ExifTag.XResolution);
-                exifProfile.RemoveValue(ExifTag.YResolution);
+                return (exifUnit, null, null);
             }
-            else
-            {
-                exifProfile.SetValue(ExifTag.XResolution, new Rational(horizontal));
-                exifProfile.SetValue(ExifTag.YResolution, new Rational(vertical));
-            }
+
+            return (exifUnit, horizontal, vertical);
         }
     }
 }

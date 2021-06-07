@@ -16,13 +16,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     internal ref struct YCbCrForwardConverter420<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // TODO: docs
+        /// <summary>
+        /// Number of pixels processed per single <see cref="Convert(int, int, ref RowOctet{TPixel}, int)"/> call
+        /// </summary>
         private const int PixelsPerSample = 16 * 8;
 
-        // TODO: docs
-        private static int RgbSpanByteSize = PixelsPerSample * 3;
+        /// <summary>
+        /// Total byte size of processed pixels converted from TPixel to <see cref="Rgb24"/>
+        /// </summary>
+        private const int RgbSpanByteSize = PixelsPerSample * 3;
 
-        // TODO: docs
+        /// <summary>
+        /// <see cref="Size"/> of sampling area from given frame pixel buffer
+        /// </summary>
         private static readonly Size SampleSize = new Size(16, 8);
 
         /// <summary>

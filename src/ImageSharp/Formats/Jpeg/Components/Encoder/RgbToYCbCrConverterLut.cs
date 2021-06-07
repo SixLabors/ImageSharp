@@ -95,43 +95,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float CalculateY(byte r, byte g, byte b)
         {
+            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
             return (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float CalculateCb(byte r, byte g, byte b)
         {
+            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
             return (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float CalculateCr(byte r, byte g, byte b)
         {
-            return (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
-        }
-
-
-        /// <summary>
-        /// Optimized method to allocates the correct y, cb, and cr values to the DCT blocks from the given r, g, b values.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ConvertPixelInto(
-            int r,
-            int g,
-            int b,
-            ref Block8x8F yResult,
-            ref Block8x8F cbResult,
-            ref Block8x8F crResult,
-            int i)
-        {
-            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
-            yResult[i] = (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
-
-            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
-            cbResult[i] = (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
-
             // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
-            crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
+            return (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
         }
 
         /// <summary>
@@ -147,16 +126,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                ref Rgb24 c = ref Unsafe.Add(ref rgbStart, i);
+                Rgb24 c = Unsafe.Add(ref rgbStart, i);
 
-                this.ConvertPixelInto(
-                    c.R,
-                    c.G,
-                    c.B,
-                    ref yBlock,
-                    ref cbBlock,
-                    ref crBlock,
-                    i);
+                yBlock[i] = this.CalculateY(c.R, c.G, c.B);
+                cbBlock[i] = this.CalculateCb(c.R, c.G, c.B);
+                crBlock[i] = this.CalculateCr(c.R, c.G, c.B);
             }
         }
 
@@ -221,15 +195,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 // top row
                 Rgb24 px0 = Unsafe.Add(ref stride, k);
                 Rgb24 px1 = Unsafe.Add(ref stride, k + 1);
-                this.ConvertPixelInto(px0.R, px0.G, px0.B, ref yBlockRef);
-                this.ConvertPixelInto(px1.R, px1.G, px1.B, ref Unsafe.Add(ref yBlockRef, 1));
+                yBlockRef = this.CalculateY(px0.R, px0.G, px0.B);
+                Unsafe.Add(ref yBlockRef, 1) = this.CalculateY(px1.R, px1.G, px1.B);
 
                 // bottom row
                 Rgb24 px2 = Unsafe.Add(ref stride, k + 16);
                 Rgb24 px3 = Unsafe.Add(ref stride, k + 17);
-                this.ConvertPixelInto(px2.R, px2.G, px2.B, ref Unsafe.Add(ref yBlockRef, 8));
-                this.ConvertPixelInto(px3.R, px3.G, px3.B, ref Unsafe.Add(ref yBlockRef, 9));
+                Unsafe.Add(ref yBlockRef, 8) = this.CalculateY(px2.R, px2.G, px2.B);
+                Unsafe.Add(ref yBlockRef, 9) = this.CalculateY(px3.R, px3.G, px3.B);
 
+                // chroma average for 2x2 pixel block
                 Unsafe.Add(ref cbBlock, k / 2) = this.CalculateAverageCb(px0, px1, px2, px3);
                 Unsafe.Add(ref crBlock, k / 2) = this.CalculateAverageCr(px0, px1, px2, px3);
             }

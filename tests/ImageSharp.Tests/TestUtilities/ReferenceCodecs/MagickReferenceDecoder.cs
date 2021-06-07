@@ -25,10 +25,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         {
         }
 
-        public MagickReferenceDecoder(bool validate)
-        {
-            this.validate = validate;
-        }
+        public MagickReferenceDecoder(bool validate) => this.validate = validate;
 
         public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
 
@@ -87,13 +84,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 MemoryGroup<TPixel> framePixels = frame.PixelBuffer.FastMemoryGroup;
 
                 using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
-                if (magicFrame.Depth == 8 || magicFrame.Depth == 1)
+                if (magicFrame.Depth == 8 || magicFrame.Depth == 4 || magicFrame.Depth == 2 || magicFrame.Depth == 1 || magicFrame.Depth == 10)
                 {
                     byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 
                     FromRgba32Bytes(configuration, data, framePixels);
                 }
-                else if (magicFrame.Depth == 16)
+                else if (magicFrame.Depth == 16 || magicFrame.Depth == 14)
                 {
                     ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
                     Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());

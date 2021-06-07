@@ -97,13 +97,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Flower4BitPalette, PixelTypes.Rgba32)]
         [WithFile(Flower4BitPaletteGray, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_4Bit_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            if (TestEnvironment.IsWindows)
-            {
-                TestTiffDecoder(provider, new SystemDrawingReferenceDecoder(), useExactComparer: false, 0.01f);
-            }
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, ReferenceDecoder, useExactComparer: false, 0.01f);
+
+        [Theory]
+        [WithFile(FlowerRgb222Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb222Planar, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_6Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FlowerRgb444Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb444Planar, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_12Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FlowerRgb101010Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb101010Planar, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_30Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FlowerRgb141414Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb141414Planar, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_42Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]

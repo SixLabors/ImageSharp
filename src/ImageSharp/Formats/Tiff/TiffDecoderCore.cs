@@ -294,7 +294,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 int top = rowsPerStrip * stripIndex;
                 if (top + stripHeight > frame.Height)
                 {
-                    // Make sure we ignore any strips that are not needed for the image (if too many are present)
+                    // Make sure we ignore any strips that are not needed for the image (if too many are present).
                     break;
                 }
 

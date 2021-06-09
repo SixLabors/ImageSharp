@@ -221,9 +221,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     bDataLanes[j] = b;
                 }
 
-                r = Scale_8x4_4x2(rDataLanes);
-                g = Scale_8x4_4x2(gDataLanes);
-                b = Scale_8x4_4x2(bDataLanes);
+                r = SimdUtils.HwIntrinsics.Scale16x2_8x1(rDataLanes);
+                g = SimdUtils.HwIntrinsics.Scale16x2_8x1(gDataLanes);
+                b = SimdUtils.HwIntrinsics.Scale16x2_8x1(bDataLanes);
 
                 // 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b))
                 Unsafe.Add(ref destCbRef, i) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
@@ -233,27 +233,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 #endif
         }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<float> Scale_8x4_4x2(Span<Vector256<float>> v)
-        {
-            Vector256<int> switchInnerDoubleWords = Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskSwitchInnerDWords8x32));
-            var f025 = Vector256.Create(0.25f);
-
-            Vector256<float> topPairSum = SumHorizontalPairs(v[0], v[2]);
-            Vector256<float> botPairSum = SumHorizontalPairs(v[1], v[3]);
-
-            return Avx2.PermuteVar8x32(Avx.Multiply(SumVerticalPairs(topPairSum, botPairSum), f025), switchInnerDoubleWords);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<float> SumHorizontalPairs(Vector256<float> v0, Vector256<float> v1)
-            => Avx.Add(Avx.Shuffle(v0, v1, 0b10_00_10_00), Avx.Shuffle(v0, v1, 0b11_01_11_01));
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<float> SumVerticalPairs(Vector256<float> v0, Vector256<float> v1)
-            => Avx.Add(Avx.Shuffle(v0, v1, 0b01_00_01_00), Avx.Shuffle(v0, v1, 0b11_10_11_10));
-#endif
     }
 }

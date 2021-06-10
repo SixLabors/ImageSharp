@@ -2,6 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -98,6 +104,43 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Verify420(data, yBlocks, ref cb, ref cr, new ApproximateFloatComparer(1F));
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void Scale16x2_8x1(int seed)
+        {
+            if (!Avx2.IsSupported)
+            {
+                return;
+            }
+
+            Span<float> data = new Random(seed).GenerateRandomFloatArray(Vector256<float>.Count * 4, -1000, 1000);
+
+            // Act:
+            Vector256<float> resultVector = RgbToYCbCrConverterVectorized.Scale16x2_8x1(MemoryMarshal.Cast<float, Vector256<float>>(data));
+            ref float result = ref Unsafe.As<Vector256<float>, float>(ref resultVector);
+
+            // Assert:
+            // Comparison epsilon is tricky but 10^(-4) is good enough (?)
+            var comparer = new ApproximateFloatComparer(0.0001f);
+            for (int i = 0; i < Vector256<float>.Count; i++)
+            {
+                float actual = Unsafe.Add(ref result, i);
+                float expected = CalculateAverage16x2_8x1(data, i);
+
+                Assert.True(comparer.Equals(actual, expected), $"Pos {i}, Expected: {expected}, Actual: {actual}");
+            }
+
+            static float CalculateAverage16x2_8x1(Span<float> data, int index)
+            {
+                int upIdx = index * 2;
+                int lowIdx = (index + 8) * 2;
+                return 0.25f * (data[upIdx] + data[upIdx + 1] + data[lowIdx] + data[lowIdx + 1]);
+            }
+        }
+#endif
 
         private static void Verify444(
             ReadOnlySpan<Rgb24> data,

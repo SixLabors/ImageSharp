@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 #endif
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS 
+#if SUPPORTS_RUNTIME_INTRINSICS
         /// <summary>
         /// Scales 16x2 matrix to 8x1 using 2x2 average
         /// </summary>

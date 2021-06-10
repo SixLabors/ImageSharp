@@ -110,12 +110,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 .NET Core SDK=6.0.100-preview.3.21202.5
-  [Host]     : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
+  [Host]     : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT  [AttachedDebugger]
   DefaultJob : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
 
 
-|                Method |     Mean |    Error |   StdDev | Ratio | RatioSD |
-|---------------------- |---------:|---------:|---------:|------:|--------:|
-| 'System.Drawing Jpeg' | 39.67 ms | 0.774 ms | 0.828 ms |  1.00 |    0.00 |
-|     'ImageSharp Jpeg' | 45.39 ms | 0.415 ms | 0.346 ms |  1.14 |    0.03 |
+|                      Method | Quality |     Mean |    Error |   StdDev | Ratio | RatioSD |
+|---------------------------- |-------- |---------:|---------:|---------:|------:|--------:|
+| 'System.Drawing Jpeg 4:2:0' |      75 | 30.60 ms | 0.496 ms | 0.464 ms |  1.00 |    0.00 |
+|     'ImageSharp Jpeg 4:2:0' |      75 | 29.86 ms | 0.350 ms | 0.311 ms |  0.98 |    0.02 |
+|     'ImageSharp Jpeg 4:4:4' |      75 | 45.36 ms | 0.899 ms | 1.036 ms |  1.48 |    0.05 |
+|                             |         |          |          |          |       |         |
+| 'System.Drawing Jpeg 4:2:0' |      90 | 34.05 ms | 0.669 ms | 0.687 ms |  1.00 |    0.00 |
+|     'ImageSharp Jpeg 4:2:0' |      90 | 37.26 ms | 0.706 ms | 0.660 ms |  1.10 |    0.03 |
+|     'ImageSharp Jpeg 4:4:4' |      90 | 52.54 ms | 0.579 ms | 0.514 ms |  1.55 |    0.04 |
+|                             |         |          |          |          |       |         |
+| 'System.Drawing Jpeg 4:2:0' |     100 | 39.36 ms | 0.267 ms | 0.237 ms |  1.00 |    0.00 |
+|     'ImageSharp Jpeg 4:2:0' |     100 | 42.44 ms | 0.410 ms | 0.383 ms |  1.08 |    0.01 |
+|     'ImageSharp Jpeg 4:4:4' |     100 | 70.88 ms | 0.508 ms | 0.450 ms |  1.80 |    0.02 |
 */

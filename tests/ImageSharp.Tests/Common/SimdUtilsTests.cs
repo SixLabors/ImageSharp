@@ -5,6 +5,8 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -357,6 +359,44 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (r, g, b, actual) =>
                     SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void Scale16x2_8x1(int seed)
+        {
+            if (!Avx.IsSupported)
+            {
+                return;
+            }
+
+            Span<float> data = new Random(seed).GenerateRandomFloatArray(Vector256<float>.Count * 4, -1000, 1000);
+
+            // Act:
+            Vector256<float> resultVector = SimdUtils.HwIntrinsics.Scale16x2_8x1(MemoryMarshal.Cast<float, Vector256<float>>(data));
+            ref float result = ref Unsafe.As<Vector256<float>, float>(ref resultVector);
+
+            // Assert:
+            // Comparison epsilon is tricky but 10^(-4) is good enough (?)
+            var comparer = new ApproximateFloatComparer(0.0001f);
+            for (int i = 0; i < Vector256<float>.Count; i++)
+            {
+                float actual = Unsafe.Add(ref result, i);
+                float expected = CalculateAverage16x2_8x1(data, i);
+
+                Assert.True(comparer.Equals(actual, expected), $"Pos {i}, Expected: {expected}, Actual: {actual}");
+            }
+
+            static float CalculateAverage16x2_8x1(Span<float> data, int index)
+            {
+                int upIdx = index * 2;
+                int lowIdx = (index + 8) * 2;
+                return 0.25f * (data[upIdx] + data[upIdx + 1] + data[lowIdx] + data[lowIdx + 1]);
+            }
+        }
+#endif
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]

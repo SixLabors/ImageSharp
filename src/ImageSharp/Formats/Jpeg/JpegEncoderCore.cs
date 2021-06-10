@@ -5,14 +5,11 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -30,96 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// The number of quantization tables.
         /// </summary>
         private const int QuantizationTableCount = 2;
-
-        /// <summary>
-        /// A scratch buffer to reduce allocations.
-        /// </summary>
-        private readonly byte[] buffer = new byte[20];
-
-        /// <summary>
-        /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
-        /// </summary>
-        private readonly byte[] emitBuffer = new byte[64];
-
-        /// <summary>
-        /// A buffer for reducing the number of stream writes when emitting Huffman tables. Max combined table lengths +
-        /// identifier.
-        /// </summary>
-        private readonly byte[] huffmanBuffer = new byte[179];
-
-        /// <summary>
-        /// Gets or sets the subsampling method to use.
-        /// </summary>
-        private JpegSubsample? subsample;
-
-        /// <summary>
-        /// The quality, that will be used to encode the image.
-        /// </summary>
-        private readonly int? quality;
-
-        /// <summary>
-        /// Gets or sets the subsampling method to use.
-        /// </summary>
-        private readonly JpegColorType? colorType;
-
-        /// <summary>
-        /// The accumulated bits to write to the stream.
-        /// </summary>
-        private uint accumulatedBits;
-
-        /// <summary>
-        /// The accumulated bit count.
-        /// </summary>
-        private uint bitCount;
-
-        /// <summary>
-        /// The scaled chrominance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F chrominanceQuantTable;
-
-        /// <summary>
-        /// The scaled luminance table, in zig-zag order.
-        /// </summary>
-        private Block8x8F luminanceQuantTable;
-
-        /// <summary>
-        /// The output stream. All attempted writes after the first error become no-ops.
-        /// </summary>
-        private Stream outputStream;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
-        /// </summary>
-        /// <param name="options">The options</param>
-        public JpegEncoderCore(IJpegEncoderOptions options)
-        {
-            this.quality = options.Quality;
-            this.subsample = options.Subsample;
-            this.colorType = options.ColorType;
-        }
-
-        /// <summary>
-        /// Gets the counts the number of bits needed to hold an integer.
-        /// </summary>
-        // The C# compiler emits this as a compile-time constant embedded in the PE file.
-        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
-        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> BitCountLut => new byte[]
-            {
-                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
-                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8,
-            };
 
         /// <summary>
         /// Gets the unscaled quantization tables in zig-zag order. Each
@@ -160,6 +67,42 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             };
 
         /// <summary>
+        /// A scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] buffer = new byte[20];
+
+        /// <summary>
+        /// Gets or sets the subsampling method to use.
+        /// </summary>
+        private JpegSubsample? subsample;
+
+        /// <summary>
+        /// The quality, that will be used to encode the image.
+        /// </summary>
+        private readonly int? quality;
+
+        /// <summary>
+        /// Gets or sets the subsampling method to use.
+        /// </summary>
+        private readonly JpegColorType? colorType;
+
+        /// <summary>
+        /// The output stream. All attempted writes after the first error become no-ops.
+        /// </summary>
+        private Stream outputStream;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
+        /// </summary>
+        /// <param name="options">The options</param>
+        public JpegEncoderCore(IJpegEncoderOptions options)
+        {
+            this.quality = options.Quality;
+            this.subsample = options.Subsample;
+            this.colorType = options.ColorType;
+        }
+
+        /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -171,13 +114,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
-            cancellationToken.ThrowIfCancellationRequested();
 
-            const ushort max = JpegConstants.MaxLength;
-            if (image.Width >= max || image.Height >= max)
+            if (image.Width >= JpegConstants.MaxLength || image.Height >= JpegConstants.MaxLength)
             {
-                throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
+                JpegThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
@@ -201,10 +144,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             // Initialize the quantization tables.
-            InitQuantizationTable(0, scale, ref this.luminanceQuantTable);
+            // TODO: This looks ugly, should we write chrominance table for luminance-only images?
+            // If not - this can code can be simplified
+            Block8x8F luminanceQuantTable = default;
+            Block8x8F chrominanceQuantTable = default;
+            InitQuantizationTable(0, scale, ref luminanceQuantTable);
             if (componentCount > 1)
             {
-                InitQuantizationTable(1, scale, ref this.chrominanceQuantTable);
+                InitQuantizationTable(1, scale, ref chrominanceQuantTable);
             }
 
             // Write the Start Of Image marker.
@@ -214,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteProfiles(metadata);
 
             // Write the quantization tables.
-            this.WriteDefineQuantizationTables();
+            this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
 
             // Write the image dimensions.
             this.WriteStartOfFrame(image.Width, image.Height, componentCount);
@@ -222,13 +169,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the Huffman tables.
             this.WriteDefineHuffmanTables(componentCount);
 
-            // Write the image data.
+            // Write the scan header.
             this.WriteStartOfScan(image, componentCount, cancellationToken);
 
+            // Write the scan compressed data.
+            var scanEncoder = new HuffmanScanEncoder(stream);
+            if (this.colorType == JpegColorType.Luminance)
+            {
+                scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
+            }
+            else
+            {
+                switch (subsample)
+                {
+                    case JpegSubsample.Ratio444:
+                        scanEncoder.Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        break;
+                    case JpegSubsample.Ratio420:
+                        scanEncoder.Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        break;
+                }
+            }
+
             // Write the End Of Image marker.
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[1] = JpegConstants.Markers.EOI;
-            stream.Write(this.buffer, 0, 2);
+            this.WriteEndOfImageMarker();
+
             stream.Flush();
         }
 
@@ -245,248 +210,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             for (int j = 0; j < Block8x8F.Size; j++)
             {
                 dqt[offset++] = (byte)quant[j];
-            }
-        }
-
-        /// <summary>
-        /// Initializes quantization table.
-        /// </summary>
-        /// <param name="i">The quantization index.</param>
-        /// <param name="scale">The scaling factor.</param>
-        /// <param name="quant">The quantization table.</param>
-        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
-        {
-            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
-            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
-
-            for (int j = 0; j < Block8x8F.Size; j++)
-            {
-                int x = unscaledQuant[j];
-                x = ((x * scale) + 50) / 100;
-                if (x < 1)
-                {
-                    x = 1;
-                }
-
-                if (x > 255)
-                {
-                    x = 255;
-                }
-
-                quant[j] = x;
-            }
-        }
-
-        /// <summary>
-        /// Emits the least significant count of bits of bits to the bit-stream.
-        /// The precondition is bits
-        /// <example>
-        /// &lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16
-        /// </example>
-        /// .
-        /// </summary>
-        /// <param name="bits">The packed bits.</param>
-        /// <param name="count">The number of bits</param>
-        /// <param name="emitBufferBase">The reference to the emitBuffer.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void Emit(uint bits, uint count, ref byte emitBufferBase)
-        {
-            count += this.bitCount;
-            bits <<= (int)(32 - count);
-            bits |= this.accumulatedBits;
-
-            // Only write if more than 8 bits.
-            if (count >= 8)
-            {
-                // Track length
-                int len = 0;
-                while (count >= 8)
-                {
-                    byte b = (byte)(bits >> 24);
-                    Unsafe.Add(ref emitBufferBase, len++) = b;
-                    if (b == byte.MaxValue)
-                    {
-                        Unsafe.Add(ref emitBufferBase, len++) = byte.MinValue;
-                    }
-
-                    bits <<= 8;
-                    count -= 8;
-                }
-
-                if (len > 0)
-                {
-                    this.outputStream.Write(this.emitBuffer, 0, len);
-                }
-            }
-
-            this.accumulatedBits = bits;
-            this.bitCount = count;
-        }
-
-        /// <summary>
-        /// Emits the given value with the given Huffman encoder.
-        /// </summary>
-        /// <param name="index">The index of the Huffman encoder</param>
-        /// <param name="value">The value to encode.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuff(HuffIndex index, int value, ref byte emitBufferBase)
-        {
-            uint x = HuffmanLut.TheHuffmanLut[(int)index].Values[value];
-            this.Emit(x & ((1 << 24) - 1), x >> 24, ref emitBufferBase);
-        }
-
-        /// <summary>
-        /// Emits a run of runLength copies of value encoded with the given Huffman encoder.
-        /// </summary>
-        /// <param name="index">The index of the Huffman encoder</param>
-        /// <param name="runLength">The number of copies to encode.</param>
-        /// <param name="value">The value to encode.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuffRLE(HuffIndex index, int runLength, int value, ref byte emitBufferBase)
-        {
-            int a = value;
-            int b = value;
-            if (a < 0)
-            {
-                a = -value;
-                b = value - 1;
-            }
-
-            uint bt;
-            if (a < 0x100)
-            {
-                bt = BitCountLut[a];
-            }
-            else
-            {
-                bt = 8 + (uint)BitCountLut[a >> 8];
-            }
-
-            this.EmitHuff(index, (int)((uint)(runLength << 4) | bt), ref emitBufferBase);
-            if (bt > 0)
-            {
-                this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt, ref emitBufferBase);
-            }
-        }
-
-        /// <summary>
-        /// Encodes the image with no subsampling.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            // (Partially done with YCbCrForwardConverter<TPixel>)
-            Block8x8F temp1 = default;
-            Block8x8F temp2 = default;
-
-            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
-            Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
-
-            var unzig = ZigZag.CreateUnzigTable();
-
-            // ReSharper disable once InconsistentNaming
-            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-
-            var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
-            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
-            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
-            RowOctet<TPixel> currentRows = default;
-
-            for (int y = 0; y < pixels.Height; y += 8)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                currentRows.Update(pixelBuffer, y);
-
-                for (int x = 0; x < pixels.Width; x += 8)
-                {
-                    pixelConverter.Convert(frame, x, y, ref currentRows);
-
-                    prevDCY = this.WriteBlock(
-                        QuantIndex.Luminance,
-                        prevDCY,
-                        ref pixelConverter.Y,
-                        ref temp1,
-                        ref temp2,
-                        ref onStackLuminanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
-
-                    prevDCCb = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCb,
-                        ref pixelConverter.Cb,
-                        ref temp1,
-                        ref temp2,
-                        ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
-
-                    prevDCCr = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCr,
-                        ref pixelConverter.Cr,
-                        ref temp1,
-                        ref temp2,
-                        ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Encodes the image with no chroma, just luminance.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        private void EncodeGrayscale<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            // (Partially done with YCbCrForwardConverter<TPixel>)
-            Block8x8F temp1 = default;
-            Block8x8F temp2 = default;
-
-            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
-
-            var unzig = ZigZag.CreateUnzigTable();
-
-            // ReSharper disable once InconsistentNaming
-            int prevDCY = 0;
-
-            var pixelConverter = LuminanceForwardConverter<TPixel>.Create();
-            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
-            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
-            RowOctet<TPixel> currentRows = default;
-
-            for (int y = 0; y < pixels.Height; y += 8)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                currentRows.Update(pixelBuffer, y);
-
-                for (int x = 0; x < pixels.Width; x += 8)
-                {
-                    pixelConverter.Convert(frame, x, y, ref currentRows);
-
-                    prevDCY = this.WriteBlock(
-                        QuantIndex.Luminance,
-                        prevDCY,
-                        ref pixelConverter.Y,
-                        ref temp1,
-                        ref temp2,
-                        ref onStackLuminanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
-                }
             }
         }
 
@@ -540,72 +263,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Writes a block of pixel data using the given quantization table,
-        /// returning the post-quantized DC value of the DCT-transformed block.
-        /// The block is in natural (not zig-zag) order.
-        /// </summary>
-        /// <param name="index">The quantization table index.</param>
-        /// <param name="prevDC">The previous DC value.</param>
-        /// <param name="src">Source block</param>
-        /// <param name="tempDest1">Temporal block to be used as FDCT Destination</param>
-        /// <param name="tempDest2">Temporal block 2</param>
-        /// <param name="quant">Quantization table</param>
-        /// <param name="unZig">The 8x8 Unzig block.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        /// <returns>The <see cref="int"/>.</returns>
-        private int WriteBlock(
-            QuantIndex index,
-            int prevDC,
-            ref Block8x8F src,
-            ref Block8x8F tempDest1,
-            ref Block8x8F tempDest2,
-            ref Block8x8F quant,
-            ref ZigZag unZig,
-            ref byte emitBufferBase)
-        {
-            FastFloatingPointDCT.TransformFDCT(ref src, ref tempDest1, ref tempDest2);
-
-            Block8x8F.Quantize(ref tempDest1, ref tempDest2, ref quant, ref unZig);
-
-            int dc = (int)tempDest2[0];
-
-            // Emit the DC delta.
-            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC, ref emitBufferBase);
-
-            // Emit the AC components.
-            var h = (HuffIndex)((2 * (int)index) + 1);
-            int runLength = 0;
-
-            for (int zig = 1; zig < Block8x8F.Size; zig++)
-            {
-                int ac = (int)tempDest2[zig];
-
-                if (ac == 0)
-                {
-                    runLength++;
-                }
-                else
-                {
-                    while (runLength > 15)
-                    {
-                        this.EmitHuff(h, 0xf0, ref emitBufferBase);
-                        runLength -= 16;
-                    }
-
-                    this.EmitHuffRLE(h, runLength, ac, ref emitBufferBase);
-                    runLength = 0;
-                }
-            }
-
-            if (runLength > 0)
-            {
-                this.EmitHuff(h, 0x00, ref emitBufferBase);
-            }
-
-            return dc;
-        }
-
-        /// <summary>
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
         /// <param name="componentCount">The number of components to write.</param>
@@ -638,34 +295,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
             for (int i = 0; i < specs.Length; i++)
             {
-                ref HuffmanSpec spec = ref specs[i];
-                int len = 0;
-
-                fixed (byte* huffman = this.huffmanBuffer)
-                fixed (byte* count = spec.Count)
-                fixed (byte* values = spec.Values)
-                {
-                    huffman[len++] = headers[i];
-
-                    for (int c = 0; c < spec.Count.Length; c++)
-                    {
-                        huffman[len++] = count[c];
-                    }
-
-                    for (int v = 0; v < spec.Values.Length; v++)
-                    {
-                        huffman[len++] = values[v];
-                    }
-                }
-
-                this.outputStream.Write(this.huffmanBuffer, 0, len);
+                this.outputStream.WriteByte(headers[i]);
+                this.outputStream.Write(specs[i].Count);
+                this.outputStream.Write(specs[i].Values);
             }
         }
 
         /// <summary>
         /// Writes the Define Quantization Marker and tables.
         /// </summary>
-        private void WriteDefineQuantizationTables()
+        private void WriteDefineQuantizationTables(ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable)
         {
             // Marker + quantization table lengths
             int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.Size));
@@ -677,8 +316,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             byte[] dqt = new byte[dqtCount];
             int offset = 0;
 
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref luminanceQuantTable);
+            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref chrominanceQuantTable);
 
             this.outputStream.Write(dqt, 0, dqtCount);
         }
@@ -982,7 +621,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteStartOfScan<TPixel>(Image<TPixel> image, int componentCount, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Span<byte> componentId = stackalloc byte[]
             {
                 0x01,
@@ -1024,111 +662,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[sosSize] = 0x3f; // Se - End of spectral selection.
             this.buffer[sosSize + 1] = 0x00; // Ah + Ah (Successive approximation bit position high + low)
             this.outputStream.Write(this.buffer, 0, sosSize + 2);
-
-            ref byte emitBufferBase = ref MemoryMarshal.GetReference<byte>(this.emitBuffer);
-            if (this.colorType == JpegColorType.Luminance)
-            {
-                this.EncodeGrayscale(image, cancellationToken, ref emitBufferBase);
-            }
-            else
-            {
-                switch (this.subsample)
-                {
-                    case JpegSubsample.Ratio444:
-                        this.Encode444(image, cancellationToken, ref emitBufferBase);
-                        break;
-                    case JpegSubsample.Ratio420:
-                        this.Encode420(image, cancellationToken, ref emitBufferBase);
-                        break;
-                }
-            }
-
-            // Pad the last byte with 1's.
-            this.Emit(0x7f, 7, ref emitBufferBase);
         }
 
         /// <summary>
-        /// Encodes the image with subsampling. The Cb and Cr components are each subsampled
-        /// at a factor of 2 both horizontally and vertically.
+        /// Writes the EndOfImage marker.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        private void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
-            where TPixel : unmanaged, IPixel<TPixel>
+        private void WriteEndOfImageMarker()
         {
-            // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            Block8x8F b = default;
-            Span<Block8x8F> cb = stackalloc Block8x8F[4];
-            Span<Block8x8F> cr = stackalloc Block8x8F[4];
-
-            Block8x8F temp1 = default;
-            Block8x8F temp2 = default;
-
-            Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
-            Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
-
-            var unzig = ZigZag.CreateUnzigTable();
-
-            var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
-
-            // ReSharper disable once InconsistentNaming
-            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
-            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
-            RowOctet<TPixel> currentRows = default;
-
-            for (int y = 0; y < pixels.Height; y += 16)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                for (int x = 0; x < pixels.Width; x += 16)
-                {
-                    for (int i = 0; i < 4; i++)
-                    {
-                        int xOff = (i & 1) * 8;
-                        int yOff = (i & 2) * 4;
-
-                        currentRows.Update(pixelBuffer, y + yOff);
-                        pixelConverter.Convert(frame, x + xOff, y + yOff, ref currentRows);
-
-                        cb[i] = pixelConverter.Cb;
-                        cr[i] = pixelConverter.Cr;
-
-                        prevDCY = this.WriteBlock(
-                            QuantIndex.Luminance,
-                            prevDCY,
-                            ref pixelConverter.Y,
-                            ref temp1,
-                            ref temp2,
-                            ref onStackLuminanceQuantTable,
-                            ref unzig,
-                            ref emitBufferBase);
-                    }
-
-                    Block8x8F.Scale16X16To8X8(ref b, cb);
-                    prevDCCb = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCb,
-                        ref b,
-                        ref temp1,
-                        ref temp2,
-                        ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
-
-                    Block8x8F.Scale16X16To8X8(ref b, cr);
-                    prevDCCr = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCr,
-                        ref b,
-                        ref temp1,
-                        ref temp2,
-                        ref onStackChrominanceQuantTable,
-                        ref unzig,
-                        ref emitBufferBase);
-                }
-            }
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.EOI;
+            this.outputStream.Write(this.buffer, 0, 2);
         }
 
         /// <summary>
@@ -1144,6 +687,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);
             this.outputStream.Write(this.buffer, 0, 4);
+        }
+
+        /// <summary>
+        /// Initializes quantization table.
+        /// </summary>
+        /// <param name="i">The quantization index.</param>
+        /// <param name="scale">The scaling factor.</param>
+        /// <param name="quant">The quantization table.</param>
+        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
+        {
+            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
+            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
+
+            for (int j = 0; j < Block8x8F.Size; j++)
+            {
+                int x = unscaledQuant[j];
+                x = ((x * scale) + 50) / 100;
+                if (x < 1)
+                {
+                    x = 1;
+                }
+
+                if (x > 255)
+                {
+                    x = 255;
+                }
+
+                quant[j] = x;
+            }
         }
     }
 }

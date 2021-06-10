@@ -243,6 +243,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector256<float> Scale16x2_8x1(ReadOnlySpan<Vector256<float>> v)
         {
+            Debug.Assert(Avx2.IsSupported, "AVX2 is required to run this converter");
             DebugGuard.IsTrue(v.Length == 4, "Input span must consist of 4 elements");
 
             var f025 = Vector256.Create(0.25f);
@@ -253,6 +254,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             return Avx2.Permute4x64(avg2x2.AsDouble(), 0b11_01_10_00).AsSingle();
         }
-    }
 #endif
+    }
 }

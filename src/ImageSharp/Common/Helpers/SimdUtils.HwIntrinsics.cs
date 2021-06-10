@@ -578,25 +578,6 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Scales 8x8 matrix to 4x2 using 2x2 average
-            /// </summary>
-            /// <param name="v">Input matrix consisting of 4 256bit vectors, first row: (v[0], v[2]), second row: (v[1], v[3])</param>
-            /// <returns>256bit vector containing upper and lower scaled parts of the input matrix</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static Vector256<float> Scale16x2_8x1(ReadOnlySpan<Vector256<float>> v)
-            {
-                DebugGuard.IsTrue(v.Length == 4, "Input span must consist of 4 elements");
-
-                var f025 = Vector256.Create(0.25f);
-
-                Vector256<float> left = Avx.Add(v[0], v[2]);
-                Vector256<float> right = Avx.Add(v[1], v[3]);
-                Vector256<float> avg2x2 = Avx.Multiply(Avx.HorizontalAdd(left, right), f025);
-
-                return Avx2.Permute4x64(avg2x2.AsDouble(), 0b11_01_10_00).AsSingle();
-            }
-
-            /// <summary>
             /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]

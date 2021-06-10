@@ -221,9 +221,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     bDataLanes[j] = b;
                 }
 
-                r = SimdUtils.HwIntrinsics.Scale16x2_8x1(rDataLanes);
-                g = SimdUtils.HwIntrinsics.Scale16x2_8x1(gDataLanes);
-                b = SimdUtils.HwIntrinsics.Scale16x2_8x1(bDataLanes);
+                r = Scale16x2_8x1(rDataLanes);
+                g = Scale16x2_8x1(gDataLanes);
+                b = Scale16x2_8x1(bDataLanes);
 
                 // 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b))
                 Unsafe.Add(ref destCbRef, i) = Avx.Add(f128, SimdUtils.HwIntrinsics.MultiplyAdd(SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
@@ -233,5 +233,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 #endif
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS 
+        /// <summary>
+        /// Scales 16x2 matrix to 8x1 using 2x2 average
+        /// </summary>
+        /// <param name="v">Input matrix consisting of 4 256bit vectors</param>
+        /// <returns>256bit vector containing upper and lower scaled parts of the input matrix</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static Vector256<float> Scale16x2_8x1(ReadOnlySpan<Vector256<float>> v)
+        {
+            DebugGuard.IsTrue(v.Length == 4, "Input span must consist of 4 elements");
+
+            var f025 = Vector256.Create(0.25f);
+
+            Vector256<float> left = Avx.Add(v[0], v[2]);
+            Vector256<float> right = Avx.Add(v[1], v[3]);
+            Vector256<float> avg2x2 = Avx.Multiply(Avx.HorizontalAdd(left, right), f025);
+
+            return Avx2.Permute4x64(avg2x2.AsDouble(), 0b11_01_10_00).AsSingle();
+        }
     }
+#endif
 }

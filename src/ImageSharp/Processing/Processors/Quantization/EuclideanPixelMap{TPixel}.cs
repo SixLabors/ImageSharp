@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private struct ColorDistanceCache
         {
             private const int IndexBits = 5;
-            private const int IndexAlphaBits = 5;
+            private const int IndexAlphaBits = 4;
             private const int IndexCount = (1 << IndexBits) + 1;
             private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
             private const int RgbShift = 8 - IndexBits;

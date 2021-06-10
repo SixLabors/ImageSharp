@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 }
             }
 
-            this.Values = new uint[maxValue + 1];
+            this.Values = new int[maxValue + 1];
 
             int code = 0;
             int k = 0;
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 int bits = (i + 1) << 24;
                 for (int j = 0; j < spec.Count[i]; j++)
                 {
-                    this.Values[spec.Values[k]] = (uint)(bits | code);
+                    this.Values[spec.Values[k]] = bits | code;
                     code++;
                     k++;
                 }
@@ -66,6 +66,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Gets the collection of huffman values.
         /// </summary>
-        public uint[] Values { get; }
+        public int[] Values { get; }
     }
 }

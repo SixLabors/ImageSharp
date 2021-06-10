@@ -532,6 +532,7 @@ namespace SixLabors.ImageSharp
             /// <summary>
             /// Performs a multiplication and an addition of the <see cref="Vector256{T}"/>.
             /// </summary>
+            /// <remarks>ret = (vm0 * vm1) + va</remarks>
             /// <param name="va">The vector to add to the intermediate result.</param>
             /// <param name="vm0">The first vector to multiply.</param>
             /// <param name="vm1">The second vector to multiply.</param>
@@ -549,6 +550,30 @@ namespace SixLabors.ImageSharp
                 else
                 {
                     return Avx.Add(Avx.Multiply(vm0, vm1), va);
+                }
+            }
+
+            /// <summary>
+            /// Performs a multiplication and a substraction of the <see cref="Vector256{T}"/>.
+            /// </summary>
+            /// <remarks>ret = (vm0 * vm1) - vs</remarks>
+            /// <param name="vs">The vector to substract from the intermediate result.</param>
+            /// <param name="vm0">The first vector to multiply.</param>
+            /// <param name="vm1">The second vector to multiply.</param>
+            /// <returns>The <see cref="Vector256{T}"/>.</returns>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static Vector256<float> MultiplySubstract(
+                in Vector256<float> vs,
+                in Vector256<float> vm0,
+                in Vector256<float> vm1)
+            {
+                if (Fma.IsSupported)
+                {
+                    return Fma.MultiplySubtract(vm1, vm0, vs);
+                }
+                else
+                {
+                    return Avx.Subtract(Avx.Multiply(vm0, vm1), vs);
                 }
             }
 

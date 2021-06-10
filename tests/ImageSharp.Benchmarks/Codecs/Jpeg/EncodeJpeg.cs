@@ -13,13 +13,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     public class EncodeJpeg
     {
-        [Params(50, 75, 95, 100)]
+        [Params(75, 90, 100)]
         public int Quality;
 
         private const string TestImage = TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr;
-
-        // GDI+ uses 4:2:0 subsampling
-        private const JpegSubsample EncodingSubsampling = JpegSubsample.Ratio420;
 
         // System.Drawing
         private SDImage bmpDrawing;
@@ -29,7 +26,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         // ImageSharp
         private Image<Rgba32> bmpCore;
-        private JpegEncoder encoder;
+        private JpegEncoder encoder420;
+        private JpegEncoder encoder444;
 
         private MemoryStream destinationStream;
 
@@ -42,14 +40,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
                 this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpCore.Metadata.ExifProfile = null;
-                this.encoder = new JpegEncoder { Quality = Quality, Subsample = EncodingSubsampling };
+                this.encoder420 = new JpegEncoder { Quality = this.Quality, Subsample = JpegSubsample.Ratio420 };
+                this.encoder444 = new JpegEncoder { Quality = this.Quality, Subsample = JpegSubsample.Ratio444 };
 
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = SDImage.FromStream(this.bmpStream);
                 this.jpegCodec = GetEncoder(ImageFormat.Jpeg);
                 this.encoderParameters = new EncoderParameters(1);
                 // Quality cast to long is necessary
-                this.encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)Quality);
+                this.encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)this.Quality);
 
                 this.destinationStream = new MemoryStream();
             }
@@ -60,21 +59,34 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             this.bmpStream.Dispose();
             this.bmpStream = null;
+
+            this.destinationStream.Dispose();
+            this.destinationStream = null;
+
             this.bmpCore.Dispose();
             this.bmpDrawing.Dispose();
+
+            this.encoderParameters.Dispose();
         }
 
-        [Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
+        [Benchmark(Baseline = true, Description = "System.Drawing Jpeg 4:2:0")]
         public void JpegSystemDrawing()
         {
             this.bmpDrawing.Save(this.destinationStream, this.jpegCodec, this.encoderParameters);
             this.destinationStream.Seek(0, SeekOrigin.Begin);
         }
 
-        [Benchmark(Description = "ImageSharp Jpeg")]
-        public void JpegCore()
+        [Benchmark(Description = "ImageSharp Jpeg 4:2:0")]
+        public void JpegCore420()
         {
-            this.bmpCore.SaveAsJpeg(this.destinationStream, this.encoder);
+            this.bmpCore.SaveAsJpeg(this.destinationStream, this.encoder420);
+            this.destinationStream.Seek(0, SeekOrigin.Begin);
+        }
+
+        [Benchmark(Description = "ImageSharp Jpeg 4:4:4")]
+        public void JpegCore444()
+        {
+            this.bmpCore.SaveAsJpeg(this.destinationStream, this.encoder444);
             this.destinationStream.Seek(0, SeekOrigin.Begin);
         }
 

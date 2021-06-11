@@ -141,21 +141,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             private const int RgbShift = 8 - IndexBits;
             private const int AlphaShift = 8 - IndexAlphaBits;
             private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
-            private const int TableLengthBytes = TableLength * sizeof(short);
             private MemoryHandle tableHandle;
-            private readonly byte[] table;
+            private readonly short[] table;
             private readonly short* tablePointer;
 
-            private ColorDistanceCache(int length, int lengthBytes)
+            private ColorDistanceCache(int length)
             {
-                this.table = ArrayPool<byte>.Shared.Rent(lengthBytes);
+                this.table = ArrayPool<short>.Shared.Rent(length);
+                this.table.AsSpan().Fill(-1);
                 this.tableHandle = this.table.AsMemory().Pin();
-                new Span<short>(this.tableHandle.Pointer, length).Fill(-1);
                 this.tablePointer = (short*)this.tableHandle.Pointer;
             }
 
             public static ColorDistanceCache Create()
-                => new ColorDistanceCache(TableLength, TableLengthBytes);
+                => new ColorDistanceCache(TableLength);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Add(Rgba32 rgba, byte index)
@@ -195,7 +194,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 if (this.table != null)
                 {
-                    ArrayPool<byte>.Shared.Return(this.table);
+                    ArrayPool<short>.Shared.Return(this.table);
                     this.tableHandle.Dispose();
                 }
             }

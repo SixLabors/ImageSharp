@@ -86,14 +86,44 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         public static readonly ushort[] BitsPerSample1Bit = { 1 };
 
         /// <summary>
+        /// The bits per sample for images with a 2 color palette.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample2Bit = { 2 };
+
+        /// <summary>
         /// The bits per sample for images with a 4 color palette.
         /// </summary>
         public static readonly ushort[] BitsPerSample4Bit = { 4 };
 
         /// <summary>
+        /// The bits per sample for 6 bit gray images.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample6Bit = { 6 };
+
+        /// <summary>
         /// The bits per sample for 8 bit images.
         /// </summary>
         public static readonly ushort[] BitsPerSample8Bit = { 8 };
+
+        /// <summary>
+        /// The bits per sample for 10 bit gray images.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample10Bit = { 10 };
+
+        /// <summary>
+        /// The bits per sample for 12 bit gray images.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample12Bit = { 12 };
+
+        /// <summary>
+        /// The bits per sample for 14 bit gray images.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample14Bit = { 14 };
+
+        /// <summary>
+        /// The bits per sample for 16 bit gray images.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample16Bit = { 16 };
 
         /// <summary>
         /// The bits per sample for color images with 2 bits for each color channel.
@@ -116,9 +146,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         public static readonly ushort[] BitsPerSampleRgb10Bit = { 10, 10, 10 };
 
         /// <summary>
+        /// The bits per sample for color images with 12 bits for each color channel.
+        /// </summary>
+        public static readonly ushort[] BitsPerSampleRgb12Bit = { 12, 12, 12 };
+
+        /// <summary>
         /// The bits per sample for color images with 14 bits for each color channel.
         /// </summary>
         public static readonly ushort[] BitsPerSampleRgb14Bit = { 14, 14, 14 };
+
+        /// <summary>
+        /// The bits per sample for color images with 14 bits for each color channel.
+        /// </summary>
+        public static readonly ushort[] BitsPerSampleRgb16Bit = { 16, 16, 16 };
 
         /// <summary>
         /// The list of mimetypes that equate to a tiff.

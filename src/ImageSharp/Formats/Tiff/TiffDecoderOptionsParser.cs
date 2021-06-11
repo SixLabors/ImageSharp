@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
             options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
             options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
-            options.BitsPerSample = frameMetadata.BitsPerSample ?? Array.Empty<ushort>();
+            options.BitsPerSample = frameMetadata.BitsPerSample != null ? frameMetadata.BitsPerSample?.BitsPerChannel() : Array.Empty<ushort>();
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);

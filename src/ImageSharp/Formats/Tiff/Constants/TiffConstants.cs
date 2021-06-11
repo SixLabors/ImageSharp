@@ -83,82 +83,82 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         /// <summary>
         /// The bits per sample for 1 bit bicolor images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample1Bit = { 1 };
+        public static readonly TiffBitsPerSample BitsPerSample1Bit = new TiffBitsPerSample(1, 0, 0);
 
         /// <summary>
         /// The bits per sample for images with a 2 color palette.
         /// </summary>
-        public static readonly ushort[] BitsPerSample2Bit = { 2 };
+        public static readonly TiffBitsPerSample BitsPerSample2Bit = new TiffBitsPerSample(2, 0, 0);
 
         /// <summary>
         /// The bits per sample for images with a 4 color palette.
         /// </summary>
-        public static readonly ushort[] BitsPerSample4Bit = { 4 };
+        public static readonly TiffBitsPerSample BitsPerSample4Bit = new TiffBitsPerSample(4, 0, 0);
 
         /// <summary>
         /// The bits per sample for 6 bit gray images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample6Bit = { 6 };
+        public static readonly TiffBitsPerSample BitsPerSample6Bit = new TiffBitsPerSample(6, 0, 0);
 
         /// <summary>
         /// The bits per sample for 8 bit images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample8Bit = { 8 };
+        public static readonly TiffBitsPerSample BitsPerSample8Bit = new TiffBitsPerSample(8, 0, 0);
 
         /// <summary>
         /// The bits per sample for 10 bit gray images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample10Bit = { 10 };
+        public static readonly TiffBitsPerSample BitsPerSample10Bit = new TiffBitsPerSample(10, 0, 0);
 
         /// <summary>
         /// The bits per sample for 12 bit gray images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample12Bit = { 12 };
+        public static readonly TiffBitsPerSample BitsPerSample12Bit = new TiffBitsPerSample(12, 0, 0);
 
         /// <summary>
         /// The bits per sample for 14 bit gray images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample14Bit = { 14 };
+        public static readonly TiffBitsPerSample BitsPerSample14Bit = new TiffBitsPerSample(14, 0, 0);
 
         /// <summary>
         /// The bits per sample for 16 bit gray images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample16Bit = { 16 };
+        public static readonly TiffBitsPerSample BitsPerSample16Bit = new TiffBitsPerSample(16, 0, 0);
 
         /// <summary>
         /// The bits per sample for color images with 2 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb2Bit = { 2, 2, 2 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb2Bit = new TiffBitsPerSample(2, 2, 2);
 
         /// <summary>
         /// The bits per sample for color images with 4 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb4Bit = { 4, 4, 4 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb4Bit = new TiffBitsPerSample(4, 4, 4);
 
         /// <summary>
         /// The bits per sample for color images with 8 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb8Bit = { 8, 8, 8 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb8Bit = new TiffBitsPerSample(8, 8, 8);
 
         /// <summary>
         /// The bits per sample for color images with 10 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb10Bit = { 10, 10, 10 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb10Bit = new TiffBitsPerSample(10, 10, 10);
 
         /// <summary>
         /// The bits per sample for color images with 12 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb12Bit = { 12, 12, 12 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb12Bit = new TiffBitsPerSample(12, 12, 12);
 
         /// <summary>
         /// The bits per sample for color images with 14 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb14Bit = { 14, 14, 14 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb14Bit = new TiffBitsPerSample(14, 14, 14);
 
         /// <summary>
         /// The bits per sample for color images with 14 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb16Bit = { 16, 16, 16 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb16Bit = new TiffBitsPerSample(16, 16, 16);
 
         /// <summary>
         /// The list of mimetypes that equate to a tiff.

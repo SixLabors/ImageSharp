@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Parses the given Exif profile to populate the properties of the tiff frame meta data..
+        /// Parses the given Exif profile to populate the properties of the tiff frame meta data.
         /// </summary>
         /// <param name="meta">The tiff frame meta data.</param>
         /// <param name="profile">The Exif profile containing tiff frame directory tags.</param>
@@ -77,8 +77,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             if (profile != null)
             {
-                meta.BitsPerSample = profile.GetValue(ExifTag.BitsPerSample) != null ? profile.GetValue(ExifTag.BitsPerSample)?.Value.GetBitsPerSample() : null;
-                meta.BitsPerPixel = BitsPerPixelFromBitsPerSample(meta.BitsPerSample?.BitsPerChannel());
+                meta.BitsPerSample = profile.GetValue(ExifTag.BitsPerSample) != null ? TiffBitsPerSample.GetBitsPerSample(profile.GetValue(ExifTag.BitsPerSample)?.Value) : null;
+                meta.BitsPerPixel = meta.BitsPerSample?.BitsPerPixel();
                 meta.Compression = (TiffCompression?)profile.GetValue(ExifTag.Compression)?.Value;
                 meta.PhotometricInterpretation = (TiffPhotometricInterpretation?)profile.GetValue(ExifTag.PhotometricInterpretation)?.Value;
                 meta.Predictor = (TiffPredictor?)profile.GetValue(ExifTag.Predictor)?.Value;
@@ -88,27 +88,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 profile.RemoveValue(ExifTag.PhotometricInterpretation);
                 profile.RemoveValue(ExifTag.Predictor);
             }
-        }
-
-        /// <summary>
-        /// Gets the bits per pixel for the given bits per sample.
-        /// </summary>
-        /// <param name="bitsPerSample">The tiff bits per sample.</param>
-        /// <returns>Bits per pixel.</returns>
-        private static TiffBitsPerPixel? BitsPerPixelFromBitsPerSample(ushort[] bitsPerSample)
-        {
-            if (bitsPerSample == null)
-            {
-                return null;
-            }
-
-            int bitsPerPixel = 0;
-            foreach (ushort bits in bitsPerSample)
-            {
-                bitsPerPixel += bits;
-            }
-
-            return (TiffBitsPerPixel)bitsPerPixel;
         }
 
         /// <inheritdoc/>

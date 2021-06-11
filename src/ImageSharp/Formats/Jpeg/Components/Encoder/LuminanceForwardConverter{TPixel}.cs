@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Block8x8F yBlock = ref this.Y;
             ref L8 l8Start = ref l8Span[0];
 
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 ref L8 c = ref Unsafe.Add(ref l8Start, i);
                 yBlock[i] = c.PackedValue;

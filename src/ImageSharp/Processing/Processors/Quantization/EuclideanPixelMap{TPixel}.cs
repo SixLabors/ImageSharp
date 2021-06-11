@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// The granularity of the cache has been determined based upon the current
         /// suite of test images and provides the lowest possible memory usage while
         /// providing enough match accuracy.
-        /// Entry count is currently limited to 1221858 entries at 1.17MB.
+        /// Entry count is currently limited to 610929 entries (1221858 bytes ~1.17MB).
         /// </para>
         /// </remarks>
         private struct ColorDistanceCache

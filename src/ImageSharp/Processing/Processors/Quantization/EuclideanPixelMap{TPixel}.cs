@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -34,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             this.Palette = palette;
             this.rgbaPalette = new Rgba32[palette.Length];
-            this.cache = new ColorDistanceCache(configuration.MemoryAllocator);
+            this.cache = ColorDistanceCache.Create();
             PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
         }
 
@@ -142,17 +141,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             private const int RgbShift = 8 - IndexBits;
             private const int AlphaShift = 8 - IndexAlphaBits;
             private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
-            private readonly IMemoryOwner<short> tableOwner;
+            private const int TableLengthBytes = TableLength * sizeof(short);
             private MemoryHandle tableHandle;
-            private readonly short* table;
+            private readonly byte[] table;
+            private readonly short* tablePointer;
 
-            public ColorDistanceCache(MemoryAllocator memoryAllocator)
+            private ColorDistanceCache(int length, int lengthBytes)
             {
-                this.tableOwner = memoryAllocator.Allocate<short>(TableLength);
-                this.tableOwner.GetSpan().Fill(-1);
-                this.tableHandle = this.tableOwner.Memory.Pin();
-                this.table = (short*)this.tableHandle.Pointer;
+                this.table = ArrayPool<byte>.Shared.Rent(lengthBytes);
+                this.tableHandle = this.table.AsMemory().Pin();
+                new Span<short>(this.tableHandle.Pointer, length).Fill(-1);
+                this.tablePointer = (short*)this.tableHandle.Pointer;
             }
+
+            public static ColorDistanceCache Create()
+                => new ColorDistanceCache(TableLength, TableLengthBytes);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Add(Rgba32 rgba, byte index)
@@ -162,7 +165,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 int b = rgba.B >> RgbShift;
                 int a = rgba.A >> AlphaShift;
                 int idx = GetPaletteIndex(r, g, b, a);
-                this.table[idx] = index;
+                this.tablePointer[idx] = index;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -173,11 +176,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 int b = rgba.B >> RgbShift;
                 int a = rgba.A >> AlphaShift;
                 int idx = GetPaletteIndex(r, g, b, a);
-                match = this.table[idx];
+                match = this.tablePointer[idx];
                 return match > -1;
             }
-
-            public void Clear() => this.tableOwner.GetSpan().Fill(-1);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             private static int GetPaletteIndex(int r, int g, int b, int a)
@@ -192,8 +193,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             public void Dispose()
             {
-                this.tableHandle.Dispose();
-                this.tableOwner?.Dispose();
+                if (this.table != null)
+                {
+                    ArrayPool<byte>.Shared.Return(this.table);
+                    this.tableHandle.Dispose();
+                }
             }
         }
     }

@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
                 appendPixelTypeToFileName: false);
         }
 
-        [Theory(Skip = "Unable to assign capacity smaller than the image.")]
+        [Theory]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(OrderedDither.Ordered3x3))]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(ErrorDither.FloydSteinberg))]
         public void CommonDitherers_WorkWithDiscoBuffers<TPixel>(

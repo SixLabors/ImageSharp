@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             for (int i = 0; i < this.rgbaPalette.Length; i++)
             {
                 Rgba32 candidate = this.rgbaPalette[i];
-                float distance = DistanceSquared(rgba, candidate);
+                int distance = DistanceSquared(rgba, candidate);
 
                 // If it's an exact match, exit the loop
                 if (distance == 0)
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="b">The second point.</param>
         /// <returns>The distance squared.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static float DistanceSquared(Rgba32 a, Rgba32 b)
+        private static int DistanceSquared(Rgba32 a, Rgba32 b)
         {
             int deltaR = a.R - b.R;
             int deltaG = a.G - b.G;

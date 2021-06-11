@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -155,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
                 appendPixelTypeToFileName: false);
         }
 
-        [Theory]
+        [Theory(Skip = "Unable to assign capacity smaller than the image.")]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(OrderedDither.Ordered3x3))]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(ErrorDither.FloydSteinberg))]
         public void CommonDitherers_WorkWithDiscoBuffers<TPixel>(

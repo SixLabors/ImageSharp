@@ -72,6 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private int maxColors;
         private readonly Box[] colorCube;
         private EuclideanPixelMap<TPixel> pixelMap;
+        private bool pixelMapHasValue;
         private readonly bool isDithering;
         private bool isDisposed;
 
@@ -93,10 +94,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.momentsOwner = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
             this.tagsOwner = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
             this.paletteOwner = this.memoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
-            this.palette = default;
             this.colorCube = new Box[this.maxColors];
             this.isDisposed = false;
             this.pixelMap = default;
+            this.pixelMapHasValue = false;
+            this.palette = default;
             this.isDithering = this.isDithering = !(this.Options.Dither is null);
         }
 
@@ -145,7 +147,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
             if (this.isDithering)
             {
+                // When called by QuantizerUtilities.BuildPalette this prevents
+                // mutiple instances of the map being created but not disposed.
+                if (this.pixelMapHasValue)
+                {
+                    this.pixelMap.Dispose();
+                }
+
                 this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+                this.pixelMapHasValue = true;
             }
 
             this.palette = result;
@@ -191,6 +201,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.momentsOwner = null;
                 this.tagsOwner = null;
                 this.paletteOwner = null;
+                this.pixelMap.Dispose();
             }
         }
 

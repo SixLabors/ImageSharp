@@ -62,6 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             if (disposing)
             {
                 this.paletteOwner.Dispose();
+                this.ditherProcessor.Dispose();
             }
 
             this.paletteOwner = null;
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel)"/>.
         /// </summary>
         /// <remarks>Internal for AOT</remarks>
-        internal readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>
+        internal readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>, IDisposable
         {
             private readonly EuclideanPixelMap<TPixel> pixelMap;
 
@@ -101,6 +102,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 this.pixelMap.GetClosestColor(color, out TPixel match);
                 return match;
             }
+
+            public void Dispose() => this.pixelMap.Dispose();
         }
     }
 }

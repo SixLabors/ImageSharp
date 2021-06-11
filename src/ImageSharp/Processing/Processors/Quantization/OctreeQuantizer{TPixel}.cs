@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private IMemoryOwner<TPixel> paletteOwner;
         private ReadOnlyMemory<TPixel> palette;
         private EuclideanPixelMap<TPixel> pixelMap;
+        private bool pixelMapHasValue;
         private readonly bool isDithering;
         private bool isDisposed;
 
@@ -46,8 +47,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.bitDepth = Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
             this.octree = new Octree(this.bitDepth);
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
-            this.palette = default;
             this.pixelMap = default;
+            this.pixelMapHasValue = false;
+            this.palette = default;
             this.isDithering = !(this.Options.Dither is null);
             this.isDisposed = false;
         }
@@ -69,26 +71,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
         public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
         {
             Rectangle bounds = pixelRegion.Rectangle;
             Buffer2D<TPixel> source = pixelRegion.Buffer;
-            using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width);
-            Span<Rgba32> bufferSpan = buffer.GetSpan();
-
-            // Loop through each row
-            for (int y = bounds.Top; y < bounds.Bottom; y++)
+            using (IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width))
             {
-                Span<TPixel> row = source.GetRowSpan(y).Slice(bounds.Left, bounds.Width);
-                PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
+                Span<Rgba32> bufferSpan = buffer.GetSpan();
 
-                for (int x = 0; x < bufferSpan.Length; x++)
+                // Loop through each row
+                for (int y = bounds.Top; y < bounds.Bottom; y++)
                 {
-                    Rgba32 rgba = bufferSpan[x];
+                    Span<TPixel> row = source.GetRowSpan(y).Slice(bounds.Left, bounds.Width);
+                    PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
-                    // Add the color to the Octree
-                    this.octree.AddColor(rgba);
+                    for (int x = 0; x < bufferSpan.Length; x++)
+                    {
+                        Rgba32 rgba = bufferSpan[x];
+
+                        // Add the color to the Octree
+                        this.octree.AddColor(rgba);
+                    }
                 }
             }
 
@@ -108,7 +111,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             this.octree.Palletize(paletteSpan, max, ref paletteIndex);
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
+
+            // When called by QuantizerUtilities.BuildPalette this prevents
+            // mutiple instances of the map being created but not disposed.
+            if (this.pixelMapHasValue)
+            {
+                this.pixelMap.Dispose();
+            }
+
             this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            this.pixelMapHasValue = true;
             this.palette = result;
         }
 
@@ -143,6 +155,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.isDisposed = true;
                 this.paletteOwner.Dispose();
                 this.paletteOwner = null;
+                this.pixelMap.Dispose();
             }
         }
 

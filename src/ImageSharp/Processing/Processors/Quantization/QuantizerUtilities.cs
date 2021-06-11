@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;

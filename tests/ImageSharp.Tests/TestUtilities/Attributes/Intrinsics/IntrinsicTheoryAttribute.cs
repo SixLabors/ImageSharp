@@ -7,14 +7,14 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    public class IntrinsicTheoryAttribute : FactAttribute
+    public class IntrinsicTheoryAttribute : TheoryAttribute
     {
         public IntrinsicTheoryAttribute(_HwIntrinsics requiredIntrinsics)
         {
-            _HwIntrinsics unsupported = requiredIntrinsics.GetNotSupportedIntrinsics();
-            if (unsupported != _HwIntrinsics.None)
+            _HwIntrinsics notSupported = requiredIntrinsics.GetNotSupportedIntrinsics();
+            if (notSupported != _HwIntrinsics.None)
             {
-                this.Skip = $"Required: {requiredIntrinsics}\nNot supported: {unsupported}";
+                this.Skip = $"Required: {requiredIntrinsics}\nNot supported: {notSupported}";
             }
         }
     }

@@ -37,12 +37,22 @@ namespace SixLabors.ImageSharp.Memory
             /// </remarks>
             private WeakReference<ArrayPool<byte>> sourcePoolReference;
 
-            public Buffer(ArrayPoolMemoryAllocator allocator, byte[] data, int length, ArrayPool<byte> sourcePool)
+            public Buffer(
+                ArrayPoolMemoryAllocator allocator,
+                byte[] data,
+                int length,
+                ArrayPool<byte> sourcePool,
+                bool large)
             {
                 this.allocator = allocator;
                 this.Data = data;
                 this.length = length;
-                this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
+
+                // Only assign reference if using the large pool.
+                if (large)
+                {
+                    this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
+                }
             }
 
             private enum MemoryPressure
@@ -146,8 +156,13 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         private sealed class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
         {
-            public ManagedByteBuffer(ArrayPoolMemoryAllocator allocator, byte[] data, int length, ArrayPool<byte> sourcePool)
-                : base(allocator, data, length, sourcePool)
+            public ManagedByteBuffer(
+                ArrayPoolMemoryAllocator allocator,
+                byte[] data,
+                int length,
+                ArrayPool<byte> sourcePool,
+                bool large)
+                : base(allocator, data, length, sourcePool, large)
             {
             }
 

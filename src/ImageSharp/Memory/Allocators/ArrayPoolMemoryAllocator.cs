@@ -99,10 +99,10 @@ namespace SixLabors.ImageSharp.Memory
 
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
-            ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
+            ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes, out bool large);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
 
-            var buffer = new Buffer<T>(this, byteArray, length, pool);
+            var buffer = new Buffer<T>(this, byteArray, length, pool, large);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -116,10 +116,10 @@ namespace SixLabors.ImageSharp.Memory
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
 
-            ArrayPool<byte> pool = this.GetArrayPool(length);
+            ArrayPool<byte> pool = this.GetArrayPool(length, out bool large);
             byte[] byteArray = pool.Rent(length);
 
-            var buffer = new ManagedByteBuffer(this, byteArray, length, pool);
+            var buffer = new ManagedByteBuffer(this, byteArray, length, pool, large);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -128,10 +128,17 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
 
-        private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes)
-            => bufferSizeInBytes <= SharedPoolThresholdInBytes
-            ? this.normalArrayPool
-            : this.largeArrayPool;
+        private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes, out bool large)
+        {
+            if (bufferSizeInBytes <= SharedPoolThresholdInBytes)
+            {
+                large = false;
+                return this.normalArrayPool;
+            }
+
+            large = true;
+            return this.largeArrayPool;
+        }
 
         private void InitArrayPools()
         {

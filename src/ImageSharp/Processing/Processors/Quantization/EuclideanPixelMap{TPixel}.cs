@@ -129,32 +129,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// The granularity of the cache has been determined based upon the current
         /// suite of test images and provides the lowest possible memory usage while
         /// providing enough match accuracy.
-        /// Entry count is currently limited to 610929 entries (1221858 bytes ~1.17MB).
+        /// Entry count is currently limited to 1185921 entries (2371842 bytes ~2.26MB).
         /// </para>
         /// </remarks>
         private unsafe struct ColorDistanceCache : IDisposable
         {
             private const int IndexBits = 5;
-            private const int IndexAlphaBits = 4;
+            private const int IndexAlphaBits = 5;
             private const int IndexCount = (1 << IndexBits) + 1;
             private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
             private const int RgbShift = 8 - IndexBits;
             private const int AlphaShift = 8 - IndexAlphaBits;
-            private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
+            private const int Entries = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
+            private const int BufferLength = (Entries + 1) >> 1;
             private MemoryHandle tableHandle;
-            private readonly short[] table;
+            private readonly int[] table;
             private readonly short* tablePointer;
 
-            private ColorDistanceCache(int length)
+            private ColorDistanceCache(int bufferLength, int entries)
             {
-                this.table = ArrayPool<short>.Shared.Rent(length);
-                this.table.AsSpan().Fill(-1);
+                // We use ArrayPool<int>.Shared for several reasons.
+                // 1. To avoid out of range issues caused by configuring small discontiguous buffers rented via MemoryAllocator
+                // 2. To ensure that the rented buffer is actually pooled.
+                // 3. The .NET runtime already uses this pool so we might already have a pooled array present.
+                this.table = ArrayPool<int>.Shared.Rent(bufferLength);
                 this.tableHandle = this.table.AsMemory().Pin();
+                new Span<short>(this.tableHandle.Pointer, entries).Fill(-1);
                 this.tablePointer = (short*)this.tableHandle.Pointer;
             }
 
             public static ColorDistanceCache Create()
-                => new ColorDistanceCache(TableLength);
+                => new ColorDistanceCache(BufferLength, Entries);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Add(Rgba32 rgba, byte index)
@@ -194,7 +199,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 if (this.table != null)
                 {
-                    ArrayPool<short>.Shared.Return(this.table);
+                    ArrayPool<int>.Shared.Return(this.table);
                     this.tableHandle.Dispose();
                 }
             }

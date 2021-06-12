@@ -77,8 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             if (profile != null)
             {
-                ushort[] bitsPerSampleValue = profile.GetValue(ExifTag.BitsPerSample)?.Value;
-                if (bitsPerSampleValue != null && TiffBitsPerSample.TryParse(bitsPerSampleValue, out TiffBitsPerSample bitsPerSample))
+                if (TiffBitsPerSample.TryParse(profile.GetValue(ExifTag.BitsPerSample)?.Value, out TiffBitsPerSample bitsPerSample))
                 {
                     meta.BitsPerSample = bitsPerSample;
                 }

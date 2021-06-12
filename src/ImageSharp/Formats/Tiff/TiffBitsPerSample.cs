@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -110,119 +109,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             return new[] { this.Channel0, this.Channel1, this.Channel2 };
-        }
-
-        /// <summary>
-        /// Maps an array of bits per sample to a concrete struct value.
-        /// </summary>
-        /// <param name="bitsPerSample">The bits per sample array.</param>
-        /// <returns>TiffBitsPerSample enum value.</returns>
-        public static TiffBitsPerSample? GetBitsPerSample(ushort[] bitsPerSample)
-        {
-            switch (bitsPerSample.Length)
-            {
-                case 3:
-                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb16Bit.Channel2 &&
-                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb16Bit.Channel1 &&
-                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb16Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSampleRgb16Bit;
-                    }
-
-                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb14Bit.Channel2 &&
-                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb14Bit.Channel1 &&
-                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb14Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSampleRgb14Bit;
-                    }
-
-                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb12Bit.Channel2 &&
-                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb12Bit.Channel1 &&
-                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb12Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSampleRgb12Bit;
-                    }
-
-                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb10Bit.Channel2 &&
-                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb10Bit.Channel1 &&
-                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb10Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSampleRgb10Bit;
-                    }
-
-                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb8Bit.Channel2 &&
-                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb8Bit.Channel1 &&
-                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb8Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSampleRgb8Bit;
-                    }
-
-                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb4Bit.Channel2 &&
-                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb4Bit.Channel1 &&
-                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb4Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSampleRgb4Bit;
-                    }
-
-                    if (bitsPerSample[2] == TiffConstants.BitsPerSampleRgb2Bit.Channel2 &&
-                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb2Bit.Channel1 &&
-                        bitsPerSample[0] == TiffConstants.BitsPerSampleRgb2Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSampleRgb2Bit;
-                    }
-
-                    break;
-
-                case 1:
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample1Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample1Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample2Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample2Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample4Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample4Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample6Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample6Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample8Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample8Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample10Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample10Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample12Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample12Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample14Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample14Bit;
-                    }
-
-                    if (bitsPerSample[0] == TiffConstants.BitsPerSample16Bit.Channel0)
-                    {
-                        return TiffConstants.BitsPerSample16Bit;
-                    }
-
-                    break;
-            }
-
-            return null;
         }
 
         /// <summary>

@@ -90,7 +90,8 @@ namespace SixLabors.ImageSharp.Memory
                     return;
                 }
 
-                if (this.sourcePoolReference.TryGetTarget(out ArrayPool<byte> pool))
+                ArrayPool<byte> pool = null;
+                if (this.sourcePoolReference?.TryGetTarget(out pool) == true)
                 {
 #if SUPPORTS_GC_MEMORYINFO
                     switch (GetMemoryPressure())

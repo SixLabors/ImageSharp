@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -41,18 +42,14 @@ namespace SixLabors.ImageSharp.Memory
                 ArrayPoolMemoryAllocator allocator,
                 byte[] data,
                 int length,
-                ArrayPool<byte> sourcePool,
-                bool large)
+                ArrayPool<byte> sourcePool)
             {
                 this.allocator = allocator;
                 this.Data = data;
                 this.length = length;
 
                 // Only assign reference if using the large pool.
-                if (large)
-                {
-                    this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
-                }
+                this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
             }
 
             private enum MemoryPressure
@@ -90,36 +87,46 @@ namespace SixLabors.ImageSharp.Memory
                     return;
                 }
 
-                ArrayPool<byte> pool = null;
-                if (this.sourcePoolReference?.TryGetTarget(out pool) == true)
+                if (this.sourcePoolReference.TryGetTarget(out ArrayPool<byte> pool))
                 {
 #if SUPPORTS_GC_MEMORYINFO
-                    switch (GetMemoryPressure())
+                    MemoryPressure pressure = GetMemoryPressure();
+                    if (pressure == MemoryPressure.High)
                     {
-                        case MemoryPressure.High:
-                            // Don't return. Release all and let the GC clean everything up.
-                            this.allocator.ReleaseRetainedResources();
-                            break;
-                        case MemoryPressure.Low:
-
-                            // TODO: Return for now but perhaps we can keep track of when
-                            // a buffer was last pooled and clear all after a certain time threshold?
-                            pool.Return(this.Data);
-                            break;
-                        case MemoryPressure.Medium:
-                            // Standard operations.
-                            pool.Return(this.Data);
-                            break;
+                        // Don't return. Release everything and let the GC clean everything up.
+                        this.allocator.ReleaseRetainedResources();
+                    }
+                    else
+                    {
+                        // Standard operations.
+                        pool.Return(this.Data);
                     }
 #else
                     pool.Return(this.Data);
 #endif
+
+                    // Do a callback to see when a buffer was last allocated and clean up
+                    // if there's been no activity.
+                    var callback = new TimerCallback(OnTime);
+                    this.allocator.Timer?.Dispose();
+
+                    // TODO: How long should we wait? currently 5 minutes.
+                    this.allocator.Timer = new Timer(callback, this, 5 * 60 * 1000, Timeout.Infinite);
                 }
 
                 this.sourcePoolReference = null;
             }
 
             protected override object GetPinnableObject() => this.Data;
+
+            private static void OnTime(object state)
+            {
+                // TODO: This should be based off the set delay.
+                if (state is Buffer<T> buffer && buffer.allocator.Timestamp.AddMinutes(4) < DateTime.UtcNow)
+                {
+                    buffer.allocator.ReleaseRetainedResources();
+                }
+            }
 
             [MethodImpl(InliningOptions.ColdPath)]
             private static void ThrowObjectDisposedException()
@@ -161,9 +168,8 @@ namespace SixLabors.ImageSharp.Memory
                 ArrayPoolMemoryAllocator allocator,
                 byte[] data,
                 int length,
-                ArrayPool<byte> sourcePool,
-                bool large)
-                : base(allocator, data, length, sourcePool, large)
+                ArrayPool<byte> sourcePool)
+                : base(allocator, data, length, sourcePool)
             {
             }
 

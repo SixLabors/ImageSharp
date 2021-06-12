@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -85,6 +87,16 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public int BufferCapacityInBytes { get; internal set; } // Setter is internal for easy configuration in tests
 
+        /// <summary>
+        /// Gets when an array was last allocated.
+        /// </summary>
+        internal DateTime Timestamp { get; private set; }
+
+        /// <summary>
+        /// Gets a timer used to check whether pools should be released.
+        /// </summary>
+        internal Timer Timer { get; private set; }
+
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
             => this.InitArrayPools();
@@ -99,10 +111,11 @@ namespace SixLabors.ImageSharp.Memory
 
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
-            ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes, out bool large);
+            ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
+            this.Timestamp = DateTime.UtcNow;
 
-            var buffer = new Buffer<T>(this, byteArray, length, pool, large);
+            var buffer = new Buffer<T>(this, byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -116,10 +129,11 @@ namespace SixLabors.ImageSharp.Memory
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
 
-            ArrayPool<byte> pool = this.GetArrayPool(length, out bool large);
+            ArrayPool<byte> pool = this.GetArrayPool(length);
             byte[] byteArray = pool.Rent(length);
+            this.Timestamp = DateTime.UtcNow;
 
-            var buffer = new ManagedByteBuffer(this, byteArray, length, pool, large);
+            var buffer = new ManagedByteBuffer(this, byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -128,15 +142,13 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
 
-        private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes, out bool large)
+        private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes)
         {
             if (bufferSizeInBytes <= SharedPoolThresholdInBytes)
             {
-                large = false;
                 return this.normalArrayPool;
             }
 
-            large = true;
             return this.largeArrayPool;
         }
 

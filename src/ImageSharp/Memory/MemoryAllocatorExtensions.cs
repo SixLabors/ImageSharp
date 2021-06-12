@@ -1,10 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Buffers;
-using System.IO;
-using SixLabors.ImageSharp.IO;
-
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
@@ -87,6 +83,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Allocates a <see cref="MemoryGroup{T}"/>.
         /// </summary>
+        /// <typeparam name="T">The type of buffer items to allocate.</typeparam>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use.</param>
         /// <param name="totalLength">The total length of the buffer.</param>
         /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>

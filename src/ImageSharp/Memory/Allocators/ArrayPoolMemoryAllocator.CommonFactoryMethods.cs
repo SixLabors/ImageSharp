@@ -1,5 +1,7 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
+
+using System.Buffers;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -15,21 +17,19 @@ namespace SixLabors.ImageSharp.Memory
         internal const int DefaultMaxPooledBufferSizeInBytes = 24 * 1024 * 1024;
 
         /// <summary>
-        /// The value for: The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.
+        /// The value for: The threshold to pool arrays in <see cref="largeArrayPool"/> which
+        /// has less buckets for memory safety.
+        /// This matches the upper pooling limit of <see cref="ArrayPool{T}.Shared"/> where T is byte.
         /// </summary>
-        private const int DefaultBufferSelectorThresholdInBytes = 8 * 1024 * 1024;
+        private const int SharedPoolThresholdInBytes = 1024 * 1024;
 
         /// <summary>
         /// The default bucket count for <see cref="largeArrayPool"/>.
         /// </summary>
-        private const int DefaultLargePoolBucketCount = 6;
-
-        /// <summary>
-        /// The default bucket count for <see cref="normalArrayPool"/>.
-        /// </summary>
-        private const int DefaultNormalPoolBucketCount = 16;
+        private const int DefaultLargePoolBucketCount = 8;
 
         // TODO: This value should be determined by benchmarking
+        // Perhaps base it on the number of cores?
         private const int DefaultBufferCapacityInBytes = int.MaxValue / 4;
 
         /// <summary>
@@ -37,40 +37,39 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateDefault()
-        {
-            return new ArrayPoolMemoryAllocator(
-                DefaultMaxPooledBufferSizeInBytes,
-                DefaultBufferSelectorThresholdInBytes,
-                DefaultLargePoolBucketCount,
-                DefaultNormalPoolBucketCount,
-                DefaultBufferCapacityInBytes);
-        }
+            => new ArrayPoolMemoryAllocator(maxPoolSizeInBytes: DefaultMaxPooledBufferSizeInBytes);
 
         /// <summary>
-        /// For environments with very limited memory capabilities, only small buffers like image rows are pooled.
+        /// For environments with very limited memory capabilities,
+        /// only small buffers like image rows are pooled.
         /// </summary>
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateWithMinimalPooling()
-        {
-            return new ArrayPoolMemoryAllocator(64 * 1024, 32 * 1024, 8, 24);
-        }
+            => new ArrayPoolMemoryAllocator(
+                maxArrayLengthInBytes: SharedPoolThresholdInBytes,
+                maxArraysPerBucket: 1,
+                maxContiguousArrayLengthInBytes: DefaultBufferCapacityInBytes);
 
         /// <summary>
-        /// For environments with limited memory capabilities, only small array requests are pooled, which can result in reduced throughput.
+        /// For environments with limited memory capabilities,
+        /// only small array requests are pooled, which can result in reduced throughput.
         /// </summary>
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateWithModeratePooling()
-        {
-            return new ArrayPoolMemoryAllocator(1024 * 1024, 32 * 1024, 16, 24);
-        }
+            => new ArrayPoolMemoryAllocator(
+                maxArrayLengthInBytes: 2 * 1024 * 1024,
+                maxArraysPerBucket: 16,
+                maxContiguousArrayLengthInBytes: DefaultBufferCapacityInBytes);
 
         /// <summary>
-        /// For environments where memory capabilities are not an issue, the maximum amount of array requests are pooled which results in optimal throughput.
+        /// For environments where memory capabilities are not an issue,
+        /// the maximum amount of array requests are pooled which results in optimal throughput.
         /// </summary>
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateWithAggressivePooling()
-        {
-            return new ArrayPoolMemoryAllocator(128 * 1024 * 1024, 32 * 1024 * 1024, 16, 32);
-        }
+            => new ArrayPoolMemoryAllocator(
+                maxArrayLengthInBytes: 128 * 1024 * 1024,
+                maxArraysPerBucket: 16,
+                maxContiguousArrayLengthInBytes: DefaultBufferCapacityInBytes);
     }
 }

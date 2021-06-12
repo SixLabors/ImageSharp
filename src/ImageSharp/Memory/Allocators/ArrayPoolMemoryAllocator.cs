@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
@@ -12,10 +11,6 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     public sealed partial class ArrayPoolMemoryAllocator : MemoryAllocator
     {
-        private readonly int maxArraysPerBucketNormalPool;
-
-        private readonly int maxArraysPerBucketLargePool;
-
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
         /// </summary>
@@ -30,73 +25,47 @@ namespace SixLabors.ImageSharp.Memory
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
         public ArrayPoolMemoryAllocator()
-            : this(DefaultMaxPooledBufferSizeInBytes, DefaultBufferSelectorThresholdInBytes)
+            : this(DefaultMaxPooledBufferSizeInBytes)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
-        /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
+        /// <param name="maxPoolSizeInBytes">
+        /// The maximum length, in bytes, of an array instance that may be stored in the pool.
+        /// Arrays over the threshold will always be allocated.
+        /// </param>
         public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes)
-            : this(maxPoolSizeInBytes, GetLargeBufferThresholdInBytes(maxPoolSizeInBytes))
+            : this(maxPoolSizeInBytes, DefaultLargePoolBucketCount, DefaultBufferCapacityInBytes)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
-        /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
-        /// <param name="poolSelectorThresholdInBytes">Arrays over this threshold will be pooled in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
-        public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes)
-            : this(maxPoolSizeInBytes, poolSelectorThresholdInBytes, DefaultLargePoolBucketCount, DefaultNormalPoolBucketCount)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
-        /// </summary>
-        /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
-        /// <param name="poolSelectorThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
-        /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool.</param>
-        /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool.</param>
+        /// <param name="maxArrayLengthInBytes">
+        /// The maximum length, in bytes, of an array instance that may be stored in the pool.
+        /// Arrays over the threshold will always be allocated.
+        /// </param>
+        /// <param name="maxArraysPerBucket">
+        /// The maximum number of array instances that may be stored in each bucket in the pool.
+        /// The pool groups arrays of similar lengths into buckets for faster access.
+        /// </param>
+        /// <param name="maxContiguousArrayLengthInBytes">
+        /// The maximum length of the largest contiguous buffer that can be handled by this allocator instance.
+        /// </param>
         public ArrayPoolMemoryAllocator(
-            int maxPoolSizeInBytes,
-            int poolSelectorThresholdInBytes,
-            int maxArraysPerBucketLargePool,
-            int maxArraysPerBucketNormalPool)
-            : this(
-                maxPoolSizeInBytes,
-                poolSelectorThresholdInBytes,
-                maxArraysPerBucketLargePool,
-                maxArraysPerBucketNormalPool,
-                DefaultBufferCapacityInBytes)
+            int maxArrayLengthInBytes,
+            int maxArraysPerBucket,
+            int maxContiguousArrayLengthInBytes)
         {
-        }
+            Guard.MustBeGreaterThanOrEqualTo(maxArrayLengthInBytes, SharedPoolThresholdInBytes, nameof(maxArrayLengthInBytes));
+            Guard.MustBeGreaterThan(maxContiguousArrayLengthInBytes, 0, nameof(maxContiguousArrayLengthInBytes));
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
-        /// </summary>
-        /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
-        /// <param name="poolSelectorThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
-        /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool.</param>
-        /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool.</param>
-        /// <param name="bufferCapacityInBytes">The length of the largest contiguous buffer that can be handled by this allocator instance.</param>
-        public ArrayPoolMemoryAllocator(
-            int maxPoolSizeInBytes,
-            int poolSelectorThresholdInBytes,
-            int maxArraysPerBucketLargePool,
-            int maxArraysPerBucketNormalPool,
-            int bufferCapacityInBytes)
-        {
-            Guard.MustBeGreaterThan(maxPoolSizeInBytes, 0, nameof(maxPoolSizeInBytes));
-            Guard.MustBeLessThanOrEqualTo(poolSelectorThresholdInBytes, maxPoolSizeInBytes, nameof(poolSelectorThresholdInBytes));
-
-            this.MaxPoolSizeInBytes = maxPoolSizeInBytes;
-            this.PoolSelectorThresholdInBytes = poolSelectorThresholdInBytes;
-            this.BufferCapacityInBytes = bufferCapacityInBytes;
-            this.maxArraysPerBucketLargePool = maxArraysPerBucketLargePool;
-            this.maxArraysPerBucketNormalPool = maxArraysPerBucketNormalPool;
+            this.MaxPoolSizeInBytes = maxArrayLengthInBytes;
+            this.BufferCapacityInBytes = maxContiguousArrayLengthInBytes;
+            this.MaxArraysPerBucket = maxArraysPerBucket;
 
             this.InitArrayPools();
         }
@@ -107,9 +76,9 @@ namespace SixLabors.ImageSharp.Memory
         public int MaxPoolSizeInBytes { get; }
 
         /// <summary>
-        /// Gets the threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.
+        /// Gets the maximum number of array instances that may be stored in each bucket in the pool.
         /// </summary>
-        public int PoolSelectorThresholdInBytes { get; }
+        public int MaxArraysPerBucket { get; }
 
         /// <summary>
         /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance.
@@ -118,9 +87,7 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
-        {
-            this.InitArrayPools();
-        }
+            => this.InitArrayPools();
 
         /// <inheritdoc />
         protected internal override int GetBufferCapacityInBytes() => this.BufferCapacityInBytes;
@@ -129,17 +96,13 @@ namespace SixLabors.ImageSharp.Memory
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
+
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
-            if (bufferSizeInBytes < 0 || bufferSizeInBytes > this.BufferCapacityInBytes)
-            {
-                ThrowInvalidAllocationException<T>(length);
-            }
-
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
 
-            var buffer = new Buffer<T>(byteArray, length, pool);
+            var buffer = new Buffer<T>(this, byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -156,7 +119,7 @@ namespace SixLabors.ImageSharp.Memory
             ArrayPool<byte> pool = this.GetArrayPool(length);
             byte[] byteArray = pool.Rent(length);
 
-            var buffer = new ManagedByteBuffer(byteArray, length, pool);
+            var buffer = new ManagedByteBuffer(this, byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -165,25 +128,15 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
 
-        private static int GetLargeBufferThresholdInBytes(int maxPoolSizeInBytes)
-        {
-            return maxPoolSizeInBytes / 4;
-        }
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private static void ThrowInvalidAllocationException<T>(int length) =>
-            throw new InvalidMemoryOperationException(
-                $"Requested allocation: {length} elements of {typeof(T).Name} is over the capacity of the MemoryAllocator.");
-
         private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes)
-        {
-            return bufferSizeInBytes <= this.PoolSelectorThresholdInBytes ? this.normalArrayPool : this.largeArrayPool;
-        }
+            => bufferSizeInBytes <= SharedPoolThresholdInBytes
+            ? this.normalArrayPool
+            : this.largeArrayPool;
 
         private void InitArrayPools()
         {
-            this.largeArrayPool = ArrayPool<byte>.Create(this.MaxPoolSizeInBytes, this.maxArraysPerBucketLargePool);
-            this.normalArrayPool = ArrayPool<byte>.Create(this.PoolSelectorThresholdInBytes, this.maxArraysPerBucketNormalPool);
+            this.largeArrayPool = ArrayPool<byte>.Create(this.MaxPoolSizeInBytes, this.MaxArraysPerBucket);
+            this.normalArrayPool = ArrayPool<byte>.Shared;
         }
     }
 }

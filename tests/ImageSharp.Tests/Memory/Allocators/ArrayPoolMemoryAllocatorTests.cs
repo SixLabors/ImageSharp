@@ -13,8 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
     public class ArrayPoolMemoryAllocatorTests
     {
-        private const int MaxPooledBufferSizeInBytes = 2048;
-
+        private const int MaxPooledBufferSizeInBytes = 1024 * 1024 * 2;
         private const int PoolSelectorThresholdInBytes = MaxPooledBufferSizeInBytes / 2;
 
         /// <summary>
@@ -31,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public class BufferTests : BufferTestSuite
         {
             public BufferTests()
-                : base(new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes))
+                : base(new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes))
             {
             }
         }
@@ -39,26 +38,32 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public class Constructor
         {
             [Fact]
-            public void WhenBothParametersPassedByUser()
+            public void WhenParameterPassedByUser()
             {
-                var mgr = new ArrayPoolMemoryAllocator(1111, 666);
-                Assert.Equal(1111, mgr.MaxPoolSizeInBytes);
-                Assert.Equal(666, mgr.PoolSelectorThresholdInBytes);
+                var mgr = new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes);
+                Assert.Equal(MaxPooledBufferSizeInBytes, mgr.MaxPoolSizeInBytes);
             }
 
             [Fact]
-            public void WhenPassedOnly_MaxPooledBufferSizeInBytes_SmallerThresholdValueIsAutoCalculated()
+            public void WhenAllParametersPassedByUser()
             {
-                var mgr = new ArrayPoolMemoryAllocator(5000);
-                Assert.Equal(5000, mgr.MaxPoolSizeInBytes);
-                Assert.True(mgr.PoolSelectorThresholdInBytes < mgr.MaxPoolSizeInBytes);
+                var mgr = new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, 1, 2);
+                Assert.Equal(MaxPooledBufferSizeInBytes, mgr.MaxPoolSizeInBytes);
+                Assert.Equal(1, mgr.MaxArraysPerBucket);
+                Assert.Equal(2, mgr.GetBufferCapacityInBytes());
             }
 
             [Fact]
-            public void When_PoolSelectorThresholdInBytes_IsGreaterThan_MaxPooledBufferSizeInBytes_ExceptionIsThrown()
-            {
-                Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(100, 200));
-            }
+            public void When_MaxPooledBufferSizeInBytes_SmallerThan_ThresholdValue_ExceptionIsThrown()
+                => Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(100));
+
+            [Fact]
+            public void When_BucketCount_IsZero_ExceptionIsThrown()
+                => Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, 0, 1));
+
+            [Fact]
+            public void When_BufferCapacityThresholdInBytes_IsZero_ExceptionIsThrown()
+                => Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, 1, 0));
         }
 
         [Theory]
@@ -66,9 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(512)]
         [InlineData(MaxPooledBufferSizeInBytes - 1)]
         public void SmallBuffersArePooled_OfByte(int size)
-        {
-            Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<byte>(size));
-        }
+            => Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<byte>(size));
 
         [Theory]
         [InlineData(128 * 1024 * 1024)]
@@ -93,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
-        public unsafe void LaregeBuffersAreNotPooled_OfBigValueType()
+        public unsafe void LargeBuffersAreNotPooled_OfBigValueType()
         {
             int count = (MaxPooledBufferSizeInBytes / sizeof(LargeStruct)) + 1;
 
@@ -108,13 +111,13 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             MemoryAllocator memoryAllocator = this.LocalFixture.MemoryAllocator;
             using (IMemoryOwner<int> firstAlloc = memoryAllocator.Allocate<int>(42))
             {
-                BufferExtensions.GetSpan(firstAlloc).Fill(666);
+                firstAlloc.GetSpan().Fill(666);
             }
 
             using (IMemoryOwner<int> secondAlloc = memoryAllocator.Allocate<int>(42, options))
             {
                 int expected = options == AllocationOptions.Clean ? 0 : 666;
-                Assert.Equal(expected, BufferExtensions.GetSpan(secondAlloc)[0]);
+                Assert.Equal(expected, secondAlloc.GetSpan()[0]);
             }
         }
 
@@ -124,8 +127,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public void ReleaseRetainedResources_ReplacesInnerArrayPool(bool keepBufferAlive)
         {
             MemoryAllocator memoryAllocator = this.LocalFixture.MemoryAllocator;
-            IMemoryOwner<int> buffer = memoryAllocator.Allocate<int>(32);
-            ref int ptrToPrev0 = ref MemoryMarshal.GetReference(BufferExtensions.GetSpan(buffer));
+            IMemoryOwner<int> buffer = memoryAllocator.Allocate<int>(MaxPooledBufferSizeInBytes + 1);
+            ref int ptrToPrev0 = ref MemoryMarshal.GetReference(buffer.GetSpan());
 
             if (!keepBufferAlive)
             {
@@ -136,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             buffer = memoryAllocator.Allocate<int>(32);
 
-            Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref BufferExtensions.GetReference(buffer)));
+            Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref buffer.GetReference()));
         }
 
         [Fact]
@@ -153,15 +156,15 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         {
             static void RunTest()
             {
-                const int ArrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
+                const int arrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
 
-                IMemoryOwner<int> small = StaticFixture.MemoryAllocator.Allocate<int>(ArrayLengthThreshold - 1);
-                ref int ptr2Small = ref BufferExtensions.GetReference(small);
+                IMemoryOwner<int> small = StaticFixture.MemoryAllocator.Allocate<int>(arrayLengthThreshold - 1);
+                ref int ptr2Small = ref small.GetReference();
                 small.Dispose();
 
-                IMemoryOwner<int> large = StaticFixture.MemoryAllocator.Allocate<int>(ArrayLengthThreshold + 1);
+                IMemoryOwner<int> large = StaticFixture.MemoryAllocator.Allocate<int>(arrayLengthThreshold + 1);
 
-                Assert.False(Unsafe.AreSame(ref ptr2Small, ref BufferExtensions.GetReference(large)));
+                Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
             }
 
             RemoteExecutor.Invoke(RunTest).Dispose();
@@ -224,19 +227,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [InlineData(101)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) - 1)]
-        [InlineData(int.MaxValue / SizeOfLargeStruct)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 137)]
-        public void Allocate_OverCapacity_Throws_InvalidMemoryOperationException(int length)
-        {
-            this.LocalFixture.MemoryAllocator.BufferCapacityInBytes = 100 * SizeOfLargeStruct;
-            Assert.Throws<InvalidMemoryOperationException>(() =>
-                this.LocalFixture.MemoryAllocator.Allocate<LargeStruct>(length));
-        }
-
-        [Theory]
         [InlineData(-1)]
         public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
         {
@@ -248,20 +238,22 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         private class MemoryAllocatorFixture
         {
             public ArrayPoolMemoryAllocator MemoryAllocator { get; set; } =
-                new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes);
+                new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes);
 
             /// <summary>
             /// Rent a buffer -> return it -> re-rent -> verify if it's span points to the previous location.
             /// </summary>
+            /// <typeparam name="T">The type of buffer elements.</typeparam>
+            /// <param name="length">The length of the requested buffer.</param>
             public bool CheckIsRentingPooledBuffer<T>(int length)
                 where T : struct
             {
                 IMemoryOwner<T> buffer = this.MemoryAllocator.Allocate<T>(length);
-                ref T ptrToPrevPosition0 = ref BufferExtensions.GetReference(buffer);
+                ref T ptrToPrevPosition0 = ref buffer.GetReference();
                 buffer.Dispose();
 
                 buffer = this.MemoryAllocator.Allocate<T>(length);
-                bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref BufferExtensions.GetReference(buffer));
+                bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref buffer.GetReference());
                 buffer.Dispose();
 
                 return sameBuffers;
@@ -274,7 +266,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             private readonly uint dummy;
         }
 
-        private const int SizeOfLargeStruct = MaxPooledBufferSizeInBytes / 5;
+        private const int SizeOfLargeStruct = MaxPooledBufferSizeInBytes / 512 / 5;
 
         [StructLayout(LayoutKind.Explicit, Size = SizeOfLargeStruct)]
         private struct LargeStruct

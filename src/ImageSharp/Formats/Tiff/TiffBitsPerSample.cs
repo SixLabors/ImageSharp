@@ -26,6 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public readonly ushort Channel2;
 
         /// <summary>
+        /// The number of channels.
+        /// </summary>
+        public readonly byte Channels;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffBitsPerSample"/> struct.
         /// </summary>
         /// <param name="channel0">The bits for the channel 0.</param>
@@ -33,9 +38,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="channel2">The bits for the channel 2.</param>
         public TiffBitsPerSample(ushort channel0, ushort channel1, ushort channel2)
         {
-            this.Channel0 = (ushort)Numerics.Clamp(channel0, 1, 32);
+            this.Channel0 = (ushort)Numerics.Clamp(channel0, 0, 32);
             this.Channel1 = (ushort)Numerics.Clamp(channel1, 0, 32);
             this.Channel2 = (ushort)Numerics.Clamp(channel2, 0, 32);
+
+            this.Channels = 0;
+            this.Channels += (byte)(this.Channel0 != 0 ? 1 : 0);
+            this.Channels += (byte)(this.Channel1 != 0 ? 1 : 0);
+            this.Channels += (byte)(this.Channel2 != 0 ? 1 : 0);
         }
 
         /// <summary>

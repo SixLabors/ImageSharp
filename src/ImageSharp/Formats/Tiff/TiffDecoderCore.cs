@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets or sets the bits per sample.
         /// </summary>
-        public ushort[] BitsPerSample { get; set; }
+        public TiffBitsPerSample BitsPerSample { get; set; }
 
         /// <summary>
         /// Gets or sets the bits per pixel.
@@ -198,7 +198,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <returns>The size (in bytes) of the required pixel buffer.</returns>
         private int CalculateStripBufferSize(int width, int height, int plane = -1)
         {
-            int bitsPerPixel;
+            DebugGuard.MustBeLessThanOrEqualTo(plane, 3, nameof(plane));
+
+            int bitsPerPixel = 0;
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
             {
@@ -207,7 +209,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
             else
             {
-                bitsPerPixel = this.BitsPerSample[plane];
+                switch (plane)
+                {
+                    case 0:
+                        bitsPerPixel = this.BitsPerSample.Channel0;
+                        break;
+                    case 1:
+                        bitsPerPixel = this.BitsPerSample.Channel1;
+                        break;
+                    case 2:
+                        bitsPerPixel = this.BitsPerSample.Channel2;
+                        break;
+                    default:
+                        TiffThrowHelper.ThrowNotSupported("More then 3 color channels are not supported");
+                        break;
+                }
             }
 
             int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
@@ -225,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int stripsPerPixel = this.BitsPerSample.Length;
+            int stripsPerPixel = this.BitsPerSample.Channels;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
             int bitsPerPixel = this.BitsPerPixel;
 

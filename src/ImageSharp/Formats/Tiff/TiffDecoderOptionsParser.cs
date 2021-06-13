@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -69,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
             options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
             options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
-            options.BitsPerSample = frameMetadata.BitsPerSample != null ? frameMetadata.BitsPerSample?.ToArray() : Array.Empty<ushort>();
+            options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);
@@ -99,12 +98,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 case TiffPhotometricInterpretation.WhiteIsZero:
                 {
-                    if (options.BitsPerSample.Length != 1)
+                    if (options.BitsPerSample.Channels != 1)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
-                    ushort bitsPerChannel = options.BitsPerSample[0];
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
                     if (bitsPerChannel > 16)
                     {
                         TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
@@ -142,12 +141,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 case TiffPhotometricInterpretation.BlackIsZero:
                 {
-                    if (options.BitsPerSample.Length != 1)
+                    if (options.BitsPerSample.Channels != 1)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
-                    ushort bitsPerChannel = options.BitsPerSample[0];
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
                     if (bitsPerChannel > 16)
                     {
                         TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
@@ -185,14 +184,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 case TiffPhotometricInterpretation.Rgb:
                 {
-                    if (options.BitsPerSample.Length != 3)
+                    if (options.BitsPerSample.Channels != 3)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
                     if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
                     {
-                        ushort bitsPerChannel = options.BitsPerSample[0];
+                        ushort bitsPerChannel = options.BitsPerSample.Channel0;
                         switch (bitsPerChannel)
                         {
                             case 16:
@@ -238,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
                     if (options.ColorMap != null)
                     {
-                        if (options.BitsPerSample.Length != 1)
+                        if (options.BitsPerSample.Channels != 1)
                         {
                             TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                         }

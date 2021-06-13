@@ -10,8 +10,21 @@ namespace SixLabors.ImageSharp.Tests
 {
     public static class IntrinsicTestsUtils
     {
+        public static bool IntrinsicsSupported
+        {
+            get
+            {
+#if SUPPORTS_RUNTIME_INTRINSICS
+                return true;
+#else
+                return false;
+#endif
+            }
+        }
+
         public static _HwIntrinsics GetNotSupportedIntrinsics(this _HwIntrinsics flags)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
             _HwIntrinsics notSupported = flags;
 
             // SSE
@@ -43,10 +56,11 @@ namespace SixLabors.ImageSharp.Tests
             // PCLMULQDQ
             UncheckIfSupported(ref notSupported, _HwIntrinsics.PCLMULQDQ, Pclmulqdq.IsSupported);
 
-
             return notSupported;
+#endif
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         private static void UncheckIfSupported(ref _HwIntrinsics set, _HwIntrinsics value, bool isSupported)
         {
             if (set.IsSet(value) && isSupported)
@@ -56,8 +70,8 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         private static bool IsSet(this _HwIntrinsics set, _HwIntrinsics value) => (set & value) == value;
+#endif
     }
-
 
     [Flags]
     public enum _HwIntrinsics

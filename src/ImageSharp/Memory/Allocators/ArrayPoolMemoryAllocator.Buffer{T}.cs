@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Memory
                     this.allocator.Timer?.Dispose();
 
                     // TODO: How long should we wait? currently 5 minutes.
-                    this.allocator.Timer = new Timer(callback, this, 5 * 60 * 1000, Timeout.Infinite);
+                    this.allocator.Timer = new Timer(callback, this.allocator, 5 * 60 * 1000, Timeout.Infinite);
                 }
 
                 this.sourcePoolReference = null;
@@ -122,9 +122,9 @@ namespace SixLabors.ImageSharp.Memory
             private static void OnTime(object state)
             {
                 // TODO: This should be based off the set delay.
-                if (state is Buffer<T> buffer && buffer.allocator.Timestamp.AddMinutes(4) < DateTime.UtcNow)
+                if (state is ArrayPoolMemoryAllocator allocator && allocator.Timestamp.AddMinutes(4) < DateTime.UtcNow)
                 {
-                    buffer.allocator.ReleaseRetainedResources();
+                    allocator.ReleaseRetainedResources();
                 }
             }
 

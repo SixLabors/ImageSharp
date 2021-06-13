@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
             MemoryPressure pressure = GetMemoryPressure();
 
             Bucket[] allBuckets = this.buckets;
-            for (int i = 0; i < this.buckets.Length; i++)
+            for (int i = 0; i < allBuckets.Length; i++)
             {
                 allBuckets[i]?.Trim((uint)milliseconds, pressure);
             }

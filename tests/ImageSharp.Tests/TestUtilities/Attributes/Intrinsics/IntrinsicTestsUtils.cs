@@ -52,13 +52,11 @@ namespace SixLabors.ImageSharp.Tests
 #if SUPPORTS_RUNTIME_INTRINSICS
         private static void UncheckIfSupported(ref _HwIntrinsics set, _HwIntrinsics value, bool isSupported)
         {
-            if (set.IsSet(value) && isSupported)
+            if (isSupported)
             {
                 set &= ~value;
             }
         }
-
-        private static bool IsSet(this _HwIntrinsics set, _HwIntrinsics value) => (set & value) == value;
 #endif
     }
 

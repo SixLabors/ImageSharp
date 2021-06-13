@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             [MethodImpl(InliningOptions.ShortMethod)]
             private static int GetPaletteIndex(int r, int g, int b, int a)
-                => (r << ((IndexBits * 2) + IndexAlphaBits))
+                => (r << ((IndexBits << 1) + IndexAlphaBits))
                 + (r << (IndexBits + IndexAlphaBits + 1))
                 + (g << (IndexBits + IndexAlphaBits))
                 + (r << (IndexBits * 2))

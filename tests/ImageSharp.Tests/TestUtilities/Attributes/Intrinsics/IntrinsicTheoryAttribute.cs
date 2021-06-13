@@ -12,11 +12,7 @@ namespace SixLabors.ImageSharp.Tests
         public IntrinsicTheoryAttribute(_HwIntrinsics requiredIntrinsics)
         {
             _HwIntrinsics notSupported = requiredIntrinsics.GetNotSupportedIntrinsics();
-            if (!IntrinsicTestsUtils.IntrinsicsSupported)
-            {
-                this.Skip = $"Current runtime does not support intrinsics";
-            }
-            else if (notSupported != _HwIntrinsics.None)
+            if (notSupported != _HwIntrinsics.None)
             {
                 this.Skip = $"Required: {requiredIntrinsics}\nNot supported: {notSupported}";
             }

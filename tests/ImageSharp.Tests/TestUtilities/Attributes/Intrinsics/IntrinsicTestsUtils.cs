@@ -11,18 +11,6 @@ namespace SixLabors.ImageSharp.Tests
 {
     public static class IntrinsicTestsUtils
     {
-        public static bool IntrinsicsSupported
-        {
-            get
-            {
-#if SUPPORTS_RUNTIME_INTRINSICS
-                return true;
-#else
-                return false;
-#endif
-            }
-        }
-
         public static _HwIntrinsics GetNotSupportedIntrinsics(this _HwIntrinsics flags)
         {
             _HwIntrinsics notSupported = flags;

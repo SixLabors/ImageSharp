@@ -1,10 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Threading;
+using SixLabors.ImageSharp.Memory.Allocators.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -16,12 +15,12 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
         /// </summary>
-        private ArrayPool<byte> normalArrayPool;
+        private readonly ArrayPool<byte> normalArrayPool;
 
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> for huge buffers, which is not kept clean.
         /// </summary>
-        private ArrayPool<byte> largeArrayPool;
+        private readonly GCAwareConfigurableArrayPool<byte> largeArrayPool;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
@@ -69,7 +68,8 @@ namespace SixLabors.ImageSharp.Memory
             this.BufferCapacityInBytes = maxContiguousArrayLengthInBytes;
             this.MaxArraysPerBucket = maxArraysPerBucket;
 
-            this.InitArrayPools();
+            this.largeArrayPool = new GCAwareConfigurableArrayPool<byte>(this.MaxPoolSizeInBytes, this.MaxArraysPerBucket);
+            this.normalArrayPool = ArrayPool<byte>.Shared;
         }
 
         /// <summary>
@@ -87,19 +87,9 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public int BufferCapacityInBytes { get; internal set; } // Setter is internal for easy configuration in tests
 
-        /// <summary>
-        /// Gets when an array was last allocated.
-        /// </summary>
-        internal DateTime Timestamp { get; private set; }
-
-        /// <summary>
-        /// Gets a timer used to check whether pools should be released.
-        /// </summary>
-        internal Timer Timer { get; private set; }
-
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
-            => this.InitArrayPools();
+            => this.largeArrayPool.Trim();
 
         /// <inheritdoc />
         protected internal override int GetBufferCapacityInBytes() => this.BufferCapacityInBytes;
@@ -113,9 +103,8 @@ namespace SixLabors.ImageSharp.Memory
             int bufferSizeInBytes = length * itemSizeBytes;
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
-            this.Timestamp = DateTime.UtcNow;
 
-            var buffer = new Buffer<T>(this, byteArray, length, pool);
+            var buffer = new Buffer<T>(byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -131,9 +120,8 @@ namespace SixLabors.ImageSharp.Memory
 
             ArrayPool<byte> pool = this.GetArrayPool(length);
             byte[] byteArray = pool.Rent(length);
-            this.Timestamp = DateTime.UtcNow;
 
-            var buffer = new ManagedByteBuffer(this, byteArray, length, pool);
+            var buffer = new ManagedByteBuffer(byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
@@ -150,12 +138,6 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             return this.largeArrayPool;
-        }
-
-        private void InitArrayPools()
-        {
-            this.largeArrayPool = ArrayPool<byte>.Create(this.MaxPoolSizeInBytes, this.MaxArraysPerBucket);
-            this.normalArrayPool = ArrayPool<byte>.Shared;
         }
     }
 }

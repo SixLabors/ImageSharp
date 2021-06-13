@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -29,8 +28,6 @@ namespace SixLabors.ImageSharp.Memory
         private class Buffer<T> : ManagedBufferBase<T>
             where T : struct
         {
-            private readonly ArrayPoolMemoryAllocator allocator;
-
             /// <summary>
             /// The length of the buffer.
             /// </summary>
@@ -45,17 +42,10 @@ namespace SixLabors.ImageSharp.Memory
             /// </remarks>
             private WeakReference<ArrayPool<byte>> sourcePoolReference;
 
-            public Buffer(
-                ArrayPoolMemoryAllocator allocator,
-                byte[] data,
-                int length,
-                ArrayPool<byte> sourcePool)
+            public Buffer(byte[] data, int length, ArrayPool<byte> sourcePool)
             {
-                this.allocator = allocator;
                 this.Data = data;
                 this.length = length;
-
-                // Only assign reference if using the large pool.
                 this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
             }
 
@@ -87,32 +77,9 @@ namespace SixLabors.ImageSharp.Memory
                     return;
                 }
 
-                MemoryPressure pressure = MemoryPressure.Medium;
                 if (this.sourcePoolReference.TryGetTarget(out ArrayPool<byte> pool))
                 {
-#if SUPPORTS_GC_MEMORYINFO
-                    pressure = GetMemoryPressure();
-                    if (pressure != MemoryPressure.High)
-                    {
-                        pool.Return(this.Data);
-                    }
-#else
                     pool.Return(this.Data);
-#endif
-
-                    // Do a callback to see when a buffer was last allocated and clean up
-                    // if there's been no activity.
-                    var callback = new TimerCallback(OnReturnCallback);
-                    this.allocator.Timer?.Dispose();
-                    var args = new TrimArgs(this.allocator, pressure);
-
-                    const uint stackTrimAfterMS = 5 * 60 * 1000;  // Trim after 5 minutes for low/moderate pressure
-                    const uint stackHighTrimAfterMS = 10 * 1000; // Trim after 10 seconds for high pressure
-                    uint ticks = pressure == MemoryPressure.High
-                        ? stackHighTrimAfterMS
-                        : stackTrimAfterMS;
-
-                    this.allocator.Timer = new Timer(callback, args, ticks, Timeout.Infinite);
                 }
 
                 this.sourcePoolReference = null;
@@ -120,66 +87,9 @@ namespace SixLabors.ImageSharp.Memory
 
             protected override object GetPinnableObject() => this.Data;
 
-            private static void OnReturnCallback(object state)
-            {
-                if (state is TrimArgs args)
-                {
-                    if (args.Pressure == MemoryPressure.High)
-                    {
-                        args.Allocator.ReleaseRetainedResources();
-                    }
-                    else if (args.Allocator.Timestamp.AddMinutes(4) < DateTime.UtcNow)
-                    {
-                        args.Allocator.ReleaseRetainedResources();
-                    }
-                }
-            }
-
             [MethodImpl(InliningOptions.ColdPath)]
             private static void ThrowObjectDisposedException()
                 => throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
-
-#if SUPPORTS_GC_MEMORYINFO
-            /// <summary>
-            /// Calculates the current memory pressure. Adapted from TlsOverPerCoreLockedStacksArrayPool
-            /// in the .NET Runtime - MIT Licensed.
-            /// </summary>
-            /// <returns>The <see cref="MemoryPressure"/></returns>
-            private static MemoryPressure GetMemoryPressure()
-            {
-                const double highPressureThreshold = .90;       // Percent of GC memory pressure threshold we consider "high"
-                const double mediumPressureThreshold = .70;     // Percent of GC memory pressure threshold we consider "medium"
-
-                // TODO: Is there something we can do to get this info in older runtimes?
-                GCMemoryInfo memoryInfo = GC.GetGCMemoryInfo();
-                if (memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * highPressureThreshold)
-                {
-                    return MemoryPressure.High;
-                }
-                else if (memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * mediumPressureThreshold)
-                {
-                    return MemoryPressure.Medium;
-                }
-
-                return MemoryPressure.Low;
-            }
-#endif
-        }
-
-        /// <summary>
-        /// Not a struct since it'd get boxed anyway.
-        /// </summary>
-        private class TrimArgs
-        {
-            public TrimArgs(ArrayPoolMemoryAllocator allocator, MemoryPressure pressure)
-            {
-                this.Allocator = allocator;
-                this.Pressure = pressure;
-            }
-
-            public ArrayPoolMemoryAllocator Allocator { get; }
-
-            public MemoryPressure Pressure { get; }
         }
 
         /// <summary>
@@ -187,12 +97,8 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         private sealed class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
         {
-            public ManagedByteBuffer(
-                ArrayPoolMemoryAllocator allocator,
-                byte[] data,
-                int length,
-                ArrayPool<byte> sourcePool)
-                : base(allocator, data, length, sourcePool)
+            public ManagedByteBuffer(byte[] data, int length, ArrayPool<byte> sourcePool)
+                : base(data, length, sourcePool)
             {
             }
 

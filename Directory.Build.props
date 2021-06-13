@@ -27,10 +27,40 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
 
-  
-  <!--NETCORE 3.1. NET5.0, and future versions will fallback to this as the closest target.-->
-  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','netcoreapp3.1'))">
-    <DefineConstants>$(DefineConstants);SUPPORTS_GC_MEMORYINFO</DefineConstants>
-  </PropertyGroup>
-  
+  <Choose>
+    <When Condition="'$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'net48'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CRITICALFINALIZER</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netstandard2.0'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CRITICALFINALIZER</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netstandard2.1'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CRITICALFINALIZER</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CRITICALFINALIZER</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CRITICALFINALIZER</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','netcoreapp3.1'))">
+      <!--NETCORE 3.1. NET5.0, and future versions will fallback to this as the closest target.-->
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_BITOPERATIONS</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CRITICALFINALIZER</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_GC_MEMORYINFO</DefineConstants>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
 </Project>

@@ -15,6 +15,13 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     public partial class ArrayPoolMemoryAllocator
     {
+        private enum MemoryPressure
+        {
+            Low = 0,
+            Medium = 1,
+            High = 2
+        }
+
         /// <summary>
         /// The buffer implementation of <see cref="ArrayPoolMemoryAllocator"/>.
         /// </summary>
@@ -52,13 +59,6 @@ namespace SixLabors.ImageSharp.Memory
                 this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
             }
 
-            private enum MemoryPressure
-            {
-                Low = 0,
-                Medium = 1,
-                High = 2
-            }
-
             /// <summary>
             /// Gets the buffer as a byte array.
             /// </summary>
@@ -87,18 +87,13 @@ namespace SixLabors.ImageSharp.Memory
                     return;
                 }
 
+                MemoryPressure pressure = MemoryPressure.Medium;
                 if (this.sourcePoolReference.TryGetTarget(out ArrayPool<byte> pool))
                 {
 #if SUPPORTS_GC_MEMORYINFO
-                    MemoryPressure pressure = GetMemoryPressure();
-                    if (pressure == MemoryPressure.High)
+                    pressure = GetMemoryPressure();
+                    if (pressure != MemoryPressure.High)
                     {
-                        // Don't return. Release everything and let the GC clean everything up.
-                        this.allocator.ReleaseRetainedResources();
-                    }
-                    else
-                    {
-                        // Standard operations.
                         pool.Return(this.Data);
                     }
 #else
@@ -107,11 +102,17 @@ namespace SixLabors.ImageSharp.Memory
 
                     // Do a callback to see when a buffer was last allocated and clean up
                     // if there's been no activity.
-                    var callback = new TimerCallback(OnTime);
+                    var callback = new TimerCallback(OnReturnCallback);
                     this.allocator.Timer?.Dispose();
+                    var args = new TrimArgs(this.allocator, pressure);
 
-                    // TODO: How long should we wait? currently 5 minutes.
-                    this.allocator.Timer = new Timer(callback, this.allocator, 5 * 60 * 1000, Timeout.Infinite);
+                    const uint stackTrimAfterMS = 5 * 60 * 1000;  // Trim after 5 minutes for low/moderate pressure
+                    const uint stackHighTrimAfterMS = 10 * 1000; // Trim after 10 seconds for high pressure
+                    uint ticks = pressure == MemoryPressure.High
+                        ? stackHighTrimAfterMS
+                        : stackTrimAfterMS;
+
+                    this.allocator.Timer = new Timer(callback, args, ticks, Timeout.Infinite);
                 }
 
                 this.sourcePoolReference = null;
@@ -119,12 +120,18 @@ namespace SixLabors.ImageSharp.Memory
 
             protected override object GetPinnableObject() => this.Data;
 
-            private static void OnTime(object state)
+            private static void OnReturnCallback(object state)
             {
-                // TODO: This should be based off the set delay.
-                if (state is ArrayPoolMemoryAllocator allocator && allocator.Timestamp.AddMinutes(4) < DateTime.UtcNow)
+                if (state is TrimArgs args)
                 {
-                    allocator.ReleaseRetainedResources();
+                    if (args.Pressure == MemoryPressure.High)
+                    {
+                        args.Allocator.ReleaseRetainedResources();
+                    }
+                    else if (args.Allocator.Timestamp.AddMinutes(4) < DateTime.UtcNow)
+                    {
+                        args.Allocator.ReleaseRetainedResources();
+                    }
                 }
             }
 
@@ -157,6 +164,22 @@ namespace SixLabors.ImageSharp.Memory
                 return MemoryPressure.Low;
             }
 #endif
+        }
+
+        /// <summary>
+        /// Not a struct since it'd get boxed anyway.
+        /// </summary>
+        private class TrimArgs
+        {
+            public TrimArgs(ArrayPoolMemoryAllocator allocator, MemoryPressure pressure)
+            {
+                this.Allocator = allocator;
+                this.Pressure = pressure;
+            }
+
+            public ArrayPoolMemoryAllocator Allocator { get; }
+
+            public MemoryPressure Pressure { get; }
         }
 
         /// <summary>

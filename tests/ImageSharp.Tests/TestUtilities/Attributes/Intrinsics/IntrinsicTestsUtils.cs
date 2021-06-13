@@ -3,8 +3,9 @@
 
 using System;
 using System.ComponentModel;
+#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
-using System.Text;
+#endif
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -24,9 +25,9 @@ namespace SixLabors.ImageSharp.Tests
 
         public static _HwIntrinsics GetNotSupportedIntrinsics(this _HwIntrinsics flags)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             _HwIntrinsics notSupported = flags;
 
+#if SUPPORTS_RUNTIME_INTRINSICS
             // SSE
             UncheckIfSupported(ref notSupported, _HwIntrinsics.SSE, Sse.IsSupported);
             UncheckIfSupported(ref notSupported, _HwIntrinsics.SSE2, Sse2.IsSupported);
@@ -55,9 +56,9 @@ namespace SixLabors.ImageSharp.Tests
 
             // PCLMULQDQ
             UncheckIfSupported(ref notSupported, _HwIntrinsics.PCLMULQDQ, Pclmulqdq.IsSupported);
+#endif
 
             return notSupported;
-#endif
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -79,6 +80,10 @@ namespace SixLabors.ImageSharp.Tests
         // Used internally, using this in actual fact/theory would do nothing
         [EditorBrowsable(EditorBrowsableState.Never)]
         None = 0,
+
+        // Used internally, using this in actual fact/theory would do nothing
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        RuntimeIsNotSupported = ~None,
 
         SSE = 1 << 0,
         SSE2 = 1 << 1,

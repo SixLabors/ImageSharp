@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 => (r << ((IndexBits << 1) + IndexAlphaBits))
                 + (r << (IndexBits + IndexAlphaBits + 1))
                 + (g << (IndexBits + IndexAlphaBits))
-                + (r << (IndexBits * 2))
+                + (r << (IndexBits << 1))
                 + (r << (IndexBits + 1))
                 + (g << IndexBits)
                 + ((r + g + b) << IndexAlphaBits)

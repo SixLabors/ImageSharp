@@ -105,17 +105,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        [Theory]
+        [IntrinsicTheory(_HwIntrinsics.AVX2)]
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]
         public void Scale16x2_8x1(int seed)
         {
-            if (!Avx2.IsSupported)
-            {
-                return;
-            }
-
             Span<float> data = new Random(seed).GenerateRandomFloatArray(Vector256<float>.Count * 4, -1000, 1000);
 
             // Act:

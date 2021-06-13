@@ -105,29 +105,13 @@ namespace SixLabors.ImageSharp.Tests.Common
             AssertEvenRoundIsCorrect(r, v);
         }
 
-        private bool SkipOnNonAvx2([CallerMemberName] string testCaseName = null)
-        {
-            if (!SimdUtils.HasVector8)
-            {
-                this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
-                return true;
-            }
-
-            return false;
-        }
-
-        [Theory]
+        [IntrinsicTheory(_HwIntrinsics.AVX2)]
         [InlineData(1, 0)]
         [InlineData(1, 8)]
         [InlineData(2, 16)]
         [InlineData(3, 128)]
         public void BasicIntrinsics256_BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
         {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
             float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
             float[] normalized = orig.Select(f => f / 255f).ToArray();
 
@@ -140,18 +124,13 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected, dest);
         }
 
-        [Theory]
+        [IntrinsicTheory(_HwIntrinsics.AVX2)]
         [InlineData(1, 0)]
         [InlineData(1, 8)]
         [InlineData(2, 16)]
         [InlineData(3, 128)]
         public void BasicIntrinsics256_BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
         {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
             float[] source = new Random(seed).GenerateRandomFloatArray(count, 0, 1f);
 
             var dest = new byte[count];
@@ -183,15 +162,10 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
-        [Theory]
+        [IntrinsicTheory(_HwIntrinsics.AVX2)]
         [MemberData(nameof(ArraySizesDivisibleBy8))]
         public void BasicIntrinsics256_BulkConvertByteToNormalizedFloat(int count)
         {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
                 (s, d) => SimdUtils.BasicIntrinsics256.ByteToNormalizedFloat(s.Span, d.Span));
@@ -256,15 +230,10 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
-        [Theory]
+        [IntrinsicTheory(_HwIntrinsics.AVX2)]
         [MemberData(nameof(ArraySizesDivisibleBy8))]
         public void BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
             TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BasicIntrinsics256.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
@@ -359,14 +328,9 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        [Fact]
+        [IntrinsicFact(_HwIntrinsics.AVX2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgb24()
         {
-            if (!Avx2.IsSupported)
-            {
-                return;
-            }
-
             byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
             byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
             byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
@@ -393,14 +357,9 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(padding, dd.Length);
         }
 
-        [Fact]
+        [IntrinsicFact(_HwIntrinsics.AVX2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgba32()
         {
-            if (!Avx2.IsSupported)
-            {
-                return;
-            }
-
             byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
             byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
             byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();

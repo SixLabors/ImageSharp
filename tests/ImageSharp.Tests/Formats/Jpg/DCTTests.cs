@@ -114,23 +114,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
 
-            [Theory]
+            [IntrinsicTheory(_HwIntrinsics.AVX)]
             [InlineData(1)]
             [InlineData(2)]
             public void IDCT8x8_Avx(int seed)
             {
-#if SUPPORTS_RUNTIME_INTRINSICS
-                var skip = !Avx.IsSupported;
-#else
-                var skip = true;
-#endif
-
-                if (skip)
-                {
-                    this.Output.WriteLine("No AVX present, skipping test!");
-                    return;
-                }
-
                 Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
                 var srcBlock = default(Block8x8F);
                 srcBlock.LoadFrom(src);
@@ -248,22 +236,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
 
-            [Theory]
+            [IntrinsicTheory(_HwIntrinsics.AVX)]
             [InlineData(1)]
             [InlineData(2)]
             public void FDCT8x8_Avx(int seed)
             {
-#if SUPPORTS_RUNTIME_INTRINSICS
-                var skip = !Avx.IsSupported;
-#else
-                var skip = true;
-#endif
-                if (skip)
-                {
-                    this.Output.WriteLine("No AVX present, skipping test!");
-                    return;
-                }
-
                 Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
                 var srcBlock = default(Block8x8F);
                 srcBlock.LoadFrom(src);

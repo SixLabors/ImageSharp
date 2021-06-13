@@ -17,20 +17,8 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
     /// <typeparam name="T">The type of buffer </typeparam>
     internal sealed class GCAwareConfigurableArrayPool<T> : ArrayPool<T>
     {
-        /// <summary>The default maximum length of each array in the pool (2^20).</summary>
-        private const int DefaultMaxArrayLength = 1024 * 1024;
-
-        /// <summary>The default maximum number of arrays per bucket that are available for rent.</summary>
-        private const int DefaultMaxNumberOfArraysPerBucket = 50;
-
         private readonly Bucket[] buckets;
-
         private int callbackCreated;
-
-        internal GCAwareConfigurableArrayPool()
-            : this(DefaultMaxArrayLength, DefaultMaxNumberOfArraysPerBucket)
-        {
-        }
 
         internal GCAwareConfigurableArrayPool(int maxArrayLength, int maxArraysPerBucket)
         {

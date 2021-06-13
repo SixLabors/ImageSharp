@@ -34,19 +34,15 @@ namespace SixLabors.ImageSharp.Memory
             private readonly int length;
 
             /// <summary>
-            /// A weak reference to the source pool.
+            /// A reference to the source pool.
             /// </summary>
-            /// <remarks>
-            /// By using a weak reference here, we are making sure that array pools and their retained arrays are always GC-ed
-            /// after a call to <see cref="ReleaseRetainedResources"/>, regardless of having buffer instances still being in use.
-            /// </remarks>
-            private WeakReference<ArrayPool<byte>> sourcePoolReference;
+            private readonly ArrayPool<byte> sourcePool;
 
             public Buffer(byte[] data, int length, ArrayPool<byte> sourcePool)
             {
                 this.Data = data;
                 this.length = length;
-                this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
+                this.sourcePool = sourcePool;
             }
 
             /// <summary>
@@ -72,17 +68,12 @@ namespace SixLabors.ImageSharp.Memory
             /// <inheritdoc />
             protected override void Dispose(bool disposing)
             {
-                if (!disposing || this.Data is null || this.sourcePoolReference is null)
+                if (!disposing || this.Data is null)
                 {
                     return;
                 }
 
-                if (this.sourcePoolReference.TryGetTarget(out ArrayPool<byte> pool))
-                {
-                    pool.Return(this.Data);
-                }
-
-                this.sourcePoolReference = null;
+                this.sourcePool.Return(this.Data);
             }
 
             protected override object GetPinnableObject() => this.Data;

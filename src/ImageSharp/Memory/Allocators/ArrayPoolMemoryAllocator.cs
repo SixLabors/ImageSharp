@@ -13,12 +13,29 @@ namespace SixLabors.ImageSharp.Memory
     public sealed partial class ArrayPoolMemoryAllocator : MemoryAllocator
     {
         /// <summary>
-        /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
+        /// The upper threshold to pool arrays the shared buffer. 1MB
+        /// This matches the upper pooling length of <see cref="ArrayPool{T}.Shared"/>.
         /// </summary>
-        private readonly ArrayPool<byte> normalArrayPool;
+        private const int SharedPoolThresholdInBytes = 1024 * 1024;
 
         /// <summary>
-        /// The <see cref="ArrayPool{T}"/> for huge buffers, which is not kept clean.
+        /// The default value for the maximum size of pooled arrays in bytes. 2MB.
+        /// </summary>
+        internal const int DefaultMaxArrayLengthInBytes = 2 * SharedPoolThresholdInBytes;
+
+        /// <summary>
+        /// The default bucket count for <see cref="largeArrayPool"/>.
+        /// </summary>
+        private const int DefaultMaxArraysPerBucket = 16;
+
+        /// <summary>
+        /// The default maximum length of the largest contiguous buffer that can be handled
+        /// by the large allocator.
+        /// </summary>
+        private const int DefaultMaxContiguousArrayLengthInBytes = DefaultMaxArrayLengthInBytes;
+
+        /// <summary>
+        /// The <see cref="ArrayPool{T}"/> for larger buffers.
         /// </summary>
         private readonly GCAwareConfigurableArrayPool<byte> largeArrayPool;
 
@@ -26,19 +43,19 @@ namespace SixLabors.ImageSharp.Memory
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
         public ArrayPoolMemoryAllocator()
-            : this(DefaultMaxPooledBufferSizeInBytes)
+            : this(DefaultMaxArrayLengthInBytes)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
-        /// <param name="maxPoolSizeInBytes">
+        /// <param name="maxArrayLengthInBytes">
         /// The maximum length, in bytes, of an array instance that may be stored in the pool.
         /// Arrays over the threshold will always be allocated.
         /// </param>
-        public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes)
-            : this(maxPoolSizeInBytes, DefaultLargePoolBucketCount, DefaultBufferCapacityInBytes)
+        public ArrayPoolMemoryAllocator(int maxArrayLengthInBytes)
+            : this(maxArrayLengthInBytes, DefaultMaxArraysPerBucket, DefaultMaxContiguousArrayLengthInBytes)
         {
         }
 
@@ -62,14 +79,12 @@ namespace SixLabors.ImageSharp.Memory
             int maxContiguousArrayLengthInBytes)
         {
             Guard.MustBeGreaterThanOrEqualTo(maxArrayLengthInBytes, SharedPoolThresholdInBytes, nameof(maxArrayLengthInBytes));
-            Guard.MustBeGreaterThan(maxContiguousArrayLengthInBytes, 0, nameof(maxContiguousArrayLengthInBytes));
+            Guard.MustBeBetweenOrEqualTo(maxContiguousArrayLengthInBytes, 1, maxArrayLengthInBytes, nameof(maxContiguousArrayLengthInBytes));
 
             this.MaxPoolSizeInBytes = maxArrayLengthInBytes;
             this.BufferCapacityInBytes = maxContiguousArrayLengthInBytes;
             this.MaxArraysPerBucket = maxArraysPerBucket;
-
             this.largeArrayPool = new GCAwareConfigurableArrayPool<byte>(this.MaxPoolSizeInBytes, this.MaxArraysPerBucket);
-            this.normalArrayPool = ArrayPool<byte>.Shared;
         }
 
         /// <summary>
@@ -134,7 +149,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             if (bufferSizeInBytes <= SharedPoolThresholdInBytes)
             {
-                return this.normalArrayPool;
+                return ArrayPool<byte>.Shared;
             }
 
             return this.largeArrayPool;

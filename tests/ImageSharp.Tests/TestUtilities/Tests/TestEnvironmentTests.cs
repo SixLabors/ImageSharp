@@ -3,7 +3,7 @@
 
 using System;
 using System.IO;
-
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -113,6 +113,17 @@ namespace SixLabors.ImageSharp.Tests
 
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
             Assert.IsType(expectedDecoderType, decoder);
+        }
+
+        [Fact]
+        public void RemoteExecutor_FailingRemoteTestShouldFailLocalTest()
+        {
+            static void FailingCode()
+            {
+                Assert.False(true);
+            }
+
+            Assert.ThrowsAny<RemoteExecutionException>(() => RemoteExecutor.Invoke(FailingCode).Dispose());
         }
     }
 }

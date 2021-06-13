@@ -115,17 +115,14 @@ namespace SixLabors.ImageSharp.Tests
             Assert.IsType(expectedDecoderType, decoder);
         }
 
-        [Fact]
+        // The RemoteExecutor fix does not work well with the "dotnet xunit" call
+        // we use with Framework on 32 bit:
+        // https://github.com/SixLabors/ImageSharp/blob/381dff8640b721a34b1227c970fcf6ad6c5e3e72/ci-test.ps1#L30
+        public static bool IsNot32BitNetFramework = !TestEnvironment.IsFramework || TestEnvironment.Is64BitProcess;
+
+        [ConditionalFact(nameof(IsNot32BitNetFramework))]
         public void RemoteExecutor_FailingRemoteTestShouldFailLocalTest()
         {
-            if (TestEnvironment.IsFramework && !TestEnvironment.Is64BitProcess)
-            {
-                // The RemoteExecutor fix does not work well with the "dotnet xunit" call
-                // we use with Framework on 32 bit:
-                // https://github.com/SixLabors/ImageSharp/blob/381dff8640b721a34b1227c970fcf6ad6c5e3e72/ci-test.ps1#L30
-                return;
-            }
-
             static void FailingCode()
             {
                 Assert.False(true);

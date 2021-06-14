@@ -308,6 +308,8 @@ namespace SixLabors.ImageSharp.Tests.Common
         public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows_Avx2(int count)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
+            this.Output.WriteLine($"Avx2.IsSupported: {System.Runtime.Intrinsics.X86.Avx2.IsSupported}");
+
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(

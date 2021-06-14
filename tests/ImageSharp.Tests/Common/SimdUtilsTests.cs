@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             AssertEvenRoundIsCorrect(r, v);
         }
 
-        [IntrinsicTheory(_HwIntrinsics.AVX2)]
+        [IntrinsicTheory(RuntimeFeature.AVX2)]
         [InlineData(1, 0)]
         [InlineData(1, 8)]
         [InlineData(2, 16)]
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected, dest);
         }
 
-        [IntrinsicTheory(_HwIntrinsics.AVX2)]
+        [IntrinsicTheory(RuntimeFeature.AVX2)]
         [InlineData(1, 0)]
         [InlineData(1, 8)]
         [InlineData(2, 16)]
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
-        [IntrinsicTheory(_HwIntrinsics.AVX2)]
+        [IntrinsicTheory(RuntimeFeature.AVX2)]
         [MemberData(nameof(ArraySizesDivisibleBy8))]
         public void BasicIntrinsics256_BulkConvertByteToNormalizedFloat(int count)
         {
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
-        [IntrinsicTheory(_HwIntrinsics.AVX2)]
+        [IntrinsicTheory(RuntimeFeature.AVX2)]
         [MemberData(nameof(ArraySizesDivisibleBy8))]
         public void BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
@@ -328,7 +328,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        [IntrinsicFact(_HwIntrinsics.AVX2)]
+        [IntrinsicFact(RuntimeFeature.AVX2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgb24()
         {
             byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
@@ -357,7 +357,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(padding, dd.Length);
         }
 
-        [IntrinsicFact(_HwIntrinsics.AVX2)]
+        [IntrinsicFact(RuntimeFeature.AVX2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgba32()
         {
             byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();

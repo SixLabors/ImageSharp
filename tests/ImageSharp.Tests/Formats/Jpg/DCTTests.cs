@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
 
-            [IntrinsicTheory(_HwIntrinsics.AVX)]
+            [IntrinsicTheory(RuntimeFeature.AVX)]
             [InlineData(1)]
             [InlineData(2)]
             public void IDCT8x8_Avx(int seed)
@@ -236,7 +236,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
 
-            [IntrinsicTheory(_HwIntrinsics.AVX)]
+            [IntrinsicTheory(RuntimeFeature.AVX)]
             [InlineData(1)]
             [InlineData(2)]
             public void FDCT8x8_Avx(int seed)

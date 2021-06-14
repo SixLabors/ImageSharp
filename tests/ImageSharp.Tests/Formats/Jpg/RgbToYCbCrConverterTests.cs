@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        [IntrinsicTheory(_HwIntrinsics.AVX2)]
+        [IntrinsicTheory(RuntimeFeature.AVX2)]
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]

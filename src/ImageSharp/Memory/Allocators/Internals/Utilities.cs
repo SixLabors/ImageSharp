@@ -71,12 +71,10 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
             value |= value >> 16;
 
             // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
+            // - Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
+            // - uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
             return Unsafe.AddByteOffset(
-
-                // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
                 ref MemoryMarshal.GetReference(Log2DeBruijn),
-
-                // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
                 (IntPtr)(int)((value * 0x07C4ACDDu) >> 27));
         }
 #endif

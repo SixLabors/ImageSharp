@@ -23,11 +23,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
         /// <summary>
         /// Initializes a new instance of the <see cref="UnmanagedBuffer{T}"/> class.
         /// </summary>
-        /// <param name="byteCount">The number of bytes to allocate.</param>
-        public UnmanagedBuffer(int byteCount)
+        /// <param name="length">The number of elements to allocate.</param>
+        public UnmanagedBuffer(int length)
         {
-            this.length = byteCount / Unsafe.SizeOf<T>();
-            this.safeHandle = new SafeHGlobalHandle(byteCount);
+            this.length = length;
+            this.safeHandle = new SafeHGlobalHandle(length * Unsafe.SizeOf<T>());
         }
 
         public override unsafe Span<T> GetSpan()

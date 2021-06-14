@@ -118,24 +118,26 @@ namespace SixLabors.ImageSharp.Memory
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
 
-            // For anything greater than our pool limit defer to unmanaged memory
-            // to prevent LOH fragmentation.
+            IMemoryOwner<T> memory;
             if (bufferSizeInBytes > this.MaxPoolSizeInBytes)
             {
-                return new UnmanagedBuffer<T>(bufferSizeInBytes);
+                // For anything greater than our pool limit defer to unmanaged memory
+                // to prevent LOH fragmentation.
+                memory = new UnmanagedBuffer<T>(length);
+            }
+            else
+            {
+                // Safe to pool.
+                ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
+                memory = new Buffer<T>(pool.Rent(bufferSizeInBytes), length, pool);
             }
 
-            // Safe to pool.
-            ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
-            byte[] byteArray = pool.Rent(bufferSizeInBytes);
-
-            var buffer = new Buffer<T>(byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
-                buffer.GetSpan().Clear();
+                memory.GetSpan().Clear();
             }
 
-            return buffer;
+            return memory;
         }
 
         /// <inheritdoc />
@@ -155,6 +157,7 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes)
         {
             if (bufferSizeInBytes <= SharedPoolThresholdInBytes)

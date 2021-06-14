@@ -171,18 +171,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
-        public void CreateWithAggressivePooling()
-        {
-            static void RunTest()
-            {
-                StaticFixture.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithAggressivePooling();
-                Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(4096 * 4096));
-            }
-
-            RemoteExecutor.Invoke(RunTest).Dispose();
-        }
-
-        [Fact]
         public void CreateDefault()
         {
             static void RunTest()
@@ -190,19 +178,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 StaticFixture.MemoryAllocator = ArrayPoolMemoryAllocator.CreateDefault();
 
                 Assert.False(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(2 * 4096 * 4096));
-                Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(1024 * 16));
-            }
-
-            RemoteExecutor.Invoke(RunTest).Dispose();
-        }
-
-        [Fact]
-        public void CreateWithModeratePooling()
-        {
-            static void RunTest()
-            {
-                StaticFixture.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
-                Assert.False(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(2048 * 2048));
                 Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(1024 * 16));
             }
 

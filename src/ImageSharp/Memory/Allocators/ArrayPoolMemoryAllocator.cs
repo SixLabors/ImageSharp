@@ -103,6 +103,13 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public int MaxContiguousArrayLengthInBytes { get; internal set; } // Setter is internal for easy configuration in tests
 
+        /// <summary>
+        /// Creates a default instance of the <see cref="ArrayPoolMemoryAllocator"/>.
+        /// </summary>
+        /// <returns>The <see cref="ArrayPoolMemoryAllocator"/>.</returns>
+        public static ArrayPoolMemoryAllocator CreateDefault()
+            => new ArrayPoolMemoryAllocator(maxPooledArrayLengthInBytes: DefaultMaxArrayLengthInBytes);
+
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
             => this.largeArrayPool.Trim();

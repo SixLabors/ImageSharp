@@ -79,10 +79,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             this.Dispose(true);
         }
 
-        protected static Span<T> GetStripPixels<T>(Buffer2D<T> buffer2D, int y, int height)
-            where T : struct
-            => buffer2D.DangerousGetSingleSpan().Slice(y * buffer2D.Width, height * buffer2D.Width);
-
         protected abstract void EncodeStrip(int y, int height, TiffBaseCompressor compressor);
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,6 +6,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    /// <summary>
+    /// Marks a test method as <see cref="TheoryAttribute"/> and executes it only if provides <see cref="RuntimeFeature"/> features are supported by testing environment
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class RuntimeFeatureConditionalTheoryAttribute : TheoryAttribute
     {

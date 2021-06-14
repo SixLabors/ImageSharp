@@ -3,6 +3,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Numerics;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -254,38 +255,119 @@ namespace SixLabors.ImageSharp.Tests
         }
     }
 
+    /// <summary>
+    /// Flags for determining if testing environment supports certain runtime features
+    /// </summary>
     [Flags]
     public enum RuntimeFeature
     {
         /// <summary>
-        /// 
+        /// No flags set
         /// </summary>
         /// <remarks>Used internally, general use case should not use this option.</remarks>
         [EditorBrowsable(EditorBrowsableState.Never)]
         None = 0,
 
+        /// <summary>
+        /// SSE hardware support
+        /// </summary>
+        /// <remarks>Should be used only for testing <see cref="Vector"/> based intrinsic code</remarks>
         Vector4 = 1 << 0,
+
+        /// <summary>
+        /// Equivalent of Sse.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         SSE = 1 << 1,
+
+        /// <summary>
+        /// Equivalent of Sse2.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         SSE2 = 1 << 2,
+
+        /// <summary>
+        /// Equivalent of Sse3.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         SSE3 = 1 << 3,
+
+        /// <summary>
+        /// Equivalent of Ssse3.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         SSSE3 = 1 << 4,
+
+        /// <summary>
+        /// Equivalent of Sse41.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         SSE41 = 1 << 5,
+
+        /// <summary>
+        /// Equivalent of Sse42.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         SSE42 = 1 << 6,
 
+        /// <summary>
+        /// Avx hardware support
+        /// </summary>
+        /// <remarks>Should be used only for testing <see cref="Vector"/> based intrinsic code</remarks>
         Vector8 = 1 << 7,
+
+        /// <summary>
+        /// Equivalent of Avx.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         AVX = 1 << 8,
+
+        /// <summary>
+        /// Equivalent of Avx2.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         AVX2 = 1 << 9,
 
+        /// <summary>
+        /// Equivalent of Bmi1.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         BMI1 = 1 << 10,
+
+        /// <summary>
+        /// Equivalent of Bmi2.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         BMI2 = 1 << 11,
 
+        /// <summary>
+        /// Equivalent of Popcnt.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         POPCNT = 1 << 12,
+
+        /// <summary>
+        /// Equivalent of Lzcnt.IsSupported;
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         LZCNT = 1 << 13,
 
+        /// <summary>
+        /// Equivalent of Fma.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         FMA = 1 << 14,
 
+        /// <summary>
+        /// Equivalent of Aes.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         AES = 1 << 15,
 
+        /// <summary>
+        /// Equivalent of Pclmulqdq.IsSupported
+        /// </summary>
+        /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
         PCLMULQDQ = 1 << 16
     }
 }

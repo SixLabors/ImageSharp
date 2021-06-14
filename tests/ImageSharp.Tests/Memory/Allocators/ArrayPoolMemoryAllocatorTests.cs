@@ -41,16 +41,16 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             public void WhenParameterPassedByUser()
             {
                 var mgr = new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes);
-                Assert.Equal(MaxPooledBufferSizeInBytes, mgr.MaxPoolSizeInBytes);
+                Assert.Equal(MaxPooledBufferSizeInBytes, mgr.MaxPooledArrayLengthInBytes);
             }
 
             [Fact]
             public void WhenAllParametersPassedByUser()
             {
                 var mgr = new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, 1, 2);
-                Assert.Equal(MaxPooledBufferSizeInBytes, mgr.MaxPoolSizeInBytes);
-                Assert.Equal(1, mgr.MaxArraysPerBucket);
-                Assert.Equal(2, mgr.GetBufferCapacityInBytes());
+                Assert.Equal(MaxPooledBufferSizeInBytes, mgr.MaxPooledArrayLengthInBytes);
+                Assert.Equal(1, mgr.MaxArraysPerPoolBucket);
+                Assert.Equal(2, mgr.GetMaxContiguousArrayLengthInBytes());
             }
 
             [Fact]
@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 StaticFixture.MemoryAllocator = ArrayPoolMemoryAllocator.CreateDefault();
 
                 Assert.False(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(2 * 4096 * 4096));
-                Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(2048 * 2048));
+                Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(1024 * 16));
             }
 
             RemoteExecutor.Invoke(RunTest).Dispose();

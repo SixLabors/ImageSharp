@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThanOrEqualTo(totalLength, 0, nameof(totalLength));
             Guard.MustBeGreaterThanOrEqualTo(bufferAlignment, 0, nameof(bufferAlignment));
 
-            int blockCapacityInElements = allocator.GetBufferCapacityInBytes() / ElementSize;
+            int blockCapacityInElements = allocator.GetMaxContiguousArrayLengthInBytes() / ElementSize;
 
             if (bufferAlignment > blockCapacityInElements)
             {

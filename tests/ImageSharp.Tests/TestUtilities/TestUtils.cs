@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests
 
             var allocator = ArrayPoolMemoryAllocator.CreateDefault();
             provider.Configuration.MemoryAllocator = allocator;
-            allocator.BufferCapacityInBytes = bufferCapacityInPixelRows * width * Unsafe.SizeOf<TPixel>();
+            allocator.MaxContiguousArrayLengthInBytes = bufferCapacityInPixelRows * width * Unsafe.SizeOf<TPixel>();
 
             using Image<TPixel> actual = provider.GetImage();
             actual.Mutate(process);

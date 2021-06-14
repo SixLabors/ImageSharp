@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
             private void LimitBufferCapacity(int bufferCapacityInBytes)
             {
                 var allocator = (ArrayPoolMemoryAllocator)this.configuration.MemoryAllocator;
-                allocator.BufferCapacityInBytes = bufferCapacityInBytes;
+                allocator.MaxContiguousArrayLengthInBytes = bufferCapacityInBytes;
             }
 
             [Theory]

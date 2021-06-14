@@ -51,23 +51,23 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
-        /// <param name="maxArrayLengthInBytes">
+        /// <param name="maxPooledArrayLengthInBytes">
         /// The maximum length, in bytes, of an array instance that may be stored in the pool.
         /// Arrays over the threshold will always be allocated.
         /// </param>
-        public ArrayPoolMemoryAllocator(int maxArrayLengthInBytes)
-            : this(maxArrayLengthInBytes, DefaultMaxArraysPerBucket, DefaultMaxContiguousArrayLengthInBytes)
+        public ArrayPoolMemoryAllocator(int maxPooledArrayLengthInBytes)
+            : this(maxPooledArrayLengthInBytes, DefaultMaxArraysPerBucket, DefaultMaxContiguousArrayLengthInBytes)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
-        /// <param name="maxArrayLengthInBytes">
+        /// <param name="maxPooledArrayLengthInBytes">
         /// The maximum length, in bytes, of an array instance that may be stored in the pool.
         /// Arrays over the threshold will always be allocated.
         /// </param>
-        /// <param name="maxArraysPerBucket">
+        /// <param name="maxArraysPerPoolBucket">
         /// The maximum number of array instances that may be stored in each bucket in the pool.
         /// The pool groups arrays of similar lengths into buckets for faster access.
         /// </param>
@@ -75,40 +75,40 @@ namespace SixLabors.ImageSharp.Memory
         /// The maximum length of the largest contiguous buffer that can be handled by this allocator instance.
         /// </param>
         public ArrayPoolMemoryAllocator(
-            int maxArrayLengthInBytes,
-            int maxArraysPerBucket,
+            int maxPooledArrayLengthInBytes,
+            int maxArraysPerPoolBucket,
             int maxContiguousArrayLengthInBytes)
         {
-            Guard.MustBeGreaterThanOrEqualTo(maxArrayLengthInBytes, SharedPoolThresholdInBytes, nameof(maxArrayLengthInBytes));
-            Guard.MustBeBetweenOrEqualTo(maxContiguousArrayLengthInBytes, 1, maxArrayLengthInBytes, nameof(maxContiguousArrayLengthInBytes));
+            Guard.MustBeGreaterThanOrEqualTo(maxPooledArrayLengthInBytes, SharedPoolThresholdInBytes, nameof(maxPooledArrayLengthInBytes));
+            Guard.MustBeBetweenOrEqualTo(maxContiguousArrayLengthInBytes, 1, maxPooledArrayLengthInBytes, nameof(maxContiguousArrayLengthInBytes));
 
-            this.MaxPoolSizeInBytes = maxArrayLengthInBytes;
-            this.BufferCapacityInBytes = maxContiguousArrayLengthInBytes;
-            this.MaxArraysPerBucket = maxArraysPerBucket;
-            this.largeArrayPool = new GCAwareConfigurableArrayPool<byte>(this.MaxPoolSizeInBytes, this.MaxArraysPerBucket);
+            this.MaxPooledArrayLengthInBytes = maxPooledArrayLengthInBytes;
+            this.MaxContiguousArrayLengthInBytes = maxContiguousArrayLengthInBytes;
+            this.MaxArraysPerPoolBucket = maxArraysPerPoolBucket;
+            this.largeArrayPool = new GCAwareConfigurableArrayPool<byte>(this.MaxPooledArrayLengthInBytes, this.MaxArraysPerPoolBucket);
         }
 
         /// <summary>
-        /// Gets the maximum size of pooled arrays in bytes.
+        /// Gets the maximum length, in bytes, of an array instance that may be stored in the pool.
         /// </summary>
-        public int MaxPoolSizeInBytes { get; }
+        public int MaxPooledArrayLengthInBytes { get; }
 
         /// <summary>
         /// Gets the maximum number of array instances that may be stored in each bucket in the pool.
         /// </summary>
-        public int MaxArraysPerBucket { get; }
+        public int MaxArraysPerPoolBucket { get; }
 
         /// <summary>
-        /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance.
+        /// Gets the maximum length of the largest contiguous buffer that can be handled by this allocator instance.
         /// </summary>
-        public int BufferCapacityInBytes { get; internal set; } // Setter is internal for easy configuration in tests
+        public int MaxContiguousArrayLengthInBytes { get; internal set; } // Setter is internal for easy configuration in tests
 
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
             => this.largeArrayPool.Trim();
 
         /// <inheritdoc />
-        protected internal override int GetBufferCapacityInBytes() => this.BufferCapacityInBytes;
+        protected internal override int GetMaxContiguousArrayLengthInBytes() => this.MaxContiguousArrayLengthInBytes;
 
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Memory
             int bufferSizeInBytes = length * itemSizeBytes;
 
             IMemoryOwner<T> memory;
-            if (bufferSizeInBytes > this.MaxPoolSizeInBytes)
+            if (bufferSizeInBytes > this.MaxPooledArrayLengthInBytes)
             {
                 // For anything greater than our pool limit defer to unmanaged memory
                 // to prevent LOH fragmentation.

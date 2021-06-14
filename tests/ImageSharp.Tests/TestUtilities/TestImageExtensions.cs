@@ -755,7 +755,7 @@ namespace SixLabors.ImageSharp.Tests
             this.pixelSizeInBytes = pixelSizeInBytes;
         }
 
-        public void InBytes(int totalBytes) => this.allocator.BufferCapacityInBytes = totalBytes;
+        public void InBytes(int totalBytes) => this.allocator.MaxContiguousArrayLengthInBytes = totalBytes;
 
         public void InPixels(int totalPixels) => this.InBytes(totalPixels * this.pixelSizeInBytes);
 

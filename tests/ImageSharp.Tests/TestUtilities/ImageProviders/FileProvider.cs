@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Tests
                     return this.LoadImage(decoder);
                 }
 
-                int bufferCapacity = this.Configuration.MemoryAllocator.GetBufferCapacityInBytes();
+                int bufferCapacity = this.Configuration.MemoryAllocator.GetMaxContiguousArrayLengthInBytes();
                 var key = new Key(this.PixelType, this.FilePath, bufferCapacity, decoder);
 
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));

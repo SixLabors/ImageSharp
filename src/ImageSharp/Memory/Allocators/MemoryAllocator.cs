@@ -12,10 +12,10 @@ namespace SixLabors.ImageSharp.Memory
     public abstract class MemoryAllocator
     {
         /// <summary>
-        /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
+        /// Gets the maximum length of the largest contiguous buffer that can be handled by this allocator instance.
         /// </summary>
-        /// <returns>The length of the largest contiguous buffer that can be handled by this allocator instance.</returns>
-        protected internal abstract int GetBufferCapacityInBytes();
+        /// <returns>The <see cref="int"/>.</returns>
+        protected internal abstract int GetMaxContiguousArrayLengthInBytes();
 
         /// <summary>
         /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.
@@ -40,8 +40,8 @@ namespace SixLabors.ImageSharp.Memory
         public abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None);
 
         /// <summary>
-        /// Releases all retained resources not being in use.
-        /// Eg: by resetting array pools and letting GC to free the arrays.
+        /// Releases all retained resources not in use.
+        /// Eg: by trimming the array pool and allowing GC to collect the unused buffers.
         /// </summary>
         public virtual void ReleaseRetainedResources()
         {

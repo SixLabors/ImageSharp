@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateDefault()
-            => new ArrayPoolMemoryAllocator(maxArrayLengthInBytes: DefaultMaxArrayLengthInBytes);
+            => new ArrayPoolMemoryAllocator(maxPooledArrayLengthInBytes: DefaultMaxArrayLengthInBytes);
 
         /// <summary>
         /// For environments with very limited memory capabilities,
@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateWithMinimalPooling()
             => new ArrayPoolMemoryAllocator(
-                maxArrayLengthInBytes: SharedPoolThresholdInBytes,
-                maxArraysPerBucket: 1,
+                maxPooledArrayLengthInBytes: SharedPoolThresholdInBytes,
+                maxArraysPerPoolBucket: 1,
                 maxContiguousArrayLengthInBytes: DefaultMaxContiguousArrayLengthInBytes);
 
         /// <summary>
@@ -33,8 +33,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateWithModeratePooling()
             => new ArrayPoolMemoryAllocator(
-                maxArrayLengthInBytes: 2 * 1024 * 1024,
-                maxArraysPerBucket: 16,
+                maxPooledArrayLengthInBytes: 2 * 1024 * 1024,
+                maxArraysPerPoolBucket: 16,
                 maxContiguousArrayLengthInBytes: DefaultMaxContiguousArrayLengthInBytes);
 
         /// <summary>
@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The memory manager.</returns>
         public static ArrayPoolMemoryAllocator CreateWithAggressivePooling()
             => new ArrayPoolMemoryAllocator(
-                maxArrayLengthInBytes: 128 * 1024 * 1024,
-                maxArraysPerBucket: 16,
+                maxPooledArrayLengthInBytes: 128 * 1024 * 1024,
+                maxArraysPerPoolBucket: 16,
                 maxContiguousArrayLengthInBytes: DefaultMaxContiguousArrayLengthInBytes);
     }
 }

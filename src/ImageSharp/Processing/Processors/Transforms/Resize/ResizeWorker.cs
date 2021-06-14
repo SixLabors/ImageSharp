@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // We need to make sure the working buffer is contiguous:
             int workingBufferLimitHintInBytes = Math.Min(
                 configuration.WorkingBufferSizeHintInBytes,
-                configuration.MemoryAllocator.GetBufferCapacityInBytes());
+                configuration.MemoryAllocator.GetMaxContiguousArrayLengthInBytes());
 
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
                 this.windowBandHeight,

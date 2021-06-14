@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         public IReadOnlyList<ReturnRequest> ReturnLog => this.returnLog;
 
-        protected internal override int GetBufferCapacityInBytes() => this.BufferCapacityInBytes;
+        protected internal override int GetMaxContiguousArrayLengthInBytes() => this.BufferCapacityInBytes;
 
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {

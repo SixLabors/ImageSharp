@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly int radius;
 
-        private readonly MemoryHandle pinHandle;
+        private readonly List<MemoryHandle> pinHandles;
 
         private readonly Buffer2D<float> data;
 
@@ -33,7 +34,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private bool isDisposed;
 
-        // To avoid both GC allocations, and MemoryAllocator ceremony:
+        /// <summary>
+        /// To avoid both GC allocations, and MemoryAllocator ceremony:
+        /// </summary>
         private readonly double[] tempValues;
 
         private ResizeKernelMap(
@@ -52,7 +55,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.DestinationLength = destinationLength;
             this.MaxDiameter = (radius * 2) + 1;
             this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, AllocationOptions.Clean);
-            this.pinHandle = this.data.GetSingleMemory().Pin();
+
+            var handles = new List<MemoryHandle>();
+            foreach (Memory<float> memory in this.data.MemoryGroup)
+            {
+                handles.Add(memory.Pin());
+            }
+
+            this.pinHandles = handles;
             this.kernels = new ResizeKernel[destinationLength];
             this.tempValues = new double[this.MaxDiameter];
         }
@@ -91,7 +101,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 if (disposing)
                 {
-                    this.pinHandle.Dispose();
+                    foreach (MemoryHandle handle in this.pinHandles)
+                    {
+                        handle.Dispose();
+                    }
+
                     this.data.Dispose();
                 }
             }

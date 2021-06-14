@@ -104,13 +104,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Verify420(data, yBlocks, ref cb, ref cr, new ApproximateFloatComparer(1F));
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]
         public void Scale16x2_8x1(int seed)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
             Span<float> data = new Random(seed).GenerateRandomFloatArray(Vector256<float>.Count * 4, -1000, 1000);
 
             // Act:
@@ -134,8 +134,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 int lowIdx = (index + 8) * 2;
                 return 0.25f * (data[upIdx] + data[upIdx + 1] + data[lowIdx] + data[lowIdx + 1]);
             }
-        }
 #endif
+        }
 
         private static void Verify444(
             ReadOnlySpan<Rgb24> data,

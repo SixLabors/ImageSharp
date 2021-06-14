@@ -7,7 +7,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
-    /// Marks a test method as <see cref="TheoryAttribute"/> and executes it only if provides <see cref="RuntimeFeature"/> features are supported by testing environment
+    /// Marks a test method as <see cref="TheoryAttribute"/> and executes it only if provided <see cref="RuntimeFeature"/> features are supported by testing environment
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class RuntimeFeatureConditionalTheoryAttribute : TheoryAttribute

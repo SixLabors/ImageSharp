@@ -41,39 +41,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         public const int RowsPerStripInfinity = 2147483647;
 
         /// <summary>
-        /// Size (in bytes) of the TIFF file header.
-        /// </summary>
-        public const int SizeOfTiffHeader = 8;
-
-        /// <summary>
-        /// Size (in bytes) of each individual TIFF IFD entry
-        /// </summary>
-        public const int SizeOfIfdEntry = 12;
-
-        /// <summary>
-        /// Size (in bytes) of the Short and SShort data types
-        /// </summary>
-        public const int SizeOfShort = 2;
-
-        /// <summary>
-        /// Size (in bytes) of the Long and SLong data types
-        /// </summary>
-        public const int SizeOfLong = 4;
-
-        /// <summary>
         /// Size (in bytes) of the Rational and SRational data types
         /// </summary>
         public const int SizeOfRational = 8;
-
-        /// <summary>
-        /// Size (in bytes) of the Float data type
-        /// </summary>
-        public const int SizeOfFloat = 4;
-
-        /// <summary>
-        /// Size (in bytes) of the Double data type
-        /// </summary>
-        public const int SizeOfDouble = 8;
 
         /// <summary>
         /// The default strip size is 8k.
@@ -83,42 +53,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         /// <summary>
         /// The bits per sample for 1 bit bicolor images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample1Bit = { 1 };
+        public static readonly TiffBitsPerSample BitsPerSample1Bit = new TiffBitsPerSample(1, 0, 0);
 
         /// <summary>
         /// The bits per sample for images with a 4 color palette.
         /// </summary>
-        public static readonly ushort[] BitsPerSample4Bit = { 4 };
+        public static readonly TiffBitsPerSample BitsPerSample4Bit = new TiffBitsPerSample(4, 0, 0);
 
         /// <summary>
         /// The bits per sample for 8 bit images.
         /// </summary>
-        public static readonly ushort[] BitsPerSample8Bit = { 8 };
-
-        /// <summary>
-        /// The bits per sample for color images with 2 bits for each color channel.
-        /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb2Bit = { 2, 2, 2 };
-
-        /// <summary>
-        /// The bits per sample for color images with 4 bits for each color channel.
-        /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb4Bit = { 4, 4, 4 };
+        public static readonly TiffBitsPerSample BitsPerSample8Bit = new TiffBitsPerSample(8, 0, 0);
 
         /// <summary>
         /// The bits per sample for color images with 8 bits for each color channel.
         /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb8Bit = { 8, 8, 8 };
-
-        /// <summary>
-        /// The bits per sample for color images with 10 bits for each color channel.
-        /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb10Bit = { 10, 10, 10 };
-
-        /// <summary>
-        /// The bits per sample for color images with 14 bits for each color channel.
-        /// </summary>
-        public static readonly ushort[] BitsPerSampleRgb14Bit = { 14, 14, 14 };
+        public static readonly TiffBitsPerSample BitsPerSampleRgb8Bit = new TiffBitsPerSample(8, 8, 8);
 
         /// <summary>
         /// The list of mimetypes that equate to a tiff.

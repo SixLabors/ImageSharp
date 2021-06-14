@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Allocators.Internals;
+using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -116,6 +117,15 @@ namespace SixLabors.ImageSharp.Memory
 
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
+
+            // For anything greater than our pool limit defer to unmanaged memory
+            // to prevent LOH fragmentation.
+            if (bufferSizeInBytes > this.MaxPoolSizeInBytes)
+            {
+                return new UnmanagedBuffer<T>(bufferSizeInBytes);
+            }
+
+            // Safe to pool.
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
 

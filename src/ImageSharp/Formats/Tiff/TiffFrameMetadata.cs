@@ -36,6 +36,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <summary>
+        /// Gets or sets number of bits per component.
+        /// </summary>
+        public TiffBitsPerSample? BitsPerSample { get; set; }
+
+        /// <summary>
         /// Gets or sets the compression scheme used on the image data.
         /// </summary>
         public TiffCompression? Compression { get; set; }
@@ -64,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Parses the given Exif profile to populate the properties of the tiff frame meta data..
+        /// Parses the given Exif profile to populate the properties of the tiff frame meta data.
         /// </summary>
         /// <param name="meta">The tiff frame meta data.</param>
         /// <param name="profile">The Exif profile containing tiff frame directory tags.</param>
@@ -72,11 +77,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             if (profile != null)
             {
-                ushort[] bitsPerSample = profile.GetValue(ExifTag.BitsPerSample)?.Value;
-                meta.BitsPerPixel = BitsPerPixelFromBitsPerSample(bitsPerSample);
+                if (TiffBitsPerSample.TryParse(profile.GetValue(ExifTag.BitsPerSample)?.Value, out TiffBitsPerSample bitsPerSample))
+                {
+                    meta.BitsPerSample = bitsPerSample;
+                }
+
+                meta.BitsPerPixel = meta.BitsPerSample?.BitsPerPixel();
                 meta.Compression = (TiffCompression?)profile.GetValue(ExifTag.Compression)?.Value;
-                meta.PhotometricInterpretation =
-                    (TiffPhotometricInterpretation?)profile.GetValue(ExifTag.PhotometricInterpretation)?.Value;
+                meta.PhotometricInterpretation = (TiffPhotometricInterpretation?)profile.GetValue(ExifTag.PhotometricInterpretation)?.Value;
                 meta.Predictor = (TiffPredictor?)profile.GetValue(ExifTag.Predictor)?.Value;
 
                 profile.RemoveValue(ExifTag.BitsPerSample);
@@ -84,27 +92,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 profile.RemoveValue(ExifTag.PhotometricInterpretation);
                 profile.RemoveValue(ExifTag.Predictor);
             }
-        }
-
-        /// <summary>
-        /// Gets the bits per pixel for the given bits per sample.
-        /// </summary>
-        /// <param name="bitsPerSample">The tiff bits per sample.</param>
-        /// <returns>Bits per pixel.</returns>
-        private static TiffBitsPerPixel? BitsPerPixelFromBitsPerSample(ushort[] bitsPerSample)
-        {
-            if (bitsPerSample == null)
-            {
-                return null;
-            }
-
-            int bitsPerPixel = 0;
-            foreach (ushort bits in bitsPerSample)
-            {
-                bitsPerPixel += bits;
-            }
-
-            return (TiffBitsPerPixel)bitsPerPixel;
         }
 
         /// <inheritdoc/>

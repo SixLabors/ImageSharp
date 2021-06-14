@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -154,11 +154,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         [MemberData(nameof(BilevelData))]
         [MemberData(nameof(Grayscale4_Data))]
         [MemberData(nameof(Grayscale8_Data))]
-        public void Decode_WritesPixelData(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+        public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    new BlackIsZeroTiffColor<Rgba32>(new[] { (ushort)bitsPerSample }).Decode(inputData, pixels, left, top, width, height);
+                    new BlackIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height);
                 });
         }
 

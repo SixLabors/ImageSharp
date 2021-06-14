@@ -3,7 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -101,17 +101,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         {
             get
             {
-                yield return new object[] { Rgb4Bytes4X4, new ushort[] { 4, 4, 4 }, 0, 0, 4, 4, Rgb4Result4X4 };
-                yield return new object[] { Rgb4Bytes4X4, new ushort[] { 4, 4, 4 }, 0, 0, 4, 4, Offset(Rgb4Result4X4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb4Bytes4X4, new ushort[] { 4, 4, 4 }, 1, 0, 4, 4, Offset(Rgb4Result4X4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb4Bytes4X4, new ushort[] { 4, 4, 4 }, 0, 1, 4, 4, Offset(Rgb4Result4X4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb4Bytes4X4, new ushort[] { 4, 4, 4 }, 1, 1, 4, 4, Offset(Rgb4Result4X4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb4Bytes4X4, new TiffBitsPerSample(4, 4, 4), 0, 0, 4, 4, Rgb4Result4X4 };
+                yield return new object[] { Rgb4Bytes4X4, new TiffBitsPerSample(4, 4, 4), 0, 0, 4, 4, Offset(Rgb4Result4X4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb4Bytes4X4, new TiffBitsPerSample(4, 4, 4), 1, 0, 4, 4, Offset(Rgb4Result4X4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb4Bytes4X4, new TiffBitsPerSample(4, 4, 4), 0, 1, 4, 4, Offset(Rgb4Result4X4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb4Bytes4X4, new TiffBitsPerSample(4, 4, 4), 1, 1, 4, 4, Offset(Rgb4Result4X4, 1, 1, 6, 6) };
 
-                yield return new object[] { Rgb4Bytes3X4, new ushort[] { 4, 4, 4 }, 0, 0, 3, 4, Rgb4Result3X4 };
-                yield return new object[] { Rgb4Bytes3X4, new ushort[] { 4, 4, 4 }, 0, 0, 3, 4, Offset(Rgb4Result3X4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb4Bytes3X4, new ushort[] { 4, 4, 4 }, 1, 0, 3, 4, Offset(Rgb4Result3X4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb4Bytes3X4, new ushort[] { 4, 4, 4 }, 0, 1, 3, 4, Offset(Rgb4Result3X4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb4Bytes3X4, new ushort[] { 4, 4, 4 }, 1, 1, 3, 4, Offset(Rgb4Result3X4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb4Bytes3X4, new TiffBitsPerSample(4, 4, 4), 0, 0, 3, 4, Rgb4Result3X4 };
+                yield return new object[] { Rgb4Bytes3X4, new TiffBitsPerSample(4, 4, 4), 0, 0, 3, 4, Offset(Rgb4Result3X4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb4Bytes3X4, new TiffBitsPerSample(4, 4, 4), 1, 0, 3, 4, Offset(Rgb4Result3X4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb4Bytes3X4, new TiffBitsPerSample(4, 4, 4), 0, 1, 3, 4, Offset(Rgb4Result3X4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb4Bytes3X4, new TiffBitsPerSample(4, 4, 4), 1, 1, 3, 4, Offset(Rgb4Result3X4, 1, 1, 6, 6) };
             }
         }
 
@@ -170,11 +170,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         {
             get
             {
-                yield return new object[] { Rgb8Bytes4X4, new ushort[] { 8, 8, 8 }, 0, 0, 4, 4, Rgb8Result4X4 };
-                yield return new object[] { Rgb8Bytes4X4, new ushort[] { 8, 8, 8 }, 0, 0, 4, 4, Offset(Rgb8Result4X4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb8Bytes4X4, new ushort[] { 8, 8, 8 }, 1, 0, 4, 4, Offset(Rgb8Result4X4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb8Bytes4X4, new ushort[] { 8, 8, 8 }, 0, 1, 4, 4, Offset(Rgb8Result4X4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb8Bytes4X4, new ushort[] { 8, 8, 8 }, 1, 1, 4, 4, Offset(Rgb8Result4X4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb8Bytes4X4, new TiffBitsPerSample(8, 8, 8), 0, 0, 4, 4, Rgb8Result4X4 };
+                yield return new object[] { Rgb8Bytes4X4, new TiffBitsPerSample(8, 8, 8), 0, 0, 4, 4, Offset(Rgb8Result4X4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb8Bytes4X4, new TiffBitsPerSample(8, 8, 8), 1, 0, 4, 4, Offset(Rgb8Result4X4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb8Bytes4X4, new TiffBitsPerSample(8, 8, 8), 0, 1, 4, 4, Offset(Rgb8Result4X4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb8Bytes4X4, new TiffBitsPerSample(8, 8, 8), 1, 1, 4, 4, Offset(Rgb8Result4X4, 1, 1, 6, 6) };
             }
         }
 
@@ -230,11 +230,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         {
             get
             {
-                yield return new object[] { Rgb484Bytes4X4, new ushort[] { 4, 8, 4 }, 0, 0, 4, 4, Rgb484Result4X4 };
-                yield return new object[] { Rgb484Bytes4X4, new ushort[] { 4, 8, 4 }, 0, 0, 4, 4, Offset(Rgb484Result4X4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb484Bytes4X4, new ushort[] { 4, 8, 4 }, 1, 0, 4, 4, Offset(Rgb484Result4X4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb484Bytes4X4, new ushort[] { 4, 8, 4 }, 0, 1, 4, 4, Offset(Rgb484Result4X4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb484Bytes4X4, new ushort[] { 4, 8, 4 }, 1, 1, 4, 4, Offset(Rgb484Result4X4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb484Bytes4X4, new TiffBitsPerSample(4, 8, 4), 0, 0, 4, 4, Rgb484Result4X4 };
+                yield return new object[] { Rgb484Bytes4X4, new TiffBitsPerSample(4, 8, 4), 0, 0, 4, 4, Offset(Rgb484Result4X4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb484Bytes4X4, new TiffBitsPerSample(4, 8, 4), 1, 0, 4, 4, Offset(Rgb484Result4X4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb484Bytes4X4, new TiffBitsPerSample(4, 8, 4), 0, 1, 4, 4, Offset(Rgb484Result4X4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb484Bytes4X4, new TiffBitsPerSample(4, 8, 4), 1, 1, 4, 4, Offset(Rgb484Result4X4, 1, 1, 6, 6) };
             }
         }
 
@@ -242,7 +242,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         [MemberData(nameof(Rgb4Data))]
         [MemberData(nameof(Rgb8Data))]
         [MemberData(nameof(Rgb484_Data))]
-        public void Decode_WritesPixelData(byte[][] inputData, ushort[] bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+        public void Decode_WritesPixelData(byte[][] inputData, TiffBitsPerSample bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
                 {

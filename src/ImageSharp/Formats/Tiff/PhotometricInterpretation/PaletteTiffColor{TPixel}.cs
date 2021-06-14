@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         /// <param name="bitsPerSample">The number of bits per sample for each pixel.</param>
         /// <param name="colorMap">The RGB color lookup table to use for decoding the image.</param>
-        public PaletteTiffColor(ushort[] bitsPerSample, ushort[] colorMap)
+        public PaletteTiffColor(TiffBitsPerSample bitsPerSample, ushort[] colorMap)
         {
-            this.bitsPerSample0 = bitsPerSample[0];
+            this.bitsPerSample0 = bitsPerSample.Channel0;
             int colorCount = 1 << this.bitsPerSample0;
             this.palette = GeneratePalette(colorMap, colorCount);
         }

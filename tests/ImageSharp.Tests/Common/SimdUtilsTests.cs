@@ -176,10 +176,9 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
-        // TODO: this should support tests even if only one runtime intrinsic is supported
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2 | RuntimeFeature.SSE41)]
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.SSE41)]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
-        public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
+        public void HwIntrinsics_BulkConvertByteToNormalizedFloat_Sse41(int count)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             static void RunTest(string serialized)
@@ -192,7 +191,26 @@ namespace SixLabors.ImageSharp.Tests.Common
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 count,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
+                HwIntrinsics.DisableAVX2);
+#endif
+        }
+
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
+        public void HwIntrinsics_BulkConvertByteToNormalizedFloat_Avx2(int count)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            static void RunTest(string serialized)
+            {
+                TestImpl_BulkConvertByteToNormalizedFloat(
+                    FeatureTestRunner.Deserialize<int>(serialized),
+                    (s, d) => SimdUtils.HwIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                count,
+                HwIntrinsics.DisableSSE41);
 #endif
         }
 
@@ -264,10 +282,9 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected2, actual2);
         }
 
-        // TODO: this should support tests even if only one runtime intrinsic is supported
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.SSE | RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.SSE2)]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
-        public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows_Sse2(int count)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             static void RunTest(string serialized)
@@ -280,7 +297,26 @@ namespace SixLabors.ImageSharp.Tests.Common
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 count,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+                HwIntrinsics.DisableAVX2);
+#endif
+        }
+
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
+        public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows_Avx2(int count)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            static void RunTest(string serialized)
+            {
+                TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                    FeatureTestRunner.Deserialize<int>(serialized),
+                    (s, d) => SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                count,
+                HwIntrinsics.DisableSSE2);
 #endif
         }
 

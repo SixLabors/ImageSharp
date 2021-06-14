@@ -245,7 +245,6 @@ namespace SixLabors.ImageSharp.Tests
             return notSupported;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private static void UncheckIfSupported(ref RuntimeFeature features, RuntimeFeature value, bool isSupported)
         {
             if (isSupported)
@@ -253,7 +252,6 @@ namespace SixLabors.ImageSharp.Tests
                 features &= ~value;
             }
         }
-#endif
     }
 
     [Flags]

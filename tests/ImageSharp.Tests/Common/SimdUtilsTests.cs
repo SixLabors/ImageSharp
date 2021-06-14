@@ -4,10 +4,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics.X86;
-#endif
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
@@ -328,7 +324,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalFact(RuntimeFeature.AVX2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgb24()
         {
             byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
@@ -357,7 +353,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(padding, dd.Length);
         }
 
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalFact(RuntimeFeature.AVX2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgba32()
         {
             byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();

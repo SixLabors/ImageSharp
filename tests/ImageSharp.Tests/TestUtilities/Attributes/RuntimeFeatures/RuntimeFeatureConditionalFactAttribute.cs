@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,9 +7,9 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    public class IntrinsicFactAttribute : FactAttribute
+    public class RuntimeFeatureConditionalFactAttribute : FactAttribute
     {
-        public IntrinsicFactAttribute(RuntimeFeature requiredIntrinsics)
+        public RuntimeFeatureConditionalFactAttribute(RuntimeFeature requiredIntrinsics)
         {
             RuntimeFeature notSupported = requiredIntrinsics.GetNotSupportedIntrinsics();
             if (notSupported != RuntimeFeature.None)

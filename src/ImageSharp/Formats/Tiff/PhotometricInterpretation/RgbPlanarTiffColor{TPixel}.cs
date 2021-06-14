@@ -26,11 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private readonly ushort bitsPerSampleB;
 
-        public RgbPlanarTiffColor(ushort[] bitsPerSample)
+        public RgbPlanarTiffColor(TiffBitsPerSample bitsPerSample)
         {
-            this.bitsPerSampleR = bitsPerSample[0];
-            this.bitsPerSampleG = bitsPerSample[1];
-            this.bitsPerSampleB = bitsPerSample[2];
+            this.bitsPerSampleR = bitsPerSample.Channel0;
+            this.bitsPerSampleG = bitsPerSample.Channel1;
+            this.bitsPerSampleB = bitsPerSample.Channel2;
 
             this.rFactor = (1 << this.bitsPerSampleR) - 1.0f;
             this.gFactor = (1 << this.bitsPerSampleG) - 1.0f;

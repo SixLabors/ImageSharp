@@ -1,56 +1,138 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// The number of bits per component.
     /// </summary>
-    public enum TiffBitsPerSample
+    public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
     {
         /// <summary>
-        /// The Bits per samples is not known.
+        /// The bits for the channel 0.
         /// </summary>
-        Unknown = 0,
+        public readonly ushort Channel0;
 
         /// <summary>
-        /// One bit per sample for bicolor images.
+        /// The bits for the channel 1.
         /// </summary>
-        Bit1 = 1,
+        public readonly ushort Channel1;
 
         /// <summary>
-        /// Four bits per sample for grayscale images with 16 different levels of gray or paletted images with a palette of 16 colors.
+        /// The bits for the channel 2.
         /// </summary>
-        Bit4 = 4,
+        public readonly ushort Channel2;
 
         /// <summary>
-        /// Eight bits per sample for grayscale images with 256 different levels of gray or paletted images with a palette of 256 colors.
+        /// The number of channels.
         /// </summary>
-        Bit8 = 8,
+        public readonly byte Channels;
 
         /// <summary>
-        /// Six bits per sample, each channel has 2 bits.
+        /// Initializes a new instance of the <see cref="TiffBitsPerSample"/> struct.
         /// </summary>
-        Bit6 = 6,
+        /// <param name="channel0">The bits for the channel 0.</param>
+        /// <param name="channel1">The bits for the channel 1.</param>
+        /// <param name="channel2">The bits for the channel 2.</param>
+        public TiffBitsPerSample(ushort channel0, ushort channel1, ushort channel2)
+        {
+            this.Channel0 = (ushort)Numerics.Clamp(channel0, 0, 32);
+            this.Channel1 = (ushort)Numerics.Clamp(channel1, 0, 32);
+            this.Channel2 = (ushort)Numerics.Clamp(channel2, 0, 32);
+
+            this.Channels = 0;
+            this.Channels += (byte)(this.Channel0 != 0 ? 1 : 0);
+            this.Channels += (byte)(this.Channel1 != 0 ? 1 : 0);
+            this.Channels += (byte)(this.Channel2 != 0 ? 1 : 0);
+        }
 
         /// <summary>
-        /// Twelve bits per sample, each channel has 4 bits.
+        /// Tries to parse a ushort array and convert it into a TiffBitsPerSample struct.
         /// </summary>
-        Bit12 = 12,
+        /// <param name="value">The value to parse.</param>
+        /// <param name="sample">The tiff bits per sample.</param>
+        /// <returns>True, if the value could be parsed.</returns>
+        public static bool TryParse(ushort[] value, out TiffBitsPerSample sample)
+        {
+            if (value is null || value.Length == 0)
+            {
+                sample = default;
+                return false;
+            }
+
+            ushort c2;
+            ushort c1;
+            ushort c0;
+            switch (value.Length)
+            {
+                case 3:
+                    c2 = value[2];
+                    c1 = value[1];
+                    c0 = value[0];
+                    break;
+                case 2:
+                    c2 = 0;
+                    c1 = value[1];
+                    c0 = value[0];
+                    break;
+                default:
+                    c2 = 0;
+                    c1 = 0;
+                    c0 = value[0];
+                    break;
+            }
+
+            sample = new TiffBitsPerSample(c0, c1, c2);
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+            => obj is TiffBitsPerSample sample && this.Equals(sample);
+
+        /// <inheritdoc/>
+        public bool Equals(TiffBitsPerSample other)
+            => this.Channel0 == other.Channel0
+               && this.Channel1 == other.Channel1
+               && this.Channel2 == other.Channel2;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+            => HashCode.Combine(this.Channel0, this.Channel1, this.Channel2);
 
         /// <summary>
-        /// 24 bits per sample, each color channel has 8 Bits.
+        /// Converts the bits per sample struct to an ushort array.
         /// </summary>
-        Bit24 = 24,
+        /// <returns>Bits per sample as ushort array.</returns>
+        public ushort[] ToArray()
+        {
+            if (this.Channel1 == 0)
+            {
+                return new[] { this.Channel0 };
+            }
+
+            if (this.Channel2 == 0)
+            {
+                return new[] { this.Channel0, this.Channel1 };
+            }
+
+            return new[] { this.Channel0, this.Channel1, this.Channel2 };
+        }
 
         /// <summary>
-        /// Thirty bits per sample, each channel has 10 bits.
+        /// Gets the bits per pixel for the given bits per sample.
         /// </summary>
-        Bit30 = 30,
+        /// <returns>Bits per pixel.</returns>
+        public TiffBitsPerPixel BitsPerPixel()
+        {
+            int bitsPerPixel = this.Channel0 + this.Channel1 + this.Channel2;
+            return (TiffBitsPerPixel)bitsPerPixel;
+        }
 
-        /// <summary>
-        /// Forty two bits per sample, each channel has 14 bits.
-        /// </summary>
-        Bit42 = 42,
+        /// <inheritdoc/>
+        public override string ToString()
+            => $"TiffBitsPerSample({this.Channel0}, {this.Channel1}, {this.Channel2})";
     }
 }

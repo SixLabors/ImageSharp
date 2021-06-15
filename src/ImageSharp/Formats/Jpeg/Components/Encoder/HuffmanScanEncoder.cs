@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            int bt = Numerics.MinimumBitsToStore16((uint)a);
+            int bt = Numerics.GetHuffmanEncodingLegth((uint)a);
 
             this.EmitHuff(index, (runLength << 4) | bt);
             if (bt > 0)

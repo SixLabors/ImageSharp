@@ -860,23 +860,31 @@ namespace SixLabors.ImageSharp
 #endif
 
         /// <summary>
-        /// Calculates how many minimum bits needed to store given value.
+        /// Calculates how many minimum bits needed to store given value for Huffman jpeg encoding.
+        /// This method does not follow the standard convention - it does not support input value of zero.
         /// </summary>
-        /// <param name="number">Unsigned integer to store</param>
-        /// <returns>Minimum number of bits needed to store given value</returns>
+        /// <remarks>
+        /// Passing zero as input value would result in an undefined behaviour.
+        /// This is done for performance reasons as Huffman encoding code checks for zero value, second identical check could degrade the performance in the hot path.
+        /// If this method is needed somewhere else apart from jpeg encoding - use explicit if check for zero value case.
+        /// </remarks>
+        /// <param name="value">The value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int MinimumBitsToStore16(uint number)
+        internal static int GetHuffmanEncodingLegth(uint value)
         {
-#if !SUPPORTS_BITOPERATIONS
-            if (number < 0x100)
-            {
-                return BitCountLut[(int)number];
-            }
+            DebugGuard.IsFalse(value == 0, nameof(value), "Huffman encoding does not encode zero values");
+#if SUPPORTS_BITOPERATIONS
+            // This should have been implemented as (BitOperations.Log2(value) + 1) as in non-intrinsic implementation
+            // But internal log2 is implementated like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
 
-            return 8 + BitCountLut[(int)number >> 8];
+            // BitOperations.Log2 implementation also checks if input value is zero for the convention
+            // As this is a very specific method for a specific Huffman encoding code
+            // We can omit zero check as this is guranteed not to be invoked with value == 0 and guarded in debug builds
+            return 32 - BitOperations.LeadingZeroCount(value);
 #else
-            const int bitInUnsignedInteger = sizeof(uint) * 8;
-            return bitInUnsignedInteger - BitOperations.LeadingZeroCount(number);
+            // On the contrary to BitOperations implementation this does follow the convention and supports value == 0 case
+            // Although it's still won't be called with value == 0
+            return Log2SoftwareFallback(value) + 1;
 #endif
         }
 

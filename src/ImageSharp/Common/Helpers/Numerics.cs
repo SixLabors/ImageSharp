@@ -861,7 +861,7 @@ namespace SixLabors.ImageSharp
         /// https://cstheory.stackexchange.com/questions/19524/using-the-de-bruijn-sequence-to-find-the-lceil-log-2-v-rceil-of-an-integer
         /// </remarks>
         /// <param name="value">The value.</param>
-        internal static int Log2SoftwareFallback(uint value)
+        private static int Log2SoftwareFallback(uint value)
         {
             // No AggressiveInlining due to large method size
             // Has conventional contract 0->0 (Log(0) is undefined) by default, no need for if checking

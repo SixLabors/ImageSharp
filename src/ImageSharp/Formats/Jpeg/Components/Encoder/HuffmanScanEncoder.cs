@@ -420,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Because of the 16 bit value constraint it won't overflow
             // With that input value change we no longer need to add 1 before returning
             // And this eliminates need to check if input value is zero - it is a standard convention which Log2SoftwareFallback adheres to
-            return Numerics.Log2SoftwareFallback(value << 1);
+            return Numerics.Log2(value << 1);
 #endif
         }
     }

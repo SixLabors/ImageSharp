@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 count,
-                HwIntrinsics.DisableSSE41);
+                HwIntrinsics.AllowAll);
 #endif
         }
 
@@ -308,8 +308,6 @@ namespace SixLabors.ImageSharp.Tests.Common
         public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows_Avx2(int count)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            this.Output.WriteLine($"Avx2.IsSupported: {System.Runtime.Intrinsics.X86.Avx2.IsSupported}");
-
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
@@ -320,7 +318,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 count,
-                HwIntrinsics.DisableSSE2);
+                HwIntrinsics.AllowAll);
 #endif
         }
 

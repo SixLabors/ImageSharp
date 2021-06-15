@@ -26,5 +26,5 @@
   <PropertyGroup Condition="$(Configuration.StartsWith('Release')) == true">
     <Optimize>true</Optimize>
   </PropertyGroup>
-  
+
 </Project>

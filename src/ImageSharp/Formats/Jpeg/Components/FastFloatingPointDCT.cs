@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static readonly Vector256<float> C_V_n1_8477 = Vector256.Create(-1.847759065f);
         private static readonly Vector256<float> C_V_0_7653 = Vector256.Create(0.765366865f);
 
-        private static Vector256<float> C_V_InvSqrt2 = Vector256.Create(0.707107f);
+        private static readonly Vector256<float> C_V_InvSqrt2 = Vector256.Create(0.707107f);
 #endif
 #pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
         private static readonly Vector4 InvSqrt2 = new Vector4(0.707107f);

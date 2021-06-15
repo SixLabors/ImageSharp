@@ -6,7 +6,7 @@
     <AssemblyName>SixLabors.ImageSharp.Tests</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
-    <Configurations>Debug;Release;Release-InnerLoop;Debug-InnerLoop</Configurations>
+    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
   </PropertyGroup>
 
   <Choose>

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -57,30 +58,29 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(headerSize, AllocationOptions.Clean))
+            using IMemoryOwner<byte> buffer = config.MemoryAllocator.Allocate<byte>(headerSize, AllocationOptions.Clean);
+            Span<byte> bufferSpan = buffer.GetSpan();
+            long startPosition = stream.Position;
+
+            // Read doesn't always guarantee the full returned length so read a byte
+            // at a time until we get either our count or hit the end of the stream.
+            int n = 0;
+            int i;
+            do
             {
-                long startPosition = stream.Position;
-
-                // Read doesn't always guarantee the full returned length so read a byte
-                // at a time until we get either our count or hit the end of the stream.
-                int n = 0;
-                int i;
-                do
-                {
-                    i = stream.Read(buffer.Array, n, headerSize - n);
-                    n += i;
-                }
-                while (n < headerSize && i > 0);
-
-                stream.Position = startPosition;
-
-                // Does the given stream contain enough data to fit in the header for the format
-                // and does that data match the format specification?
-                // Individual formats should still check since they are public.
-                return config.ImageFormatsManager.FormatDetectors
-                    .Where(x => x.HeaderSize <= headerSize)
-                    .Select(x => x.DetectFormat(buffer.GetSpan())).LastOrDefault(x => x != null);
+                i = stream.Read(bufferSpan, n, headerSize - n);
+                n += i;
             }
+            while (n < headerSize && i > 0);
+
+            stream.Position = startPosition;
+
+            // Does the given stream contain enough data to fit in the header for the format
+            // and does that data match the format specification?
+            // Individual formats should still check since they are public.
+            return config.ImageFormatsManager.FormatDetectors
+                .Where(x => x.HeaderSize <= headerSize)
+                .Select(x => x.DetectFormat(buffer.GetSpan())).LastOrDefault(x => x != null);
         }
 
         /// <summary>

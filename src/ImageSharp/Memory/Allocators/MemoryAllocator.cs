@@ -30,16 +30,6 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct;
 
         /// <summary>
-        /// Allocates an <see cref="IManagedByteBuffer"/>.
-        /// </summary>
-        /// <param name="length">The requested buffer length.</param>
-        /// <param name="options">The allocation options.</param>
-        /// <returns>The <see cref="IManagedByteBuffer"/>.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">When length is zero or negative.</exception>
-        /// <exception cref="InvalidMemoryOperationException">When length is over the capacity of the allocator.</exception>
-        public abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None);
-
-        /// <summary>
         /// Releases all retained resources not in use.
         /// Eg: by trimming the array pool and allowing GC to collect the unused buffers.
         /// </summary>

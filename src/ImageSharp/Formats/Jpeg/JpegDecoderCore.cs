@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -928,9 +929,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             int length = remaining;
 
-            using (IManagedByteBuffer huffmanData = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
+            using (IMemoryOwner<byte> huffmanData = this.Configuration.MemoryAllocator.Allocate<byte>(256, AllocationOptions.Clean))
             {
-                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
+                Span<byte> huffmanDataSpan = huffmanData.GetSpan();
+                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanDataSpan);
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)stream.ReadByte();
@@ -949,9 +951,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         JpegThrowHelper.ThrowInvalidImageContentException("Bad Huffman Table index.");
                     }
 
-                    stream.Read(huffmanData.Array, 0, 16);
+                    stream.Read(huffmanDataSpan, 0, 16);
 
-                    using (IManagedByteBuffer codeLengths = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
+                    using (IMemoryOwner<byte> codeLengths = this.Configuration.MemoryAllocator.Allocate<byte>(17, AllocationOptions.Clean))
                     {
                         ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.GetSpan());
                         int codeLengthSum = 0;
@@ -968,9 +970,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             JpegThrowHelper.ThrowInvalidImageContentException("Huffman table has excessive length.");
                         }
 
-                        using (IManagedByteBuffer huffmanValues = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
+                        using (IMemoryOwner<byte> huffmanValues = this.Configuration.MemoryAllocator.Allocate<byte>(256, AllocationOptions.Clean))
                         {
-                            stream.Read(huffmanValues.Array, 0, codeLengthSum);
+                            Span<byte> huffmanValuesSpan = huffmanValues.GetSpan();
+                            stream.Read(huffmanValuesSpan, 0, codeLengthSum);
 
                             i += 17 + codeLengthSum;
 
@@ -978,7 +981,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 tableIndex,
                                 codeLengths.GetSpan(),
-                                huffmanValues.GetSpan());
+                                huffmanValuesSpan);
                         }
                     }
                 }

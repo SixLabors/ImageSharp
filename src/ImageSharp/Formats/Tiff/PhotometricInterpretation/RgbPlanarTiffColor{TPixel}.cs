@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        public void Decode(IManagedByteBuffer[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
+        public void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
             var color = default(TPixel);
 

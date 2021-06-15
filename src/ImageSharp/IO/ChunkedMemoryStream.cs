@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
@@ -324,7 +325,7 @@ namespace SixLabors.ImageSharp.IO
                 this.readOffset = 0;
             }
 
-            byte[] chunkBuffer = this.readChunk.Buffer.Array;
+            Span<byte> chunkBuffer = this.readChunk.Buffer.GetSpan();
             int chunkSize = this.readChunk.Length;
             if (this.readChunk.Next is null)
             {
@@ -341,7 +342,7 @@ namespace SixLabors.ImageSharp.IO
 
                 this.readChunk = this.readChunk.Next;
                 this.readOffset = 0;
-                chunkBuffer = this.readChunk.Buffer.Array;
+                chunkBuffer = this.readChunk.Buffer.GetSpan();
             }
 
             return chunkBuffer[this.readOffset++];
@@ -415,7 +416,7 @@ namespace SixLabors.ImageSharp.IO
                 this.writeOffset = 0;
             }
 
-            byte[] chunkBuffer = this.writeChunk.Buffer.Array;
+            Span<byte> chunkBuffer = this.writeChunk.Buffer.GetSpan();
             int chunkSize = this.writeChunk.Length;
 
             if (this.writeOffset == chunkSize)
@@ -424,7 +425,7 @@ namespace SixLabors.ImageSharp.IO
                 this.writeChunk.Next = this.AllocateMemoryChunk();
                 this.writeChunk = this.writeChunk.Next;
                 this.writeOffset = 0;
-                chunkBuffer = this.writeChunk.Buffer.Array;
+                chunkBuffer = this.writeChunk.Buffer.GetSpan();
             }
 
             chunkBuffer[this.writeOffset++] = value;
@@ -473,7 +474,7 @@ namespace SixLabors.ImageSharp.IO
                 this.readOffset = 0;
             }
 
-            byte[] chunkBuffer = this.readChunk.Buffer.Array;
+            Span<byte> chunkBuffer = this.readChunk.Buffer.GetSpan();
             int chunkSize = this.readChunk.Length;
             if (this.readChunk.Next is null)
             {
@@ -495,7 +496,7 @@ namespace SixLabors.ImageSharp.IO
 
                     this.readChunk = this.readChunk.Next;
                     this.readOffset = 0;
-                    chunkBuffer = this.readChunk.Buffer.Array;
+                    chunkBuffer = this.readChunk.Buffer.GetSpan();
                     chunkSize = this.readChunk.Length;
                     if (this.readChunk.Next is null)
                     {
@@ -529,7 +530,7 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private MemoryChunk AllocateMemoryChunk()
         {
-            IManagedByteBuffer buffer = this.allocator.AllocateManagedByteBuffer(this.chunkLength);
+            IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(this.chunkLength);
             return new MemoryChunk
             {
                 Buffer = buffer,
@@ -551,7 +552,7 @@ namespace SixLabors.ImageSharp.IO
         {
             private bool isDisposed;
 
-            public IManagedByteBuffer Buffer { get; set; }
+            public IMemoryOwner<byte> Buffer { get; set; }
 
             public MemoryChunk Next { get; set; }
 

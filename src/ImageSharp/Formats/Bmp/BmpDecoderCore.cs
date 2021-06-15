@@ -817,31 +817,29 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 padding = 4 - padding;
             }
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(arrayWidth + padding, AllocationOptions.Clean))
+            using IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(arrayWidth + padding, AllocationOptions.Clean);
+            TPixel color = default;
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = 0; y < height; y++)
             {
-                TPixel color = default;
-                Span<byte> rowSpan = row.GetSpan();
+                int newY = Invert(y, height, inverted);
+                this.stream.Read(rowSpan);
+                int offset = 0;
+                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
-                for (int y = 0; y < height; y++)
+                for (int x = 0; x < arrayWidth; x++)
                 {
-                    int newY = Invert(y, height, inverted);
-                    this.stream.Read(row.Array, 0, row.Length());
-                    int offset = 0;
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
-
-                    for (int x = 0; x < arrayWidth; x++)
+                    int colOffset = x * ppb;
+                    for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
                     {
-                        int colOffset = x * ppb;
-                        for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
-                        {
-                            int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
+                        int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
 
-                            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
-                            pixelRow[newX] = color;
-                        }
-
-                        offset++;
+                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
+                        pixelRow[newX] = color;
                     }
+
+                    offset++;
                 }
             }
         }
@@ -873,29 +871,28 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int greenMaskBits = CountBits((uint)greenMask);
             int blueMaskBits = CountBits((uint)blueMask);
 
-            using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
+            using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride);
+            Span<byte> bufferSpan = buffer.GetSpan();
+
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
+                this.stream.Read(bufferSpan);
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
+                for (int x = 0; x < width; x++)
                 {
-                    this.stream.Read(buffer.Array, 0, stride);
-                    int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan);
 
-                    int offset = 0;
-                    for (int x = 0; x < width; x++)
-                    {
-                        short temp = BitConverter.ToInt16(buffer.Array, offset);
+                    // Rescale values, so the values range from 0 to 255.
+                    int r = (redMaskBits == 5) ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask) : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
+                    int g = (greenMaskBits == 5) ? GetBytesFrom5BitValue((temp & greenMask) >> rightShiftGreenMask) : GetBytesFrom6BitValue((temp & greenMask) >> rightShiftGreenMask);
+                    int b = (blueMaskBits == 5) ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask) : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
+                    var rgb = new Rgb24((byte)r, (byte)g, (byte)b);
 
-                        // Rescale values, so the values range from 0 to 255.
-                        int r = (redMaskBits == 5) ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask) : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
-                        int g = (greenMaskBits == 5) ? GetBytesFrom5BitValue((temp & greenMask) >> rightShiftGreenMask) : GetBytesFrom6BitValue((temp & greenMask) >> rightShiftGreenMask);
-                        int b = (blueMaskBits == 5) ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask) : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
-                        var rgb = new Rgb24((byte)r, (byte)g, (byte)b);
-
-                        color.FromRgb24(rgb);
-                        pixelRow[x] = color;
-                        offset += 2;
-                    }
+                    color.FromRgb24(rgb);
+                    pixelRow[x] = color;
+                    bufferSpan = bufferSpan.Slice(2);
                 }
             }
         }
@@ -929,19 +926,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 3);
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, padding))
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, padding);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    this.stream.Read(row);
-                    int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        pixelSpan,
-                        width);
-                }
+                this.stream.Read(rowSpan);
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                PixelOperations<TPixel>.Instance.FromBgr24Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    pixelSpan,
+                    width);
             }
         }
 
@@ -958,19 +955,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 4);
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding))
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    this.stream.Read(row);
-                    int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        pixelSpan,
-                        width);
-                }
+                this.stream.Read(rowSpan);
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                PixelOperations<TPixel>.Instance.FromBgra32Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    pixelSpan,
+                    width);
             }
         }
 
@@ -988,86 +985,85 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 4);
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding))
-            using (IMemoryOwner<Bgra32> bgraRow = this.memoryAllocator.Allocate<Bgra32>(width))
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding);
+            using IMemoryOwner<Bgra32> bgraRow = this.memoryAllocator.Allocate<Bgra32>(width);
+            Span<byte> rowSpan = row.GetSpan();
+            Span<Bgra32> bgraRowSpan = bgraRow.GetSpan();
+            long currentPosition = this.stream.Position;
+            bool hasAlpha = false;
+
+            // Loop though the rows checking each pixel. We start by assuming it's
+            // an BGR0 image. If we hit a non-zero alpha value, then we know it's
+            // actually a BGRA image, and change tactics accordingly.
+            for (int y = 0; y < height; y++)
             {
-                Span<Bgra32> bgraRowSpan = bgraRow.GetSpan();
-                long currentPosition = this.stream.Position;
-                bool hasAlpha = false;
+                this.stream.Read(rowSpan);
 
-                // Loop though the rows checking each pixel. We start by assuming it's
-                // an BGR0 image. If we hit a non-zero alpha value, then we know it's
-                // actually a BGRA image, and change tactics accordingly.
-                for (int y = 0; y < height; y++)
+                PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    bgraRowSpan,
+                    width);
+
+                // Check each pixel in the row to see if it has an alpha value.
+                for (int x = 0; x < width; x++)
                 {
-                    this.stream.Read(row);
-
-                    PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        bgraRowSpan,
-                        width);
-
-                    // Check each pixel in the row to see if it has an alpha value.
-                    for (int x = 0; x < width; x++)
+                    Bgra32 bgra = bgraRowSpan[x];
+                    if (bgra.A > 0)
                     {
-                        Bgra32 bgra = bgraRowSpan[x];
-                        if (bgra.A > 0)
-                        {
-                            hasAlpha = true;
-                            break;
-                        }
-                    }
-
-                    if (hasAlpha)
-                    {
+                        hasAlpha = true;
                         break;
                     }
                 }
 
-                // Reset our stream for a second pass.
-                this.stream.Position = currentPosition;
-
-                // Process the pixels in bulk taking the raw alpha component value.
                 if (hasAlpha)
                 {
-                    for (int y = 0; y < height; y++)
-                    {
-                        this.stream.Read(row);
-
-                        int newY = Invert(y, height, inverted);
-                        Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-
-                        PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                            this.Configuration,
-                            row.GetSpan(),
-                            pixelSpan,
-                            width);
-                    }
-
-                    return;
+                    break;
                 }
+            }
 
-                // Slow path. We need to set each alpha component value to fully opaque.
+            // Reset our stream for a second pass.
+            this.stream.Position = currentPosition;
+
+            // Process the pixels in bulk taking the raw alpha component value.
+            if (hasAlpha)
+            {
                 for (int y = 0; y < height; y++)
                 {
-                    this.stream.Read(row);
-                    PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        bgraRowSpan,
-                        width);
+                    this.stream.Read(rowSpan);
 
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
 
-                    for (int x = 0; x < width; x++)
-                    {
-                        Bgra32 bgra = bgraRowSpan[x];
-                        bgra.A = byte.MaxValue;
-                        ref TPixel pixel = ref pixelSpan[x];
-                        pixel.FromBgra32(bgra);
-                    }
+                    PixelOperations<TPixel>.Instance.FromBgra32Bytes(
+                        this.Configuration,
+                        rowSpan,
+                        pixelSpan,
+                        width);
+                }
+
+                return;
+            }
+
+            // Slow path. We need to set each alpha component value to fully opaque.
+            for (int y = 0; y < height; y++)
+            {
+                this.stream.Read(rowSpan);
+                PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    bgraRowSpan,
+                    width);
+
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+
+                for (int x = 0; x < width; x++)
+                {
+                    Bgra32 bgra = bgraRowSpan[x];
+                    bgra.A = byte.MaxValue;
+                    ref TPixel pixel = ref pixelSpan[x];
+                    pixel.FromBgra32(bgra);
                 }
             }
         }
@@ -1108,19 +1104,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             bool unusualBitMask = bitsRedMask > 8 || bitsGreenMask > 8 || bitsBlueMask > 8 || invMaxValueAlpha > 8;
 
-            using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
+            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride))
             {
+                Span<byte> bufferSpan = buffer.GetSpan();
                 for (int y = 0; y < height; y++)
                 {
-                    this.stream.Read(buffer.Array, 0, stride);
+                    this.stream.Read(bufferSpan);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
-                    int offset = 0;
                     for (int x = 0; x < width; x++)
                     {
-                        uint temp = BitConverter.ToUInt32(buffer.Array, offset);
-
+                        uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan);
                         if (unusualBitMask)
                         {
                             uint r = (uint)(temp & redMask) >> rightShiftRedMask;
@@ -1144,7 +1139,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         }
 
                         pixelRow[x] = color;
-                        offset += 4;
+                        bufferSpan = bufferSpan.Slice(4);
                     }
                 }
             }

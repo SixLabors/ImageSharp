@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
+
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
@@ -69,15 +71,15 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="width">Pixel count in the row</param>
         /// <param name="pixelSizeInBytes">The pixel size in bytes, eg. 3 for RGB.</param>
         /// <param name="paddingInBytes">The padding.</param>
-        /// <returns>A <see cref="IManagedByteBuffer"/>.</returns>
-        internal static IManagedByteBuffer AllocatePaddedPixelRowBuffer(
+        /// <returns>A <see cref="IMemoryOwner{Byte}"/>.</returns>
+        internal static IMemoryOwner<byte> AllocatePaddedPixelRowBuffer(
             this MemoryAllocator memoryAllocator,
             int width,
             int pixelSizeInBytes,
             int paddingInBytes)
         {
             int length = (width * pixelSizeInBytes) + paddingInBytes;
-            return memoryAllocator.AllocateManagedByteBuffer(length);
+            return memoryAllocator.Allocate<byte>(length);
         }
 
         /// <summary>

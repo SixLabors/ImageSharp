@@ -9,17 +9,37 @@ using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory.Allocators.Internals
 {
+    // Adapted from the NET Runtime. MIT Licensed.
+    // ...
+
     /// <summary>
+    /// <para>
     /// Represents an array pool that can be configured.
     /// The pool is also GC aware and will perform automatic trimming based upon the current memeory pressure.
-    /// Adapted from the NET Runtime. MIT Licensed.
+    /// </para>
+    /// <para>
+    /// Note:If the length is over the threshold or the pool is exhausted an array will not be allocated
+    /// and the result should be checked before consuming.
+    /// </para>
     /// </summary>
-    /// <typeparam name="T">The type of buffer </typeparam>
+    /// <typeparam name="T">The type of buffer.</typeparam>
     internal sealed class GCAwareConfigurableArrayPool<T> : ArrayPool<T>
     {
         private readonly Bucket[] buckets;
         private int callbackCreated;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GCAwareConfigurableArrayPool{T}"/> class.
+        /// </summary>
+        /// <param name="maxArrayLength">
+        /// The maximum length of an array instance that may be stored in the pool.
+        /// If the length is over the threshold or the pool is exhausted an array will not be allocated
+        /// and the result should be checked before consuming.
+        /// </param>
+        /// <param name="maxArraysPerBucket">
+        /// The maximum number of array instances that may be stored in each bucket in the pool.
+        /// The pool groups arrays of similar lengths into buckets for faster access.
+        /// </param>
         internal GCAwareConfigurableArrayPool(int maxArrayLength, int maxArraysPerBucket)
         {
             if (maxArrayLength <= 0)
@@ -84,7 +104,7 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
             }
 
             ArrayPoolEventSource log = ArrayPoolEventSource.Log;
-            T[] buffer;
+            T[] buffer = null;
 
             int index = SelectBucketIndex(minimumLength);
             if (index < this.buckets.Length)
@@ -108,21 +128,17 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
                     }
                 }
                 while (++i < this.buckets.Length && i != index + maxBucketsToTry);
-
-                // The pool was exhausted for this buffer size.  Allocate a new buffer with a size corresponding
-                // to the appropriate bucket.
-                buffer = new T[this.buckets[index].BufferLength];
-            }
-            else
-            {
-                // The request was for a size too large for the pool.  Allocate an array of exactly the requested length.
-                // When it's returned to the pool, we'll simply throw it away.
-                buffer = new T[minimumLength];
             }
 
+            // We were unable to return a buffer.
+            // This can happen for two reasons:
+            // 1: The pool was exhausted for this buffer size.
+            // 2: The request was for a size too large for the pool.
+            // We should now log this. We use the conventional allocation logging  since we will
+            // be advising the GC of the subsequent unmanaged allocation.
             if (log.IsEnabled())
             {
-                int bufferId = buffer.GetHashCode();
+                const int bufferId = -1;
                 log.BufferRented(bufferId, buffer.Length, this.Id, ArrayPoolEventSource.NoBucketId);
 
                 ArrayPoolEventSource.BufferAllocatedReason reason = index >= this.buckets.Length
@@ -136,6 +152,8 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
                     reason);
             }
 
+            // Return the null buffer.
+            // Our calling allocator will check for this and use unmanaged memory instead.
             return buffer;
         }
 

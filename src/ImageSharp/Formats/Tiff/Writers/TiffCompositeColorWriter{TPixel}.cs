@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
     internal abstract class TiffCompositeColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private IManagedByteBuffer rowBuffer;
+        private IMemoryOwner<byte> rowBuffer;
 
         protected TiffCompositeColorWriter(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
             : base(image, memoryAllocator, configuration, entriesCollector)
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         {
             if (this.rowBuffer == null)
             {
-                this.rowBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(this.BytesPerRow * height);
+                this.rowBuffer = this.MemoryAllocator.Allocate<byte>(this.BytesPerRow * height);
             }
 
             this.rowBuffer.Clear();

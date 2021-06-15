@@ -470,14 +470,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // The maximum number of colors for the bit depth
             int colorTableLength = ColorNumerics.GetColorCountForBitDepth(this.bitDepth) * Unsafe.SizeOf<Rgb24>();
 
-            using IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength, AllocationOptions.Clean);
+            using IMemoryOwner<byte> colorTable = this.memoryAllocator.Allocate<byte>(colorTableLength, AllocationOptions.Clean);
             PixelOperations<TPixel>.Instance.ToRgb24Bytes(
                 this.configuration,
                 image.Palette.Span,
                 colorTable.GetSpan(),
                 image.Palette.Length);
 
-            stream.Write(colorTable.Array, 0, colorTableLength);
+            stream.Write(colorTable.GetSpan());
         }
 
         /// <summary>

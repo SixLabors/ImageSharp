@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The global color table.
         /// </summary>
-        private IManagedByteBuffer globalColorTable;
+        private IMemoryOwner<byte> globalColorTable;
 
         /// <summary>
         /// The area to restore.
@@ -323,12 +323,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     continue;
                 }
 
-                using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
-                {
-                    this.stream.Read(commentsBuffer.Array, 0, length);
-                    string commentPart = GifConstants.Encoding.GetString(commentsBuffer.Array, 0, length);
-                    stringBuilder.Append(commentPart);
-                }
+                using IMemoryOwner<byte> commentsBuffer = this.MemoryAllocator.Allocate<byte>(length);
+                Span<byte> commentsSpan = commentsBuffer.GetSpan();
+                this.stream.Read(commentsSpan);
+
+                string commentPart = GifConstants.Encoding.GetString(commentsSpan);
+                stringBuilder.Append(commentPart);
             }
 
             if (stringBuilder.Length > 0)
@@ -348,7 +348,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.ReadImageDescriptor();
 
-            IManagedByteBuffer localColorTable = null;
+            IMemoryOwner<byte> localColorTable = null;
             Buffer2D<byte> indices = null;
             try
             {
@@ -356,8 +356,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 if (this.imageDescriptor.LocalColorTableFlag)
                 {
                     int length = this.imageDescriptor.LocalColorTableSize * 3;
-                    localColorTable = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
-                    this.stream.Read(localColorTable.Array, 0, length);
+                    localColorTable = this.Configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
+                    this.stream.Read(localColorTable.GetSpan());
                 }
 
                 indices = this.Configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
@@ -621,10 +621,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
                 this.gifMetadata.GlobalColorTableLength = globalColorTableLength;
 
-                this.globalColorTable = this.MemoryAllocator.AllocateManagedByteBuffer(globalColorTableLength, AllocationOptions.Clean);
+                this.globalColorTable = this.MemoryAllocator.Allocate<byte>(globalColorTableLength, AllocationOptions.Clean);
 
                 // Read the global color table data from the stream
-                stream.Read(this.globalColorTable.Array, 0, globalColorTableLength);
+                stream.Read(this.globalColorTable.GetSpan());
             }
         }
     }

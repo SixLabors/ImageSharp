@@ -38,15 +38,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 this.C = c;
             }
 
-            public bool Equals(CustomStruct other)
-            {
-                return this.A == other.A && this.B == other.B && this.C.Equals(other.C);
-            }
+            public bool Equals(CustomStruct other) => this.A == other.A && this.B == other.B && this.C.Equals(other.C);
 
-            public override bool Equals(object obj)
-            {
-                return obj is CustomStruct other && this.Equals(other);
-            }
+            public override bool Equals(object obj) => obj is CustomStruct other && this.Equals(other);
 
             public override int GetHashCode()
             {
@@ -65,23 +59,17 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void HasCorrectLength_byte(int desiredLength)
-        {
-            this.TestHasCorrectLength<byte>(desiredLength);
-        }
+            => this.TestHasCorrectLength<byte>(desiredLength);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void HasCorrectLength_float(int desiredLength)
-        {
-            this.TestHasCorrectLength<float>(desiredLength);
-        }
+            => this.TestHasCorrectLength<float>(desiredLength);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void HasCorrectLength_CustomStruct(int desiredLength)
-        {
-            this.TestHasCorrectLength<CustomStruct>(desiredLength);
-        }
+            => this.TestHasCorrectLength<CustomStruct>(desiredLength);
 
         private void TestHasCorrectLength<T>(int desiredLength)
             where T : struct
@@ -95,74 +83,47 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void CanAllocateCleanBuffer_byte(int desiredLength)
-        {
-            this.TestCanAllocateCleanBuffer<byte>(desiredLength, false);
-            this.TestCanAllocateCleanBuffer<byte>(desiredLength, true);
-        }
+            => this.TestCanAllocateCleanBuffer<byte>(desiredLength);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void CanAllocateCleanBuffer_double(int desiredLength)
-        {
-            this.TestCanAllocateCleanBuffer<double>(desiredLength);
-        }
+            => this.TestCanAllocateCleanBuffer<double>(desiredLength);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void CanAllocateCleanBuffer_CustomStruct(int desiredLength)
-        {
-            this.TestCanAllocateCleanBuffer<CustomStruct>(desiredLength);
-        }
+            => this.TestCanAllocateCleanBuffer<CustomStruct>(desiredLength);
 
-        private IMemoryOwner<T> Allocate<T>(int desiredLength, AllocationOptions options, bool managedByteBuffer)
-            where T : struct
-        {
-            if (managedByteBuffer)
-            {
-                if (!(this.MemoryAllocator.AllocateManagedByteBuffer(desiredLength, options) is IMemoryOwner<T> buffer))
-                {
-                    throw new InvalidOperationException("typeof(T) != typeof(byte)");
-                }
+        private IMemoryOwner<T> Allocate<T>(int desiredLength, AllocationOptions options)
+            where T : struct => this.MemoryAllocator.Allocate<T>(desiredLength, options);
 
-                return buffer;
-            }
-
-            return this.MemoryAllocator.Allocate<T>(desiredLength, options);
-        }
-
-        private void TestCanAllocateCleanBuffer<T>(int desiredLength, bool testManagedByteBuffer = false)
+        private void TestCanAllocateCleanBuffer<T>(int desiredLength)
             where T : struct, IEquatable<T>
         {
             ReadOnlySpan<T> expected = new T[desiredLength];
 
             for (int i = 0; i < 10; i++)
             {
-                using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.Clean, testManagedByteBuffer))
-                {
-                    Assert.True(buffer.GetSpan().SequenceEqual(expected));
-                }
+                using IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.Clean);
+                Assert.True(buffer.GetSpan().SequenceEqual(expected));
             }
         }
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void SpanPropertyIsAlwaysTheSame_int(int desiredLength)
-        {
-            this.TestSpanPropertyIsAlwaysTheSame<int>(desiredLength);
-        }
+            => this.TestSpanPropertyIsAlwaysTheSame<int>(desiredLength);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void SpanPropertyIsAlwaysTheSame_byte(int desiredLength)
-        {
-            this.TestSpanPropertyIsAlwaysTheSame<byte>(desiredLength, false);
-            this.TestSpanPropertyIsAlwaysTheSame<byte>(desiredLength, true);
-        }
+            => this.TestSpanPropertyIsAlwaysTheSame<byte>(desiredLength);
 
-        private void TestSpanPropertyIsAlwaysTheSame<T>(int desiredLength, bool testManagedByteBuffer = false)
+        private void TestSpanPropertyIsAlwaysTheSame<T>(int desiredLength)
             where T : struct
         {
-            using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None, testManagedByteBuffer))
+            using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None))
             {
                 ref T a = ref MemoryMarshal.GetReference(buffer.GetSpan());
                 ref T b = ref MemoryMarshal.GetReference(buffer.GetSpan());
@@ -176,22 +137,17 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void WriteAndReadElements_float(int desiredLength)
-        {
-            this.TestWriteAndReadElements(desiredLength, x => x * 1.2f);
-        }
+            => this.TestWriteAndReadElements(desiredLength, x => x * 1.2f);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void WriteAndReadElements_byte(int desiredLength)
-        {
-            this.TestWriteAndReadElements(desiredLength, x => (byte)(x + 1), false);
-            this.TestWriteAndReadElements(desiredLength, x => (byte)(x + 1), true);
-        }
+            => this.TestWriteAndReadElements(desiredLength, x => (byte)(x + 1));
 
-        private void TestWriteAndReadElements<T>(int desiredLength, Func<int, T> getExpectedValue, bool testManagedByteBuffer = false)
+        private void TestWriteAndReadElements<T>(int desiredLength, Func<int, T> getExpectedValue)
             where T : struct
         {
-            using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None, testManagedByteBuffer))
+            using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None))
             {
                 var expectedVals = new T[buffer.Length()];
 
@@ -213,31 +169,24 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void IndexingSpan_WhenOutOfRange_Throws_byte(int desiredLength)
-        {
-            this.TestIndexOutOfRangeShouldThrow<byte>(desiredLength, false);
-            this.TestIndexOutOfRangeShouldThrow<byte>(desiredLength, true);
-        }
+            => this.TestIndexOutOfRangeShouldThrow<byte>(desiredLength);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void IndexingSpan_WhenOutOfRange_Throws_long(int desiredLength)
-        {
-            this.TestIndexOutOfRangeShouldThrow<long>(desiredLength);
-        }
+            => this.TestIndexOutOfRangeShouldThrow<long>(desiredLength);
 
         [Theory]
         [MemberData(nameof(LengthValues))]
         public void IndexingSpan_WhenOutOfRange_Throws_CustomStruct(int desiredLength)
-        {
-            this.TestIndexOutOfRangeShouldThrow<CustomStruct>(desiredLength);
-        }
+            => this.TestIndexOutOfRangeShouldThrow<CustomStruct>(desiredLength);
 
-        private T TestIndexOutOfRangeShouldThrow<T>(int desiredLength, bool testManagedByteBuffer = false)
+        private T TestIndexOutOfRangeShouldThrow<T>(int desiredLength)
             where T : struct, IEquatable<T>
         {
             var dummy = default(T);
 
-            using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None, testManagedByteBuffer))
+            using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None))
             {
                 Assert.ThrowsAny<Exception>(
                     () =>
@@ -262,23 +211,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
 
             return dummy;
-        }
-
-        [Theory]
-        [InlineData(1)]
-        [InlineData(7)]
-        [InlineData(1024)]
-        [InlineData(6666)]
-        public void ManagedByteBuffer_ArrayIsCorrect(int desiredLength)
-        {
-            using (IManagedByteBuffer buffer = this.MemoryAllocator.AllocateManagedByteBuffer(desiredLength))
-            {
-                ref byte array0 = ref buffer.Array[0];
-                ref byte span0 = ref buffer.GetReference();
-
-                Assert.True(Unsafe.AreSame(ref span0, ref array0));
-                Assert.True(buffer.Array.Length >= buffer.GetSpan().Length);
-            }
         }
 
         [Fact]

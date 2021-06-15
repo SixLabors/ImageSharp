@@ -9,9 +9,9 @@ using SixLabors.ImageSharp.Memory.Allocators.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
-    /// <summary>
-    /// Contains <see cref="Buffer{T}"/> and <see cref="ManagedByteBuffer"/>.
-    /// </summary>
+    /// <content>
+    /// Contains <see cref="Buffer{T}"/>.
+    /// </content>
     public partial class ArrayPoolMemoryAllocator
     {
         private enum MemoryPressure
@@ -81,20 +81,6 @@ namespace SixLabors.ImageSharp.Memory
             [MethodImpl(InliningOptions.ColdPath)]
             private static void ThrowObjectDisposedException()
                 => throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
-        }
-
-        /// <summary>
-        /// The <see cref="IManagedByteBuffer"/> implementation of <see cref="ArrayPoolMemoryAllocator"/>.
-        /// </summary>
-        private sealed class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
-        {
-            public ManagedByteBuffer(byte[] data, int length, ArrayPool<byte> sourcePool)
-                : base(data, length, sourcePool)
-            {
-            }
-
-            /// <inheritdoc />
-            public byte[] Array => this.Data;
         }
     }
 }

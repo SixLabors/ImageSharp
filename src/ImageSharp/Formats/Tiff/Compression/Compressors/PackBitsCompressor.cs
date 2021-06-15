@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
@@ -10,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
     internal sealed class PackBitsCompressor : TiffBaseCompressor
     {
-        private IManagedByteBuffer pixelData;
+        private IMemoryOwner<byte> pixelData;
 
         public PackBitsCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel)
             : base(output, allocator, width, bitsPerPixel)
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         public override void Initialize(int rowsPerStrip)
         {
             int additionalBytes = ((this.BytesPerRow + 126) / 127) + 1;
-            this.pixelData = this.Allocator.AllocateManagedByteBuffer(this.BytesPerRow + additionalBytes);
+            this.pixelData = this.Allocator.Allocate<byte>(this.BytesPerRow + additionalBytes);
         }
 
         /// <inheritdoc/>

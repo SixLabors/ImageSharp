@@ -16,10 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         private readonly List<AllocationRequest> allocationLog = new List<AllocationRequest>();
         private readonly List<ReturnRequest> returnLog = new List<ReturnRequest>();
 
-        public TestMemoryAllocator(byte dirtyValue = 42)
-        {
-            this.DirtyValue = dirtyValue;
-        }
+        public TestMemoryAllocator(byte dirtyValue = 42) => this.DirtyValue = dirtyValue;
 
         /// <summary>
         /// Gets the value to initialize the result buffer with, with non-clean options (<see cref="AllocationOptions.None"/>)
@@ -38,12 +35,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             T[] array = this.AllocateArray<T>(length, options);
             return new BasicArrayBuffer<T>(array, length, this);
-        }
-
-        public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            byte[] array = this.AllocateArray<byte>(length, options);
-            return new ManagedByteBuffer(array, this);
         }
 
         private T[] AllocateArray<T>(int length, AllocationOptions options)
@@ -168,14 +159,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 {
                     this.allocator.Return(this);
                 }
-            }
-        }
-
-        private class ManagedByteBuffer : BasicArrayBuffer<byte>, IManagedByteBuffer
-        {
-            public ManagedByteBuffer(byte[] array, TestMemoryAllocator allocator)
-                : base(array, allocator)
-            {
             }
         }
     }

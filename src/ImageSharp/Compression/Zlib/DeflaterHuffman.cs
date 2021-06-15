@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="storedLength">Count of bytes to write</param>
         /// <param name="lastBlock">True if this is the last block</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FlushStoredBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
+        public void FlushStoredBlock(Span<byte> stored, int storedOffset, int storedLength, bool lastBlock)
         {
             this.Pending.WriteBits((DeflaterConstants.STORED_BLOCK << 1) + (lastBlock ? 1 : 0), 3);
             this.Pending.AlignToByte();
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="storedOffset">Index of first byte to flush</param>
         /// <param name="storedLength">Count of bytes to flush</param>
         /// <param name="lastBlock">True if this is the last block</param>
-        public void FlushBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
+        public void FlushBlock(Span<byte> stored, int storedOffset, int storedLength, bool lastBlock)
         {
             this.literalTree.Frequencies[EofSymbol]++;
 
@@ -286,13 +286,13 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 + this.extraBits;
 
             int static_len = this.extraBits;
-            ref byte staticLLengthRef = ref MemoryMarshal.GetReference<byte>(StaticLLength);
+            ref byte staticLLengthRef = ref MemoryMarshal.GetReference(StaticLLength);
             for (int i = 0; i < LiteralNumber; i++)
             {
                 static_len += this.literalTree.Frequencies[i] * Unsafe.Add(ref staticLLengthRef, i);
             }
 
-            ref byte staticDLengthRef = ref MemoryMarshal.GetReference<byte>(StaticDLength);
+            ref byte staticDLengthRef = ref MemoryMarshal.GetReference(StaticDLength);
             for (int i = 0; i < DistanceNumber; i++)
             {
                 static_len += this.distTree.Frequencies[i] * Unsafe.Add(ref staticDLengthRef, i);
@@ -484,7 +484,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             private IMemoryOwner<short> frequenciesMemoryOwner;
             private MemoryHandle frequenciesMemoryHandle;
 
-            private IManagedByteBuffer lengthsMemoryOwner;
+            private IMemoryOwner<byte> lengthsMemoryOwner;
             private MemoryHandle lengthsMemoryHandle;
 
             public Tree(MemoryAllocator memoryAllocator, int elements, int minCodes, int maxLength)
@@ -498,7 +498,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 this.frequenciesMemoryHandle = this.frequenciesMemoryOwner.Memory.Pin();
                 this.Frequencies = (short*)this.frequenciesMemoryHandle.Pointer;
 
-                this.lengthsMemoryOwner = memoryAllocator.AllocateManagedByteBuffer(elements);
+                this.lengthsMemoryOwner = memoryAllocator.Allocate<byte>(elements);
                 this.lengthsMemoryHandle = this.lengthsMemoryOwner.Memory.Pin();
                 this.Length = (byte*)this.lengthsMemoryHandle.Pointer;
 

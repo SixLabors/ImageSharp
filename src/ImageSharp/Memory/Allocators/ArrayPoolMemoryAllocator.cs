@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Allocators.Internals;
@@ -121,21 +122,26 @@ namespace SixLabors.ImageSharp.Memory
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
 
+            // Optimized path for empty buffers.
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
 
             IMemoryOwner<T> memory;
-            if (bufferSizeInBytes > this.MaxPooledArrayLengthInBytes)
+
+            // Safe to pool.
+            ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
+            byte[] array = pool.Rent(bufferSizeInBytes);
+
+            // Our custom GC aware pool differs from normal will return null
+            // if the pool is exhausted or the buffer is too large.
+            if (array is null)
             {
-                // For anything greater than our pool limit defer to unmanaged memory
-                // to prevent LOH fragmentation.
-                memory = new UnmanagedBuffer<T>(length);
+                memory = new Buffer<T>(pool.Rent(bufferSizeInBytes), length, pool);
             }
             else
             {
-                // Safe to pool.
-                ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
-                memory = new Buffer<T>(pool.Rent(bufferSizeInBytes), length, pool);
+                // Use unmanaged buffer to prevent LOH fragmentation.
+                memory = new UnmanagedBuffer<T>(length);
             }
 
             if (options == AllocationOptions.Clean)
@@ -144,23 +150,6 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             return memory;
-        }
-
-        /// <inheritdoc />
-        public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-
-            ArrayPool<byte> pool = this.GetArrayPool(length);
-            byte[] byteArray = pool.Rent(length);
-
-            var buffer = new ManagedByteBuffer(byteArray, length, pool);
-            if (options == AllocationOptions.Clean)
-            {
-                buffer.GetSpan().Clear();
-            }
-
-            return buffer;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

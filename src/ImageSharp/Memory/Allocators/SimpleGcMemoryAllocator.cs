@@ -21,13 +21,5 @@ namespace SixLabors.ImageSharp.Memory
 
             return new BasicArrayBuffer<T>(new T[length]);
         }
-
-        /// <inheritdoc />
-        public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-
-            return new BasicByteBuffer(new byte[length]);
-        }
     }
 }

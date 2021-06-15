@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -247,14 +248,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-            var stripBuffers = new IManagedByteBuffer[stripsPerPixel];
+            var stripBuffers = new IMemoryOwner<byte>[stripsPerPixel];
 
             try
             {
                 for (int stripIndex = 0; stripIndex < stripBuffers.Length; stripIndex++)
                 {
                     int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip, stripIndex);
-                    stripBuffers[stripIndex] = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize);
+                    stripBuffers[stripIndex] = this.memoryAllocator.Allocate<byte>(uncompressedStripSize);
                 }
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
@@ -277,7 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
             finally
             {
-                foreach (IManagedByteBuffer buf in stripBuffers)
+                foreach (IMemoryOwner<byte> buf in stripBuffers)
                 {
                     buf?.Dispose();
                 }
@@ -296,7 +297,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
             int bitsPerPixel = this.BitsPerPixel;
 
-            using IManagedByteBuffer stripBuffer = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize, AllocationOptions.Clean);
+            using IMemoryOwner<byte> stripBuffer = this.memoryAllocator.Allocate<byte>(uncompressedStripSize, AllocationOptions.Clean);
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 

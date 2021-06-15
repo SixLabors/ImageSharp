@@ -854,7 +854,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Calculates floored log of the specified value, base 2.
         /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
-        /// Bit hacking with deBruijn sequence, extremely fast yet does not use any intrinsics so should work on every platform.
+        /// Bit hacking with deBruijn sequence, extremely fast yet does not use any intrinsics so will work on every platform/runtime.
         /// </summary>
         /// <remarks>
         /// Description of this bit hacking can be found here:
@@ -865,7 +865,6 @@ namespace SixLabors.ImageSharp
         {
             // No AggressiveInlining due to large method size
             // Has conventional contract 0->0 (Log(0) is undefined) by default, no need for if checking
-
 
             // Fill trailing zeros with ones, eg 00010010 becomes 00011111
             value |= value >> 01;

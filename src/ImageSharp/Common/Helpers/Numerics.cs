@@ -876,9 +876,7 @@ namespace SixLabors.ImageSharp
             // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
             return Unsafe.AddByteOffset(
                 ref MemoryMarshal.GetReference(Log2DeBruijn),
-
-                // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
-                (IntPtr)(int)((value * 0x07C4ACDDu) >> 27));
+                (IntPtr)(int)((value * 0x07C4ACDDu) >> 27)); // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
         }
 #endif
     }

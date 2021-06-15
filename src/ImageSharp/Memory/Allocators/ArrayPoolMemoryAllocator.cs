@@ -131,10 +131,6 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
-            if (bufferSizeInBytes < 0 || bufferSizeInBytes > this.BufferCapacityInBytes)
-            {
-                ThrowInvalidAllocationException<T>(length, this.BufferCapacityInBytes);
-            }
 
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);

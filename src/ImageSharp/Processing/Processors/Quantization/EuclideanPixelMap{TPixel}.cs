@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -33,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             this.Palette = palette;
             this.rgbaPalette = new Rgba32[palette.Length];
-            this.cache = ColorDistanceCache.Create();
+            this.cache = new ColorDistanceCache(configuration.MemoryAllocator);
             PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
         }
 
@@ -141,25 +142,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             private const int RgbShift = 8 - IndexBits;
             private const int AlphaShift = 8 - IndexAlphaBits;
             private const int Entries = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
-            private const int BufferLength = (Entries + 1) >> 1;
             private MemoryHandle tableHandle;
-            private readonly int[] table;
+            private readonly IMemoryOwner<short> table;
             private readonly short* tablePointer;
 
-            private ColorDistanceCache(int bufferLength, int entries)
+            public ColorDistanceCache(MemoryAllocator allocator)
             {
-                // We use ArrayPool<int>.Shared for several reasons.
-                // 1. To avoid out of range issues caused by configuring small discontiguous buffers rented via MemoryAllocator
-                // 2. To ensure that the rented buffer is actually pooled.
-                // 3. The .NET runtime already uses this pool so we might already have a pooled array present.
-                this.table = ArrayPool<int>.Shared.Rent(bufferLength);
-                this.tableHandle = this.table.AsMemory().Pin();
-                new Span<short>(this.tableHandle.Pointer, entries).Fill(-1);
+                this.table = allocator.Allocate<short>(Entries);
+                this.table.GetSpan().Fill(-1);
+                this.tableHandle = this.table.Memory.Pin();
                 this.tablePointer = (short*)this.tableHandle.Pointer;
             }
-
-            public static ColorDistanceCache Create()
-                => new ColorDistanceCache(BufferLength, Entries);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Add(Rgba32 rgba, byte index)
@@ -199,8 +192,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 if (this.table != null)
                 {
-                    ArrayPool<int>.Shared.Return(this.table);
                     this.tableHandle.Dispose();
+                    this.table.Dispose();
                 }
             }
         }

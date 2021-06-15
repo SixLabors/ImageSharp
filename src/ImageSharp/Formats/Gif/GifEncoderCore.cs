@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // The palette quantizer can reuse the same pixel map across multiple frames
             // since the palette is unchanging. This allows a reduction of memory usage across
             // multi frame gifs using a global palette.
-            Unsafe.SkipInit(out EuclideanPixelMap<TPixel> pixelMap);
+            EuclideanPixelMap<TPixel> pixelMap = default;
             bool pixelMapHasValue = false;
             for (int i = 0; i < image.Frames.Count; i++)
             {

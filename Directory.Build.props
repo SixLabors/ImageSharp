@@ -56,7 +56,6 @@
     <When Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','netcoreapp3.1'))">
       <!--NETCORE 3.1. NET5.0, and future versions will fallback to this as the closest target.-->
       <PropertyGroup>
-        <DefineConstants>$(DefineConstants);SUPPORTS_BITOPERATIONS</DefineConstants>
         <DefineConstants>$(DefineConstants);SUPPORTS_CRITICALFINALIZER</DefineConstants>
         <DefineConstants>$(DefineConstants);SUPPORTS_GC_MEMORYINFO</DefineConstants>
       </PropertyGroup>

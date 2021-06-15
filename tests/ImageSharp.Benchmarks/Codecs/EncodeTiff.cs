@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             ImageCodecInfo codec = FindCodecForType("image/tiff");
             using var parameters = new EncoderParameters(1)
             {
-                Param = {[0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression))}
+                Param = { [0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression)) }
             };
 
             using var memoryStream = new MemoryStream();

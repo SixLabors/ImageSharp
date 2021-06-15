@@ -10,7 +10,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public static class IntrinsicTestsUtils
+    public static class RuntimeFeaturesUtils
     {
         public static bool HasVector4
         {
@@ -214,34 +214,34 @@ namespace SixLabors.ImageSharp.Tests
 
             // SSE
             UncheckIfSupported(ref notSupported, RuntimeFeature.Vector4, HasVector4);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.SSE, HasSse);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.SSE2, HasSse2);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.SSE3, HasSse3);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.SSSE3, HasSsse3);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.SSE41, HasSse41);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.SSE42, HasSse42);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Sse, HasSse);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Sse2, HasSse2);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Sse3, HasSse3);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Ssse3, HasSsse3);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Sse41, HasSse41);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Sse42, HasSse42);
 
             // AVX
             UncheckIfSupported(ref notSupported, RuntimeFeature.Vector8, HasVector8);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.AVX, HasAvx);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.AVX2, HasAvx2);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Avx, HasAvx);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Avx2, HasAvx2);
 
             // BMI
-            UncheckIfSupported(ref notSupported, RuntimeFeature.BMI1, HasBmi1);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.BMI2, HasBmi2);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Bmi1, HasBmi1);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Bmi2, HasBmi2);
 
             // ABM
-            UncheckIfSupported(ref notSupported, RuntimeFeature.POPCNT, HasPOPCNT);
-            UncheckIfSupported(ref notSupported, RuntimeFeature.LZCNT, HasLZCNT);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Popcnt, HasPOPCNT);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Lzcnt, HasLZCNT);
 
             // FMA
-            UncheckIfSupported(ref notSupported, RuntimeFeature.FMA, HasFma);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Fma, HasFma);
 
             // AES
-            UncheckIfSupported(ref notSupported, RuntimeFeature.AES, HasAes);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Aes, HasAes);
 
             // PCLMULQDQ
-            UncheckIfSupported(ref notSupported, RuntimeFeature.PCLMULQDQ, HasPCLMULQDQ);
+            UncheckIfSupported(ref notSupported, RuntimeFeature.Pclmulqdq, HasPCLMULQDQ);
 
             return notSupported;
         }
@@ -278,37 +278,37 @@ namespace SixLabors.ImageSharp.Tests
         /// Equivalent of Sse.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        SSE = 1 << 1,
+        Sse = 1 << 1,
 
         /// <summary>
         /// Equivalent of Sse2.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        SSE2 = 1 << 2,
+        Sse2 = 1 << 2,
 
         /// <summary>
         /// Equivalent of Sse3.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        SSE3 = 1 << 3,
+        Sse3 = 1 << 3,
 
         /// <summary>
         /// Equivalent of Ssse3.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        SSSE3 = 1 << 4,
+        Ssse3 = 1 << 4,
 
         /// <summary>
         /// Equivalent of Sse41.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        SSE41 = 1 << 5,
+        Sse41 = 1 << 5,
 
         /// <summary>
         /// Equivalent of Sse42.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        SSE42 = 1 << 6,
+        Sse42 = 1 << 6,
 
         /// <summary>
         /// Avx hardware support
@@ -320,54 +320,54 @@ namespace SixLabors.ImageSharp.Tests
         /// Equivalent of Avx.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        AVX = 1 << 8,
+        Avx = 1 << 8,
 
         /// <summary>
         /// Equivalent of Avx2.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        AVX2 = 1 << 9,
+        Avx2 = 1 << 9,
 
         /// <summary>
         /// Equivalent of Bmi1.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        BMI1 = 1 << 10,
+        Bmi1 = 1 << 10,
 
         /// <summary>
         /// Equivalent of Bmi2.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        BMI2 = 1 << 11,
+        Bmi2 = 1 << 11,
 
         /// <summary>
         /// Equivalent of Popcnt.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        POPCNT = 1 << 12,
+        Popcnt = 1 << 12,
 
         /// <summary>
         /// Equivalent of Lzcnt.IsSupported;
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        LZCNT = 1 << 13,
+        Lzcnt = 1 << 13,
 
         /// <summary>
         /// Equivalent of Fma.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        FMA = 1 << 14,
+        Fma = 1 << 14,
 
         /// <summary>
         /// Equivalent of Aes.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        AES = 1 << 15,
+        Aes = 1 << 15,
 
         /// <summary>
         /// Equivalent of Pclmulqdq.IsSupported
         /// </summary>
         /// <remarks>Not supported in certain runtimes even if hardware supports it</remarks>
-        PCLMULQDQ = 1 << 16
+        Pclmulqdq = 1 << 16
     }
 }

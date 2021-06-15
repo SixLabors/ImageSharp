@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Verify420(data, yBlocks, ref cb, ref cr, new ApproximateFloatComparer(1F));
         }
 
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.Avx2)]
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]

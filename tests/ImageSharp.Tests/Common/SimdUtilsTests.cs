@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.SSE41)]
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.Sse41)]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertByteToNormalizedFloat_Sse41(int count)
         {
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 #endif
         }
 
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.Avx2)]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertByteToNormalizedFloat_Avx2(int count)
         {
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected2, actual2);
         }
 
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.SSE2)]
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.Sse2)]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows_Sse2(int count)
         {
@@ -303,7 +303,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 #endif
         }
 
-        [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalTheory(RuntimeFeature.Avx2)]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows_Avx2(int count)
         {
@@ -361,7 +361,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                     SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
         }
 
-        [RuntimeFeatureConditionalFact(RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalFact(RuntimeFeature.Avx2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgb24()
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -392,7 +392,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 #endif
         }
 
-        [RuntimeFeatureConditionalFact(RuntimeFeature.AVX2)]
+        [RuntimeFeatureConditionalFact(RuntimeFeature.Avx2)]
         public void PackFromRgbPlanesAvx2Reduce_Rgba32()
         {
 #if SUPPORTS_RUNTIME_INTRINSICS

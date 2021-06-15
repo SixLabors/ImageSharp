@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
 
-            [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX)]
+            [RuntimeFeatureConditionalTheory(RuntimeFeature.Avx)]
             [InlineData(1)]
             [InlineData(2)]
             public void IDCT8x8_Avx(int seed)
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     HwIntrinsics.DisableFMA);
             }
 
-            [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX | RuntimeFeature.FMA)]
+            [RuntimeFeatureConditionalTheory(RuntimeFeature.Avx | RuntimeFeature.Fma)]
             [InlineData(1)]
             [InlineData(2)]
             public void IDCT8x8_Avx_Fma(int seed)
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
 
-            [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX)]
+            [RuntimeFeatureConditionalTheory(RuntimeFeature.Avx)]
             [InlineData(1)]
             [InlineData(2)]
             public void FDCT8x8_Avx(int seed)
@@ -277,7 +277,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     HwIntrinsics.DisableFMA);
             }
 
-            [RuntimeFeatureConditionalTheory(RuntimeFeature.AVX | RuntimeFeature.FMA)]
+            [RuntimeFeatureConditionalTheory(RuntimeFeature.Avx | RuntimeFeature.Fma)]
             [InlineData(1)]
             [InlineData(2)]
             public void FDCT8x8_Avx_Fma(int seed)

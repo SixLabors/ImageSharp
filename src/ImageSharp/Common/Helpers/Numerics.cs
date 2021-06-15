@@ -837,36 +837,6 @@ namespace SixLabors.ImageSharp
 #endif
 
         /// <summary>
-        /// Calculates how many minimum bits needed to store given value for Huffman jpeg encoding.
-        /// This method does not follow the standard convention - it does not support input value of zero.
-        /// </summary>
-        /// <remarks>
-        /// Passing zero as input value would result in an undefined behaviour.
-        /// This is done for performance reasons as Huffman encoding code checks for zero value, second identical check could degrade the performance in the hot path.
-        /// If this method is needed somewhere else apart from jpeg encoding - use explicit if check for zero value case.
-        /// </remarks>
-        /// <param name="value">The value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int GetHuffmanEncodingLegth(uint value)
-        {
-            DebugGuard.IsFalse(value == 0, nameof(value), "Huffman encoding does not encode zero values");
-#if SUPPORTS_BITOPERATIONS
-            // This should have been implemented as (BitOperations.Log2(value) + 1) as in non-intrinsic implementation
-            // But internal log2 is implementated like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
-
-            // BitOperations.Log2 implementation also checks if input value is zero for the convention
-            // As this is a very specific method for a very specific Huffman encoding code
-            // We can omit zero check as this should not be invoked with value == 0 and guarded in debug builds
-            // This is also marked as internal so every use of this would be tracable & testable in tests
-            return 32 - BitOperations.LeadingZeroCount(value);
-#else
-            // On the contrary to BitOperations implementation this does follow the convention and supports value == 0 case
-            // Although it's still won't be called with value == 0
-            return Log2SoftwareFallback(value) + 1;
-#endif
-        }
-
-        /// <summary>
         /// Calculates floored log of the specified value, base 2.
         /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
         /// </summary>
@@ -891,7 +861,7 @@ namespace SixLabors.ImageSharp
         /// https://cstheory.stackexchange.com/questions/19524/using-the-de-bruijn-sequence-to-find-the-lceil-log-2-v-rceil-of-an-integer
         /// </remarks>
         /// <param name="value">The value.</param>
-        private static int Log2SoftwareFallback(uint value)
+        internal static int Log2SoftwareFallback(uint value)
         {
             // No AggressiveInlining due to large method size
             // Has conventional contract 0->0 (Log(0) is undefined) by default, no need for if checking

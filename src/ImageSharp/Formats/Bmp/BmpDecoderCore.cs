@@ -873,13 +873,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride);
             Span<byte> bufferSpan = buffer.GetSpan();
-            int offset = 0;
             for (int y = 0; y < height; y++)
             {
                 this.stream.Read(bufferSpan);
                 int newY = Invert(y, height, inverted);
                 Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
+                int offset = 0;
                 for (int x = 0; x < width; x++)
                 {
                     short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan.Slice(offset));
@@ -1104,44 +1104,43 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             bool unusualBitMask = bitsRedMask > 8 || bitsGreenMask > 8 || bitsBlueMask > 8 || invMaxValueAlpha > 8;
 
-            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride))
+            using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride);
+            Span<byte> bufferSpan = buffer.GetSpan();
+
+            for (int y = 0; y < height; y++)
             {
-                Span<byte> bufferSpan = buffer.GetSpan();
+                this.stream.Read(bufferSpan);
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
                 int offset = 0;
-                for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
                 {
-                    this.stream.Read(bufferSpan);
-                    int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
-
-                    for (int x = 0; x < width; x++)
+                    uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan.Slice(offset));
+                    if (unusualBitMask)
                     {
-                        uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan.Slice(offset));
-                        if (unusualBitMask)
-                        {
-                            uint r = (uint)(temp & redMask) >> rightShiftRedMask;
-                            uint g = (uint)(temp & greenMask) >> rightShiftGreenMask;
-                            uint b = (uint)(temp & blueMask) >> rightShiftBlueMask;
-                            float alpha = alphaMask != 0 ? invMaxValueAlpha * ((uint)(temp & alphaMask) >> rightShiftAlphaMask) : 1.0f;
-                            var vector4 = new Vector4(
-                                r * invMaxValueRed,
-                                g * invMaxValueGreen,
-                                b * invMaxValueBlue,
-                                alpha);
-                            color.FromVector4(vector4);
-                        }
-                        else
-                        {
-                            byte r = (byte)((temp & redMask) >> rightShiftRedMask);
-                            byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
-                            byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
-                            byte a = alphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : (byte)255;
-                            color.FromRgba32(new Rgba32(r, g, b, a));
-                        }
-
-                        pixelRow[x] = color;
-                        offset += 4;
+                        uint r = (uint)(temp & redMask) >> rightShiftRedMask;
+                        uint g = (uint)(temp & greenMask) >> rightShiftGreenMask;
+                        uint b = (uint)(temp & blueMask) >> rightShiftBlueMask;
+                        float alpha = alphaMask != 0 ? invMaxValueAlpha * ((uint)(temp & alphaMask) >> rightShiftAlphaMask) : 1.0f;
+                        var vector4 = new Vector4(
+                            r * invMaxValueRed,
+                            g * invMaxValueGreen,
+                            b * invMaxValueBlue,
+                            alpha);
+                        color.FromVector4(vector4);
                     }
+                    else
+                    {
+                        byte r = (byte)((temp & redMask) >> rightShiftRedMask);
+                        byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
+                        byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
+                        byte a = alphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : (byte)255;
+                        color.FromRgba32(new Rgba32(r, g, b, a));
+                    }
+
+                    pixelRow[x] = color;
+                    offset += 4;
                 }
             }
         }

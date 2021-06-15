@@ -841,14 +841,12 @@ namespace SixLabors.ImageSharp
         /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
         /// </summary>
         /// <param name="value">The value.</param>
-        public static int Log2(uint value)
-        {
+        public static int Log2(uint value) =>
 #if SUPPORTS_BITOPERATIONS
-            return BitOperations.Log2(value);
+            BitOperations.Log2(value);
 #else
-            return Log2SoftwareFallback(value);
+            Log2SoftwareFallback(value);
 #endif
-        }
 
 #if !SUPPORTS_BITOPERATIONS
         /// <summary>
@@ -874,9 +872,11 @@ namespace SixLabors.ImageSharp
             value |= value >> 16;
 
             // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
+            // - Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
+            // - uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
             return Unsafe.AddByteOffset(
                 ref MemoryMarshal.GetReference(Log2DeBruijn),
-                (IntPtr)(int)((value * 0x07C4ACDDu) >> 27)); // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
+                (IntPtr)(int)((value * 0x07C4ACDDu) >> 27));
         }
 #endif
     }

@@ -1,8 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
-using SixLabors.ImageSharp.Memory.Internals;
+using SixLabors.ImageSharp.Memory.Allocators.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {

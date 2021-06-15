@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Allocators.Internals;
-using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {

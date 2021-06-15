@@ -46,11 +46,11 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
 
             // Create the buckets.
             int poolId = this.Id;
-            int maxBuckets = Utilities.SelectBucketIndex(maxArrayLength);
+            int maxBuckets = SelectBucketIndex(maxArrayLength);
             var buckets = new Bucket[maxBuckets + 1];
             for (int i = 0; i < buckets.Length; i++)
             {
-                buckets[i] = new Bucket(Utilities.GetMaxSizeForBucket(i), maxArraysPerBucket, poolId);
+                buckets[i] = new Bucket(GetMaxSizeForBucket(i), maxArraysPerBucket, poolId);
             }
 
             this.buckets = buckets;
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
             ArrayPoolEventSource log = ArrayPoolEventSource.Log;
             T[] buffer;
 
-            int index = Utilities.SelectBucketIndex(minimumLength);
+            int index = SelectBucketIndex(minimumLength);
             if (index < this.buckets.Length)
             {
                 // Search for an array starting at the 'index' bucket. If the bucket is empty, bump up to the
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
             }
 
             // Determine with what bucket this array length is associated
-            int bucket = Utilities.SelectBucketIndex(array.Length);
+            int bucket = SelectBucketIndex(array.Length);
 
             // If we can tell that the buffer was allocated, drop it. Otherwise, check if we have space in the pool
             bool haveBucket = bucket < this.buckets.Length;
@@ -241,6 +241,27 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
 #else
             return MemoryPressure.Medium;
 #endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int SelectBucketIndex(int bufferSize)
+        {
+            Debug.Assert(bufferSize >= 0, "Should be greater than 0.");
+
+            // Buffers are bucketed so that a request between 2^(n-1) + 1 and 2^n is given a buffer of 2^n
+            // Bucket index is log2(bufferSize - 1) with the exception that buffers between 1 and 16 bytes
+            // are combined, and the index is slid down by 3 to compensate.
+            // Zero is a valid bufferSize, and it is assigned the highest bucket index so that zero-length
+            // buffers are not retained by the pool. The pool will return the Array.Empty singleton for these.
+            return Numerics.Log2(((uint)bufferSize - 1) | 15) - 3;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetMaxSizeForBucket(int binIndex)
+        {
+            int maxSize = 16 << binIndex;
+            Debug.Assert(maxSize >= 0, "Should be greater than 0.");
+            return maxSize;
         }
 
         /// <summary>

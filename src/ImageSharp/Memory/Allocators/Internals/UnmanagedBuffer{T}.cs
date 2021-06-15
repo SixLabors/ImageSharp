@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Memory.Internals
+namespace SixLabors.ImageSharp.Memory.Allocators.Internals
 {
     /// <summary>
     /// Allocates and provides an <see cref="IMemoryOwner{T}"/> implementation giving

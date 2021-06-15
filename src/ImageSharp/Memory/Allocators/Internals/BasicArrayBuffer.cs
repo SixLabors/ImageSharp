@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Memory.Internals
+namespace SixLabors.ImageSharp.Memory.Allocators.Internals
 {
     /// <summary>
     /// Wraps an array as an <see cref="IManagedByteBuffer"/> instance.

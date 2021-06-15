@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Memory.Internals
+namespace SixLabors.ImageSharp.Memory.Allocators.Internals
 {
     /// <summary>
     /// Provides a base class for <see cref="IMemoryOwner{T}"/> implementations by implementing pinning logic for <see cref="MemoryManager{T}"/> adaption.

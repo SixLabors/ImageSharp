@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Memory.Internals
+namespace SixLabors.ImageSharp.Memory.Allocators.Internals
 {
     /// <summary>
     /// Provides an <see cref="IManagedByteBuffer"/> based on <see cref="BasicArrayBuffer{T}"/>.

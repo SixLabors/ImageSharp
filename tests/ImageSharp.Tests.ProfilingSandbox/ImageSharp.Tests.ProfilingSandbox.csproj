@@ -12,7 +12,7 @@
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
     <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime>
-    <Configurations>Debug;Release;Release-InnerLoop;Debug-InnerLoop</Configurations>
+    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 

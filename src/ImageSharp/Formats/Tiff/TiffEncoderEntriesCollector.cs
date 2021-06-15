@@ -318,34 +318,34 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     case TiffPhotometricInterpretation.PaletteColor:
                         if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit4)
                         {
-                            return TiffConstants.BitsPerSample4Bit;
+                            return TiffConstants.BitsPerSample4Bit.ToArray();
                         }
                         else
                         {
-                            return TiffConstants.BitsPerSample8Bit;
+                            return TiffConstants.BitsPerSample8Bit.ToArray();
                         }
 
                     case TiffPhotometricInterpretation.Rgb:
-                        return TiffConstants.BitsPerSampleRgb8Bit;
+                        return TiffConstants.BitsPerSampleRgb8Bit.ToArray();
 
                     case TiffPhotometricInterpretation.WhiteIsZero:
                         if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit1)
                         {
-                            return TiffConstants.BitsPerSample1Bit;
+                            return TiffConstants.BitsPerSample1Bit.ToArray();
                         }
 
-                        return TiffConstants.BitsPerSample8Bit;
+                        return TiffConstants.BitsPerSample8Bit.ToArray();
 
                     case TiffPhotometricInterpretation.BlackIsZero:
                         if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit1)
                         {
-                            return TiffConstants.BitsPerSample1Bit;
+                            return TiffConstants.BitsPerSample1Bit.ToArray();
                         }
 
-                        return TiffConstants.BitsPerSample8Bit;
+                        return TiffConstants.BitsPerSample8Bit.ToArray();
 
                     default:
-                        return TiffConstants.BitsPerSampleRgb8Bit;
+                        return TiffConstants.BitsPerSampleRgb8Bit.ToArray();
                 }
             }
 

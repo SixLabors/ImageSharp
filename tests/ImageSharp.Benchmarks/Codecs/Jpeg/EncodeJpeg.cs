@@ -47,8 +47,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
                 this.bmpDrawing = SDImage.FromStream(this.bmpStream);
                 this.jpegCodec = GetEncoder(ImageFormat.Jpeg);
                 this.encoderParameters = new EncoderParameters(1);
+
                 // Quality cast to long is necessary
+#pragma warning disable IDE0004 // Remove Unnecessary Cast
                 this.encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)this.Quality);
+#pragma warning restore IDE0004 // Remove Unnecessary Cast
 
                 this.destinationStream = new MemoryStream();
             }
@@ -101,6 +104,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
                     return codec;
                 }
             }
+
             return null;
         }
     }

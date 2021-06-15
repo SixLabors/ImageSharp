@@ -213,7 +213,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             this.compressedDataBuffer = this.Allocator.Allocate<byte>(maxNeededBytes);
         }
 
-        /// <summary>Writes a image compressed with CCITT T4 to the stream.</summary>
+        /// <summary>
+        /// Writes a image compressed with CCITT T4 to the stream.
+        /// </summary>
         /// <param name="pixelsAsGray">The pixels as 8-bit gray array.</param>
         /// <param name="height">The strip height.</param>
         public override void CompressStrip(Span<byte> pixelsAsGray, int height)

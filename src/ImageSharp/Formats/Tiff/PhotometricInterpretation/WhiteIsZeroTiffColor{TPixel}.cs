@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private readonly float factor;
 
-        public WhiteIsZeroTiffColor(ushort[] bitsPerSample)
+        public WhiteIsZeroTiffColor(TiffBitsPerSample bitsPerSample)
         {
-            this.bitsPerSample0 = bitsPerSample[0];
+            this.bitsPerSample0 = bitsPerSample.Channel0;
             this.factor = (float)Math.Pow(2, this.bitsPerSample0) - 1.0f;
         }
 

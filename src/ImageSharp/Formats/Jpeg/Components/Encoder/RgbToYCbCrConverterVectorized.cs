@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 // left 8x8 column conversions
                 for (int j = 0; j < 4; j += 2)
                 {
-                    rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * (i * 4 + j))).AsUInt32(), extractToLanesMask).AsByte();
+                    rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * ((i * 4) + j))).AsUInt32(), extractToLanesMask).AsByte();
 
                     rgb = Avx2.Shuffle(rgb, extractRgbMask);
 
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 // right 8x8 column conversions
                 for (int j = 1; j < 4; j += 2)
                 {
-                    rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * (i * 4 + j))).AsUInt32(), extractToLanesMask).AsByte();
+                    rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * ((i * 4) + j))).AsUInt32(), extractToLanesMask).AsByte();
 
                     rgb = Avx2.Shuffle(rgb, extractRgbMask);
 

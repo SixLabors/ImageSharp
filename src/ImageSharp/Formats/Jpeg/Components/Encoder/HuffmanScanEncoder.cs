@@ -409,11 +409,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // BitOperations.Log2 implementation also checks if input value is zero for the convention
             // As this is a very specific method for a very specific Huffman encoding code
             // We can omit zero check as this should not be invoked with value == 0 and guarded in debug builds
-            // This is also marked as internal so every use of this would be tracable & testable in tests
             return 32 - System.Numerics.BitOperations.LeadingZeroCount(value);
 #else
             // On the contrary to BitOperations implementation this does follow the convention and supports value == 0 case
             // Although it's still won't be called with value == 0
+            // As these implementations behave differently for the value == 0 case it's documented as undefined behaviour
             return Numerics.Log2SoftwareFallback(value) + 1;
 #endif
         }

@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            int bt = GetHuffmanEncodingLegth((uint)a);
+            int bt = GetHuffmanEncodingLength((uint)a);
 
             this.EmitHuff(index, (runLength << 4) | bt);
             if (bt > 0)
@@ -391,30 +391,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         /// <summary>
         /// Calculates how many minimum bits needed to store given value for Huffman jpeg encoding.
-        /// This method does not follow the standard convention - it does not support input value of zero.
         /// </summary>
         /// <remarks>
-        /// Passing zero as input value would result in an undefined behaviour.
-        /// This is done for performance reasons as Huffman encoding code checks for zero value, second identical check would degrade the performance in the hot path.
+        /// This method returns 0 for input value 0. This is done specificaly for huffman encoding
         /// </remarks>
         /// <param name="value">The value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetHuffmanEncodingLegth(uint value)
+        private static int GetHuffmanEncodingLength(uint value)
         {
-            DebugGuard.IsFalse(value == 0, nameof(value), "Huffman encoding does not encode zero values");
+            DebugGuard.IsTrue(value <= (1 << 16), "Huffman encoder is supposed to encode a value of 16bit size max");
 #if SUPPORTS_BITOPERATIONS
             // This should have been implemented as (BitOperations.Log2(value) + 1) as in non-intrinsic implementation
             // But internal log2 is implementated like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
 
-            // BitOperations.Log2 implementation also checks if input value is zero for the convention
-            // As this is a very specific method for a very specific Huffman encoding code
-            // We can omit zero check as this should not be invoked with value == 0 and guarded in debug builds
+            // BitOperations.Log2 implementation also checks if input value is zero for the convention 0->0
+            // Lzcnt would return 32 for input value of 0 - no need to check that with branching
+            // Fallback code if Lzcnt is not supported still use if-check
+            // But most modern CPUs support this instruction so this should not be a problem
             return 32 - System.Numerics.BitOperations.LeadingZeroCount(value);
 #else
-            // On the contrary to BitOperations implementation this does follow the convention and supports value == 0 case
-            // Although it's still won't be called with value == 0
-            // As these implementations behave differently for the value == 0 case it's documented as undefined behaviour
-            return Numerics.Log2SoftwareFallback(value) + 1;
+            // Ideally:
+            // if 0 - return 0 in this case
+            // else - return log2(value) + 1
+            //
+            // Hack based on input value constaint:
+            // We know that input values are guaranteed to be maximum 16 bit large for huffman encoding
+            // We can safely shift input value for one bit -> log2(value << 1)
+            // Because of the 16 bit value constraint it won't overflow
+            // With that input value change we no longer need to add 1 before returning
+            // And this eliminates need to check if input value is zero - it is a standard convention which Log2SoftwareFallback adheres to
+            return Numerics.Log2SoftwareFallback(value << 1);
 #endif
         }
     }

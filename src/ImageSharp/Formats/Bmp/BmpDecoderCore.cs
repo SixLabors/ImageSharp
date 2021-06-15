@@ -873,7 +873,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride);
             Span<byte> bufferSpan = buffer.GetSpan();
-
+            int offset = 0;
             for (int y = 0; y < height; y++)
             {
                 this.stream.Read(bufferSpan);
@@ -882,7 +882,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 for (int x = 0; x < width; x++)
                 {
-                    short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan);
+                    short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan.Slice(offset));
 
                     // Rescale values, so the values range from 0 to 255.
                     int r = (redMaskBits == 5) ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask) : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
@@ -892,7 +892,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                     color.FromRgb24(rgb);
                     pixelRow[x] = color;
-                    bufferSpan = bufferSpan.Slice(2);
+                    offset += 2;
                 }
             }
         }
@@ -1107,6 +1107,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
+                int offset = 0;
                 for (int y = 0; y < height; y++)
                 {
                     this.stream.Read(bufferSpan);
@@ -1115,7 +1116,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                     for (int x = 0; x < width; x++)
                     {
-                        uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan);
+                        uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan.Slice(offset));
                         if (unusualBitMask)
                         {
                             uint r = (uint)(temp & redMask) >> rightShiftRedMask;
@@ -1139,7 +1140,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         }
 
                         pixelRow[x] = color;
-                        bufferSpan = bufferSpan.Slice(4);
+                        offset += 4;
                     }
                 }
             }

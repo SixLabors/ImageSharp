@@ -16,20 +16,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
         public const PixelTypes CommonNonDefaultPixelTypes =
             PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24 | PixelTypes.RgbaVector;
 
-        public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial, TestImages.Png.Bike };
+        public static readonly string[] CommonTestImages = { /*TestImages.Png.CalliphoraPartial,*/ TestImages.Png.Bike };
 
         public static readonly TheoryData<IDither, string> ErrorDiffusers
             = new TheoryData<IDither, string>
             {
                 { KnownDitherings.Atkinson, nameof(KnownDitherings.Atkinson) },
-                { KnownDitherings.Burks, nameof(KnownDitherings.Burks) },
-                { KnownDitherings.FloydSteinberg, nameof(KnownDitherings.FloydSteinberg) },
-                { KnownDitherings.JarvisJudiceNinke, nameof(KnownDitherings.JarvisJudiceNinke) },
-                { KnownDitherings.Sierra2, nameof(KnownDitherings.Sierra2) },
-                { KnownDitherings.Sierra3, nameof(KnownDitherings.Sierra3) },
-                { KnownDitherings.SierraLite, nameof(KnownDitherings.SierraLite) },
-                { KnownDitherings.StevensonArce, nameof(KnownDitherings.StevensonArce) },
-                { KnownDitherings.Stucki, nameof(KnownDitherings.Stucki) },
+                //{ KnownDitherings.Burks, nameof(KnownDitherings.Burks) },
+                //{ KnownDitherings.FloydSteinberg, nameof(KnownDitherings.FloydSteinberg) },
+                //{ KnownDitherings.JarvisJudiceNinke, nameof(KnownDitherings.JarvisJudiceNinke) },
+                //{ KnownDitherings.Sierra2, nameof(KnownDitherings.Sierra2) },
+                //{ KnownDitherings.Sierra3, nameof(KnownDitherings.Sierra3) },
+                //{ KnownDitherings.SierraLite, nameof(KnownDitherings.SierraLite) },
+                //{ KnownDitherings.StevensonArce, nameof(KnownDitherings.StevensonArce) },
+                //{ KnownDitherings.Stucki, nameof(KnownDitherings.Stucki) },
             };
 
         public static readonly TheoryData<IDither, string> OrderedDitherers

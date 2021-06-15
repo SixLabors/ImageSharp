@@ -134,9 +134,9 @@ namespace SixLabors.ImageSharp.Memory
 
             // Our custom GC aware pool differs from normal will return null
             // if the pool is exhausted or the buffer is too large.
-            if (array is null)
+            if (array != null)
             {
-                memory = new Buffer<T>(pool.Rent(bufferSizeInBytes), length, pool);
+                memory = new Buffer<T>(array, length, pool);
             }
             else
             {

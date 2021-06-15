@@ -437,6 +437,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             //// CcittGroup3Fax compressed data length can be larger than the original length.
             Assert.Throws<Xunit.Sdk.TrueException>(() => TestStripLength(provider, photometricInterpretation, compression));
 
+        [Theory]
+        [WithTestPatternImages(287, 321, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb)]
+        [WithTestPatternImages(287, 321, PixelTypes.Rgba32, TiffPhotometricInterpretation.PaletteColor)]
+        [WithTestPatternImages(287, 321, PixelTypes.Rgba32, TiffPhotometricInterpretation.BlackIsZero)]
+        public void TiffEncode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
+            using Image<TPixel> image = provider.GetImage();
+
+            var encoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation };
+            image.DebugSave(provider, encoder);
+        }
+
         private static void TestStripLength<TPixel>(
             TestImageProvider<TPixel> provider,
             TiffPhotometricInterpretation photometricInterpretation,

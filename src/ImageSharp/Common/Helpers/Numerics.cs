@@ -855,8 +855,9 @@ namespace SixLabors.ImageSharp
             // But internal log2 is implementated like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
 
             // BitOperations.Log2 implementation also checks if input value is zero for the convention
-            // As this is a very specific method for a specific Huffman encoding code
-            // We can omit zero check as this is guranteed not to be invoked with value == 0 and guarded in debug builds
+            // As this is a very specific method for a very specific Huffman encoding code
+            // We can omit zero check as this should not be invoked with value == 0 and guarded in debug builds
+            // This is also marked as internal so every use of this would be tracable & testable in tests
             return 32 - BitOperations.LeadingZeroCount(value);
 #else
             // On the contrary to BitOperations implementation this does follow the convention and supports value == 0 case

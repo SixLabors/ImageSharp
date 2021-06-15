@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
-            this.quantizedImage?.Dispose(); 
+            this.quantizedImage?.Dispose();
             this.indexedPixelsBuffer?.Dispose();
         }
 

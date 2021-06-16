@@ -21,12 +21,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image,</typeparam>
         /// <param name="image">The image to check.</param>
+        /// <param name="rowIdxStart">The row to start with.</param>
+        /// <param name="rowIdxEnd">The row to end with.</param>
         /// <returns>Returns true if alpha has non-0xff values.</returns>
-        public static bool CheckNonOpaque<TPixel>(Image<TPixel> image)
+        public static bool CheckNonOpaque<TPixel>(Image<TPixel> image, int rowIdxStart, int rowIdxEnd)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Rgba32 rgba = default;
-            for (int rowIndex = 0; rowIndex < image.Height; rowIndex++)
+            for (int rowIndex = rowIdxStart; rowIndex <= rowIdxEnd; rowIndex++)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
                 for (int x = 0; x < image.Width; x++)
@@ -43,6 +45,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return false;
         }
 
+        /// <summary>
+        /// Converts a rgba pixel row to Y.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="rowSpan">The row span to convert.</param>
+        /// <param name="y">The destination span for y.</param>
+        /// <param name="width">The width.</param>
         public static void ConvertRgbaToY<TPixel>(Span<TPixel> rowSpan, Span<byte> y, int width)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -55,6 +64,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
+        /// <summary>
+        /// Converts a rgb row of pixels to UV.
+        /// </summary>
+        /// <param name="rgb">The RGB pixel row.</param>
+        /// <param name="u">The destination span for u.</param>
+        /// <param name="v">The destination span for v.</param>
+        /// <param name="width">The width.</param>
         public static void ConvertRgbaToUv(Span<ushort> rgb, Span<byte> u, Span<byte> v, int width)
         {
             int rgbIdx = 0;
@@ -184,9 +200,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
                 else
                 {
-                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba0.R, rgba1.R, rgba0.A, rgba1.A, rgba0.A, rgba1.A, a);
+                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba0.G, rgba1.G, rgba0.A, rgba1.A, rgba0.A, rgba1.A, a);
+                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba0.B, rgba1.B, rgba0.A, rgba1.A, rgba0.A, rgba1.A, a);
                 }
 
                 dst[dstIdx] = (ushort)r;
@@ -196,6 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int LinearToGammaWeighted(byte rgb0, byte rgb1, byte rgb2, byte rgb3, byte a0, byte a1, byte a2, byte a3, uint totalA)
         {
             uint sum = (a0 * GammaToLinear(rgb0)) + (a1 * GammaToLinear(rgb1)) + (a2 * GammaToLinear(rgb2)) + (a3 * GammaToLinear(rgb3));
@@ -212,10 +229,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint GammaToLinear(byte v)
-        {
-            return WebpLookupTables.GammaToLinearTab[v];
-        }
+        private static uint GammaToLinear(byte v) => WebpLookupTables.GammaToLinearTab[v];
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Interpolate(int v)

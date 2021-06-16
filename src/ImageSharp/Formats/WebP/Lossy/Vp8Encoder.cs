@@ -791,7 +791,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 m.Uv.Q[0] = WebpLookupTables.DcTable[Clip(q + this.DqUvDc, 0, 117)];
                 m.Uv.Q[1] = WebpLookupTables.AcTable[Clip(q + this.DqUvAc, 0, 127)];
 
-                var qi4 = m.Y1.Expand(0);
+                int qi4 = m.Y1.Expand(0);
                 m.Y2.Expand(1); // qi16
                 m.Uv.Expand(2); // quv
 
@@ -808,7 +808,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 do
                 {
                     it.Import(y, u, v, yStride, uvStride, width, height, true);
-                    int bestAlpha = this.MbAnalyze(it, alphas, out var bestUvAlpha);
+                    int bestAlpha = this.MbAnalyze(it, alphas, out int bestUvAlpha);
 
                     // Accumulate for later complexity analysis.
                     alpha += bestAlpha;
@@ -1211,19 +1211,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int uvWidth = (image.Width + 1) >> 1;
-            bool hasAlpha = YuvConversion.CheckNonOpaque(image);
 
             // Temporary storage for accumulated R/G/B values during conversion to U/V.
             using IMemoryOwner<ushort> tmpRgb = this.memoryAllocator.Allocate<ushort>(4 * uvWidth);
             Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
             int uvRowIndex = 0;
             int rowIndex;
+            bool rowsHaveAlpha = false;
             for (rowIndex = 0; rowIndex < image.Height - 1; rowIndex += 2)
             {
+                rowsHaveAlpha = YuvConversion.CheckNonOpaque(image, rowIndex, rowIndex + 1);
+
                 // Downsample U/V planes, two rows at a time.
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
                 Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
-                if (!hasAlpha)
+                if (!rowsHaveAlpha)
                 {
                     YuvConversion.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
                 }
@@ -1243,7 +1245,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if ((image.Height & 1) != 0)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                if (!hasAlpha)
+                if (!rowsHaveAlpha)
                 {
                     YuvConversion.AccumulateRgb(rowSpan, rowSpan, tmpRgbSpan, image.Width);
                 }
@@ -1269,6 +1271,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Vp8Sse16X8(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 8);
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1319,6 +1322,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// is around q=75. Internally, our "good" middle is around c=50. So we
         /// map accordingly using linear piece-wise function
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static double QualityToCompression(double c)
         {
             double linearC = (c < 0.75) ? c * (2.0d / 3.0d) : (2.0d * c) - 1.0d;
@@ -1334,6 +1338,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return v;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int FilterStrengthFromDelta(int sharpness, int delta)
         {
             int pos = (delta < WebpConstants.MaxDelzaSize) ? delta : WebpConstants.MaxDelzaSize - 1;

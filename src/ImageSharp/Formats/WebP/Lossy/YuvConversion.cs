@@ -17,28 +17,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private const int YuvHalf = 1 << (YuvFix - 1);
 
         /// <summary>
-        /// Checks if the image is not opaque.
+        /// Checks if the pixel row is not opaque.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel type of the image,</typeparam>
-        /// <param name="image">The image to check.</param>
-        /// <param name="rowIdxStart">The row to start with.</param>
-        /// <param name="rowIdxEnd">The row to end with.</param>
+        /// <param name="row">The row to check.</param>
         /// <returns>Returns true if alpha has non-0xff values.</returns>
-        public static bool CheckNonOpaque<TPixel>(Image<TPixel> image, int rowIdxStart, int rowIdxEnd)
-            where TPixel : unmanaged, IPixel<TPixel>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool CheckNonOpaque(Span<Rgba32> row)
         {
-            Rgba32 rgba = default;
-            for (int rowIndex = rowIdxStart; rowIndex <= rowIdxEnd; rowIndex++)
+            for (int x = 0; x < row.Length; x++)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                for (int x = 0; x < image.Width; x++)
+                if (row[x].A != 255)
                 {
-                    TPixel color = rowSpan[x];
-                    color.ToRgba32(ref rgba);
-                    if (rgba.A != 255)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
 
@@ -48,19 +38,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Converts a rgba pixel row to Y.
         /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="rowSpan">The row span to convert.</param>
         /// <param name="y">The destination span for y.</param>
         /// <param name="width">The width.</param>
-        public static void ConvertRgbaToY<TPixel>(Span<TPixel> rowSpan, Span<byte> y, int width)
-            where TPixel : unmanaged, IPixel<TPixel>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void ConvertRgbaToY(Span<Rgba32> rowSpan, Span<byte> y, int width)
         {
-            Rgba32 rgba = default;
             for (int x = 0; x < width; x++)
             {
-                TPixel color = rowSpan[x];
-                color.ToRgba32(ref rgba);
-                y[x] = (byte)RgbToY(rgba.R, rgba.G, rgba.B, YuvHalf);
+                y[x] = (byte)RgbToY(rowSpan[x].R, rowSpan[x].G, rowSpan[x].B, YuvHalf);
             }
         }
 
@@ -82,25 +68,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void AccumulateRgb<TPixel>(Span<TPixel> rowSpan, Span<TPixel> nextRowSpan, Span<ushort> dst, int width)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public static void AccumulateRgb(Span<Rgba32> rowSpan, Span<Rgba32> nextRowSpan, Span<ushort> dst, int width)
         {
-            Rgba32 rgba0 = default;
-            Rgba32 rgba1 = default;
-            Rgba32 rgba2 = default;
-            Rgba32 rgba3 = default;
+            Rgba32 rgba0;
+            Rgba32 rgba1;
             int i, j;
             int dstIdx = 0;
             for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
             {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = rowSpan[j + 1];
-                color.ToRgba32(ref rgba1);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba2);
-                color = nextRowSpan[j + 1];
-                color.ToRgba32(ref rgba3);
+                rgba0 = rowSpan[j];
+                rgba1 = rowSpan[j + 1];
+                Rgba32 rgba2 = nextRowSpan[j];
+                Rgba32 rgba3 = nextRowSpan[j + 1];
 
                 dst[dstIdx] = (ushort)LinearToGamma(
                     GammaToLinear(rgba0.R) +
@@ -121,10 +100,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             if ((width & 1) != 0)
             {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba1);
+                rgba0 = rowSpan[j];
+                rgba1 = nextRowSpan[j];
 
                 dst[dstIdx] = (ushort)LinearToGamma(GammaToLinear(rgba0.R) + GammaToLinear(rgba1.R), 1);
                 dst[dstIdx + 1] = (ushort)LinearToGamma(GammaToLinear(rgba0.G) + GammaToLinear(rgba1.G), 1);
@@ -132,25 +109,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void AccumulateRgba<TPixel>(Span<TPixel> rowSpan, Span<TPixel> nextRowSpan, Span<ushort> dst, int width)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public static void AccumulateRgba(Span<Rgba32> rowSpan, Span<Rgba32> nextRowSpan, Span<ushort> dst, int width)
         {
-            Rgba32 rgba0 = default;
-            Rgba32 rgba1 = default;
-            Rgba32 rgba2 = default;
-            Rgba32 rgba3 = default;
+            Rgba32 rgba0;
+            Rgba32 rgba1;
             int i, j;
             int dstIdx = 0;
             for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
             {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = rowSpan[j + 1];
-                color.ToRgba32(ref rgba1);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba2);
-                color = nextRowSpan[j + 1];
-                color.ToRgba32(ref rgba3);
+                rgba0 = rowSpan[j];
+                rgba1 = rowSpan[j + 1];
+                Rgba32 rgba2 = nextRowSpan[j];
+                Rgba32 rgba3 = nextRowSpan[j + 1];
                 uint a = (uint)(rgba0.A + rgba1.A + rgba2.A + rgba3.A);
                 int r, g, b;
                 if (a == 4 * 0xff || a == 0)
@@ -186,10 +156,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             if ((width & 1) != 0)
             {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba1);
+                rgba0 = rowSpan[j];
+                rgba1 = nextRowSpan[j];
                 uint a = (uint)(2u * (rgba0.A + rgba1.A));
                 int r, g, b;
                 if (a == 4 * 0xff || a == 0)

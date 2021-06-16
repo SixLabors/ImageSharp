@@ -23,6 +23,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private Configuration configuration;
+
+        /// <summary>
         /// The quality, that will be used to encode the image.
         /// </summary>
         private readonly int quality;
@@ -80,16 +85,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="configuration">The global configuration.</param>
         /// <param name="width">The width of the input image.</param>
         /// <param name="height">The height of the input image.</param>
         /// <param name="quality">The encoding quality.</param>
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
         /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
-        public Vp8Encoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method, int entropyPasses)
+        public Vp8Encoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, int entropyPasses)
         {
+            this.memoryAllocator = memoryAllocator;
+            this.configuration = configuration;
             this.Width = width;
             this.Height = height;
-            this.memoryAllocator = memoryAllocator;
             this.quality = Numerics.Clamp(quality, 0, 100);
             this.method = Numerics.Clamp(method, 0, 6);
             this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
@@ -1210,51 +1217,59 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int uvWidth = (image.Width + 1) >> 1;
+            int width = image.Width;
+            int height = image.Height;
+            int uvWidth = (width + 1) >> 1;
 
             // Temporary storage for accumulated R/G/B values during conversion to U/V.
             using IMemoryOwner<ushort> tmpRgb = this.memoryAllocator.Allocate<ushort>(4 * uvWidth);
+            using IMemoryOwner<Rgba32> rgbaRow0Buffer = this.memoryAllocator.Allocate<Rgba32>(width);
+            using IMemoryOwner<Rgba32> rgbaRow1Buffer = this.memoryAllocator.Allocate<Rgba32>(width);
             Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
+            Span<Rgba32> rgbaRow0 = rgbaRow0Buffer.GetSpan();
+            Span<Rgba32> rgbaRow1 = rgbaRow1Buffer.GetSpan();
             int uvRowIndex = 0;
             int rowIndex;
             bool rowsHaveAlpha = false;
-            for (rowIndex = 0; rowIndex < image.Height - 1; rowIndex += 2)
+            for (rowIndex = 0; rowIndex < height - 1; rowIndex += 2)
             {
-                rowsHaveAlpha = YuvConversion.CheckNonOpaque(image, rowIndex, rowIndex + 1);
-
-                // Downsample U/V planes, two rows at a time.
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
                 Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
+                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, rowSpan, rgbaRow0);
+                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, nextRowSpan, rgbaRow1);
+
+                rowsHaveAlpha = YuvConversion.CheckNonOpaque(rgbaRow0) && YuvConversion.CheckNonOpaque(rgbaRow1);
+
+                // Downsample U/V planes, two rows at a time.
                 if (!rowsHaveAlpha)
                 {
-                    YuvConversion.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
                 }
                 else
                 {
-                    YuvConversion.AccumulateRgba(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
                 }
 
                 YuvConversion.ConvertRgbaToUv(tmpRgbSpan, this.U.Slice(uvRowIndex * uvWidth), this.V.Slice(uvRowIndex * uvWidth), uvWidth);
                 uvRowIndex++;
 
-                YuvConversion.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
-                YuvConversion.ConvertRgbaToY(nextRowSpan, this.Y.Slice((rowIndex + 1) * image.Width), image.Width);
+                YuvConversion.ConvertRgbaToY(rgbaRow0, this.Y.Slice(rowIndex * width), width);
+                YuvConversion.ConvertRgbaToY(rgbaRow1, this.Y.Slice((rowIndex + 1) * width), width);
             }
 
             // Extra last row.
-            if ((image.Height & 1) != 0)
+            if ((height & 1) != 0)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
                 if (!rowsHaveAlpha)
                 {
-                    YuvConversion.AccumulateRgb(rowSpan, rowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
                 }
                 else
                 {
-                    YuvConversion.AccumulateRgba(rowSpan, rowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
                 }
 
-                YuvConversion.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
+                YuvConversion.ConvertRgbaToY(rgbaRow0, this.Y.Slice(rowIndex * width), width);
             }
         }
 

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -172,8 +173,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
             provider.RunBufferCapacityLimitProcessorTest(
                 41,
                 c => c.Dither(dither),
-                name,
-                ImageComparer.TolerantPercentage(0.001f));
+                name);
         }
     }
 }

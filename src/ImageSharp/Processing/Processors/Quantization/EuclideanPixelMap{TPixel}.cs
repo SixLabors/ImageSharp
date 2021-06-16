@@ -18,10 +18,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// This class is not threadsafe and should not be accessed in parallel.
     /// Doing so will result in non-idempotent results.
     /// </para>
-    internal readonly struct EuclideanPixelMap<TPixel> : IDisposable
+    internal struct EuclideanPixelMap<TPixel> : IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly Rgba32[] rgbaPalette;
+        private Rgba32[] rgbaPalette;
         private readonly ColorDistanceCache cache;
 
         /// <summary>
@@ -45,7 +45,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public ReadOnlyMemory<TPixel> Palette
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get;
+            get; private set;
+        }
+
+        /// <summary>
+        /// Clears the cache and assigns a new palette to the map.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="palette">The color palette to map from.</param>
+        public void Clear(Configuration configuration, ReadOnlyMemory<TPixel> palette)
+        {
+            this.Palette = palette;
+            this.rgbaPalette = new Rgba32[palette.Length];
+            this.cache.Clear();
+            PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
         }
 
         /// <summary>
@@ -176,6 +189,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 match = this.tablePointer[idx];
                 return match > -1;
             }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Clear() => this.table.GetSpan().Fill(-1);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             private static int GetPaletteIndex(int r, int g, int b, int a)

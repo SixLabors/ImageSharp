@@ -147,14 +147,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
             if (this.isDithering)
             {
-                // When called by QuantizerUtilities.BuildPalette this prevents
-                // mutiple instances of the map being created but not disposed.
+                // When called by QuantizerUtilities.BuildPalette this allows
+                // us to reuse the existing cache without putting pressure on the GC.
                 if (this.pixelMapHasValue)
                 {
-                    this.pixelMap.Dispose();
+                    this.pixelMap.Clear(this.Configuration, result);
+                }
+                else
+                {
+                    this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+                    this.pixelMapHasValue = true;
                 }
 
-                this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
                 this.pixelMapHasValue = true;
             }
 

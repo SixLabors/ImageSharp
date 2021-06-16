@@ -23,6 +23,16 @@ namespace SixLabors.ImageSharp
         private const int ShuffleAlphaControl = 0b_11_11_11_11;
 #endif
 
+#if !SUPPORTS_BITOPERATIONS
+        private static ReadOnlySpan<byte> Log2DeBruijn => new byte[32]
+        {
+            00, 09, 01, 10, 13, 21, 02, 29,
+            11, 14, 16, 18, 22, 25, 03, 30,
+            08, 12, 20, 28, 15, 17, 24, 07,
+            19, 27, 23, 06, 26, 05, 04, 31
+        };
+#endif
+
         /// <summary>
         /// Determine the Greatest CommonDivisor (GCD) of two numbers.
         /// </summary>
@@ -756,7 +766,7 @@ namespace SixLabors.ImageSharp
         /// widening them to 32-bit integers and performing four additions.
         /// </summary>
         /// <remarks>
-        /// <code>byte(1, 2, 3, 4,  5, 6, 7, 8,  9, 10, 11, 12,  13, 14, 15, 16)</code>
+        /// <c>byte(1, 2, 3, 4,  5, 6, 7, 8,  9, 10, 11, 12,  13, 14, 15, 16)</c>
         /// is widened and added onto <paramref name="accumulator"/> as such:
         /// <code>
         ///  accumulator += i32(1, 2, 3, 4);
@@ -823,6 +833,50 @@ namespace SixLabors.ImageSharp
 
             // Vector128<int>.ToScalar() isn't optimized pre-net5.0 https://github.com/dotnet/runtime/pull/37882
             return Sse2.ConvertToInt32(vsum);
+        }
+#endif
+
+        /// <summary>
+        /// Calculates floored log of the specified value, base 2.
+        /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public static int Log2(uint value)
+        {
+#if SUPPORTS_BITOPERATIONS
+            return BitOperations.Log2(value);
+#else
+            return Log2SoftwareFallback(value);
+#endif
+        }
+
+#if !SUPPORTS_BITOPERATIONS
+        /// <summary>
+        /// Calculates floored log of the specified value, base 2.
+        /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
+        /// Bit hacking with deBruijn sequence, extremely fast yet does not use any intrinsics so will work on every platform/runtime.
+        /// </summary>
+        /// <remarks>
+        /// Description of this bit hacking can be found here:
+        /// https://cstheory.stackexchange.com/questions/19524/using-the-de-bruijn-sequence-to-find-the-lceil-log-2-v-rceil-of-an-integer
+        /// </remarks>
+        /// <param name="value">The value.</param>
+        private static int Log2SoftwareFallback(uint value)
+        {
+            // No AggressiveInlining due to large method size
+            // Has conventional contract 0->0 (Log(0) is undefined) by default, no need for if checking
+
+            // Fill trailing zeros with ones, eg 00010010 becomes 00011111
+            value |= value >> 01;
+            value |= value >> 02;
+            value |= value >> 04;
+            value |= value >> 08;
+            value |= value >> 16;
+
+            // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
+            return Unsafe.AddByteOffset(
+                ref MemoryMarshal.GetReference(Log2DeBruijn),
+                (IntPtr)(int)((value * 0x07C4ACDDu) >> 27)); // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
         }
 #endif
     }

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing
             Dither(source, KnownDitherings.Bayer8x8);
 
         /// <summary>
-        /// Dithers the image reducing it to a web-safe palette using ordered dithering.
+        /// Dithers the image reducing it to a web-safe palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing
             source.ApplyProcessor(new PaletteDitherProcessor(dither));
 
         /// <summary>
-        /// Dithers the image reducing it to a web-safe palette using ordered dithering.
+        /// Dithers the image reducing it to a web-safe palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing
             source.ApplyProcessor(new PaletteDitherProcessor(dither, ditherScale));
 
         /// <summary>
-        /// Dithers the image reducing it to the given palette using ordered dithering.
+        /// Dithers the image reducing it to the given palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing
             source.ApplyProcessor(new PaletteDitherProcessor(dither, palette));
 
         /// <summary>
-        /// Dithers the image reducing it to the given palette using ordered dithering.
+        /// Dithers the image reducing it to the given palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing
             Dither(source, KnownDitherings.Bayer8x8, rectangle);
 
         /// <summary>
-        /// Dithers the image reducing it to a web-safe palette using ordered dithering.
+        /// Dithers the image reducing it to a web-safe palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing
             source.ApplyProcessor(new PaletteDitherProcessor(dither), rectangle);
 
         /// <summary>
-        /// Dithers the image reducing it to a web-safe palette using ordered dithering.
+        /// Dithers the image reducing it to a web-safe palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing
             source.ApplyProcessor(new PaletteDitherProcessor(dither, ditherScale), rectangle);
 
         /// <summary>
-        /// Dithers the image reducing it to the given palette using ordered dithering.
+        /// Dithers the image reducing it to the given palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing
             source.ApplyProcessor(new PaletteDitherProcessor(dither, palette), rectangle);
 
         /// <summary>
-        /// Dithers the image reducing it to the given palette using ordered dithering.
+        /// Dithers the image reducing it to the given palette.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>

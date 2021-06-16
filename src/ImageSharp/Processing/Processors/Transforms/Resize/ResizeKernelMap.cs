@@ -130,9 +130,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
 
             // 'ratio' is a rational number.
-            // Multiplying it by LCM(sourceSize, destSize)/sourceSize will result in a whole number "again".
+            // Multiplying it by destSize/GCD(sourceSize, destSize) will result in a whole number "again".
             // This value is determining the length of the periods in repeating kernel map rows.
-            int period = Numerics.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
+            int period = destinationSize / Numerics.GreatestCommonDivisor(sourceSize, destinationSize);
 
             // the center position at i == 0:
             double center0 = (ratio - 1) * 0.5;

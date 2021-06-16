@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -21,6 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         private readonly int colorPaletteSize;
         private readonly int colorPaletteBytes;
         private readonly IndexedImageFrame<TPixel> quantizedImage;
+        private IMemoryOwner<byte> indexedPixelsBuffer;
 
         public TiffPaletteWriter(
             ImageFrame<TPixel> image,
@@ -55,22 +55,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <inheritdoc />
         protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
         {
-            Span<byte> indexedPixels = GetStripPixels(((IPixelSource)this.quantizedImage).PixelBuffer, y, height);
+            int width = this.Image.Width;
+
             if (this.BitsPerPixel == 4)
             {
-                int width = this.Image.Width;
                 int halfWidth = width >> 1;
                 int excess = (width & 1) * height; // (width % 2) * height
                 int rows4BitBufferLength = (halfWidth * height) + excess;
-                using IMemoryOwner<byte> rows4bitBuffer = this.MemoryAllocator.Allocate<byte>(rows4BitBufferLength);
-                Span<byte> rows4bit = rows4bitBuffer.GetSpan();
-                int idxPixels = 0;
+                this.indexedPixelsBuffer ??= this.MemoryAllocator.Allocate<byte>(rows4BitBufferLength);
+                Span<byte> rows4bit = this.indexedPixelsBuffer.GetSpan();
                 int idx4bitRows = 0;
-                for (int row = 0; row < height; row++)
+                int lastRow = y + height;
+                for (int row = y; row < lastRow; row++)
                 {
+                    ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.GetPixelRowSpan(row);
+                    int idxPixels = 0;
                     for (int x = 0; x < halfWidth; x++)
                     {
-                        rows4bit[idx4bitRows] = (byte)((indexedPixels[idxPixels] << 4) | (indexedPixels[idxPixels + 1] & 0xF));
+                        rows4bit[idx4bitRows] = (byte)((indexedPixelRow[idxPixels] << 4) | (indexedPixelRow[idxPixels + 1] & 0xF));
                         idxPixels += 2;
                         idx4bitRows++;
                     }
@@ -78,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                     // Make sure rows are byte-aligned.
                     if (width % 2 != 0)
                     {
-                        rows4bit[idx4bitRows++] = (byte)(indexedPixels[idxPixels++] << 4);
+                        rows4bit[idx4bitRows++] = (byte)(indexedPixelRow[idxPixels] << 4);
                     }
                 }
 
@@ -86,12 +88,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             }
             else
             {
-                compressor.CompressStrip(indexedPixels, height);
+                int stripPixels = width * height;
+                this.indexedPixelsBuffer ??= this.MemoryAllocator.AllocateManagedByteBuffer(stripPixels);
+                Span<byte> indexedPixels = this.indexedPixelsBuffer.GetSpan();
+                int lastRow = y + height;
+                int indexedPixelsRowIdx = 0;
+                for (int row = y; row < lastRow; row++)
+                {
+                    ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.GetPixelRowSpan(row);
+                    indexedPixelRow.CopyTo(indexedPixels.Slice(indexedPixelsRowIdx * width, width));
+                    indexedPixelsRowIdx++;
+                }
+
+                compressor.CompressStrip(indexedPixels.Slice(0, stripPixels), height);
             }
         }
 
         /// <inheritdoc />
-        protected override void Dispose(bool disposing) => this.quantizedImage?.Dispose();
+        protected override void Dispose(bool disposing)
+        {
+            this.quantizedImage?.Dispose();
+            this.indexedPixelsBuffer?.Dispose();
+        }
 
         private void AddColorMapTag()
         {

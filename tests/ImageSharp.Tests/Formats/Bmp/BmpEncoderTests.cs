@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 {
                     BitsPerPixel = bitsPerPixel,
                     SupportTransparency = supportTransparency,
-                    Quantizer = quantizer ?? KnownQuantizers.Wu
+                    Quantizer = quantizer ?? KnownQuantizers.Octree
                 };
 
                 // Does DebugSave & load reference CompareToReferenceInput():

@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // since the palette is unchanging. This allows a reduction of memory usage across
             // multi frame gifs using a global palette.
             EuclideanPixelMap<TPixel> pixelMap = default;
-            bool pixelMapSet = false;
+            bool pixelMapHasValue = false;
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
@@ -166,16 +166,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    if (!pixelMapSet)
+                    if (!pixelMapHasValue)
                     {
-                        pixelMapSet = true;
+                        pixelMapHasValue = true;
                         pixelMap = new EuclideanPixelMap<TPixel>(this.configuration, quantized.Palette);
                     }
 
-                    using var paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
+                    using var paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap, true);
                     using IndexedImageFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     this.WriteImageData(paletteQuantized, stream);
                 }
+            }
+
+            if (pixelMapHasValue)
+            {
+                pixelMap.Dispose();
             }
         }
 

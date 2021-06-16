@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -73,6 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private int maxColors;
         private readonly Box[] colorCube;
         private EuclideanPixelMap<TPixel> pixelMap;
+        private bool pixelMapHasValue;
         private readonly bool isDithering;
         private bool isDisposed;
 
@@ -94,10 +94,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.momentsOwner = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
             this.tagsOwner = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
             this.paletteOwner = this.memoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
-            this.palette = default;
             this.colorCube = new Box[this.maxColors];
             this.isDisposed = false;
             this.pixelMap = default;
+            this.pixelMapHasValue = false;
+            this.palette = default;
             this.isDithering = this.isDithering = !(this.Options.Dither is null);
         }
 
@@ -127,9 +128,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
 
+            // Slice again since maxColors has been updated since the buffer was created.
+            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan().Slice(0, this.maxColors);
             ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
-            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
-            for (int k = 0; k < this.maxColors; k++)
+            for (int k = 0; k < paletteSpan.Length; k++)
             {
                 this.Mark(ref this.colorCube[k], (byte)k);
 
@@ -142,8 +144,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, this.maxColors);
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
+            if (this.isDithering)
+            {
+                // When called by QuantizerUtilities.BuildPalette this prevents
+                // mutiple instances of the map being created but not disposed.
+                if (this.pixelMapHasValue)
+                {
+                    this.pixelMap.Dispose();
+                }
+
+                this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+                this.pixelMapHasValue = true;
+            }
+
             this.palette = result;
         }
 
@@ -170,7 +184,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             ReadOnlySpan<byte> tagSpan = this.tagsOwner.GetSpan();
             byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.Palette.Span);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
             match = Unsafe.Add(ref paletteRef, index);
             return index;
         }
@@ -187,6 +201,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.momentsOwner = null;
                 this.tagsOwner = null;
                 this.paletteOwner = null;
+                this.pixelMap.Dispose();
             }
         }
 

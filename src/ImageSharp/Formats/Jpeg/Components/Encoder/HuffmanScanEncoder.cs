@@ -12,6 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     internal class HuffmanScanEncoder
     {
+        private HuffmanLut[] huffmanTables;
+
         /// <summary>
         /// Number of bytes cached before being written to target stream via Stream.Write(byte[], offest, count).
         /// </summary>
@@ -65,6 +67,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+
             var unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
@@ -123,6 +127,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+
             var unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
@@ -188,6 +194,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+
             var unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
@@ -247,10 +255,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int dc = (int)refTemp2[0];
 
             // Emit the DC delta.
-            this.EmitHuffRLE((2 * (int)index) + 0, 0, dc - prevDC);
+            this.EmitHuffRLE(this.huffmanTables[2 * (int)index].Values, 0, dc - prevDC);
 
             // Emit the AC components.
-            int h = (2 * (int)index) + 1;
+            int[] huffmanTable = this.huffmanTables[(2 * (int)index) + 1].Values;
+
             int runLength = 0;
 
             for (int zig = 1; zig < Block8x8F.Size; zig++)
@@ -265,18 +274,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 {
                     while (runLength > 15)
                     {
-                        this.EmitHuff(h, 0xf0);
+                        this.EmitHuff(huffmanTable, 0xf0);
                         runLength -= 16;
                     }
 
-                    this.EmitHuffRLE(h, runLength, ac);
+                    this.EmitHuffRLE(huffmanTable, runLength, ac);
                     runLength = 0;
                 }
             }
 
             if (runLength > 0)
             {
-                this.EmitHuff(h, 0x00);
+                this.EmitHuff(huffmanTable, 0x00);
             }
 
             return dc;
@@ -339,23 +348,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Emits the given value with the given Huffman encoder.
         /// </summary>
-        /// <param name="index">The index of the Huffman encoder</param>
+        /// <param name="table">Compiled Huffman spec values.</param>
         /// <param name="value">The value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuff(int index, int value)
+        private void EmitHuff(int[] table, int value)
         {
-            int x = HuffmanLut.TheHuffmanLut[index].Values[value];
+            int x = table[value];
             this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 
         /// <summary>
         /// Emits a run of runLength copies of value encoded with the given Huffman encoder.
         /// </summary>
-        /// <param name="index">The index of the Huffman encoder</param>
+        /// <param name="table">Compiled Huffman spec values.</param>
         /// <param name="runLength">The number of copies to encode.</param>
         /// <param name="value">The value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitHuffRLE(int index, int runLength, int value)
+        private void EmitHuffRLE(int[] table, int runLength, int value)
         {
             int a = value;
             int b = value;
@@ -367,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             int bt = GetHuffmanEncodingLength((uint)a);
 
-            this.EmitHuff(index, (runLength << 4) | bt);
+            this.EmitHuff(table, (runLength << 4) | bt);
             if (bt > 0)
             {
                 this.Emit(b & ((1 << bt) - 1), bt);

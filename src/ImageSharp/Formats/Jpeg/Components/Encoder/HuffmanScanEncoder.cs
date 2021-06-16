@@ -306,6 +306,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 {
                     byte b = (byte)(bits >> 24);
                     this.emitBuffer[this.emitLen++] = b;
+
+                    // Adding stuff byte
+                    // This is because by JPEG standard scan data can contain JPEG markers (indicated by the 0xFF byte, followed by a non-zero byte)
+                    // Considering this every 0xFF byte must be followed by 0x00 padding byte to signal that this is not a marker
                     if (b == byte.MaxValue)
                     {
                         this.emitBuffer[this.emitLen++] = byte.MinValue;

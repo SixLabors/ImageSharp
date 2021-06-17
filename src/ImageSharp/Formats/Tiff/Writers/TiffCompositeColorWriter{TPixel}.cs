@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -30,12 +31,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 
             this.rowBuffer.Clear();
 
-            Span<byte> rowSpan = this.rowBuffer.GetSpan().Slice(0, this.BytesPerRow * height);
+            Span<byte> outputRowSpan = this.rowBuffer.GetSpan().Slice(0, this.BytesPerRow * height);
 
-            Span<TPixel> pixels = GetStripPixels(this.Image.PixelBuffer, y, height);
+            int width = this.Image.Width;
+            using IMemoryOwner<TPixel> stripPixelBuffer = this.MemoryAllocator.Allocate<TPixel>(height * width);
+            Span<TPixel> stripPixels = stripPixelBuffer.GetSpan();
+            int lastRow = y + height;
+            int stripPixelsRowIdx = 0;
+            for (int row = y; row < lastRow; row++)
+            {
+                Span<TPixel> stripPixelsRow = this.Image.PixelBuffer.GetRowSpan(row);
+                stripPixelsRow.CopyTo(stripPixels.Slice(stripPixelsRowIdx * width, width));
+                stripPixelsRowIdx++;
+            }
 
-            this.EncodePixels(pixels, rowSpan);
-            compressor.CompressStrip(rowSpan, height);
+            this.EncodePixels(stripPixels, outputRowSpan);
+            compressor.CompressStrip(outputRowSpan, height);
         }
 
         protected abstract void EncodePixels(Span<TPixel> pixels, Span<byte> buffer);

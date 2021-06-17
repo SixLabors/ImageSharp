@@ -197,7 +197,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Scale16X16To8X8(ref trueBlock, crTrue);
             VerifyBlock(ref crResult, ref trueBlock, comparer);
 
-
             // extracts 8x8 blocks from 16x8 memory region
             static void Copy8x8(ReadOnlySpan<Rgb24> source, Span<Rgb24> dest)
             {

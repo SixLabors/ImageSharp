@@ -8,7 +8,7 @@
     <GenerateProgramFile>false</GenerateProgramFile>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
-    <Configurations>Debug;Release;Release-InnerLoop;Debug-InnerLoop</Configurations>
+    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
 
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
     <!--<SignAssembly>false</SignAssembly>-->

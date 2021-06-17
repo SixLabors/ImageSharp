@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             Assert.NotNull(frameMetaData);
             Assert.NotNull(frameMetaData.BitsPerPixel);
-            Assert.Equal(TiffBitsPerSample.Bit4, (TiffBitsPerSample)frameMetaData.BitsPerPixel);
+            Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
             Assert.Equal(TiffCompression.Lzw, frameMetaData.Compression);
             Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frameMetaData.PhotometricInterpretation);
             Assert.Equal(TiffPredictor.None, frameMetaData.Predictor);

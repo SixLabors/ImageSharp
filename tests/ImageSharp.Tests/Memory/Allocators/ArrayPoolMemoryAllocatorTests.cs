@@ -224,19 +224,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [InlineData(101)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) - 1)]
-        [InlineData(int.MaxValue / SizeOfLargeStruct)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 137)]
-        public void Allocate_OverCapacity_Throws_InvalidMemoryOperationException(int length)
-        {
-            this.LocalFixture.MemoryAllocator.BufferCapacityInBytes = 100 * SizeOfLargeStruct;
-            Assert.Throws<InvalidMemoryOperationException>(() =>
-                this.LocalFixture.MemoryAllocator.Allocate<LargeStruct>(length));
-        }
-
-        [Theory]
         [InlineData(-1)]
         public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
         {

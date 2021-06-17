@@ -296,6 +296,7 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
             /// </summary>
             private SpinLock spinLock;
             private int index;
+            private bool first;
             private uint firstItemMS;
 
             /// <summary>
@@ -311,6 +312,7 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
                 this.BufferLength = bufferLength;
                 this.numberOfBuffers = numberOfBuffers;
                 this.poolId = poolId;
+                this.first = true;
             }
 
             /// <summary>Gets an ID for the bucket to use with events.</summary>
@@ -352,12 +354,6 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
                 // for that slot, in which case we should do so now.
                 if (allocateBuffer)
                 {
-                    if (this.index == 0)
-                    {
-                        // Stash the time the first item was added.
-                        this.firstItemMS = (uint)Environment.TickCount;
-                    }
-
                     buffer = new T[this.BufferLength];
 
                     ArrayPoolEventSource log = ArrayPoolEventSource.Log;
@@ -397,6 +393,13 @@ namespace SixLabors.ImageSharp.Memory.Allocators.Internals
                     returned = this.index != 0;
                     if (returned)
                     {
+                        if (this.first)
+                        {
+                            // Stash the time the first item was returned.
+                            this.firstItemMS = (uint)Environment.TickCount;
+                            this.first = false;
+                        }
+
                         this.buffers[--this.index] = array;
                     }
                 }

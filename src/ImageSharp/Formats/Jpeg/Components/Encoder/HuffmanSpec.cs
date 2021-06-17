@@ -24,9 +24,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             0, 0, 0
                         },
                     new byte[]
-                            {
-                               0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-                            }),
+                        {
+                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+                        }),
 
                 // Luminance AC.
                 new HuffmanSpec(

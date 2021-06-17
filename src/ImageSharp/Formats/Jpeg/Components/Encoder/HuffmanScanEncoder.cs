@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -354,7 +355,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void EmitHuff(int[] table, int value)
         {
             int x = table[value];
-            this.Emit(x & ((1 << 24) - 1), x >> 24);
+            this.Emit(x >> 8, x & 0xff);
         }
 
         /// <summary>

@@ -251,7 +251,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Analyze image (entropy, numPalettes etc).
-            CrunchConfig[] crunchConfigs = this.EncoderAnalyze(image, out bool redAndBlueAlwaysZero);
+            CrunchConfig[] crunchConfigs = this.EncoderAnalyze(bgra, width, height, out bool redAndBlueAlwaysZero);
 
             int bestSize = 0;
             Vp8LBitWriter bitWriterInit = this.bitWriter;
@@ -340,14 +340,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Analyzes the image and decides which transforms should be used.
         /// </summary>
-        private CrunchConfig[] EncoderAnalyze<TPixel>(Image<TPixel> image, out bool redAndBlueAlwaysZero)
-            where TPixel : unmanaged, IPixel<TPixel>
+        /// <param name="bgra">The image as packed bgra values.</param>
+        /// <param name="width">The image width.</param>
+        /// <param name="height">The image height.</param>
+        /// <param name="redAndBlueAlwaysZero">Indicates if red and blue are always zero.</param>
+        private CrunchConfig[] EncoderAnalyze(Span<uint> bgra, int width, int height, out bool redAndBlueAlwaysZero)
         {
-            int width = image.Width;
-            int height = image.Height;
-
             // Check if we only deal with a small number of colors and should use a palette.
-            bool usePalette = this.AnalyzeAndCreatePalette(image);
+            bool usePalette = this.AnalyzeAndCreatePalette(bgra, width, height);
 
             // Empirical bit sizes.
             this.HistoBits = GetHistoBits(this.method, usePalette, width, height);
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Try out multiple LZ77 on images with few colors.
             int nlz77s = (this.PaletteSize > 0 && this.PaletteSize <= 16) ? 2 : 1;
-            EntropyIx entropyIdx = this.AnalyzeEntropy(image, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
+            EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
             bool doNotCache = false;
             var crunchConfigs = new List<CrunchConfig>();
@@ -921,19 +921,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Analyzes the entropy of the input image to determine which transforms to use during encoding the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
-        /// <param name="image">The image to analyze.</param>
+        /// <param name="bgra">The image to analyze as a bgra span.</param>
+        /// <param name="width">The image width.</param>
+        /// <param name="height">The image height.</param>
         /// <param name="usePalette">Indicates whether a palette should be used.</param>
         /// <param name="paletteSize">The palette size.</param>
         /// <param name="transformBits">The transformation bits.</param>
         /// <param name="redAndBlueAlwaysZero">Indicates if red and blue are always zero.</param>
         /// <returns>The entropy mode to use.</returns>
-        private EntropyIx AnalyzeEntropy<TPixel>(Image<TPixel> image, bool usePalette, int paletteSize, int transformBits, out bool redAndBlueAlwaysZero)
-            where TPixel : unmanaged, IPixel<TPixel>
+        private EntropyIx AnalyzeEntropy(Span<uint> bgra, int width, int height, bool usePalette, int paletteSize, int transformBits, out bool redAndBlueAlwaysZero)
         {
-            int width = image.Width;
-            int height = image.Height;
-
             if (usePalette && paletteSize <= 16)
             {
                 // In the case of small palettes, we pack 2, 4 or 8 pixels together. In
@@ -943,24 +940,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256);
-            using IMemoryOwner<Bgra32> bgraBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
-            Span<Bgra32> currentRow = bgraBuffer.GetSpan();
             Span<uint> histo = histoBuffer.Memory.Span;
-            TPixel firstPixel = image.GetPixelRowSpan(0)[0];
-            Bgra32 bgra = default;
-            Rgba32 rgba = default;
-            firstPixel.ToRgba32(ref rgba);
-            bgra.FromRgba32(rgba);
-            Bgra32 pixPrev = bgra; // Skip the first pixel.
-            Span<Bgra32> prevRow = null;
+            uint pixPrev = bgra[0]; // Skip the first pixel.
+            Span<uint> prevRow = null;
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, pixelRow, currentRow);
+                Span<uint> currentRow = bgra.Slice(y * width, width);
                 for (int x = 0; x < width; x++)
                 {
-                    Bgra32 pix = currentRow[x];
-                    uint pixDiff = LosslessUtils.SubPixels(pix.PackedValue, pixPrev.PackedValue);
+                    uint pix = currentRow[x];
+                    uint pixDiff = LosslessUtils.SubPixels(pix, pixPrev);
                     pixPrev = pix;
                     if ((pixDiff == 0) || (prevRow != null && pix == prevRow[x]))
                     {
@@ -968,7 +957,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
 
                     AddSingle(
-                        pix.PackedValue,
+                        pix,
                         histo.Slice((int)HistoIx.HistoAlpha * 256),
                         histo.Slice((int)HistoIx.HistoRed * 256),
                         histo.Slice((int)HistoIx.HistoGreen * 256),
@@ -980,7 +969,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         histo.Slice((int)HistoIx.HistoGreenPred * 256),
                         histo.Slice((int)HistoIx.HistoBluePred * 256));
                     AddSingleSubGreen(
-                        pix.PackedValue,
+                        pix,
                         histo.Slice((int)HistoIx.HistoRedSubGreen * 256),
                         histo.Slice((int)HistoIx.HistoBlueSubGreen * 256));
                     AddSingleSubGreen(
@@ -989,7 +978,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         histo.Slice((int)HistoIx.HistoBluePredSubGreen * 256));
 
                     // Approximate the palette by the entropy of the multiplicative hash.
-                    uint hash = HashPix(pix.PackedValue);
+                    uint hash = HashPix(pix);
                     histo[((int)HistoIx.HistoPalette * 256) + (int)hash]++;
                 }
 
@@ -1094,12 +1083,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// If number of colors in the image is less than or equal to MaxPaletteSize,
         /// creates a palette and returns true, else returns false.
         /// </summary>
+        /// <param name="bgra">The image as packed bgra values.</param>
+        /// <param name="width">The image width.</param>
+        /// <param name="height">The image height.</param>
         /// <returns>true, if a palette should be used.</returns>
-        private bool AnalyzeAndCreatePalette<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
+        private bool AnalyzeAndCreatePalette(Span<uint> bgra, int width, int height)
         {
             Span<uint> palette = this.Palette.Memory.Span;
-            this.PaletteSize = this.GetColorPalette(image, palette);
+            this.PaletteSize = this.GetColorPalette(bgra, width, height, palette);
             if (this.PaletteSize > WebpConstants.MaxPaletteSize)
             {
                 this.PaletteSize = 0;
@@ -1121,21 +1112,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Gets the color palette.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
-        /// <param name="image">The image to get the palette from.</param>
+        /// <param name="bgra">The image to get the palette from as packed bgra values.</param>
+        /// <param name="width">The image width.</param>
+        /// <param name="height">The image height.</param>
         /// <param name="palette">The span to store the palette into.</param>
         /// <returns>The number of palette entries.</returns>
-        private int GetColorPalette<TPixel>(Image<TPixel> image, Span<uint> palette)
-            where TPixel : unmanaged, IPixel<TPixel>
+        private int GetColorPalette(Span<uint> bgra, int width, int height, Span<uint> palette)
         {
-            int width = image.Width;
-            var colors = new HashSet<Bgra32>();
-            using IMemoryOwner<Bgra32> bgraRowBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
-            Span<Bgra32> bgraRow = bgraRowBuffer.GetSpan();
-            for (int y = 0; y < image.Height; y++)
+            var colors = new HashSet<uint>();
+            for (int y = 0; y < height; y++)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, rowSpan, bgraRow);
+                Span<uint> bgraRow = bgra.Slice(y * width, width);
                 for (int x = 0; x < width; x++)
                 {
                     colors.Add(bgraRow[x]);
@@ -1148,11 +1135,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Fill the colors into the palette.
-            using HashSet<Bgra32>.Enumerator colorEnumerator = colors.GetEnumerator();
+            using HashSet<uint>.Enumerator colorEnumerator = colors.GetEnumerator();
             int idx = 0;
             while (colorEnumerator.MoveNext())
             {
-                palette[idx++] = colorEnumerator.Current.PackedValue;
+                palette[idx++] = colorEnumerator.Current;
             }
 
             return colors.Count;

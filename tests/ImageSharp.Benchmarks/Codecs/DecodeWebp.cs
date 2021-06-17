@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             return image.Height;
         }
 
-        /* Results 26.12.2020
+        /* Results 17.06.2021
          *  BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
             Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
             .NET Core SDK=3.1.202
@@ -84,20 +84,24 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
               Job-WMTYOZ : .NET Core 3.1.4 (CoreCLR 4.700.20.20201, CoreFX 4.700.20.22101), X64 RyuJIT
 
             IterationCount=3  LaunchCount=1  WarmupCount=3
-            |                     Method |        Job |       Runtime |       TestImageLossy |    TestImageLossless |       Mean |    Error |  StdDev |     Gen 0 |     Gen 1 | Gen 2 |   Allocated |
-            |--------------------------- |----------- |-------------- |--------------------- |--------------------- |-----------:|---------:|--------:|----------:|----------:|------:|------------:|
-            |        'Magick Lossy WebP' | Job-TNALDZ |    .NET 4.7.2 | WebP/(...).webp [21] | WebP/(...).webp [24] |   107.1 ms | 47.56 ms | 2.61 ms |         - |         - |     - |    32.05 KB |
-            |    'ImageSharp Lossy Webp' | Job-TNALDZ |    .NET 4.7.2 | WebP/(...).webp [21] | WebP/(...).webp [24] | 1,108.4 ms | 25.90 ms | 1.42 ms |         - |         - |     - |  2779.53 KB |
-            |     'Magick Lossless WebP' | Job-TNALDZ |    .NET 4.7.2 | WebP/(...).webp [21] | WebP/(...).webp [24] |   145.8 ms |  8.97 ms | 0.49 ms |         - |         - |     - |    18.05 KB |
-            | 'ImageSharp Lossless Webp' | Job-TNALDZ |    .NET 4.7.2 | WebP/(...).webp [21] | WebP/(...).webp [24] | 1,662.9 ms |  9.34 ms | 0.51 ms | 4000.0000 | 1000.0000 |     - | 30556.87 KB |
-            |        'Magick Lossy WebP' | Job-ATRTFL | .NET Core 2.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   106.2 ms | 14.80 ms | 0.81 ms |         - |         - |     - |       16 KB |
-            |    'ImageSharp Lossy Webp' | Job-ATRTFL | .NET Core 2.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   743.1 ms |  7.53 ms | 0.41 ms |         - |         - |     - |   2767.8 KB |
-            |     'Magick Lossless WebP' | Job-ATRTFL | .NET Core 2.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   146.7 ms | 25.23 ms | 1.38 ms |         - |         - |     - |    16.76 KB |
-            | 'ImageSharp Lossless Webp' | Job-ATRTFL | .NET Core 2.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   529.2 ms | 64.09 ms | 3.51 ms | 4000.0000 | 1000.0000 |     - | 22859.97 KB |
-            |        'Magick Lossy WebP' | Job-TMFWEM | .NET Core 3.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   106.0 ms |  9.51 ms | 0.52 ms |         - |         - |     - |    15.71 KB |
-            |    'ImageSharp Lossy Webp' | Job-TMFWEM | .NET Core 3.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   765.8 ms | 34.82 ms | 1.91 ms |         - |         - |     - |  2767.79 KB |
-            |     'Magick Lossless WebP' | Job-TMFWEM | .NET Core 3.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   146.0 ms | 25.51 ms | 1.40 ms |         - |         - |     - |    16.02 KB |
-            | 'ImageSharp Lossless Webp' | Job-TMFWEM | .NET Core 3.1 | WebP/(...).webp [21] | WebP/(...).webp [24] |   478.3 ms | 89.70 ms | 4.92 ms | 4000.0000 | 1000.0000 |     - | 22859.61 KB |
+            |                     Method |        Job |       Runtime |        TestImageLossy |        TestImageLossless |       Mean |     Error |   StdDev |     Gen 0 |     Gen 1 | Gen 2 |   Allocated |
+            |--------------------------- |----------- |-------------- |---------------------- |------------------------- |-----------:|----------:|---------:|----------:|----------:|------:|------------:|
+            |        'Magick Lossy Webp' | Job-IERNAB |    .NET 4.7.2 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   105.8 ms |   6.28 ms |  0.34 ms |         - |         - |     - |    17.65 KB |
+            |    'ImageSharp Lossy Webp' | Job-IERNAB |    .NET 4.7.2 | WebP/earth_lossy.webp | WebP/earth_lossless.webp | 1,145.0 ms | 110.82 ms |  6.07 ms |         - |         - |     - |  2779.53 KB |
+            |     'Magick Lossless Webp' | Job-IERNAB |    .NET 4.7.2 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   145.9 ms |   8.55 ms |  0.47 ms |         - |         - |     - |    18.05 KB |
+            | 'ImageSharp Lossless Webp' | Job-IERNAB |    .NET 4.7.2 | WebP/earth_lossy.webp | WebP/earth_lossless.webp | 1,694.1 ms |  55.09 ms |  3.02 ms | 4000.0000 | 1000.0000 |     - | 30556.87 KB |
+            |        'Magick Lossy Webp' | Job-IMRAGJ | .NET Core 2.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   105.7 ms |   1.89 ms |  0.10 ms |         - |         - |     - |    15.75 KB |
+            |    'ImageSharp Lossy Webp' | Job-IMRAGJ | .NET Core 2.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   741.6 ms |  21.45 ms |  1.18 ms |         - |         - |     - |  2767.85 KB |
+            |     'Magick Lossless Webp' | Job-IMRAGJ | .NET Core 2.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   146.1 ms |   9.52 ms |  0.52 ms |         - |         - |     - |    16.54 KB |
+            | 'ImageSharp Lossless Webp' | Job-IMRAGJ | .NET Core 2.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   522.5 ms |  21.15 ms |  1.16 ms | 4000.0000 | 1000.0000 |     - | 22860.02 KB |
+            |        'Magick Lossy Webp' | Job-NAASQX | .NET Core 3.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   105.9 ms |   5.34 ms |  0.29 ms |         - |         - |     - |    15.45 KB |
+            |    'ImageSharp Lossy Webp' | Job-NAASQX | .NET Core 3.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   748.8 ms | 290.47 ms | 15.92 ms |         - |         - |     - |  2767.84 KB |
+            |     'Magick Lossless Webp' | Job-NAASQX | .NET Core 3.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   146.1 ms |   1.14 ms |  0.06 ms |         - |         - |     - |     15.9 KB |
+            | 'ImageSharp Lossless Webp' | Job-NAASQX | .NET Core 3.1 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   480.7 ms |  25.25 ms |  1.38 ms | 4000.0000 | 1000.0000 |     - |  22859.7 KB |
+            |        'Magick Lossy Webp' | Job-GLNACU | .NET Core 5.0 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   105.7 ms |   4.71 ms |  0.26 ms |         - |         - |     - |    15.48 KB |
+            |    'ImageSharp Lossy Webp' | Job-GLNACU | .NET Core 5.0 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   645.7 ms |  61.00 ms |  3.34 ms |         - |         - |     - |  2768.13 KB |
+            |     'Magick Lossless Webp' | Job-GLNACU | .NET Core 5.0 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   146.5 ms |  18.63 ms |  1.02 ms |         - |         - |     - |     15.8 KB |
+            | 'ImageSharp Lossless Webp' | Job-GLNACU | .NET Core 5.0 | WebP/earth_lossy.webp | WebP/earth_lossless.webp |   306.7 ms |  32.31 ms |  1.77 ms | 4000.0000 | 1000.0000 |     - | 22860.02 KB |
          */
     }
 }

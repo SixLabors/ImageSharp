@@ -418,6 +418,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
                 public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
                 public const string Issue1530 = "Gif/issues/issue1530.gif";
+                public const string InvalidColorIndex = "Gif/issues/issue1668_invalidcolorindex.gif";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };

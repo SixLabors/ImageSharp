@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
             else
             {
-                var enc = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height, this.quality, this.method);
+                var enc = new Vp8LEncoder(this.memoryAllocator, this.configuration, image.Width, image.Height, this.quality, this.method);
                 enc.Encode(image, stream);
             }
         }

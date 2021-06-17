@@ -20,6 +20,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     internal class Vp8LEncoder : IDisposable
     {
         /// <summary>
+        /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
+        /// </summary>
+        private readonly MemoryAllocator memoryAllocator;
+
+        /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// Maximum number of reference blocks the image will be segmented into.
         /// </summary>
         private const int MaxRefsBlockPerImage = 16;
@@ -28,11 +38,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Minimum block size for backward references.
         /// </summary>
         private const int MinBlockSize = 256;
-
-        /// <summary>
-        /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
-        /// </summary>
-        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// A bit writer for writing lossless webp streams.
@@ -59,15 +64,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Initializes a new instance of the <see cref="Vp8LEncoder"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="configuration">The global configuration.</param>
         /// <param name="width">The width of the input image.</param>
         /// <param name="height">The height of the input image.</param>
         /// <param name="quality">The encoding quality.</param>
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
-        public Vp8LEncoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method)
+        public Vp8LEncoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method)
         {
             int pixelCount = width * height;
             int initialSize = pixelCount * 2;
 
+            this.memoryAllocator = memoryAllocator;
+            this.configuration = configuration;
             this.quality = Numerics.Clamp(quality, 0, 100);
             this.method = Numerics.Clamp(method, 0, 6);
             this.bitWriter = new Vp8LBitWriter(initialSize);
@@ -75,7 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.Palette = memoryAllocator.Allocate<uint>(WebpConstants.MaxPaletteSize);
             this.Refs = new Vp8LBackwardRefs[3];
             this.HashChain = new Vp8LHashChain(pixelCount);
-            this.memoryAllocator = memoryAllocator;
 
             // We round the block size up, so we're guaranteed to have at most MaxRefsBlockPerImage blocks used:
             int refsBlockSize = ((pixelCount - 1) / MaxRefsBlockPerImage) + 1;
@@ -230,13 +237,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Convert image pixels to bgra array.
             Span<uint> bgra = this.Bgra.GetSpan();
+            using IMemoryOwner<Bgra32> bgraRowBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
+            Span<Bgra32> bgraRow = bgraRowBuffer.GetSpan();
             int idx = 0;
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                for (int x = 0; x < rowSpan.Length; x++)
+                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, rowSpan, bgraRow);
+                for (int x = 0; x < width; x++)
                 {
-                    bgra[idx++] = ToBgra32(rowSpan[x]).PackedValue;
+                    bgra[idx++] = bgraRow[x].PackedValue;
                 }
             }
 
@@ -933,18 +943,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256);
+            using IMemoryOwner<Bgra32> bgraBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
+            Span<Bgra32> currentRow = bgraBuffer.GetSpan();
             Span<uint> histo = histoBuffer.Memory.Span;
-            Bgra32 pixPrev = ToBgra32(image.GetPixelRowSpan(0)[0]); // Skip the first pixel.
-            Span<TPixel> prevRow = null;
+            TPixel firstPixel = image.GetPixelRowSpan(0)[0];
+            Bgra32 bgra = default;
+            Rgba32 rgba = default;
+            firstPixel.ToRgba32(ref rgba);
+            bgra.FromRgba32(rgba);
+            Bgra32 pixPrev = bgra; // Skip the first pixel.
+            Span<Bgra32> prevRow = null;
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> currentRow = image.GetPixelRowSpan(y);
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, pixelRow, currentRow);
                 for (int x = 0; x < width; x++)
                 {
-                    Bgra32 pix = ToBgra32(currentRow[x]);
+                    Bgra32 pix = currentRow[x];
                     uint pixDiff = LosslessUtils.SubPixels(pix.PackedValue, pixPrev.PackedValue);
                     pixPrev = pix;
-                    if ((pixDiff == 0) || (prevRow != null && pix == ToBgra32(prevRow[x])))
+                    if ((pixDiff == 0) || (prevRow != null && pix == prevRow[x]))
                     {
                         continue;
                     }
@@ -1110,13 +1128,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private int GetColorPalette<TPixel>(Image<TPixel> image, Span<uint> palette)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var colors = new HashSet<TPixel>();
+            int width = image.Width;
+            var colors = new HashSet<Bgra32>();
+            using IMemoryOwner<Bgra32> bgraRowBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
+            Span<Bgra32> bgraRow = bgraRowBuffer.GetSpan();
             for (int y = 0; y < image.Height; y++)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                for (int x = 0; x < rowSpan.Length; x++)
+                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, rowSpan, bgraRow);
+                for (int x = 0; x < width; x++)
                 {
-                    colors.Add(rowSpan[x]);
+                    colors.Add(bgraRow[x]);
                     if (colors.Count > WebpConstants.MaxPaletteSize)
                     {
                         // Exact count is not needed, because a palette will not be used then anyway.
@@ -1126,12 +1148,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Fill the colors into the palette.
-            using HashSet<TPixel>.Enumerator colorEnumerator = colors.GetEnumerator();
+            using HashSet<Bgra32>.Enumerator colorEnumerator = colors.GetEnumerator();
             int idx = 0;
             while (colorEnumerator.MoveNext())
             {
-                Bgra32 bgra = ToBgra32(colorEnumerator.Current);
-                palette[idx++] = bgra.PackedValue;
+                palette[idx++] = colorEnumerator.Current.PackedValue;
             }
 
             return colors.Count;
@@ -1589,16 +1610,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxTransformBits = (method < 4) ? 6 : (method > 4) ? 4 : 5;
             int res = (histoBits > maxTransformBits) ? maxTransformBits : histoBits;
             return res;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static Bgra32 ToBgra32<TPixel>(TPixel color)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Rgba32 rgba = default;
-            color.ToRgba32(ref rgba);
-            var bgra = new Bgra32(rgba.R, rgba.G, rgba.B, rgba.A);
-            return bgra;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             this.webpLosslessBytes ??= File.ReadAllBytes(this.TestImageLosslessFullPath);
         }
 
-        [Benchmark(Description = "Magick Lossy WebP")]
+        [Benchmark(Description = "Magick Lossy Webp")]
         public int WebpLossyMagick()
         {
             var settings = new MagickReadSettings { Format = MagickFormat.WebP };
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             return image.Height;
         }
 
-        [Benchmark(Description = "Magick Lossless WebP")]
+        [Benchmark(Description = "Magick Lossless Webp")]
         public int WebpLosslessMagick()
         {
             var settings = new MagickReadSettings { Format = MagickFormat.WebP };

@@ -72,7 +72,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private int maxColors;
         private readonly Box[] colorCube;
         private EuclideanPixelMap<TPixel> pixelMap;
-        private bool pixelMapHasValue;
         private readonly bool isDithering;
         private bool isDisposed;
 
@@ -97,7 +96,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.colorCube = new Box[this.maxColors];
             this.isDisposed = false;
             this.pixelMap = default;
-            this.pixelMapHasValue = false;
             this.palette = default;
             this.isDithering = this.isDithering = !(this.Options.Dither is null);
         }
@@ -147,15 +145,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
             if (this.isDithering)
             {
-                // When called by QuantizerUtilities.BuildPalette this prevents
-                // mutiple instances of the map being created but not disposed.
-                if (this.pixelMapHasValue)
+                // When called multiple times by QuantizerUtilities.BuildPalette
+                // this prevents memory churn caused by reallocation.
+                if (this.pixelMap is null)
                 {
-                    this.pixelMap.Dispose();
+                    this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
                 }
-
-                this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
-                this.pixelMapHasValue = true;
+                else
+                {
+                    this.pixelMap.Clear(result);
+                }
             }
 
             this.palette = result;
@@ -201,7 +200,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.momentsOwner = null;
                 this.tagsOwner = null;
                 this.paletteOwner = null;
-                this.pixelMap.Dispose();
+                this.pixelMap?.Dispose();
+                this.pixelMap = null;
             }
         }
 
@@ -215,16 +215,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The index.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetPaletteIndex(int r, int g, int b, int a)
-        {
-            return (r << ((IndexBits * 2) + IndexAlphaBits))
-                + (r << (IndexBits + IndexAlphaBits + 1))
-                + (g << (IndexBits + IndexAlphaBits))
-                + (r << (IndexBits * 2))
-                + (r << (IndexBits + 1))
-                + (g << IndexBits)
-                + ((r + g + b) << IndexAlphaBits)
-                + r + g + b + a;
-        }
+            => (r << ((IndexBits * 2) + IndexAlphaBits))
+            + (r << (IndexBits + IndexAlphaBits + 1))
+            + (g << (IndexBits + IndexAlphaBits))
+            + (r << (IndexBits * 2))
+            + (r << (IndexBits + 1))
+            + (g << IndexBits)
+            + ((r + g + b) << IndexAlphaBits)
+            + r + g + b + a;
 
         /// <summary>
         /// Computes sum over a box of any given statistic.
@@ -233,24 +231,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="moments">The moment.</param>
         /// <returns>The result.</returns>
         private static Moment Volume(ref Box cube, ReadOnlySpan<Moment> moments)
-        {
-            return moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
-                 + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
-        }
+            => moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
+            + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
 
         /// <summary>
         /// Computes part of Volume(cube, moment) that doesn't depend on RMax, GMax, BMax, or AMax (depending on direction).
@@ -835,7 +831,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             public int Volume;
 
             /// <inheritdoc/>
-            public readonly override bool Equals(object obj)
+            public override readonly bool Equals(object obj)
                 => obj is Box box
                 && this.Equals(box);
 
@@ -852,7 +848,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 && this.Volume == other.Volume;
 
             /// <inheritdoc/>
-            public readonly override int GetHashCode()
+            public override readonly int GetHashCode()
             {
                 HashCode hash = default;
                 hash.Add(this.RMin);

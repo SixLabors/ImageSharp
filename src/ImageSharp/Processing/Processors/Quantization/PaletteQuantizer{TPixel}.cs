@@ -16,32 +16,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly EuclideanPixelMap<TPixel> pixelMap;
-        private readonly bool leaveMap;
+        private EuclideanPixelMap<TPixel> pixelMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
-        /// <param name="pixelMap">The pixel map for looking up color matches from a predefined palette.</param>
-        /// <param name="leaveMap">
-        /// <see langword="true"/> to leave the pixel map undisposed after disposing the <see cref="PaletteQuantizer{TPixel}"/> object; otherwise, <see langword="false"/>.
-        /// </param>
+        /// <param name="palette">The palette to use.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public PaletteQuantizer(
-            Configuration configuration,
-            QuantizerOptions options,
-            EuclideanPixelMap<TPixel> pixelMap,
-            bool leaveMap)
+        public PaletteQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlyMemory<TPixel> palette)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(options, nameof(options));
 
             this.Configuration = configuration;
             this.Options = options;
-            this.pixelMap = pixelMap;
-            this.leaveMap = leaveMap;
+            this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
         }
 
         /// <inheritdoc/>
@@ -72,10 +63,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (!this.leaveMap)
-            {
-                this.pixelMap.Dispose();
-            }
+            this.pixelMap?.Dispose();
+            this.pixelMap = null;
         }
     }
 }

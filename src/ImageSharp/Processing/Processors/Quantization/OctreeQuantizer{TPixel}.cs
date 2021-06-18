@@ -25,7 +25,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private IMemoryOwner<TPixel> paletteOwner;
         private ReadOnlyMemory<TPixel> palette;
         private EuclideanPixelMap<TPixel> pixelMap;
-        private bool pixelMapHasValue;
         private readonly bool isDithering;
         private bool isDisposed;
 
@@ -48,7 +47,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.octree = new Octree(this.bitDepth);
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
             this.pixelMap = default;
-            this.pixelMapHasValue = false;
             this.palette = default;
             this.isDithering = !(this.Options.Dither is null);
             this.isDisposed = false;
@@ -112,15 +110,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.octree.Palletize(paletteSpan, max, ref paletteIndex);
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
 
-            // When called by QuantizerUtilities.BuildPalette this prevents
-            // mutiple instances of the map being created but not disposed.
-            if (this.pixelMapHasValue)
+            // When called multiple times by QuantizerUtilities.BuildPalette
+            // this prevents memory churn caused by reallocation.
+            if (this.pixelMap is null)
             {
-                this.pixelMap.Dispose();
+                this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            }
+            else
+            {
+                this.pixelMap.Clear(result);
             }
 
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
-            this.pixelMapHasValue = true;
             this.palette = result;
         }
 
@@ -153,9 +153,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             if (!this.isDisposed)
             {
                 this.isDisposed = true;
-                this.paletteOwner.Dispose();
+                this.paletteOwner?.Dispose();
                 this.paletteOwner = null;
-                this.pixelMap.Dispose();
+                this.pixelMap?.Dispose();
+                this.pixelMap = null;
             }
         }
 

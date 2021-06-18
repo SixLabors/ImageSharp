@@ -7,7 +7,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -54,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The pixel sampling strategy for global quantization.
         /// </summary>
-        private IPixelSamplingStrategy pixelSamplingStrategy;
+        private readonly IPixelSamplingStrategy pixelSamplingStrategy;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
@@ -150,8 +149,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // The palette quantizer can reuse the same pixel map across multiple frames
             // since the palette is unchanging. This allows a reduction of memory usage across
             // multi frame gifs using a global palette.
-            EuclideanPixelMap<TPixel> pixelMap = default;
-            bool pixelMapHasValue = false;
+            PaletteQuantizer<TPixel> paletteFrameQuantizer = default;
+            bool quantizerInitialized = false;
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
@@ -166,22 +165,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    if (!pixelMapHasValue)
+                    if (!quantizerInitialized)
                     {
-                        pixelMapHasValue = true;
-                        pixelMap = new EuclideanPixelMap<TPixel>(this.configuration, quantized.Palette);
+                        quantizerInitialized = true;
+                        paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, quantized.Palette);
                     }
 
-                    using var paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap, true);
                     using IndexedImageFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     this.WriteImageData(paletteQuantized, stream);
                 }
             }
 
-            if (pixelMapHasValue)
-            {
-                pixelMap.Dispose();
-            }
+            paletteFrameQuantizer.Dispose();
         }
 
         private void EncodeLocal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, Stream stream)
@@ -310,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     }
                     else
                     {
-                        ratio = (byte)(((1 / vr) * 64) - 15);
+                        ratio = (byte)((1 / vr * 64) - 15);
                     }
                 }
             }
@@ -354,7 +349,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            for (var i = 0; i < metadata.Comments.Count; i++)
+            for (int i = 0; i < metadata.Comments.Count; i++)
             {
                 string comment = metadata.Comments[i];
                 this.buffer[0] = GifConstants.ExtensionIntroducer;

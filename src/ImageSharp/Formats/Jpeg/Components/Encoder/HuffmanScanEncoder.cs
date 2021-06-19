@@ -458,13 +458,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 #endif
         }
 
+        /// <summary>
+        /// Returns index of the last non-zero element in given mcu block, returns -1 if all elements are zero
+        /// </summary>
+        /// <param name="block">Input mcu.</param>
+        /// <returns>Index of the last non-zero element.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetLastNonZeroElement(ref Block8x8F block)
+        internal static int GetLastNonZeroElement(ref Block8x8F block)
         {
             int index = 63;
-
             ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref block);
-            while ((int)Unsafe.Add(ref elemRef, index) == 0)
+            while (index > -1 && (int)Unsafe.Add(ref elemRef, index) == 0)
             {
                 index--;
             }

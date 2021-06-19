@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.EmitDirectCurrentTerm(this.huffmanTables[2 * (int)index].Values, dc - prevDC);
 
             // Emit the AC components.
-            int[] huffmanTable = this.huffmanTables[(2 * (int)index) + 1].Values;
+            int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
             int runLength = 0;
 
@@ -277,20 +277,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 {
                     while (runLength > 15)
                     {
-                        this.EmitHuff(huffmanTable, 0xf0);
+                        this.EmitHuff(acHuffTable, 0xf0);
                         runLength -= 16;
                     }
 
-                    this.EmitHuffRLE(huffmanTable, runLength, ac);
+                    this.EmitHuffRLE(acHuffTable, runLength, ac);
                     runLength = 0;
                 }
             }
 
-            // if mcu block contains trailing zeros - we must write end of block (EOB) values indicating that current block is over
-            // this can be done for any number of trailing zeros
+            // if mcu block contains trailing zeros - we must write end of block (EOB) value indicating that current block is over
+            // this can be done for any number of trailing zeros, even when all 63 ac values are zero
             if (lastValuableIndex < Block8x8F.Size - 1)
             {
-                this.EmitHuff(huffmanTable, 0x00);
+                this.EmitHuff(acHuffTable, 0x00);
             }
 
             return dc;

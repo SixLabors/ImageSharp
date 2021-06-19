@@ -286,7 +286,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 }
             }
 
-            if (lastValuableIndex != 63)
+            // if mcu block contains trailing zeros - we must write end of block (EOB) values indicating that current block is over
+            // this can be done for any number of trailing zeros
+            if (lastValuableIndex < Block8x8F.Size - 1)
             {
                 this.EmitHuff(huffmanTable, 0x00);
             }
@@ -461,14 +463,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Returns index of the last non-zero element in given mcu block, returns -1 if all elements are zero
         /// </summary>
-        /// <param name="block">Input mcu.</param>
+        /// <remarks>Return range is [1..63].</remarks>
+        /// <param name="mcu">Mcu block.</param>
         /// <returns>Index of the last non-zero element.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int GetLastNonZeroElement(ref Block8x8F block)
+        private static int GetLastNonZeroElement(ref Block8x8F mcu)
         {
-            int index = 63;
-            ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref block);
-            while (index > -1 && (int)Unsafe.Add(ref elemRef, index) == 0)
+            int index = Block8x8F.Size - 1;
+            ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
+
+            // Index range is [63..0), first element is a DC value which will be emitted even if entire mcu contains only zeros
+            while (index > 0 && (int)Unsafe.Add(ref elemRef, index) == 0)
             {
                 index--;
             }

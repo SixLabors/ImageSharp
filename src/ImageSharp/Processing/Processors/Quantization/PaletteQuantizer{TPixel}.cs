@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly EuclideanPixelMap<TPixel> pixelMap;
+        private readonly bool leaveMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
@@ -24,11 +25,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
         /// <param name="pixelMap">The pixel map for looking up color matches from a predefined palette.</param>
+        /// <param name="leaveMap">
+        /// <see langword="true"/> to leave the pixel map undisposed after disposing the <see cref="PaletteQuantizer{TPixel}"/> object; otherwise, <see langword="false"/>.
+        /// </param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public PaletteQuantizer(
             Configuration configuration,
             QuantizerOptions options,
-            EuclideanPixelMap<TPixel> pixelMap)
+            EuclideanPixelMap<TPixel> pixelMap,
+            bool leaveMap)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(options, nameof(options));
@@ -36,6 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Configuration = configuration;
             this.Options = options;
             this.pixelMap = pixelMap;
+            this.leaveMap = leaveMap;
         }
 
         /// <inheritdoc/>
@@ -66,6 +72,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (!this.leaveMap)
+            {
+                this.pixelMap.Dispose();
+            }
         }
     }
 }

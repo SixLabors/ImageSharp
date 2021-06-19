@@ -197,6 +197,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
         }
 
+        // https://github.com/SixLabors/ImageSharp/issues/1668
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.InvalidColorIndex, PixelTypes.Rgba32)]
+        public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.DebugSave(provider);
+
+                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+            }
+        }
+
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]

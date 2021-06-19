@@ -416,7 +416,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits)]
-        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Lzw)]
         [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate)]
         [WithFile(RgbUncompressed, PixelTypes.Rgb24, TiffPhotometricInterpretation.Rgb, TiffCompression.None)]
         [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb, TiffCompression.None)]
@@ -426,13 +425,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TestStripLength(provider, photometricInterpretation, compression);
 
         [Theory]
+        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Lzw)]
+        public void TiffEncoder_StripLength_WithPalette<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestStripLength(provider, photometricInterpretation, compression, false, 0.01f);
+
+        [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax)]
         public void TiffEncoder_StripLength_OutOfBounds<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
             where TPixel : unmanaged, IPixel<TPixel> =>
             //// CcittGroup3Fax compressed data length can be larger than the original length.
             Assert.Throws<Xunit.Sdk.TrueException>(() => TestStripLength(provider, photometricInterpretation, compression));
 
-        private static void TestStripLength<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
+        [Theory]
+        [WithTestPatternImages(287, 321, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb)]
+        [WithTestPatternImages(287, 321, PixelTypes.Rgba32, TiffPhotometricInterpretation.PaletteColor)]
+        [WithTestPatternImages(287, 321, PixelTypes.Rgba32, TiffPhotometricInterpretation.BlackIsZero)]
+        public void TiffEncode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, TiffPhotometricInterpretation photometricInterpretation)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
+            using Image<TPixel> image = provider.GetImage();
+
+            var encoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation };
+            image.DebugSave(provider, encoder);
+        }
+
+        private static void TestStripLength<TPixel>(
+            TestImageProvider<TPixel> provider,
+            TiffPhotometricInterpretation photometricInterpretation,
+            TiffCompression compression,
+            bool useExactComparer = true,
+            float compareTolerance = 0.01f)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
@@ -480,10 +504,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // Compare with reference.
             TestTiffEncoderCore(
-                provider,
-                inputMeta.BitsPerPixel,
-                photometricInterpretation,
-                inputCompression);
+               provider,
+               inputMeta.BitsPerPixel,
+               photometricInterpretation,
+               inputCompression,
+               useExactComparer: useExactComparer,
+               compareTolerance: compareTolerance);
         }
 
         private static void TestTiffEncoderCore<TPixel>(

@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -441,6 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int descriptorRight = descriptorLeft + descriptor.Width;
             bool transFlag = this.graphicsControlExtension.TransparencyFlag;
             byte transIndex = this.graphicsControlExtension.TransparencyIndex;
+            int colorTableMaxIdx = colorTable.Length - 1;
 
             for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
             {
@@ -487,7 +488,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     // #403 The left + width value can be larger than the image width
                     for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
+                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                         Rgb24 rgb = colorTable[index];
                         pixel.FromRgb24(rgb);
@@ -497,7 +498,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
+                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
                         if (transIndex != index)
                         {
                             ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);

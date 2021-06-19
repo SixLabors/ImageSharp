@@ -1,10 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 using System.Threading;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -253,18 +255,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             Block8x8F.Quantize(ref refTemp1, ref refTemp2, ref quant, ref unZig);
 
-            int lastValuableIndex = GetLastNonZeroElement(ref refTemp2);
-
-            int dc = (int)refTemp2[0];
-
             // Emit the DC delta.
+            int dc = (int)refTemp2[0];
             this.EmitDirectCurrentTerm(this.huffmanTables[2 * (int)index].Values, dc - prevDC);
 
             // Emit the AC components.
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
             int runLength = 0;
-
+            int lastValuableIndex = GetLastValuableElementIndex(ref refTemp2);
             for (int zig = 1; zig <= lastValuableIndex; zig++)
             {
                 int ac = (int)refTemp2[zig];
@@ -288,7 +287,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // if mcu block contains trailing zeros - we must write end of block (EOB) value indicating that current block is over
             // this can be done for any number of trailing zeros, even when all 63 ac values are zero
-            if (lastValuableIndex < Block8x8F.Size - 1)
+            // (Block8x8F.Size - 1) == 63 - last index of the mcu elements
+            if (lastValuableIndex != Block8x8F.Size - 1)
             {
                 this.EmitHuff(acHuffTable, 0x00);
             }
@@ -433,7 +433,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </remarks>
         /// <param name="value">The value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetHuffmanEncodingLength(uint value)
+        internal static int GetHuffmanEncodingLength(uint value)
         {
             DebugGuard.IsTrue(value <= (1 << 16), "Huffman encoder is supposed to encode a value of 16bit size max");
 #if SUPPORTS_BITOPERATIONS
@@ -461,24 +461,64 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Returns index of the last non-zero element in given mcu block, returns -1 if all elements are zero
+        /// Returns index of the last non-zero element in given mcu block
         /// </summary>
-        /// <remarks>Return range is [1..63].</remarks>
+        /// <remarks>
+        /// If all values of the mcu block are zero, this method might return different results depending on the runtime and hardware support.
+        /// This is jpeg mcu specific code, mcu[0] stores a dc value which will be encoded outside of the loop.
+        /// This method is guaranteed to return either -1 or 0 if all elements are zero.
+        /// </remarks>
         /// <param name="mcu">Mcu block.</param>
         /// <returns>Index of the last non-zero element.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetLastNonZeroElement(ref Block8x8F mcu)
+        internal static int GetLastValuableElementIndex(ref Block8x8F mcu)
         {
-            int index = Block8x8F.Size - 1;
-            ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
-
-            // Index range is [63..0), first element is a DC value which will be emitted even if entire mcu contains only zeros
-            while (index > 0 && (int)Unsafe.Add(ref elemRef, index) == 0)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
             {
-                index--;
-            }
+                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
 
-            return index;
+                Vector256<int> zero8 = Vector256<int>.Zero;
+
+                ref Vector256<float> mcuStride = ref mcu.V0;
+
+                for (int i = 8; i >= 0; i--)
+                {
+                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Avx.ConvertToVector256Int32(Unsafe.Add(ref mcuStride, i)), zero8).AsByte());
+
+                    // we do not know for sure if this stride contain all non-zero elements or if it has some trailing zeros
+                    if (areEqual != equalityMask)
+                    {
+                        // last index in the stride, we go from the end to the start of the stride
+                        int startIndex = i * 8;
+                        int index = startIndex + 7;
+                        ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
+                        while (index >= startIndex && (int)Unsafe.Add(ref elemRef, index) == 0)
+                        {
+                            index--;
+                        }
+
+                        // this implementation will return -1 if all ac components are zero and dc are zero
+                        return index;
+                    }
+                }
+
+                return -1;
+            }
+            else
+#endif
+            {
+                int index = Block8x8F.Size - 1;
+                ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
+
+                while (index > 0 && (int)Unsafe.Add(ref elemRef, index) == 0)
+                {
+                    index--;
+                }
+
+                // this implementation will return 0 if all ac components and dc are zero
+                return index;
+            }
         }
     }
 }

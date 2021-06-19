@@ -416,11 +416,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             if (padBitsCount != 0)
             {
                 this.Emit((1 << padBitsCount) - 1, padBitsCount);
-            }
-
-            // flush remaining bytes
-            if (this.emitLen != 0)
-            {
                 this.target.Write(this.emitBuffer, 0, this.emitLen);
             }
         }

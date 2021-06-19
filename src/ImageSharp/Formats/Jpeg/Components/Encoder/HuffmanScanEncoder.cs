@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int dc = (int)refTemp2[0];
 
             // Emit the DC delta.
-            this.EmitHuffRLE(this.huffmanTables[2 * (int)index].Values, 0, dc - prevDC);
+            this.EmitDirectCurrentTerm(this.huffmanTables[2 * (int)index].Values, dc - prevDC);
 
             // Emit the AC components.
             int[] huffmanTable = this.huffmanTables[(2 * (int)index) + 1].Values;
@@ -358,6 +358,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.Emit(x >> 8, x & 0xff);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void EmitDirectCurrentTerm(int[] table, int value)
+        {
+            int a = value;
+            int b = value;
+            if (a < 0)
+            {
+                a = -value;
+                b = value - 1;
+            }
+
+            int bt = GetHuffmanEncodingLength((uint)a);
+
+            this.EmitHuff(table, bt);
+            if (bt > 0)
+            {
+                this.Emit(b & ((1 << bt) - 1), bt);
+            }
+        }
+
         /// <summary>
         /// Emits a run of runLength copies of value encoded with the given Huffman encoder.
         /// </summary>
@@ -378,10 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int bt = GetHuffmanEncodingLength((uint)a);
 
             this.EmitHuff(table, (runLength << 4) | bt);
-            if (bt > 0)
-            {
-                this.Emit(b & ((1 << bt) - 1), bt);
-            }
+            this.Emit(b & ((1 << bt) - 1), bt);
         }
 
         /// <summary>

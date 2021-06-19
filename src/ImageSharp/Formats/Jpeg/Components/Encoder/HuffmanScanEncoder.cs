@@ -253,6 +253,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             Block8x8F.Quantize(ref refTemp1, ref refTemp2, ref quant, ref unZig);
 
+            int lastValuableIndex = GetLastNonZeroElement(ref refTemp2);
+
             int dc = (int)refTemp2[0];
 
             // Emit the DC delta.
@@ -263,7 +265,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             int runLength = 0;
 
-            for (int zig = 1; zig < Block8x8F.Size; zig++)
+            for (int zig = 1; zig <= lastValuableIndex; zig++)
             {
                 int ac = (int)refTemp2[zig];
 
@@ -284,7 +286,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 }
             }
 
-            if (runLength > 0)
+            if (lastValuableIndex != 63)
             {
                 this.EmitHuff(huffmanTable, 0x00);
             }
@@ -456,7 +458,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 #endif
         }
 
-        // !!! DO NOT DELETE THIS !!! until custom huffman tables are supported - this is very handy for debugging
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetLastNonZeroElement(ref Block8x8F block)
+        {
+            int index = 63;
+
+            ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref block);
+            while ((int)Unsafe.Add(ref elemRef, index) == 0)
+            {
+                index--;
+            }
+
+            return index;
+        }
+
         /// <summary>
         /// Prints given huffman codes to the System.Console for debugging puroses.
         /// </summary>

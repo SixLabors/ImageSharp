@@ -471,52 +471,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             return index;
         }
-
-        /// <summary>
-        /// Prints given huffman codes to the System.Console for debugging puroses.
-        /// </summary>
-        /// <param name="codes">Codes array.</param>
-        /// <param name="title">Custom title to print.</param>
-        /// <param name="printCode">Flag indicating if all codes should be printed.</param>
-        /// <param name="codePrintBase">Indicates which number base will be used to print codes</param>
-        private static void PrintHuffmanSummary(int[] codes, string title, bool printCode, int codePrintBase = 2)
-        {
-            System.Console.WriteLine(title);
-            System.Console.WriteLine($"Codes count: {codes.Length}");
-
-            // This is possible if custom tree is provided, especially for per-image optimized tree
-            if (codes.Length == 0)
-            {
-                return;
-            }
-
-            // Min
-            int min = codes.Min();
-            int min_len = min >> 24;
-            string min_code = System.Convert.ToString(min & ((1 << 24) - 1), codePrintBase);
-
-            // Max
-            int max = codes.Max();
-            int max_len = max >> 24;
-            string max_code = System.Convert.ToString(max & ((1 << 24) - 1), codePrintBase);
-
-            System.Console.WriteLine($"Min code: {min_code}, len: {min_len} \nMax code: {max_code}, len: {max_len}");
-
-            // Printing codes
-            if (printCode)
-            {
-                PrintHuffmanCodes(codes, codePrintBase);
-            }
-        }
-
-        private static void PrintHuffmanCodes(int[] codes, int codePrintBase)
-        {
-            for (int i = 0; i < codes.Length; i++)
-            {
-                int huffCode = codes[i];
-                string code = System.Convert.ToString(huffCode & ((1 << 24) - 1), codePrintBase);
-                System.Console.WriteLine($"\t{code}");
-            }
-        }
     }
 }

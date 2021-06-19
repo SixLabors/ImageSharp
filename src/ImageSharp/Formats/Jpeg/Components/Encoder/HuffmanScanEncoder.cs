@@ -424,10 +424,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// Calculates how many minimum bits needed to store given value for Huffman jpeg encoding.
         /// </summary>
         /// <remarks>
-        /// This method returns 0 for input value 0. This is done specificaly for huffman encoding
+        /// This is an internal operation supposed to be used only in <see cref="HuffmanScanEncoder"/> class for jpeg encoding.
         /// </remarks>
         /// <param name="value">The value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal static int GetHuffmanEncodingLength(uint value)
         {
             DebugGuard.IsTrue(value <= (1 << 16), "Huffman encoder is supposed to encode a value of 16bit size max");
@@ -456,16 +456,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Returns index of the last non-zero element in given mcu block
-        /// </summary>
-        /// <remarks>
+        /// Returns index of the last non-zero element in given mcu block.
         /// If all values of the mcu block are zero, this method might return different results depending on the runtime and hardware support.
         /// This is jpeg mcu specific code, mcu[0] stores a dc value which will be encoded outside of the loop.
         /// This method is guaranteed to return either -1 or 0 if all elements are zero.
+        /// </summary>
+        /// <remarks>
+        /// This is an internal operation supposed to be used only in <see cref="HuffmanScanEncoder"/> class for jpeg encoding.
         /// </remarks>
         /// <param name="mcu">Mcu block.</param>
         /// <returns>Index of the last non-zero element.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal static int GetLastValuableElementIndex(ref Block8x8F mcu)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS

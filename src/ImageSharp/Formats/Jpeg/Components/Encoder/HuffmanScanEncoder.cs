@@ -478,7 +478,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 ref Vector256<float> mcuStride = ref mcu.V0;
 
-                for (int i = 8; i >= 0; i--)
+                for (int i = 7; i >= 0; i--)
                 {
                     int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Avx.ConvertToVector256Int32(Unsafe.Add(ref mcuStride, i)), zero8).AsByte());
 

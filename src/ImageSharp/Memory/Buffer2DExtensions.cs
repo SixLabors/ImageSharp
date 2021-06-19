@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Copy <paramref name="columnCount"/> columns of <paramref name="buffer"/> inplace,
         /// from positions starting at <paramref name="sourceIndex"/> to positions at <paramref name="destIndex"/>.
         /// </summary>
-        internal static unsafe void CopyColumns<T>(
+        internal static unsafe void DangerousCopyColumns<T>(
             this Buffer2D<T> buffer,
             int sourceIndex,
             int destIndex,
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Memory
             int dOffset = destIndex * elementSize;
             long count = columnCount * elementSize;
 
-            Span<byte> span = MemoryMarshal.AsBytes(buffer.GetSingleMemory().Span);
+            Span<byte> span = MemoryMarshal.AsBytes(buffer.DangerousGetSingleMemory().Span);
 
             fixed (byte* ptr = span)
             {

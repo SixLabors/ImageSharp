@@ -15,6 +15,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     internal class HuffmanScanEncoder
     {
+        /// <summary>
+        /// Compiled huffman tree to encode given values.
+        /// </summary>
+        /// <remarks>Yields codewords by index consisting of [run length | bitsize].</remarks>
         private HuffmanLut[] huffmanTables;
 
         /// <summary>

@@ -373,22 +373,21 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 return;
             }
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 1, 0))
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 1, 0);
+            Span<byte> rowSpan = row.GetSpan();
+            bool invertY = InvertY(origin);
+            if (invertY)
             {
-                bool invertY = InvertY(origin);
-                if (invertY)
+                for (int y = height - 1; y >= 0; y--)
                 {
-                    for (int y = height - 1; y >= 0; y--)
-                    {
-                        this.ReadL8Row(width, pixels, row, y);
-                    }
+                    this.ReadL8Row(width, pixels, rowSpan, y);
                 }
-                else
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
                 {
-                    for (int y = 0; y < height; y++)
-                    {
-                        this.ReadL8Row(width, pixels, row, y);
-                    }
+                    this.ReadL8Row(width, pixels, rowSpan, y);
                 }
             }
         }
@@ -406,57 +405,56 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             TPixel color = default;
             bool invertX = InvertX(origin);
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0))
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
+                int newY = InvertY(y, height, origin);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+
+                if (invertX)
                 {
-                    int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-
-                    if (invertX)
+                    for (int x = width - 1; x >= 0; x--)
                     {
-                        for (int x = width - 1; x >= 0; x--)
-                        {
-                            this.currentStream.Read(this.scratchBuffer, 0, 2);
-                            if (!this.hasAlpha)
-                            {
-                                this.scratchBuffer[1] |= 1 << 7;
-                            }
-
-                            if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
-                            {
-                                color.FromLa16(Unsafe.As<byte, La16>(ref this.scratchBuffer[0]));
-                            }
-                            else
-                            {
-                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.scratchBuffer[0]));
-                            }
-
-                            pixelSpan[x] = color;
-                        }
-                    }
-                    else
-                    {
-                        this.currentStream.Read(row);
-                        Span<byte> rowSpan = row.GetSpan();
-
+                        this.currentStream.Read(this.scratchBuffer, 0, 2);
                         if (!this.hasAlpha)
                         {
-                            // We need to set the alpha component value to fully opaque.
-                            for (int x = 1; x < rowSpan.Length; x += 2)
-                            {
-                                rowSpan[x] |= 1 << 7;
-                            }
+                            this.scratchBuffer[1] |= 1 << 7;
                         }
 
                         if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                         {
-                            PixelOperations<TPixel>.Instance.FromLa16Bytes(this.Configuration, rowSpan, pixelSpan, width);
+                            color.FromLa16(Unsafe.As<byte, La16>(ref this.scratchBuffer[0]));
                         }
                         else
                         {
-                            PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.Configuration, rowSpan, pixelSpan, width);
+                            color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.scratchBuffer[0]));
                         }
+
+                        pixelSpan[x] = color;
+                    }
+                }
+                else
+                {
+                    this.currentStream.Read(rowSpan);
+
+                    if (!this.hasAlpha)
+                    {
+                        // We need to set the alpha component value to fully opaque.
+                        for (int x = 1; x < rowSpan.Length; x += 2)
+                        {
+                            rowSpan[x] |= 1 << 7;
+                        }
+                    }
+
+                    if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
+                    {
+                        PixelOperations<TPixel>.Instance.FromLa16Bytes(this.Configuration, rowSpan, pixelSpan, width);
+                    }
+                    else
+                    {
+                        PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.Configuration, rowSpan, pixelSpan, width);
                     }
                 }
             }
@@ -490,23 +488,22 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 return;
             }
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0))
-            {
-                bool invertY = InvertY(origin);
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0);
+            Span<byte> rowSpan = row.GetSpan();
+            bool invertY = InvertY(origin);
 
-                if (invertY)
+            if (invertY)
+            {
+                for (int y = height - 1; y >= 0; y--)
                 {
-                    for (int y = height - 1; y >= 0; y--)
-                    {
-                        this.ReadBgr24Row(width, pixels, row, y);
-                    }
+                    this.ReadBgr24Row(width, pixels, rowSpan, y);
                 }
-                else
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
                 {
-                    for (int y = 0; y < height; y++)
-                    {
-                        this.ReadBgr24Row(width, pixels, row, y);
-                    }
+                    this.ReadBgr24Row(width, pixels, rowSpan, y);
                 }
             }
         }
@@ -526,21 +523,21 @@ namespace SixLabors.ImageSharp.Formats.Tga
             bool invertX = InvertX(origin);
             if (this.tgaMetadata.AlphaChannelBits == 8 && !invertX)
             {
-                using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
+                using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0);
+                Span<byte> rowSpan = row.GetSpan();
+
+                if (InvertY(origin))
                 {
-                    if (InvertY(origin))
+                    for (int y = height - 1; y >= 0; y--)
                     {
-                        for (int y = height - 1; y >= 0; y--)
-                        {
-                            this.ReadBgra32Row(width, pixels, row, y);
-                        }
+                        this.ReadBgra32Row(width, pixels, rowSpan, y);
                     }
-                    else
+                }
+                else
+                {
+                    for (int y = 0; y < height; y++)
                     {
-                        for (int y = 0; y < height; y++)
-                        {
-                            this.ReadBgra32Row(width, pixels, row, y);
-                        }
+                        this.ReadBgra32Row(width, pixels, rowSpan, y);
                     }
                 }
 
@@ -652,12 +649,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadL8Row<TPixel>(int width, Buffer2D<TPixel> pixels, IManagedByteBuffer row, int y)
+        private void ReadL8Row<TPixel>(int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.currentStream.Read(row);
             Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromL8Bytes(this.Configuration, row.GetSpan(), pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromL8Bytes(this.Configuration, row, pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -679,12 +676,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadBgr24Row<TPixel>(int width, Buffer2D<TPixel> pixels, IManagedByteBuffer row, int y)
+        private void ReadBgr24Row<TPixel>(int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.currentStream.Read(row);
             Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.Configuration, row.GetSpan(), pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.Configuration, row, pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -698,12 +695,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadBgra32Row<TPixel>(int width, Buffer2D<TPixel> pixels, IManagedByteBuffer row, int y)
+        private void ReadBgra32Row<TPixel>(int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.currentStream.Read(row);
             Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.Configuration, row.GetSpan(), pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.Configuration, row, pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

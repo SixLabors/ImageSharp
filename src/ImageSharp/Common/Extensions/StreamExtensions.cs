@@ -72,12 +72,6 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        public static void Read(this Stream stream, IManagedByteBuffer buffer)
-            => stream.Read(buffer.Array, 0, buffer.Length());
-
-        public static void Write(this Stream stream, IManagedByteBuffer buffer)
-            => stream.Write(buffer.Array, 0, buffer.Length());
-
 #if !SUPPORTS_SPAN_STREAM
         // This is a port of the CoreFX implementation and is MIT Licensed:
         // https://github.com/dotnet/corefx/blob/17300169760c61a90cab8d913636c1058a30a8c1/src/Common/src/CoreLib/System/IO/Stream.cs#L742

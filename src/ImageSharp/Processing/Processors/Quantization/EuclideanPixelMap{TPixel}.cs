@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             /// <summary>
-            /// Clears the cahe resetting each entry to empty.
+            /// Clears the cache resetting each entry to empty.
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Clear() => this.table.GetSpan().Fill(-1);

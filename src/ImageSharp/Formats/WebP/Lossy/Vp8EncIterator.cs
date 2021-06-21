@@ -214,10 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private Vp8MacroBlockInfo[] Mb { get; }
 
-        public void Init()
-        {
-            this.Reset();
-        }
+        public void Init() => this.Reset();
 
         public void InitFilter()
         {

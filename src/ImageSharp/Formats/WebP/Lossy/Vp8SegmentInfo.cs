@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     internal class Vp8SegmentInfo
@@ -49,5 +51,31 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Gets or sets the penalty for using Intra4.
         /// </summary>
         public long I4Penalty { get; set; }
+
+        /// <summary>
+        /// Gets or sets the minimum distortion required to trigger filtering record.
+        /// </summary>
+        public int MinDisto { get; set; }
+
+        public int LambdaI16 { get; set; }
+
+        public int TLambda { get; set; }
+
+        public int LambdaMode { get; set; }
+
+        public void StoreMaxDelta(Span<short> dcs)
+        {
+            // We look at the first three AC coefficients to determine what is the average
+            // delta between each sub-4x4 block.
+            int v0 = Math.Abs(dcs[1]);
+            int v1 = Math.Abs(dcs[2]);
+            int v2 = Math.Abs(dcs[4]);
+            int maxV = (v1 > v0) ? v1 : v0;
+            maxV = (v2 > maxV) ? v2 : maxV;
+            if (maxV > this.MaxEdge)
+            {
+                this.MaxEdge = maxV;
+            }
+        }
     }
 }

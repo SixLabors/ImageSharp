@@ -11,6 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public const long MaxCost = 0x7fffffffffffffL;
 
         /// <summary>
+        /// Distortion multiplier (equivalent of lambda).
+        /// </summary>
+        private const int RdDistoMult = 256;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Vp8ModeScore"/> class.
         /// </summary>
         public Vp8ModeScore()
@@ -91,5 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Nz = 0;
             this.Score = MaxCost;
         }
+
+        public void SetRdScore(int lambda) => this.Score = ((this.R + this.H) * lambda) + (RdDistoMult * (this.D + this.SD));
     }
 }

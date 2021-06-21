@@ -25,10 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void TM16(Span<byte> dst, Span<byte> yuv, int offset)
-        {
-            TrueMotion(dst, yuv, offset, 16);
-        }
+        public static void TM16(Span<byte> dst, Span<byte> yuv, int offset) => TrueMotion(dst, yuv, offset, 16);
 
         public static void VE16(Span<byte> dst, Span<byte> yuv, int offset)
         {
@@ -82,11 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void DC16NoTopLeft(Span<byte> dst)
-        {
-            // DC with no top and left samples.
-            Put16(0x80, dst);
-        }
+        public static void DC16NoTopLeft(Span<byte> dst) =>
+            Put16(0x80, dst); // DC with no top and left samples.
 
         public static void DC8uv(Span<byte> dst, Span<byte> yuv, int offset)
         {
@@ -103,11 +97,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void TM8uv(Span<byte> dst, Span<byte> yuv, int offset)
-        {
-            // TrueMotion
-            TrueMotion(dst, yuv, offset, 8);
-        }
+        public static void TM8uv(Span<byte> dst, Span<byte> yuv, int offset) =>
+            TrueMotion(dst, yuv, offset, 8); // TrueMotion
 
         public static void VE8uv(Span<byte> dst, Span<byte> yuv, int offset)
         {
@@ -167,11 +158,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void DC8uvNoTopLeft(Span<byte> dst)
-        {
-            // DC with nothing.
-            Put8x8uv(0x80, dst);
-        }
+        public static void DC8uvNoTopLeft(Span<byte> dst) =>
+            Put8x8uv(0x80, dst); // DC with nothing.
 
         public static void DC4(Span<byte> dst, Span<byte> yuv, int offset)
         {
@@ -192,10 +180,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void TM4(Span<byte> dst, Span<byte> yuv, int offset)
-        {
-            TrueMotion(dst, yuv, offset, 4);
-        }
+        public static void TM4(Span<byte> dst, Span<byte> yuv, int offset) => TrueMotion(dst, yuv, offset, 4);
 
         public static void VE4(Span<byte> dst, Span<byte> yuv, int offset)
         {
@@ -484,6 +469,54 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
+        /// <summary>
+        /// Hadamard transform
+        /// Returns the weighted sum of the absolute value of transformed coefficients.
+        /// w[] contains a row-major 4 by 4 symmetric matrix.
+        /// </summary>
+        public static int TTransform(Span<byte> input, Span<ushort> w)
+        {
+            int sum = 0;
+            int[] tmp = new int[16];
+
+            // horizontal pass.
+            for (int i = 0; i < 4; ++i)
+            {
+                int a0 = input[0] + input[2];
+                int a1 = input[1] + input[3];
+                int a2 = input[1] - input[3];
+                int a3 = input[0] - input[2];
+                tmp[0 + (i * 4)] = a0 + a1;
+                tmp[1 + (i * 4)] = a3 + a2;
+                tmp[2 + (i * 4)] = a3 - a2;
+                tmp[3 + (i * 4)] = a0 - a1;
+
+                input = input.Slice(WebpConstants.Bps);
+            }
+
+            // vertical pass
+            for (int i = 0; i < 4; ++i)
+            {
+                int a0 = tmp[0 + i] + tmp[8 + i];
+                int a1 = tmp[4 + i] + tmp[12 + i];
+                int a2 = tmp[4 + i] - tmp[12 + i];
+                int a3 = tmp[0 + i] - tmp[8 + i];
+                int b0 = a0 + a1;
+                int b1 = a3 + a2;
+                int b2 = a3 - a2;
+                int b3 = a0 - a1;
+
+                sum += w[0] * Math.Abs(b0);
+                sum += w[4] * Math.Abs(b1);
+                sum += w[8] * Math.Abs(b2);
+                sum += w[12] * Math.Abs(b3);
+
+                w = w.Slice(1);
+            }
+
+            return sum;
+        }
+
         public static void TransformTwo(Span<short> src, Span<byte> dst)
         {
             TransformOne(src, dst);
@@ -638,15 +671,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
-        {
-            FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
-        }
+            => FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
-        {
-            FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
-        }
+            => FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
 
         public static void VFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
@@ -698,11 +727,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint LoadUv(byte u, byte v)
-        {
-            // We process u and v together stashed into 32bit(16bit each).
-            return (uint)(u | (v << 16));
-        }
+        public static uint LoadUv(byte u, byte v) =>
+            (uint)(u | (v << 16)); // We process u and v together stashed into 32bit(16bit each).
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void YuvToBgr(int y, int u, int v, Span<byte> bgr)
@@ -713,52 +739,28 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToB(int y, int u)
-        {
-            return Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
-        }
+        public static int YuvToB(int y, int u) => Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToG(int y, int u, int v)
-        {
-            return Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
-        }
+        public static int YuvToG(int y, int u, int v) => Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToR(int y, int v)
-        {
-            return Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
-        }
+        public static int YuvToR(int y, int v) => Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static byte Avg2(byte a, byte b)
-        {
-            return (byte)((a + b + 1) >> 1);
-        }
+        public static byte Avg2(byte a, byte b) => (byte)((a + b + 1) >> 1);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static byte Avg3(byte a, byte b, byte c)
-        {
-            return (byte)((a + (2 * b) + c + 2) >> 2);
-        }
+        public static byte Avg3(byte a, byte b, byte c) => (byte)((a + (2 * b) + c + 2) >> 2);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Dst(Span<byte> dst, int x, int y, byte v)
-        {
-            dst[x + (y * WebpConstants.Bps)] = v;
-        }
+        public static void Dst(Span<byte> dst, int x, int y, byte v) => dst[x + (y * WebpConstants.Bps)] = v;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static byte Clip8B(int v)
-        {
-            return (byte)((v & ~0xff) == 0 ? v : (v < 0) ? 0 : 255);
-        }
+        public static byte Clip8B(int v) => (byte)((v & ~0xff) == 0 ? v : (v < 0) ? 0 : 255);
 
         // Cost of coding one event with probability 'proba'.
-        public static int Vp8BitCost(int bit, byte proba)
-        {
-            return bit == 0 ? WebpLookupTables.Vp8EntropyCost[proba] : WebpLookupTables.Vp8EntropyCost[255 - proba];
-        }
+        public static int Vp8BitCost(int bit, byte proba) => bit == 0 ? WebpLookupTables.Vp8EntropyCost[proba] : WebpLookupTables.Vp8EntropyCost[255 - proba];
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Put16(int v, Span<byte> dst)
@@ -950,15 +952,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int MultHi(int v, int coeff)
-        {
-            return (v * coeff) >> 8;
-        }
+        private static int MultHi(int v, int coeff) => (v * coeff) >> 8;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Store(Span<byte> dst, int x, int y, int v)
         {
-            var index = x + (y * WebpConstants.Bps);
+            int index = x + (y * WebpConstants.Bps);
             dst[index] = Clip8B(dst[index] + (v >> 3));
         }
 
@@ -972,16 +971,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Mul1(int a)
-        {
-            return ((a * 20091) >> 16) + a;
-        }
+        private static int Mul1(int a) => ((a * 20091) >> 16) + a;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Mul2(int a)
-        {
-            return (a * 35468) >> 16;
-        }
+        private static int Mul2(int a) => (a * 35468) >> 16;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static byte Clip8(int v)
@@ -1012,9 +1005,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Clamp255(int x)
-        {
-            return x < 0 ? 0 : (x > 255 ? 255 : x);
-        }
+        private static int Clamp255(int x) => x < 0 ? 0 : (x > 255 ? 255 : x);
     }
 }

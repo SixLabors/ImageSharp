@@ -222,6 +222,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         public const int NumCtx = 3;
 
+        public const int MaxVariableLevel = 67;
+
         // This is the common stride for enc/dec.
         public const int Bps = 32;
 

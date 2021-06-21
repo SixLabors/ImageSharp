@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             double sumCost = this.BitCost + b.BitCost;
             costThreshold += sumCost;
-            if (this.GetCombinedHistogramEntropy(b, costThreshold, costInitial: 0, out var cost))
+            if (this.GetCombinedHistogramEntropy(b, costThreshold, costInitial: 0, out double cost))
             {
                 this.Add(b, output);
                 output.BitCost = cost;

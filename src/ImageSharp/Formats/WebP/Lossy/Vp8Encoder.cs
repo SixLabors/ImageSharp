@@ -65,6 +65,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private const int NumMbSegments = 4;
 
+        private const int NumBModes = 10;
+
+        /// <summary>
+        /// The number of prediction modes.
+        /// </summary>
+        private const int NumPredModes = 4;
+
         private const int MaxItersKMeans = 6;
 
         // Convergence is considered reached if dq < DqLimit
@@ -80,11 +87,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         // TODO: filterStrength is hardcoded, should be configurable.
         private const int FilterStrength = 60;
-
-        /// <summary>
-        /// I16 mode (special case).
-        /// </summary>
-        private const int FlatenessLimitI16 = 0;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
@@ -266,12 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         private int MbHeaderLimit { get; }
 
-        /// <summary>
-        /// The number of prediction modes.
-        /// </summary>
-        private const int NumPredModes = 4;
-
-        private readonly ushort[] WeightY = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
+        private readonly ushort[] weightY = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -916,14 +913,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Measure RD-score.
                 rdCur.D = Vp8Sse16X16(src, tmpDst);
-                rdCur.SD = tlambda != 0 ? Mult8B(tlambda, Vp8Disto16x16(src, tmpDst, this.WeightY)) : 0;
+                rdCur.SD = tlambda != 0 ? Mult8B(tlambda, Vp8Disto16x16(src, tmpDst, this.weightY)) : 0;
                 rdCur.H = WebpConstants.Vp8FixedCostsI16[mode];
                 rdCur.R = this.GetCostLuma16(it, rdCur);
 
                 if (isFlat)
                 {
                     // Refine the first impression (which was in pixel space).
-                    isFlat = IsFlat(rdCur.YAcLevels, numBlocks, FlatenessLimitI16);
+                    isFlat = IsFlat(rdCur.YAcLevels, numBlocks, WebpConstants.FlatnessLimitI16);
                     if (isFlat)
                     {
                         // Block is very flat. We put emphasis on the distortion being very low!
@@ -962,9 +959,116 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        private void PickBestIntra4(Vp8EncIterator it, Vp8ModeScore rd)
+        private bool PickBestIntra4(Vp8EncIterator it, Vp8ModeScore rd)
         {
+            Vp8SegmentInfo dqm = this.SegmentInfos[it.CurrentMacroBlockInfo.Segment];
+            int lambda = dqm.LambdaI16;
+            int tlambda = dqm.TLambda;
+            Span<byte> src0 = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
+            Span<byte> bestBlocks = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
+            int totalHeaderBits = 0;
+            var rdBest = new Vp8ModeScore();
+            IMemoryOwner<byte> scratchBuffer = this.memoryAllocator.Allocate<byte>(512);
 
+            if (this.maxI4HeaderBits == 0)
+            {
+                return false;
+            }
+
+            rdBest.InitScore();
+            rdBest.H = 211;  // '211' is the value of VP8BitCost(0, 145)
+            rdBest.SetRdScore(dqm.LambdaMode);
+            it.StartI4();
+            do
+            {
+                int numBlocks = 1;
+                var rdi4 = new Vp8ModeScore();
+                int mode;
+                int bestMode = -1;
+                Span<byte> src = src0.Slice(WebpLookupTables.Vp8Scan[it.I4]);
+                short[] modeCosts = it.GetCostModeI4(rd.ModesI4);
+                Span<byte> bestBlock = bestBlocks.Slice(WebpLookupTables.Vp8Scan[it.I4]);
+                Span<byte> tmpDst = scratchBuffer.GetSpan();
+
+                rdi4.InitScore();
+                it.MakeIntra4Preds();
+                for (mode = 0; mode < NumBModes; ++mode)
+                {
+                    var rdTmp = new Vp8ModeScore();
+                    short[] tmpLevels = new short[16];
+
+                    // Reconstruct.
+                    rdTmp.Nz = (uint)this.ReconstructIntra4(it, dqm, tmpLevels, src, tmpDst, mode);
+
+                    // Compute RD-score.
+                    rdTmp.D = Vp8Sse4X4(src, tmpDst);
+                    rdTmp.SD = tlambda != 0 ? Mult8B(tlambda, Vp8Disto4x4(src, tmpDst, this.weightY)) : 0;
+                    rdTmp.H = modeCosts[mode];
+
+                    // Add flatness penalty, to avoid flat area to be mispredicted by a complex mode.
+                    if (mode > 0 && IsFlat(tmpLevels, numBlocks, WebpConstants.FlatnessLimitI4))
+                    {
+                        rdTmp.R = WebpConstants.FlatnessPenality * numBlocks;
+                    }
+                    else
+                    {
+                        rdTmp.R = 0;
+                    }
+
+                    // early-out check.
+                    rdTmp.SetRdScore(lambda);
+                    if (bestMode >= 0 && rdTmp.Score >= rdi4.Score)
+                    {
+                        continue;
+                    }
+
+                    // finish computing score.
+                    rdTmp.R += it.GetCostLuma4(tmpLevels, this.Proba);
+                    rdTmp.SetRdScore(lambda);
+
+                    if (bestMode < 0 || rdTmp.Score < rdi4.Score)
+                    {
+                        rdi4.CopyScore(rdTmp);
+                        bestMode = mode;
+                        Span<byte> tmp = tmpDst;
+                        tmpDst = bestBlock;
+                        bestBlock = tmp;
+                        tmpLevels.AsSpan(0, rdBest.YAcLevels[it.I4]).CopyTo(rdBest.YAcLevels);
+                    }
+                }
+
+                rdi4.SetRdScore(lambda);
+                rdBest.AddScore(rdi4);
+                if (rdBest.Score >= rd.Score)
+                {
+                    return false;
+                }
+
+                totalHeaderBits += (int)rdi4.H;   // <- equal to modeCosts[bestMode];
+                if (totalHeaderBits > this.maxI4HeaderBits)
+                {
+                    return false;
+                }
+
+                // Copy selected samples if not in the right place already.
+                if (bestBlock != bestBlocks.Slice(WebpLookupTables.Vp8Scan[it.I4]))
+                {
+                    Vp8Copy4x4(bestBlock, bestBlocks.Slice(WebpLookupTables.Vp8Scan[it.I4]));
+                }
+
+                rd.ModesI4[it.I4] = (byte)bestMode;
+                it.TopNz[it.I4 & 3] = it.LeftNz[it.I4 >> 2] = rdi4.Nz != 0 ? 1 : 0;
+            }
+            while (it.RotateI4(bestBlocks));
+
+            // Finalize state.
+            rd.CopyScore(rdBest);
+            it.SetIntra4Mode(rd.ModesI4);
+            it.SwapOut();
+            rdBest.YAcLevels.AsSpan().CopyTo(rd.YAcLevels);
+
+            // Select intra4x4 over intra16x16.
+            return true;
         }
 
         private void PickBestUv(Vp8EncIterator it, Vp8ModeScore rd)
@@ -972,6 +1076,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         }
 
+        // TODO: move to Vp8EncIterator
         private int GetCostLuma16(Vp8EncIterator it, Vp8ModeScore rd)
         {
             var res = new Vp8Residual();
@@ -1019,7 +1124,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             long bitLimit = tryBothModes
                 ? this.MbHeaderLimit
                 : Vp8ModeScore.MaxCost; // no early-out allowed.
-            const int numBModes = 10;
 
             if (isI16)
             {
@@ -1072,7 +1176,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     short[] modeCosts = it.GetCostModeI4(rd.ModesI4);
 
                     it.MakeIntra4Preds();
-                    for (mode = 0; mode < numBModes; ++mode)
+                    for (mode = 0; mode < NumBModes; ++mode)
                     {
                         Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
                         long score = (Vp8Sse4X4(src, reference) * WebpConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
@@ -1448,6 +1552,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
+        private static void Vp8Copy4x4(Span<byte> src, Span<byte> dst) => Copy(src, dst, 4, 4);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void Copy(Span<byte> src, Span<byte> dst, int w, int h)
+        {
+            for (int y = 0; y < h; ++y)
+            {
+                src.Slice(0, w).CopyTo(dst);
+                src = src.Slice(WebpConstants.Bps);
+                dst = dst.Slice(WebpConstants.Bps);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Vp8Disto16x16(Span<byte> a, Span<byte> b, Span<ushort> w)
         {
             int D = 0;
@@ -1456,7 +1574,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 for (x = 0; x < 16; x += 4)
                 {
-                    D += Disto4x4(a.Slice(x + y), b.Slice(x + y), w);
+                    D += Vp8Disto4x4(a.Slice(x + y), b.Slice(x + y), w);
                 }
             }
 
@@ -1464,7 +1582,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Disto4x4(Span<byte> a, Span<byte> b, Span<ushort> w)
+        private static int Vp8Disto4x4(Span<byte> a, Span<byte> b, Span<ushort> w)
         {
             int sum1 = LossyUtils.TTransform(a, w);
             int sum2 = LossyUtils.TTransform(b, w);

@@ -97,6 +97,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Score = MaxCost;
         }
 
+        public void CopyScore(Vp8ModeScore other)
+        {
+            this.D = other.D;
+            this.SD = other.SD;
+            this.R = other.R;
+            this.H = other.H;
+            this.Nz = other.Nz;      // note that nz is not accumulated, but just copied.
+            this.Score = other.Score;
+        }
+
+        public void AddScore(Vp8ModeScore other)
+        {
+            this.D += other.D;
+            this.SD += other.SD;
+            this.R += other.R;
+            this.H += other.H;
+            this.Nz |= other.Nz;     // here, new nz bits are accumulated.
+            this.Score += other.Score;
+        }
+
         public void SetRdScore(int lambda) => this.Score = ((this.R + this.H) * lambda) + (RdDistoMult * (this.D + this.SD));
     }
 }

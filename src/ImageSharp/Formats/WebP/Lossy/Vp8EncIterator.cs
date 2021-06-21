@@ -454,29 +454,32 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return WebpLookupTables.Vp8FixedCostsI4[top, left];
         }
 
-        public void SetIntraUvMode(int mode)
+        public int GetCostLuma4(short[] levels, Vp8EncProba proba)
         {
-            this.CurrentMacroBlockInfo.UvMode = mode;
+            int x = this.I4 & 3;
+            int y = this.I4 >> 2;
+            var res = new Vp8Residual();
+            int R = 0;
+            int ctx;
+
+            res.Init(0, 3, proba);
+            ctx = this.TopNz[x] + this.LeftNz[y];
+            res.SetCoeffs(levels);
+            R += res.GetResidualCost(ctx);
+            return R;
         }
 
-        public void SetSkip(bool skip)
-        {
-            this.CurrentMacroBlockInfo.Skip = skip;
-        }
+        public void SetIntraUvMode(int mode) => this.CurrentMacroBlockInfo.UvMode = mode;
 
-        public void SetSegment(int segment)
-        {
-            this.CurrentMacroBlockInfo.Segment = segment;
-        }
+        public void SetSkip(bool skip) => this.CurrentMacroBlockInfo.Skip = skip;
+
+        public void SetSegment(int segment) => this.CurrentMacroBlockInfo.Segment = segment;
 
         /// <summary>
         /// Returns true if iteration is finished.
         /// </summary>
         /// <returns>True if iterator is finished.</returns>
-        public bool IsDone()
-        {
-            return this.CountDown <= 0;
-        }
+        public bool IsDone() => this.CountDown <= 0;
 
         /// <summary>
         /// Go to next macroblock.
@@ -588,7 +591,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
             else
             {
-                this.Nz[this.nzIdx] &= 1 << 24;  // Preserve the dc_nz bit.
+                // Preserve the dc_nz bit.
+                this.Nz[this.nzIdx] &= 1 << 24;
             }
         }
 
@@ -606,10 +610,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vp8Encoding.EncPredChroma8(this.YuvP, left, top);
         }
 
-        public void MakeIntra4Preds()
-        {
-            Vp8Encoding.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx);
-        }
+        public void MakeIntra4Preds() => Vp8Encoding.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx);
 
         public void SwapOut()
         {
@@ -802,18 +803,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.TopDerr.AsSpan().Fill(0);
         }
 
-        private int Bit(uint nz, int n)
-        {
-            return (nz & (1 << n)) != 0 ? 1 : 0;
-        }
+        private int Bit(uint nz, int n) => (nz & (1 << n)) != 0 ? 1 : 0;
 
         /// <summary>
         /// Set count down.
         /// </summary>
         /// <param name="countDown">Number of iterations to go.</param>
-        private void SetCountDown(int countDown)
-        {
-            this.CountDown = countDown;
-        }
+        private void SetCountDown(int countDown) => this.CountDown = countDown;
     }
 }

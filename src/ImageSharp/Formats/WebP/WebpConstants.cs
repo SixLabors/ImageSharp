@@ -224,6 +224,14 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         public const int MaxVariableLevel = 67;
 
+        public const int FlatnessLimitI16 = 0;
+
+        public const int FlatnessLimitIUv = 2;
+
+        public const int FlatnessLimitI4 = 3;
+
+        public const int FlatnessPenality = 140;
+
         // This is the common stride for enc/dec.
         public const int Bps = 32;
 

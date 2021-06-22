@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Formats.WebP.Lossy;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -45,23 +46,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
 
-            this.LevelCost = new Vp8CostArray[WebpConstants.NumTypes][];
+            this.LevelCost = new Vp8Costs[WebpConstants.NumTypes][];
             for (int i = 0; i < this.LevelCost.Length; i++)
             {
-                this.LevelCost[i] = new Vp8CostArray[WebpConstants.NumBands];
+                this.LevelCost[i] = new Vp8Costs[WebpConstants.NumBands];
                 for (int j = 0; j < this.LevelCost[i].Length; j++)
                 {
-                    this.LevelCost[i][j] = new Vp8CostArray();
+                    this.LevelCost[i][j] = new Vp8Costs();
                 }
             }
 
-            this.RemappedCosts = new Vp8CostArray[WebpConstants.NumTypes][];
+            this.RemappedCosts = new Vp8Costs[WebpConstants.NumTypes][];
             for (int i = 0; i < this.RemappedCosts.Length; i++)
             {
-                this.RemappedCosts[i] = new Vp8CostArray[16];
+                this.RemappedCosts[i] = new Vp8Costs[16];
                 for (int j = 0; j < this.RemappedCosts[i].Length; j++)
                 {
-                    this.RemappedCosts[i][j] = new Vp8CostArray();
+                    this.RemappedCosts[i][j] = new Vp8Costs();
                 }
             }
 
@@ -102,9 +103,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public Vp8Stats[][] Stats { get; }
 
-        public Vp8CostArray[][] LevelCost { get; }
+        public Vp8Costs[][] LevelCost { get; }
 
-        public Vp8CostArray[][] RemappedCosts { get; }
+        public Vp8Costs[][] RemappedCosts { get; }
 
         /// <summary>
         /// Gets or sets the number of skipped blocks.
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             if (!this.Dirty)
             {
-                return; // nothing to do.
+                return; // Nothing to do.
             }
 
             for (int ctype = 0; ctype < WebpConstants.NumTypes; ++ctype)
@@ -130,17 +131,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     for (int ctx = 0; ctx < WebpConstants.NumCtx; ++ctx)
                     {
                         Vp8ProbaArray p = this.Coeffs[ctype][band].Probabilities[ctx];
-                        Span<ushort> table = this.LevelCost[ctype][band].Costs.AsSpan(ctx * MaxVariableLevel);
+                        Vp8CostArray table = this.LevelCost[ctype][band].Costs[ctx];
                         int cost0 = (ctx > 0) ? LossyUtils.Vp8BitCost(1, p.Probabilities[0]) : 0;
                         int costBase = LossyUtils.Vp8BitCost(1, p.Probabilities[1]) + cost0;
                         int v;
-                        table[0] = (ushort)(LossyUtils.Vp8BitCost(0, p.Probabilities[1]) + cost0);
+                        table.Costs[0] = (ushort)(LossyUtils.Vp8BitCost(0, p.Probabilities[1]) + cost0);
                         for (v = 1; v <= MaxVariableLevel; ++v)
                         {
-                            table[v] = (ushort)(costBase + VariableLevelCost(v, p.Probabilities));
+                            table.Costs[v] = (ushort)(costBase + VariableLevelCost(v, p.Probabilities));
                         }
 
-                        // Starting at level 67 and up, the variable part of the cost is actually constant.
+                        // Starting at level 67 and up, the variable part of the cost is actually constant
                     }
                 }
 
@@ -148,9 +149,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 {
                     for (int ctx = 0; ctx < WebpConstants.NumCtx; ++ctx)
                     {
-                        Span<ushort> dst = this.RemappedCosts[ctype][n].Costs.AsSpan(ctx * MaxVariableLevel, MaxVariableLevel);
-                        Span<ushort> src = this.LevelCost[ctype][WebpConstants.Vp8EncBands[n]].Costs.AsSpan(ctx * MaxVariableLevel, MaxVariableLevel);
-                        src.CopyTo(dst);
+                        Vp8CostArray dst = this.RemappedCosts[ctype][n].Costs[ctx];
+                        Vp8CostArray src = this.LevelCost[ctype][WebpConstants.Vp8EncBands[n]].Costs[ctx];
+                        src.Costs.CopyTo(dst.Costs.AsSpan());
                     }
                 }
             }
@@ -170,7 +171,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         for (int p = 0; p < WebpConstants.NumProbas; ++p)
                         {
-                            var stats = this.Stats[t][b].Stats[c].Stats[p];
+                            uint stats = this.Stats[t][b].Stats[c].Stats[p];
                             int nb = (int)((stats >> 0) & 0xffff);
                             int total = (int)((stats >> 16) & 0xffff);
                             int updateProba = WebpLookupTables.CoeffsUpdateProba[t, b, c, p];
@@ -234,10 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        private static int CalcSkipProba(long nb, long total)
-        {
-            return (int)(total != 0 ? (total - nb) * 255 / total : 255);
-        }
+        private static int CalcSkipProba(long nb, long total) => (int)(total != 0 ? (total - nb) * 255 / total : 255);
 
         private static int VariableLevelCost(int level, Span<byte> probas)
         {
@@ -260,15 +258,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         // Collect statistics and deduce probabilities for next coding pass.
         // Return the total bit-cost for coding the probability updates.
-        private static int CalcTokenProba(int nb, int total)
-        {
-            return nb != 0 ? (255 - (nb * 255 / total)) : 255;
-        }
+        private static int CalcTokenProba(int nb, int total) => nb != 0 ? (255 - (nb * 255 / total)) : 255;
 
         // Cost of coding 'nb' 1's and 'total-nb' 0's using 'proba' probability.
-        private static int BranchCost(int nb, int total, int proba)
-        {
-            return (nb * LossyUtils.Vp8BitCost(1, (byte)proba)) + ((total - nb) * LossyUtils.Vp8BitCost(0, (byte)proba));
-        }
+        private static int BranchCost(int nb, int total, int proba) => (nb * LossyUtils.Vp8BitCost(1, (byte)proba)) + ((total - nb) * LossyUtils.Vp8BitCost(0, (byte)proba));
     }
 }

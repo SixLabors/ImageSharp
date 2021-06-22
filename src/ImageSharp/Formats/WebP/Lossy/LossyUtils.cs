@@ -480,18 +480,22 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int[] tmp = new int[16];
 
             // horizontal pass.
+            int inputOffset = 0;
             for (int i = 0; i < 4; ++i)
             {
-                int a0 = input[0] + input[2];
-                int a1 = input[1] + input[3];
-                int a2 = input[1] - input[3];
-                int a3 = input[0] - input[2];
+                int inputOffsetPlusOne = inputOffset + 1;
+                int inputOffsetPlusTwo = inputOffset + 2;
+                int inputOffsetPlusThree = inputOffset + 3;
+                int a0 = input[inputOffset] + input[inputOffsetPlusTwo];
+                int a1 = input[inputOffsetPlusOne] + input[inputOffsetPlusThree];
+                int a2 = input[inputOffsetPlusOne] - input[inputOffsetPlusThree];
+                int a3 = input[inputOffset] - input[inputOffsetPlusTwo];
                 tmp[0 + (i * 4)] = a0 + a1;
                 tmp[1 + (i * 4)] = a3 + a2;
                 tmp[2 + (i * 4)] = a3 - a2;
                 tmp[3 + (i * 4)] = a0 - a1;
 
-                input = input.Slice(WebpConstants.Bps);
+                inputOffset += WebpConstants.Bps;
             }
 
             // vertical pass
@@ -549,6 +553,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // an input in [-2048, 2047] interval. We then need to add a dst value in the [0, 255] range.
             // In the worst case scenario, the input to clip_8b() can be as large as [-60713, 60968].
             tmpOffset = 0;
+            int dstOffset = 0;
             for (int i = 0; i < 4; ++i)
             {
                 // horizontal pass
@@ -560,12 +565,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 int b = dc - tmp[tmpOffsetPlus8];
                 int c = Mul2(tmp[tmpOffsetPlus4]) - Mul1(tmp[tmpOffsetPlus12]);
                 int d = Mul1(tmp[tmpOffsetPlus4]) + Mul2(tmp[tmpOffsetPlus12]);
-                Store(dst, 0, 0, a + d);
-                Store(dst, 1, 0, b + c);
-                Store(dst, 2, 0, b - c);
-                Store(dst, 3, 0, a - d);
+                Store(dst.Slice(dstOffset), 0, 0, a + d);
+                Store(dst.Slice(dstOffset), 1, 0, b + c);
+                Store(dst.Slice(dstOffset), 2, 0, b - c);
+                Store(dst.Slice(dstOffset), 3, 0, a - d);
                 tmpOffset++;
-                dst = dst.Slice(WebpConstants.Bps);
+
+                dstOffset += WebpConstants.Bps;
             }
         }
 

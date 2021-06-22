@@ -77,6 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.LeftNz = new int[9];
             this.I4Boundary = new byte[37];
             this.BitCount = new long[4, 3];
+            this.Scratch = new byte[WebpConstants.Bps * 16];
 
             // To match the C initial values of the reference implementation, initialize all with 204.
             byte defaultInitVal = 204;
@@ -86,6 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.YuvP.AsSpan().Fill(defaultInitVal);
             this.YLeft.AsSpan().Fill(defaultInitVal);
             this.UvLeft.AsSpan().Fill(defaultInitVal);
+            this.Scratch.AsSpan().Fill(defaultInitVal);
 
             this.Reset();
         }
@@ -209,6 +211,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Gets or sets the number of mb still to be processed.
         /// </summary>
         public int CountDown { get; set; }
+
+        /// <summary>
+        /// Gets the scratch buffer.
+        /// </summary>
+        public byte[] Scratch { get; }
 
         public Vp8MacroBlockInfo CurrentMacroBlockInfo => this.Mb[this.currentMbIdx];
 
@@ -459,14 +466,39 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int x = this.I4 & 3;
             int y = this.I4 >> 2;
             var res = new Vp8Residual();
-            int R = 0;
-            int ctx;
+            int r = 0;
 
             res.Init(0, 3, proba);
-            ctx = this.TopNz[x] + this.LeftNz[y];
+            int ctx = this.TopNz[x] + this.LeftNz[y];
             res.SetCoeffs(levels);
-            R += res.GetResidualCost(ctx);
-            return R;
+            r += res.GetResidualCost(ctx);
+            return r;
+        }
+
+        public int GetCostUv(Vp8ModeScore rd, Vp8EncProba proba)
+        {
+            var res = new Vp8Residual();
+            int r = 0;
+
+            // re-import the non-zero context.
+            this.NzToBytes();
+
+            res.Init(0, 2, proba);
+            for (int ch = 0; ch <= 2; ch += 2)
+            {
+                for (int y = 0; y < 2; ++y)
+                {
+                    for (int x = 0; x < 2; ++x)
+                    {
+                        int ctx = this.TopNz[4 + ch + x] + this.LeftNz[4 + ch + y];
+                        res.SetCoeffs(rd.UvLevels.AsSpan((ch * 2) + x + (y * 2)));
+                        r += res.GetResidualCost(ctx);
+                        this.TopNz[4 + ch + x] = this.LeftNz[4 + ch + y] = (res.Last >= 0) ? 1 : 0;
+                    }
+                }
+            }
+
+            return r;
         }
 
         public void SetIntraUvMode(int mode) => this.CurrentMacroBlockInfo.UvMode = mode;

@@ -8,10 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8CostArray"/> class.
         /// </summary>
-        public Vp8CostArray()
-        {
-            this.Costs = new ushort[WebpConstants.NumCtx * (67 + 1)];
-        }
+        public Vp8CostArray() => this.Costs = new ushort[WebpConstants.NumCtx * (67 + 1)];
 
         public ushort[] Costs { get; }
     }

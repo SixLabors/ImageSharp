@@ -59,7 +59,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public int LambdaI16 { get; set; }
 
+        public int LambdaI4 { get; set; }
+
         public int TLambda { get; set; }
+
+        public int LambdaUv { get; set; }
 
         public int LambdaMode { get; set; }
 

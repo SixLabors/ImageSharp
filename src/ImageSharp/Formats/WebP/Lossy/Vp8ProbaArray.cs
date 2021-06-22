@@ -11,10 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8ProbaArray"/> class.
         /// </summary>
-        public Vp8ProbaArray()
-        {
-            this.Probabilities = new byte[WebpConstants.NumProbas];
-        }
+        public Vp8ProbaArray() => this.Probabilities = new byte[WebpConstants.NumProbas];
 
         /// <summary>
         /// Gets the probabilities.

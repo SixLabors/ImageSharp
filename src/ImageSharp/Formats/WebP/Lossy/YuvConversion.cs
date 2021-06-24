@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
@@ -15,6 +17,75 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private const int YuvFix = 16;
 
         private const int YuvHalf = 1 << (YuvFix - 1);
+
+        /// <summary>
+        /// Converts the RGB values of the image to YUV.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <param name="image">The image to convert.</param>
+        /// <param name="configuration">The global configuration.</param>
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="y">Span to store the luma component of the image.</param>
+        /// <param name="u">Span to store the u component of the image.</param>
+        /// <param name="v">Span to store the v component of the image.</param>
+        public static void ConvertRgbToYuv<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int width = image.Width;
+            int height = image.Height;
+            int uvWidth = (width + 1) >> 1;
+
+            // Temporary storage for accumulated R/G/B values during conversion to U/V.
+            using IMemoryOwner<ushort> tmpRgb = memoryAllocator.Allocate<ushort>(4 * uvWidth);
+            using IMemoryOwner<Rgba32> rgbaRow0Buffer = memoryAllocator.Allocate<Rgba32>(width);
+            using IMemoryOwner<Rgba32> rgbaRow1Buffer = memoryAllocator.Allocate<Rgba32>(width);
+            Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
+            Span<Rgba32> rgbaRow0 = rgbaRow0Buffer.GetSpan();
+            Span<Rgba32> rgbaRow1 = rgbaRow1Buffer.GetSpan();
+            int uvRowIndex = 0;
+            int rowIndex;
+            bool rowsHaveAlpha = false;
+            for (rowIndex = 0; rowIndex < height - 1; rowIndex += 2)
+            {
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
+                Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
+                PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow0);
+                PixelOperations<TPixel>.Instance.ToRgba32(configuration, nextRowSpan, rgbaRow1);
+
+                rowsHaveAlpha = YuvConversion.CheckNonOpaque(rgbaRow0) && YuvConversion.CheckNonOpaque(rgbaRow1);
+
+                // Downsample U/V planes, two rows at a time.
+                if (!rowsHaveAlpha)
+                {
+                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
+                }
+                else
+                {
+                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
+                }
+
+                YuvConversion.ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
+                uvRowIndex++;
+
+                YuvConversion.ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
+                YuvConversion.ConvertRgbaToY(rgbaRow1, y.Slice((rowIndex + 1) * width), width);
+            }
+
+            // Extra last row.
+            if ((height & 1) != 0)
+            {
+                if (!rowsHaveAlpha)
+                {
+                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
+                }
+                else
+                {
+                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
+                }
+
+                YuvConversion.ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
+            }
+        }
 
         /// <summary>
         /// Checks if the pixel row is not opaque.

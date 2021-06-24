@@ -10,6 +10,76 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     internal static class LossyUtils
     {
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Vp8Sse16X8(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 8);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Vp8Sse4X4(Span<byte> a, Span<byte> b) => GetSse(a, b, 4, 4);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int GetSse(Span<byte> a, Span<byte> b, int w, int h)
+        {
+            int count = 0;
+            int aOffset = 0;
+            int bOffset = 0;
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    int diff = a[aOffset + x] - b[bOffset + x];
+                    count += diff * diff;
+                }
+
+                aOffset += WebpConstants.Bps;
+                bOffset += WebpConstants.Bps;
+            }
+
+            return count;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void Vp8Copy4X4(Span<byte> src, Span<byte> dst) => Copy(src, dst, 4, 4);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void Vp8Copy16X8(Span<byte> src, Span<byte> dst) => Copy(src, dst, 16, 8);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void Copy(Span<byte> src, Span<byte> dst, int w, int h)
+        {
+            for (int y = 0; y < h; ++y)
+            {
+                src.Slice(0, w).CopyTo(dst);
+                src = src.Slice(WebpConstants.Bps);
+                dst = dst.Slice(WebpConstants.Bps);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Vp8Disto16X16(Span<byte> a, Span<byte> b, Span<ushort> w)
+        {
+            int d = 0;
+            for (int y = 0; y < 16 * WebpConstants.Bps; y += 4 * WebpConstants.Bps)
+            {
+                for (int x = 0; x < 16; x += 4)
+                {
+                    d += Vp8Disto4X4(a.Slice(x + y), b.Slice(x + y), w);
+                }
+            }
+
+            return d;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Vp8Disto4X4(Span<byte> a, Span<byte> b, Span<ushort> w)
+        {
+            int sum1 = TTransform(a, w);
+            int sum2 = TTransform(b, w);
+            return Math.Abs(sum2 - sum1) >> 5;
+        }
+
         public static void DC16(Span<byte> dst, Span<byte> yuv, int offset)
         {
             int offsetMinus1 = offset - 1;

@@ -220,6 +220,10 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         public const int NumProbas = 11;
 
+        public const int NumPredModes = 4;
+
+        public const int NumBModes = 10;
+
         public const int NumCtx = 3;
 
         public const int MaxVariableLevel = 67;

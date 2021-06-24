@@ -450,6 +450,35 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.CurrentMacroBlockInfo.MacroBlockType = Vp8MacroBlockType.I4X4;
         }
 
+        public int GetCostLuma16(Vp8ModeScore rd, Vp8EncProba proba)
+        {
+            var res = new Vp8Residual();
+            int r = 0;
+
+            // re-import the non-zero context.
+            this.NzToBytes();
+
+            // DC
+            res.Init(0, 1, proba);
+            res.SetCoeffs(rd.YDcLevels);
+            r += res.GetResidualCost(this.TopNz[8] + this.LeftNz[8]);
+
+            // AC
+            res.Init(1, 0, proba);
+            for (int y = 0; y < 4; ++y)
+            {
+                for (int x = 0; x < 4; ++x)
+                {
+                    int ctx = this.TopNz[x] + this.LeftNz[y];
+                    res.SetCoeffs(rd.YAcLevels.AsSpan(x + (y * 4)));
+                    r += res.GetResidualCost(ctx);
+                    this.TopNz[x] = this.LeftNz[y] = (res.Last >= 0) ? 1 : 0;
+                }
+            }
+
+            return r;
+        }
+
         public short[] GetCostModeI4(byte[] modes)
         {
             int predsWidth = this.predsWidth;

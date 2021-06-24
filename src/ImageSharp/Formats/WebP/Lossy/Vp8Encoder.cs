@@ -63,16 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
 
-        private readonly ushort[] weightY = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
-
         private const int NumMbSegments = 4;
-
-        private const int NumBModes = 10;
-
-        /// <summary>
-        /// The number of prediction modes.
-        /// </summary>
-        private const int NumPredModes = 4;
 
         private const int MaxItersKMeans = 6;
 
@@ -281,10 +272,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int width = image.Width;
             int height = image.Height;
-            this.ConvertRgbToYuv(image);
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
+            YuvConversion.ConvertRgbToYuv(image, this.configuration, this.memoryAllocator, y, u, v);
 
             int yStride = width;
             int uvStride = (yStride + 1) >> 1;
@@ -657,8 +648,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 int alpha = 255 * (centers[n] - mid) / (max - min);
                 int beta = 255 * (centers[n] - min) / (max - min);
-                dqm[n].Alpha = Clip(alpha, -127, 127);
-                dqm[n].Beta = Clip(beta, 0, 255);
+                dqm[n].Alpha = Numerics.Clamp(alpha, -127, 127);
+                dqm[n].Beta = Numerics.Clamp(beta, 0, 255);
             }
         }
 
@@ -676,7 +667,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 double expn = 1.0d - (amp * dqm[i].Alpha);
                 double c = Math.Pow(cBase, expn);
                 int q = (int)(127.0d * (1.0d - c));
-                dqm[i].Quant = Clip(q, 0, 127);
+                dqm[i].Quant = Numerics.Clamp(q, 0, 127);
             }
 
             // Purely indicative in the bitstream (except for the 1-segment case).
@@ -691,13 +682,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.DqUvAc = this.DqUvAc * snsStrength / 100;
 
             // and make it safe.
-            this.DqUvAc = Clip(this.DqUvAc, WebpConstants.QuantEncMinDqUv, WebpConstants.QuantEncMaxDqUv);
+            this.DqUvAc = Numerics.Clamp(this.DqUvAc, WebpConstants.QuantEncMinDqUv, WebpConstants.QuantEncMaxDqUv);
 
             // We also boost the dc-uv-quant a little, based on sns-strength, since
             // U/V channels are quite more reactive to high quants (flat DC-blocks
             // tend to appear, and are unpleasant).
             this.DqUvDc = -4 * snsStrength / 100;
-            this.DqUvDc = Clip(this.DqUvDc, -15, 15);   // 4bit-signed max allowed
+            this.DqUvDc = Numerics.Clamp(this.DqUvDc, -15, 15);   // 4bit-signed max allowed
 
             this.DqY1Dc = 0;
             this.DqY2Dc = 0;
@@ -721,7 +712,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vp8SegmentInfo m = this.SegmentInfos[i];
 
                 // We focus on the quantization of AC coeffs.
-                int qstep = WebpLookupTables.AcTable[Clip(m.Quant, 0, 127)] >> 2;
+                int qstep = WebpLookupTables.AcTable[Numerics.Clamp(m.Quant, 0, 127)] >> 2;
                 int baseStrength = this.FilterStrengthFromDelta(this.FilterHeader.Sharpness, qstep);
 
                 // Segments with lower complexity ('beta') will be less filtered.
@@ -799,14 +790,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 m.Y2 = new Vp8Matrix();
                 m.Uv = new Vp8Matrix();
 
-                m.Y1.Q[0] = WebpLookupTables.DcTable[Clip(q, 0, 127)];
-                m.Y1.Q[1] = WebpLookupTables.AcTable[Clip(q, 0, 127)];
+                m.Y1.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q, 0, 127)];
+                m.Y1.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q, 0, 127)];
 
-                m.Y2.Q[0] = (ushort)(WebpLookupTables.DcTable[Clip(q, 0, 127)] * 2);
-                m.Y2.Q[1] = WebpLookupTables.AcTable2[Clip(q, 0, 127)];
+                m.Y2.Q[0] = (ushort)(WebpLookupTables.DcTable[Numerics.Clamp(q, 0, 127)] * 2);
+                m.Y2.Q[1] = WebpLookupTables.AcTable2[Numerics.Clamp(q, 0, 127)];
 
-                m.Uv.Q[0] = WebpLookupTables.DcTable[Clip(q + this.DqUvDc, 0, 117)];
-                m.Uv.Q[1] = WebpLookupTables.AcTable[Clip(q + this.DqUvAc, 0, 127)];
+                m.Uv.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqUvDc, 0, 117)];
+                m.Uv.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q + this.DqUvAc, 0, 127)];
 
                 int qi4 = m.Y1.Expand(0);
                 int qi16 = m.Y2.Expand(1);
@@ -884,16 +875,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             it.MakeChroma8Preds();
 
             // TODO: disabled picking best mode because its still bugged.
-            // if (rdOpt > Vp8RdLevel.RdOptNone)
-            if (false)
+            /* if (rdOpt > Vp8RdLevel.RdOptNone)
             {
-                this.PickBestIntra16(it, ref rd);
+                QuantEnc.PickBestIntra16(it, ref rd, this.SegmentInfos, this.Proba);
                 if (this.method >= 2)
                 {
-                    this.PickBestIntra4(it, ref rd);
+                    QuantEnc.PickBestIntra4(it, ref rd, this.SegmentInfos, this.Proba, this.maxI4HeaderBits);
                 }
 
-                this.PickBestUv(it, ref rd);
+                QuantEnc.PickBestUv(it, ref rd, this.SegmentInfos, this.Proba);
             }
             else
             {
@@ -901,413 +891,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
                 // For method <= 1, we don't re-examine the decision but just go ahead with
                 // quantization/reconstruction.
-                this.RefineUsingDistortion(it, rd, this.method >= 2, this.method >= 1);
+                QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, this.method >= 2, this.method >= 1, this.MbHeaderLimit);
             }
+            */
+
+            QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, this.method >= 2, this.method >= 1, this.MbHeaderLimit);
 
             bool isSkipped = rd.Nz == 0;
             it.SetSkip(isSkipped);
 
             return isSkipped;
-        }
-
-        private void PickBestIntra16(Vp8EncIterator it, ref Vp8ModeScore rd)
-        {
-            const int numBlocks = 16;
-            Vp8SegmentInfo dqm = this.SegmentInfos[it.CurrentMacroBlockInfo.Segment];
-            int lambda = dqm.LambdaI16;
-            int tlambda = dqm.TLambda;
-            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
-            var rdTmp = new Vp8ModeScore();
-            Vp8ModeScore rdCur = rdTmp;
-            Vp8ModeScore rdBest = rd;
-            int mode;
-            bool isFlat = IsFlatSource16(src);
-            rd.ModeI16 = -1;
-            for (mode = 0; mode < NumPredModes; ++mode)
-            {
-                // scratch buffer.
-                Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
-                rdCur.ModeI16 = mode;
-
-                // Reconstruct.
-                rdCur.Nz = (uint)this.ReconstructIntra16(it, dqm, rdCur, tmpDst, mode);
-
-                // Measure RD-score.
-                rdCur.D = Vp8Sse16X16(src, tmpDst);
-                rdCur.SD = tlambda != 0 ? Mult8B(tlambda, Vp8Disto16X16(src, tmpDst, this.weightY)) : 0;
-                rdCur.H = WebpConstants.Vp8FixedCostsI16[mode];
-                rdCur.R = this.GetCostLuma16(it, rdCur);
-
-                if (isFlat)
-                {
-                    // Refine the first impression (which was in pixel space).
-                    isFlat = IsFlat(rdCur.YAcLevels, numBlocks, WebpConstants.FlatnessLimitI16);
-                    if (isFlat)
-                    {
-                        // Block is very flat. We put emphasis on the distortion being very low!
-                        rdCur.D *= 2;
-                        rdCur.SD *= 2;
-                    }
-                }
-
-                // Since we always examine Intra16 first, we can overwrite *rd directly.
-                rdCur.SetRdScore(lambda);
-
-                if (mode == 0 || rdCur.Score < rdBest.Score)
-                {
-                    Vp8ModeScore tmp = rdCur;
-                    rdCur = rdBest;
-                    rdBest = tmp;
-                    it.SwapOut();
-                }
-            }
-
-            if (rdBest != rd)
-            {
-                rd = rdBest;
-            }
-
-            // Finalize score for mode decision.
-            rd.SetRdScore(dqm.LambdaMode);
-            it.SetIntra16Mode(rd.ModeI16);
-
-            // We have a blocky macroblock (only DCs are non-zero) with fairly high
-            // distortion, record max delta so we can later adjust the minimal filtering
-            // strength needed to smooth these blocks out.
-            if ((rd.Nz & 0x100ffff) == 0x1000000 && rd.D > dqm.MinDisto)
-            {
-                dqm.StoreMaxDelta(rd.YDcLevels);
-            }
-        }
-
-        private bool PickBestIntra4(Vp8EncIterator it, ref Vp8ModeScore rd)
-        {
-            Vp8SegmentInfo dqm = this.SegmentInfos[it.CurrentMacroBlockInfo.Segment];
-            int lambda = dqm.LambdaI4;
-            int tlambda = dqm.TLambda;
-            Span<byte> src0 = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
-            Span<byte> bestBlocks = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
-            int totalHeaderBits = 0;
-            var rdBest = new Vp8ModeScore();
-
-            if (this.maxI4HeaderBits == 0)
-            {
-                return false;
-            }
-
-            rdBest.InitScore();
-            rdBest.H = 211;  // '211' is the value of VP8BitCost(0, 145)
-            rdBest.SetRdScore(dqm.LambdaMode);
-            it.StartI4();
-            do
-            {
-                int numBlocks = 1;
-                var rdi4 = new Vp8ModeScore();
-                int mode;
-                int bestMode = -1;
-                Span<byte> src = src0.Slice(WebpLookupTables.Vp8Scan[it.I4]);
-                short[] modeCosts = it.GetCostModeI4(rd.ModesI4);
-                Span<byte> bestBlock = bestBlocks.Slice(WebpLookupTables.Vp8Scan[it.I4]);
-                Span<byte> tmpDst = it.Scratch.AsSpan();
-                tmpDst.Fill(0);
-
-                rdi4.InitScore();
-                it.MakeIntra4Preds();
-                for (mode = 0; mode < NumBModes; ++mode)
-                {
-                    var rdTmp = new Vp8ModeScore();
-                    short[] tmpLevels = new short[16];
-
-                    // Reconstruct.
-                    rdTmp.Nz = (uint)this.ReconstructIntra4(it, dqm, tmpLevels, src, tmpDst, mode);
-
-                    // Compute RD-score.
-                    rdTmp.D = Vp8Sse4X4(src, tmpDst);
-                    rdTmp.SD = tlambda != 0 ? Mult8B(tlambda, Vp8Disto4X4(src, tmpDst, this.weightY)) : 0;
-                    rdTmp.H = modeCosts[mode];
-
-                    // Add flatness penalty, to avoid flat area to be mispredicted by a complex mode.
-                    if (mode > 0 && IsFlat(tmpLevels, numBlocks, WebpConstants.FlatnessLimitI4))
-                    {
-                        rdTmp.R = WebpConstants.FlatnessPenality * numBlocks;
-                    }
-                    else
-                    {
-                        rdTmp.R = 0;
-                    }
-
-                    // early-out check.
-                    rdTmp.SetRdScore(lambda);
-                    if (bestMode >= 0 && rdTmp.Score >= rdi4.Score)
-                    {
-                        continue;
-                    }
-
-                    // finish computing score.
-                    rdTmp.R += it.GetCostLuma4(tmpLevels, this.Proba);
-                    rdTmp.SetRdScore(lambda);
-
-                    if (bestMode < 0 || rdTmp.Score < rdi4.Score)
-                    {
-                        rdi4.CopyScore(rdTmp);
-                        bestMode = mode;
-                        Span<byte> tmp = tmpDst;
-                        tmpDst = bestBlock;
-                        bestBlock = tmp;
-                        tmpLevels.AsSpan().CopyTo(rdBest.YAcLevels);
-                    }
-                }
-
-                rdi4.SetRdScore(dqm.LambdaMode);
-                rdBest.AddScore(rdi4);
-                if (rdBest.Score >= rd.Score)
-                {
-                    return false;
-                }
-
-                totalHeaderBits += (int)rdi4.H;   // <- equal to modeCosts[bestMode];
-                if (totalHeaderBits > this.maxI4HeaderBits)
-                {
-                    return false;
-                }
-
-                // Copy selected samples to the right place.
-                Vp8Copy4X4(bestBlock, bestBlocks.Slice(WebpLookupTables.Vp8Scan[it.I4]));
-
-                rd.ModesI4[it.I4] = (byte)bestMode;
-                it.TopNz[it.I4 & 3] = it.LeftNz[it.I4 >> 2] = rdi4.Nz != 0 ? 1 : 0;
-            }
-            while (it.RotateI4(bestBlocks));
-
-            // Finalize state.
-            rd.CopyScore(rdBest);
-            it.SetIntra4Mode(rd.ModesI4);
-            it.SwapOut();
-            rdBest.YAcLevels.AsSpan().CopyTo(rd.YAcLevels);
-
-            // Select intra4x4 over intra16x16.
-            return true;
-        }
-
-        private void PickBestUv(Vp8EncIterator it, ref Vp8ModeScore rd)
-        {
-            const int numBlocks = 8;
-            Vp8SegmentInfo dqm = this.SegmentInfos[it.CurrentMacroBlockInfo.Segment];
-            int lambda = dqm.LambdaUv;
-            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
-            Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.UOffEnc);
-            Span<byte> dst0 = it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc);
-            Span<byte> dst = dst0;
-            var rdBest = new Vp8ModeScore();
-            int mode;
-
-            rd.ModeUv = -1;
-            rdBest.InitScore();
-            for (mode = 0; mode < NumPredModes; ++mode)
-            {
-                var rdUv = new Vp8ModeScore();
-
-                // Reconstruct
-                rdUv.Nz = (uint)this.ReconstructUv(it, dqm, rdUv, tmpDst, mode);
-
-                // Compute RD-score
-                rdUv.D = Vp8Sse16X8(src, tmpDst);
-                rdUv.SD = 0;    // not calling TDisto here: it tends to flatten areas.
-                rdUv.H = WebpConstants.Vp8FixedCostsUv[mode];
-                rdUv.R = it.GetCostUv(rdUv, this.Proba);
-                if (mode > 0 && IsFlat(rdUv.UvLevels, numBlocks, WebpConstants.FlatnessLimitIUv))
-                {
-                    rdUv.R += WebpConstants.FlatnessPenality * numBlocks;
-                }
-
-                rdUv.SetRdScore(lambda);
-                if (mode == 0 || rdUv.Score < rdBest.Score)
-                {
-                    rdBest.CopyScore(rdUv);
-                    rd.ModeUv = mode;
-                    rdUv.UvLevels.CopyTo(rd.UvLevels.AsSpan());
-                    Span<byte> tmp = dst;
-                    dst = tmpDst;
-                    tmpDst = tmp;
-                }
-            }
-
-            it.SetIntraUvMode(rd.ModeUv);
-            rd.AddScore(rdBest);
-            if (dst != dst0)
-            {
-                // copy 16x8 block if needed.
-                Vp8Copy16X8(dst, dst0);
-            }
-        }
-
-        // TODO: move to Vp8EncIterator
-        private int GetCostLuma16(Vp8EncIterator it, Vp8ModeScore rd)
-        {
-            var res = new Vp8Residual();
-            int r = 0;
-
-            // re-import the non-zero context.
-            it.NzToBytes();
-
-            // DC
-            res.Init(0, 1, this.Proba);
-            res.SetCoeffs(rd.YDcLevels);
-            r += res.GetResidualCost(it.TopNz[8] + it.LeftNz[8]);
-
-            // AC
-            res.Init(1, 0, this.Proba);
-            for (int y = 0; y < 4; ++y)
-            {
-                for (int x = 0; x < 4; ++x)
-                {
-                    int ctx = it.TopNz[x] + it.LeftNz[y];
-                    res.SetCoeffs(rd.YAcLevels.AsSpan(x + (y * 4)));
-                    r += res.GetResidualCost(ctx);
-                    it.TopNz[x] = it.LeftNz[y] = (res.Last >= 0) ? 1 : 0;
-                }
-            }
-
-            return r;
-        }
-
-        // Refine intra16/intra4 sub-modes based on distortion only (not rate).
-        private void RefineUsingDistortion(Vp8EncIterator it, Vp8ModeScore rd, bool tryBothModes, bool refineUvMode)
-        {
-            long bestScore = Vp8ModeScore.MaxCost;
-            int nz = 0;
-            int mode;
-            bool isI16 = tryBothModes || (it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16);
-            Vp8SegmentInfo dqm = this.SegmentInfos[it.CurrentMacroBlockInfo.Segment];
-
-            // Some empiric constants, of approximate order of magnitude.
-            const int lambdaDi16 = 106;
-            const int lambdaDi4 = 11;
-            const int lambdaDuv = 120;
-            long scoreI4 = dqm.I4Penalty;
-            long i4BitSum = 0;
-            long bitLimit = tryBothModes
-                ? this.MbHeaderLimit
-                : Vp8ModeScore.MaxCost; // no early-out allowed.
-
-            if (isI16)
-            {
-                int bestMode = -1;
-                Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
-                for (mode = 0; mode < NumPredModes; ++mode)
-                {
-                    Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]);
-                    long score = (Vp8Sse16X16(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
-
-                    if (mode > 0 && WebpConstants.Vp8FixedCostsI16[mode] > bitLimit)
-                    {
-                        continue;
-                    }
-
-                    if (score < bestScore)
-                    {
-                        bestMode = mode;
-                        bestScore = score;
-                    }
-                }
-
-                if (it.X == 0 || it.Y == 0)
-                {
-                    // Avoid starting a checkerboard resonance from the border. See bug #432 of libwebp.
-                    if (IsFlatSource16(src))
-                    {
-                        bestMode = (it.X == 0) ? 0 : 2;
-                        tryBothModes = false; // Stick to i16.
-                    }
-                }
-
-                it.SetIntra16Mode(bestMode);
-
-                // We'll reconstruct later, if i16 mode actually gets selected.
-            }
-
-            // Next, evaluate Intra4.
-            if (tryBothModes || !isI16)
-            {
-                // We don't evaluate the rate here, but just account for it through a
-                // constant penalty (i4 mode usually needs more bits compared to i16).
-                isI16 = false;
-                it.StartI4();
-                do
-                {
-                    int bestI4Mode = -1;
-                    long bestI4Score = Vp8ModeScore.MaxCost;
-                    Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc + WebpLookupTables.Vp8Scan[it.I4]);
-                    short[] modeCosts = it.GetCostModeI4(rd.ModesI4);
-
-                    it.MakeIntra4Preds();
-                    for (mode = 0; mode < NumBModes; ++mode)
-                    {
-                        Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
-                        long score = (Vp8Sse4X4(src, reference) * WebpConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
-                        if (score < bestI4Score)
-                        {
-                            bestI4Mode = mode;
-                            bestI4Score = score;
-                        }
-                    }
-
-                    i4BitSum += modeCosts[bestI4Mode];
-                    rd.ModesI4[it.I4] = (byte)bestI4Mode;
-                    scoreI4 += bestI4Score;
-                    if (scoreI4 >= bestScore || i4BitSum > bitLimit)
-                    {
-                        // Intra4 won't be better than Intra16. Bail out and pick Intra16.
-                        isI16 = true;
-                        break;
-                    }
-                    else
-                    {
-                        // Reconstruct partial block inside YuvOut2 buffer
-                        Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc + WebpLookupTables.Vp8Scan[it.I4]);
-                        nz |= this.ReconstructIntra4(it, dqm, rd.YAcLevels.AsSpan(it.I4 * 16, 16), src, tmpDst, bestI4Mode) << it.I4;
-                    }
-                }
-                while (it.RotateI4(it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc)));
-            }
-
-            // Final reconstruction, depending on which mode is selected.
-            if (!isI16)
-            {
-                it.SetIntra4Mode(rd.ModesI4);
-                it.SwapOut();
-                bestScore = scoreI4;
-            }
-            else
-            {
-                int intra16Mode = it.Preds[it.PredIdx];
-                nz = this.ReconstructIntra16(it, dqm, rd, it.YuvOut.AsSpan(Vp8EncIterator.YOffEnc), intra16Mode);
-            }
-
-            // ... and UV!
-            if (refineUvMode)
-            {
-                int bestMode = -1;
-                long bestUvScore = Vp8ModeScore.MaxCost;
-                Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
-                for (mode = 0; mode < NumPredModes; ++mode)
-                {
-                    Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]);
-                    long score = (Vp8Sse16X8(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
-                    if (score < bestUvScore)
-                    {
-                        bestMode = mode;
-                        bestUvScore = score;
-                    }
-                }
-
-                it.SetIntraUvMode(bestMode);
-            }
-
-            nz |= this.ReconstructUv(it, dqm, rd, it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc), it.CurrentMacroBlockInfo.UvMode);
-
-            rd.Nz = (uint)nz;
-            rd.Score = bestScore;
         }
 
         private void CodeResiduals(Vp8EncIterator it, Vp8ModeScore rd)
@@ -1433,268 +1026,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             it.BytesToNz();
         }
 
-        private int ReconstructIntra16(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
-        {
-            Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]);
-            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
-            int nz = 0;
-            int n;
-            short[] dcTmp = new short[16];
-            short[] tmp = new short[16 * 16];
-            Span<short> tmpSpan = tmp.AsSpan();
-
-            for (n = 0; n < 16; n += 2)
-            {
-                Vp8Encoding.FTransform2(src.Slice(WebpLookupTables.Vp8Scan[n]), reference.Slice(WebpLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 16), tmpSpan.Slice((n + 1) * 16, 16));
-            }
-
-            Vp8Encoding.FTransformWht(tmp, dcTmp);
-            nz |= QuantEnc.QuantizeBlock(dcTmp, rd.YDcLevels, dqm.Y2) << 24;
-
-            for (n = 0; n < 16; n += 2)
-            {
-                // Zero-out the first coeff, so that: a) nz is correct below, and
-                // b) finding 'last' non-zero coeffs in SetResidualCoeffs() is simplified.
-                tmp[n * 16] = tmp[(n + 1) * 16] = 0;
-                nz |= QuantEnc.Quantize2Blocks(tmpSpan.Slice(n * 16, 32), rd.YAcLevels.AsSpan(n * 16, 32), dqm.Y1) << n;
-            }
-
-            // Transform back.
-            LossyUtils.TransformWht(dcTmp, tmpSpan);
-            for (n = 0; n < 16; n += 2)
-            {
-                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8Scan[n]), true);
-            }
-
-            return nz;
-        }
-
-        private int ReconstructIntra4(Vp8EncIterator it, Vp8SegmentInfo dqm, Span<short> levels, Span<byte> src, Span<byte> yuvOut, int mode)
-        {
-            Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
-            short[] tmp = new short[16];
-            Vp8Encoding.FTransform(src, reference, tmp);
-            int nz = QuantEnc.QuantizeBlock(tmp, levels, dqm.Y1);
-            Vp8Encoding.ITransform(reference, tmp, yuvOut, false);
-
-            return nz;
-        }
-
-        private int ReconstructUv(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
-        {
-            Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]);
-            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
-            int nz = 0;
-            int n;
-            short[] tmp = new short[8 * 16];
-
-            for (n = 0; n < 8; n += 2)
-            {
-                Vp8Encoding.FTransform2(
-                    src.Slice(WebpLookupTables.Vp8ScanUv[n]),
-                    reference.Slice(WebpLookupTables.Vp8ScanUv[n]),
-                    tmp.AsSpan(n * 16, 16),
-                    tmp.AsSpan((n + 1) * 16, 16));
-            }
-
-            QuantEnc.CorrectDcValues(it, dqm.Uv, tmp, rd);
-
-            for (n = 0; n < 8; n += 2)
-            {
-                nz |= QuantEnc.Quantize2Blocks(tmp.AsSpan(n * 16, 32), rd.UvLevels.AsSpan(n * 16, 32), dqm.Uv) << n;
-            }
-
-            for (n = 0; n < 8; n += 2)
-            {
-                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8ScanUv[n]), tmp.AsSpan(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8ScanUv[n]), true);
-            }
-
-            return nz << 16;
-        }
-
-        /// <summary>
-        /// Converts the RGB values of the image to YUV.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
-        /// <param name="image">The image to convert.</param>
-        private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            int width = image.Width;
-            int height = image.Height;
-            int uvWidth = (width + 1) >> 1;
-
-            // Temporary storage for accumulated R/G/B values during conversion to U/V.
-            using IMemoryOwner<ushort> tmpRgb = this.memoryAllocator.Allocate<ushort>(4 * uvWidth);
-            using IMemoryOwner<Rgba32> rgbaRow0Buffer = this.memoryAllocator.Allocate<Rgba32>(width);
-            using IMemoryOwner<Rgba32> rgbaRow1Buffer = this.memoryAllocator.Allocate<Rgba32>(width);
-            Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
-            Span<Rgba32> rgbaRow0 = rgbaRow0Buffer.GetSpan();
-            Span<Rgba32> rgbaRow1 = rgbaRow1Buffer.GetSpan();
-            int uvRowIndex = 0;
-            int rowIndex;
-            bool rowsHaveAlpha = false;
-            for (rowIndex = 0; rowIndex < height - 1; rowIndex += 2)
-            {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
-                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, rowSpan, rgbaRow0);
-                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, nextRowSpan, rgbaRow1);
-
-                rowsHaveAlpha = YuvConversion.CheckNonOpaque(rgbaRow0) && YuvConversion.CheckNonOpaque(rgbaRow1);
-
-                // Downsample U/V planes, two rows at a time.
-                if (!rowsHaveAlpha)
-                {
-                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
-                }
-                else
-                {
-                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
-                }
-
-                YuvConversion.ConvertRgbaToUv(tmpRgbSpan, this.U.Slice(uvRowIndex * uvWidth), this.V.Slice(uvRowIndex * uvWidth), uvWidth);
-                uvRowIndex++;
-
-                YuvConversion.ConvertRgbaToY(rgbaRow0, this.Y.Slice(rowIndex * width), width);
-                YuvConversion.ConvertRgbaToY(rgbaRow1, this.Y.Slice((rowIndex + 1) * width), width);
-            }
-
-            // Extra last row.
-            if ((height & 1) != 0)
-            {
-                if (!rowsHaveAlpha)
-                {
-                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
-                }
-                else
-                {
-                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
-                }
-
-                YuvConversion.ConvertRgbaToY(rgbaRow0, this.Y.Slice(rowIndex * width), width);
-            }
-        }
-
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int FinalAlphaValue(int alpha)
         {
             alpha = WebpConstants.MaxAlpha - alpha;
-            return Clip(alpha, 0, WebpConstants.MaxAlpha);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Clip(int v, int min, int max) => (v < min) ? min : (v > max) ? max : v;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Vp8Sse16X8(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 8);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Vp8Sse4X4(Span<byte> a, Span<byte> b) => GetSse(a, b, 4, 4);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetSse(Span<byte> a, Span<byte> b, int w, int h)
-        {
-            int count = 0;
-            int aOffset = 0;
-            int bOffset = 0;
-            for (int y = 0; y < h; ++y)
-            {
-                for (int x = 0; x < w; ++x)
-                {
-                    int diff = a[aOffset + x] - b[bOffset + x];
-                    count += diff * diff;
-                }
-
-                aOffset += WebpConstants.Bps;
-                bOffset += WebpConstants.Bps;
-            }
-
-            return count;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Vp8Copy4X4(Span<byte> src, Span<byte> dst) => Copy(src, dst, 4, 4);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Vp8Copy16X8(Span<byte> src, Span<byte> dst) => Copy(src, dst, 16, 8);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Copy(Span<byte> src, Span<byte> dst, int w, int h)
-        {
-            for (int y = 0; y < h; ++y)
-            {
-                src.Slice(0, w).CopyTo(dst);
-                src = src.Slice(WebpConstants.Bps);
-                dst = dst.Slice(WebpConstants.Bps);
-            }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Vp8Disto16X16(Span<byte> a, Span<byte> b, Span<ushort> w)
-        {
-            int d = 0;
-            for (int y = 0; y < 16 * WebpConstants.Bps; y += 4 * WebpConstants.Bps)
-            {
-                for (int x = 0; x < 16; x += 4)
-                {
-                    d += Vp8Disto4X4(a.Slice(x + y), b.Slice(x + y), w);
-                }
-            }
-
-            return d;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Vp8Disto4X4(Span<byte> a, Span<byte> b, Span<ushort> w)
-        {
-            int sum1 = LossyUtils.TTransform(a, w);
-            int sum2 = LossyUtils.TTransform(b, w);
-            return Math.Abs(sum2 - sum1) >> 5;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static bool IsFlat(Span<short> levels, int numBlocks, int thresh)
-        {
-            int score = 0;
-            while (numBlocks-- > 0)
-            {
-                for (int i = 1; i < 16; ++i)
-                {
-                    // omit DC, we're only interested in AC
-                    score += (levels[i] != 0) ? 1 : 0;
-                    if (score > thresh)
-                    {
-                        return false;
-                    }
-                }
-
-                levels = levels.Slice(16);
-            }
-
-            return true;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static bool IsFlatSource16(Span<byte> src)
-        {
-            uint v = src[0] * 0x01010101u;
-            Span<byte> vSpan = BitConverter.GetBytes(v).AsSpan();
-            for (int i = 0; i < 16; ++i)
-            {
-                if (!src.Slice(0, 4).SequenceEqual(vSpan) || !src.Slice(4, 4).SequenceEqual(vSpan) ||
-                    !src.Slice(8, 4).SequenceEqual(vSpan) || !src.Slice(12, 4).SequenceEqual(vSpan))
-                {
-                    return false;
-                }
-
-                src = src.Slice(WebpConstants.Bps);
-            }
-
-            return true;
+            return Numerics.Clamp(alpha, 0, WebpConstants.MaxAlpha);
         }
 
         /// <summary>
@@ -1724,9 +1060,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int pos = (delta < WebpConstants.MaxDelzaSize) ? delta : WebpConstants.MaxDelzaSize - 1;
             return WebpLookupTables.LevelsFromDelta[sharpness, pos];
         }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Mult8B(int a, int b) => ((a * b) + 128) >> 8;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static double GetPsnr(long mse, long size) => (mse > 0 && size > 0) ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;

@@ -257,7 +257,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
-        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+        private IMemoryOwner<byte> AllocateRow(int width, int bytesPerPixel)
+            => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
 
         /// <summary>
         /// Writes the 32bit color palette to the stream.
@@ -268,18 +269,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
+            using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 4);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int y = pixels.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(
-                        this.configuration,
-                        pixelSpan,
-                        row.GetSpan(),
-                        pixelSpan.Length);
-                    stream.Write(row.Array, 0, row.Length());
-                }
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToBgra32Bytes(
+                    this.configuration,
+                    pixelSpan,
+                    rowSpan,
+                    pixelSpan.Length);
+                stream.Write(rowSpan);
             }
         }
 
@@ -294,18 +295,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int width = pixels.Width;
             int rowBytesWithoutPadding = width * 3;
-            using (IManagedByteBuffer row = this.AllocateRow(width, 3))
+            using IMemoryOwner<byte> row = this.AllocateRow(width, 3);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int y = pixels.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(
-                        this.configuration,
-                        pixelSpan,
-                        row.Slice(0, rowBytesWithoutPadding),
-                        width);
-                    stream.Write(row.Array, 0, row.Length());
-                }
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToBgr24Bytes(
+                    this.configuration,
+                    pixelSpan,
+                    row.Slice(0, rowBytesWithoutPadding),
+                    width);
+                stream.Write(rowSpan);
             }
         }
 
@@ -320,20 +321,20 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int width = pixels.Width;
             int rowBytesWithoutPadding = width * 2;
-            using (IManagedByteBuffer row = this.AllocateRow(width, 2))
+            using IMemoryOwner<byte> row = this.AllocateRow(width, 2);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int y = pixels.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
 
-                    PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
-                        this.configuration,
-                        pixelSpan,
-                        row.Slice(0, rowBytesWithoutPadding),
-                        pixelSpan.Length);
+                PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
+                    this.configuration,
+                    pixelSpan,
+                    row.Slice(0, rowBytesWithoutPadding),
+                    pixelSpan.Length);
 
-                    stream.Write(row.Array, 0, row.Length());
-                }
+                stream.Write(rowSpan);
             }
         }
 

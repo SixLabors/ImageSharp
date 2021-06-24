@@ -928,20 +928,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, padding);
+            Span<byte> rowSpan = row.GetSpan();
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, padding))
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    this.stream.Read(row);
-                    int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        pixelSpan,
-                        width);
-                }
+                this.stream.Read(rowSpan);
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                PixelOperations<TPixel>.Instance.FromBgr24Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    pixelSpan,
+                    width);
             }
         }
 
@@ -957,20 +956,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding);
+            Span<byte> rowSpan = row.GetSpan();
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding))
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    this.stream.Read(row);
-                    int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        pixelSpan,
-                        width);
-                }
+                this.stream.Read(rowSpan);
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                PixelOperations<TPixel>.Instance.FromBgra32Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    pixelSpan,
+                    width);
             }
         }
 
@@ -987,87 +985,85 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
+            using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding);
+            using IMemoryOwner<Bgra32> bgraRow = this.memoryAllocator.Allocate<Bgra32>(width);
+            Span<byte> rowSpan = row.GetSpan();
+            Span<Bgra32> bgraRowSpan = bgraRow.GetSpan();
+            long currentPosition = this.stream.Position;
+            bool hasAlpha = false;
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding))
-            using (IMemoryOwner<Bgra32> bgraRow = this.memoryAllocator.Allocate<Bgra32>(width))
+            // Loop though the rows checking each pixel. We start by assuming it's
+            // an BGR0 image. If we hit a non-zero alpha value, then we know it's
+            // actually a BGRA image, and change tactics accordingly.
+            for (int y = 0; y < height; y++)
             {
-                Span<Bgra32> bgraRowSpan = bgraRow.GetSpan();
-                long currentPosition = this.stream.Position;
-                bool hasAlpha = false;
+                this.stream.Read(rowSpan);
 
-                // Loop though the rows checking each pixel. We start by assuming it's
-                // an BGR0 image. If we hit a non-zero alpha value, then we know it's
-                // actually a BGRA image, and change tactics accordingly.
-                for (int y = 0; y < height; y++)
+                PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    bgraRowSpan,
+                    width);
+
+                // Check each pixel in the row to see if it has an alpha value.
+                for (int x = 0; x < width; x++)
                 {
-                    this.stream.Read(row);
-
-                    PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        bgraRowSpan,
-                        width);
-
-                    // Check each pixel in the row to see if it has an alpha value.
-                    for (int x = 0; x < width; x++)
+                    Bgra32 bgra = bgraRowSpan[x];
+                    if (bgra.A > 0)
                     {
-                        Bgra32 bgra = bgraRowSpan[x];
-                        if (bgra.A > 0)
-                        {
-                            hasAlpha = true;
-                            break;
-                        }
-                    }
-
-                    if (hasAlpha)
-                    {
+                        hasAlpha = true;
                         break;
                     }
                 }
 
-                // Reset our stream for a second pass.
-                this.stream.Position = currentPosition;
-
-                // Process the pixels in bulk taking the raw alpha component value.
                 if (hasAlpha)
                 {
-                    for (int y = 0; y < height; y++)
-                    {
-                        this.stream.Read(row);
-
-                        int newY = Invert(y, height, inverted);
-                        Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-
-                        PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                            this.Configuration,
-                            row.GetSpan(),
-                            pixelSpan,
-                            width);
-                    }
-
-                    return;
+                    break;
                 }
+            }
 
-                // Slow path. We need to set each alpha component value to fully opaque.
+            // Reset our stream for a second pass.
+            this.stream.Position = currentPosition;
+
+            // Process the pixels in bulk taking the raw alpha component value.
+            if (hasAlpha)
+            {
                 for (int y = 0; y < height; y++)
                 {
-                    this.stream.Read(row);
-                    PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                        this.Configuration,
-                        row.GetSpan(),
-                        bgraRowSpan,
-                        width);
+                    this.stream.Read(rowSpan);
 
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
 
-                    for (int x = 0; x < width; x++)
-                    {
-                        Bgra32 bgra = bgraRowSpan[x];
-                        bgra.A = byte.MaxValue;
-                        ref TPixel pixel = ref pixelSpan[x];
-                        pixel.FromBgra32(bgra);
-                    }
+                    PixelOperations<TPixel>.Instance.FromBgra32Bytes(
+                        this.Configuration,
+                        rowSpan,
+                        pixelSpan,
+                        width);
+                }
+
+                return;
+            }
+
+            // Slow path. We need to set each alpha component value to fully opaque.
+            for (int y = 0; y < height; y++)
+            {
+                this.stream.Read(rowSpan);
+                PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
+                    this.Configuration,
+                    rowSpan,
+                    bgraRowSpan,
+                    width);
+
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+
+                for (int x = 0; x < width; x++)
+                {
+                    Bgra32 bgra = bgraRowSpan[x];
+                    bgra.A = byte.MaxValue;
+                    ref TPixel pixel = ref pixelSpan[x];
+                    pixel.FromBgra32(bgra);
                 }
             }
         }

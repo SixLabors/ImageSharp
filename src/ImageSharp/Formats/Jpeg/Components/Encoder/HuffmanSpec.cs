@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
@@ -24,9 +24,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             0, 0, 0
                         },
                     new byte[]
-                            {
-                               0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-                            }),
+                        {
+                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+                        }),
+
+                // Luminance AC.
                 new HuffmanSpec(
                     new byte[]
                         {
@@ -60,6 +62,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
                             0xf9, 0xfa
                         }),
+
+                // Chrominance DC.
                 new HuffmanSpec(
                     new byte[]
                         {

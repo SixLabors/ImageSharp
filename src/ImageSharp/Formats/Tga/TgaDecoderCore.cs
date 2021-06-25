@@ -114,9 +114,10 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                     int colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
                     int colorMapSizeInBytes = this.fileHeader.CMapLength * colorMapPixelSizeInBytes;
-                    using (IManagedByteBuffer palette = this.memoryAllocator.AllocateManagedByteBuffer(colorMapSizeInBytes, AllocationOptions.Clean))
+                    using (IMemoryOwner<byte> palette = this.memoryAllocator.Allocate<byte>(colorMapSizeInBytes, AllocationOptions.Clean))
                     {
-                        this.currentStream.Read(palette.Array, this.fileHeader.CMapStart, colorMapSizeInBytes);
+                        Span<byte> paletteSpan = palette.GetSpan();
+                        this.currentStream.Read(paletteSpan, this.fileHeader.CMapStart, colorMapSizeInBytes);
 
                         if (this.fileHeader.ImageType == TgaImageType.RleColorMapped)
                         {
@@ -124,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 this.fileHeader.Width,
                                 this.fileHeader.Height,
                                 pixels,
-                                palette.Array,
+                                paletteSpan,
                                 colorMapPixelSizeInBytes,
                                 origin);
                         }
@@ -134,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 this.fileHeader.Width,
                                 this.fileHeader.Height,
                                 pixels,
-                                palette.Array,
+                                paletteSpan,
                                 colorMapPixelSizeInBytes,
                                 origin);
                         }
@@ -224,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="palette">The color palette.</param>
         /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
         /// <param name="origin">The image origin.</param>
-        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
+        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, Span<byte> palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
@@ -304,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="palette">The color palette.</param>
         /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
         /// <param name="origin">The image origin.</param>
-        private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
+        private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, Span<byte> palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int bytesPerPixel = 1;
@@ -704,7 +705,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadPalettedBgra16Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+        private void ReadPalettedBgra16Pixel<TPixel>(Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorIndex = this.currentStream.ReadByte();
@@ -713,7 +714,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadPalettedBgra16Pixel<TPixel>(byte[] palette, int index, int colorMapPixelSizeInBytes, ref TPixel color)
+        private void ReadPalettedBgra16Pixel<TPixel>(Span<byte> palette, int index, int colorMapPixelSizeInBytes, ref TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Bgra5551 bgra = default;
@@ -729,7 +730,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadPalettedBgr24Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+        private void ReadPalettedBgr24Pixel<TPixel>(Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorIndex = this.currentStream.ReadByte();
@@ -738,7 +739,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadPalettedBgra32Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+        private void ReadPalettedBgra32Pixel<TPixel>(Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorIndex = this.currentStream.ReadByte();

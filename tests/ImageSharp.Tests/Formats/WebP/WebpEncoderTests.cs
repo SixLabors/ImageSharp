@@ -4,6 +4,7 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.WebP;
@@ -94,6 +95,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using Image<TPixel> image = provider.GetImage();
             string testOutputDetails = string.Concat("lossy", "_m", method);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
+        }
+
+        [Theory]
+        [WithTestPatternImages(187, 221, PixelTypes.Rgba32)]
+        [WithTestPatternImages(100, 118, PixelTypes.Rgba32)]
+        public void Encode_Lossy_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            // Encoding lossy images with transparency is not yet supported, therefor the test image will be made opaque.
+            image.Mutate(img => img.MakeOpaque());
+            var encoder = new WebpEncoder() { Lossy = true };
+            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
         }
 
         [Fact]

@@ -106,9 +106,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return (sum + 8) >> 4;
         }
 
-        private int BIAS(int b)
-        {
-            return b << (WebpConstants.QFix - 8);
-        }
+        private int BIAS(int b) => b << (WebpConstants.QFix - 8);
     }
 }

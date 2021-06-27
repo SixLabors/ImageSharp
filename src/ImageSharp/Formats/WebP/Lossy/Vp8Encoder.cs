@@ -609,7 +609,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vp8MacroBlockInfo mb = this.MbInfo[n];
                 int alpha = mb.Alpha;
                 mb.Segment = map[alpha];
-                mb.Alpha = centers[map[alpha]];  // for the record.
+                mb.Alpha = centers[map[alpha]];
             }
 
             // TODO: add possibility for SmoothSegmentMap
@@ -790,11 +790,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 m.Y2 = new Vp8Matrix();
                 m.Uv = new Vp8Matrix();
 
-                m.Y1.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q, 0, 127)];
+                m.Y1.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqY1Dc, 0, 127)];
                 m.Y1.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q, 0, 127)];
 
-                m.Y2.Q[0] = (ushort)(WebpLookupTables.DcTable[Numerics.Clamp(q, 0, 127)] * 2);
-                m.Y2.Q[1] = WebpLookupTables.AcTable2[Numerics.Clamp(q, 0, 127)];
+                m.Y2.Q[0] = (ushort)(WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqY2Dc, 0, 127)] * 2);
+                m.Y2.Q[1] = WebpLookupTables.AcTable2[Numerics.Clamp(q + this.DqY2Ac, 0, 127)];
 
                 m.Uv.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqUvDc, 0, 117)];
                 m.Uv.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q + this.DqUvAc, 0, 127)];
@@ -802,8 +802,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 int qi4 = m.Y1.Expand(0);
                 int qi16 = m.Y2.Expand(1);
                 int quv = m.Uv.Expand(2);
-
-                m.I4Penalty = 1000 * qi4 * qi4;
 
                 m.LambdaI16 = 3 * qi16 * qi16;
                 m.LambdaI4 = (3 * qi4 * qi4) >> 7;

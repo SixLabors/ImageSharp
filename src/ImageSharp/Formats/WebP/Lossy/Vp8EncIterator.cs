@@ -768,10 +768,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int srcIdx = 0;
             for (int i = 0; i < h; ++i)
             {
+                // memcpy(dst, src, w);
                 src.Slice(srcIdx, w).CopyTo(dst.Slice(dstIdx));
                 if (w < size)
                 {
-                    dst.Slice(dstIdx, size - w).Fill(dst[dstIdx + w - 1]);
+                    // memset(dst + w, dst[w - 1], size - w);
+                    dst.Slice(dstIdx + w, size - w).Fill(dst[dstIdx + w - 1]);
                 }
 
                 dstIdx += WebpConstants.Bps;
@@ -780,7 +782,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             for (int i = h; i < size; ++i)
             {
-                dst.Slice(dstIdx - WebpConstants.Bps, size).CopyTo(dst);
+                // memcpy(dst, dst - BPS, size);
+                dst.Slice(dstIdx - WebpConstants.Bps, size).CopyTo(dst.Slice(dstIdx));
                 dstIdx += WebpConstants.Bps;
             }
         }

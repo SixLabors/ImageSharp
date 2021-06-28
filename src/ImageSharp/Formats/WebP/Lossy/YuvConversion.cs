@@ -44,7 +44,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<Rgba32> rgbaRow1 = rgbaRow1Buffer.GetSpan();
             int uvRowIndex = 0;
             int rowIndex;
-            bool rowsHaveAlpha = false;
             for (rowIndex = 0; rowIndex < height - 1; rowIndex += 2)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
@@ -52,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow0);
                 PixelOperations<TPixel>.Instance.ToRgba32(configuration, nextRowSpan, rgbaRow1);
 
-                rowsHaveAlpha = CheckNonOpaque(rgbaRow0) && CheckNonOpaque(rgbaRow1);
+                var rowsHaveAlpha = CheckNonOpaque(rgbaRow0) && CheckNonOpaque(rgbaRow1);
 
                 // Downsample U/V planes, two rows at a time.
                 if (!rowsHaveAlpha)
@@ -74,7 +73,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Extra last row.
             if ((height & 1) != 0)
             {
-                if (!rowsHaveAlpha)
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
+                PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow0);
+                ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
+
+                if (!CheckNonOpaque(rgbaRow0))
                 {
                     AccumulateRgb(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
                 }
@@ -83,7 +86,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     AccumulateRgba(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
                 }
 
-                ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
                 ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
             }
         }

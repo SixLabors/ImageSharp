@@ -52,23 +52,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow0);
                 PixelOperations<TPixel>.Instance.ToRgba32(configuration, nextRowSpan, rgbaRow1);
 
-                rowsHaveAlpha = YuvConversion.CheckNonOpaque(rgbaRow0) && YuvConversion.CheckNonOpaque(rgbaRow1);
+                rowsHaveAlpha = CheckNonOpaque(rgbaRow0) && CheckNonOpaque(rgbaRow1);
 
                 // Downsample U/V planes, two rows at a time.
                 if (!rowsHaveAlpha)
                 {
-                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
+                    AccumulateRgb(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
                 }
                 else
                 {
-                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
+                    AccumulateRgba(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
                 }
 
-                YuvConversion.ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
+                ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
                 uvRowIndex++;
 
-                YuvConversion.ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
-                YuvConversion.ConvertRgbaToY(rgbaRow1, y.Slice((rowIndex + 1) * width), width);
+                ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
+                ConvertRgbaToY(rgbaRow1, y.Slice((rowIndex + 1) * width), width);
             }
 
             // Extra last row.
@@ -76,14 +76,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 if (!rowsHaveAlpha)
                 {
-                    YuvConversion.AccumulateRgb(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
+                    AccumulateRgb(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
                 }
                 else
                 {
-                    YuvConversion.AccumulateRgba(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
+                    AccumulateRgba(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
                 }
 
-                YuvConversion.ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
+                ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
+                ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
             }
         }
 

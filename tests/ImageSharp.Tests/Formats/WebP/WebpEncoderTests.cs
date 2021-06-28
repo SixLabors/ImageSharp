@@ -98,15 +98,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithTestPatternImages(187, 221, PixelTypes.Rgba32)]
-        [WithTestPatternImages(100, 118, PixelTypes.Rgba32)]
+        [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+        [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
         public void Encode_Lossy_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage();
 
-            // Encoding lossy images with transparency is not yet supported, therefor the test image will be made opaque.
-            image.Mutate(img => img.MakeOpaque());
             var encoder = new WebpEncoder() { Lossy = true };
             image.VerifyEncoder(provider, "webp", string.Empty, encoder);
         }

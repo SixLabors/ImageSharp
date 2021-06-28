@@ -504,6 +504,10 @@ namespace SixLabors.ImageSharp.Tests
             // Reference image as png
             public const string Peak = "WebP/peak.png";
 
+            // Test pattern images for testing the encoder.
+            public const string TestPatternOpaque = "WebP/testpattern_opaque.png";
+            public const string TestPatternOpaqueSmall = "WebP/testpattern_opaque_small.png";
+
             public static class Animated
             {
                 public const string Animated1 = "WebP/animated-webp.webp";

@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using Image<TPixel> image = provider.GetImage();
 
             var encoder = new WebpEncoder() { Lossy = true };
-            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
+            image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
         }
 
         [Fact]

@@ -18,9 +18,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public const int VOffEnc = 16 + 8;
 
+        private const int MaxIntra16Mode = 2;
+
+        private const int MaxIntra4Mode = 2;
+
         private const int MaxUvMode = 2;
 
-        private const int MaxIntra16Mode = 2;
+        private const int DefaultAlpha = -1;
 
         private readonly int mbw;
 
@@ -373,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int maxMode = MaxIntra16Mode;
             int mode;
-            int bestAlpha = -1;
+            int bestAlpha = DefaultAlpha;
             int bestMode = 0;
 
             this.MakeLuma16Preds();
@@ -393,9 +397,57 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return bestAlpha;
         }
 
+        public int MbAnalyzeBestIntra4Mode(int bestAlpha)
+        {
+            byte[] modes = new byte[16];
+            int maxMode = MaxIntra4Mode;
+            int i4Alpha;
+            var totalHisto = new Vp8LHistogram();
+            int curHisto = 0;
+            this.StartI4();
+            do
+            {
+                int mode;
+                int bestModeAlpha = DefaultAlpha;
+                var histos = new Vp8LHistogram[2];
+                Span<byte> src = this.YuvIn.AsSpan(YOffEnc + WebpLookupTables.Vp8Scan[this.I4]);
+
+                this.MakeIntra4Preds();
+                for (mode = 0; mode < maxMode; ++mode)
+                {
+                    int alpha;
+                    histos[curHisto] = new Vp8LHistogram();
+                    histos[curHisto].CollectHistogram(src, this.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]), 0, 1);
+
+                    alpha = histos[curHisto].GetAlpha();
+                    if (alpha > bestModeAlpha)
+                    {
+                        bestModeAlpha = alpha;
+                        modes[this.I4] = (byte)mode;
+
+                        // Keep track of best histo so far.
+                        curHisto ^= 1;
+                    }
+                }
+
+                // Accumulate best histogram.
+                histos[curHisto ^ 1].Merge(totalHisto);
+            }
+            while (this.RotateI4(this.YuvIn.AsSpan(YOffEnc))); // Note: we reuse the original samples for predictors.
+
+            i4Alpha = totalHisto.GetAlpha();
+            if (i4Alpha > bestAlpha)
+            {
+                this.SetIntra4Mode(modes);
+                bestAlpha = i4Alpha;
+            }
+
+            return bestAlpha;
+        }
+
         public int MbAnalyzeBestUvMode()
         {
-            int bestAlpha = -1;
+            int bestAlpha = DefaultAlpha;
             int smallestAlpha = 0;
             int bestMode = 0;
             int maxMode = MaxUvMode;

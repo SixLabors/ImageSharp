@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.Alpha = new uint[WebpConstants.NumLiteralCodes + 1];
             this.Distance = new uint[WebpConstants.NumDistanceCodes];
 
-            var literalSize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (1 << WebpConstants.MaxColorCacheBits);
+            int literalSize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (1 << WebpConstants.MaxColorCacheBits);
             this.Literal = new uint[literalSize + 1];
 
             // 5 for literal, red, blue, alpha, distance.
@@ -232,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public double AddThresh(Vp8LHistogram b, double costThreshold)
         {
             double costInitial = -this.BitCost;
-            this.GetCombinedHistogramEntropy(b, costThreshold, costInitial, out var cost);
+            this.GetCombinedHistogramEntropy(b, costThreshold, costInitial, out double cost);
             return cost;
         }
 
@@ -348,6 +348,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int lastNonZero = this.lastNonZero;
             int alpha = (maxValue > 1) ? WebpConstants.AlphaScale * lastNonZero / maxValue : 0;
             return alpha;
+        }
+
+        public void Merge(Vp8LHistogram other)
+        {
+            if (this.maxValue > other.maxValue)
+            {
+                other.maxValue = this.maxValue;
+            }
+
+            if (this.lastNonZero > other.lastNonZero)
+            {
+                other.lastNonZero = this.lastNonZero;
+            }
         }
 
         private void SetHistogramData(int[] distribution)

@@ -850,7 +850,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             it.SetSkip(false);       // not skipped.
             it.SetSegment(0);        // default segment, spec-wise.
 
-            int bestAlpha = this.method <= 1 ? it.FastMbAnalyze(this.quality) : it.MbAnalyzeBestIntra16Mode();
+            int bestAlpha;
+            if (this.method <= 1)
+            {
+                bestAlpha = it.FastMbAnalyze(this.quality);
+            }
+            else
+            {
+                bestAlpha = it.MbAnalyzeBestIntra16Mode();
+                if (this.method >= 5)
+                {
+                    // We go and make a fast decision for intra4/intra16.
+                    // It's usually not a good and definitive pick, but helps seeding the stats about level bit-cost.
+                    bestAlpha = it.MbAnalyzeBestIntra4Mode(bestAlpha);
+                }
+            }
 
             bestUvAlpha = it.MbAnalyzeBestUvMode();
 

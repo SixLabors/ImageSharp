@@ -140,6 +140,19 @@ namespace SixLabors.ImageSharp
             this.frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}" /> class
+        /// with the height and the width of the image.
+        /// </summary>
+        /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+        /// <param name="metadata">The images metadata.</param>
+        /// <param name="frame">The frame that will be owned by this image instance.</param>
+        internal Image(Configuration configuration, ImageMetadata metadata, ImageFrame<TPixel> frame)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, frame.Size())
+        {
+            this.frames = new ImageFrameCollection<TPixel>(this, frame);
+        }
+
         /// <inheritdoc />
         protected override ImageFrameCollection NonGenericFrameCollection => this.Frames;
 

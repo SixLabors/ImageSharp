@@ -38,6 +38,18 @@ namespace SixLabors.ImageSharp
             this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, memorySource));
         }
 
+        internal ImageFrameCollection(Image<TPixel> parent, ImageFrame<TPixel> frame)
+        {
+            Guard.NotNull(parent, nameof(parent));
+            Guard.NotNull(frame, nameof(frame));
+
+            this.parent = parent;
+
+            // Frame is already cloned by the caller
+            // this.ValidateFrame call can be omitted as it's the only frame
+            this.frames.Add(frame);
+        }
+
         internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
         {
             Guard.NotNull(parent, nameof(parent));

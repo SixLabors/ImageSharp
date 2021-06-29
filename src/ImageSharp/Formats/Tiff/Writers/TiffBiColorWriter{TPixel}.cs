@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             : base(image, memoryAllocator, configuration, entriesCollector)
         {
             // Convert image to black and white.
-            this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), new[] { image.Clone() });
+            this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), image.Clone());
             this.imageBlackWhite.Mutate(img => img.BinaryDither(KnownDitherings.FloydSteinberg));
         }
 

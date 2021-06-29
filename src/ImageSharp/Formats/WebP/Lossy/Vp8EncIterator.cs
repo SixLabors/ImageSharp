@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Webp.Lossless;
+using SixLabors.ImageSharp.Formats.WebP.Lossy;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -383,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.MakeLuma16Preds();
             for (mode = 0; mode < maxMode; ++mode)
             {
-                var histo = new Vp8LHistogram();
+                var histo = new Vp8Histogram();
                 histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]), 0, 16);
                 int alpha = histo.GetAlpha();
                 if (alpha > bestAlpha)
@@ -402,21 +402,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte[] modes = new byte[16];
             int maxMode = MaxIntra4Mode;
             int i4Alpha;
-            var totalHisto = new Vp8LHistogram();
+            var totalHisto = new Vp8Histogram();
             int curHisto = 0;
             this.StartI4();
             do
             {
                 int mode;
                 int bestModeAlpha = DefaultAlpha;
-                var histos = new Vp8LHistogram[2];
+                var histos = new Vp8Histogram[2];
                 Span<byte> src = this.YuvIn.AsSpan(YOffEnc + WebpLookupTables.Vp8Scan[this.I4]);
 
                 this.MakeIntra4Preds();
                 for (mode = 0; mode < maxMode; ++mode)
                 {
                     int alpha;
-                    histos[curHisto] = new Vp8LHistogram();
+                    histos[curHisto] = new Vp8Histogram();
                     histos[curHisto].CollectHistogram(src, this.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]), 0, 1);
 
                     alpha = histos[curHisto].GetAlpha();
@@ -456,7 +456,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.MakeChroma8Preds();
             for (mode = 0; mode < maxMode; ++mode)
             {
-                var histo = new Vp8LHistogram();
+                var histo = new Vp8Histogram();
                 histo.CollectHistogram(this.YuvIn.AsSpan(UOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]), 16, 16 + 4 + 4);
                 int alpha = histo.GetAlpha();
                 if (alpha > bestAlpha)

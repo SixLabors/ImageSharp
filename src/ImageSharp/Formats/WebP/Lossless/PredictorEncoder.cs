@@ -36,8 +36,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int width,
             int height,
             int bits,
-            Span<uint> argb,
-            Span<uint> argbScratch,
+            Span<uint> bgra,
+            Span<uint> bgraScratch,
             Span<uint> image,
             int nearLosslessQuality,
             bool exact,
@@ -66,8 +66,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         tileY,
                         bits,
                         histo,
-                        argbScratch,
-                        argb,
+                        bgraScratch,
+                        bgra,
                         maxQuantization,
                         exact,
                         usedSubtractGreen,
@@ -82,8 +82,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 height,
                 bits,
                 image,
-                argbScratch,
-                argb,
+                bgraScratch,
+                bgra,
                 maxQuantization,
                 exact,
                 usedSubtractGreen);
@@ -559,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 if (maxQuantization > 1)
                 {
                     // Compute max_diffs for the lower row now, because that needs the
-                    // contents of argb for the current row, which we will overwrite with
+                    // contents of bgra for the current row, which we will overwrite with
                     // residuals before proceeding with the next row.
                     Span<byte> tmp8 = currentMaxDiffs;
                     currentMaxDiffs = lowerMaxDiffs;

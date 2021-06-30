@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         /// <summary>
-        /// Gets memory for the transformed image data.
+        /// Gets the memory for the encoded output image data.
         /// </summary>
         public IMemoryOwner<uint> Bgra { get; }
 
@@ -236,19 +236,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int height = image.Height;
 
             // Convert image pixels to bgra array.
+            this.ConvertPixelsToBgra(image, width, height);
             Span<uint> bgra = this.Bgra.GetSpan();
-            using IMemoryOwner<Bgra32> bgraRowBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
-            Span<Bgra32> bgraRow = bgraRowBuffer.GetSpan();
-            int idx = 0;
-            for (int y = 0; y < height; y++)
-            {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, rowSpan, bgraRow);
-                for (int x = 0; x < width; x++)
-                {
-                    bgra[idx++] = bgraRow[x].PackedValue;
-                }
-            }
 
             // Analyze image (entropy, numPalettes etc).
             CrunchConfig[] crunchConfigs = this.EncoderAnalyze(bgra, width, height, out bool redAndBlueAlwaysZero);
@@ -338,13 +327,38 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         /// <summary>
+        /// Converts the pixels of the image to bgra.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixels.</typeparam>
+        /// <param name="image">The image to convert.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        private void ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Span<uint> bgra = this.Bgra.GetSpan();
+            using IMemoryOwner<Bgra32> bgraRowBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
+            Span<Bgra32> bgraRow = bgraRowBuffer.GetSpan();
+            int idx = 0;
+            for (int y = 0; y < height; y++)
+            {
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, rowSpan, bgraRow);
+                for (int x = 0; x < width; x++)
+                {
+                    bgra[idx++] = bgraRow[x].PackedValue;
+                }
+            }
+        }
+
+        /// <summary>
         /// Analyzes the image and decides which transforms should be used.
         /// </summary>
         /// <param name="bgra">The image as packed bgra values.</param>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="redAndBlueAlwaysZero">Indicates if red and blue are always zero.</param>
-        private CrunchConfig[] EncoderAnalyze(Span<uint> bgra, int width, int height, out bool redAndBlueAlwaysZero)
+        private CrunchConfig[] EncoderAnalyze(ReadOnlySpan<uint> bgra, int width, int height, out bool redAndBlueAlwaysZero)
         {
             // Check if we only deal with a small number of colors and should use a palette.
             bool usePalette = this.AnalyzeAndCreatePalette(bgra, width, height);
@@ -407,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return crunchConfigs.ToArray();
         }
 
-        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, bool useCache, CrunchConfig config, int cacheBits, int histogramBits)
+        private void EncodeImage(ReadOnlySpan<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, bool useCache, CrunchConfig config, int cacheBits, int histogramBits)
         {
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
             ushort[] histogramSymbols = new ushort[histogramImageXySize];
@@ -929,7 +943,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="transformBits">The transformation bits.</param>
         /// <param name="redAndBlueAlwaysZero">Indicates if red and blue are always zero.</param>
         /// <returns>The entropy mode to use.</returns>
-        private EntropyIx AnalyzeEntropy(Span<uint> bgra, int width, int height, bool usePalette, int paletteSize, int transformBits, out bool redAndBlueAlwaysZero)
+        private EntropyIx AnalyzeEntropy(ReadOnlySpan<uint> bgra, int width, int height, bool usePalette, int paletteSize, int transformBits, out bool redAndBlueAlwaysZero)
         {
             if (usePalette && paletteSize <= 16)
             {
@@ -942,10 +956,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256);
             Span<uint> histo = histoBuffer.Memory.Span;
             uint pixPrev = bgra[0]; // Skip the first pixel.
-            Span<uint> prevRow = null;
+            ReadOnlySpan<uint> prevRow = null;
             for (int y = 0; y < height; y++)
             {
-                Span<uint> currentRow = bgra.Slice(y * width, width);
+                ReadOnlySpan<uint> currentRow = bgra.Slice(y * width, width);
                 for (int x = 0; x < width; x++)
                 {
                     uint pix = currentRow[x];
@@ -1087,7 +1101,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <returns>true, if a palette should be used.</returns>
-        private bool AnalyzeAndCreatePalette(Span<uint> bgra, int width, int height)
+        private bool AnalyzeAndCreatePalette(ReadOnlySpan<uint> bgra, int width, int height)
         {
             Span<uint> palette = this.Palette.Memory.Span;
             this.PaletteSize = this.GetColorPalette(bgra, width, height, palette);
@@ -1117,12 +1131,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="height">The image height.</param>
         /// <param name="palette">The span to store the palette into.</param>
         /// <returns>The number of palette entries.</returns>
-        private int GetColorPalette(Span<uint> bgra, int width, int height, Span<uint> palette)
+        private int GetColorPalette(ReadOnlySpan<uint> bgra, int width, int height, Span<uint> palette)
         {
             var colors = new HashSet<uint>();
             for (int y = 0; y < height; y++)
             {
-                Span<uint> bgraRow = bgra.Slice(y * width, width);
+                ReadOnlySpan<uint> bgraRow = bgra.Slice(y * width, width);
                 for (int x = 0; x < width; x++)
                 {
                     colors.Add(bgraRow[x]);

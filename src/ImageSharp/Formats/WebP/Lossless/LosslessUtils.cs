@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// is bestLenMatch, and the index itself otherwise.
         /// If no two elements are the same, it returns maxLimit.
         /// </summary>
-        public static int FindMatchLength(Span<uint> array1, Span<uint> array2, int bestLenMatch, int maxLimit)
+        public static int FindMatchLength(ReadOnlySpan<uint> array1, ReadOnlySpan<uint> array2, int bestLenMatch, int maxLimit)
         {
             // Before 'expensive' linear match, check if the two arrays match at the
             // current best length index.
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int VectorMismatch(Span<uint> array1, Span<uint> array2, int length)
+        public static int VectorMismatch(ReadOnlySpan<uint> array1, ReadOnlySpan<uint> array2, int length)
         {
             int matchLen = 0;
 

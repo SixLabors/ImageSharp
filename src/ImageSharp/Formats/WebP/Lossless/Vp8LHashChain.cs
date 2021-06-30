@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         public int Size { get; }
 
-        public void Fill(MemoryAllocator memoryAllocator, Span<uint> bgra, int quality, int xSize, int ySize)
+        public void Fill(MemoryAllocator memoryAllocator, ReadOnlySpan<uint> bgra, int quality, int xSize, int ySize)
         {
             int size = xSize * ySize;
             int iterMax = GetMaxItersForQuality(quality);
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="bgra">An Span with two pixels.</param>
         /// <returns>The hash.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint GetPixPairHash64(Span<uint> bgra)
+        private static uint GetPixPairHash64(ReadOnlySpan<uint> bgra)
         {
             uint key = bgra[1] * HashMultiplierHi;
             key += bgra[0] * HashMultiplierLo;

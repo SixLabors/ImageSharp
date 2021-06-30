@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static Vp8LBackwardRefs GetBackwardReferences(
             int width,
             int height,
-            Span<uint> bgra,
+            ReadOnlySpan<uint> bgra,
             int quality,
             int lz77TypesToTry,
             ref int cacheBits,
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// The local color cache is also disabled for the lower (smaller then 25) quality.
         /// </summary>
         /// <returns>Best cache size.</returns>
-        private static int CalculateBestCacheSize(Span<uint> bgra, int quality, Vp8LBackwardRefs refs, int bestCacheBits)
+        private static int CalculateBestCacheSize(ReadOnlySpan<uint> bgra, int quality, Vp8LBackwardRefs refs, int bestCacheBits)
         {
             int cacheBitsMax = (quality <= 25) ? 0 : bestCacheBits;
             if (cacheBitsMax == 0)
@@ -227,7 +227,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return bestCacheBits;
         }
 
-        private static void BackwardReferencesTraceBackwards(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refsSrc, Vp8LBackwardRefs refsDst)
+        private static void BackwardReferencesTraceBackwards(
+            int xSize,
+            int ySize,
+            ReadOnlySpan<uint> bgra,
+            int cacheBits,
+            Vp8LHashChain hashChain,
+            Vp8LBackwardRefs refsSrc,
+            Vp8LBackwardRefs refsDst)
         {
             int distArraySize = xSize * ySize;
             ushort[] distArray = new ushort[distArraySize];
@@ -238,7 +245,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
         }
 
-        private static void BackwardReferencesHashChainDistanceOnly(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs, ushort[] distArray)
+        private static void BackwardReferencesHashChainDistanceOnly(
+            int xSize,
+            int ySize,
+            ReadOnlySpan<uint> bgra,
+            int cacheBits,
+            Vp8LHashChain hashChain,
+            Vp8LBackwardRefs refs,
+            ushort[] distArray)
         {
             int pixCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
@@ -346,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return chosenPathSize;
         }
 
-        private static void BackwardReferencesHashChainFollowChosenPath(Span<uint> bgra, int cacheBits, Span<ushort> chosenPath, int chosenPathSize, Vp8LHashChain hashChain, Vp8LBackwardRefs backwardRefs)
+        private static void BackwardReferencesHashChainFollowChosenPath(ReadOnlySpan<uint> bgra, int cacheBits, Span<ushort> chosenPath, int chosenPathSize, Vp8LHashChain hashChain, Vp8LBackwardRefs backwardRefs)
         {
             bool useColorCache = cacheBits > 0;
             var colorCache = new ColorCache();
@@ -402,7 +416,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static void AddSingleLiteralWithCostModel(Span<uint> bgra, ColorCache colorCache, CostModel costModel, int idx, bool useColorCache, float prevCost, float[] cost, ushort[] distArray)
+        private static void AddSingleLiteralWithCostModel(
+            ReadOnlySpan<uint> bgra,
+            ColorCache colorCache,
+            CostModel costModel,
+            int idx,
+            bool useColorCache,
+            float prevCost,
+            float[] cost,
+            ushort[] distArray)
         {
             double costVal = prevCost;
             uint color = bgra[idx];
@@ -430,7 +452,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static void BackwardReferencesLz77(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
+        private static void BackwardReferencesLz77(int xSize, int ySize, ReadOnlySpan<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
         {
             int iLastCheck = -1;
             bool useColorCache = cacheBits > 0;
@@ -508,7 +530,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Compute an LZ77 by forcing matches to happen within a given distance cost.
         /// We therefore limit the algorithm to the lowest 32 values in the PlaneCode definition.
         /// </summary>
-        private static void BackwardReferencesLz77Box(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChainBest, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
+        private static void BackwardReferencesLz77Box(int xSize, int ySize, ReadOnlySpan<uint> bgra, int cacheBits, Vp8LHashChain hashChainBest, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
         {
             int pixelCount = xSize * ySize;
             int[] windowOffsets = new int[WindowOffsetsSizeMax];
@@ -686,7 +708,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             BackwardReferencesLz77(xSize, ySize, bgra, cacheBits, hashChain, refs);
         }
 
-        private static void BackwardReferencesRle(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
+        private static void BackwardReferencesRle(int xSize, int ySize, ReadOnlySpan<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
         {
             int pixelCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
@@ -739,7 +761,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Update (in-place) backward references for the specified cacheBits.
         /// </summary>
-        private static void BackwardRefsWithLocalCache(Span<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
+        private static void BackwardRefsWithLocalCache(ReadOnlySpan<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
         {
             int pixelIndex = 0;
             var colorCache = new ColorCache();

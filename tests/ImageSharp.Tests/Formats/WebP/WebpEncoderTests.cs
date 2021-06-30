@@ -14,6 +14,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     public class WebpEncoderTests
     {
         [Theory]
+        [WithFile(Flag, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.PalettedTwoColor, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Paletted256Colors, PixelTypes.Rgba32)]
+        public void Encode_Lossless_WithPalette_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                Lossy = false,
+                Quality = 100,
+                Method = 6
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
+        }
+
+        [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, 100)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, 80)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, 20)]
@@ -32,25 +50,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
-        public void Encode_Lossless_WithDifferentMethods_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 100)]
+        public void Encode_Lossless_WithDifferentMethodAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int method, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoder()
             {
                 Lossy = false,
                 Method = method,
-                Quality = 75
+                Quality = quality
             };
 
             using Image<TPixel> image = provider.GetImage();
-            string testOutputDetails = string.Concat("lossless", "_m", method);
+            string testOutputDetails = string.Concat("lossless", "_m", method, "_q", quality);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
         }
 
@@ -73,17 +98,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
-        public void Encode_Lossy_WithDifferentMethods_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 100)]
+        public void Encode_Lossy_WithDifferentMethodsAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int method, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int quality = 75;
             var encoder = new WebpEncoder()
             {
                 Lossy = true,
@@ -92,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            string testOutputDetails = string.Concat("lossy", "_m", method);
+            string testOutputDetails = string.Concat("lossy", "_m", method, "_q", quality);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
         }
 
@@ -106,6 +137,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             var encoder = new WebpEncoder() { Lossy = true };
             image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
+        }
+
+        [Theory]
+        [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+        [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
+        public void Encode_Lossless_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            var encoder = new WebpEncoder() { Lossy = false };
+            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
         }
 
         [Fact]

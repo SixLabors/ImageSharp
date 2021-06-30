@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow0);
                 PixelOperations<TPixel>.Instance.ToRgba32(configuration, nextRowSpan, rgbaRow1);
 
-                var rowsHaveAlpha = CheckNonOpaque(rgbaRow0) && CheckNonOpaque(rgbaRow1);
+                bool rowsHaveAlpha = CheckNonOpaque(rgbaRow0) && CheckNonOpaque(rgbaRow1);
 
                 // Downsample U/V planes, two rows at a time.
                 if (!rowsHaveAlpha)

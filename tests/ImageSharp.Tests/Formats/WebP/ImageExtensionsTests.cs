@@ -11,11 +11,11 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     [Trait("Format", "Webp")]
-    public class ImageExtensionsTest
+    public class ImageExtensionsTests
     {
         private readonly Configuration configuration;
 
-        public ImageExtensionsTest()
+        public ImageExtensionsTests()
         {
             this.configuration = new Configuration();
             this.configuration.AddWebp();
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void SaveAsWebp_Path()
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
             string file = Path.Combine(dir, "SaveAsWebp_Path.webp");
 
             using (var image = new Image<Rgba32>(this.configuration, 10, 10))
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public async Task SaveAsWebpAsync_Path()
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
             string file = Path.Combine(dir, "SaveAsWebpAsync_Path.webp");
 
             using (var image = new Image<Rgba32>(this.configuration, 10, 10))

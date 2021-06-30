@@ -508,6 +508,12 @@ namespace SixLabors.ImageSharp.Tests
             public const string TestPatternOpaque = "WebP/testpattern_opaque.png";
             public const string TestPatternOpaqueSmall = "WebP/testpattern_opaque_small.png";
 
+            // Test image for encoding image with a palette.
+            public const string Flag = "WebP/flag_of_germany.png";
+
+            // Test images for converting rgb data to yuv.
+            public const string Yuv = "WebP/yuv_test.png";
+
             public static class Animated
             {
                 public const string Animated1 = "WebP/animated-webp.webp";

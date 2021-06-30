@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 #endif
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.WebP
+namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     [Trait("Format", "Webp")]
     public class PredictorEncoderTests
@@ -82,14 +82,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             };
 
             // Convert image pixels to bgra array.
-            var imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Peak));
+            byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Peak));
             using var image = Image.Load<Rgba32>(imgBytes);
             uint[] bgra = ToBgra(image);
 
             int colorTransformBits = 3;
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
-            var transformData = new uint[transformWidth * transformHeight];
+            uint[] transformData = new uint[transformWidth * transformHeight];
 
             // act
             PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData);
@@ -111,14 +111,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             };
 
             // Convert image pixels to bgra array.
-            var imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Lossless.BikeSmall));
+            byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Lossless.BikeSmall));
             using var image = Image.Load<Rgba32>(imgBytes, new WebpDecoder());
             uint[] bgra = ToBgra(image);
 
             int colorTransformBits = 4;
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
-            var transformData = new uint[transformWidth * transformHeight];
+            uint[] transformData = new uint[transformWidth * transformHeight];
 
             // act
             PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData);

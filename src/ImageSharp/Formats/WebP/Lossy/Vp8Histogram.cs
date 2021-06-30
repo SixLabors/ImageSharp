@@ -18,6 +18,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private int lastNonZero;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8Histogram" /> class.
+        /// </summary>
+        public Vp8Histogram()
+        {
+            this.maxValue = 0;
+            this.lastNonZero = 1;
+        }
+
         public int GetAlpha()
         {
             // 'alpha' will later be clipped to [0..MAX_ALPHA] range, clamping outer

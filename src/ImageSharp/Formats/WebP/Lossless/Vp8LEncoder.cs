@@ -80,6 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.method = Numerics.Clamp(method, 0, 6);
             this.bitWriter = new Vp8LBitWriter(initialSize);
             this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
+            this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);
             this.Palette = memoryAllocator.Allocate<uint>(WebpConstants.MaxPaletteSize);
             this.Refs = new Vp8LBackwardRefs[3];
             this.HashChain = new Vp8LHashChain(pixelCount);
@@ -96,9 +97,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         /// <summary>
-        /// Gets the memory for the encoded output image data.
+        /// Gets the memory for the image data as packed bgra values.
         /// </summary>
         public IMemoryOwner<uint> Bgra { get; }
+
+        /// <summary>
+        /// Gets the memory for the encoded output image data.
+        /// </summary>
+        public IMemoryOwner<uint> EncodedData { get; }
 
         /// <summary>
         /// Gets or sets the scratch memory for bgra rows used for predictions.
@@ -237,7 +243,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Convert image pixels to bgra array.
             this.ConvertPixelsToBgra(image, width, height);
-            Span<uint> bgra = this.Bgra.GetSpan();
+            ReadOnlySpan<uint> bgra = this.Bgra.GetSpan();
+            Span<uint> encodedData = this.EncodedData.GetSpan();
 
             // Analyze image (entropy, numPalettes etc).
             CrunchConfig[] crunchConfigs = this.EncoderAnalyze(bgra, width, height, out bool redAndBlueAlwaysZero);
@@ -248,6 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             bool isFirstConfig = true;
             foreach (CrunchConfig crunchConfig in crunchConfigs)
             {
+                bgra.CopyTo(encodedData);
                 bool useCache = true;
                 this.UsePalette = crunchConfig.EntropyIdx == EntropyIx.Palette ||
                                   crunchConfig.EntropyIdx == EntropyIx.PaletteAndSpatial;
@@ -297,15 +305,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 // Encode and write the transformed image.
                 this.EncodeImage(
-                    bgra,
-                    this.HashChain,
-                    this.Refs,
                     this.CurrentWidth,
                     height,
                     useCache,
                     crunchConfig,
-                    this.CacheBits,
-                    this.HistoBits);
+                    this.CacheBits);
 
                 // If we are better than what we already have.
                 if (isFirstConfig || this.bitWriter.NumBytes() < bestSize)
@@ -421,9 +425,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return crunchConfigs.ToArray();
         }
 
-        private void EncodeImage(ReadOnlySpan<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, bool useCache, CrunchConfig config, int cacheBits, int histogramBits)
+        private void EncodeImage(int width, int height, bool useCache, CrunchConfig config, int cacheBits)
         {
-            int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
+            // bgra data with transformations applied.
+            Span<uint> bgra = this.EncodedData.GetSpan();
+            int histogramImageXySize = LosslessUtils.SubSampleSize(width, this.HistoBits) * LosslessUtils.SubSampleSize(height, this.HistoBits);
             ushort[] histogramSymbols = new ushort[histogramImageXySize];
             var huffTree = new HuffmanTree[3 * WebpConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
@@ -444,7 +450,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Calculate backward references from BGRA image.
-            hashChain.Fill(this.memoryAllocator, bgra, this.quality, width, height);
+            this.HashChain.Fill(this.memoryAllocator, bgra, this.quality, width, height);
 
             Vp8LBitWriter bitWriterBest = config.SubConfigs.Count > 1 ? this.bitWriter.Clone() : this.bitWriter;
             Vp8LBitWriter bwInit = this.bitWriter;
@@ -458,13 +464,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     this.quality,
                     subConfig.Lz77,
                     ref cacheBits,
-                    hashChain,
-                    refsArray[0],
-                    refsArray[1]); // TODO : Pass do not cache
+                    this.HashChain,
+                    this.Refs[0],
+                    this.Refs[1]);
 
                 // Keep the best references aside and use the other element from the first
                 // two as a temporary for later usage.
-                Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
+                Vp8LBackwardRefs refsTmp = this.Refs[refsBest.Equals(this.Refs[0]) ? 1 : 0];
 
                 this.bitWriter.Reset(bwInit);
                 var tmpHisto = new Vp8LHistogram(cacheBits);
@@ -475,7 +481,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
 
                 // Build histogram image and symbols from backward references.
-                HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, histogramBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
+                HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, this.HistoBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
 
                 // Create Huffman bit lengths and codes for each histogram image.
                 int histogramImageSize = histogramImage.Count;
@@ -517,8 +523,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         }
                     }
 
-                    this.bitWriter.PutBits((uint)(histogramBits - 2), 3);
-                    this.EncodeImageNoHuffman(histogramBgra, hashChain, refsTmp, refsArray[2], LosslessUtils.SubSampleSize(width, histogramBits), LosslessUtils.SubSampleSize(height, histogramBits), this.quality);
+                    this.bitWriter.PutBits((uint)(this.HistoBits - 2), 3);
+                    this.EncodeImageNoHuffman(
+                        histogramBgra,
+                        this.HashChain,
+                        refsTmp,
+                        this.Refs[2],
+                        LosslessUtils.SubSampleSize(width, this.HistoBits),
+                        LosslessUtils.SubSampleSize(height, this.HistoBits),
+                        this.quality);
                 }
 
                 // Store Huffman codes.
@@ -547,12 +560,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
 
                 // Store actual literals.
-                this.StoreImageToBitMask(width, histogramBits, refsBest, histogramSymbols, huffmanCodes);
+                this.StoreImageToBitMask(width, this.HistoBits, refsBest, histogramSymbols, huffmanCodes);
 
                 // Keep track of the smallest image so far.
                 if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
                 {
-                    // TODO: This was done in the reference by swapping references, this will be slower
+                    // TODO: This was done in the reference by swapping references, this will be slower.
                     bitWriterBest = this.bitWriter.Clone();
                 }
 
@@ -589,7 +602,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.SubtractGreen, 2);
-            LosslessUtils.SubtractGreenFromBlueAndRed(this.Bgra.GetSpan());
+            LosslessUtils.SubtractGreenFromBlueAndRed(this.EncodedData.GetSpan());
         }
 
         private void ApplyPredictFilter(int width, int height, bool usedSubtractGreen)
@@ -600,7 +613,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int transformWidth = LosslessUtils.SubSampleSize(width, predBits);
             int transformHeight = LosslessUtils.SubSampleSize(height, predBits);
 
-            PredictorEncoder.ResidualImage(width, height, predBits, this.Bgra.GetSpan(), this.BgraScratch.GetSpan(), this.TransformData.GetSpan(), nearLosslessStrength, exact, usedSubtractGreen);
+            PredictorEncoder.ResidualImage(width, height, predBits, this.EncodedData.GetSpan(), this.BgraScratch.GetSpan(), this.TransformData.GetSpan(), nearLosslessStrength, exact, usedSubtractGreen);
 
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);
@@ -615,7 +628,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-            PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.Bgra.GetSpan(), this.TransformData.GetSpan());
+            PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan());
 
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
@@ -1161,9 +1174,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private void MapImageFromPalette(int width, int height)
         {
-            Span<uint> src = this.Bgra.GetSpan();
+            Span<uint> src = this.EncodedData.GetSpan();
             int srcStride = this.CurrentWidth;
-            Span<uint> dst = this.Bgra.GetSpan(); // Applying the palette will be done in place.
+            Span<uint> dst = this.EncodedData.GetSpan(); // Applying the palette will be done in place.
             Span<uint> palette = this.Palette.GetSpan();
             int paletteSize = this.PaletteSize;
             int xBits;
@@ -1698,6 +1711,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public void Dispose()
         {
             this.Bgra.Dispose();
+            this.EncodedData.Dispose();
             this.BgraScratch.Dispose();
             this.Palette.Dispose();
             this.TransformData.Dispose();

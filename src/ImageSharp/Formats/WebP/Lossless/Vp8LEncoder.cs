@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -341,17 +341,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<uint> bgra = this.Bgra.GetSpan();
-            using IMemoryOwner<Bgra32> bgraRowBuffer = this.memoryAllocator.Allocate<Bgra32>(width);
-            Span<Bgra32> bgraRow = bgraRowBuffer.GetSpan();
-            int idx = 0;
+            Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
+            int widthBytes = width * 4;
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, rowSpan, bgraRow);
-                for (int x = 0; x < width; x++)
-                {
-                    bgra[idx++] = bgraRow[x].PackedValue;
-                }
+                PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, bgraBytes.Slice(y * widthBytes, widthBytes), width);
             }
         }
 

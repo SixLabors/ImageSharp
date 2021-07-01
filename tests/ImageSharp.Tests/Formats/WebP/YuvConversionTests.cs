@@ -2,17 +2,45 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using SixLabors.ImageSharp.Tests.TestUtilities;
+#endif
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     [Trait("Format", "Webp")]
     public class YuvConversionTests
     {
+        [Fact]
+        public void CheckNonOpaque_WithOpaquePixels_Works() => RunCheckNoneOpaqueWithOpaquePixelsTest();
+
+        [Fact]
+        public void CheckNonOpaque_WithNoneOpaquePixels_Works() => RunCheckNoneOpaqueWithNoneOpaquePixelsTest();
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void CheckNonOpaque_WithOpaquePixels_WithHardwareIntrinsics_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void CheckNonOpaque_WithOpaquePixels_WithoutSse2_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void CheckNonOpaque_WithNoneOpaquePixels_WithHardwareIntrinsics_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void CheckNonOpaque_WithNoneOpaquePixels_WithoutSse2_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableSSE2);
+#endif
+
         [Theory]
         [WithFile(TestImages.WebP.Yuv, PixelTypes.Rgba32)]
         public void ConvertRgbToYuv_Works<TPixel>(TestImageProvider<TPixel> provider)
@@ -232,6 +260,90 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.True(expectedY.AsSpan().SequenceEqual(y));
             Assert.True(expectedU.AsSpan().SequenceEqual(u.Slice(0, expectedU.Length)));
             Assert.True(expectedV.AsSpan().SequenceEqual(v.Slice(0, expectedV.Length)));
+        }
+
+        private static void RunCheckNoneOpaqueWithNoneOpaquePixelsTest()
+        {
+            // arrange
+            byte[] rowBytes =
+            {
+                122, 120, 101, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                122, 120, 101, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 100,
+                148, 158, 158, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+            };
+            Span<Rgba32> row = MemoryMarshal.Cast<byte, Rgba32>(rowBytes);
+
+            // act
+            bool noneOpaque = YuvConversion.CheckNonOpaque(row);
+
+            // assert
+            Assert.True(noneOpaque);
+        }
+
+        private static void RunCheckNoneOpaqueWithOpaquePixelsTest()
+        {
+            // arrange
+            byte[] rowBytes =
+            {
+                122, 120, 101, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                122, 120, 101, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+                148, 158, 158, 255,
+                171, 165, 151, 255,
+                209, 208, 210, 255,
+                174, 183, 189, 255,
+                148, 158, 158, 255,
+            };
+            Span<Rgba32> row = MemoryMarshal.Cast<byte, Rgba32>(rowBytes);
+
+            // act
+            bool noneOpaque = YuvConversion.CheckNonOpaque(row);
+
+            // assert
+            Assert.False(noneOpaque);
         }
     }
 }

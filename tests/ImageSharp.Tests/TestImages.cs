@@ -44,6 +44,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
             public const string Bike = "Png/Bike.png";
+            public const string BikeSmall = "Png/bike-small.png";
             public const string BikeGrayscale = "Png/BikeGrayscale.png";
             public const string SnakeGame = "Png/SnakeGame.png";
             public const string Icon = "Png/icon.png";

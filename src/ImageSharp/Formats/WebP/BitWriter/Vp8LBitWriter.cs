@@ -43,14 +43,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         private int cur;
 
-        private int end;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
         /// </summary>
         /// <param name="expectedSize">The expected size in bytes.</param>
         public Vp8LBitWriter(int expectedSize)
-            : base(expectedSize) => this.end = this.Buffer.Length;
+            : base(expectedSize)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
@@ -184,9 +184,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         private void PutBitsFlushBits()
         {
             // If needed, make some room by flushing some bits out.
-            if (this.cur + WriterBytes > this.end)
+            if (this.cur + WriterBytes > this.Buffer.Length)
             {
-                int extraSize = this.end - this.cur + MinExtraSize;
+                int extraSize = this.Buffer.Length - this.cur + MinExtraSize;
                 this.BitWriterResize(extraSize);
             }
 
@@ -204,15 +204,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="extraSize">The extra size in bytes needed.</param>
         public override void BitWriterResize(int extraSize)
         {
-            int maxBytes = this.end + this.Buffer.Length;
+            int maxBytes = this.Buffer.Length + this.Buffer.Length;
             int sizeRequired = this.cur + extraSize;
-
-            if (this.ResizeBuffer(maxBytes, sizeRequired))
-            {
-                return;
-            }
-
-            this.end = this.Buffer.Length;
+            this.ResizeBuffer(maxBytes, sizeRequired);
         }
     }
 }

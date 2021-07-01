@@ -61,13 +61,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="height">The height of the image.</param>
         public abstract void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height);
 
-        protected bool ResizeBuffer(int maxBytes, int sizeRequired)
+        protected void ResizeBuffer(int maxBytes, int sizeRequired)
         {
-            if (maxBytes > 0 && sizeRequired < maxBytes)
-            {
-                return true;
-            }
-
             int newSize = (3 * maxBytes) >> 1;
             if (newSize < sizeRequired)
             {
@@ -77,8 +72,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             // Make new size multiple of 1k.
             newSize = ((newSize >> 10) + 1) << 10;
             Array.Resize(ref this.buffer, newSize);
-
-            return false;
         }
 
         /// <summary>

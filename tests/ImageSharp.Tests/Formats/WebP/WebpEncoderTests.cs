@@ -64,6 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 100)]
+        [WithFile(TestImages.Png.BikeSmall, PixelTypes.Rgba32, 6, 100)]
         public void Encode_Lossless_WithDifferentMethodAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int method, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {

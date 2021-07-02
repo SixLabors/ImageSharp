@@ -88,26 +88,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IMemoryOwner<byte> currentScanline;
 
         /// <summary>
-        /// The common buffer for the filters.
-        /// </summary>
-        private IMemoryOwner<byte> filterBuffer;
-
-        /// <summary>
-        /// The ext buffer for the sub filter, <see cref="PngFilterMethod.Adaptive"/>.
-        /// </summary>
-        private IMemoryOwner<byte> subFilter;
-
-        /// <summary>
-        /// The ext buffer for the average filter, <see cref="PngFilterMethod.Adaptive"/>.
-        /// </summary>
-        private IMemoryOwner<byte> averageFilter;
-
-        /// <summary>
-        /// The ext buffer for the Paeth filter, <see cref="PngFilterMethod.Adaptive"/>.
-        /// </summary>
-        private IMemoryOwner<byte> paethFilter;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
@@ -173,17 +153,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.previousScanline?.Dispose();
             this.currentScanline?.Dispose();
-            this.subFilter?.Dispose();
-            this.averageFilter?.Dispose();
-            this.paethFilter?.Dispose();
-            this.filterBuffer?.Dispose();
-
             this.previousScanline = null;
             this.currentScanline = null;
-            this.subFilter = null;
-            this.averageFilter = null;
-            this.paethFilter = null;
-            this.filterBuffer = null;
         }
 
         /// <summary>
@@ -440,6 +411,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case PngColorType.GrayscaleWithAlpha:
                     this.CollectGrayscaleBytes(rowSpan);
                     break;
+                case PngColorType.Rgb:
+                case PngColorType.RgbWithAlpha:
                 default:
                     this.CollectTPixelBytes(rowSpan);
                     break;
@@ -447,124 +420,127 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Apply filter for the raw scanline.
+        /// Apply the line filter for the raw scanline to enable better compression.
         /// </summary>
-        private IMemoryOwner<byte> FilterPixelBytes()
+        private void FilterPixelBytes(ref Span<byte> filter, ref Span<byte> attempt)
         {
             switch (this.options.FilterMethod)
             {
                 case PngFilterMethod.None:
-                    NoneFilter.Encode(this.currentScanline.GetSpan(), this.filterBuffer.GetSpan());
-                    return this.filterBuffer;
-
+                    NoneFilter.Encode(this.currentScanline.GetSpan(), filter);
+                    break;
                 case PngFilterMethod.Sub:
-                    SubFilter.Encode(this.currentScanline.GetSpan(), this.filterBuffer.GetSpan(), this.bytesPerPixel, out int _);
-                    return this.filterBuffer;
+                    SubFilter.Encode(this.currentScanline.GetSpan(), filter, this.bytesPerPixel, out int _);
+                    break;
 
                 case PngFilterMethod.Up:
-                    UpFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), this.filterBuffer.GetSpan(), out int _);
-                    return this.filterBuffer;
+                    UpFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, out int _);
+                    break;
 
                 case PngFilterMethod.Average:
-                    AverageFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), this.filterBuffer.GetSpan(), this.bytesPerPixel, out int _);
-                    return this.filterBuffer;
+                    AverageFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, this.bytesPerPixel, out int _);
+                    break;
 
                 case PngFilterMethod.Paeth:
-                    PaethFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), this.filterBuffer.GetSpan(), this.bytesPerPixel, out int _);
-                    return this.filterBuffer;
-
+                    PaethFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, this.bytesPerPixel, out int _);
+                    break;
+                case PngFilterMethod.Adaptive:
                 default:
-                    return this.GetOptimalFilteredScanline();
+                    this.ApplyOptimalFilteredScanline(ref filter, ref attempt);
+                    break;
             }
         }
 
         /// <summary>
-        /// Encodes the pixel data line by line.
-        /// Each scanline is encoded in the most optimal manner to improve compression.
+        /// Collects the pixel data line by line for compressing.
+        /// Each scanline is filtered in the most optimal manner to improve compression.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
-        /// <param name="quantized">The quantized pixels. Can be null.</param>
-        /// <param name="row">The row.</param>
-        /// <returns>The <see cref="IMemoryOwner{Byte}"/></returns>
-        private IMemoryOwner<byte> EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, IndexedImageFrame<TPixel> quantized, int row)
+        /// <param name="filter">The filtered buffer.</param>
+        /// <param name="attempt">Used for attempting optimized filtering.</param>
+        /// <param name="quantized">The quantized pixels. Can be <see langword="null"/>.</param>
+        /// <param name="row">The row number.</param>
+        private void CollectAndFilterPixelRow<TPixel>(
+            ReadOnlySpan<TPixel> rowSpan,
+            ref Span<byte> filter,
+            ref Span<byte> attempt,
+            IndexedImageFrame<TPixel> quantized,
+            int row)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.CollectPixelBytes(rowSpan, quantized, row);
-            return this.FilterPixelBytes();
+            this.FilterPixelBytes(ref filter, ref attempt);
         }
 
         /// <summary>
         /// Encodes the indexed pixel data (with palette) for Adam7 interlaced mode.
         /// </summary>
-        /// <param name="rowSpan">The row span.</param>
-        private IMemoryOwner<byte> EncodeAdam7IndexedPixelRow(ReadOnlySpan<byte> rowSpan)
+        /// <param name="row">The row span.</param>
+        /// <param name="filter">The filtered buffer.</param>
+        /// <param name="attempt">Used for attempting optimized filtering.</param>
+        private void EncodeAdam7IndexedPixelRow(
+            ReadOnlySpan<byte> row,
+            ref Span<byte> filter,
+            ref Span<byte> attempt)
         {
             // CollectPixelBytes
             if (this.bitDepth < 8)
             {
-                PngEncoderHelpers.ScaleDownFrom8BitArray(rowSpan, this.currentScanline.GetSpan(), this.bitDepth);
+                PngEncoderHelpers.ScaleDownFrom8BitArray(row, this.currentScanline.GetSpan(), this.bitDepth);
             }
             else
             {
-                rowSpan.CopyTo(this.currentScanline.GetSpan());
+                row.CopyTo(this.currentScanline.GetSpan());
             }
 
-            return this.FilterPixelBytes();
+            this.FilterPixelBytes(ref filter, ref attempt);
         }
 
         /// <summary>
         /// Applies all PNG filters to the given scanline and returns the filtered scanline that is deemed
         /// to be most compressible, using lowest total variation as proxy for compressibility.
         /// </summary>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private IMemoryOwner<byte> GetOptimalFilteredScanline()
+        private void ApplyOptimalFilteredScanline(ref Span<byte> filter, ref Span<byte> attempt)
         {
             // Palette images don't compress well with adaptive filtering.
-            if (this.options.ColorType == PngColorType.Palette || this.bitDepth < 8)
+            // Nor do images comprising a single row.
+            if (this.options.ColorType == PngColorType.Palette || this.height == 1 || this.bitDepth < 8)
             {
-                NoneFilter.Encode(this.currentScanline.GetSpan(), this.filterBuffer.GetSpan());
-                return this.filterBuffer;
+                NoneFilter.Encode(this.currentScanline.GetSpan(), filter);
+                return;
             }
 
-            this.AllocateExtBuffers();
-            Span<byte> scanSpan = this.currentScanline.GetSpan();
-            Span<byte> prevSpan = this.previousScanline.GetSpan();
+            Span<byte> current = this.currentScanline.GetSpan();
+            Span<byte> previous = this.previousScanline.GetSpan();
 
-            // This order, while different to the enumerated order is more likely to produce a smaller sum
-            // early on which shaves a couple of milliseconds off the processing time.
-            UpFilter.Encode(scanSpan, prevSpan, this.filterBuffer.GetSpan(), out int currentSum);
-
-            // TODO: PERF.. We should be breaking out of the encoding for each line as soon as we hit the sum.
-            // That way the above comment would actually be true. It used to be anyway...
-            // If we could use SIMD for none branching filters we could really speed it up.
-            int lowestSum = currentSum;
-            IMemoryOwner<byte> actualResult = this.filterBuffer;
-
-            PaethFilter.Encode(scanSpan, prevSpan, this.paethFilter.GetSpan(), this.bytesPerPixel, out currentSum);
-
-            if (currentSum < lowestSum)
+            int min = int.MaxValue;
+            SubFilter.Encode(current, attempt, this.bytesPerPixel, out int sum);
+            if (sum < min)
             {
-                lowestSum = currentSum;
-                actualResult = this.paethFilter;
+                min = sum;
+                SwapSpans(ref filter, ref attempt);
             }
 
-            SubFilter.Encode(scanSpan, this.subFilter.GetSpan(), this.bytesPerPixel, out currentSum);
-
-            if (currentSum < lowestSum)
+            UpFilter.Encode(current, previous, attempt, out sum);
+            if (sum < min)
             {
-                lowestSum = currentSum;
-                actualResult = this.subFilter;
+                min = sum;
+                SwapSpans(ref filter, ref attempt);
             }
 
-            AverageFilter.Encode(scanSpan, prevSpan, this.averageFilter.GetSpan(), this.bytesPerPixel, out currentSum);
-
-            if (currentSum < lowestSum)
+            AverageFilter.Encode(current, previous, attempt, this.bytesPerPixel, out sum);
+            if (sum < min)
             {
-                actualResult = this.averageFilter;
+                min = sum;
+                SwapSpans(ref filter, ref attempt);
             }
 
-            return actualResult;
+            PaethFilter.Encode(current, previous, attempt, this.bytesPerPixel, out sum);
+            if (sum < min)
+            {
+                SwapSpans(ref filter, ref attempt);
+            }
         }
 
         /// <summary>
@@ -920,38 +896,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Allocates the buffers for each scanline.
         /// </summary>
         /// <param name="bytesPerScanline">The bytes per scanline.</param>
-        /// <param name="resultLength">Length of the result.</param>
-        private void AllocateBuffers(int bytesPerScanline, int resultLength)
+        private void AllocateScanlineBuffers(int bytesPerScanline)
         {
             // Clean up from any potential previous runs.
-            this.subFilter?.Dispose();
-            this.averageFilter?.Dispose();
-            this.paethFilter?.Dispose();
-            this.subFilter = null;
-            this.averageFilter = null;
-            this.paethFilter = null;
-
             this.previousScanline?.Dispose();
             this.currentScanline?.Dispose();
-            this.filterBuffer?.Dispose();
             this.previousScanline = this.memoryAllocator.Allocate<byte>(bytesPerScanline, AllocationOptions.Clean);
             this.currentScanline = this.memoryAllocator.Allocate<byte>(bytesPerScanline, AllocationOptions.Clean);
-            this.filterBuffer = this.memoryAllocator.Allocate<byte>(resultLength, AllocationOptions.Clean);
-        }
-
-        /// <summary>
-        /// Allocates the ext buffers for adaptive filter.
-        /// </summary>
-        private void AllocateExtBuffers()
-        {
-            if (this.subFilter == null)
-            {
-                int resultLength = this.filterBuffer.Length();
-
-                this.subFilter = this.memoryAllocator.Allocate<byte>(resultLength, AllocationOptions.Clean);
-                this.averageFilter = this.memoryAllocator.Allocate<byte>(resultLength, AllocationOptions.Clean);
-                this.paethFilter = this.memoryAllocator.Allocate<byte>(resultLength, AllocationOptions.Clean);
-            }
         }
 
         /// <summary>
@@ -965,17 +916,19 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int bytesPerScanline = this.CalculateScanlineLength(this.width);
-            int resultLength = bytesPerScanline + 1;
-            this.AllocateBuffers(bytesPerScanline, resultLength);
+            int filterLength = bytesPerScanline + 1;
+            this.AllocateScanlineBuffers(bytesPerScanline);
 
+            using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
+            using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
+
+            Span<byte> filter = filterBuffer.GetSpan();
+            Span<byte> attempt = attemptBuffer.GetSpan();
             for (int y = 0; y < this.height; y++)
             {
-                IMemoryOwner<byte> r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), quantized, y);
-                deflateStream.Write(r.GetSpan(), 0, resultLength);
-
-                IMemoryOwner<byte> temp = this.currentScanline;
-                this.currentScanline = this.previousScanline;
-                this.previousScanline = temp;
+                this.CollectAndFilterPixelRow(pixels.GetPixelRowSpan(y), ref filter, ref attempt, quantized, y);
+                deflateStream.Write(filter);
+                this.SwapScanlineBuffers();
             }
         }
 
@@ -1000,36 +953,33 @@ namespace SixLabors.ImageSharp.Formats.Png
                     ? ((blockWidth * this.bitDepth) + 7) / 8
                     : blockWidth * this.bytesPerPixel;
 
-                int resultLength = bytesPerScanline + 1;
+                int filterLength = bytesPerScanline + 1;
+                this.AllocateScanlineBuffers(bytesPerScanline);
 
-                this.AllocateBuffers(bytesPerScanline, resultLength);
+                using IMemoryOwner<TPixel> blockBuffer = this.memoryAllocator.Allocate<TPixel>(blockWidth);
+                using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
+                using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
 
-                using (IMemoryOwner<TPixel> passData = this.memoryAllocator.Allocate<TPixel>(blockWidth))
+                Span<TPixel> block = blockBuffer.GetSpan();
+                Span<byte> filter = filterBuffer.GetSpan();
+                Span<byte> attempt = attemptBuffer.GetSpan();
+
+                for (int row = startRow; row < height; row += Adam7.RowIncrement[pass])
                 {
-                    Span<TPixel> destSpan = passData.Memory.Span;
-                    for (int row = startRow;
-                        row < height;
-                        row += Adam7.RowIncrement[pass])
+                    // Collect pixel data
+                    Span<TPixel> srcRow = pixels.GetPixelRowSpan(row);
+                    for (int col = startCol, i = 0; col < width; col += Adam7.ColumnIncrement[pass])
                     {
-                        // collect data
-                        Span<TPixel> srcRow = pixels.GetPixelRowSpan(row);
-                        for (int col = startCol, i = 0;
-                            col < width;
-                            col += Adam7.ColumnIncrement[pass])
-                        {
-                            destSpan[i++] = srcRow[col];
-                        }
-
-                        // encode data
-                        // note: quantized parameter not used
-                        // note: row parameter not used
-                        IMemoryOwner<byte> r = this.EncodePixelRow((ReadOnlySpan<TPixel>)destSpan, null, -1);
-                        deflateStream.Write(r.GetSpan(), 0, resultLength);
-
-                        IMemoryOwner<byte> temp = this.currentScanline;
-                        this.currentScanline = this.previousScanline;
-                        this.previousScanline = temp;
+                        block[i++] = srcRow[col];
                     }
+
+                    // Encode data
+                    // Note: quantized parameter not used
+                    // Note: row parameter not used
+                    this.CollectAndFilterPixelRow<TPixel>(block, ref filter, ref attempt, null, -1);
+                    deflateStream.Write(filter);
+
+                    this.SwapScanlineBuffers();
                 }
             }
         }
@@ -1055,34 +1005,36 @@ namespace SixLabors.ImageSharp.Formats.Png
                     ? ((blockWidth * this.bitDepth) + 7) / 8
                     : blockWidth * this.bytesPerPixel;
 
-                int resultLength = bytesPerScanline + 1;
+                int filterLength = bytesPerScanline + 1;
 
-                this.AllocateBuffers(bytesPerScanline, resultLength);
+                this.AllocateScanlineBuffers(bytesPerScanline);
 
-                using (IMemoryOwner<byte> passData = this.memoryAllocator.Allocate<byte>(blockWidth))
+                using IMemoryOwner<byte> blockBuffer = this.memoryAllocator.Allocate<byte>(blockWidth);
+                using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
+                using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
+
+                Span<byte> block = blockBuffer.GetSpan();
+                Span<byte> filter = filterBuffer.GetSpan();
+                Span<byte> attempt = attemptBuffer.GetSpan();
+
+                for (int row = startRow;
+                    row < height;
+                    row += Adam7.RowIncrement[pass])
                 {
-                    Span<byte> destSpan = passData.Memory.Span;
-                    for (int row = startRow;
-                        row < height;
-                        row += Adam7.RowIncrement[pass])
+                    // Collect data
+                    ReadOnlySpan<byte> srcRow = quantized.GetPixelRowSpan(row);
+                    for (int col = startCol, i = 0;
+                        col < width;
+                        col += Adam7.ColumnIncrement[pass])
                     {
-                        // collect data
-                        ReadOnlySpan<byte> srcRow = quantized.GetPixelRowSpan(row);
-                        for (int col = startCol, i = 0;
-                            col < width;
-                            col += Adam7.ColumnIncrement[pass])
-                        {
-                            destSpan[i++] = srcRow[col];
-                        }
-
-                        // encode data
-                        IMemoryOwner<byte> r = this.EncodeAdam7IndexedPixelRow(destSpan);
-                        deflateStream.Write(r.GetSpan(), 0, resultLength);
-
-                        IMemoryOwner<byte> temp = this.currentScanline;
-                        this.currentScanline = this.previousScanline;
-                        this.previousScanline = temp;
+                        block[i++] = srcRow[col];
                     }
+
+                    // Encode data
+                    this.EncodeAdam7IndexedPixelRow(block, ref filter, ref attempt);
+                    deflateStream.Write(filter);
+
+                    this.SwapScanlineBuffers();
                 }
             }
         }
@@ -1150,6 +1102,20 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             return scanlineLength / mod;
+        }
+
+        private void SwapScanlineBuffers()
+        {
+            IMemoryOwner<byte> temp = this.previousScanline;
+            this.previousScanline = this.currentScanline;
+            this.currentScanline = temp;
+        }
+
+        private static void SwapSpans<T>(ref Span<T> a, ref Span<T> b)
+        {
+            Span<T> t = b;
+            b = a;
+            a = t;
         }
     }
 }

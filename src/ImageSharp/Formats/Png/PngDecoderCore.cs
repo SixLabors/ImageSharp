@@ -746,78 +746,88 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
             // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(trimmed, this.bytesPerScanline, this.header.BitDepth, out IMemoryOwner<byte> buffer)
-            ? buffer.GetSpan()
-            : trimmed;
-
-            switch (this.pngColorType)
+            IMemoryOwner<byte> buffer = null;
+            try
             {
-                case PngColorType.Grayscale:
-                    PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentL16.GetValueOrDefault(),
-                        pngMetadata.TransparentL8.GetValueOrDefault());
+                ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
+                    trimmed,
+                    this.bytesPerScanline,
+                    this.header.BitDepth,
+                    out buffer)
+                ? buffer.GetSpan()
+                : trimmed;
 
-                    break;
+                switch (this.pngColorType)
+                {
+                    case PngColorType.Grayscale:
+                        PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            pngMetadata.HasTransparency,
+                            pngMetadata.TransparentL16.GetValueOrDefault(),
+                            pngMetadata.TransparentL8.GetValueOrDefault());
 
-                case PngColorType.GrayscaleWithAlpha:
-                    PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        break;
 
-                    break;
+                    case PngColorType.GrayscaleWithAlpha:
+                        PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.bytesPerPixel,
+                            this.bytesPerSample);
 
-                case PngColorType.Palette:
-                    PngScanlineProcessor.ProcessInterlacedPaletteScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.palette,
-                        this.paletteAlpha);
+                        break;
 
-                    break;
+                    case PngColorType.Palette:
+                        PngScanlineProcessor.ProcessInterlacedPaletteScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.palette,
+                            this.paletteAlpha);
 
-                case PngColorType.Rgb:
-                    PngScanlineProcessor.ProcessInterlacedRgbScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentRgb48.GetValueOrDefault(),
-                        pngMetadata.TransparentRgb24.GetValueOrDefault());
+                        break;
 
-                    break;
+                    case PngColorType.Rgb:
+                        PngScanlineProcessor.ProcessInterlacedRgbScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.bytesPerPixel,
+                            this.bytesPerSample,
+                            pngMetadata.HasTransparency,
+                            pngMetadata.TransparentRgb48.GetValueOrDefault(),
+                            pngMetadata.TransparentRgb24.GetValueOrDefault());
 
-                case PngColorType.RgbWithAlpha:
-                    PngScanlineProcessor.ProcessInterlacedRgbaScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        break;
 
-                    break;
+                    case PngColorType.RgbWithAlpha:
+                        PngScanlineProcessor.ProcessInterlacedRgbaScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.bytesPerPixel,
+                            this.bytesPerSample);
+
+                        break;
+                }
             }
-
-            buffer?.Dispose();
+            finally
+            {
+                buffer?.Dispose();
+            }
         }
 
         /// <summary>

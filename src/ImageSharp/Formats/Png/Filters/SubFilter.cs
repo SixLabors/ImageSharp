@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel, out int sum)
+        public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> result, int bytesPerPixel, out int sum)
         {
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 

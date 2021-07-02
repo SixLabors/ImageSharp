@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
+using System.Buffers;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal readonly struct PngChunk
     {
-        public PngChunk(int length, PngChunkType type, IManagedByteBuffer data = null)
+        public PngChunk(int length, PngChunkType type, IMemoryOwner<byte> data = null)
         {
             this.Length = length;
             this.Type = type;
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets the data bytes appropriate to the chunk type, if any.
         /// This field can be of zero length or null.
         /// </summary>
-        public IManagedByteBuffer Data { get; }
+        public IMemoryOwner<byte> Data { get; }
 
         /// <summary>
         /// Gets a value indicating whether the given chunk is critical to decoding

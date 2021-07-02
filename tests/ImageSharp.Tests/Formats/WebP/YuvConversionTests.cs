@@ -33,12 +33,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.DisableSSE2);
 
         [Fact]
+        public void CheckNonOpaque_WithOpaquePixels_WithoutAvx2_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.DisableAVX2);
+
+        [Fact]
         public void CheckNonOpaque_WithNoneOpaquePixels_WithHardwareIntrinsics_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.AllowAll);
 
         [Fact]
         public void CheckNonOpaque_WithNoneOpaquePixels_WithoutSse2_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void CheckNonOpaque_WithNoneOpaquePixels_WithoutAvx2_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableAVX2);
 #endif
 
         [Theory]
@@ -289,7 +297,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                 209, 208, 210, 255,
                 174, 183, 189, 255,
                 148, 158, 158, 255,
-                148, 158, 158, 255,
+                148, 158, 158, 10,
                 171, 165, 151, 255,
                 209, 208, 210, 255,
                 171, 165, 151, 255,
@@ -299,7 +307,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                 171, 165, 151, 255,
                 209, 208, 210, 255,
                 174, 183, 189, 255,
-                148, 158, 158, 255,
+                148, 158, 158, 10,
                 171, 165, 151, 255,
                 209, 208, 210, 255,
                 174, 183, 189, 255,
@@ -308,13 +316,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                 209, 208, 210, 255,
                 174, 183, 189, 255,
                 148, 158, 158, 255,
-                209, 208, 210, 255,
+                209, 208, 210, 0,
                 174, 183, 189, 255,
                 148, 158, 158, 255,
                 148, 158, 158, 255,
                 171, 165, 151, 255,
                 209, 208, 210, 255,
-                174, 183, 189, 255,
+                174, 183, 189, 0,
                 148, 158, 158, 255,
                 148, 158, 158, 255,
                 171, 165, 151, 255,
@@ -329,10 +337,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
             Span<Rgba32> row = MemoryMarshal.Cast<byte, Rgba32>(rowBytes);
 
-            // act
-            bool noneOpaque = YuvConversion.CheckNonOpaque(row);
+            bool noneOpaque;
+            for (int length = 8; length < row.Length; length += 8)
+            {
+                // act
+                noneOpaque = YuvConversion.CheckNonOpaque(row);
 
-            // assert
+                // assert
+                Assert.True(noneOpaque);
+            }
+
+            // One last test with the complete row.
+            noneOpaque = YuvConversion.CheckNonOpaque(row);
             Assert.True(noneOpaque);
         }
 
@@ -403,10 +419,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
             Span<Rgba32> row = MemoryMarshal.Cast<byte, Rgba32>(rowBytes);
 
-            // act
-            bool noneOpaque = YuvConversion.CheckNonOpaque(row);
+            bool noneOpaque;
+            for (int length = 8; length < row.Length; length += 8)
+            {
+                // act
+                noneOpaque = YuvConversion.CheckNonOpaque(row.Slice(0, length));
 
-            // assert
+                // assert
+                Assert.False(noneOpaque);
+            }
+
+            // One last test with the complete row.
+            noneOpaque = YuvConversion.CheckNonOpaque(row);
             Assert.False(noneOpaque);
         }
     }

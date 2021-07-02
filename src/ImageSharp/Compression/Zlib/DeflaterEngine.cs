@@ -130,9 +130,9 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// This array contains the part of the uncompressed stream that
         /// is of relevance. The current character is indexed by strstart.
         /// </summary>
-        private IManagedByteBuffer windowMemoryOwner;
+        private IMemoryOwner<byte> windowMemoryOwner;
         private MemoryHandle windowMemoryHandle;
-        private readonly byte[] window;
+        private readonly Memory<byte> window;
         private readonly byte* pinnedWindowPointer;
 
         private int maxChain;
@@ -153,19 +153,19 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
             // Create pinned pointers to the various buffers to allow indexing
             // without bounds checks.
-            this.windowMemoryOwner = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE);
-            this.window = this.windowMemoryOwner.Array;
-            this.windowMemoryHandle = this.windowMemoryOwner.Memory.Pin();
+            this.windowMemoryOwner = memoryAllocator.Allocate<byte>(2 * DeflaterConstants.WSIZE);
+            this.window = this.windowMemoryOwner.Memory;
+            this.windowMemoryHandle = this.window.Pin();
             this.pinnedWindowPointer = (byte*)this.windowMemoryHandle.Pointer;
 
             this.headMemoryOwner = memoryAllocator.Allocate<short>(DeflaterConstants.HASH_SIZE);
             this.head = this.headMemoryOwner.Memory;
-            this.headMemoryHandle = this.headMemoryOwner.Memory.Pin();
+            this.headMemoryHandle = this.head.Pin();
             this.pinnedHeadPointer = (short*)this.headMemoryHandle.Pointer;
 
             this.prevMemoryOwner = memoryAllocator.Allocate<short>(DeflaterConstants.WSIZE);
             this.prev = this.prevMemoryOwner.Memory;
-            this.prevMemoryHandle = this.prevMemoryOwner.Memory.Pin();
+            this.prevMemoryHandle = this.prev.Pin();
             this.pinnedPrevPointer = (short*)this.prevMemoryHandle.Pointer;
 
             // We start at index 1, to avoid an implementation deficiency, that
@@ -303,7 +303,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     case DeflaterConstants.DEFLATE_STORED:
                         if (this.strstart > this.blockStart)
                         {
-                            this.huffman.FlushStoredBlock(this.window, this.blockStart, this.strstart - this.blockStart, false);
+                            this.huffman.FlushStoredBlock(this.window.Span, this.blockStart, this.strstart - this.blockStart, false);
                             this.blockStart = this.strstart;
                         }
 
@@ -313,7 +313,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     case DeflaterConstants.DEFLATE_FAST:
                         if (this.strstart > this.blockStart)
                         {
-                            this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart, false);
+                            this.huffman.FlushBlock(this.window.Span, this.blockStart, this.strstart - this.blockStart, false);
                             this.blockStart = this.strstart;
                         }
 
@@ -327,7 +327,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                         if (this.strstart > this.blockStart)
                         {
-                            this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart, false);
+                            this.huffman.FlushBlock(this.window.Span, this.blockStart, this.strstart - this.blockStart, false);
                             this.blockStart = this.strstart;
                         }
 
@@ -362,7 +362,10 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     more = this.inputEnd - this.inputOff;
                 }
 
-                Buffer.BlockCopy(this.inputBuf, this.inputOff, this.window, this.strstart + this.lookahead, more);
+                Unsafe.CopyBlockUnaligned(
+                    ref this.window.Span[this.strstart + this.lookahead],
+                    ref this.inputBuf[this.inputOff],
+                    unchecked((uint)more));
 
                 this.inputOff += more;
                 this.lookahead += more;
@@ -426,7 +429,11 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
         private void SlideWindow()
         {
-            Unsafe.CopyBlockUnaligned(ref this.window[0], ref this.window[DeflaterConstants.WSIZE], DeflaterConstants.WSIZE);
+            Unsafe.CopyBlockUnaligned(
+                ref this.window.Span[0],
+                ref this.window.Span[DeflaterConstants.WSIZE],
+                DeflaterConstants.WSIZE);
+
             this.matchStart -= DeflaterConstants.WSIZE;
             this.strstart -= DeflaterConstants.WSIZE;
             this.blockStart -= DeflaterConstants.WSIZE;
@@ -663,7 +670,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     lastBlock = false;
                 }
 
-                this.huffman.FlushStoredBlock(this.window, this.blockStart, storedLength, lastBlock);
+                this.huffman.FlushStoredBlock(this.window.Span, this.blockStart, storedLength, lastBlock);
                 this.blockStart += storedLength;
                 return !(lastBlock || storedLength == 0);
             }
@@ -683,7 +690,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 if (this.lookahead == 0)
                 {
                     // We are flushing everything
-                    this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart, finish);
+                    this.huffman.FlushBlock(this.window.Span, this.blockStart, this.strstart - this.blockStart, finish);
                     this.blockStart = this.strstart;
                     return false;
                 }
@@ -743,7 +750,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 if (this.huffman.IsFull())
                 {
                     bool lastBlock = finish && (this.lookahead == 0);
-                    this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart, lastBlock);
+                    this.huffman.FlushBlock(this.window.Span, this.blockStart, this.strstart - this.blockStart, lastBlock);
                     this.blockStart = this.strstart;
                     return !lastBlock;
                 }
@@ -771,7 +778,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     this.prevAvailable = false;
 
                     // We are flushing everything
-                    this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart, finish);
+                    this.huffman.FlushBlock(this.window.Span, this.blockStart, this.strstart - this.blockStart, finish);
                     this.blockStart = this.strstart;
                     return false;
                 }
@@ -846,7 +853,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     }
 
                     bool lastBlock = finish && (this.lookahead == 0) && !this.prevAvailable;
-                    this.huffman.FlushBlock(this.window, this.blockStart, len, lastBlock);
+                    this.huffman.FlushBlock(this.window.Span, this.blockStart, len, lastBlock);
                     this.blockStart += len;
                     return !lastBlock;
                 }

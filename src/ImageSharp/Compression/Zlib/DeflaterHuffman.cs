@@ -41,11 +41,11 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         private Tree blTree;
 
         // Buffer for distances
-        private readonly IMemoryOwner<short> distanceManagedBuffer;
+        private readonly IMemoryOwner<short> distanceMemoryOwner;
         private readonly short* pinnedDistanceBuffer;
         private MemoryHandle distanceBufferHandle;
 
-        private readonly IMemoryOwner<short> literalManagedBuffer;
+        private readonly IMemoryOwner<short> literalMemoryOwner;
         private readonly short* pinnedLiteralBuffer;
         private MemoryHandle literalBufferHandle;
 
@@ -65,12 +65,12 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             this.distTree = new Tree(memoryAllocator, DistanceNumber, 1, 15);
             this.blTree = new Tree(memoryAllocator, BitLengthNumber, 4, 7);
 
-            this.distanceManagedBuffer = memoryAllocator.Allocate<short>(BufferSize);
-            this.distanceBufferHandle = this.distanceManagedBuffer.Memory.Pin();
+            this.distanceMemoryOwner = memoryAllocator.Allocate<short>(BufferSize);
+            this.distanceBufferHandle = this.distanceMemoryOwner.Memory.Pin();
             this.pinnedDistanceBuffer = (short*)this.distanceBufferHandle.Pointer;
 
-            this.literalManagedBuffer = memoryAllocator.Allocate<short>(BufferSize);
-            this.literalBufferHandle = this.literalManagedBuffer.Memory.Pin();
+            this.literalMemoryOwner = memoryAllocator.Allocate<short>(BufferSize);
+            this.literalBufferHandle = this.literalMemoryOwner.Memory.Pin();
             this.pinnedLiteralBuffer = (short*)this.literalBufferHandle.Pointer;
         }
 
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="storedLength">Count of bytes to write</param>
         /// <param name="lastBlock">True if this is the last block</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FlushStoredBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
+        public void FlushStoredBlock(ReadOnlySpan<byte> stored, int storedOffset, int storedLength, bool lastBlock)
         {
             this.Pending.WriteBits((DeflaterConstants.STORED_BLOCK << 1) + (lastBlock ? 1 : 0), 3);
             this.Pending.AlignToByte();
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="storedOffset">Index of first byte to flush</param>
         /// <param name="storedLength">Count of bytes to flush</param>
         /// <param name="lastBlock">True if this is the last block</param>
-        public void FlushBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
+        public void FlushBlock(ReadOnlySpan<byte> stored, int storedOffset, int storedLength, bool lastBlock)
         {
             this.literalTree.Frequencies[EofSymbol]++;
 
@@ -286,13 +286,13 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 + this.extraBits;
 
             int static_len = this.extraBits;
-            ref byte staticLLengthRef = ref MemoryMarshal.GetReference<byte>(StaticLLength);
+            ref byte staticLLengthRef = ref MemoryMarshal.GetReference(StaticLLength);
             for (int i = 0; i < LiteralNumber; i++)
             {
                 static_len += this.literalTree.Frequencies[i] * Unsafe.Add(ref staticLLengthRef, i);
             }
 
-            ref byte staticDLengthRef = ref MemoryMarshal.GetReference<byte>(StaticDLength);
+            ref byte staticDLengthRef = ref MemoryMarshal.GetReference(StaticDLength);
             for (int i = 0; i < DistanceNumber; i++)
             {
                 static_len += this.distTree.Frequencies[i] * Unsafe.Add(ref staticDLengthRef, i);
@@ -419,9 +419,9 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             {
                 this.Pending.Dispose();
                 this.distanceBufferHandle.Dispose();
-                this.distanceManagedBuffer.Dispose();
+                this.distanceMemoryOwner.Dispose();
                 this.literalBufferHandle.Dispose();
-                this.literalManagedBuffer.Dispose();
+                this.literalMemoryOwner.Dispose();
 
                 this.literalTree.Dispose();
                 this.blTree.Dispose();
@@ -484,7 +484,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             private IMemoryOwner<short> frequenciesMemoryOwner;
             private MemoryHandle frequenciesMemoryHandle;
 
-            private IManagedByteBuffer lengthsMemoryOwner;
+            private IMemoryOwner<byte> lengthsMemoryOwner;
             private MemoryHandle lengthsMemoryHandle;
 
             public Tree(MemoryAllocator memoryAllocator, int elements, int minCodes, int maxLength)
@@ -498,7 +498,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 this.frequenciesMemoryHandle = this.frequenciesMemoryOwner.Memory.Pin();
                 this.Frequencies = (short*)this.frequenciesMemoryHandle.Pointer;
 
-                this.lengthsMemoryOwner = memoryAllocator.AllocateManagedByteBuffer(elements);
+                this.lengthsMemoryOwner = memoryAllocator.Allocate<byte>(elements);
                 this.lengthsMemoryHandle = this.lengthsMemoryOwner.Memory.Pin();
                 this.Length = (byte*)this.lengthsMemoryHandle.Pointer;
 

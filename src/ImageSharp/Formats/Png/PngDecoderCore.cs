@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -84,12 +85,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Previous scanline processed.
         /// </summary>
-        private IManagedByteBuffer previousScanline;
+        private IMemoryOwner<byte> previousScanline;
 
         /// <summary>
         /// The current scanline that is being processed.
         /// </summary>
-        private IManagedByteBuffer scanline;
+        private IMemoryOwner<byte> scanline;
 
         /// <summary>
         /// The index of the current scanline being processed.
@@ -149,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         switch (chunk.Type)
                         {
                             case PngChunkType.Header:
-                                this.ReadHeaderChunk(pngMetadata, chunk.Data.Array);
+                                this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Physical:
                                 this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
@@ -168,29 +169,29 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 break;
                             case PngChunkType.Palette:
                                 var pal = new byte[chunk.Length];
-                                Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
+                                chunk.Data.GetSpan().CopyTo(pal);
                                 this.palette = pal;
                                 break;
                             case PngChunkType.Transparency:
                                 var alpha = new byte[chunk.Length];
-                                Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
+                                chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
                                     var exifData = new byte[chunk.Length];
-                                    Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                    chunk.Data.GetSpan().CopyTo(exifData);
                                     metadata.ExifProfile = new ExifProfile(exifData);
                                 }
 
@@ -239,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         switch (chunk.Type)
                         {
                             case PngChunkType.Header:
-                                this.ReadHeaderChunk(pngMetadata, chunk.Data.Array);
+                                this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Physical:
                                 this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
@@ -251,19 +252,19 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
                                     var exifData = new byte[chunk.Length];
-                                    Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                    chunk.Data.GetSpan().CopyTo(exifData);
                                     metadata.ExifProfile = new ExifProfile(exifData);
                                 }
 
@@ -312,7 +313,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="bits">The number of bits per value.</param>
         /// <param name="buffer">The new array.</param>
         /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
-        private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, out IManagedByteBuffer buffer)
+        private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, out IMemoryOwner<byte> buffer)
         {
             if (bits >= 8)
             {
@@ -320,9 +321,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return false;
             }
 
-            buffer = this.memoryAllocator.AllocateManagedByteBuffer(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
+            buffer = this.memoryAllocator.Allocate<byte>(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
             ref byte sourceRef = ref MemoryMarshal.GetReference(source);
-            ref byte resultRef = ref buffer.Array[0];
+            ref byte resultRef = ref buffer.GetReference();
             int mask = 0xFF >> (8 - bits);
             int resultOffset = 0;
 
@@ -504,7 +505,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             while (this.currentRow < this.header.Height)
             {
-                int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
+                Span<byte> scanlineSpan = this.scanline.GetSpan();
+                int bytesRead = compressedStream.Read(scanlineSpan, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
                 this.currentRowBytesRead += bytesRead;
                 if (this.currentRowBytesRead < this.bytesPerScanline)
                 {
@@ -512,7 +514,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
 
                 this.currentRowBytesRead = 0;
-                Span<byte> scanlineSpan = this.scanline.GetSpan();
 
                 switch ((FilterType)scanlineSpan[0])
                 {
@@ -542,7 +543,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 this.ProcessDefilteredScanline(scanlineSpan, image, pngMetadata);
 
-                this.SwapBuffers();
+                this.SwapScanlineBuffers();
                 this.currentRow++;
             }
         }
@@ -576,7 +577,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 while (this.currentRow < this.header.Height)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
+                    int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
                     this.currentRowBytesRead += bytesRead;
                     if (this.currentRowBytesRead < bytesPerInterlaceScanline)
                     {
@@ -617,7 +618,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
                     this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[pass], Adam7.ColumnIncrement[pass]);
 
-                    this.SwapBuffers();
+                    this.SwapScanlineBuffers();
 
                     this.currentRow += Adam7.RowIncrement[pass];
                 }
@@ -653,70 +654,80 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
             // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(trimmed, this.bytesPerScanline - 1, this.header.BitDepth, out IManagedByteBuffer buffer)
-            ? buffer.GetSpan()
-            : trimmed;
-
-            switch (this.pngColorType)
+            IMemoryOwner<byte> buffer = null;
+            try
             {
-                case PngColorType.Grayscale:
-                    PngScanlineProcessor.ProcessGrayscaleScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentL16.GetValueOrDefault(),
-                        pngMetadata.TransparentL8.GetValueOrDefault());
+                ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
+                    trimmed,
+                    this.bytesPerScanline - 1,
+                    this.header.BitDepth,
+                    out buffer)
+                ? buffer.GetSpan()
+                : trimmed;
 
-                    break;
+                switch (this.pngColorType)
+                {
+                    case PngColorType.Grayscale:
+                        PngScanlineProcessor.ProcessGrayscaleScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pngMetadata.HasTransparency,
+                            pngMetadata.TransparentL16.GetValueOrDefault(),
+                            pngMetadata.TransparentL8.GetValueOrDefault());
 
-                case PngColorType.GrayscaleWithAlpha:
-                    PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        break;
 
-                    break;
+                    case PngColorType.GrayscaleWithAlpha:
+                        PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            this.bytesPerPixel,
+                            this.bytesPerSample);
 
-                case PngColorType.Palette:
-                    PngScanlineProcessor.ProcessPaletteScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        this.palette,
-                        this.paletteAlpha);
+                        break;
 
-                    break;
+                    case PngColorType.Palette:
+                        PngScanlineProcessor.ProcessPaletteScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            this.palette,
+                            this.paletteAlpha);
 
-                case PngColorType.Rgb:
-                    PngScanlineProcessor.ProcessRgbScanline(
-                        this.Configuration,
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        this.bytesPerPixel,
-                        this.bytesPerSample,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentRgb48.GetValueOrDefault(),
-                        pngMetadata.TransparentRgb24.GetValueOrDefault());
+                        break;
 
-                    break;
+                    case PngColorType.Rgb:
+                        PngScanlineProcessor.ProcessRgbScanline(
+                            this.Configuration,
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            this.bytesPerPixel,
+                            this.bytesPerSample,
+                            pngMetadata.HasTransparency,
+                            pngMetadata.TransparentRgb48.GetValueOrDefault(),
+                            pngMetadata.TransparentRgb24.GetValueOrDefault());
 
-                case PngColorType.RgbWithAlpha:
-                    PngScanlineProcessor.ProcessRgbaScanline(
-                        this.Configuration,
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        break;
 
-                    break;
+                    case PngColorType.RgbWithAlpha:
+                        PngScanlineProcessor.ProcessRgbaScanline(
+                            this.Configuration,
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            this.bytesPerPixel,
+                            this.bytesPerSample);
+
+                        break;
+                }
             }
-
-            buffer?.Dispose();
+            finally
+            {
+                buffer?.Dispose();
+            }
         }
 
         /// <summary>
@@ -735,78 +746,88 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
             // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(trimmed, this.bytesPerScanline, this.header.BitDepth, out IManagedByteBuffer buffer)
-            ? buffer.GetSpan()
-            : trimmed;
-
-            switch (this.pngColorType)
+            IMemoryOwner<byte> buffer = null;
+            try
             {
-                case PngColorType.Grayscale:
-                    PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentL16.GetValueOrDefault(),
-                        pngMetadata.TransparentL8.GetValueOrDefault());
+                ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
+                    trimmed,
+                    this.bytesPerScanline,
+                    this.header.BitDepth,
+                    out buffer)
+                ? buffer.GetSpan()
+                : trimmed;
 
-                    break;
+                switch (this.pngColorType)
+                {
+                    case PngColorType.Grayscale:
+                        PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            pngMetadata.HasTransparency,
+                            pngMetadata.TransparentL16.GetValueOrDefault(),
+                            pngMetadata.TransparentL8.GetValueOrDefault());
 
-                case PngColorType.GrayscaleWithAlpha:
-                    PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        break;
 
-                    break;
+                    case PngColorType.GrayscaleWithAlpha:
+                        PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.bytesPerPixel,
+                            this.bytesPerSample);
 
-                case PngColorType.Palette:
-                    PngScanlineProcessor.ProcessInterlacedPaletteScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.palette,
-                        this.paletteAlpha);
+                        break;
 
-                    break;
+                    case PngColorType.Palette:
+                        PngScanlineProcessor.ProcessInterlacedPaletteScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.palette,
+                            this.paletteAlpha);
 
-                case PngColorType.Rgb:
-                    PngScanlineProcessor.ProcessInterlacedRgbScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentRgb48.GetValueOrDefault(),
-                        pngMetadata.TransparentRgb24.GetValueOrDefault());
+                        break;
 
-                    break;
+                    case PngColorType.Rgb:
+                        PngScanlineProcessor.ProcessInterlacedRgbScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.bytesPerPixel,
+                            this.bytesPerSample,
+                            pngMetadata.HasTransparency,
+                            pngMetadata.TransparentRgb48.GetValueOrDefault(),
+                            pngMetadata.TransparentRgb24.GetValueOrDefault());
 
-                case PngColorType.RgbWithAlpha:
-                    PngScanlineProcessor.ProcessInterlacedRgbaScanline(
-                        this.header,
-                        scanlineSpan,
-                        rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        break;
 
-                    break;
+                    case PngColorType.RgbWithAlpha:
+                        PngScanlineProcessor.ProcessInterlacedRgbaScanline(
+                            this.header,
+                            scanlineSpan,
+                            rowSpan,
+                            pixelOffset,
+                            increment,
+                            this.bytesPerPixel,
+                            this.bytesPerSample);
+
+                        break;
+                }
             }
-
-            buffer?.Dispose();
+            finally
+            {
+                buffer?.Dispose();
+            }
         }
 
         /// <summary>
@@ -1189,12 +1210,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="length">The length of the chunk data to read.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private IManagedByteBuffer ReadChunkData(int length)
+        private IMemoryOwner<byte> ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
-            IManagedByteBuffer buffer = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
+            IMemoryOwner<byte> buffer = this.Configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
-            this.currentStream.Read(buffer.Array, 0, length);
+            this.currentStream.Read(buffer.GetSpan(), 0, length);
 
             return buffer;
         }
@@ -1272,9 +1293,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             return true;
         }
 
-        private void SwapBuffers()
+        private void SwapScanlineBuffers()
         {
-            IManagedByteBuffer temp = this.previousScanline;
+            IMemoryOwner<byte> temp = this.previousScanline;
             this.previousScanline = this.scanline;
             this.scanline = temp;
         }

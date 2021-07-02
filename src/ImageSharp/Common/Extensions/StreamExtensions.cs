@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.IO;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp
 {

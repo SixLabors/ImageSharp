@@ -348,17 +348,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             bool isL8 = typeof(TPixel) == typeof(L8);
-            using (IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize8Bit, AllocationOptions.Clean))
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize8Bit, AllocationOptions.Clean);
+            Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
+
+            if (isL8)
             {
-                Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
-                if (isL8)
-                {
-                    this.Write8BitGray(stream, image, colorPalette);
-                }
-                else
-                {
-                    this.Write8BitColor(stream, image, colorPalette);
-                }
+                this.Write8BitGray(stream, image, colorPalette);
+            }
+            else
+            {
+                this.Write8BitColor(stream, image, colorPalette);
             }
         }
 
@@ -442,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 MaxColors = 16
             });
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
-            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize4Bit, AllocationOptions.Clean);
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize4Bit, AllocationOptions.Clean);
 
             Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
             ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
@@ -486,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 MaxColors = 2
             });
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
-            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize1Bit, AllocationOptions.Clean);
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize1Bit, AllocationOptions.Clean);
 
             Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
             ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;

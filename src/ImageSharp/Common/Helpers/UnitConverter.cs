@@ -113,13 +113,13 @@ namespace SixLabors.ImageSharp.Common.Helpers
                 case PixelResolutionUnit.PixelsPerCentimeter:
                     break;
                 case PixelResolutionUnit.PixelsPerMeter:
-                {
+                    {
                     unit = PixelResolutionUnit.PixelsPerCentimeter;
                     horizontal = MeterToCm(horizontal);
                     vertical = MeterToCm(vertical);
-                }
+                    }
 
-                break;
+                    break;
                 default:
                     unit = PixelResolutionUnit.PixelsPerInch;
                     break;

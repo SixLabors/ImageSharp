@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
 
-            this.Coeffs = coeffs.ToArray();
+            this.Coeffs = coeffs.Slice(0, 16).ToArray();
         }
 
         // Simulate block coding, but only record statistics.

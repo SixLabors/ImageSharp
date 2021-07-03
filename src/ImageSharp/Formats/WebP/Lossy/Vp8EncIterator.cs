@@ -415,11 +415,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 this.MakeIntra4Preds();
                 for (mode = 0; mode < maxMode; ++mode)
                 {
-                    int alpha;
                     histos[curHisto] = new Vp8Histogram();
                     histos[curHisto].CollectHistogram(src, this.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]), 0, 1);
 
-                    alpha = histos[curHisto].GetAlpha();
+                    var alpha = histos[curHisto].GetAlpha();
                     if (alpha > bestModeAlpha)
                     {
                         bestModeAlpha = alpha;
@@ -522,7 +521,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 for (int x = 0; x < 4; ++x)
                 {
                     int ctx = this.TopNz[x] + this.LeftNz[y];
-                    res.SetCoeffs(rd.YAcLevels.AsSpan(x + (y * 4)));
+                    res.SetCoeffs(rd.YAcLevels.AsSpan((x + (y * 4)) * 16, 16));
                     r += res.GetResidualCost(ctx);
                     this.TopNz[x] = this.LeftNz[y] = (res.Last >= 0) ? 1 : 0;
                 }
@@ -572,7 +571,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     for (int x = 0; x < 2; ++x)
                     {
                         int ctx = this.TopNz[4 + ch + x] + this.LeftNz[4 + ch + y];
-                        res.SetCoeffs(rd.UvLevels.AsSpan((ch * 2) + x + (y * 2)));
+                        res.SetCoeffs(rd.UvLevels.AsSpan(((ch * 2) + x + (y * 2)) * 16, 16));
                         r += res.GetResidualCost(ctx);
                         this.TopNz[4 + ch + x] = this.LeftNz[4 + ch + y] = (res.Last >= 0) ? 1 : 0;
                     }

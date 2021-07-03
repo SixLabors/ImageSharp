@@ -311,7 +311,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Warning! order is important: first call VP8Decimate() and
                 // *then* decide how to code the skip decision if there's one.
-                if (!this.Decimate(it, info, this.rdOptLevel) || dontUseSkip)
+                if (!this.Decimate(it, ref info, this.rdOptLevel) || dontUseSkip)
                 {
                     this.CodeResiduals(it, info);
                 }
@@ -411,7 +411,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 this.Proba.FinalizeTokenProbas();
             }
 
-            this.Proba.CalculateLevelCosts();  // Finalize costs.
+            // Finalize costs.
+            this.Proba.CalculateLevelCosts();
         }
 
         private long OneStatPass(int width, int height, int yStride, int uvStride, Vp8RdLevel rdOpt, int nbMbs, PassStats stats)
@@ -425,12 +426,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             long distortion = 0;
             long pixelCount = nbMbs * 384;
 
+            it.Init();
             this.SetLoopParams(stats.Q);
             do
             {
                 var info = new Vp8ModeScore();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
-                if (this.Decimate(it, info, rdOpt))
+                if (this.Decimate(it, ref info, rdOpt))
                 {
                     // Just record the number of skips and act like skipProba is not used.
                     ++this.Proba.NbSkip;
@@ -877,7 +879,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return bestAlpha; // Mixed susceptibility (not just luma).
         }
 
-        private bool Decimate(Vp8EncIterator it, Vp8ModeScore rd, Vp8RdLevel rdOpt)
+        private bool Decimate(Vp8EncIterator it, ref Vp8ModeScore rd, Vp8RdLevel rdOpt)
         {
             rd.InitScore();
 
@@ -886,13 +888,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             it.MakeLuma16Preds();
             it.MakeChroma8Preds();
 
-            // TODO: disabled picking best mode because its still bugged.
-            /* if (rdOpt > Vp8RdLevel.RdOptNone)
+            if (rdOpt > Vp8RdLevel.RdOptNone)
             {
                 QuantEnc.PickBestIntra16(it, ref rd, this.SegmentInfos, this.Proba);
                 if (this.method >= 2)
                 {
-                    QuantEnc.PickBestIntra4(it, ref rd, this.SegmentInfos, this.Proba, this.maxI4HeaderBits);
+                    // TODO: there is still a bug in PickBestIntra4, therefore disabled.
+                    // QuantEnc.PickBestIntra4(it, ref rd, this.SegmentInfos, this.Proba, this.maxI4HeaderBits);
                 }
 
                 QuantEnc.PickBestUv(it, ref rd, this.SegmentInfos, this.Proba);
@@ -905,9 +907,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // quantization/reconstruction.
                 QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, this.method >= 2, this.method >= 1, this.MbHeaderLimit);
             }
-            */
-
-            QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, this.method >= 2, this.method >= 1, this.MbHeaderLimit);
 
             bool isSkipped = rd.Nz == 0;
             it.SetSkip(isSkipped);

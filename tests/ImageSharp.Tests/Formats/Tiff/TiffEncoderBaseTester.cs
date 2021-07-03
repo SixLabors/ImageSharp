@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Format", "Tiff")]
     public abstract class TiffEncoderBaseTester
     {
-        private static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
+        protected static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
 
         protected static void TestStripLength<TPixel>(
             TestImageProvider<TPixel> provider,

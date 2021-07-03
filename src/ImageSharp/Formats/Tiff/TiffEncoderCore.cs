@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Image<TPixel> metadataImage = image;
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
-                var subfileType = (TiffNewSubfileType)(frame.Metadata.ExifProfile.GetValue(ExifTag.SubfileType)?.Value ?? 0);
+                var subfileType = (TiffNewSubfileType)(frame.Metadata.ExifProfile?.GetValue(ExifTag.SubfileType)?.Value ?? (int)TiffNewSubfileType.FullImage);
 
                 if (subfileType != TiffNewSubfileType.FullImage)
                 {

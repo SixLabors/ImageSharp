@@ -244,19 +244,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     imageMetadata.HorizontalResolution,
                     imageMetadata.VerticalResolution);
 
-                this.Collector.Add(new ExifShort(ExifTagValue.ResolutionUnit)
+                this.Collector.AddOrReplace(new ExifShort(ExifTagValue.ResolutionUnit)
                 {
                     Value = exifValues.Item1
                 });
 
                 if (exifValues.Item2 != null && exifValues.Item3 != null)
                 {
-                    this.Collector.Add(new ExifRational(ExifTagValue.XResolution)
+                    this.Collector.AddOrReplace(new ExifRational(ExifTagValue.XResolution)
                     {
                         Value = new Rational(exifValues.Item2.Value)
                     });
 
-                    this.Collector.Add(new ExifRational(ExifTagValue.YResolution)
+                    this.Collector.AddOrReplace(new ExifRational(ExifTagValue.YResolution)
                     {
                         Value = new Rational(exifValues.Item3.Value)
                     });

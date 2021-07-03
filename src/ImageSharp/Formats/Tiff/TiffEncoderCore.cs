@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             long currentOffset = writer.BaseStream.Position;
             foreach ((long, uint) marker in this.frameMarkers)
             {
-                writer.WriteMarker(marker.Item1, marker.Item2);
+                writer.WriteMarkerFast(marker.Item1, marker.Item2);
             }
 
             writer.BaseStream.Seek(currentOffset, SeekOrigin.Begin);

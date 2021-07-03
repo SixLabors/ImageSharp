@@ -126,6 +126,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <param name="value">The four-byte unsigned integer to write.</param>
         public void WriteMarker(long offset, uint value)
         {
+            long back = this.BaseStream.Position;
+            this.BaseStream.Seek(offset, SeekOrigin.Begin);
+            this.Write(value);
+            this.BaseStream.Seek(back, SeekOrigin.Begin);
+        }
+
+        public void WriteMarkerFast(long offset, uint value)
+        {
             this.BaseStream.Seek(offset, SeekOrigin.Begin);
             this.Write(value);
         }

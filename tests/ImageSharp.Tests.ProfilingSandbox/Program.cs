@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             // RunToVector4ProfilingTest();
             // RunResizeProfilingTest();
 
-            Console.ReadLine();
+            // Console.ReadLine();
         }
 
         private static void RunJpegEncoderProfilingTests()

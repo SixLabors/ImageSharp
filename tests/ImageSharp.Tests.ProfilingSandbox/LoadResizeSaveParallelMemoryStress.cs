@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Benchmarks.LoadResizeSave;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 {
+    // See ImageSharp.Benchmarks/LoadResizeSave/README.md
     internal class LoadResizeSaveParallelMemoryStress
     {
         private readonly LoadResizeSaveStressRunner benchmarks;

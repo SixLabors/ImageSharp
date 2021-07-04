@@ -9,7 +9,7 @@
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
-
+    <LangVersion>9</LangVersion>
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
     <!--<SignAssembly>false</SignAssembly>-->
   </PropertyGroup>
@@ -41,6 +41,12 @@
     <PackageReference Include="Pfim" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
+
+    <PackageReference Include="FreeImage.Standard" />
+    <PackageReference Include="NetVips" />
+    <PackageReference Include="PhotoSauce.MagicScaler" />
+    <PackageReference Include="SkiaSharp" Version="2.80.3-preview.93" />
+    <PackageReference Include="NetVips.Native" />
   </ItemGroup>
 
   <!-- Exclude benchmarks using internals, in case of unsigned benchmark execution: -->

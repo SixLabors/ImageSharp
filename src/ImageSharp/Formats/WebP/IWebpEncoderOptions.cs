@@ -38,5 +38,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Gets the number of entropy-analysis passes (in [1..10]).
         /// </summary>
         int EntropyPasses { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
+        /// RGB information for better compression.
+        /// The default value is false.
+        /// </summary>
+        bool Exact { get; }
     }
 }

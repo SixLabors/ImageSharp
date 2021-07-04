@@ -64,7 +64,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 100)]
-        [WithFile(TestImages.Png.BikeSmall, PixelTypes.Rgba32, 6, 100)]
         public void Encode_Lossless_WithDifferentMethodAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int method, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -126,6 +125,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using Image<TPixel> image = provider.GetImage();
             string testOutputDetails = string.Concat("lossy", "_m", method, "_q", quality);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
+        }
+
+        [Theory]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
+        [WithFile(Lossy.Alpha1, PixelTypes.Rgba32, 4)]
+        public void Encode_Lossless_WithExactFlag_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                Lossy = false,
+                Method = method,
+                Exact = true
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            string testOutputDetails = string.Concat("lossless", "_m", method);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
         }
 
         [Theory]

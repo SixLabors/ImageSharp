@@ -54,6 +54,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private readonly int method;
 
+        /// <summary>
+        /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
+        /// RGB information for better compression.
+        /// </summary>
+        private readonly bool exact;
+
         private const int ApplyPaletteGreedyMax = 4;
 
         private const int PaletteInvSizeBits = 11;
@@ -69,7 +75,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="height">The height of the input image.</param>
         /// <param name="quality">The encoding quality.</param>
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
-        public Vp8LEncoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method)
+        /// <param name="exact">Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible RGB information for better compression.</param>
+        public Vp8LEncoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, bool exact)
         {
             int pixelCount = width * height;
             int initialSize = pixelCount * 2;
@@ -78,6 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.configuration = configuration;
             this.quality = Numerics.Clamp(quality, 0, 100);
             this.method = Numerics.Clamp(method, 0, 6);
+            this.exact = exact;
             this.bitWriter = new Vp8LBitWriter(initialSize);
             this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
             this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);
@@ -603,12 +611,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private void ApplyPredictFilter(int width, int height, bool usedSubtractGreen)
         {
             int nearLosslessStrength = 100; // TODO: for now always 100
-            bool exact = false; // TODO: always false for now.
             int predBits = this.TransformBits;
             int transformWidth = LosslessUtils.SubSampleSize(width, predBits);
             int transformHeight = LosslessUtils.SubSampleSize(height, predBits);
 
-            PredictorEncoder.ResidualImage(width, height, predBits, this.EncodedData.GetSpan(), this.BgraScratch.GetSpan(), this.TransformData.GetSpan(), nearLosslessStrength, exact, usedSubtractGreen);
+            PredictorEncoder.ResidualImage(
+                width,
+                height,
+                predBits,
+                this.EncodedData.GetSpan(),
+                this.BgraScratch.GetSpan(),
+                this.TransformData.GetSpan(),
+                nearLosslessStrength,
+                this.exact,
+                usedSubtractGreen);
 
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);

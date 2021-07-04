@@ -30,6 +30,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public int EntropyPasses { get; set; }
 
         /// <inheritdoc/>
+        public bool Exact { get; set; }
+
+        /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {

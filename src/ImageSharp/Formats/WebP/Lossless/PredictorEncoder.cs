@@ -641,7 +641,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     switch (mode)
                     {
                         case 0:
-                            LosslessUtils.PredictorSub0(current, numPixels, output);
+                            LosslessUtils.PredictorSub0(current + xStart, numPixels, output);
                             break;
                         case 1:
                             LosslessUtils.PredictorSub1(current + xStart, numPixels, output);

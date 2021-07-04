@@ -48,6 +48,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly int entropyPasses;
 
         /// <summary>
+        /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
+        /// RGB information for better compression.
+        /// </summary>
+        private readonly bool exact;
+
+        /// <summary>
         /// The global configuration.
         /// </summary>
         private Configuration configuration;
@@ -65,6 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.quality = options.Quality;
             this.method = options.Method;
             this.entropyPasses = options.EntropyPasses;
+            this.exact = options.Exact;
         }
 
         /// <summary>
@@ -89,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
             else
             {
-                using var enc = new Vp8LEncoder(this.memoryAllocator, this.configuration, image.Width, image.Height, this.quality, this.method);
+                using var enc = new Vp8LEncoder(this.memoryAllocator, this.configuration, image.Width, image.Height, this.quality, this.method, this.exact);
                 enc.Encode(image, stream);
             }
         }

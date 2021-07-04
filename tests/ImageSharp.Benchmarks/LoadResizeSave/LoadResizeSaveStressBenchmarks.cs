@@ -6,6 +6,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 {
+    // See README.md for instructions about initialization.
     [MemoryDiagnoser]
     [ShortRunJob]
     public class LoadResizeSaveStressBenchmarks

@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 ");
 
             ConsoleKey key = Console.ReadKey().Key;
-            if (key < ConsoleKey.D1 || key > ConsoleKey.D7)
+            if (key < ConsoleKey.D1 || key > ConsoleKey.D6)
             {
                 Console.WriteLine("Unrecognized command.");
                 return;

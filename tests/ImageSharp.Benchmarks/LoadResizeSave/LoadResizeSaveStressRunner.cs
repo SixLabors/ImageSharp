@@ -8,6 +8,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using FreeImageAPI;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
@@ -42,9 +43,13 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         public string[] Images { get; private set; }
 
+        public double TotalProcessedMegapixels { get; private set; }
+
         private string outputDirectory;
 
         public int ImageCount { get; set; } = int.MaxValue;
+
+        public int MaxDegreeOfParallelism { get; set; } = -1;
 
         public void Init()
         {
@@ -65,6 +70,17 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
             // Create the output directory next to the images directory
             this.outputDirectory = TestEnvironment.CreateOutputDirectory("MemoryStress");
+        }
+
+        public void ForEachImageParallel(Action<string> action) => Parallel.ForEach(
+            this.Images,
+            new ParallelOptions { MaxDegreeOfParallelism = this.MaxDegreeOfParallelism },
+            action);
+
+        private void IncreaseTotalMegapixels(int width, int height)
+        {
+            double pixels = width * (double)height;
+            this.TotalProcessedMegapixels += pixels / 1_000_000.0;
         }
 
         private string OutputPath(string inputPath, string postfix) =>
@@ -92,6 +108,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void SystemDrawingResize(string input)
         {
             using var image = SystemDrawingImage.FromFile(input, true);
+            this.IncreaseTotalMegapixels(image.Width, image.Height);
+
             (int width, int height) scaled = this.ScaledSize(image.Width, image.Height, ThumbnailSize);
             var resized = new Bitmap(scaled.width, scaled.height);
             using var graphics = Graphics.FromImage(resized);
@@ -116,6 +134,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
             // Resize it to fit a 150x150 square
             using var image = ImageSharpImage.Load(input);
+            this.IncreaseTotalMegapixels(image.Width, image.Height);
+
             image.Mutate(i => i.Resize(new ResizeOptions
             {
                 Size = new ImageSharpSize(ThumbnailSize, ThumbnailSize),
@@ -132,6 +152,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void MagickResize(string input)
         {
             using var image = new MagickImage(input);
+            this.IncreaseTotalMegapixels(image.Width, image.Height);
 
             // Resize it to fit a 150x150 square
             image.Resize(ThumbnailSize, ThumbnailSize);
@@ -149,6 +170,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void FreeImageResize(string input)
         {
             using var original = FreeImageBitmap.FromFile(input);
+            this.IncreaseTotalMegapixels(original.Width, original.Height);
+
             (int width, int height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
             var resized = new FreeImageBitmap(original, scaled.width, scaled.height);
 
@@ -172,6 +195,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
                 JpegSubsampleMode = ChromaSubsampleMode.Subsample420
             };
 
+            // TODO: Is there a way to capture input dimensions for IncreaseTotalMegapixels?
             using var output = new FileStream(this.OutputPath(input, MagicScaler), FileMode.Create);
             MagicImageProcessor.ProcessImage(input, output, settings);
         }
@@ -179,6 +203,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void SkiaCanvasResize(string input)
         {
             using var original = SKBitmap.Decode(input);
+            this.IncreaseTotalMegapixels(original.Width, original.Height);
             (int width, int height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
             using var surface = SKSurface.Create(new SKImageInfo(scaled.width, scaled.height, original.ColorType, original.AlphaType));
             using var paint = new SKPaint() { FilterQuality = SKFilterQuality.High };
@@ -196,6 +221,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void SkiaBitmapResize(string input)
         {
             using var original = SKBitmap.Decode(input);
+            this.IncreaseTotalMegapixels(original.Width, original.Height);
             (int width, int height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
             using var resized = original.Resize(new SKImageInfo(scaled.width, scaled.height), SKFilterQuality.High);
             if (resized == null)

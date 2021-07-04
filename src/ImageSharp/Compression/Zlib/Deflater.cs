@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// The number of compressed bytes added to the output, or 0 if either
         /// <see cref="IsNeedingInput"/> or <see cref="IsFinished"/> returns true or length is zero.
         /// </returns>
-        public int Deflate(byte[] output, int offset, int length)
+        public int Deflate(Span<byte> output, int offset, int length)
         {
             int origLength = length;
 

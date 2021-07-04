@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         Span<byte> tmp = tmpDst;
                         tmpDst = bestBlock;
                         bestBlock = tmp;
-                        tmpLevels.AsSpan().CopyTo(rdBest.YAcLevels);
+                        tmpLevels.CopyTo(rdBest.YAcLevels.AsSpan(it.I4 * 16, 16));
                     }
                 }
 

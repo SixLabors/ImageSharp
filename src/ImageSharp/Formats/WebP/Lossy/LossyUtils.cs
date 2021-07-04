@@ -49,11 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Copy(Span<byte> src, Span<byte> dst, int w, int h)
         {
+            int offset = 0;
             for (int y = 0; y < h; ++y)
             {
-                src.Slice(0, w).CopyTo(dst);
-                src = src.Slice(WebpConstants.Bps);
-                dst = dst.Slice(WebpConstants.Bps);
+                src.Slice(offset, w).CopyTo(dst.Slice(offset, w));
+                offset += WebpConstants.Bps;
             }
         }
 

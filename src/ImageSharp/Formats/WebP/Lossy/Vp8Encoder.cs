@@ -893,8 +893,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 QuantEnc.PickBestIntra16(it, ref rd, this.SegmentInfos, this.Proba);
                 if (this.method >= 2)
                 {
-                    // TODO: there is still a bug in PickBestIntra4, therefore disabled.
-                    // QuantEnc.PickBestIntra4(it, ref rd, this.SegmentInfos, this.Proba, this.maxI4HeaderBits);
+                    QuantEnc.PickBestIntra4(it, ref rd, this.SegmentInfos, this.Proba, this.maxI4HeaderBits);
                 }
 
                 QuantEnc.PickBestUv(it, ref rd, this.SegmentInfos, this.Proba);

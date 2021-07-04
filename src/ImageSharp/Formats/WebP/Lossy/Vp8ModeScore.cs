@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.UvLevels = new short[(4 + 4) * 16];
 
             this.ModesI4 = new byte[16];
+            this.Derr = new int[2, 3];
         }
 
         /// <summary>
@@ -86,6 +87,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Gets or sets the Non-zero blocks.
         /// </summary>
         public uint Nz { get; set; }
+
+        /// <summary>
+        /// Gets the diffusion errors.
+        /// </summary>
+        public int[,] Derr { get; }
 
         public void InitScore()
         {

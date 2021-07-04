@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public uint[] Nz { get; }
 
         /// <summary>
-        /// Gets the diffusion error.
+        /// Gets the top diffusion error.
         /// </summary>
         public sbyte[] TopDerr { get; }
 
@@ -586,6 +586,27 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public void SetSkip(bool skip) => this.CurrentMacroBlockInfo.Skip = skip;
 
         public void SetSegment(int segment) => this.CurrentMacroBlockInfo.Segment = segment;
+
+        public void StoreDiffusionErrors(Vp8ModeScore rd)
+        {
+            for (int ch = 0; ch <= 1; ++ch)
+            {
+                Span<sbyte> top = this.TopDerr.AsSpan((this.X * 4) + ch, 2);
+                Span<sbyte> left = this.LeftDerr.AsSpan(ch, 2);
+
+                // restore err1
+                left[0] = (sbyte)rd.Derr[ch, 0];
+
+                // 3/4th of err3
+                left[1] = (sbyte)((3 * rd.Derr[ch, 2]) >> 2);
+
+                // err2
+                top[0] = (sbyte)rd.Derr[ch, 1];
+
+                // 1/4th of err3.
+                top[1] = (sbyte)(rd.Derr[ch, 2] - left[1]);
+            }
+        }
 
         /// <summary>
         /// Returns true if iteration is finished.

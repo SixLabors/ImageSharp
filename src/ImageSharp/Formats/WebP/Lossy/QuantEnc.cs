@@ -240,6 +240,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     rdBest.CopyScore(rdUv);
                     rd.ModeUv = mode;
                     rdUv.UvLevels.CopyTo(rd.UvLevels.AsSpan());
+                    for (int i = 0; i < 2; i++)
+                    {
+                        rd.Derr[i, 0] = rdUv.Derr[i, 0];
+                        rd.Derr[i, 1] = rdUv.Derr[i, 1];
+                        rd.Derr[i, 2] = rdUv.Derr[i, 2];
+                    }
+
                     Span<byte> tmp = dst;
                     dst = tmpDst;
                     tmpDst = tmp;
@@ -253,6 +260,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // copy 16x8 block if needed.
                 LossyUtils.Vp8Copy16X8(dst, dst0);
             }
+
+            // Store diffusion errors for next block.
+            it.StoreDiffusionErrors(rd);
         }
 
         public static int ReconstructIntra16(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
@@ -571,10 +581,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 c[3 * 16] += (short)(((C1 * err1) + (C2 * err2)) >> (DSHIFT - DSCALE));
                 int err3 = QuantizeSingle(c.Slice(3 * 16), mtx);
 
-                // TODO: set errors in rd
-                // rd->derr[ch][0] = (int8_t)err1;
-                // rd->derr[ch][1] = (int8_t)err2;
-                // rd->derr[ch][2] = (int8_t)err3;
+                rd.Derr[ch, 0] = err1;
+                rd.Derr[ch, 1] = err2;
+                rd.Derr[ch, 2] = err3;
             }
         }
 

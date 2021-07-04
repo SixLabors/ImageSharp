@@ -221,4 +221,5 @@ artifacts/
 # Tests
 **/Images/ActualOutput
 **/Images/ReferenceOutput
+**/Images/Input/MemoryStress
 .DS_Store

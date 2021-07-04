@@ -41,12 +41,13 @@
     <PackageReference Include="Pfim" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="NetVips" />
-    <PackageReference Include="PhotoSauce.MagicScaler" />
-    <!-- For some reason it was not enough to set the version in Directory.Build.targets,
-         removing SkiaSharp's Version will lead to a downgrade. -->
+    
+    <!-- Thre is an issue restoring the following packages without specifying the Version again -->
+    <PackageReference Include="NetVips" Version="2.0.0" />
+    <PackageReference Include="PhotoSauce.MagicScaler" Version="0.12.1" />
     <PackageReference Include="SkiaSharp" Version="2.80.3-preview.93" />
-    <PackageReference Include="NetVips.Native" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+    <PackageReference Include="NetVips.Native" Version="8.10.6" />
   </ItemGroup>
 
   <!-- Exclude benchmarks using internals, in case of unsigned benchmark execution: -->

@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Text;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using SixLabors.ImageSharp.Benchmarks.LoadResizeSave;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox

@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Text;
-using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using SixLabors.ImageSharp.Benchmarks.LoadResizeSave;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                 }
 
                 timer.Stop();
-                var stats = Stats.Create(timer, lrs.TotalProcessedMegapixels);
+                var stats = new Stats(timer, lrs.TotalProcessedMegapixels);
                 Console.WriteLine("Done. TotalProcessedMegapixels: " + lrs.TotalProcessedMegapixels);
                 Console.WriteLine(stats.GetMarkdown());
             }
@@ -83,22 +83,30 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
         }
 
-        record Stats(double TotalSeconds, double TotalMegapixels, double MegapixelsPerSec, double MegapixelsPerSecPerCpu)
+        private struct Stats
         {
-            public static Stats Create(Stopwatch sw, double totalMegapixels)
+            public double TotalSeconds { get; }
+
+            public double TotalMegapixels { get; }
+
+            public double MegapixelsPerSec { get; }
+
+            public double MegapixelsPerSecPerCpu { get; }
+
+            public Stats(Stopwatch sw, double totalMegapixels)
             {
-                double totalSeconds = sw.ElapsedMilliseconds / 1000.0;
-                double megapixelsPerSec = totalMegapixels / totalSeconds;
-                double megapixelsPerSecPerCpu = megapixelsPerSec / Environment.ProcessorCount;
-                return new Stats(totalSeconds, totalMegapixels, megapixelsPerSec, megapixelsPerSecPerCpu);
+                this.TotalMegapixels = totalMegapixels;
+                this.TotalSeconds = sw.ElapsedMilliseconds / 1000.0;
+                this.MegapixelsPerSec = totalMegapixels / this.TotalSeconds;
+                this.MegapixelsPerSecPerCpu = this.MegapixelsPerSec / Environment.ProcessorCount;
             }
 
             public string GetMarkdown()
             {
                 var bld = new StringBuilder();
-                bld.AppendLine($"| {nameof(TotalSeconds)} | {nameof(MegapixelsPerSec)} | {nameof(MegapixelsPerSecPerCpu)} |");
+                bld.AppendLine($"| {nameof(this.TotalSeconds)} | {nameof(this.MegapixelsPerSec)} | {nameof(this.MegapixelsPerSecPerCpu)} |");
                 bld.AppendLine(
-                    $"| {L(nameof(TotalSeconds))} | {L(nameof(MegapixelsPerSec))} | {L(nameof(MegapixelsPerSecPerCpu))} |");
+                    $"| {L(nameof(this.TotalSeconds))} | {L(nameof(this.MegapixelsPerSec))} | {L(nameof(this.MegapixelsPerSecPerCpu))} |");
 
                 bld.Append("| ");
                 bld.AppendFormat(F(nameof(this.TotalSeconds)), this.TotalSeconds);
@@ -128,13 +136,5 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         private void SkiaBitmapBenchmarkParallel() => this.ForEachImage(this.benchmarks.SkiaBitmapResize);
 
         private void NetVipsBenchmarkParallel() => this.ForEachImage(this.benchmarks.NetVipsResize);
-    }
-}
-
-// https://stackoverflow.com/questions/64749385/predefined-type-system-runtime-compilerservices-isexternalinit-is-not-defined
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit
-    {
     }
 }

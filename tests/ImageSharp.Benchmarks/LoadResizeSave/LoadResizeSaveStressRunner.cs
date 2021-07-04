@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using FreeImageAPI;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -31,7 +30,6 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         private const string SystemDrawing = nameof(SystemDrawing);
         private const string MagickNET = nameof(MagickNET);
         private const string NetVips = nameof(NetVips);
-        private const string FreeImage = nameof(FreeImage);
         private const string MagicScaler = nameof(MagicScaler);
         private const string SkiaSharpCanvas = nameof(SkiaSharpCanvas);
         private const string SkiaSharpBitmap = nameof(SkiaSharpBitmap);
@@ -165,22 +163,6 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
             // Save the results
             image.Write(this.OutputPath(input, MagickNET));
-        }
-
-        public void FreeImageResize(string input)
-        {
-            using var original = FreeImageBitmap.FromFile(input);
-            this.IncreaseTotalMegapixels(original.Width, original.Height);
-
-            (int width, int height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
-            var resized = new FreeImageBitmap(original, scaled.width, scaled.height);
-
-            // JPEG_QUALITYGOOD is 75 JPEG.
-            // JPEG_BASELINE strips metadata (EXIF, etc.)
-            resized.Save(
-                this.OutputPath(input, FreeImage),
-                FREE_IMAGE_FORMAT.FIF_JPEG,
-                FREE_IMAGE_SAVE_FLAGS.JPEG_QUALITYGOOD | FREE_IMAGE_SAVE_FLAGS.JPEG_BASELINE);
         }
 
         public void MagicScalerResize(string input)

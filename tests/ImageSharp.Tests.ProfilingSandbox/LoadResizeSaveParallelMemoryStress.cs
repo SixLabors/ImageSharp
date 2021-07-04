@@ -32,7 +32,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 4. SkiaSharp
 5. NetVips
 6. ImageMagick
-7. FreeImage
 ");
 
             ConsoleKey key = Console.ReadKey().Key;
@@ -63,16 +62,13 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                         lrs.MagicScalerBenchmarkParallel();
                         break;
                     case ConsoleKey.D4:
-                        lrs.SkiaCanvasBenchmarkParallel();
+                        lrs.SkiaBitmapBenchmarkParallel();
                         break;
                     case ConsoleKey.D5:
                         lrs.NetVipsBenchmarkParallel();
                         break;
                     case ConsoleKey.D6:
                         lrs.MagickBenchmarkParallel();
-                        break;
-                    case ConsoleKey.D7:
-                        lrs.FreeImageBenchmarkParallel();
                         break;
                 }
 
@@ -127,11 +123,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private void MagickBenchmarkParallel() => this.ForEachImage(this.benchmarks.MagickResize);
 
-        private void FreeImageBenchmarkParallel() => this.ForEachImage(this.benchmarks.FreeImageResize);
-
         private void MagicScalerBenchmarkParallel() => this.ForEachImage(this.benchmarks.MagicScalerResize);
-
-        private void SkiaCanvasBenchmarkParallel() => this.ForEachImage(this.benchmarks.SkiaCanvasResize);
 
         private void SkiaBitmapBenchmarkParallel() => this.ForEachImage(this.benchmarks.SkiaBitmapResize);
 

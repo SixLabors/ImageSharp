@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -242,19 +243,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         [MemberData(nameof(Rgb4Data))]
         [MemberData(nameof(Rgb8Data))]
         [MemberData(nameof(Rgb484_Data))]
-        public void Decode_WritesPixelData(byte[][] inputData, TiffBitsPerSample bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        {
-            AssertDecode(expectedResult, pixels =>
+        public void Decode_WritesPixelData(
+            byte[][] inputData,
+            TiffBitsPerSample bitsPerSample,
+            int left,
+            int top,
+            int width,
+            int height,
+            Rgba32[][] expectedResult)
+            => AssertDecode(
+                expectedResult,
+                pixels =>
                 {
-                    var buffers = new IManagedByteBuffer[inputData.Length];
+                    var buffers = new IMemoryOwner<byte>[inputData.Length];
                     for (int i = 0; i < buffers.Length; i++)
                     {
-                        buffers[i] = Configuration.Default.MemoryAllocator.AllocateManagedByteBuffer(inputData[i].Length);
+                        buffers[i] = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData[i].Length);
                         ((Span<byte>)inputData[i]).CopyTo(buffers[i].GetSpan());
                     }
 
                     new RgbPlanarTiffColor<Rgba32>(bitsPerSample).Decode(buffers, pixels, left, top, width, height);
+
+                    foreach (IMemoryOwner<byte> buffer in buffers)
+                    {
+                        buffer.Dispose();
+                    }
                 });
-        }
     }
 }

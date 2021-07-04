@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Memory
         protected internal abstract int GetBufferCapacityInBytes();
 
         /// <summary>
-        /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="System.Memory{T}"/> of length <paramref name="length"/>.
+        /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.
         /// </summary>
         /// <typeparam name="T">Type of the data stored in the buffer.</typeparam>
         /// <param name="length">Size of the buffer to allocate.</param>

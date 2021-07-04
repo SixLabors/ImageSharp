@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Compression.Zlib
@@ -13,9 +14,9 @@ namespace SixLabors.ImageSharp.Compression.Zlib
     /// </summary>
     internal sealed unsafe class DeflaterPendingBuffer : IDisposable
     {
-        private readonly byte[] buffer;
+        private readonly Memory<byte> buffer;
         private readonly byte* pinnedBuffer;
-        private IManagedByteBuffer bufferMemoryOwner;
+        private IMemoryOwner<byte> bufferMemoryOwner;
         private MemoryHandle bufferMemoryHandle;
 
         private int start;
@@ -29,9 +30,9 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         public DeflaterPendingBuffer(MemoryAllocator memoryAllocator)
         {
-            this.bufferMemoryOwner = memoryAllocator.AllocateManagedByteBuffer(DeflaterConstants.PENDING_BUF_SIZE);
-            this.buffer = this.bufferMemoryOwner.Array;
-            this.bufferMemoryHandle = this.bufferMemoryOwner.Memory.Pin();
+            this.bufferMemoryOwner = memoryAllocator.Allocate<byte>(DeflaterConstants.PENDING_BUF_SIZE);
+            this.buffer = this.bufferMemoryOwner.Memory;
+            this.bufferMemoryHandle = this.buffer.Pin();
             this.pinnedBuffer = (byte*)this.bufferMemoryHandle.Pointer;
         }
 
@@ -70,9 +71,13 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="offset">The offset of first byte to write.</param>
         /// <param name="length">The number of bytes to write.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void WriteBlock(byte[] block, int offset, int length)
+        public void WriteBlock(ReadOnlySpan<byte> block, int offset, int length)
         {
-            Unsafe.CopyBlockUnaligned(ref this.buffer[this.end], ref block[offset], unchecked((uint)length));
+            Unsafe.CopyBlockUnaligned(
+                ref this.buffer.Span[this.end],
+                ref MemoryMarshal.GetReference(block.Slice(offset)),
+                unchecked((uint)length));
+
             this.end += length;
         }
 
@@ -136,7 +141,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="offset">The offset into output array.</param>
         /// <param name="length">The maximum number of bytes to store.</param>
         /// <returns>The number of bytes flushed.</returns>
-        public int Flush(byte[] output, int offset, int length)
+        public int Flush(Span<byte> output, int offset, int length)
         {
             if (this.BitCount >= 8)
             {
@@ -149,13 +154,19 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             {
                 length = this.end - this.start;
 
-                Unsafe.CopyBlockUnaligned(ref output[offset], ref this.buffer[this.start], unchecked((uint)length));
+                Unsafe.CopyBlockUnaligned(
+                    ref output[offset],
+                    ref this.buffer.Span[this.start],
+                    unchecked((uint)length));
                 this.start = 0;
                 this.end = 0;
             }
             else
             {
-                Unsafe.CopyBlockUnaligned(ref output[offset], ref this.buffer[this.start], unchecked((uint)length));
+                Unsafe.CopyBlockUnaligned(
+                    ref output[offset],
+                    ref this.buffer.Span[this.start],
+                    unchecked((uint)length));
                 this.start += length;
             }
 

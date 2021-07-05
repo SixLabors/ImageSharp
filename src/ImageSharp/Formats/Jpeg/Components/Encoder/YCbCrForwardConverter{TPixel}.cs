@@ -13,8 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     {
         public static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, Point start, Size sampleSize, Size totalSize)
         {
-            DebugGuard.MustBeBetweenOrEqualTo(start.X, 1, totalSize.Width - 1, nameof(start.X));
-            DebugGuard.MustBeBetweenOrEqualTo(start.Y, 1, totalSize.Height - 1, nameof(start.Y));
+            DebugGuard.MustBeBetweenOrEqualTo(start.X, 0, totalSize.Width - 1, nameof(start.X));
+            DebugGuard.MustBeBetweenOrEqualTo(start.Y, 0, totalSize.Height - 1, nameof(start.Y));
 
             int width = Math.Min(sampleSize.Width, totalSize.Width - start.X);
             int height = Math.Min(sampleSize.Height, totalSize.Height - start.Y);

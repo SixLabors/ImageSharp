@@ -17,6 +17,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
     public class TiffDecoderTests
     {

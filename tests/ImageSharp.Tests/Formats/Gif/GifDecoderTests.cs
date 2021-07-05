@@ -17,6 +17,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Gif")]
     public class GifDecoderTests
     {

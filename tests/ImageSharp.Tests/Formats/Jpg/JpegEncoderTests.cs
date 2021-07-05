@@ -20,6 +20,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Jpg")]
     public class JpegEncoderTests
     {

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
 using Xunit;
 
@@ -13,6 +14,16 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
     public class UniformByteArrayPoolTests
     {
+        [Theory]
+        [InlineData(3, 11)]
+        [InlineData(7, 4)]
+        public void Constructor_InitializesProperties(int arrayLength, int capacity)
+        {
+            var pool = new UniformByteArrayPool(arrayLength, capacity);
+            Assert.Equal(arrayLength, pool.ArrayLength);
+            Assert.Equal(capacity, pool.Capacity);
+        }
+
         [Theory]
         [InlineData(1, 3)]
         [InlineData(8, 10)]
@@ -84,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         {
             var pool = new UniformByteArrayPool(2, 5);
             byte[] array = new byte[2];
-            Assert.Throws<InvalidOperationException>(() => pool.Return(array));
+            Assert.Throws<InvalidMemoryOperationException>(() => pool.Return(array));
         }
 
         [Fact]
@@ -95,8 +106,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             byte[][] attempt1 = { new byte[2], new byte[2] };
             byte[][] attempt2 = { new byte[2], new byte[2], new byte[2] };
-            Assert.Throws<InvalidOperationException>(() => pool.Return(attempt1));
-            Assert.Throws<InvalidOperationException>(() => pool.Return(attempt2));
+            Assert.Throws<InvalidMemoryOperationException>(() => pool.Return(attempt1));
+            Assert.Throws<InvalidMemoryOperationException>(() => pool.Return(attempt2));
         }
 
         [Theory]
@@ -173,6 +184,26 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             var pool = new UniformByteArrayPool(128, capacity);
             Assert.NotNull(pool.Rent(initialRent));
             Assert.NotNull(pool.Rent(attempt));
+        }
+
+        [Fact]
+        public void Release_Rent_Throws()
+        {
+            var pool = new UniformByteArrayPool(10, 3);
+            pool.Release();
+            Assert.Throws<InvalidMemoryOperationException>(() => pool.Rent());
+            Assert.Throws<InvalidMemoryOperationException>(() => pool.Rent(2));
+        }
+
+        [Fact]
+        public void Release_Return_Allowed()
+        {
+            var pool = new UniformByteArrayPool(10, 3);
+            byte[] a = pool.Rent();
+            byte[][] b = pool.Rent(2);
+            pool.Release();
+            pool.Return(a);
+            pool.Return(b);
         }
 
         [Fact]

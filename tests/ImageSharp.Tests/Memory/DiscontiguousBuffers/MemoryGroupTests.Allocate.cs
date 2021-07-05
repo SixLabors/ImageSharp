@@ -2,10 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Memory.Internals;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 {
@@ -39,6 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                     { default(S4), 50, 7, 21, 3, 7, 7 },
                     { default(S4), 50, 7, 23, 4, 7, 2 },
                     { default(S4), 50, 6, 13, 2, 12, 1 },
+                    { default(S4), 1024, 20, 800, 4, 240, 80 },
 
                     { default(short), 200, 50, 49, 1, 49, 49 },
                     { default(short), 200, 50, 1, 1, 1, 1 },
@@ -47,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
             [Theory]
             [MemberData(nameof(AllocateData))]
-            public void BufferSizesAreCorrect<T>(
+            public void Allocate_FromMemoryAllocator_BufferSizesAreCorrect<T>(
                 T dummy,
                 int bufferCapacity,
                 int bufferAlignment,
@@ -63,6 +68,43 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 using var g = MemoryGroup<T>.Allocate(this.MemoryAllocator, totalLength, bufferAlignment);
 
                 // Assert:
+                ValidateAllocateMemoryGroup(expectedNumberOfBuffers, expectedBufferSize, expectedSizeOfLastBuffer, g);
+            }
+
+            [Theory]
+            [MemberData(nameof(AllocateData))]
+            public void Allocate_FromPool_BufferSizesAreCorrect<T>(
+                T dummy,
+                int bufferCapacity,
+                int bufferAlignment,
+                long totalLength,
+                int expectedNumberOfBuffers,
+                int expectedBufferSize,
+                int expectedSizeOfLastBuffer)
+                where T : struct
+            {
+                if (totalLength == 0)
+                {
+                    // Invalid case for UniformByteArrayPool allocations
+                    return;
+                }
+
+                var pool = new UniformByteArrayPool(bufferCapacity, expectedNumberOfBuffers);
+
+                // Act:
+                using var g = MemoryGroup<T>.Allocate(pool, totalLength, bufferAlignment);
+
+                // Assert:
+                ValidateAllocateMemoryGroup(expectedNumberOfBuffers, expectedBufferSize, expectedSizeOfLastBuffer, g);
+            }
+
+            internal static void ValidateAllocateMemoryGroup<T>(
+                int expectedNumberOfBuffers,
+                int expectedBufferSize,
+                int expectedSizeOfLastBuffer,
+                MemoryGroup<T> g)
+                where T : struct
+            {
                 Assert.Equal(expectedNumberOfBuffers, g.Count);
 
                 if (expectedBufferSize >= 0)

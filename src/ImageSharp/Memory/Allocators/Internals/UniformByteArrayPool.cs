@@ -2,25 +2,34 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
-    internal class UniformByteArrayPool
+    internal partial class UniformByteArrayPool
     {
-        private readonly int arrayLength;
-        private readonly byte[][] arrays;
+        private byte[][] arrays;
         private int index;
 
         public UniformByteArrayPool(int arrayLength, int capacity)
         {
-            this.arrayLength = arrayLength;
+            this.ArrayLength = arrayLength;
             this.arrays = new byte[capacity][];
         }
 
-        public byte[] Rent()
+        public int ArrayLength { get; }
+
+        public int Capacity => this.arrays.Length;
+
+        public byte[] Rent(AllocationOptions allocationOptions = AllocationOptions.None)
         {
             byte[][] arraysLocal = this.arrays;
+
+            if (arraysLocal == null)
+            {
+                ThrowReleased();
+            }
 
             // Avoid taking the lock if we are over limit:
             if (this.index == arraysLocal.Length)
@@ -46,15 +55,24 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
             if (array == null)
             {
-                array = new byte[this.arrayLength];
+                array = new byte[this.ArrayLength];
+            }
+            else if (allocationOptions == AllocationOptions.Clean)
+            {
+                array.AsSpan().Clear();
             }
 
             return array;
         }
 
-        public byte[][] Rent(int arrayCount)
+        public byte[][] Rent(int arrayCount, AllocationOptions allocationOptions = AllocationOptions.None)
         {
             byte[][] arraysLocal = this.arrays;
+
+            if (arraysLocal == null)
+            {
+                ThrowReleased();
+            }
 
             // Avoid taking the lock if we are over limit:
             if (this.index + arrayCount >= arraysLocal.Length + 1)
@@ -85,7 +103,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
             {
                 if (result[i] == null)
                 {
-                    result[i] = new byte[this.arrayLength];
+                    result[i] = new byte[this.ArrayLength];
+                }
+                else if (allocationOptions == AllocationOptions.Clean)
+                {
+                    result[i].AsSpan().Clear();
                 }
             }
 
@@ -94,22 +116,36 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         public void Return(byte[] array)
         {
-            Guard.IsTrue(array.Length == this.arrayLength, nameof(array), "Incorrect array length, array not rented from pool.");
+            Guard.IsTrue(array.Length == this.ArrayLength, nameof(array), "Incorrect array length, array not rented from pool.");
 
-            lock (this.arrays)
+            byte[][] arraysLocal = this.arrays;
+            if (arraysLocal == null)
+            {
+                // The pool has been released, Return() is NOP
+                return;
+            }
+
+            lock (arraysLocal)
             {
                 if (this.index == 0)
                 {
                     ThrowReturnedMoreArraysThanRented();
                 }
 
-                this.arrays[--this.index] = array;
+                arraysLocal[--this.index] = array;
             }
         }
 
         public void Return(Span<byte[]> arrays)
         {
             byte[][] arraysLocal = this.arrays;
+
+            if (arraysLocal == null)
+            {
+                // The pool has been released, Return() is NOP
+                return;
+            }
+
             lock (arraysLocal)
             {
                 if (this.index - arrays.Length + 1 <= 0)
@@ -120,13 +156,24 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 for (int i = arrays.Length - 1; i >= 0; i--)
                 {
                     byte[] array = arrays[i];
-                    Guard.IsTrue(array.Length == this.arrayLength, nameof(arrays), "Incorrect array length, array not rented from pool.");
+                    Guard.IsTrue(array.Length == this.ArrayLength, nameof(arrays), "Incorrect array length, array not rented from pool.");
                     arraysLocal[--this.index] = arrays[i];
                 }
             }
         }
 
+        public void Release()
+        {
+            lock (this.arrays)
+            {
+                this.arrays = null;
+            }
+        }
+
         [MethodImpl(InliningOptions.ColdPath)]
-        private static void ThrowReturnedMoreArraysThanRented() => throw new InvalidOperationException("Returned more arrays then rented");
+        private static void ThrowReturnedMoreArraysThanRented() => throw new InvalidMemoryOperationException("Returned more arrays then rented");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowReleased() => throw new InvalidMemoryOperationException("UniformByteArrayPool has been released, can not rent anyomre.");
     }
 }

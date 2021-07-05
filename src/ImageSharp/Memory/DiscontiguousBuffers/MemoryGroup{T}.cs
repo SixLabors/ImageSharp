@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -44,7 +45,9 @@ namespace SixLabors.ImageSharp.Memory
         public abstract Memory<T> this[int index] { get; }
 
         /// <inheritdoc />
-        public abstract void Dispose();
+        public void Dispose() => this.Dispose(true);
+
+        protected abstract void Dispose(bool disposing);
 
         /// <inheritdoc />
         public abstract MemoryGroupEnumerator<T> GetEnumerator();
@@ -127,6 +130,59 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             return new Owned(buffers, bufferLength, totalLength, true);
+        }
+
+        public static MemoryGroup<T> Allocate(
+            UniformByteArrayPool pool,
+            long totalLength,
+            int bufferAlignment,
+            AllocationOptions options = AllocationOptions.None)
+        {
+            Guard.NotNull(pool, nameof(pool));
+            Guard.MustBeGreaterThanOrEqualTo(totalLength, 0, nameof(totalLength));
+            Guard.MustBeGreaterThanOrEqualTo(bufferAlignment, 0, nameof(bufferAlignment));
+
+            int blockCapacityInElements = pool.ArrayLength / ElementSize;
+
+            if (bufferAlignment > blockCapacityInElements)
+            {
+                throw new InvalidMemoryOperationException(
+                    $"The ArrayLength of the provided UniformByteArrayPool is insufficient for the requested buffer alignment: {bufferAlignment}.");
+            }
+
+            if (totalLength == 0)
+            {
+                throw new InvalidMemoryOperationException("Allocating 0 length buffer from UniformByteArrayPool is disallowed");
+            }
+
+            int numberOfAlignedSegments = blockCapacityInElements / bufferAlignment;
+            int bufferLength = numberOfAlignedSegments * bufferAlignment;
+            if (totalLength > 0 && totalLength < bufferLength)
+            {
+                bufferLength = (int)totalLength;
+            }
+
+            int sizeOfLastBuffer = (int)(totalLength % bufferLength);
+            int bufferCount = (int)(totalLength / bufferLength);
+
+            if (sizeOfLastBuffer == 0)
+            {
+                sizeOfLastBuffer = bufferLength;
+            }
+            else
+            {
+                bufferCount++;
+            }
+
+            byte[][] arrays = pool.Rent(bufferCount, options);
+
+            if (arrays == null)
+            {
+                // Pool is full
+                return null;
+            }
+
+            return new Owned(pool, arrays, bufferLength, totalLength, sizeOfLastBuffer);
         }
 
         public static MemoryGroup<T> Wrap(params Memory<T>[] source)

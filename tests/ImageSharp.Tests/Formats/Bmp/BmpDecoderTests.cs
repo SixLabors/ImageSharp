@@ -20,6 +20,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Bmp")]
     public class BmpDecoderTests
     {

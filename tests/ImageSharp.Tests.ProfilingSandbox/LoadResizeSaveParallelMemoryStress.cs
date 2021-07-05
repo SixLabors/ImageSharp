@@ -15,7 +15,11 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private LoadResizeSaveParallelMemoryStress()
         {
-            this.benchmarks = new LoadResizeSaveStressRunner();
+            this.benchmarks = new LoadResizeSaveStressRunner()
+            {
+                // MaxDegreeOfParallelism = 10,
+                // Filter = JpegKind.Baseline
+            };
             this.benchmarks.Init();
         }
 
@@ -43,7 +47,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             try
             {
                 var lrs = new LoadResizeSaveParallelMemoryStress();
-                lrs.benchmarks.MaxDegreeOfParallelism = 10;
 
                 Console.WriteLine($"\nEnvironment.ProcessorCount={Environment.ProcessorCount}");
                 Console.WriteLine($"Running with MaxDegreeOfParallelism={lrs.benchmarks.MaxDegreeOfParallelism} ...");

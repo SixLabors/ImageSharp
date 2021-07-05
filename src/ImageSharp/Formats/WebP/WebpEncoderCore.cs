@@ -48,6 +48,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly int entropyPasses;
 
         /// <summary>
+        /// The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).
+        /// </summary>
+        private readonly int filterStrength;
+
+        /// <summary>
         /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
         /// RGB information for better compression.
         /// </summary>
@@ -71,6 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.quality = options.Quality;
             this.method = options.Method;
             this.entropyPasses = options.EntropyPasses;
+            this.filterStrength = options.FilterStrength;
             this.exact = options.Exact;
         }
 
@@ -91,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             if (this.lossy)
             {
-                using var enc = new Vp8Encoder(this.memoryAllocator, this.configuration, image.Width, image.Height, this.quality, this.method, this.entropyPasses);
+                using var enc = new Vp8Encoder(this.memoryAllocator, this.configuration, image.Width, image.Height, this.quality, this.method, this.entropyPasses, this.filterStrength);
                 enc.Encode(image, stream);
             }
             else

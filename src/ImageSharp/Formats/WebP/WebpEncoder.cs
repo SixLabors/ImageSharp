@@ -30,6 +30,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public int EntropyPasses { get; set; }
 
         /// <inheritdoc/>
+        public int FilterStrength { get; set; } = 60;
+
+        /// <inheritdoc/>
         public bool Exact { get; set; }
 
         /// <inheritdoc/>

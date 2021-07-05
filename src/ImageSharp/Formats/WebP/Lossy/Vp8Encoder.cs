@@ -43,6 +43,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private readonly int entropyPasses;
 
         /// <summary>
+        /// Specify the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering). A value of 0 will turn off any filtering.
+        /// </summary>
+        private readonly int filterStrength;
+
+        /// <summary>
         /// A bit writer for writing lossy webp streams.
         /// </summary>
         private Vp8BitWriter bitWriter;
@@ -78,11 +83,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private const int QMax = 100;
 
-        // TODO: filterStrength is hardcoded, should be configurable.
-        private const int FilterStrength = 60;
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
+        /// Initializes a new instance of the <see cref="Vp8Encoder" /> class.
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="configuration">The global configuration.</param>
@@ -91,7 +93,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <param name="quality">The encoding quality.</param>
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
         /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
-        public Vp8Encoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, int entropyPasses)
+        /// <param name="filterStrength">The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).</param>
+        public Vp8Encoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, int entropyPasses, int filterStrength)
         {
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
@@ -100,6 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.quality = Numerics.Clamp(quality, 0, 100);
             this.method = Numerics.Clamp(method, 0, 6);
             this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
+            this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
             this.rdOptLevel = (method >= 6) ? Vp8RdLevel.RdOptTrellisAll
                 : (method >= 5) ? Vp8RdLevel.RdOptTrellis
                 : (method >= 3) ? Vp8RdLevel.RdOptBasic
@@ -476,7 +480,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private void AdjustFilterStrength()
         {
-            if (FilterStrength > 0)
+            if (this.filterStrength > 0)
             {
                 int maxLevel = 0;
                 for (int s = 0; s < WebpConstants.NumMbSegments; s++)
@@ -708,7 +712,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int filterType = 1; // TODO: filterType is hardcoded
 
             // level0 is in [0..500]. Using '-f 50' as filter_strength is mid-filtering.
-            int level0 = 5 * FilterStrength;
+            int level0 = 5 * this.filterStrength;
             for (int i = 0; i < WebpConstants.NumMbSegments; ++i)
             {
                 Vp8SegmentInfo m = this.SegmentInfos[i];

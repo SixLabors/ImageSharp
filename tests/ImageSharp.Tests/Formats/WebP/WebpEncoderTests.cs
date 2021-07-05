@@ -99,6 +99,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 80)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 50)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 30)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 10)]
+        public void Encode_Lossy_WithDifferentFilterStrength_Works<TPixel>(TestImageProvider<TPixel> provider, int filterStrength)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                Lossy = true,
+                FilterStrength = filterStrength
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            string testOutputDetails = string.Concat("lossy", "_f", filterStrength);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(75));
+        }
+
+        [Theory]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0, 75)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1, 75)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2, 75)]

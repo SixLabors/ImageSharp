@@ -40,6 +40,15 @@ namespace SixLabors.ImageSharp.Formats.Webp
         int EntropyPasses { get; }
 
         /// <summary>
+        /// Gets the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).
+        /// A value of 0 will turn off any filtering. Higher value will increase the strength of the filtering process applied after decoding the picture.
+        /// The higher the value the smoother the picture will appear.
+        /// Typical values are usually in the range of 20 to 50.
+        /// Defaults to 60.
+        /// </summary>
+        int FilterStrength { get; }
+
+        /// <summary>
         /// Gets a value indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
         /// RGB information for better compression.
         /// The default value is false.

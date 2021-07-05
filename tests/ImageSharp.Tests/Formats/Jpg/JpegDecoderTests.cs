@@ -22,6 +22,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
+    [Collection("RunSerial")]
     [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {

@@ -22,6 +22,13 @@ using SystemDrawingImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 {
+    public enum JpegKind
+    {
+        Baseline = 1,
+        Progressive = 2,
+        Any = Baseline | Progressive
+    }
+
     public class LoadResizeSaveStressRunner
     {
         private const int ThumbnailSize = 150;
@@ -49,6 +56,43 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         public int MaxDegreeOfParallelism { get; set; } = -1;
 
+        public JpegKind Filter { get; set; }
+
+        private static readonly string[] ProgressiveFiles =
+        {
+            "ancyloscelis-apiformis-m-paraguay-face_2014-08-08-095255-zs-pmax_15046500892_o.jpg",
+            "acanthopus-excellens-f-face-brasil_2014-08-06-132105-zs-pmax_14792513890_o.jpg",
+            "bee-ceratina-monster-f-ukraine-face_2014-08-09-123342-zs-pmax_15068816101_o.jpg",
+            "bombus-eximias-f-tawain-face_2014-08-10-094449-zs-pmax_15155452565_o.jpg",
+            "ceratina-14507h1-m-vietnam-face_2014-08-09-163218-zs-pmax_15096718245_o.jpg",
+            "ceratina-buscki-f-panama-face_2014-11-25-140413-zs-pmax_15923736081_o.jpg",
+            "ceratina-tricolor-f-panama-face2_2014-08-29-160402-zs-pmax_14906318297_o.jpg",
+            "ceratina-tricolor-f-panama-face_2014-08-29-160001-zs-pmax_14906300608_o.jpg",
+            "ceratina-tricolor-m-panama-face_2014-08-29-162821-zs-pmax_15069878876_o.jpg",
+            "coelioxys-cayennensis-f-argentina-face_2014-08-09-171932-zs-pmax_14914109737_o.jpg",
+            "ctenocolletes-smaragdinus-f-australia-face_2014-08-08-134825-zs-pmax_14865269708_o.jpg",
+            "diphaglossa-gayi-f-face-chile_2014-08-04-180547-zs-pmax_14918891472_o.jpg",
+            "hylaeus-nubilosus-f-australia-face_2014-08-14-121100-zs-pmax_15049602149_o.jpg",
+            "hypanthidioides-arenaria-f-face-brazil_2014-08-06-061201-zs-pmax_14770371360_o.jpg",
+            "megachile-chalicodoma-species-f-morocco-face_2014-08-14-124840-zs-pmax_15217084686_o.jpg",
+            "megachile-species-f-15266b06-face-kenya_2014-08-06-161044-zs-pmax_14994381392_o.jpg",
+            "megalopta-genalis-m-face-panama-barocolorado_2014-09-19-164939-zs-pmax_15121397069_o.jpg",
+            "melitta-haemorrhoidalis-m--england-face_2014-11-02-014026-zs-pmax-recovered_15782113675_o.jpg",
+            "nomia-heart-antennae-m-15266b02-face-kenya_2014-08-04-195216-zs-pmax_14922843736_o.jpg",
+            "nomia-species-m-oman-face_2014-08-09-192602-zs-pmax_15128732411_o.jpg",
+            "nomia-spiney-m-vietnam-face_2014-08-09-213126-zs-pmax_15191389705_o.jpg",
+            "ochreriades-fasciata-m-face-israel_2014-08-06-084407-zs-pmax_14965515571_o.jpg",
+            "osmia-brevicornisf-jaw-kyrgystan_2014-08-08-103333-zs-pmax_14865267787_o.jpg",
+            "pachyanthidium-aff-benguelense-f-6711f07-face_2014-08-07-112830-zs-pmax_15018069042_o.jpg",
+            "pachymelus-bicolor-m-face-madagascar_2014-08-06-134930-zs-pmax_14801667477_o.jpg",
+            "psaenythia-species-m-argentina-face_2014-08-07-163754-zs-pmax_15007018976_o.jpg",
+            "stingless-bee-1-f-face-peru_2014-07-30-123322-zs-pmax_15633797167_o.jpg",
+            "triepeolus-simplex-m-face-md-kent-county_2014-07-22-100937-zs-pmax_14805405233_o.jpg",
+            "washed-megachile-f-face-chile_2014-08-06-103414-zs-pmax_14977843152_o.jpg",
+            "xylocopa-balck-violetwing-f-kyrgystan-angle_2014-08-09-182433-zs-pmax_15123416061_o.jpg",
+            "xylocopa-india-yellow-m-india-face_2014-08-10-111701-zs-pmax_15166559172_o.jpg",
+        };
+
         public void Init()
         {
             if (RuntimeInformation.OSArchitecture is Architecture.X86 or Architecture.X64)
@@ -64,10 +108,17 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             }
 
             // Get at most this.ImageCount images from there
-            this.Images = Directory.EnumerateFiles(imageDirectory).Take(this.ImageCount).ToArray();
+            bool FilterFunc(string f) => this.Filter.HasFlag(GetJpegType(f));
+
+            this.Images = Directory.EnumerateFiles(imageDirectory).Where(FilterFunc).Take(this.ImageCount).ToArray();
 
             // Create the output directory next to the images directory
             this.outputDirectory = TestEnvironment.CreateOutputDirectory("MemoryStress");
+
+            static JpegKind GetJpegType(string f) =>
+                ProgressiveFiles.Any(p => f.EndsWith(p, StringComparison.OrdinalIgnoreCase))
+                    ? JpegKind.Progressive
+                    : JpegKind.Baseline;
         }
 
         public void ForEachImageParallel(Action<string> action) => Parallel.ForEach(

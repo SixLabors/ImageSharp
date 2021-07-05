@@ -13,11 +13,18 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
     {
         private LoadResizeSaveStressRunner runner;
 
+        // private const JpegKind Filter = JpegKind.Progressive;
+        private const JpegKind Filter = JpegKind.Any;
+
         [GlobalSetup]
         public void Setup()
         {
-            this.runner = new LoadResizeSaveStressRunner() { ImageCount = Environment.ProcessorCount };
-            Console.WriteLine("ImageCount:" + this.runner.ImageCount);
+            this.runner = new LoadResizeSaveStressRunner()
+            {
+                ImageCount = Environment.ProcessorCount,
+                Filter = Filter
+            };
+            Console.WriteLine($"ImageCount: {this.runner.ImageCount} Filter: {Filter}");
             this.runner.Init();
         }
 

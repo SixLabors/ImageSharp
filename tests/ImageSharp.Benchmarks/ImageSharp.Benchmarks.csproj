@@ -38,16 +38,14 @@
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Condition="'$(OS)' == 'Windows_NT'" />
     <PackageReference Include="Colourful" />
+    <PackageReference Include="NetVips"/>
+    <PackageReference Include="NetVips.Native" />
+    <PackageReference Include="PhotoSauce.MagicScaler"/>
     <PackageReference Include="Pfim" />
+    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SharpZipLib" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="System.Drawing.Common" />
-    
-    <!-- Thre is an issue restoring the following packages without specifying the Version again -->
-    <PackageReference Include="NetVips" Version="2.0.0" />
-    <PackageReference Include="PhotoSauce.MagicScaler" Version="0.12.1" />
-    <PackageReference Include="SkiaSharp" Version="2.80.3-preview.93" />
-    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
-    <PackageReference Include="NetVips.Native" Version="8.10.6" />
   </ItemGroup>
 
   <!-- Exclude benchmarks using internals, in case of unsigned benchmark execution: -->

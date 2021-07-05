@@ -4,14 +4,8 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -43,217 +37,58 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // Temporary storage for accumulated R/G/B values during conversion to U/V.
             using IMemoryOwner<ushort> tmpRgb = memoryAllocator.Allocate<ushort>(4 * uvWidth);
-            using IMemoryOwner<Rgba32> rgbaRow0Buffer = memoryAllocator.Allocate<Rgba32>(width);
-            using IMemoryOwner<Rgba32> rgbaRow1Buffer = memoryAllocator.Allocate<Rgba32>(width);
+            using IMemoryOwner<Bgra32> bgraRow0Buffer = memoryAllocator.Allocate<Bgra32>(width);
+            using IMemoryOwner<Bgra32> bgraRow1Buffer = memoryAllocator.Allocate<Bgra32>(width);
             Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
-            Span<Rgba32> rgbaRow0 = rgbaRow0Buffer.GetSpan();
-            Span<Rgba32> rgbaRow1 = rgbaRow1Buffer.GetSpan();
+            Span<Bgra32> bgraRow0 = bgraRow0Buffer.GetSpan();
+            Span<Bgra32> bgraRow1 = bgraRow1Buffer.GetSpan();
             int uvRowIndex = 0;
             int rowIndex;
             for (rowIndex = 0; rowIndex < height - 1; rowIndex += 2)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
                 Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
-                PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow0);
-                PixelOperations<TPixel>.Instance.ToRgba32(configuration, nextRowSpan, rgbaRow1);
+                PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
+                PixelOperations<TPixel>.Instance.ToBgra32(configuration, nextRowSpan, bgraRow1);
 
-                bool rowsHaveAlpha = CheckNonOpaque(rgbaRow0) && CheckNonOpaque(rgbaRow1);
+                bool rowsHaveAlpha = WebpCommonUtils.CheckNonOpaque(bgraRow0) && WebpCommonUtils.CheckNonOpaque(bgraRow1);
 
                 // Downsample U/V planes, two rows at a time.
                 if (!rowsHaveAlpha)
                 {
-                    AccumulateRgb(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
+                    AccumulateRgb(bgraRow0, bgraRow1, tmpRgbSpan, width);
                 }
                 else
                 {
-                    AccumulateRgba(rgbaRow0, rgbaRow1, tmpRgbSpan, width);
+                    AccumulateRgba(bgraRow0, bgraRow1, tmpRgbSpan, width);
                 }
 
                 ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
                 uvRowIndex++;
 
-                ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
-                ConvertRgbaToY(rgbaRow1, y.Slice((rowIndex + 1) * width), width);
+                ConvertRgbaToY(bgraRow0, y.Slice(rowIndex * width), width);
+                ConvertRgbaToY(bgraRow1, y.Slice((rowIndex + 1) * width), width);
             }
 
             // Extra last row.
             if ((height & 1) != 0)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow0);
-                ConvertRgbaToY(rgbaRow0, y.Slice(rowIndex * width), width);
+                PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
+                ConvertRgbaToY(bgraRow0, y.Slice(rowIndex * width), width);
 
-                if (!CheckNonOpaque(rgbaRow0))
+                if (!WebpCommonUtils.CheckNonOpaque(bgraRow0))
                 {
-                    AccumulateRgb(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
+                    AccumulateRgb(bgraRow0, bgraRow0, tmpRgbSpan, width);
                 }
                 else
                 {
-                    AccumulateRgba(rgbaRow0, rgbaRow0, tmpRgbSpan, width);
+                    AccumulateRgba(bgraRow0, bgraRow0, tmpRgbSpan, width);
                 }
 
                 ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
             }
         }
-
-        /// <summary>
-        /// Checks if the pixel row is not opaque.
-        /// </summary>
-        /// <param name="row">The row to check.</param>
-        /// <returns>Returns true if alpha has non-0xff values.</returns>
-        public static unsafe bool CheckNonOpaque(Span<Rgba32> row)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported)
-            {
-                ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
-                var alphaMaskVector256 = Vector256.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
-                Vector256<byte> all0x80Vector256 = Vector256.Create((byte)0x80).AsByte();
-                var alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
-                Vector128<byte> all0x80 = Vector128.Create((byte)0x80).AsByte();
-
-                int i = 0;
-                int length = (row.Length * 4) - 3;
-                fixed (byte* src = rowBytes)
-                {
-                    for (; i + 128 <= length; i += 128)
-                    {
-                        Vector256<byte> a0 = Avx.LoadVector256(src + i).AsByte();
-                        Vector256<byte> a1 = Avx.LoadVector256(src + i + 32).AsByte();
-                        Vector256<byte> a2 = Avx.LoadVector256(src + i + 64).AsByte();
-                        Vector256<byte> a3 = Avx.LoadVector256(src + i + 96).AsByte();
-                        Vector256<int> b0 = Avx2.And(a0, alphaMaskVector256).AsInt32();
-                        Vector256<int> b1 = Avx2.And(a1, alphaMaskVector256).AsInt32();
-                        Vector256<int> b2 = Avx2.And(a2, alphaMaskVector256).AsInt32();
-                        Vector256<int> b3 = Avx2.And(a3, alphaMaskVector256).AsInt32();
-                        Vector256<short> c0 = Avx2.PackSignedSaturate(b0, b1).AsInt16();
-                        Vector256<short> c1 = Avx2.PackSignedSaturate(b2, b3).AsInt16();
-                        Vector256<byte> d = Avx2.PackSignedSaturate(c0, c1).AsByte();
-                        Vector256<byte> bits = Avx2.CompareEqual(d, all0x80Vector256);
-                        int mask = Avx2.MoveMask(bits);
-                        if (mask != -1)
-                        {
-                            return true;
-                        }
-                    }
-
-                    for (; i + 64 <= length; i += 64)
-                    {
-                        if (IsNoneOpaque64Bytes(src, i, alphaMask, all0x80))
-                        {
-                            return true;
-                        }
-                    }
-
-                    for (; i + 32 <= length; i += 32)
-                    {
-                        if (IsNoneOpaque32Bytes(src, i, alphaMask, all0x80))
-                        {
-                            return true;
-                        }
-                    }
-
-                    for (; i <= length; i += 4)
-                    {
-                        if (src[i + 3] != 0xFF)
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-            else if (Sse2.IsSupported)
-            {
-                ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
-                var alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
-                Vector128<byte> all0x80 = Vector128.Create((byte)0x80).AsByte();
-
-                int i = 0;
-                int length = (row.Length * 4) - 3;
-                fixed (byte* src = rowBytes)
-                {
-                    for (; i + 64 <= length; i += 64)
-                    {
-                        if (IsNoneOpaque64Bytes(src, i, alphaMask, all0x80))
-                        {
-                            return true;
-                        }
-                    }
-
-                    for (; i + 32 <= length; i += 32)
-                    {
-                        if (IsNoneOpaque32Bytes(src, i, alphaMask, all0x80))
-                        {
-                            return true;
-                        }
-                    }
-
-                    for (; i <= length; i += 4)
-                    {
-                        if (src[i + 3] != 0xFF)
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-            else
-#endif
-            {
-                for (int x = 0; x < row.Length; x++)
-                {
-                    if (row[x].A != 0xFF)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static unsafe bool IsNoneOpaque64Bytes(byte* src, int i, Vector128<byte> alphaMask, Vector128<byte> all0x80)
-        {
-            Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
-            Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();
-            Vector128<byte> a2 = Sse2.LoadVector128(src + i + 32).AsByte();
-            Vector128<byte> a3 = Sse2.LoadVector128(src + i + 48).AsByte();
-            Vector128<int> b0 = Sse2.And(a0, alphaMask).AsInt32();
-            Vector128<int> b1 = Sse2.And(a1, alphaMask).AsInt32();
-            Vector128<int> b2 = Sse2.And(a2, alphaMask).AsInt32();
-            Vector128<int> b3 = Sse2.And(a3, alphaMask).AsInt32();
-            Vector128<short> c0 = Sse2.PackSignedSaturate(b0, b1).AsInt16();
-            Vector128<short> c1 = Sse2.PackSignedSaturate(b2, b3).AsInt16();
-            Vector128<byte> d = Sse2.PackSignedSaturate(c0, c1).AsByte();
-            Vector128<byte> bits = Sse2.CompareEqual(d, all0x80);
-            int mask = Sse2.MoveMask(bits);
-            if (mask != 0xFFFF)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private static unsafe bool IsNoneOpaque32Bytes(byte* src, int i, Vector128<byte> alphaMask, Vector128<byte> all0x80)
-        {
-            Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
-            Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();
-            Vector128<int> b0 = Sse2.And(a0, alphaMask).AsInt32();
-            Vector128<int> b1 = Sse2.And(a1, alphaMask).AsInt32();
-            Vector128<short> c = Sse2.PackSignedSaturate(b0, b1).AsInt16();
-            Vector128<byte> d = Sse2.PackSignedSaturate(c, c).AsByte();
-            Vector128<byte> bits = Sse2.CompareEqual(d, all0x80);
-            int mask = Sse2.MoveMask(bits);
-            if (mask != 0xFFFF)
-            {
-                return true;
-            }
-
-            return false;
-        }
-#endif
 
         /// <summary>
         /// Converts a rgba pixel row to Y.
@@ -262,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <param name="y">The destination span for y.</param>
         /// <param name="width">The width.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void ConvertRgbaToY(Span<Rgba32> rowSpan, Span<byte> y, int width)
+        public static void ConvertRgbaToY(Span<Bgra32> rowSpan, Span<byte> y, int width)
         {
             for (int x = 0; x < width; x++)
             {
@@ -288,84 +123,84 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void AccumulateRgb(Span<Rgba32> rowSpan, Span<Rgba32> nextRowSpan, Span<ushort> dst, int width)
+        public static void AccumulateRgb(Span<Bgra32> rowSpan, Span<Bgra32> nextRowSpan, Span<ushort> dst, int width)
         {
-            Rgba32 rgba0;
-            Rgba32 rgba1;
+            Bgra32 bgra0;
+            Bgra32 bgra1;
             int i, j;
             int dstIdx = 0;
             for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
             {
-                rgba0 = rowSpan[j];
-                rgba1 = rowSpan[j + 1];
-                Rgba32 rgba2 = nextRowSpan[j];
-                Rgba32 rgba3 = nextRowSpan[j + 1];
+                bgra0 = rowSpan[j];
+                bgra1 = rowSpan[j + 1];
+                Bgra32 bgra2 = nextRowSpan[j];
+                Bgra32 bgra3 = nextRowSpan[j + 1];
 
                 dst[dstIdx] = (ushort)LinearToGamma(
-                    GammaToLinear(rgba0.R) +
-                            GammaToLinear(rgba1.R) +
-                            GammaToLinear(rgba2.R) +
-                            GammaToLinear(rgba3.R), 0);
+                    GammaToLinear(bgra0.R) +
+                            GammaToLinear(bgra1.R) +
+                            GammaToLinear(bgra2.R) +
+                            GammaToLinear(bgra3.R), 0);
                 dst[dstIdx + 1] = (ushort)LinearToGamma(
-                    GammaToLinear(rgba0.G) +
-                            GammaToLinear(rgba1.G) +
-                            GammaToLinear(rgba2.G) +
-                            GammaToLinear(rgba3.G), 0);
+                    GammaToLinear(bgra0.G) +
+                            GammaToLinear(bgra1.G) +
+                            GammaToLinear(bgra2.G) +
+                            GammaToLinear(bgra3.G), 0);
                 dst[dstIdx + 2] = (ushort)LinearToGamma(
-                    GammaToLinear(rgba0.B) +
-                            GammaToLinear(rgba1.B) +
-                            GammaToLinear(rgba2.B) +
-                            GammaToLinear(rgba3.B), 0);
+                    GammaToLinear(bgra0.B) +
+                            GammaToLinear(bgra1.B) +
+                            GammaToLinear(bgra2.B) +
+                            GammaToLinear(bgra3.B), 0);
             }
 
             if ((width & 1) != 0)
             {
-                rgba0 = rowSpan[j];
-                rgba1 = nextRowSpan[j];
+                bgra0 = rowSpan[j];
+                bgra1 = nextRowSpan[j];
 
-                dst[dstIdx] = (ushort)LinearToGamma(GammaToLinear(rgba0.R) + GammaToLinear(rgba1.R), 1);
-                dst[dstIdx + 1] = (ushort)LinearToGamma(GammaToLinear(rgba0.G) + GammaToLinear(rgba1.G), 1);
-                dst[dstIdx + 2] = (ushort)LinearToGamma(GammaToLinear(rgba0.B) + GammaToLinear(rgba1.B), 1);
+                dst[dstIdx] = (ushort)LinearToGamma(GammaToLinear(bgra0.R) + GammaToLinear(bgra1.R), 1);
+                dst[dstIdx + 1] = (ushort)LinearToGamma(GammaToLinear(bgra0.G) + GammaToLinear(bgra1.G), 1);
+                dst[dstIdx + 2] = (ushort)LinearToGamma(GammaToLinear(bgra0.B) + GammaToLinear(bgra1.B), 1);
             }
         }
 
-        public static void AccumulateRgba(Span<Rgba32> rowSpan, Span<Rgba32> nextRowSpan, Span<ushort> dst, int width)
+        public static void AccumulateRgba(Span<Bgra32> rowSpan, Span<Bgra32> nextRowSpan, Span<ushort> dst, int width)
         {
-            Rgba32 rgba0;
-            Rgba32 rgba1;
+            Bgra32 bgra0;
+            Bgra32 bgra1;
             int i, j;
             int dstIdx = 0;
             for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
             {
-                rgba0 = rowSpan[j];
-                rgba1 = rowSpan[j + 1];
-                Rgba32 rgba2 = nextRowSpan[j];
-                Rgba32 rgba3 = nextRowSpan[j + 1];
-                uint a = (uint)(rgba0.A + rgba1.A + rgba2.A + rgba3.A);
+                bgra0 = rowSpan[j];
+                bgra1 = rowSpan[j + 1];
+                Bgra32 bgra2 = nextRowSpan[j];
+                Bgra32 bgra3 = nextRowSpan[j + 1];
+                uint a = (uint)(bgra0.A + bgra1.A + bgra2.A + bgra3.A);
                 int r, g, b;
                 if (a == 4 * 0xff || a == 0)
                 {
                     r = (ushort)LinearToGamma(
-                        GammaToLinear(rgba0.R) +
-                        GammaToLinear(rgba1.R) +
-                        GammaToLinear(rgba2.R) +
-                        GammaToLinear(rgba3.R), 0);
+                        GammaToLinear(bgra0.R) +
+                        GammaToLinear(bgra1.R) +
+                        GammaToLinear(bgra2.R) +
+                        GammaToLinear(bgra3.R), 0);
                     g = (ushort)LinearToGamma(
-                        GammaToLinear(rgba0.G) +
-                        GammaToLinear(rgba1.G) +
-                        GammaToLinear(rgba2.G) +
-                        GammaToLinear(rgba3.G), 0);
+                        GammaToLinear(bgra0.G) +
+                        GammaToLinear(bgra1.G) +
+                        GammaToLinear(bgra2.G) +
+                        GammaToLinear(bgra3.G), 0);
                     b = (ushort)LinearToGamma(
-                        GammaToLinear(rgba0.B) +
-                        GammaToLinear(rgba1.B) +
-                        GammaToLinear(rgba2.B) +
-                        GammaToLinear(rgba3.B), 0);
+                        GammaToLinear(bgra0.B) +
+                        GammaToLinear(bgra1.B) +
+                        GammaToLinear(bgra2.B) +
+                        GammaToLinear(bgra3.B), 0);
                 }
                 else
                 {
-                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    r = LinearToGammaWeighted(bgra0.R, bgra1.R, bgra2.R, bgra3.R, bgra0.A, bgra1.A, bgra2.A, bgra3.A, a);
+                    g = LinearToGammaWeighted(bgra0.G, bgra1.G, bgra2.G, bgra3.G, bgra0.A, bgra1.A, bgra2.A, bgra3.A, a);
+                    b = LinearToGammaWeighted(bgra0.B, bgra1.B, bgra2.B, bgra3.B, bgra0.A, bgra1.A, bgra2.A, bgra3.A, a);
                 }
 
                 dst[dstIdx] = (ushort)r;
@@ -376,21 +211,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             if ((width & 1) != 0)
             {
-                rgba0 = rowSpan[j];
-                rgba1 = nextRowSpan[j];
-                uint a = (uint)(2u * (rgba0.A + rgba1.A));
+                bgra0 = rowSpan[j];
+                bgra1 = nextRowSpan[j];
+                uint a = (uint)(2u * (bgra0.A + bgra1.A));
                 int r, g, b;
                 if (a == 4 * 0xff || a == 0)
                 {
-                    r = (ushort)LinearToGamma(GammaToLinear(rgba0.R) + GammaToLinear(rgba1.R), 1);
-                    g = (ushort)LinearToGamma(GammaToLinear(rgba0.G) + GammaToLinear(rgba1.G), 1);
-                    b = (ushort)LinearToGamma(GammaToLinear(rgba0.B) + GammaToLinear(rgba1.B), 1);
+                    r = (ushort)LinearToGamma(GammaToLinear(bgra0.R) + GammaToLinear(bgra1.R), 1);
+                    g = (ushort)LinearToGamma(GammaToLinear(bgra0.G) + GammaToLinear(bgra1.G), 1);
+                    b = (ushort)LinearToGamma(GammaToLinear(bgra0.B) + GammaToLinear(bgra1.B), 1);
                 }
                 else
                 {
-                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba0.R, rgba1.R, rgba0.A, rgba1.A, rgba0.A, rgba1.A, a);
-                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba0.G, rgba1.G, rgba0.A, rgba1.A, rgba0.A, rgba1.A, a);
-                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba0.B, rgba1.B, rgba0.A, rgba1.A, rgba0.A, rgba1.A, a);
+                    r = LinearToGammaWeighted(bgra0.R, bgra1.R, bgra0.R, bgra1.R, bgra0.A, bgra1.A, bgra0.A, bgra1.A, a);
+                    g = LinearToGammaWeighted(bgra0.G, bgra1.G, bgra0.G, bgra1.G, bgra0.A, bgra1.A, bgra0.A, bgra1.A, a);
+                    b = LinearToGammaWeighted(bgra0.B, bgra1.B, bgra0.B, bgra1.B, bgra0.A, bgra1.A, bgra0.A, bgra1.A, a);
                 }
 
                 dst[dstIdx] = (ushort)r;

@@ -204,6 +204,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
+        [WithFile(Lossless.Alpha, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossless_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
         [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32)]
         [WithFile(Lossless.NoTransform2, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithoutTransforms<TPixel>(TestImageProvider<TPixel> provider)

@@ -526,6 +526,7 @@ namespace SixLabors.ImageSharp.Tests
             public static class Lossless
             {
                 public const string Earth = "WebP/earth_lossless.webp";
+                public const string Alpha = "WebP/lossless_alpha_small.webp";
                 public const string WithExif = "WebP/exif_lossless.webp";
                 public const string WithIccp = "WebP/lossless_with_iccp.webp";
                 public const string NoTransform1 = "WebP/lossless_vec_1_0.webp";
@@ -558,29 +559,29 @@ namespace SixLabors.ImageSharp.Tests
                 public const string TwoTransforms12 = "WebP/lossless_vec_2_6.webp"; // substract_green, predictor
                 public const string TwoTransforms13 = "WebP/lossless_vec_2_9.webp"; // color_indexing, predictor
 
-                public const string
-                    ThreeTransforms1 = "WebP/color_cache_bits_11.webp"; // substract_green, predictor, cross_color
+                // substract_green, predictor, cross_color
+                public const string ThreeTransforms1 = "WebP/color_cache_bits_11.webp";
 
-                public const string
-                    ThreeTransforms2 = "WebP/lossless_vec_1_11.webp"; // color_indexing, predictor, cross_color
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms2 = "WebP/lossless_vec_1_11.webp";
 
-                public const string
-                    ThreeTransforms3 = "WebP/lossless_vec_1_14.webp"; // substract_green, predictor, cross_color
+                // substract_green, predictor, cross_color
+                public const string ThreeTransforms3 = "WebP/lossless_vec_1_14.webp";
 
-                public const string
-                    ThreeTransforms4 = "WebP/lossless_vec_1_15.webp"; // color_indexing, predictor, cross_color
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms4 = "WebP/lossless_vec_1_15.webp";
 
-                public const string
-                    ThreeTransforms5 = "WebP/lossless_vec_2_11.webp"; // color_indexing, predictor, cross_color
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms5 = "WebP/lossless_vec_2_11.webp";
 
-                public const string
-                    ThreeTransforms6 = "WebP/lossless_vec_2_14.webp"; // substract_green, predictor, cross_color
+                // substract_green, predictor, cross_color
+                public const string ThreeTransforms6 = "WebP/lossless_vec_2_14.webp";
 
-                public const string
-                    ThreeTransforms7 = "WebP/lossless_vec_2_15.webp"; // color_indexing, predictor, cross_color
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms7 = "WebP/lossless_vec_2_15.webp";
 
-                public const string
-                    BikeThreeTransforms = "WebP/bike_lossless.webp"; // substract_green, predictor, cross_color
+                // substract_green, predictor, cross_color
+                public const string BikeThreeTransforms = "WebP/bike_lossless.webp";
 
                 public const string BikeSmall = "WebP/bike_lossless_small.webp";
 
@@ -592,8 +593,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 public const string LossLessCorruptImage2 = "WebP/lossless_vec_2_7.webp"; // color_indexing, predictor.
 
-                public const string
-                    LossLessCorruptImage3 = "WebP/lossless_color_transform.webp"; // cross_color, predictor
+                public const string LossLessCorruptImage3 = "WebP/lossless_color_transform.webp"; // cross_color, predictor
 
                 public const string LossLessCorruptImage4 = "WebP/near_lossless_75.webp"; // predictor, cross_color.
             }
@@ -666,7 +666,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Small03 = "WebP/small_1x13.webp";
                 public const string Small04 = "WebP/small_31x13.webp";
 
-                // Lossy images with an alpha channel.
+                // Lossy images with a alpha channel.
                 public const string Alpha1 = "WebP/lossy_alpha1.webp";
                 public const string Alpha2 = "WebP/lossy_alpha2.webp";
                 public const string Alpha3 = "WebP/alpha_color_cache.webp";

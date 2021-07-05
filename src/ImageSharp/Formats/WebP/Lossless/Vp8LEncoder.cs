@@ -194,14 +194,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             where TPixel : unmanaged, IPixel<TPixel>
         {
             image.Metadata.SyncProfiles();
-
-            // Write the image size.
             int width = image.Width;
             int height = image.Height;
+
+            // Convert image pixels to bgra array.
+            bool hasAlpha = this.ConvertPixelsToBgra(image, width, height);
+
+            // Write the image size.
             this.WriteImageSize(width, height);
 
             // Write the non-trivial Alpha flag and lossless version.
-            bool hasAlpha = false; // TODO: for the start, this will be always false.
             this.WriteAlphaAndVersion(hasAlpha);
 
             // Encode the main image stream.
@@ -249,8 +251,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int width = image.Width;
             int height = image.Height;
 
-            // Convert image pixels to bgra array.
-            this.ConvertPixelsToBgra(image, width, height);
             ReadOnlySpan<uint> bgra = this.Bgra.GetSpan();
             Span<uint> encodedData = this.EncodedData.GetSpan();
 
@@ -345,17 +345,27 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="image">The image to convert.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
-        private void ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
+        /// <returns>true, if the image is non opaque.</returns>
+        private bool ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            bool nonOpaque = false;
             Span<uint> bgra = this.Bgra.GetSpan();
             Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
             int widthBytes = width * 4;
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, bgraBytes.Slice(y * widthBytes, widthBytes), width);
+                Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
+                PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, width);
+                if (!nonOpaque)
+                {
+                    Span<Bgra32> rowBgra = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
+                    nonOpaque = WebpCommonUtils.CheckNonOpaque(rowBgra);
+                }
             }
+
+            return nonOpaque;
         }
 
         /// <summary>

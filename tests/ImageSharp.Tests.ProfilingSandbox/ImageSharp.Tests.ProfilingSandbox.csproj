@@ -14,6 +14,7 @@
     <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <LangVersion>9</LangVersion>
   </PropertyGroup>
 
   <Choose>
@@ -31,11 +32,17 @@
 
   <ItemGroup>
     <Compile Remove="..\ImageSharp.Tests\IO\LocalFileSystem.cs" />
+    <Compile Include="..\ImageSharp.Benchmarks\LoadResizeSave\LoadResizeSaveStressRunner.cs" Link="LoadResizeSaveStressRunner.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="NetVips" />
+    <PackageReference Include="NetVips.Native" />
+    <PackageReference Include="PhotoSauce.MagicScaler"/>
+    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 

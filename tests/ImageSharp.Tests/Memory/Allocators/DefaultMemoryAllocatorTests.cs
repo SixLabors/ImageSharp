@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             private static MemoryAllocator CreateMemoryAllocator() =>
                 new DefaultMemoryAllocator(
                     sharedArrayPoolThresholdInBytes: 1024,
-                    maxCapacityOfPoolBuffersInBytes: 2048,
+                    maxContiguousPoolBufferInBytes: 2048,
                     maxPoolSizeInBytes: 2048 * 4,
                     maxCapacityOfUnmanagedBuffers: 4096);
 
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             private static MemoryAllocator CreateMemoryAllocator() =>
                 new DefaultMemoryAllocator(
                     sharedArrayPoolThresholdInBytes: 512,
-                    maxCapacityOfPoolBuffersInBytes: 1024,
+                    maxContiguousPoolBufferInBytes: 1024,
                     maxPoolSizeInBytes: 1024 * 4,
                     maxCapacityOfUnmanagedBuffers: 2048);
 

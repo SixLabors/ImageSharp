@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets or sets the <see cref="MemoryAllocator"/> that is currently in use.
         /// </summary>
-        public MemoryAllocator MemoryAllocator { get; set; } = ArrayPoolMemoryAllocator.CreateDefault();
+        public MemoryAllocator MemoryAllocator { get; set; } = new DefaultMemoryAllocator();
 
         /// <summary>
         /// Gets the maximum header size of all the formats.

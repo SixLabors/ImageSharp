@@ -8,6 +8,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit.Abstractions;
@@ -157,7 +158,12 @@ namespace SixLabors.ImageSharp.Tests
                     return this.LoadImage(decoder);
                 }
 
-                int bufferCapacity = this.Configuration.MemoryAllocator.GetBufferCapacityInBytes();
+                int bufferCapacity = -1;
+                if (this.Configuration.MemoryAllocator is ArrayPoolMemoryAllocator arrayPoolMemoryAllocator)
+                {
+                    bufferCapacity = arrayPoolMemoryAllocator.BufferCapacityInBytes;
+                }
+
                 var key = new Key(this.PixelType, this.FilePath, bufferCapacity, decoder);
 
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));

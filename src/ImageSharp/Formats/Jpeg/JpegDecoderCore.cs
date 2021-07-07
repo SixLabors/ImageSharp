@@ -1056,11 +1056,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.acHuffmanTables,
                 selectorsCount,
                 this.resetInterval,
-                spectralStart,
-                spectralEnd,
-                successiveApproximation >> 4,
-                successiveApproximation & 15,
-                cancellationToken);
+                cancellationToken)
+            {
+                spectralStart = spectralStart,
+                spectralEnd = spectralEnd,
+                successiveHigh = successiveApproximation >> 4,
+                successiveLow = successiveApproximation & 15
+            };
 
             sd.ParseEntropyCodedData();
         }

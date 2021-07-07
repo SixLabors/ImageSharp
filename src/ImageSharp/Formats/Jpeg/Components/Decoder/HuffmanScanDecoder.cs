@@ -29,16 +29,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly int componentsLength;
 
         // The spectral selection start.
-        private readonly int spectralStart;
+        public int spectralStart;
 
         // The spectral selection end.
-        private readonly int spectralEnd;
+        public int spectralEnd;
 
         // The successive approximation high bit end.
-        private readonly int successiveHigh;
+        public int successiveHigh;
 
         // The successive approximation low bit end.
-        private readonly int successiveLow;
+        public int successiveLow;
 
         // How many mcu's are left to do.
         private int todo;
@@ -74,10 +74,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             HuffmanTable[] acHuffmanTables,
             int componentsLength,
             int restartInterval,
-            int spectralStart,
-            int spectralEnd,
-            int successiveHigh,
-            int successiveLow,
             CancellationToken cancellationToken)
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
@@ -90,10 +86,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.componentsLength = componentsLength;
             this.restartInterval = restartInterval;
             this.todo = restartInterval;
-            this.spectralStart = spectralStart;
-            this.spectralEnd = spectralEnd;
-            this.successiveHigh = successiveHigh;
-            this.successiveLow = successiveLow;
             this.cancellationToken = cancellationToken;
         }
 

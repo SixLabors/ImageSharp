@@ -16,14 +16,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal class HuffmanScanDecoder
     {
-        private readonly JpegFrame frame;
         private readonly HuffmanTable[] dcHuffmanTables;
         private readonly HuffmanTable[] acHuffmanTables;
         private readonly BufferedReadStream stream;
-        private readonly JpegComponent[] components;
+
+        // Frame related
+        private JpegFrame frame;
+        private JpegComponent[] components;
+
+        public JpegFrame Frame
+        {
+            set
+            {
+                frame = value;
+                components = value.Components;
+            }
+        }
 
         // The restart interval.
-        private readonly int restartInterval;
+        private int restartInterval;
+        // How many mcu's are left to do.
+        private int todo;
+
+        public int ResetInterval
+        {
+            set
+            {
+                restartInterval = value;
+                todo = value;
+            }
+        }
 
         // The number of interleaved components.
         public int componentsLength;
@@ -39,9 +61,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         // The successive approximation low bit end.
         public int successiveLow;
-
-        // How many mcu's are left to do.
-        private int todo;
 
         // The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
         private int eobrun;
@@ -69,21 +88,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
         public HuffmanScanDecoder(
             BufferedReadStream stream,
-            JpegFrame frame,
             HuffmanTable[] dcHuffmanTables,
             HuffmanTable[] acHuffmanTables,
-            int restartInterval,
             CancellationToken cancellationToken)
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
             this.scanBuffer = new HuffmanScanBuffer(stream);
-            this.frame = frame;
             this.dcHuffmanTables = dcHuffmanTables;
             this.acHuffmanTables = acHuffmanTables;
-            this.components = frame.Components;
-            this.restartInterval = restartInterval;
-            this.todo = restartInterval;
             this.cancellationToken = cancellationToken;
         }
 

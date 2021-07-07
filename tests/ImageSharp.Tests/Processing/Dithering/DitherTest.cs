@@ -6,8 +6,9 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Binarization
+namespace SixLabors.ImageSharp.Tests.Processing.Dithering
 {
+    [Trait("Category", "Processors")]
     public class DitherTest : BaseImageOperationsExtensionTest
     {
         private class Assert : Xunit.Assert

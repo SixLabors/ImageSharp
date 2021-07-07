@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -21,6 +22,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
+    [Collection("RunSerial")]
     [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
@@ -117,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
-        public async Task DecodeAsnc_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+        public async Task DecodeAsync_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
@@ -127,60 +129,53 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 0)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 15)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 30)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 15)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 30)]
-        public async Task Decode_IsCancellable(string fileName, int cancellationDelayMs)
+        [InlineData(0)]
+        [InlineData(0.5)]
+        [InlineData(0.9)]
+        public async Task Decode_IsCancellable(int percentageOfStreamReadToCancel)
         {
-            // Decoding these huge files took 300ms on i7-8650U in 2020. 30ms should be safe for cancellation delay.
-            string hugeFile = Path.Combine(
-                TestEnvironment.InputImagesDirectoryFullPath,
-                fileName);
-
-            const int NumberOfRuns = 5;
-
-            for (int i = 0; i < NumberOfRuns; i++)
+            var cts = new CancellationTokenSource();
+            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var pausedStream = new PausedStream(file);
+            pausedStream.OnWaiting(s =>
             {
-                var cts = new CancellationTokenSource();
-                if (cancellationDelayMs == 0)
+                if (s.Position >= s.Length * percentageOfStreamReadToCancel)
                 {
                     cts.Cancel();
+                    pausedStream.Release();
                 }
                 else
                 {
-                    cts.CancelAfter(cancellationDelayMs);
+                    // allows this/next wait to unblock
+                    pausedStream.Next();
                 }
+            });
 
-                try
-                {
-                    using var image = await Image.LoadAsync(hugeFile, cts.Token);
-                }
-                catch (TaskCanceledException)
-                {
-                    // Succesfully observed a cancellation
-                    return;
-                }
-            }
-
-            throw new Exception($"No cancellation happened out of {NumberOfRuns} runs!");
+            var config = Configuration.CreateDefaultInstance();
+            config.FileSystem = new SingleStreamFileSystem(pausedStream);
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            {
+                using Image image = await Image.LoadAsync(config, "someFakeFile", cts.Token);
+            });
         }
 
-        [Theory(Skip = "Identify is too fast, doesn't work reliably.")]
-        [InlineData(TestImages.Jpeg.Baseline.Exif)]
-        [InlineData(TestImages.Jpeg.Progressive.Bad.ExifUndefType)]
-        public async Task Identify_IsCancellable(string fileName)
+        [Fact]
+        public async Task Identify_IsCancellable()
         {
-            string file = Path.Combine(
-                TestEnvironment.InputImagesDirectoryFullPath,
-                fileName);
-
             var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromTicks(1));
-            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(file, cts.Token));
+
+            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var pausedStream = new PausedStream(file);
+            pausedStream.OnWaiting(s =>
+            {
+                cts.Cancel();
+                pausedStream.Release();
+            });
+
+            var config = Configuration.CreateDefaultInstance();
+            config.FileSystem = new SingleStreamFileSystem(pausedStream);
+
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(config, "someFakeFile", cts.Token));
         }
 
         // DEBUG ONLY!

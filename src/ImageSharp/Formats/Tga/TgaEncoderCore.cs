@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -258,7 +259,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
             return equalPixelCount;
         }
 
-        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, 0);
+        private IMemoryOwner<byte> AllocateRow(int width, int bytesPerPixel)
+            => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, 0);
 
         /// <summary>
         /// Writes the 8bit pixels uncompressed to the stream.
@@ -269,18 +271,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void Write8Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 1))
+            using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 1);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int y = pixels.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToL8Bytes(
-                        this.configuration,
-                        pixelSpan,
-                        row.GetSpan(),
-                        pixelSpan.Length);
-                    stream.Write(row.Array, 0, row.Length());
-                }
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToL8Bytes(
+                    this.configuration,
+                    pixelSpan,
+                    rowSpan,
+                    pixelSpan.Length);
+                stream.Write(rowSpan);
             }
         }
 
@@ -293,18 +295,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void Write16Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 2))
+            using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 2);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int y = pixels.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
-                        this.configuration,
-                        pixelSpan,
-                        row.GetSpan(),
-                        pixelSpan.Length);
-                    stream.Write(row.Array, 0, row.Length());
-                }
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
+                    this.configuration,
+                    pixelSpan,
+                    rowSpan,
+                    pixelSpan.Length);
+                stream.Write(rowSpan);
             }
         }
 
@@ -317,18 +319,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
+            using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 3);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int y = pixels.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(
-                        this.configuration,
-                        pixelSpan,
-                        row.GetSpan(),
-                        pixelSpan.Length);
-                    stream.Write(row.Array, 0, row.Length());
-                }
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToBgr24Bytes(
+                    this.configuration,
+                    pixelSpan,
+                    rowSpan,
+                    pixelSpan.Length);
+                stream.Write(rowSpan);
             }
         }
 
@@ -341,18 +343,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
+            using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 4);
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int y = pixels.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(
-                        this.configuration,
-                        pixelSpan,
-                        row.GetSpan(),
-                        pixelSpan.Length);
-                    stream.Write(row.Array, 0, row.Length());
-                }
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToBgra32Bytes(
+                    this.configuration,
+                    pixelSpan,
+                    rowSpan,
+                    pixelSpan.Length);
+                stream.Write(rowSpan);
             }
         }
 

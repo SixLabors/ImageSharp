@@ -4,14 +4,15 @@
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Icc
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter
 {
+    [Trait("Profile", "Icc")]
     public class IccDataWriterTests
     {
         [Fact]
         public void WriteEmpty()
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteEmpty(4);
             byte[] output = writer.GetData();
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [InlineData(4, 4)]
         public void WritePadding(int writePosition, int expectedLength)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteEmpty(writePosition);
             writer.WritePadding();
@@ -37,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataArray.UInt8TestData), MemberType = typeof(IccTestDataArray))]
         public void WriteArrayUInt8(byte[] data, byte[] expected)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteArray(data);
             byte[] output = writer.GetData();
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataArray.UInt16TestData), MemberType = typeof(IccTestDataArray))]
         public void WriteArrayUInt16(byte[] expected, ushort[] data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteArray(data);
             byte[] output = writer.GetData();
@@ -61,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataArray.Int16TestData), MemberType = typeof(IccTestDataArray))]
         public void WriteArrayInt16(byte[] expected, short[] data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteArray(data);
             byte[] output = writer.GetData();
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataArray.UInt32TestData), MemberType = typeof(IccTestDataArray))]
         public void WriteArrayUInt32(byte[] expected, uint[] data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteArray(data);
             byte[] output = writer.GetData();
@@ -85,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataArray.Int32TestData), MemberType = typeof(IccTestDataArray))]
         public void WriteArrayInt32(byte[] expected, int[] data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteArray(data);
             byte[] output = writer.GetData();
@@ -97,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataArray.UInt64TestData), MemberType = typeof(IccTestDataArray))]
         public void WriteArrayUInt64(byte[] expected, ulong[] data)
         {
-            IccDataWriter writer = this.CreateWriter();
+            using IccDataWriter writer = CreateWriter();
 
             writer.WriteArray(data);
             byte[] output = writer.GetData();
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             Assert.Equal(expected, output);
         }
 
-        private IccDataWriter CreateWriter()
+        private static IccDataWriter CreateWriter()
         {
             return new IccDataWriter();
         }

@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -16,6 +15,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     public class ResizeTests
     {
         private const PixelTypes CommonNonDefaultPixelTypes =

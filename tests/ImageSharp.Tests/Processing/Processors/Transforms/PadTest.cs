@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     public class PadTest
     {
         public static readonly string[] CommonTestImages =

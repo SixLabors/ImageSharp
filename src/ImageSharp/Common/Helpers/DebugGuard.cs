@@ -37,7 +37,7 @@ namespace SixLabors
         /// <paramref name="target"/> has a different size than <paramref name="other"/>
         /// </exception>
         [Conditional("DEBUG")]
-        public static void MustBeSameSized<T>(Span<T> target, Span<T> other, string parameterName)
+        public static void MustBeSameSized<T>(ReadOnlySpan<T> target, ReadOnlySpan<T> other, string parameterName)
             where T : struct
         {
             if (target.Length != other.Length)
@@ -57,7 +57,7 @@ namespace SixLabors
         /// <paramref name="target"/> has less items than <paramref name="minSpan"/>
         /// </exception>
         [Conditional("DEBUG")]
-        public static void MustBeSizedAtLeast<T>(Span<T> target, Span<T> minSpan, string parameterName)
+        public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> target, ReadOnlySpan<T> minSpan, string parameterName)
             where T : struct
         {
             if (target.Length < minSpan.Length)

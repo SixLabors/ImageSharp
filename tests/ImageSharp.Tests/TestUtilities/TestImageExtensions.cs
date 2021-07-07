@@ -514,6 +514,31 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        public static Image<TPixel> CompareToOriginalMultiFrame<TPixel>(
+        this Image<TPixel> image,
+        ITestImageProvider provider,
+        ImageComparer comparer,
+        IImageDecoder referenceDecoder = null)
+        where TPixel : unmanaged, IPixel<TPixel>
+        {
+            string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
+            if (path == null)
+            {
+                throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
+            }
+
+            var testFile = TestFile.Create(path);
+
+            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(path);
+
+            using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
+            {
+                comparer.VerifySimilarity(original, image);
+            }
+
+            return image;
+        }
+
         /// <summary>
         /// Utility method for doing the following in one step:
         /// 1. Executing an operation (taken as a delegate)
@@ -647,7 +672,7 @@ namespace SixLabors.ImageSharp.Tests
             var image = new Image<Rgba32>(buffer.Width, buffer.Height);
 
             Assert.True(image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> pixels));
-            Span<float> bufferSpan = buffer.GetSingleSpan();
+            Span<float> bufferSpan = buffer.DangerousGetSingleSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)
             {

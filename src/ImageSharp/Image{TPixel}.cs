@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
     public sealed class Image<TPixel> : Image
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private bool isDisposed;
+        private readonly ImageFrameCollection<TPixel> frames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
         }
 
         /// <summary>
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, ValidateFramesAndGetSize(frames))
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, frames);
+            this.frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
         /// <inheritdoc />
@@ -146,12 +146,19 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the collection of image frames.
         /// </summary>
-        public new ImageFrameCollection<TPixel> Frames { get; }
+        public new ImageFrameCollection<TPixel> Frames
+        {
+            get
+            {
+                this.EnsureNotDisposed();
+                return this.frames;
+            }
+        }
 
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        private IPixelSource<TPixel> PixelSource => this.Frames?.RootFrame ?? throw new ObjectDisposedException(nameof(Image<TPixel>));
+        private IPixelSource<TPixel> PixelSourceUnsafe => this.frames.RootFrameUnsafe;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -165,15 +172,19 @@ namespace SixLabors.ImageSharp
             [MethodImpl(InliningOptions.ShortMethod)]
             get
             {
+                this.EnsureNotDisposed();
+
                 this.VerifyCoords(x, y);
-                return this.PixelSource.PixelBuffer.GetElementUnsafe(x, y);
+                return this.PixelSourceUnsafe.PixelBuffer.GetElementUnsafe(x, y);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set
             {
+                this.EnsureNotDisposed();
+
                 this.VerifyCoords(x, y);
-                this.PixelSource.PixelBuffer.GetElementUnsafe(x, y) = value;
+                this.PixelSourceUnsafe.PixelBuffer.GetElementUnsafe(x, y) = value;
             }
         }
 
@@ -189,7 +200,9 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));
 
-            return this.PixelSource.PixelBuffer.GetRowSpan(rowIndex);
+            this.EnsureNotDisposed();
+
+            return this.PixelSourceUnsafe.PixelBuffer.GetRowSpan(rowIndex);
         }
 
         /// <summary>
@@ -226,10 +239,10 @@ namespace SixLabors.ImageSharp
         {
             this.EnsureNotDisposed();
 
-            var clonedFrames = new ImageFrame<TPixel>[this.Frames.Count];
+            var clonedFrames = new ImageFrame<TPixel>[this.frames.Count];
             for (int i = 0; i < clonedFrames.Length; i++)
             {
-                clonedFrames[i] = this.Frames[i].Clone(configuration);
+                clonedFrames[i] = this.frames[i].Clone(configuration);
             }
 
             return new Image<TPixel>(configuration, this.Metadata.DeepClone(), clonedFrames);
@@ -245,10 +258,10 @@ namespace SixLabors.ImageSharp
         {
             this.EnsureNotDisposed();
 
-            var clonedFrames = new ImageFrame<TPixel2>[this.Frames.Count];
+            var clonedFrames = new ImageFrame<TPixel2>[this.frames.Count];
             for (int i = 0; i < clonedFrames.Length; i++)
             {
-                clonedFrames[i] = this.Frames[i].CloneAs<TPixel2>(configuration);
+                clonedFrames[i] = this.frames[i].CloneAs<TPixel2>(configuration);
             }
 
             return new Image<TPixel2>(configuration, this.Metadata.DeepClone(), clonedFrames);
@@ -257,25 +270,9 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
             if (disposing)
             {
-                this.Frames.Dispose();
-            }
-
-            this.isDisposed = true;
-        }
-
-        /// <inheritdoc/>
-        internal override void EnsureNotDisposed()
-        {
-            if (this.isDisposed)
-            {
-                throw new ObjectDisposedException("Trying to execute an operation on a disposed image.");
+                this.frames.Dispose();
             }
         }
 
@@ -306,9 +303,12 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            for (int i = 0; i < this.Frames.Count; i++)
+            this.EnsureNotDisposed();
+
+            ImageFrameCollection<TPixel> sourceFrames = pixelSource.Frames;
+            for (int i = 0; i < this.frames.Count; i++)
             {
-                this.Frames[i].SwapOrCopyPixelsBufferFrom(pixelSource.Frames[i]);
+                this.frames[i].SwapOrCopyPixelsBufferFrom(sourceFrames[i]);
             }
 
             this.UpdateSize(pixelSource.Size());

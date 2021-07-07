@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using SixLabors.ImageSharp.Tests.Formats.Jpg;
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
@@ -31,13 +32,14 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         /// </param>
         public static void Main(string[] args)
         {
-            RunJpegEncoderProfilingTests();
+            LoadResizeSaveParallelMemoryStress.Run();
+            // RunJpegEncoderProfilingTests();
             // RunJpegColorProfilingTests();
             // RunDecodeJpegProfilingTests();
             // RunToVector4ProfilingTest();
             // RunResizeProfilingTest();
 
-            Console.ReadLine();
+            // Console.ReadLine();
         }
 
         private static void RunJpegEncoderProfilingTests()

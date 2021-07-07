@@ -8,8 +8,8 @@
     <GenerateProgramFile>false</GenerateProgramFile>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
-    <Configurations>Debug;Release;Release-InnerLoop;Debug-InnerLoop</Configurations>
-
+    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
+    <LangVersion>9</LangVersion>
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
     <!--<SignAssembly>false</SignAssembly>-->
   </PropertyGroup>
@@ -38,8 +38,13 @@
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Condition="'$(OS)' == 'Windows_NT'" />
     <PackageReference Include="Colourful" />
+    <PackageReference Include="NetVips"/>
+    <PackageReference Include="NetVips.Native" />
+    <PackageReference Include="PhotoSauce.MagicScaler"/>
     <PackageReference Include="Pfim" />
+    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SharpZipLib" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 

@@ -168,10 +168,10 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal Span<T> GetSingleSpan()
+        internal Span<T> DangerousGetSingleSpan()
         {
             // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : this.GetSingleSpanSlow();
+            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : this.DangerousGetSingleSpanSlow();
         }
 
         /// <summary>
@@ -183,10 +183,10 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal Memory<T> GetSingleMemory()
+        internal Memory<T> DangerousGetSingleMemory()
         {
             // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory : this.GetSingleMemorySlow();
+            return this.cachedMemory.Length != 0 ? this.cachedMemory : this.DangerousGetSingleMemorySlow();
         }
 
         /// <summary>
@@ -203,10 +203,10 @@ namespace SixLabors.ImageSharp.Memory
         private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private Memory<T> GetSingleMemorySlow() => this.FastMemoryGroup.Single();
+        private Memory<T> DangerousGetSingleMemorySlow() => this.FastMemoryGroup.Single();
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private Span<T> GetSingleSpanSlow() => this.FastMemoryGroup.Single().Span;
+        private Span<T> DangerousGetSingleSpanSlow() => this.FastMemoryGroup.Single().Span;
 
         [MethodImpl(InliningOptions.ColdPath)]
         private ref T GetElementSlow(int x, int y)

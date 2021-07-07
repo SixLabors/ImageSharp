@@ -90,12 +90,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
                 PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("leading space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("trailing space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("empty"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("invalid characters"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("too large"));
+                Assert.DoesNotContain(meta.TextData, m => m.Value is "leading space");
+                Assert.DoesNotContain(meta.TextData, m => m.Value is "trailing space");
+                Assert.DoesNotContain(meta.TextData, m => m.Value is "space");
+                Assert.DoesNotContain(meta.TextData, m => m.Value is "empty");
+                Assert.DoesNotContain(meta.TextData, m => m.Value is "invalid characters");
+                Assert.DoesNotContain(meta.TextData, m => m.Value is "too large");
             }
         }
 
@@ -277,20 +277,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         private static void VerifyTextDataIsPresent(PngMetadata meta)
         {
             Assert.NotNull(meta);
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") &&
-                                                m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") &&
-                                                m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") &&
-                                                m.LanguageTag.Equals("chinese"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
-            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
+            Assert.Contains(meta.TextData, m => m.Keyword is "Comment" && m.Value is "comment");
+            Assert.Contains(meta.TextData, m => m.Keyword is "Author" && m.Value is "ImageSharp");
+            Assert.Contains(meta.TextData, m => m.Keyword is "Copyright" && m.Value is "ImageSharp");
+            Assert.Contains(meta.TextData, m => m.Keyword is "Title" && m.Value is "unittest");
+            Assert.Contains(meta.TextData, m => m.Keyword is "Description" && m.Value is "compressed-text");
+            Assert.Contains(meta.TextData, m => m.Keyword is "International" && m.Value is "'e', mu'tlheghvam, ghaH yu'" && m.LanguageTag is "x-klingon" && m.TranslatedKeyword is "warning");
+            Assert.Contains(meta.TextData, m => m.Keyword is "International2" && m.Value is "ИМАГЕШАРП" && m.LanguageTag is "rus");
+            Assert.Contains(meta.TextData, m => m.Keyword is "CompressedInternational" && m.Value is "la plume de la mante" && m.LanguageTag is "fra" && m.TranslatedKeyword is "foobar");
+            Assert.Contains(meta.TextData, m => m.Keyword is "CompressedInternational2" && m.Value is "這是一個考驗" && m.LanguageTag is "chinese");
+            Assert.Contains(meta.TextData, m => m.Keyword is "NoLang" && m.Value is "this text chunk is missing a language tag");
+            Assert.Contains(meta.TextData, m => m.Keyword is "NoTranslatedKeyword" && m.Value is "dieser chunk hat kein übersetztes Schlüßelwort");
         }
     }
 }

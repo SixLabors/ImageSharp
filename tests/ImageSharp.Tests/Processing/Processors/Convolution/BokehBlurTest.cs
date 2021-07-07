@@ -11,11 +11,13 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
+    [Trait("Category", "Processors")]
     public class BokehBlurTest
     {
         private static readonly string Components10x2 = @"
@@ -153,8 +155,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 appendSourceFileOrDescription: false);
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]
-        public void BokehBlurFilterProcessor_Bounded(TestImageProvider<Rgba32> provider, BokehBlurInfo value)
+        [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.AllowAll)]
+        [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.DisableSSE41)]
+        public void BokehBlurFilterProcessor_Bounded(TestImageProvider<Rgba32> provider, BokehBlurInfo value, HwIntrinsics intrinsicsFilter)
         {
             static void RunTest(string arg1, string arg2)
             {
@@ -172,12 +175,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                     x.BokehBlur(value.Radius, value.Components, value.Gamma, bounds);
                 },
                 testOutputDetails: value.ToString(),
+                ImageComparer.TolerantPercentage(0.05f),
                 appendPixelTypeToFileName: false);
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSSE41,
+                intrinsicsFilter,
                 provider,
                 value);
         }

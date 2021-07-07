@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
+    [Trait("Category", "Processors")]
     public class OrderedDitherFactoryTests
     {
 #pragma warning disable SA1025 // Code should not contain multiple whitespace in a row

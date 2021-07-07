@@ -13,6 +13,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     public partial class ResizeKernelMapTests
     {
         private ITestOutputHelper Output { get; }
@@ -79,6 +80,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { KnownResamplers.Bicubic, 1680, 1200 },
             { KnownResamplers.Box, 13, 299 },
             { KnownResamplers.Lanczos5, 3032, 600 },
+
+            // Large number. https://github.com/SixLabors/ImageSharp/issues/1616
+            { KnownResamplers.Bicubic, 207773, 51943 }
         };
 
         public static TheoryData<string, int, int> GeneratedImageResizeData =

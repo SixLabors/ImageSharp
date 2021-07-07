@@ -1051,11 +1051,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             var sd = new HuffmanScanDecoder(
                 stream,
-                this.dcHuffmanTables,
-                this.acHuffmanTables,
                 cancellationToken)
             {
                 Frame = this.Frame,
+
+                dcHuffmanTables = this.dcHuffmanTables,
+                acHuffmanTables = this.acHuffmanTables,
 
                 ResetInterval = this.resetInterval,
 

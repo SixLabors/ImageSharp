@@ -16,9 +16,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal class HuffmanScanDecoder
     {
-        private readonly HuffmanTable[] dcHuffmanTables;
-        private readonly HuffmanTable[] acHuffmanTables;
         private readonly BufferedReadStream stream;
+
+        // huffman tables
+        public HuffmanTable[] dcHuffmanTables;
+        public HuffmanTable[] acHuffmanTables;
 
         // Frame related
         private JpegFrame frame;
@@ -88,15 +90,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
         public HuffmanScanDecoder(
             BufferedReadStream stream,
-            HuffmanTable[] dcHuffmanTables,
-            HuffmanTable[] acHuffmanTables,
             CancellationToken cancellationToken)
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
             this.scanBuffer = new HuffmanScanBuffer(stream);
-            this.dcHuffmanTables = dcHuffmanTables;
-            this.acHuffmanTables = acHuffmanTables;
             this.cancellationToken = cancellationToken;
         }
 

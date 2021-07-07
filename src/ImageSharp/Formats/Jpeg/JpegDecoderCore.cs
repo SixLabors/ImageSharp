@@ -1053,6 +1053,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
+            // All the comments below are for separate refactoring PR
+            // Main reason it's not fixed here is to make this commit less intrusive
+
             // This can be injected in SOF marker callback
             this.scanDecoder.Frame = this.Frame;
 

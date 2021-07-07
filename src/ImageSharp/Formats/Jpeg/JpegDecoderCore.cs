@@ -1053,11 +1053,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
+            // This can be injected in SOF marker callback
             this.scanDecoder.Frame = this.Frame;
+
+            // Huffman tables can be calculated directly in the scan decoder class
             this.scanDecoder.dcHuffmanTables = this.dcHuffmanTables;
             this.scanDecoder.acHuffmanTables = this.acHuffmanTables;
+
+            // This can be injectd in DRI marker callback
             this.scanDecoder.ResetInterval = this.resetInterval;
+
+            // This can be passed as ParseEntropyCodedData() parameter as it is used only there
             this.scanDecoder.componentsLength = selectorsCount;
+
+            // This is okay to inject here, might be good to wrap it in a separate struct but not really necessary
             this.scanDecoder.spectralStart = spectralStart;
             this.scanDecoder.spectralEnd = spectralEnd;
             this.scanDecoder.successiveHigh = successiveApproximation >> 4;

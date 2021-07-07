@@ -94,7 +94,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
-            this.scanBuffer = new HuffmanScanBuffer(stream);
             this.cancellationToken = cancellationToken;
         }
 
@@ -104,6 +103,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void ParseEntropyCodedData()
         {
             this.cancellationToken.ThrowIfCancellationRequested();
+
+            this.scanBuffer = new HuffmanScanBuffer(this.stream);
 
             if (!this.frame.Progressive)
             {

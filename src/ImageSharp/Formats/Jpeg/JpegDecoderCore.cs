@@ -172,6 +172,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public Block8x8F[] QuantizationTables { get; private set; }
 
+        private HuffmanScanDecoder scanDecoder;
+
         /// <summary>
         /// Finds the next file marker within the byte stream.
         /// </summary>
@@ -213,6 +215,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            this.scanDecoder = new HuffmanScanDecoder(stream, cancellationToken);
+
             this.ParseStream(stream, cancellationToken: cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();
@@ -1049,26 +1053,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
-            var sd = new HuffmanScanDecoder(
-                stream,
-                cancellationToken)
-            {
-                Frame = this.Frame,
+            this.scanDecoder.Frame = this.Frame;
+            this.scanDecoder.dcHuffmanTables = this.dcHuffmanTables;
+            this.scanDecoder.acHuffmanTables = this.acHuffmanTables;
+            this.scanDecoder.ResetInterval = this.resetInterval;
+            this.scanDecoder.componentsLength = selectorsCount;
+            this.scanDecoder.spectralStart = spectralStart;
+            this.scanDecoder.spectralEnd = spectralEnd;
+            this.scanDecoder.successiveHigh = successiveApproximation >> 4;
+            this.scanDecoder.successiveLow = successiveApproximation & 15;
 
-                dcHuffmanTables = this.dcHuffmanTables,
-                acHuffmanTables = this.acHuffmanTables,
-
-                ResetInterval = this.resetInterval,
-
-                componentsLength = selectorsCount,
-
-                spectralStart = spectralStart,
-                spectralEnd = spectralEnd,
-                successiveHigh = successiveApproximation >> 4,
-                successiveLow = successiveApproximation & 15
-            };
-
-            sd.ParseEntropyCodedData();
+            this.scanDecoder.ParseEntropyCodedData();
         }
 
         /// <summary>

@@ -98,7 +98,55 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 ValidateAllocateMemoryGroup(expectedNumberOfBuffers, expectedBufferSize, expectedSizeOfLastBuffer, g);
             }
 
-            internal static void ValidateAllocateMemoryGroup<T>(
+            [Theory]
+            [InlineData(AllocationOptions.None)]
+            [InlineData(AllocationOptions.Clean)]
+            public void Allocate_FromPool_AllocationOptionsAreApplied(AllocationOptions options)
+            {
+                var pool = new UniformByteArrayPool(10, 5);
+                byte[][] arrays = pool.Rent(5);
+                foreach (byte[] array in arrays)
+                {
+                    array.AsSpan().Fill(42);
+                }
+
+                pool.Return(arrays);
+
+                using var g = MemoryGroup<byte>.Allocate(pool, 50, 10, options);
+                Span<byte> expected = stackalloc byte[10];
+                expected.Fill((byte)(options == AllocationOptions.Clean ? 0 : 42));
+                foreach (Memory<byte> memory in g)
+                {
+                    Assert.True(expected.SequenceEqual(memory.Span));
+                }
+            }
+
+            [Theory]
+            [InlineData(64, 4, 60, 240, false)]
+            [InlineData(64, 4, 60, 244, true)]
+            public void Allocate_FromPool_AroundLimit(
+                int bufferCapacityBytes,
+                int poolCapacity,
+                int alignmentBytes,
+                int requestBytes,
+                bool shouldReturnNull)
+            {
+                var pool = new UniformByteArrayPool(bufferCapacityBytes, poolCapacity);
+                int alignmentElements = alignmentBytes / Unsafe.SizeOf<S4>();
+                int requestElements = requestBytes / Unsafe.SizeOf<S4>();
+
+                using var g = MemoryGroup<S4>.Allocate(pool, requestElements, alignmentElements);
+                if (shouldReturnNull)
+                {
+                    Assert.Null(g);
+                }
+                else
+                {
+                    Assert.NotNull(g);
+                }
+            }
+
+            private static void ValidateAllocateMemoryGroup<T>(
                 int expectedNumberOfBuffers,
                 int expectedBufferSize,
                 int expectedSizeOfLastBuffer,

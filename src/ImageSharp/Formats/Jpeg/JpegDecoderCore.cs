@@ -1054,10 +1054,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame,
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
-                selectorsCount,
                 this.resetInterval,
                 cancellationToken)
             {
+                componentsLength = selectorsCount,
+
                 spectralStart = spectralStart,
                 spectralEnd = spectralEnd,
                 successiveHigh = successiveApproximation >> 4,

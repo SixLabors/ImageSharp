@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly int restartInterval;
 
         // The number of interleaved components.
-        private readonly int componentsLength;
+        public int componentsLength;
 
         // The spectral selection start.
         public int spectralStart;
@@ -72,7 +72,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             JpegFrame frame,
             HuffmanTable[] dcHuffmanTables,
             HuffmanTable[] acHuffmanTables,
-            int componentsLength,
             int restartInterval,
             CancellationToken cancellationToken)
         {
@@ -83,7 +82,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.dcHuffmanTables = dcHuffmanTables;
             this.acHuffmanTables = acHuffmanTables;
             this.components = frame.Components;
-            this.componentsLength = componentsLength;
             this.restartInterval = restartInterval;
             this.todo = restartInterval;
             this.cancellationToken = cancellationToken;

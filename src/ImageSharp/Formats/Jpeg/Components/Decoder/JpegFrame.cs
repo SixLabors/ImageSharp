@@ -28,12 +28,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets or sets the number of scanlines within the frame.
         /// </summary>
-        public int Scanlines { get; set; }
+        public int PixelHeight { get; set; }
 
         /// <summary>
         /// Gets or sets the number of samples per scanline.
         /// </summary>
-        public int SamplesPerLine { get; set; }
+        public int PixelWidth { get; set; }
 
         /// <summary>
         /// Gets or sets the number of components within a frame. In progressive frames this value can range from only 1 to 4.
@@ -95,8 +95,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         public void InitComponents()
         {
-            this.McusPerLine = (int)MathF.Ceiling(this.SamplesPerLine / 8F / this.MaxHorizontalFactor);
-            this.McusPerColumn = (int)MathF.Ceiling(this.Scanlines / 8F / this.MaxVerticalFactor);
+            this.McusPerLine = (int)MathF.Ceiling(this.PixelWidth / 8F / this.MaxHorizontalFactor);
+            this.McusPerColumn = (int)MathF.Ceiling(this.PixelHeight / 8F / this.MaxVerticalFactor);
 
             for (int i = 0; i < this.ComponentCount; i++)
             {

@@ -109,10 +109,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void Init()
         {
             this.WidthInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.SamplesPerLine / 8F) * this.HorizontalSamplingFactor / this.Frame.MaxHorizontalFactor);
+                MathF.Ceiling(this.Frame.PixelWidth / 8F) * this.HorizontalSamplingFactor / this.Frame.MaxHorizontalFactor);
 
             this.HeightInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.Scanlines / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
+                MathF.Ceiling(this.Frame.PixelHeight / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
 
             int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
             int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;

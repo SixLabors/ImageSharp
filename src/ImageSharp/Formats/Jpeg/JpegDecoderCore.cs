@@ -852,17 +852,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
                 Precision = this.temp[0],
-                Scanlines = (this.temp[1] << 8) | this.temp[2],
-                SamplesPerLine = (this.temp[3] << 8) | this.temp[4],
+                PixelHeight = (this.temp[1] << 8) | this.temp[2],
+                PixelWidth = (this.temp[3] << 8) | this.temp[4],
                 ComponentCount = this.temp[5]
             };
 
-            if (this.Frame.SamplesPerLine == 0 || this.Frame.Scanlines == 0)
+            if (this.Frame.PixelWidth == 0 || this.Frame.PixelHeight == 0)
             {
-                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.PixelWidth, this.Frame.PixelHeight);
             }
 
-            this.ImageSizeInPixels = new Size(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+            this.ImageSizeInPixels = new Size(this.Frame.PixelWidth, this.Frame.PixelHeight);
             this.ComponentCount = this.Frame.ComponentCount;
 
             if (!metadataOnly)

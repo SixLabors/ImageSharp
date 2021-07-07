@@ -55,7 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        [WithFile(Car, PixelTypes.Rgba32)]
+        [WithFile(F, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_MiscellaneousBitmaps_WithLimitedAllocatorBufferCapacity(
             TestImageProvider<Rgba32> provider)
         {

@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// The number of block rows to be processed in one Step.
         /// </summary>
-        public const int BlockRowsPerStep = 4;
+        public int BlockRowsPerStep;
 
         /// <summary>
         /// The number of image pixel rows to be processed in one step.
         /// </summary>
-        public const int PixelRowsPerStep = 4 * 8;
+        public int PixelRowsPerStep;
 
         /// <summary>
         /// Temporal buffer to store a row of colors.
@@ -56,8 +56,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.configuration = configuration;
             this.RawJpeg = rawJpeg;
             IJpegComponent c0 = rawJpeg.Components[0];
-            this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
-            this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
+
+            this.BlockRowsPerStep = c0.SamplingFactors.Height;
+            this.PixelRowsPerStep = this.BlockRowsPerStep * 8;
+
+            this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / this.BlockRowsPerStep;
+
+            this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.PixelRowsPerStep);
 
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
 

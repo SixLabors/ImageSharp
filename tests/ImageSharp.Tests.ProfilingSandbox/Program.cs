@@ -58,7 +58,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             //Test_DebugRun("Channel_digital_image_CMYK_color");
             //Console.WriteLine();
 
-
             //Test_DebugRun("test_baseline_4k_444", false);
             //Console.WriteLine();
             //Test_DebugRun("test_progressive_4k_444", false);
@@ -69,6 +68,10 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             // Binary size of this must be ~2096kb
             //Test_DebugRun("422", true);
 
+            //Test_DebugRun("baseline_4k_420", false);
+            //Test_DebugRun("baseline_s444_q100", false);
+            //Test_DebugRun("progressive_s444_q100", false);
+            Test_DebugRun("baseline_4k_420", true);
             Test_DebugRun("baseline_s444_q100", true);
             Test_DebugRun("progressive_s444_q100", true);
 

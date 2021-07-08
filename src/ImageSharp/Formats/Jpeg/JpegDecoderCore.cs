@@ -920,6 +920,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
                 this.Frame.InitComponents();
                 this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
+
+                // This can be injected in SOF marker callback
+                this.scanDecoder.Frame = this.Frame;
             }
         }
 
@@ -1055,9 +1058,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // All the comments below are for separate refactoring PR
             // Main reason it's not fixed here is to make this commit less intrusive
-
-            // This can be injected in SOF marker callback
-            this.scanDecoder.Frame = this.Frame;
 
             // Huffman tables can be calculated directly in the scan decoder class
             this.scanDecoder.dcHuffmanTables = this.dcHuffmanTables;

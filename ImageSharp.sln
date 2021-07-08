@@ -1,4 +1,4 @@
-﻿﻿
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28902.138
@@ -379,19 +379,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Png", "Png", "{E1C42A6F-913
 		tests\Images\Input\Png\zlib-ztxt-bad-header.png = tests\Images\Input\Png\zlib-ztxt-bad-header.png
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests", "tests\ImageSharp.Tests\ImageSharp.Tests.csproj", "{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "tests\ImageSharp.Benchmarks\ImageSharp.Benchmarks.csproj", "{2BF743D8-2A06-412D-96D7-F448F00C5EA5}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{C0D7754B-5277-438E-ABEB-2BA34401B5A7}"
-	ProjectSection(SolutionItems) = preProject
-		.github\workflows\build-and-test.yml = .github\workflows\build-and-test.yml
-	EndProjectSection
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharedInfrastructure", "shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.shproj", "{68A8CC40-6AED-4E96-B524-31B1158FDEEA}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests.ProfilingSandbox", "tests\ImageSharp.Tests.ProfilingSandbox\ImageSharp.Tests.ProfilingSandbox.csproj", "{FC527290-2F22-432C-B77B-6E815726B02C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{983A31E2-5E26-4058-BD6E-03B4922D4BBF}"
 	ProjectSection(SolutionItems) = preProject
 		tests\Images\Input\WebP\alpha_color_cache.webp = tests\Images\Input\WebP\alpha_color_cache.webp
@@ -416,13 +403,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{983A31E2-5
 		tests\Images\Input\WebP\bryce.webp = tests\Images\Input\WebP\bryce.webp
 		tests\Images\Input\WebP\bug3.webp = tests\Images\Input\WebP\bug3.webp
 		tests\Images\Input\WebP\color_cache_bits_11.webp = tests\Images\Input\WebP\color_cache_bits_11.webp
-		tests\Images\Input\WebP\grid.bmp = tests\Images\Input\WebP\grid.bmp
-		tests\Images\Input\WebP\grid.pam = tests\Images\Input\WebP\grid.pam
-		tests\Images\Input\WebP\grid.pgm = tests\Images\Input\WebP\grid.pgm
-		tests\Images\Input\WebP\grid.png = tests\Images\Input\WebP\grid.png
-		tests\Images\Input\WebP\grid.ppm = tests\Images\Input\WebP\grid.ppm
-		tests\Images\Input\WebP\grid.tiff = tests\Images\Input\WebP\grid.tiff
-		tests\Images\Input\WebP\libwebp_tests.md5 = tests\Images\Input\WebP\libwebp_tests.md5
 		tests\Images\Input\WebP\lossless1.webp = tests\Images\Input\WebP\lossless1.webp
 		tests\Images\Input\WebP\lossless2.webp = tests\Images\Input\WebP\lossless2.webp
 		tests\Images\Input\WebP\lossless3.webp = tests\Images\Input\WebP\lossless3.webp
@@ -474,12 +454,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{983A31E2-5
 		tests\Images\Input\WebP\lossy_extreme_probabilities.webp = tests\Images\Input\WebP\lossy_extreme_probabilities.webp
 		tests\Images\Input\WebP\lossy_q0_f100.webp = tests\Images\Input\WebP\lossy_q0_f100.webp
 		tests\Images\Input\WebP\near_lossless_75.webp = tests\Images\Input\WebP\near_lossless_75.webp
-		tests\Images\Input\WebP\peak.bmp = tests\Images\Input\WebP\peak.bmp
-		tests\Images\Input\WebP\peak.pam = tests\Images\Input\WebP\peak.pam
-		tests\Images\Input\WebP\peak.pgm = tests\Images\Input\WebP\peak.pgm
 		tests\Images\Input\WebP\peak.png = tests\Images\Input\WebP\peak.png
-		tests\Images\Input\WebP\peak.ppm = tests\Images\Input\WebP\peak.ppm
-		tests\Images\Input\WebP\peak.tiff = tests\Images\Input\WebP\peak.tiff
 		tests\Images\Input\WebP\segment01.webp = tests\Images\Input\WebP\segment01.webp
 		tests\Images\Input\WebP\segment02.webp = tests\Images\Input\WebP\segment02.webp
 		tests\Images\Input\WebP\segment03.webp = tests\Images\Input\WebP\segment03.webp
@@ -489,9 +464,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{983A31E2-5
 		tests\Images\Input\WebP\small_31x13.webp = tests\Images\Input\WebP\small_31x13.webp
 		tests\Images\Input\WebP\test-nostrong.webp = tests\Images\Input\WebP\test-nostrong.webp
 		tests\Images\Input\WebP\test.webp = tests\Images\Input\WebP\test.webp
-		tests\Images\Input\WebP\test_cwebp.sh = tests\Images\Input\WebP\test_cwebp.sh
-		tests\Images\Input\WebP\test_dwebp.sh = tests\Images\Input\WebP\test_dwebp.sh
-		tests\Images\Input\WebP\test_lossless.sh = tests\Images\Input\WebP\test_lossless.sh
 		tests\Images\Input\WebP\very_short.webp = tests\Images\Input\WebP\very_short.webp
 		tests\Images\Input\WebP\vp80-00-comprehensive-001.webp = tests\Images\Input\WebP\vp80-00-comprehensive-001.webp
 		tests\Images\Input\WebP\vp80-00-comprehensive-002.webp = tests\Images\Input\WebP\vp80-00-comprehensive-002.webp
@@ -549,7 +521,22 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{983A31E2-5
 		tests\Images\Input\WebP\vp80-05-sharpness-1439.webp = tests\Images\Input\WebP\vp80-05-sharpness-1439.webp
 		tests\Images\Input\WebP\vp80-05-sharpness-1440.webp = tests\Images\Input\WebP\vp80-05-sharpness-1440.webp
 		tests\Images\Input\WebP\vp80-05-sharpness-1443.webp = tests\Images\Input\WebP\vp80-05-sharpness-1443.webp
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{5DFC394F-136F-4B76-9BCA-3BA786515EFC}"
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests", "tests\ImageSharp.Tests\ImageSharp.Tests.csproj", "{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "tests\ImageSharp.Benchmarks\ImageSharp.Benchmarks.csproj", "{2BF743D8-2A06-412D-96D7-F448F00C5EA5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{C0D7754B-5277-438E-ABEB-2BA34401B5A7}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build-and-test.yml = .github\workflows\build-and-test.yml
+	EndProjectSection
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharedInfrastructure", "shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.shproj", "{68A8CC40-6AED-4E96-B524-31B1158FDEEA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests.ProfilingSandbox", "tests\ImageSharp.Tests.ProfilingSandbox\ImageSharp.Tests.ProfilingSandbox.csproj", "{FC527290-2F22-432C-B77B-6E815726B02C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{FCB65777-1D97-42DD-9ECC-96732D495D5C}"
 	ProjectSection(SolutionItems) = preProject
 		tests\Images\Input\Tga\16bit_noalphabits.tga = tests\Images\Input\Tga\16bit_noalphabits.tga
 		tests\Images\Input\Tga\16bit_rle_noalphabits.tga = tests\Images\Input\Tga\16bit_rle_noalphabits.tga
@@ -680,12 +667,13 @@ Global
 		{6458AFCB-A159-47D5-8F2B-50C95C0915E0} = {DB21FED7-E8CB-4B00-9EB2-9144D32A590A}
 		{39F5197B-CF6C-41A5-9739-7F97E78BB104} = {6458AFCB-A159-47D5-8F2B-50C95C0915E0}
 		{E1C42A6F-913B-4A7B-B1A8-2BB62843B254} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{983A31E2-5E26-4058-BD6E-03B4922D4BBF} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{C0D7754B-5277-438E-ABEB-2BA34401B5A7} = {1799C43E-5C54-4A8F-8D64-B1475241DB0D}
 		{68A8CC40-6AED-4E96-B524-31B1158FDEEA} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{FC527290-2F22-432C-B77B-6E815726B02C} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
-		{983A31E2-5E26-4058-BD6E-03B4922D4BBF} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{FCB65777-1D97-42DD-9ECC-96732D495D5C} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}

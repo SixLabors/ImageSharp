@@ -132,28 +132,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         /// <summary>
         /// Execute one step processing <see cref="PixelRowsPerStep"/> pixel rows into 'destination'.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="destination">The destination image.</param>
-        public void DoPostProcessorStep<TPixel>(ImageFrame<TPixel> destination)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
-            {
-                cpp.CopyBlocksToColorBuffer();
-            }
-
-            this.ConvertColorsInto(destination);
-
-            this.PixelRowCounter += PixelRowsPerStep;
-        }
-
-        /// <summary>
         /// Convert and copy <see cref="PixelRowsPerStep"/> row of colors into 'destination' starting at row <see cref="PixelRowCounter"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
-        private void ConvertColorsInto<TPixel>(ImageFrame<TPixel> destination)
+        public void DoPostProcessorStep<TPixel>(ImageFrame<TPixel> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int maxY = Math.Min(destination.Height, this.PixelRowCounter + PixelRowsPerStep);
@@ -161,6 +144,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             var buffers = new Buffer2D<float>[this.ComponentProcessors.Length];
             for (int i = 0; i < this.ComponentProcessors.Length; i++)
             {
+                this.ComponentProcessors[i].CopyBlocksToColorBuffer();
                 buffers[i] = this.ComponentProcessors[i].ColorBuffer;
             }
 
@@ -176,6 +160,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // TODO: Investigate if slicing is actually necessary
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
+
+            this.PixelRowCounter += PixelRowsPerStep;
         }
     }
 }

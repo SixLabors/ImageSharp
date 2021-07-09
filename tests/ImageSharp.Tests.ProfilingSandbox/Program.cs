@@ -70,12 +70,12 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
             //Test_DebugRun("baseline_4k_420", false);
             //Test_DebugRun("baseline_s444_q100", false);
-            //Test_DebugRun("progressive_s444_q100", false);
+            //Test_DebugRun("progressive_s420_q100", false);
             Test_DebugRun("baseline_4k_420", true);
             Test_DebugRun("baseline_s444_q100", true);
-            Test_DebugRun("progressive_s444_q100", true);
+            Test_DebugRun("progressive_s420_q100", true);
 
-            Console.ReadLine();
+            //Console.ReadLine();
         }
 
         public static void Test_Performance(int iterations)

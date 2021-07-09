@@ -71,16 +71,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Invoke <see cref="JpegBlockPostProcessor"/> for <see cref="BlockRowsPerStep"/> block rows, copy the result into <see cref="ColorBuffer"/>.
         /// </summary>
-        public void CopyBlocksToColorBuffer()
+        public void CopyBlocksToColorBuffer(int step)
         {
             var blockPp = new JpegBlockPostProcessor(this.RawJpeg, this.Component);
             float maximumValue = MathF.Pow(2, this.RawJpeg.Precision) - 1;
 
             int destAreaStride = this.ColorBuffer.Width;
 
+            int yBlockStart = step * this.BlockRowsPerStep;
+
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
-                int yBlock = this.currentComponentRowInBlocks + y;
+                int yBlock = yBlockStart + y;
 
                 if (yBlock >= this.SizeInBlocks.Height)
                 {
@@ -104,7 +106,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     blockPp.ProcessBlockColorsInto(ref block, ref destAreaOrigin, destAreaStride, maximumValue);
                 }
             }
+        }
 
+        public void CopyBlocksToColorBuffer()
+        {
+            this.CopyBlocksToColorBuffer(this.currentComponentRowInBlocks);
             this.currentComponentRowInBlocks += this.BlockRowsPerStep;
         }
     }

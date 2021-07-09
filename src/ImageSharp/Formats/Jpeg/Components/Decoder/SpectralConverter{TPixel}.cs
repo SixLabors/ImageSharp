@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     {
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
-        public abstract void ConvertStride();
+        public abstract void ConvertStride(int step);
 
         public abstract void Dispose();
     }
@@ -44,8 +44,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private int PixelRowsPerStep;
 
-        private int PixelRowCounter;
-
 
         private bool converted;
 
@@ -55,10 +53,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 if (!this.converted)
                 {
-                    while (this.PixelRowCounter < this.pixelBuffer.Height)
+                    int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.PixelRowsPerStep);
+
+                    for (int i = 0; i < steps; i++)
                     {
                         this.cancellationToken.ThrowIfCancellationRequested();
-                        this.ConvertStride();
+                        this.ConvertStride(i);
                     }
 
                     this.converted = true;
@@ -103,20 +103,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.colorConverter = JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
 
-        public override void ConvertStride()
+        public override void ConvertStride(int step)
         {
-            int maxY = Math.Min(this.pixelBuffer.Height, this.PixelRowCounter + this.PixelRowsPerStep);
+            int pixelRowStart = this.PixelRowsPerStep * step;
+
+            int maxY = Math.Min(this.pixelBuffer.Height, pixelRowStart + this.PixelRowsPerStep);
 
             var buffers = new Buffer2D<float>[this.componentProcessors.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
-                this.componentProcessors[i].CopyBlocksToColorBuffer();
+                this.componentProcessors[i].CopyBlocksToColorBuffer(step);
                 buffers[i] = this.componentProcessors[i].ColorBuffer;
             }
 
-            for (int yy = this.PixelRowCounter; yy < maxY; yy++)
+            for (int yy = pixelRowStart; yy < maxY; yy++)
             {
-                int y = yy - this.PixelRowCounter;
+                int y = yy - pixelRowStart;
 
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
                 this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.GetSpan());
@@ -126,8 +128,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // TODO: Investigate if slicing is actually necessary
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
-
-            this.PixelRowCounter += this.PixelRowsPerStep;
         }
 
         public override void Dispose()

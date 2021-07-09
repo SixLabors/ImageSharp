@@ -54,5 +54,17 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// The default value is false.
         /// </summary>
         bool Exact { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether near lossless mode should be used.
+        /// This option adjusts pixel values to help compressibility, but has minimal impact on the visual quality.
+        /// </summary>
+        bool NearLossless { get; }
+
+        /// <summary>
+        /// Gets the quality of near-lossless image preprocessing. The range is 0 (maximum preprocessing) to 100 (no preprocessing, the default).
+        /// The typical value is around 60. Note that lossy with -q 100 can at times yield better results.
+        /// </summary>
+        int NearLosslessQuality { get; }
     }
 }

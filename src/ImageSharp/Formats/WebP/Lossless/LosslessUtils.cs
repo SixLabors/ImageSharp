@@ -770,6 +770,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             m.RedToBlue = (byte)((colorCode >> 16) & 0xff);
         }
 
+        // Converts near lossless quality into max number of bits shaved off.
         // 100 -> 0
         // 80..99 -> 1
         // 60..79 -> 2

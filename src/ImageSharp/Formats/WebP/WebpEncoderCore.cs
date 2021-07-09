@@ -59,6 +59,16 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly bool exact;
 
         /// <summary>
+        /// Indicating whether near lossless mode should be used.
+        /// </summary>
+        private readonly bool nearLossless;
+
+        /// <summary>
+        /// The near lossless quality. The range is 0 (maximum preprocessing) to 100 (no preprocessing, the default).
+        /// </summary>
+        private readonly int nearLosslessQuality;
+
+        /// <summary>
         /// The global configuration.
         /// </summary>
         private Configuration configuration;
@@ -78,6 +88,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.entropyPasses = options.EntropyPasses;
             this.filterStrength = options.FilterStrength;
             this.exact = options.Exact;
+            this.nearLossless = options.NearLossless;
+            this.nearLosslessQuality = options.NearLosslessQuality;
         }
 
         /// <summary>
@@ -97,12 +109,29 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             if (this.lossy)
             {
-                using var enc = new Vp8Encoder(this.memoryAllocator, this.configuration, image.Width, image.Height, this.quality, this.method, this.entropyPasses, this.filterStrength);
+                using var enc = new Vp8Encoder(
+                    this.memoryAllocator,
+                    this.configuration,
+                    image.Width,
+                    image.Height,
+                    this.quality,
+                    this.method,
+                    this.entropyPasses,
+                    this.filterStrength);
                 enc.Encode(image, stream);
             }
             else
             {
-                using var enc = new Vp8LEncoder(this.memoryAllocator, this.configuration, image.Width, image.Height, this.quality, this.method, this.exact);
+                using var enc = new Vp8LEncoder(
+                    this.memoryAllocator,
+                    this.configuration,
+                    image.Width,
+                    image.Height,
+                    this.quality,
+                    this.method,
+                    this.exact,
+                    this.nearLossless,
+                    this.nearLosslessQuality);
                 enc.Encode(image, stream);
             }
         }

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
+using SixLabors.ImageSharp.Formats.WebP.Lossless;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -60,6 +61,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private readonly bool exact;
 
+        /// <summary>
+        /// Indicating whether near lossless mode should be used.
+        /// </summary>
+        private readonly bool nearLossless;
+
+        /// <summary>
+        /// The near lossless quality. The range is 0 (maximum preprocessing) to 100 (no preprocessing, the default).
+        /// </summary>
+        private readonly int nearLosslessQuality;
+
         private const int ApplyPaletteGreedyMax = 4;
 
         private const int PaletteInvSizeBits = 11;
@@ -76,7 +87,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="quality">The encoding quality.</param>
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
         /// <param name="exact">Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible RGB information for better compression.</param>
-        public Vp8LEncoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, bool exact)
+        /// <param name="nearLossless">Indicating whether near lossless mode should be used.</param>
+        /// <param name="nearLosslessQuality">The near lossless quality. The range is 0 (maximum preprocessing) to 100 (no preprocessing, the default).</param>
+        public Vp8LEncoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, bool exact, bool nearLossless, int nearLosslessQuality)
         {
             int pixelCount = width * height;
             int initialSize = pixelCount * 2;
@@ -86,6 +99,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.quality = Numerics.Clamp(quality, 0, 100);
             this.method = Numerics.Clamp(method, 0, 6);
             this.exact = exact;
+            this.nearLossless = nearLossless;
+            this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
             this.bitWriter = new Vp8LBitWriter(initialSize);
             this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
             this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);
@@ -251,7 +266,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int width = image.Width;
             int height = image.Height;
 
-            ReadOnlySpan<uint> bgra = this.Bgra.GetSpan();
+            Span<uint> bgra = this.Bgra.GetSpan();
             Span<uint> encodedData = this.EncodedData.GetSpan();
 
             // Analyze image (entropy, numPalettes etc).
@@ -278,7 +293,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 this.CacheBits = 0;
                 this.ClearRefs();
 
-                // TODO: Apply near-lossless preprocessing.
+                if (this.nearLossless)
+                {
+                    // Apply near-lossless preprocessing.
+                    bool useNearLossless = (this.nearLosslessQuality < 100) && !this.UsePalette && !this.UsePredictorTransform;
+                    if (useNearLossless)
+                    {
+                        this.AllocateTransformBuffer(width, height);
+                        NearLosslessEnc.ApplyNearLossless(width, height, this.nearLosslessQuality, bgra, bgra, width);
+                    }
+                }
 
                 // Encode palette.
                 if (this.UsePalette)
@@ -301,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (this.UsePredictorTransform)
                 {
-                    this.ApplyPredictFilter(this.CurrentWidth, height, this.UseSubtractGreenTransform);
+                    this.ApplyPredictFilter(this.CurrentWidth, height);
                 }
 
                 if (this.UseCrossColorTransform)
@@ -618,9 +642,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             LosslessUtils.SubtractGreenFromBlueAndRed(this.EncodedData.GetSpan());
         }
 
-        private void ApplyPredictFilter(int width, int height, bool usedSubtractGreen)
+        private void ApplyPredictFilter(int width, int height)
         {
-            int nearLosslessStrength = 100; // TODO: for now always 100
+            // We disable near-lossless quantization if palette is used.
+            int nearLosslessStrength = this.UsePalette ? 100 : this.nearLosslessQuality;
             int predBits = this.TransformBits;
             int transformWidth = LosslessUtils.SubSampleSize(width, predBits);
             int transformHeight = LosslessUtils.SubSampleSize(height, predBits);
@@ -632,9 +657,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 this.EncodedData.GetSpan(),
                 this.BgraScratch.GetSpan(),
                 this.TransformData.GetSpan(),
+                this.nearLossless,
                 nearLosslessStrength,
                 this.exact,
-                usedSubtractGreen);
+                this.UseSubtractGreenTransform);
 
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);
@@ -1709,10 +1735,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             // VP8LResidualImage needs room for 2 scanlines of uint32 pixels with an extra
             // pixel in each, plus 2 regular scanlines of bytes.
-            int argbScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
+            int bgraScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
             int transformDataSize = (this.UsePredictorTransform || this.UseCrossColorTransform) ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits) : 0;
 
-            this.BgraScratch = this.memoryAllocator.Allocate<uint>(argbScratchSize);
+            this.BgraScratch = this.memoryAllocator.Allocate<uint>(bgraScratchSize);
             this.TransformData = this.memoryAllocator.Allocate<uint>(transformDataSize);
             this.CurrentWidth = width;
         }

@@ -36,6 +36,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public bool Exact { get; set; }
 
         /// <inheritdoc/>
+        public bool NearLossless { get; set; }
+
+        /// <inheritdoc/>
+        public int NearLosslessQuality { get; set; } = 100;
+
+        /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {

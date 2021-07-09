@@ -81,6 +81,75 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
+        [WithFile(RgbTestPattern, PixelTypes.Rgba32, 85)]
+        [WithFile(RgbTestPattern, PixelTypes.Rgba32, 60)]
+        [WithFile(RgbTestPattern, PixelTypes.Rgba32, 40)]
+        [WithFile(RgbTestPattern, PixelTypes.Rgba32, 20)]
+        [WithFile(RgbTestPattern, PixelTypes.Rgba32, 10)]
+        public void Encode_Lossless_WithNearLosslessFlag_Works<TPixel>(TestImageProvider<TPixel> provider, int nearLosslessQuality)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                Lossy = false,
+                NearLossless = true,
+                NearLosslessQuality = nearLosslessQuality
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            string testOutputDetails = string.Concat("nearlossless", "_q", nearLosslessQuality);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(nearLosslessQuality));
+        }
+
+        [Theory]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
+        [WithFile(Lossy.Alpha1, PixelTypes.Rgba32, 4)]
+        public void Encode_Lossless_WithExactFlag_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                Lossy = false,
+                Method = method,
+                Exact = true
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            string testOutputDetails = string.Concat("lossless", "_m", method);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
+        }
+
+        [Theory]
+        [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+        [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
+        public void Encode_Lossless_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            var encoder = new WebpEncoder() { Lossy = false };
+            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
+        }
+
+        [Fact]
+        public void Encode_Lossless_OneByOnePixel_Works()
+        {
+            // Just make sure, encoding 1 pixel by 1 pixel does not throw an exception.
+            using var image = new Image<Rgba32>(1, 1);
+            var encoder = new WebpEncoder() { Lossy = false };
+            using (var memStream = new MemoryStream())
+            {
+                image.SaveAsWebp(memStream, encoder);
+            }
+        }
+
+        [Theory]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 75)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 20)]
@@ -149,30 +218,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
-        [WithFile(Lossy.Alpha1, PixelTypes.Rgba32, 4)]
-        public void Encode_Lossless_WithExactFlag_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new WebpEncoder()
-            {
-                Lossy = false,
-                Method = method,
-                Exact = true
-            };
-
-            using Image<TPixel> image = provider.GetImage();
-            string testOutputDetails = string.Concat("lossless", "_m", method);
-            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
-        }
-
-        [Theory]
         [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
         [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
         public void Encode_Lossy_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
@@ -182,30 +227,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             var encoder = new WebpEncoder() { Lossy = true };
             image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
-        }
-
-        [Theory]
-        [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
-        [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
-        public void Encode_Lossless_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using Image<TPixel> image = provider.GetImage();
-
-            var encoder = new WebpEncoder() { Lossy = false };
-            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
-        }
-
-        [Fact]
-        public void Encode_Lossless_OneByOnePixel_Works()
-        {
-            // Just make sure, encoding 1 pixel by 1 pixel does not throw an exception.
-            using var image = new Image<Rgba32>(1, 1);
-            var encoder = new WebpEncoder() { Lossy = false };
-            using (var memStream = new MemoryStream())
-            {
-                image.SaveAsWebp(memStream, encoder);
-            }
         }
 
         private static ImageComparer GetComparer(int quality)

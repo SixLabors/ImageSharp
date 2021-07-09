@@ -39,6 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> bgra,
             Span<uint> bgraScratch,
             Span<uint> image,
+            bool nearLossless,
             int nearLosslessQuality,
             bool exact,
             bool usedSubtractGreen)
@@ -71,6 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         maxQuantization,
                         exact,
                         usedSubtractGreen,
+                        nearLossless,
                         image);
 
                     image[(tileY * tilesPerRow) + tileX] = (uint)(WebpConstants.ArgbBlack | (pred << 8));
@@ -86,7 +88,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 bgra,
                 maxQuantization,
                 exact,
-                usedSubtractGreen);
+                usedSubtractGreen,
+                nearLossless);
         }
 
         public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> bgra, Span<uint> image)
@@ -175,6 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxQuantization,
             bool exact,
             bool usedSubtractGreen,
+            bool nearLossless,
             Span<uint> modes)
         {
             const int numPredModes = 14;
@@ -242,18 +246,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // pixel to the right in all cases except at the bottom right corner of
                     // the image (wrapping to the leftmost pixel of the next row if it does
                     // not exist in the currentRow).
-                    Span<uint> src = argb.Slice((y * width) + contextStartX, maxX + haveLeft + ((y + 1) < height ? 1 : 0));
+                    int offset = (y * width) + contextStartX;
+                    Span<uint> src = argb.Slice(offset, maxX + haveLeft + ((y + 1) < height ? 1 : 0));
                     Span<uint> dst = currentRow.Slice(contextStartX);
                     src.CopyTo(dst);
 
-                    // TODO: Source wraps this in conditional
-                    // WEBP_NEAR_LOSSLESS == 1
-                    if (maxQuantization > 1 && y >= 1 && y + 1 < height)
+                    if (nearLossless)
                     {
-                        MaxDiffsForRow(contextWidth, width, argb.Slice((y * width) + contextStartX), maxDiffs.Slice(contextStartX), usedSubtractGreen);
+                        if (maxQuantization > 1 && y >= 1 && y + 1 < height)
+                        {
+                            MaxDiffsForRow(contextWidth, width, argb, offset, maxDiffs.Slice(contextStartX), usedSubtractGreen);
+                        }
                     }
 
-                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, exact, usedSubtractGreen, residuals);
+                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, exact, usedSubtractGreen, nearLossless, residuals);
                     for (int relativeX = 0; relativeX < maxX; ++relativeX)
                     {
                         UpdateHisto(histoArgb, residuals[relativeX]);
@@ -316,6 +322,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxQuantization,
             bool exact,
             bool usedSubtractGreen,
+            bool nearLossless,
             Span<uint> output)
         {
             if (exact)
@@ -388,18 +395,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             }
                         }
 
-                        if (maxQuantization == 1 || mode == 0 || y == 0 || y == height - 1 || x == 0 || x == width - 1)
+                        if (nearLossless)
                         {
-                            residual = LosslessUtils.SubPixels(currentRow[x], predict);
+                            if (maxQuantization == 1 || mode == 0 || y == 0 || y == height - 1 || x == 0 || x == width - 1)
+                            {
+                                residual = LosslessUtils.SubPixels(currentRow[x], predict);
+                            }
+                            else
+                            {
+                                residual = NearLossless(currentRow[x], predict, maxQuantization, maxDiffs[x], usedSubtractGreen);
+
+                                // Update the source image.
+                                currentRow[x] = LosslessUtils.AddPixels(predict, residual);
+
+                                // x is never 0 here so we do not need to update upperRow like below.
+                            }
                         }
                         else
                         {
-                            residual = NearLossless(currentRow[x], predict, maxQuantization, maxDiffs[x], usedSubtractGreen);
-
-                            // Update the source image.
-                            currentRow[x] = LosslessUtils.AddPixels(predict, residual);
-
-                            // x is never 0 here so we do not need to update upperRow like below.
+                            residual = LosslessUtils.SubPixels(currentRow[x], predict);
                         }
 
                         if ((currentRow[x] & MaskAlpha) == 0)
@@ -534,7 +548,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// residuals to multiples of quantization levels up to max_quantization
         /// (the actual quantization level depends on smoothness near the given pixel).
         /// </summary>
-        private static void CopyImageWithPrediction(int width, int height, int bits, Span<uint> modes, Span<uint> argbScratch, Span<uint> argb, int maxQuantization, bool exact, bool usedSubtractGreen)
+        private static void CopyImageWithPrediction(
+            int width,
+            int height,
+            int bits,
+            Span<uint> modes,
+            Span<uint> argbScratch,
+            Span<uint> argb,
+            int maxQuantization,
+            bool exact,
+            bool usedSubtractGreen,
+            bool nearLossless)
         {
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
 
@@ -566,7 +590,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     lowerMaxDiffs = tmp8;
                     if (y + 2 < height)
                     {
-                        MaxDiffsForRow(width, width, argb.Slice((y + 1) * width), lowerMaxDiffs, usedSubtractGreen);
+                        MaxDiffsForRow(width, width, argb, (y + 1) * width, lowerMaxDiffs, usedSubtractGreen);
                     }
                 }
 
@@ -592,6 +616,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         maxQuantization,
                         exact,
                         usedSubtractGreen,
+                        nearLossless,
                         argb.Slice((y * width) + x));
 
                     x = xEnd;
@@ -687,15 +712,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static void MaxDiffsForRow(int width, int stride, Span<uint> argb, Span<byte> maxDiffs, bool usedSubtractGreen)
+        private static void MaxDiffsForRow(int width, int stride, Span<uint> argb, int offset, Span<byte> maxDiffs, bool usedSubtractGreen)
         {
             if (width <= 2)
             {
                 return;
             }
 
-            uint current = argb[0];
-            uint right = argb[1];
+            uint current = argb[offset];
+            uint right = argb[offset + 1];
             if (usedSubtractGreen)
             {
                 current = AddGreenToBlueAndRed(current);
@@ -704,11 +729,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             for (int x = 1; x < width - 1; ++x)
             {
-                uint up = argb[-stride + x];
-                uint down = argb[stride + x];
+                uint up = argb[offset - stride + x];
+                uint down = argb[offset + stride + x];
                 uint left = current;
                 current = right;
-                right = argb[x + 1];
+                right = argb[offset + x + 1];
                 if (usedSubtractGreen)
                 {
                     up = AddGreenToBlueAndRed(up);
@@ -874,12 +899,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             if ((byte)greenToRed == prevX.GreenToRed)
             {
-                curDiff -= 3;  // Favor keeping the areas locally similar.
+                // Favor keeping the areas locally similar.
+                curDiff -= 3;
             }
 
             if ((byte)greenToRed == prevY.GreenToRed)
             {
-                curDiff -= 3;  // Favor keeping the areas locally similar.
+                // Favor keeping the areas locally similar.
+                curDiff -= 3;
             }
 
             if (greenToRed == 0)
@@ -898,22 +925,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             double curDiff = PredictionCostCrossColor(accumulatedBlueHisto, histo);
             if ((byte)greenToBlue == prevX.GreenToBlue)
             {
-                curDiff -= 3;  // Favor keeping the areas locally similar.
+                // Favor keeping the areas locally similar.
+                curDiff -= 3;
             }
 
             if ((byte)greenToBlue == prevY.GreenToBlue)
             {
-                curDiff -= 3;  // Favor keeping the areas locally similar.
+                // Favor keeping the areas locally similar.
+                curDiff -= 3;
             }
 
             if ((byte)redToBlue == prevX.RedToBlue)
             {
-                curDiff -= 3;  // Favor keeping the areas locally similar.
+                // Favor keeping the areas locally similar.
+                curDiff -= 3;
             }
 
             if ((byte)redToBlue == prevY.RedToBlue)
             {
-                curDiff -= 3;  // Favor keeping the areas locally similar.
+                // Favor keeping the areas locally similar.
+                curDiff -= 3;
             }
 
             if (greenToBlue == 0)

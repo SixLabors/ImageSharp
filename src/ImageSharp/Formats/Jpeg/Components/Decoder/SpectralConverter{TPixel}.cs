@@ -13,15 +13,15 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
-    internal abstract class SpectralConverter
+    internal abstract class SpectralConverter : IDisposable
     {
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
         public abstract void ConvertStride();
+
+        public abstract void Dispose();
     }
 
-    // TODO: componentProcessors must be disposed!!!
-    // TODO: rgbaBuffer must be disposed!!!
     internal class SpectralConverter<TPixel> : SpectralConverter
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -128,6 +128,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             this.PixelRowCounter += this.PixelRowsPerStep;
+        }
+
+        public override void Dispose()
+        {
+            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            {
+                cpp.Dispose();
+            }
+
+            this.rgbaBuffer.Dispose();
         }
     }
 }

@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
 
             this.scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 

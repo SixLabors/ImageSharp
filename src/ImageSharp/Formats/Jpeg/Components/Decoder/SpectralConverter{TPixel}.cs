@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -24,6 +25,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     {
         private Configuration configuration;
 
+        private CancellationToken cancellationToken;
+
+
         private JpegComponentPostProcessor[] componentProcessors;
 
         private JpegColorConverter colorConverter;
@@ -41,10 +45,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int PixelRowCounter;
 
 
+        private bool converted;
 
-        public SpectralConverter(Configuration configuration)
+        public Buffer2D<TPixel> PixelBuffer
+        {
+            get
+            {
+                if (!this.converted)
+                {
+                    while (this.PixelRowCounter < this.pixelBuffer.Height)
+                    {
+                        this.cancellationToken.ThrowIfCancellationRequested();
+                        this.ConvertStride();
+                    }
+
+                    this.converted = true;
+                }
+
+                return this.pixelBuffer;
+            }
+        }
+
+        public SpectralConverter(Configuration configuration, CancellationToken ct)
         {
             this.configuration = configuration;
+            this.cancellationToken = ct;
         }
 
         public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)

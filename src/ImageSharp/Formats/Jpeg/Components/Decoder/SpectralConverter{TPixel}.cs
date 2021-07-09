@@ -30,6 +30,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private Buffer2D<TPixel> pixelBuffer;
 
+
+        public int BlockRowsPerStep;
+
+        private int PixelRowsPerStep;
+
+        private int PixelRowCounter;
+
+
         public JpegFrame Frame
         {
             set => this.InjectFrame(value);
@@ -59,11 +67,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             // color converter from Rgba32 to TPixel
             this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace, frame.Precision);
+
+            // iteration data
+            IJpegComponent c0 = frame.Components[0];
+
+            const int blockPixelHeight = 8;
+            this.BlockRowsPerStep = c0.SamplingFactors.Height;
+            this.PixelRowsPerStep = this.BlockRowsPerStep * blockPixelHeight;
         }
 
         public override void ConvertStride()
         {
-            int maxY = Math.Min(this.pixelBuffer.Height, this.PixelRowCounter + PixelRowsPerStep);
+            int maxY = Math.Min(this.pixelBuffer.Height, this.PixelRowCounter + this.PixelRowsPerStep);
 
             var buffers = new Buffer2D<float>[this.componentProcessors.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
@@ -79,13 +94,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
                 this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.GetSpan());
 
-                Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
+                Span<TPixel> destRow = this.pixelBuffer.GetRowSpan(yy);
 
                 // TODO: Investigate if slicing is actually necessary
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
 
-            this.PixelRowCounter += PixelRowsPerStep;
+            this.PixelRowCounter += this.PixelRowsPerStep;
         }
     }
 }

@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public abstract void ConvertStride();
     }
 
+    // TODO: componentProcessors must be disposed!!!
+    // TODO: rgbaBuffer must be disposed!!!
     internal class SpectralConverter<TPixel> : SpectralConverter
         where TPixel : unmanaged, IPixel<TPixel>
     {

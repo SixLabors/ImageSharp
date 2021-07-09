@@ -33,6 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private Buffer2D<TPixel> pixelBuffer;
 
 
+
         public int BlockRowsPerStep;
 
         private int PixelRowsPerStep;
@@ -40,35 +41,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int PixelRowCounter;
 
 
-        public JpegFrame Frame
-        {
-            set => this.InjectFrame(value);
-        }
 
         public SpectralConverter(Configuration configuration)
         {
             this.configuration = configuration;
         }
 
-        private void InjectFrame(JpegFrame frame)
+        public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
-
-            // pixel buffer for resulting image
-            this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight, AllocationOptions.Clean);
-
-            // component processors from spectral to Rgba32
-            this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
-            for (int i = 0; i < this.componentProcessors.Length; i++)
-            {
-                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, this, frame.Components[i]);
-            }
-
-            // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
-
-            // color converter from Rgba32 to TPixel
-            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace, frame.Precision);
 
             // iteration data
             IJpegComponent c0 = frame.Components[0];
@@ -76,6 +57,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             const int blockPixelHeight = 8;
             this.BlockRowsPerStep = c0.SamplingFactors.Height;
             this.PixelRowsPerStep = this.BlockRowsPerStep * blockPixelHeight;
+
+            // pixel buffer for resulting image
+            this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight, AllocationOptions.Clean);
+
+            // component processors from spectral to Rgba32
+            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.PixelRowsPerStep);
+            this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
+            for (int i = 0; i < this.componentProcessors.Length; i++)
+            {
+                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, jpegData, postProcessorBufferSize, frame.Components[i]);
+            }
+
+            // single 'stride' rgba32 buffer for conversion between spectral and TPixel
+            this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
+
+            // color converter from Rgba32 to TPixel
+            this.colorConverter = JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
 
         public override void ConvertStride()

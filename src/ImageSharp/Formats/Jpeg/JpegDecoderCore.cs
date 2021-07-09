@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            SpectralConverter<TPixel> spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
+            var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
 
             this.scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
 
-            return this.PostProcessIntoImage<TPixel>(cancellationToken);
+            return new Image<TPixel>(this.Configuration, spectralConverter.PixelBuffer, this.Metadata);
         }
 
         /// <inheritdoc/>
@@ -925,7 +925,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
 
                 // This can be injected in SOF marker callback
-                this.scanDecoder.Frame = this.Frame;
+                this.scanDecoder.InjectFrameData(this.Frame, this);
             }
         }
 

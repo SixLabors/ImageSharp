@@ -87,6 +87,14 @@ namespace SixLabors.ImageSharp
             this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
         }
 
+        internal Image(
+            Configuration configuration,
+            Buffer2D<TPixel> pixelBuffer,
+            ImageMetadata metadata)
+            : this(configuration, pixelBuffer.FastMemoryGroup, pixelBuffer.Width, pixelBuffer.Height, metadata)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// wrapping an external <see cref="MemoryGroup{T}"/>.

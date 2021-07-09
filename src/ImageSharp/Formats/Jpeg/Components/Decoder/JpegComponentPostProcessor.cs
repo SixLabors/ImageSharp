@@ -27,23 +27,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegComponentPostProcessor"/> class.
         /// </summary>
-        public JpegComponentPostProcessor(MemoryAllocator memoryAllocator, JpegImagePostProcessor imagePostProcessor, IJpegComponent component)
+        public JpegComponentPostProcessor(MemoryAllocator memoryAllocator, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
         {
             this.Component = component;
-            this.ImagePostProcessor = imagePostProcessor;
+            this.RawJpeg = rawJpeg;
             this.blockAreaSize = this.Component.SubSamplingDivisors * 8;
             this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
-                imagePostProcessor.PostProcessorBufferSize.Width,
-                imagePostProcessor.PostProcessorBufferSize.Height,
+                postProcessorBufferSize.Width,
+                postProcessorBufferSize.Height,
                 this.blockAreaSize.Height);
 
-            this.BlockRowsPerStep = imagePostProcessor.BlockRowsPerStep / this.Component.SubSamplingDivisors.Height;
+            this.BlockRowsPerStep = postProcessorBufferSize.Height / 8 / this.Component.SubSamplingDivisors.Height;
         }
 
-        /// <summary>
-        /// Gets the <see cref="JpegImagePostProcessor"/>
-        /// </summary>
-        public JpegImagePostProcessor ImagePostProcessor { get; }
+        public IRawJpegData RawJpeg { get; }
 
         /// <summary>
         /// Gets the <see cref="Component"/>
@@ -76,8 +73,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         public void CopyBlocksToColorBuffer()
         {
-            var blockPp = new JpegBlockPostProcessor(this.ImagePostProcessor.RawJpeg, this.Component);
-            float maximumValue = MathF.Pow(2, this.ImagePostProcessor.RawJpeg.Precision) - 1;
+            var blockPp = new JpegBlockPostProcessor(this.RawJpeg, this.Component);
+            float maximumValue = MathF.Pow(2, this.RawJpeg.Precision) - 1;
 
             int destAreaStride = this.ColorBuffer.Width;
 

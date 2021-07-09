@@ -62,14 +62,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / this.BlockRowsPerStep;
 
-            this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.PixelRowsPerStep);
-
+            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.PixelRowsPerStep);
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-
             this.ComponentProcessors = new JpegComponentPostProcessor[rawJpeg.Components.Length];
             for (int i = 0; i < rawJpeg.Components.Length; i++)
             {
-                this.ComponentProcessors[i] = new JpegComponentPostProcessor(memoryAllocator, this, rawJpeg.Components[i]);
+                this.ComponentProcessors[i] = new JpegComponentPostProcessor(memoryAllocator, this.RawJpeg, postProcessorBufferSize, rawJpeg.Components[i]);
             }
 
             this.rgbaBuffer = memoryAllocator.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
@@ -90,11 +88,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Gets the total number of post processor steps deduced from the height of the image and <see cref="PixelRowsPerStep"/>.
         /// </summary>
         public int NumberOfPostProcessorSteps { get; }
-
-        /// <summary>
-        /// Gets the size of the temporary buffers we need to allocate into <see cref="JpegComponentPostProcessor.ColorBuffer"/>.
-        /// </summary>
-        public Size PostProcessorBufferSize { get; }
 
         /// <summary>
         /// Gets the value of the counter that grows by each step by <see cref="PixelRowsPerStep"/>.

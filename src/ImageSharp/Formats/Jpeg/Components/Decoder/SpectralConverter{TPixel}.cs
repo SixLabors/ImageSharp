@@ -15,6 +15,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     internal abstract class SpectralConverter
     {
+        public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
+
         public abstract void ConvertStride();
     }
 
@@ -72,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.cancellationToken = ct;
         }
 
-        public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+        public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
 

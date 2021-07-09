@@ -26,15 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private JpegFrame frame;
         private JpegComponent[] components;
 
-        public JpegFrame Frame
-        {
-            set
-            {
-                frame = value;
-                components = value.Components;
-            }
-        }
-
         // The restart interval.
         private int restartInterval;
         // How many mcu's are left to do.
@@ -72,6 +63,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private HuffmanScanBuffer scanBuffer;
 
+        private SpectralConverter spectralConverter;
+
         private CancellationToken cancellationToken;
 
         /// <summary>
@@ -90,10 +83,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
         public HuffmanScanDecoder(
             BufferedReadStream stream,
+            SpectralConverter converter,
             CancellationToken cancellationToken)
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
+            this.spectralConverter = converter;
             this.cancellationToken = cancellationToken;
         }
 
@@ -119,6 +114,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 this.stream.Position = this.scanBuffer.MarkerPosition;
             }
+        }
+
+        public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+        {
+            this.frame = frame;
+            this.components = frame.Components;
+
+            this.spectralConverter.InjectFrameData(frame, jpegData);
         }
 
         private void ParseBaselineData()

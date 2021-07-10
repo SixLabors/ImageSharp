@@ -133,6 +133,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 this.ParseBaselineDataInterleaved();
+
+                // this is the only path where conversion is done right after the scan
+                this.spectralConverter.CommitConversion();
             }
         }
 
@@ -160,6 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 this.cancellationToken.ThrowIfCancellationRequested();
 
+                // decode from binary to spectral
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
@@ -207,6 +211,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     mcu++;
                     this.HandleRestart();
                 }
+
+                // convert from spectral to actual pixels via given converter
+                this.spectralConverter.ConvertStride(j, j);
             }
         }
 

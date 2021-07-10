@@ -21,6 +21,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public abstract void ConvertStride(int step, int spectralStep);
 
+        public abstract void ClearStride(int spectralStep);
+
         public abstract void Dispose();
     }
 
@@ -131,6 +133,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 // TODO: Investigate if slicing is actually necessary
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
+            }
+        }
+
+        public override void ClearStride(int spectralStep)
+        {
+            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            {
+                cpp.ClearSpectralStride(spectralStep);
             }
         }
 

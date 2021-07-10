@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         for (int y = 0; y < v; y++)
                         {
                             int blockRow = (mcuRow * v) + y;
-                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(y);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
@@ -213,7 +213,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 // convert from spectral to actual pixels via given converter
-                this.spectralConverter.ConvertStride(j, j);
+                this.spectralConverter.ConvertStride(j, 0);
+                this.spectralConverter.ClearStride(0);
             }
         }
 

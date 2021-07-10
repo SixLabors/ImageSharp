@@ -108,6 +108,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
+        public void ClearSpectralStride(int step)
+        {
+            int yBlockStart = step * this.BlockRowsPerStep;
+            for (int y = 0; y < this.BlockRowsPerStep; y++)
+            {
+                int yBlock = yBlockStart + y;
+
+                if (yBlock >= this.SizeInBlocks.Height)
+                {
+                    break;
+                }
+
+                this.Component.SpectralBlocks.GetRowSpan(yBlock).Clear();
+            }
+        }
+
         public void CopyBlocksToColorBuffer()
         {
             this.CopyBlocksToColorBuffer(this.currentComponentRowInBlocks);

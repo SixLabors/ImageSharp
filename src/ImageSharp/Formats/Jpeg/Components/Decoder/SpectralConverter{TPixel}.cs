@@ -15,6 +15,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     internal abstract class SpectralConverter : IDisposable
     {
+        public abstract void CommitConversion();
+
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
         public abstract void ConvertStride(int step, int spectralStep);
@@ -73,6 +75,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.configuration = configuration;
             this.cancellationToken = ct;
         }
+
+        public override void CommitConversion() => this.converted = true;
 
         public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {

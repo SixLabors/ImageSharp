@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     {
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
-        public abstract void ConvertStride(int step);
+        public abstract void ConvertStride(int step, int spectralStep);
 
         public abstract void Dispose();
     }
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     for (int i = 0; i < steps; i++)
                     {
                         this.cancellationToken.ThrowIfCancellationRequested();
-                        this.ConvertStride(i);
+                        this.ConvertStride(i, i);
                     }
 
                     this.converted = true;
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.colorConverter = JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
 
-        public override void ConvertStride(int step)
+        public override void ConvertStride(int step, int spectralStep)
         {
             int pixelRowStart = this.PixelRowsPerStep * step;
 
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             var buffers = new Buffer2D<float>[this.componentProcessors.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
-                this.componentProcessors[i].CopyBlocksToColorBuffer(step);
+                this.componentProcessors[i].CopyBlocksToColorBuffer(spectralStep);
                 buffers[i] = this.componentProcessors[i].ColorBuffer;
             }
 

@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Threading;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using JpegColorConverter = SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters.JpegColorConverter;
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// (3) Color conversion form one of the <see cref="JpegColorSpace"/>-s into a <see cref="Vector4"/> buffer of RGBA values <br/>
     /// (4) Packing <see cref="Image{TPixel}"/> pixels from the <see cref="Vector4"/> buffer. <br/>
     /// These operations are executed in <see cref="NumberOfPostProcessorSteps"/> steps.
-    /// <see cref="PixelRowsPerStep"/> image rows are converted in one step,
+    /// <see cref="pixelRowsPerStep"/> image rows are converted in one step,
     /// which means that size of the allocated memory is limited (does not depend on <see cref="ImageFrame.Height"/>).
     /// </summary>
     internal class JpegImagePostProcessor : IDisposable
@@ -29,12 +28,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// The number of block rows to be processed in one Step.
         /// </summary>
-        public int BlockRowsPerStep;
+        private readonly int blockRowsPerStep;
 
         /// <summary>
         /// The number of image pixel rows to be processed in one step.
         /// </summary>
-        public int PixelRowsPerStep;
+        private readonly int pixelRowsPerStep;
 
         /// <summary>
         /// Temporal buffer to store a row of colors.
@@ -57,12 +56,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.RawJpeg = rawJpeg;
             IJpegComponent c0 = rawJpeg.Components[0];
 
-            this.BlockRowsPerStep = c0.SamplingFactors.Height;
-            this.PixelRowsPerStep = this.BlockRowsPerStep * 8;
+            this.blockRowsPerStep = c0.SamplingFactors.Height;
+            this.pixelRowsPerStep = this.blockRowsPerStep * 8;
 
-            this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / this.BlockRowsPerStep;
+            this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / this.blockRowsPerStep;
 
-            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.PixelRowsPerStep);
+            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.pixelRowsPerStep);
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             this.ComponentProcessors = new JpegComponentPostProcessor[rawJpeg.Components.Length];
             for (int i = 0; i < rawJpeg.Components.Length; i++)
@@ -85,12 +84,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public IRawJpegData RawJpeg { get; }
 
         /// <summary>
-        /// Gets the total number of post processor steps deduced from the height of the image and <see cref="PixelRowsPerStep"/>.
+        /// Gets the total number of post processor steps deduced from the height of the image and <see cref="pixelRowsPerStep"/>.
         /// </summary>
         public int NumberOfPostProcessorSteps { get; }
 
         /// <summary>
-        /// Gets the value of the counter that grows by each step by <see cref="PixelRowsPerStep"/>.
+        /// Gets the value of the counter that grows by each step by <see cref="pixelRowsPerStep"/>.
         /// </summary>
         public int PixelRowCounter { get; private set; }
 
@@ -129,15 +128,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Execute one step processing <see cref="PixelRowsPerStep"/> pixel rows into 'destination'.
-        /// Convert and copy <see cref="PixelRowsPerStep"/> row of colors into 'destination' starting at row <see cref="PixelRowCounter"/>.
+        /// Execute one step processing <see cref="pixelRowsPerStep"/> pixel rows into 'destination'.
+        /// Convert and copy <see cref="pixelRowsPerStep"/> row of colors into 'destination' starting at row <see cref="PixelRowCounter"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
         public void DoPostProcessorStep<TPixel>(ImageFrame<TPixel> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int maxY = Math.Min(destination.Height, this.PixelRowCounter + PixelRowsPerStep);
+            int maxY = Math.Min(destination.Height, this.PixelRowCounter + this.pixelRowsPerStep);
 
             var buffers = new Buffer2D<float>[this.ComponentProcessors.Length];
             for (int i = 0; i < this.ComponentProcessors.Length; i++)
@@ -159,7 +158,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
 
-            this.PixelRowCounter += PixelRowsPerStep;
+            this.PixelRowCounter += this.pixelRowsPerStep;
         }
     }
 }

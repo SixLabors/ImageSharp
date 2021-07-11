@@ -2,9 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -63,10 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public int BlockRowsPerStep { get; }
 
         /// <inheritdoc />
-        public void Dispose()
-        {
-            this.ColorBuffer.Dispose();
-        }
+        public void Dispose() => this.ColorBuffer.Dispose();
 
         /// <summary>
         /// Invoke <see cref="JpegBlockPostProcessor"/> for <see cref="BlockRowsPerStep"/> block rows, copy the result into <see cref="ColorBuffer"/>.

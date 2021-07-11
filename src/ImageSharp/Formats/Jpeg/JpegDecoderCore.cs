@@ -98,6 +98,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private AdobeMarker adobe;
 
         /// <summary>
+        /// Scan decoder.
+        /// </summary>
+        private HuffmanScanDecoder scanDecoder;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -171,8 +176,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc/>
         public Block8x8F[] QuantizationTables { get; private set; }
-
-        private HuffmanScanDecoder scanDecoder;
 
         /// <summary>
         /// Finds the next file marker within the byte stream.
@@ -1064,20 +1067,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Main reason it's not fixed here is to make this commit less intrusive
 
             // Huffman tables can be calculated directly in the scan decoder class
-            this.scanDecoder.dcHuffmanTables = this.dcHuffmanTables;
-            this.scanDecoder.acHuffmanTables = this.acHuffmanTables;
+            this.scanDecoder.DcHuffmanTables = this.dcHuffmanTables;
+            this.scanDecoder.AcHuffmanTables = this.acHuffmanTables;
 
             // This can be injectd in DRI marker callback
             this.scanDecoder.ResetInterval = this.resetInterval;
 
             // This can be passed as ParseEntropyCodedData() parameter as it is used only there
-            this.scanDecoder.componentsLength = selectorsCount;
+            this.scanDecoder.ComponentsLength = selectorsCount;
 
             // This is okay to inject here, might be good to wrap it in a separate struct but not really necessary
-            this.scanDecoder.spectralStart = spectralStart;
-            this.scanDecoder.spectralEnd = spectralEnd;
-            this.scanDecoder.successiveHigh = successiveApproximation >> 4;
-            this.scanDecoder.successiveLow = successiveApproximation & 15;
+            this.scanDecoder.SpectralStart = spectralStart;
+            this.scanDecoder.SpectralEnd = spectralEnd;
+            this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
+            this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
 
             this.scanDecoder.ParseEntropyCodedData();
         }

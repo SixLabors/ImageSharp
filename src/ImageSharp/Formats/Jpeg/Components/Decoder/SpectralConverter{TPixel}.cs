@@ -14,9 +14,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     internal abstract class SpectralConverter : IDisposable
-    {
-        public abstract void CommitConversion();
-
+    {       
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
         public abstract void ConvertStrideBaseline();
@@ -40,22 +38,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private Buffer2D<TPixel> pixelBuffer;
 
-
-
         public int BlockRowsPerStep;
 
         private int PixelRowsPerStep;
 
         private int PixelRowCounter;
 
+        public SpectralConverter(Configuration configuration, CancellationToken ct)
+        {
+            this.configuration = configuration;
+            this.cancellationToken = ct;
+        }
 
-        private bool converted;
+        private bool Converted => this.PixelRowCounter >= this.pixelBuffer.Height;
 
         public Buffer2D<TPixel> PixelBuffer
         {
             get
             {
-                if (!this.converted)
+                if (!this.Converted)
                 {
                     int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.PixelRowsPerStep);
 
@@ -64,21 +65,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         this.cancellationToken.ThrowIfCancellationRequested();
                         this.ConvertNextStride(step);
                     }
-
-                    this.converted = true;
                 }
 
                 return this.pixelBuffer;
             }
         }
-
-        public SpectralConverter(Configuration configuration, CancellationToken ct)
-        {
-            this.configuration = configuration;
-            this.cancellationToken = ct;
-        }
-
-        public override void CommitConversion() => this.converted = true;
 
         public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {

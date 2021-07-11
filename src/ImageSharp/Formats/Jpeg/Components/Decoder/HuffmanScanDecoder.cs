@@ -133,9 +133,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 this.ParseBaselineDataInterleaved();
-
-                // this is the only path where conversion is done right after the scan
-                this.spectralConverter.CommitConversion();
             }
         }
 

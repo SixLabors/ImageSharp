@@ -14,7 +14,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     internal abstract class SpectralConverter : IDisposable
-    {       
+    {
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
         public abstract void ConvertStrideBaseline();

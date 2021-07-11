@@ -108,7 +108,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        // TODO: refactor this
         public void ClearSpectralBuffers()
         {
             Buffer2D<Block8x8> spectralBlocks = this.Component.SpectralBlocks;

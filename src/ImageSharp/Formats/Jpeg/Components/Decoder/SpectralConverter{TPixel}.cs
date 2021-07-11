@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
-        public abstract void ConvertStride(int spectralStep);
+        public abstract void ConvertStrideIncremental();
 
-        public abstract void ClearStride(int spectralStep);
+        public abstract void ConvertStrideBaseline();
 
         public abstract void Dispose();
     }
@@ -111,7 +111,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.colorConverter = JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
 
-        public override void ConvertStride(int spectralStep)
+        public override void ConvertStrideIncremental() => this.ConvertNextStride(this.PixelRowCounter / 8);
+
+        public override void ConvertStrideBaseline()
+        {
+            // Convert next pixel stride using single spectral `stride'
+            // Note that zero passing eliminates the need of virtual call from JpegComponentPostProcessor
+            this.ConvertNextStride(spectralStep: 0);
+
+            // Clear spectral stride - this is VERY important as jpeg possibly won't fill entire buffer each stride
+            // Which leads to decoding artifacts
+            // Note that this code clears all buffers of the post processors, it's their responsibility to allocate only single stride
+            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            {
+                cpp.ClearSpectralBuffers();
+            }
+        }
+
+
+        private void ConvertNextStride(int spectralStep)
         {
             int maxY = Math.Min(this.pixelBuffer.Height, this.PixelRowCounter + this.PixelRowsPerStep);
 
@@ -136,14 +154,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             this.PixelRowCounter += this.PixelRowsPerStep;
-        }
-
-        public override void ClearStride(int spectralStep)
-        {
-            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
-            {
-                cpp.ClearSpectralBuffers(spectralStep);
-            }
         }
 
         public override void Dispose()

@@ -213,8 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 // convert from spectral to actual pixels via given converter
-                this.spectralConverter.ConvertStride(j, 0);
-                this.spectralConverter.ClearStride(0);
+                this.spectralConverter.ConvertStrideBaseline();
             }
         }
 

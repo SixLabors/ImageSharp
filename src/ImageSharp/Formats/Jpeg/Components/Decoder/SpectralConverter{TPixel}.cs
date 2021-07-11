@@ -105,12 +105,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public override void Dispose()
         {
-            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            if (this.componentProcessors != null)
             {
-                cpp.Dispose();
+                foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+                {
+                    cpp.Dispose();
+                }
             }
 
-            this.rgbaBuffer.Dispose();
+            this.rgbaBuffer?.Dispose();
         }
 
         private void ConvertNextStride(int spectralStep)

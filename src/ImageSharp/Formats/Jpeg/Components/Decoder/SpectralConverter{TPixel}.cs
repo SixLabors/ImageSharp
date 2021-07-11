@@ -19,14 +19,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
-        public abstract void ConvertStride(int step, int spectralStep);
+        public abstract void ConvertStride(int spectralStep);
 
         public abstract void ClearStride(int spectralStep);
 
         public abstract void Dispose();
     }
 
-    internal class SpectralConverter<TPixel> : SpectralConverter
+    internal sealed class SpectralConverter<TPixel> : SpectralConverter
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private Configuration configuration;
@@ -48,6 +48,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private int PixelRowsPerStep;
 
+        private int PixelRowCounter;
+
 
         private bool converted;
 
@@ -62,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     for (int i = 0; i < steps; i++)
                     {
                         this.cancellationToken.ThrowIfCancellationRequested();
-                        this.ConvertStride(i, i);
+                        this.ConvertStride(i);
                     }
 
                     this.converted = true;
@@ -109,11 +111,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.colorConverter = JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
 
-        public override void ConvertStride(int step, int spectralStep)
+        public override void ConvertStride(int spectralStep)
         {
-            int pixelRowStart = this.PixelRowsPerStep * step;
-
-            int maxY = Math.Min(this.pixelBuffer.Height, pixelRowStart + this.PixelRowsPerStep);
+            int maxY = Math.Min(this.pixelBuffer.Height, this.PixelRowCounter + this.PixelRowsPerStep);
 
             var buffers = new Buffer2D<float>[this.componentProcessors.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
@@ -122,9 +122,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 buffers[i] = this.componentProcessors[i].ColorBuffer;
             }
 
-            for (int yy = pixelRowStart; yy < maxY; yy++)
+            for (int yy = this.PixelRowCounter; yy < maxY; yy++)
             {
-                int y = yy - pixelRowStart;
+                int y = yy - this.PixelRowCounter;
 
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
                 this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.GetSpan());
@@ -134,13 +134,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // TODO: Investigate if slicing is actually necessary
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
+
+            this.PixelRowCounter += this.PixelRowsPerStep;
         }
 
         public override void ClearStride(int spectralStep)
         {
             foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
             {
-                cpp.ClearSpectralStride(spectralStep);
+                cpp.ClearSpectralBuffers(spectralStep);
             }
         }
 

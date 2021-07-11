@@ -19,8 +19,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
-        public abstract void ConvertStrideIncremental();
-
         public abstract void ConvertStrideBaseline();
 
         public abstract void Dispose();
@@ -61,10 +59,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.PixelRowsPerStep);
 
-                    for (int i = 0; i < steps; i++)
+                    for (int step = 0; step < steps; step++)
                     {
                         this.cancellationToken.ThrowIfCancellationRequested();
-                        this.ConvertStride(i);
+                        this.ConvertNextStride(step);
                     }
 
                     this.converted = true;
@@ -111,8 +109,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.colorConverter = JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
 
-        public override void ConvertStrideIncremental() => this.ConvertNextStride(this.PixelRowCounter / 8);
-
         public override void ConvertStrideBaseline()
         {
             // Convert next pixel stride using single spectral `stride'
@@ -128,6 +124,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
+        public override void Dispose()
+        {
+            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            {
+                cpp.Dispose();
+            }
+
+            this.rgbaBuffer.Dispose();
+        }
 
         private void ConvertNextStride(int spectralStep)
         {
@@ -154,16 +159,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             this.PixelRowCounter += this.PixelRowsPerStep;
-        }
-
-        public override void Dispose()
-        {
-            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
-            {
-                cpp.Dispose();
-            }
-
-            this.rgbaBuffer.Dispose();
         }
     }
 }

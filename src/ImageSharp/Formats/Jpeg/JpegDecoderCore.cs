@@ -921,8 +921,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame.MaxVerticalFactor = maxV;
                 this.ColorSpace = this.DeduceJpegColorSpace();
                 this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
-                this.Frame.InitComponents();
                 this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
+
+                this.Frame.InitComponents();
 
                 // This can be injected in SOF marker callback
                 this.scanDecoder.InjectFrameData(this.Frame, this);

@@ -104,5 +104,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 component.Init();
             }
         }
+
+        public void AllocateComponents(bool fullScan)
+        {
+            for (int i = 0; i < this.ComponentCount; i++)
+            {
+                JpegComponent component = this.Components[i];
+                component.AllocateSpectral(fullScan);
+            }
+        }
     }
 }

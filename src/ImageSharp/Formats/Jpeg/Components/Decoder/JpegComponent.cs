@@ -125,6 +125,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 JpegThrowHelper.ThrowBadSampling();
             }
+        }
+
+        public void AllocateSpectral(bool fullScan)
+        {
+            if (this.SpectralBlocks != null)
+            {
+                // this method will be called each scan marker so we need to allocate only once
+                return;
+            }
+
+            int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
+            int blocksPerColumnForMcu = fullScan ? this.Frame.McusPerColumn * this.VerticalSamplingFactor : this.VerticalSamplingFactor;
 
             int totalNumberOfBlocks = blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
             int width = this.WidthInBlocks + 1;

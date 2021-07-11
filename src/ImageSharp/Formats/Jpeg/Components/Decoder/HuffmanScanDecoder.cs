@@ -128,10 +128,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (this.componentsLength == 1)
             {
+                this.frame.AllocateComponents(fullScan: true);
                 this.ParseBaselineDataNonInterleaved();
             }
             else
             {
+                // interleaved baseline is the only place where we can optimize memory footprint via reusing single spectral stride
+                this.frame.AllocateComponents(fullScan: false);
                 this.ParseBaselineDataInterleaved();
             }
         }
@@ -305,6 +308,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.CheckProgressiveData();
 
+            this.frame.AllocateComponents(fullScan: true);
             if (this.componentsLength == 1)
             {
                 this.ParseProgressiveDataNonInterleaved();

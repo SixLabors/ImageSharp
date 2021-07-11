@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
-        [Theory]
+        [Theory(Skip = "Decoding core had breaking internal change and no longer supports post processing after stream parsing.")]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
         public void DoProcessorStep<TPixel>(TestImageProvider<TPixel> provider)
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
-        [Theory]
+        [Theory(Skip = "Decoding core had breaking internal change and no longer supports post processing after stream parsing.")]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void PostProcess<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

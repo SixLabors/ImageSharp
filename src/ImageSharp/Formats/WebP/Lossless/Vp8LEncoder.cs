@@ -613,8 +613,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 // Keep track of the smallest image so far.
                 if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
                 {
-                    // TODO: This was done in the reference by swapping references, this will be slower.
-                    bitWriterBest = this.bitWriter.Clone();
+                    Vp8LBitWriter tmp = this.bitWriter;
+                    this.bitWriter = bitWriterBest;
+                    bitWriterBest = tmp;
                 }
 
                 isFirstIteration = false;

@@ -294,12 +294,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (curDiff < bestDiff)
                 {
-                    // TODO: Consider swapping references
-                    for (int i = 0; i < 4; i++)
-                    {
-                        histoArgb[i].AsSpan().CopyTo(bestHisto[i]);
-                    }
-
+                    int[][] tmp = histoArgb;
+                    histoArgb = bestHisto;
+                    bestHisto = tmp;
                     bestDiff = curDiff;
                     bestMode = mode;
                 }

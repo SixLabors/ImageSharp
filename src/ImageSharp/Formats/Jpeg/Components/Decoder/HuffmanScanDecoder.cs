@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineData()
         {
-            if (this.ComponentsLength == 1)
+            if (this.ComponentsLength != this.frame.ComponentCount)
             {
                 this.frame.AllocateComponents(fullScan: true);
                 this.ParseBaselineDataNonInterleaved();

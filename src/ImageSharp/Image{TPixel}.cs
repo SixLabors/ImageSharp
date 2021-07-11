@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-        /// wrapping an external <see cref="Buffer2D{TPixel}" pixel buffer.
+        /// wrapping an external <see cref="Buffer2D{TPixel}"/> pixel bufferx.
         /// </summary>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
         /// <param name="pixelBuffer">Pixel buffer.</param>

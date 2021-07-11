@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="stream">The input stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        public void ParseStream(BufferedReadStream stream, bool metadataOnly = false, CancellationToken cancellationToken = default)
+        private void ParseStream(BufferedReadStream stream, bool metadataOnly = false, CancellationToken cancellationToken = default)
         {
             this.Metadata = new ImageMetadata();
 

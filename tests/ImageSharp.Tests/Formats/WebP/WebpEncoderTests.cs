@@ -86,6 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(RgbTestPattern, PixelTypes.Rgba32, 40)]
         [WithFile(RgbTestPattern, PixelTypes.Rgba32, 20)]
         [WithFile(RgbTestPattern, PixelTypes.Rgba32, 10)]
+        [WithFile(RgbTestPattern63x63, PixelTypes.Rgba32, 40)]
         public void Encode_Lossless_WithNearLosslessFlag_Works<TPixel>(TestImageProvider<TPixel> provider, int nearLosslessQuality)
             where TPixel : unmanaged, IPixel<TPixel>
         {

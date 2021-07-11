@@ -509,6 +509,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string TestPatternOpaque = "WebP/testpattern_opaque.png";
             public const string TestPatternOpaqueSmall = "WebP/testpattern_opaque_small.png";
             public const string RgbTestPattern = "WebP/rgb_pattern.png";
+            public const string RgbTestPattern63x63 = "WebP/rgb_pattern_63x63.png";
 
             // Test image for encoding image with a palette.
             public const string Flag = "WebP/flag_of_germany.png";

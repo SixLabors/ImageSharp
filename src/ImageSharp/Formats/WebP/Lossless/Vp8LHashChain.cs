@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         public int Size { get; }
 
-        public void Fill(MemoryAllocator memoryAllocator, ReadOnlySpan<uint> bgra, int quality, int xSize, int ySize)
+        public void Fill(MemoryAllocator memoryAllocator, ReadOnlySpan<uint> bgra, int quality, int xSize, int ySize, bool lowEffort)
         {
             int size = xSize * ySize;
             int iterMax = GetMaxItersForQuality(quality);
@@ -147,32 +147,36 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 pos = chain[basePosition];
                 int currLength;
 
-                // Heuristic: use the comparison with the above line as an initialization.
-                if (basePosition >= (uint)xSize)
+                if (!lowEffort)
                 {
-                    currLength = LosslessUtils.FindMatchLength(bgra.Slice(bgraStart - xSize), bgra.Slice(bgraStart), bestLength, maxLen);
+                    // Heuristic: use the comparison with the above line as an initialization.
+                    if (basePosition >= (uint)xSize)
+                    {
+                        currLength = LosslessUtils.FindMatchLength(bgra.Slice(bgraStart - xSize), bgra.Slice(bgraStart), bestLength, maxLen);
+                        if (currLength > bestLength)
+                        {
+                            bestLength = currLength;
+                            bestDistance = (uint)xSize;
+                        }
+
+                        iter--;
+                    }
+
+                    // Heuristic: compare to the previous pixel.
+                    currLength = LosslessUtils.FindMatchLength(bgra.Slice(bgraStart - 1), bgra.Slice(bgraStart), bestLength, maxLen);
                     if (currLength > bestLength)
                     {
                         bestLength = currLength;
-                        bestDistance = (uint)xSize;
+                        bestDistance = 1;
                     }
 
                     iter--;
-                }
 
-                // Heuristic: compare to the previous pixel.
-                currLength = LosslessUtils.FindMatchLength(bgra.Slice(bgraStart - 1), bgra.Slice(bgraStart), bestLength, maxLen);
-                if (currLength > bestLength)
-                {
-                    bestLength = currLength;
-                    bestDistance = 1;
-                }
-
-                iter--;
-
-                if (bestLength == BackwardReferenceEncoder.MaxLength)
-                {
-                    pos = minPos - 1;
+                    // Skip the for loop if we already have the maximum.
+                    if (bestLength == BackwardReferenceEncoder.MaxLength)
+                    {
+                        pos = minPos - 1;
+                    }
                 }
 
                 uint bestBgra = bgra.Slice(bgraStart)[bestLength];

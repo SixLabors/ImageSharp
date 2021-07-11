@@ -27,6 +27,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private const float SpatialPredictorBias = 15.0f;
 
+        private const int PredLowEffort = 11;
+
         /// <summary>
         /// Finds the best predictor for each tile, and converts the image to residuals
         /// with respect to predictions. If nearLosslessQuality &lt; 100, applies
@@ -42,7 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             bool nearLossless,
             int nearLosslessQuality,
             bool exact,
-            bool usedSubtractGreen)
+            bool usedSubtractGreen,
+            bool lowEffort)
         {
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
             int tilesPerCol = LosslessUtils.SubSampleSize(height, bits);
@@ -55,27 +58,36 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 histo[i] = new int[256];
             }
 
-            // TODO: Low Effort
-            for (int tileY = 0; tileY < tilesPerCol; ++tileY)
+            if (lowEffort)
             {
-                for (int tileX = 0; tileX < tilesPerRow; ++tileX)
+                for (int i = 0; i < tilesPerRow * tilesPerCol; ++i)
                 {
-                    int pred = GetBestPredictorForTile(
-                        width,
-                        height,
-                        tileX,
-                        tileY,
-                        bits,
-                        histo,
-                        bgraScratch,
-                        bgra,
-                        maxQuantization,
-                        exact,
-                        usedSubtractGreen,
-                        nearLossless,
-                        image);
+                    image[i] = WebpConstants.ArgbBlack | (PredLowEffort << 8);
+                }
+            }
+            else
+            {
+                for (int tileY = 0; tileY < tilesPerCol; ++tileY)
+                {
+                    for (int tileX = 0; tileX < tilesPerRow; ++tileX)
+                    {
+                        int pred = GetBestPredictorForTile(
+                            width,
+                            height,
+                            tileX,
+                            tileY,
+                            bits,
+                            histo,
+                            bgraScratch,
+                            bgra,
+                            maxQuantization,
+                            exact,
+                            usedSubtractGreen,
+                            nearLossless,
+                            image);
 
-                    image[(tileY * tilesPerRow) + tileX] = (uint)(WebpConstants.ArgbBlack | (pred << 8));
+                        image[(tileY * tilesPerRow) + tileX] = (uint)(WebpConstants.ArgbBlack | (pred << 8));
+                    }
                 }
             }
 
@@ -89,7 +101,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 maxQuantization,
                 exact,
                 usedSubtractGreen,
-                nearLossless);
+                nearLossless,
+                lowEffort);
         }
 
         public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> bgra, Span<uint> image)
@@ -558,18 +571,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxQuantization,
             bool exact,
             bool usedSubtractGreen,
-            bool nearLossless)
+            bool nearLossless,
+            bool lowEffort)
         {
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
 
-            // The width of upper_row and current_row is one pixel larger than image width
+            // The width of upperRow and currentRow is one pixel larger than image width
             // to allow the top right pixel to point to the leftmost pixel of the next row
             // when at the right edge.
             Span<uint> upperRow = argbScratch;
             Span<uint> currentRow = upperRow.Slice(width + 1);
             Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
 
-            // TODO: This should be wrapped in a condition?
             Span<byte> lowerMaxDiffs = currentMaxDiffs.Slice(width);
             for (int y = 0; y < height; ++y)
             {
@@ -579,47 +592,53 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Span<uint> src = argb.Slice(y * width, width + ((y + 1) < height ? 1 : 0));
                 src.CopyTo(currentRow);
 
-                // TODO: Near lossless conditional?
-                if (maxQuantization > 1)
+                if (lowEffort)
                 {
-                    // Compute max_diffs for the lower row now, because that needs the
-                    // contents of bgra for the current row, which we will overwrite with
-                    // residuals before proceeding with the next row.
-                    Span<byte> tmp8 = currentMaxDiffs;
-                    currentMaxDiffs = lowerMaxDiffs;
-                    lowerMaxDiffs = tmp8;
-                    if (y + 2 < height)
-                    {
-                        MaxDiffsForRow(width, width, argb, (y + 1) * width, lowerMaxDiffs, usedSubtractGreen);
-                    }
+                    PredictBatch(PredLowEffort, 0, y, width, currentRow, upperRow, argb.Slice(y * width));
                 }
-
-                for (int x = 0; x < width;)
+                else
                 {
-                    int mode = (int)((modes[((y >> bits) * tilesPerRow) + (x >> bits)] >> 8) & 0xff);
-                    int xEnd = x + (1 << bits);
-                    if (xEnd > width)
+                    if (nearLossless && maxQuantization > 1)
                     {
-                        xEnd = width;
+                        // Compute maxDiffs for the lower row now, because that needs the
+                        // contents of bgra for the current row, which we will overwrite with
+                        // residuals before proceeding with the next row.
+                        Span<byte> tmp8 = currentMaxDiffs;
+                        currentMaxDiffs = lowerMaxDiffs;
+                        lowerMaxDiffs = tmp8;
+                        if (y + 2 < height)
+                        {
+                            MaxDiffsForRow(width, width, argb, (y + 1) * width, lowerMaxDiffs, usedSubtractGreen);
+                        }
                     }
 
-                    GetResidual(
-                        width,
-                        height,
-                        upperRow,
-                        currentRow,
-                        currentMaxDiffs,
-                        mode,
-                        x,
-                        xEnd,
-                        y,
-                        maxQuantization,
-                        exact,
-                        usedSubtractGreen,
-                        nearLossless,
-                        argb.Slice((y * width) + x));
+                    for (int x = 0; x < width;)
+                    {
+                        int mode = (int)((modes[((y >> bits) * tilesPerRow) + (x >> bits)] >> 8) & 0xff);
+                        int xEnd = x + (1 << bits);
+                        if (xEnd > width)
+                        {
+                            xEnd = width;
+                        }
 
-                    x = xEnd;
+                        GetResidual(
+                            width,
+                            height,
+                            upperRow,
+                            currentRow,
+                            currentMaxDiffs,
+                            mode,
+                            x,
+                            xEnd,
+                            y,
+                            maxQuantization,
+                            exact,
+                            usedSubtractGreen,
+                            nearLossless,
+                            argb.Slice((y * width) + x));
+
+                        x = xEnd;
+                    }
                 }
             }
         }

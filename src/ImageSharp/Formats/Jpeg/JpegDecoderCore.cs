@@ -924,9 +924,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 this.Frame.MaxHorizontalFactor = maxH;
                 this.Frame.MaxVerticalFactor = maxV;
-                this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
-
                 this.Frame.InitComponents();
+
+                this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
 
                 // This can be injected in SOF marker callback
                 this.scanDecoder.InjectFrameData(this.Frame, this);

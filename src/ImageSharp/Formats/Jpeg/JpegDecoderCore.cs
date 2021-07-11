@@ -875,6 +875,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.ImageSizeInPixels = new Size(this.Frame.PixelWidth, this.Frame.PixelHeight);
             this.ComponentCount = this.Frame.ComponentCount;
 
+            this.ColorSpace = this.DeduceJpegColorSpace();
+            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
+
             if (!metadataOnly)
             {
                 remaining -= length;
@@ -891,7 +894,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame.ComponentIds = new byte[this.ComponentCount];
                 this.Frame.ComponentOrder = new byte[this.ComponentCount];
                 this.Frame.Components = new JpegComponent[this.ComponentCount];
-                this.ColorSpace = this.DeduceJpegColorSpace();
 
                 int maxH = 0;
                 int maxV = 0;
@@ -922,8 +924,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 this.Frame.MaxHorizontalFactor = maxH;
                 this.Frame.MaxVerticalFactor = maxV;
-                this.ColorSpace = this.DeduceJpegColorSpace();
-                this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
                 this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
 
                 this.Frame.InitComponents();

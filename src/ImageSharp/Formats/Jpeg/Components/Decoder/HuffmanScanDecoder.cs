@@ -121,16 +121,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineData()
         {
-            if (this.ComponentsLength != this.frame.ComponentCount)
+            if (this.ComponentsLength == this.frame.ComponentCount)
             {
-                this.frame.AllocateComponents(fullScan: true);
-                this.ParseBaselineDataNonInterleaved();
+                // interleaved - we can convert spectral data stride by stride
+                this.frame.AllocateComponents(fullScan: false);
+                this.ParseBaselineDataInterleaved();
             }
             else
             {
-                // interleaved baseline is the only place where we can optimize memory footprint via reusing single spectral stride
-                this.frame.AllocateComponents(fullScan: false);
-                this.ParseBaselineDataInterleaved();
+                // non-interleaved - each scan contains
+                this.frame.AllocateComponents(fullScan: true);
+                this.ParseBaselineDataNonInterleaved();
             }
         }
 
@@ -179,7 +180,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
-                            int blockRow = (mcuRow * v) + y;
                             Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(y);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 

@@ -9,6 +9,7 @@ using System.Text;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -196,7 +197,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-            decoder.ParseStream(bufferedStream, metaDataOnly);
+            if (metaDataOnly)
+            {
+                decoder.Identify(bufferedStream, cancellationToken: default);
+            }
+            else
+            {
+                using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
+            }
 
             return decoder;
         }

@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            decoder.ParseStream(bufferedStream);
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
             var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
             VerifyJpeg.SaveSpectralImage(provider, data);
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            decoder.ParseStream(bufferedStream);
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
             var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
             this.VerifySpectralCorrectnessImpl(provider, imageSharpData);

@@ -508,7 +508,7 @@ namespace SixLabors.ImageSharp.Tests
             // Test pattern images for testing the encoder.
             public const string TestPatternOpaque = "WebP/testpattern_opaque.png";
             public const string TestPatternOpaqueSmall = "WebP/testpattern_opaque_small.png";
-            public const string RgbTestPattern = "WebP/rgb_pattern.png";
+            public const string RgbTestPattern100x100 = "WebP/rgb_pattern_100x100.png";
             public const string RgbTestPattern63x63 = "WebP/rgb_pattern_63x63.png";
 
             // Test image for encoding image with a palette.

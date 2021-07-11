@@ -87,6 +87,13 @@ namespace SixLabors.ImageSharp
             this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+        /// wrapping an external <see cref="Buffer2D{TPixel}" pixel buffer.
+        /// </summary>
+        /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+        /// <param name="pixelBuffer">Pixel buffer.</param>
+        /// <param name="metadata">The images metadata.</param>
         internal Image(
             Configuration configuration,
             Buffer2D<TPixel> pixelBuffer,

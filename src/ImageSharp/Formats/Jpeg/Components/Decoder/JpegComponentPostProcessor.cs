@@ -67,6 +67,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         public void CopyBlocksToColorBuffer(int step)
         {
+            Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
+
             var blockPp = new JpegBlockPostProcessor(this.RawJpeg, this.Component);
             float maximumValue = MathF.Pow(2, this.RawJpeg.Precision) - 1;
 
@@ -78,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 int yBlock = yBlockStart + y;
 
-                if (yBlock >= this.SizeInBlocks.Height)
+                if (yBlock >= spectralBuffer.Height)
                 {
                     break;
                 }
@@ -86,10 +88,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int yBuffer = y * this.blockAreaSize.Height;
 
                 Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);
-                Span<Block8x8> blockRow = this.Component.SpectralBlocks.GetRowSpan(yBlock);
+                Span<Block8x8> blockRow = spectralBuffer.GetRowSpan(yBlock);
 
                 // see: https://github.com/SixLabors/ImageSharp/issues/824
-                int widthInBlocks = Math.Min(this.Component.SpectralBlocks.Width, this.SizeInBlocks.Width);
+                int widthInBlocks = Math.Min(spectralBuffer.Width, this.SizeInBlocks.Width);
 
                 for (int xBlock = 0; xBlock < widthInBlocks; xBlock++)
                 {

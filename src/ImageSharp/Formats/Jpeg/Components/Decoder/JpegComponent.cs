@@ -135,14 +135,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 return;
             }
 
-            int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
-            int blocksPerColumnForMcu = fullScan ? this.Frame.McusPerColumn * this.VerticalSamplingFactor : this.VerticalSamplingFactor;
+            int spectralAllocWidth = this.SizeInBlocks.Width;
+            int spectralAllocHeight = fullScan ? this.SizeInBlocks.Height : this.VerticalSamplingFactor;
 
-            int totalNumberOfBlocks = blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
-            int width = this.WidthInBlocks + 1;
-            int height = totalNumberOfBlocks / width;
-
-            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(width, height, AllocationOptions.Clean);
+            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(spectralAllocWidth, spectralAllocHeight, AllocationOptions.Clean);
         }
     }
 }

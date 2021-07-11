@@ -108,19 +108,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        public void ClearSpectralStride(int step)
+        // TODO: refactor this
+        public void ClearSpectralBuffers()
         {
-            int yBlockStart = step * this.BlockRowsPerStep;
-            for (int y = 0; y < this.BlockRowsPerStep; y++)
+            Buffer2D<Block8x8> spectralBlocks = this.Component.SpectralBlocks;
+            for (int i = 0; i < spectralBlocks.Height; i++)
             {
-                int yBlock = yBlockStart + y;
-
-                if (yBlock >= this.SizeInBlocks.Height)
-                {
-                    break;
-                }
-
-                this.Component.SpectralBlocks.GetRowSpan(yBlock).Clear();
+                spectralBlocks.GetRowSpan(i).Clear();
             }
         }
 

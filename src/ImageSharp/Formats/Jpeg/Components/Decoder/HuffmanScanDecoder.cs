@@ -96,6 +96,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.scanBuffer = new HuffmanScanBuffer(this.stream);
 
+            bool fullScan = this.frame.Progressive || this.frame.MultiScan;
+            this.frame.AllocateComponents(fullScan);
+
             if (!this.frame.Progressive)
             {
                 this.ParseBaselineData();
@@ -123,14 +126,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (this.ComponentsLength == this.frame.ComponentCount)
             {
-                // interleaved - we can convert spectral data stride by stride
-                this.frame.AllocateComponents(fullScan: false);
                 this.ParseBaselineDataInterleaved();
             }
             else
             {
-                // non-interleaved - each scan contains
-                this.frame.AllocateComponents(fullScan: true);
                 this.ParseBaselineDataNonInterleaved();
             }
         }
@@ -303,7 +302,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.CheckProgressiveData();
 
-            this.frame.AllocateComponents(fullScan: true);
             if (this.ComponentsLength == 1)
             {
                 this.ParseProgressiveDataNonInterleaved();

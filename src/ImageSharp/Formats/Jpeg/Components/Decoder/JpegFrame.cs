@@ -21,6 +21,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public bool Progressive { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the frame is encoded using multiple scans (SOS markers).
+        /// </summary>
+        /// <remarks>
+        /// This is true for progressive and baseline non-interleaved images.
+        /// </remarks>
+        public bool MultiScan { get; set; }
+
+        /// <summary>
         /// Gets or sets the precision.
         /// </summary>
         public byte Precision { get; set; }

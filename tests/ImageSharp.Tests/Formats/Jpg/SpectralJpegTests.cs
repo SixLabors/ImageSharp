@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
-
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
@@ -71,29 +71,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-
-            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-
-            using var ms = new MemoryStream(sourceBytes);
-            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            using var spectralConverter = new SpectralConverter<TPixel>(Configuration.Default, cancellationToken: default);
-
-            var scanDecoder = new HuffmanScanDecoder(bufferedStream, spectralConverter, cancellationToken: default);
-
-            using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
-
-            var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-            this.VerifySpectralCorrectnessImpl(provider, imageSharpData);
-        }
-
-        private void VerifySpectralCorrectnessImpl<TPixel>(
-            TestImageProvider<TPixel> provider,
-            LibJpegTools.SpectralData imageSharpData)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
+            // Expected data from libjpeg
             LibJpegTools.SpectralData libJpegData = LibJpegTools.ExtractSpectralData(provider.SourceFileOrDescription);
 
+            // Calculating data from ImageSharp
+            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var ms = new MemoryStream(sourceBytes);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+
+            // internal scan decoder which we substitute to assert spectral correctness
+            using var debugConverter = new DebugSpectralConverter<TPixel>(Configuration.Default, cancellationToken: default);
+            var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
+
+            // This would parse entire image
+            // Due to underlying architecture, baseline interleaved jpegs would be tested inside the parsing loop
+            // Everything else must be checked manually after this method
+            decoder.ParseStream(bufferedStream, scanDecoder, ct: default);
+
+            var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
+            this.VerifySpectralCorrectnessImpl(libJpegData, imageSharpData);
+        }
+
+        private void VerifySpectralCorrectnessImpl(
+            LibJpegTools.SpectralData libJpegData,
+            LibJpegTools.SpectralData imageSharpData)
+        {
             bool equality = libJpegData.Equals(imageSharpData);
             this.Output.WriteLine("Spectral data equality: " + equality);
 
@@ -137,25 +141,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             private readonly SpectralConverter<TPixel> converter;
 
-            public DebugSpectralConverter(SpectralConverter<TPixel> converter)
-            {
-                this.converter = converter;
-            }
+            public DebugSpectralConverter(Configuration configuration, CancellationToken cancellationToken)
+                => this.converter = new SpectralConverter<TPixel>(configuration, cancellationToken);
 
             public override void ConvertStrideBaseline()
             {
                 this.converter.ConvertStrideBaseline();
+
+                // This would be called only for baseline non-interleaved images
+                // We must test spectral strides here
             }
 
             public override void Dispose()
             {
                 this.converter?.Dispose();
+
+                // As we are only testing spectral data we don't care about pixels
+                // But we need to dispose allocated pixel buffer
+                this.converter.PixelBuffer.Dispose();
             }
 
-            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
-            {
-                this.converter.InjectFrameData(frame, jpegData);
-            }
+            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData) => this.converter.InjectFrameData(frame, jpegData);
         }
     }
 }

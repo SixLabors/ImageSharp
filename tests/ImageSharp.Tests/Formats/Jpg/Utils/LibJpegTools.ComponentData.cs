@@ -56,6 +56,37 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.SpectralBlocks[x, y] = new Block8x8(data);
             }
 
+            public void LoadSpectralStride(Buffer2D<Block8x8> data, int strideIndex)
+            {
+                for (int y = 0; y < data.Height; y++)
+                {
+                    Span<Block8x8> blockRow = data.GetRowSpan(y);
+                    for (int x = 0; x < data.Width; x++)
+                    {
+                        short[] block = blockRow[x].ToArray();
+
+                        // x coordinate stays the same - we load entire stride
+                        // y coordinate is tricky as we load single stride to full buffer - offset is needed
+                        int yOffset = strideIndex * data.Height;
+                        this.MakeBlock(block, y + yOffset, x);
+                    }
+                }
+            }
+
+            public void LoadSpectral(JpegComponent c)
+            {
+                Buffer2D<Block8x8> data = c.SpectralBlocks;
+                for (int y = 0; y < c.HeightInBlocks; y++)
+                {
+                    Span<Block8x8> blockRow = data.GetRowSpan(y);
+                    for (int x = 0; x < c.WidthInBlocks; x++)
+                    {
+                        short[] block = blockRow[x].ToArray();
+                        this.MakeBlock(block, y, x);
+                    }
+                }
+            }
+
             public static ComponentData Load(JpegComponent c, int index)
             {
                 var result = new ComponentData(

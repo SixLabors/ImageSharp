@@ -61,7 +61,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             VerifyJpeg.SaveSpectralImage(provider, data);
         }
 
-        [Theory(Skip = "Temporary skipped due to new decoder core architecture")]
+        //[Theory(Skip = "Temporary skipped due to new decoder core architecture")]
+        [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void VerifySpectralCorrectness<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -86,12 +87,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
             // This would parse entire image
-            // Due to underlying architecture, baseline interleaved jpegs would be tested inside the parsing loop
-            // Everything else must be checked manually after this method
             decoder.ParseStream(bufferedStream, scanDecoder, ct: default);
 
-            var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-            this.VerifySpectralCorrectnessImpl(libJpegData, imageSharpData);
+            // Actual verification
+            this.VerifySpectralCorrectnessImpl(libJpegData, debugConverter.SpectralData);
         }
 
         private void VerifySpectralCorrectnessImpl(
@@ -141,8 +140,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             private readonly SpectralConverter<TPixel> converter;
 
+            private JpegFrame frame;
+
+            private LibJpegTools.SpectralData spectralData;
+
+            private int baselineScanRowCounter;
+
             public DebugSpectralConverter(Configuration configuration, CancellationToken cancellationToken)
                 => this.converter = new SpectralConverter<TPixel>(configuration, cancellationToken);
+
+            public LibJpegTools.SpectralData SpectralData
+            {
+                get
+                {
+                    // Due to underlying architecture, baseline interleaved jpegs would inject spectral data during parsing
+                    // Progressive and multi-scan images must be loaded manually
+                    if (this.frame.Progressive || this.frame.MultiScan)
+                    {
+                        LibJpegTools.ComponentData[] components = this.spectralData.Components;
+                        for (int i = 0; i < components.Length; i++)
+                        {
+                            components[i].LoadSpectral(this.frame.Components[i]);
+                        }
+                    }
+
+                    return this.spectralData;
+                }
+            }
 
             public override void ConvertStrideBaseline()
             {
@@ -150,18 +174,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 // This would be called only for baseline non-interleaved images
                 // We must test spectral strides here
+                LibJpegTools.ComponentData[] components = this.spectralData.Components;
+                for (int i = 0; i < components.Length; i++)
+                {
+                    components[i].LoadSpectralStride(this.frame.Components[i].SpectralBlocks, this.baselineScanRowCounter);
+                }
+
+                this.baselineScanRowCounter++;
             }
 
             public override void Dispose()
             {
-                this.converter?.Dispose();
-
                 // As we are only testing spectral data we don't care about pixels
                 // But we need to dispose allocated pixel buffer
                 this.converter.PixelBuffer.Dispose();
+
+                // Converter Dispose must be called after pixel buffer disposal because pixel buffer getter can do a full scan conversion
+                this.converter?.Dispose();
             }
 
-            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData) => this.converter.InjectFrameData(frame, jpegData);
+            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+            {
+                this.converter.InjectFrameData(frame, jpegData);
+
+                this.frame = frame;
+
+                var spectralComponents = new LibJpegTools.ComponentData[frame.ComponentCount];
+                for (int i = 0; i < spectralComponents.Length; i++)
+                {
+                    JpegComponent component = frame.Components[i];
+                    spectralComponents[i] = new LibJpegTools.ComponentData(component.WidthInBlocks, component.HeightInBlocks, component.Index);
+                }
+
+                this.spectralData = new LibJpegTools.SpectralData(spectralComponents);
+            }
         }
     }
 }

@@ -90,6 +90,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public override void ConvertStrideBaseline()
         {
+            // Convert next pixel stride using single spectral `stride'
+            // Note that zero passing eliminates the need of virtual call from JpegComponentPostProcessor
+            this.ConvertNextStride(spectralStep: 0);
+
             // Clear spectral stride - this is VERY important as jpeg possibly won't fill entire buffer each stride
             // Which leads to decoding artifacts
             // Note that this code clears all buffers of the post processors, it's their responsibility to allocate only single stride
@@ -97,10 +101,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 cpp.ClearSpectralBuffers();
             }
-
-            // Convert next pixel stride using single spectral `stride'
-            // Note that zero passing eliminates the need of virtual call from JpegComponentPostProcessor
-            this.ConvertNextStride(spectralStep: 0);
         }
 
         public override void Dispose()

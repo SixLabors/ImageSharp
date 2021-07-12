@@ -57,11 +57,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
             using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
+
+            // TODO: Fix this
             var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
             VerifyJpeg.SaveSpectralImage(provider, data);
         }
 
-        //[Theory(Skip = "Temporary skipped due to new decoder core architecture")]
         [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void VerifySpectralCorrectness<TPixel>(TestImageProvider<TPixel> provider)
@@ -116,11 +117,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 LibJpegTools.ComponentData libJpegComponent = libJpegData.Components[i];
                 LibJpegTools.ComponentData imageSharpComponent = imageSharpData.Components[i];
 
-                (double total, double average) diff = LibJpegTools.CalculateDifference(libJpegComponent, imageSharpComponent);
+                (double total, double average) = LibJpegTools.CalculateDifference(libJpegComponent, imageSharpComponent);
 
-                this.Output.WriteLine($"Component{i}: {diff}");
-                averageDifference += diff.average;
-                totalDifference += diff.total;
+                this.Output.WriteLine($"Component{i}: [total: {total} | average: {average}]");
+                averageDifference += average;
+                totalDifference += total;
                 tolerance += libJpegComponent.SpectralBlocks.DangerousGetSingleSpan().Length;
             }
 
@@ -173,13 +174,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.converter.ConvertStrideBaseline();
 
                 // This would be called only for baseline non-interleaved images
-                // We must test spectral strides here
+                // We must copy spectral strides here
                 LibJpegTools.ComponentData[] components = this.spectralData.Components;
                 for (int i = 0; i < components.Length; i++)
                 {
                     components[i].LoadSpectralStride(this.frame.Components[i].SpectralBlocks, this.baselineScanRowCounter);
                 }
-
                 this.baselineScanRowCounter++;
             }
 

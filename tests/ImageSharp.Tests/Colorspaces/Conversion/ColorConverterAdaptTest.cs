@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     /// <see cref="http://www.brucelindbloom.com/index.html?ChromAdaptCalc.html"/>
     /// <see cref="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </summary>
+    [Trait("Color", "Conversion")]
     public class ColorConverterAdaptTest
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);

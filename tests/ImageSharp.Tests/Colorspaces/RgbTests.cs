@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// <summary>
     /// Tests the <see cref="Rgb"/> struct.
     /// </summary>
+    [Trait("Color", "Conversion")]
     public class RgbTests
     {
         [Fact]
@@ -32,9 +33,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var x = default(Rgb);
             var y = new Rgb(Vector3.One);
 
-            Assert.True(default(Rgb) == default(Rgb));
-            Assert.False(default(Rgb) != default(Rgb));
-            Assert.Equal(default(Rgb), default(Rgb));
+            Assert.True(default(Rgb) == default);
+            Assert.False(default(Rgb) != default);
+            Assert.Equal(default(Rgb), default);
             Assert.Equal(new Rgb(1, 0, 1), new Rgb(1, 0, 1));
             Assert.Equal(new Rgb(Vector3.One), new Rgb(Vector3.One));
             Assert.False(x.Equals(y));

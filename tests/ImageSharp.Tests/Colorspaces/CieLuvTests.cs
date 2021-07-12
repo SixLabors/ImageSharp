@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// <summary>
     /// Tests the <see cref="CieLuv"/> struct.
     /// </summary>
+    [Trait("Color", "Conversion")]
     public class CieLuvTests
     {
         [Fact]

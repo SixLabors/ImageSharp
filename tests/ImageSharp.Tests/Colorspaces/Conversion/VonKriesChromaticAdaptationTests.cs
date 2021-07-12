@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
+    [Trait("Color", "Conversion")]
     public class VonKriesChromaticAdaptationTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);

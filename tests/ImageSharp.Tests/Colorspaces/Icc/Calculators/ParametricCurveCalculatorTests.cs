@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
     /// <summary>
     /// Tests ICC <see cref="ParametricCurveCalculator"/>
     /// </summary>
+    [Trait("Color", "Conversion")]
     public class ParametricCurveCalculatorTests
     {
         [Theory]

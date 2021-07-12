@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
     /// <summary>
     /// Tests ICC <see cref="ClutCalculator"/>
     /// </summary>
+    [Trait("Color", "Conversion")]
     public class ClutCalculatorTests
     {
         [Theory]

@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     /// <summary>
     /// Tests <see cref="CieLch"/>-<see cref="CieXyy"/> conversions.
     /// </summary>
+    [Trait("Color", "Conversion")]
     public class CieLchAndCieXyyConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);

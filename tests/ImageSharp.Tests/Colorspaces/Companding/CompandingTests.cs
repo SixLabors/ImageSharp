@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
     /// <summary>
     /// Tests various companding algorithms. Expanded numbers are hand calculated from formulas online.
     /// </summary>
+    [Trait("Color", "Conversion")]
     public class CompandingTests
     {
         private static readonly ApproximateFloatComparer FloatComparer = new ApproximateFloatComparer(.00001F);

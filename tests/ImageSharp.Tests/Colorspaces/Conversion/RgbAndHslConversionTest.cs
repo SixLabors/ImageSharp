@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     /// <see href="http://www.colorhexa.com"/>
     /// <see href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
     /// </remarks>
+    [Trait("Color", "Conversion")]
     public class RgbAndHslConversionTest
     {
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();

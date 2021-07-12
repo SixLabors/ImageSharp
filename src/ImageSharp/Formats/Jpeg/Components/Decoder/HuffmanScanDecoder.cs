@@ -162,7 +162,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
-                    int mcuRow = mcu / mcusPerLine;
                     int mcuCol = mcu % mcusPerLine;
                     for (int k = 0; k < this.ComponentsLength; k++)
                     {
@@ -186,6 +185,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             {
                                 if (buffer.NoData)
                                 {
+                                    // It is very likely that some spectral data was decoded before we encountered EOI marker
+                                    // so we need to decode what's left and return (or maybe throw?)
+                                    this.spectralConverter.ConvertStrideBaseline();
                                     return;
                                 }
 

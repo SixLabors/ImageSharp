@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
             // internal scan decoder which we substitute to assert spectral correctness
-            using var debugConverter = new DebugSpectralConverter<TPixel>(Configuration.Default, cancellationToken: default);
+            var debugConverter = new DebugSpectralConverter<TPixel>();
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
             // This would parse entire image
@@ -147,9 +147,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             private int baselineScanRowCounter;
 
-            public DebugSpectralConverter(Configuration configuration, CancellationToken cancellationToken)
-                => this.converter = new SpectralConverter<TPixel>(configuration, cancellationToken);
-
             public LibJpegTools.SpectralData SpectralData
             {
                 get
@@ -171,8 +168,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             public override void ConvertStrideBaseline()
             {
-                this.converter.ConvertStrideBaseline();
-
                 // This would be called only for baseline non-interleaved images
                 // We must copy spectral strides here
                 LibJpegTools.ComponentData[] components = this.spectralData.Components;
@@ -180,23 +175,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     components[i].LoadSpectralStride(this.frame.Components[i].SpectralBlocks, this.baselineScanRowCounter);
                 }
+
                 this.baselineScanRowCounter++;
-            }
-
-            public override void Dispose()
-            {
-                // As we are only testing spectral data we don't care about pixels
-                // But we need to dispose allocated pixel buffer
-                this.converter.PixelBuffer.Dispose();
-
-                // Converter Dispose must be called after pixel buffer disposal because pixel buffer getter can do a full scan conversion
-                this.converter?.Dispose();
             }
 
             public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
             {
-                this.converter.InjectFrameData(frame, jpegData);
-
                 this.frame = frame;
 
                 var spectralComponents = new LibJpegTools.ComponentData[frame.ComponentCount];

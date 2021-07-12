@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
-    internal sealed class SpectralConverter<TPixel> : SpectralConverter
+    internal sealed class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly Configuration configuration;
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             if (this.componentProcessors != null)
             {

@@ -4,7 +4,6 @@
 using BenchmarkDotNet.Attributes;
 
 using Colourful;
-using Colourful.Conversion;
 
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
@@ -19,12 +18,12 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces
 
         private static readonly ColorSpaceConverter ColorSpaceConverter = new ColorSpaceConverter();
 
-        private static readonly ColourfulConverter ColourfulConverter = new ColourfulConverter();
+        private static readonly IColorConverter<XYZColor, RGBColor> ColourfulConverter = new ConverterBuilder().FromXYZ(RGBWorkingSpaces.sRGB.WhitePoint).ToRGB(RGBWorkingSpaces.sRGB).Build();
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
         public double ColourfulConvert()
         {
-            return ColourfulConverter.ToRGB(XYZColor).R;
+            return ColourfulConverter.Convert(XYZColor).R;
         }
 
         [Benchmark(Description = "ImageSharp Convert")]

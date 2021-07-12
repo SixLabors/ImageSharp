@@ -220,9 +220,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
 
-            this.scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
+            var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
-            this.ParseStream(stream, cancellationToken: cancellationToken);
+            this.ParseStream(stream, scanDecoder, cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
-            this.ParseStream(stream, true, cancellationToken);
+            this.ParseStream(stream, scanDecoder: null, cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
@@ -244,13 +244,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Parses the input stream for file markers
+        /// Parses the input stream for file markers.
         /// </summary>
-        /// <param name="stream">The input stream</param>
-        /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        private void ParseStream(BufferedReadStream stream, bool metadataOnly = false, CancellationToken cancellationToken = default)
+        /// <param name="stream">The input stream.</param>
+        /// <param name="scanDecoder">Scan decoder used exclusively to decode SOS marker.</param>
+        /// <param name="ct">The token to monitor cancellation.</param>
+        internal void ParseStream(BufferedReadStream stream, HuffmanScanDecoder scanDecoder, CancellationToken ct)
         {
+            bool metadataOnly = scanDecoder == null;
+
+            this.scanDecoder = scanDecoder;
+
             this.Metadata = new ImageMetadata();
 
             // Check for the Start Of Image marker.
@@ -279,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             while (fileMarker.Marker != JpegConstants.Markers.EOI
                 || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                ct.ThrowIfCancellationRequested();
 
                 if (!fileMarker.Invalid)
                 {
@@ -297,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker(stream, cancellationToken);
+                                this.ProcessStartOfScanMarker(stream, ct);
                                 break;
                             }
                             else
@@ -1030,6 +1034,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             int selectorsCount = stream.ReadByte();
+            this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
             for (int i = 0; i < selectorsCount; i++)
             {
                 int componentIndex = -1;

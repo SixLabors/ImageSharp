@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
@@ -76,6 +77,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+            using var spectralConverter = new SpectralConverter<TPixel>(Configuration.Default, cancellationToken: default);
+
+            var scanDecoder = new HuffmanScanDecoder(bufferedStream, spectralConverter, cancellationToken: default);
+
             using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
             var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
@@ -125,6 +130,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"TOLERANCE = totalNumOfBlocks / 64 = {tolerance}");
 
             Assert.True(totalDifference < tolerance);
+        }
+
+        private class DebugSpectralConverter<TPixel> : SpectralConverter
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            private readonly SpectralConverter<TPixel> converter;
+
+            public DebugSpectralConverter(SpectralConverter<TPixel> converter)
+            {
+                this.converter = converter;
+            }
+
+            public override void ConvertStrideBaseline()
+            {
+                this.converter.ConvertStrideBaseline();
+            }
+
+            public override void Dispose()
+            {
+                this.converter?.Dispose();
+            }
+
+            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+            {
+                this.converter.InjectFrameData(frame, jpegData);
+            }
         }
     }
 }

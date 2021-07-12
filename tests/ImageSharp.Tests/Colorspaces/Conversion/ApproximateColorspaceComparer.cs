@@ -39,156 +39,114 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         public ApproximateColorSpaceComparer(float epsilon = 1F) => this.epsilon = epsilon;
 
         /// <inheritdoc/>
-        public bool Equals(Rgb x, Rgb y)
-        {
-            return this.Equals(x.R, y.R)
+        public bool Equals(Rgb x, Rgb y) => this.Equals(x.R, y.R)
              && this.Equals(x.G, y.G)
              && this.Equals(x.B, y.B);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(Rgb obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(LinearRgb x, LinearRgb y)
-        {
-            return this.Equals(x.R, y.R)
+        public bool Equals(LinearRgb x, LinearRgb y) => this.Equals(x.R, y.R)
              && this.Equals(x.G, y.G)
              && this.Equals(x.B, y.B);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(LinearRgb obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(CieLab x, CieLab y)
-        {
-            return this.Equals(x.L, y.L)
+        public bool Equals(CieLab x, CieLab y) => this.Equals(x.L, y.L)
              && this.Equals(x.A, y.A)
              && this.Equals(x.B, y.B);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(CieLab obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(CieLch x, CieLch y)
-        {
-            return this.Equals(x.L, y.L)
+        public bool Equals(CieLch x, CieLch y) => this.Equals(x.L, y.L)
              && this.Equals(x.C, y.C)
              && this.Equals(x.H, y.H);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(CieLch obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(CieLchuv x, CieLchuv y)
-        {
-            return this.Equals(x.L, y.L)
+        public bool Equals(CieLchuv x, CieLchuv y) => this.Equals(x.L, y.L)
              && this.Equals(x.C, y.C)
              && this.Equals(x.H, y.H);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(CieLchuv obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(CieLuv x, CieLuv y)
-        {
-            return this.Equals(x.L, y.L)
+        public bool Equals(CieLuv x, CieLuv y) => this.Equals(x.L, y.L)
              && this.Equals(x.U, y.U)
              && this.Equals(x.V, y.V);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(CieLuv obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(CieXyz x, CieXyz y)
-        {
-            return this.Equals(x.X, y.X)
+        public bool Equals(CieXyz x, CieXyz y) => this.Equals(x.X, y.X)
              && this.Equals(x.Y, y.Y)
              && this.Equals(x.Z, y.Z);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(CieXyz obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(CieXyy x, CieXyy y)
-        {
-            return this.Equals(x.X, y.X)
+        public bool Equals(CieXyy x, CieXyy y) => this.Equals(x.X, y.X)
              && this.Equals(x.Y, y.Y)
              && this.Equals(x.Yl, y.Yl);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(CieXyy obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(Cmyk x, Cmyk y)
-        {
-            return this.Equals(x.C, y.C)
+        public bool Equals(Cmyk x, Cmyk y) => this.Equals(x.C, y.C)
              && this.Equals(x.M, y.M)
              && this.Equals(x.Y, y.Y)
              && this.Equals(x.K, y.K);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(Cmyk obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(HunterLab x, HunterLab y)
-        {
-            return this.Equals(x.L, y.L)
+        public bool Equals(HunterLab x, HunterLab y) => this.Equals(x.L, y.L)
              && this.Equals(x.A, y.A)
              && this.Equals(x.B, y.B);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(HunterLab obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(Hsl x, Hsl y)
-        {
-            return this.Equals(x.H, y.H)
+        public bool Equals(Hsl x, Hsl y) => this.Equals(x.H, y.H)
              && this.Equals(x.S, y.S)
              && this.Equals(x.L, y.L);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(Hsl obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(Hsv x, Hsv y)
-        {
-            return this.Equals(x.H, y.H)
+        public bool Equals(Hsv x, Hsv y) => this.Equals(x.H, y.H)
              && this.Equals(x.S, y.S)
              && this.Equals(x.V, y.V);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(Hsv obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(Lms x, Lms y)
-        {
-            return this.Equals(x.L, y.L)
+        public bool Equals(Lms x, Lms y) => this.Equals(x.L, y.L)
              && this.Equals(x.M, y.M)
              && this.Equals(x.S, y.S);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(Lms obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(YCbCr x, YCbCr y)
-        {
-            return this.Equals(x.Y, y.Y)
+        public bool Equals(YCbCr x, YCbCr y) => this.Equals(x.Y, y.Y)
              && this.Equals(x.Cb, y.Cb)
              && this.Equals(x.Cr, y.Cr);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(YCbCr obj) => obj.GetHashCode();
@@ -222,11 +180,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         public int GetHashCode(GammaWorkingSpace obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y)
-        {
-            return this.Equals(x.WhitePoint, y.WhitePoint)
+        public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y) => this.Equals(x.WhitePoint, y.WhitePoint)
                 && this.Equals(x.ChromaticityCoordinates, y.ChromaticityCoordinates);
-        }
 
         /// <inheritdoc/>
         public int GetHashCode(RgbWorkingSpace obj) => obj.GetHashCode();

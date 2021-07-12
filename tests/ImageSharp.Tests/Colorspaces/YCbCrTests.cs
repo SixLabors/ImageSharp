@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -31,9 +31,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var x = default(YCbCr);
             var y = new YCbCr(Vector3.One);
 
-            Assert.True(default(YCbCr) == default(YCbCr));
-            Assert.False(default(YCbCr) != default(YCbCr));
-            Assert.Equal(default(YCbCr), default(YCbCr));
+            Assert.True(default == default(YCbCr));
+            Assert.False(default != default(YCbCr));
+            Assert.Equal(default, default(YCbCr));
             Assert.Equal(new YCbCr(1, 0, 1), new YCbCr(1, 0, 1));
             Assert.Equal(new YCbCr(Vector3.One), new YCbCr(Vector3.One));
             Assert.False(x.Equals(y));

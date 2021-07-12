@@ -4,7 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
+namespace SixLabors.ImageSharp.Tests.TestDataIcc.Conversion
 {
     public class IccConversionDataLutEntry
     {
@@ -13,26 +13,26 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
         private static readonly IccLut LutIdentity = CreateIdentityLut(0, 1);
 
         private static readonly IccLut8TagDataEntry Lut8 = new IccLut8TagDataEntry(
-            new IccLut[] { Lut256, Lut256 },
+            new[] { Lut256, Lut256 },
             IccConversionDataClut.Clut2x1,
-            new IccLut[] { Lut256 });
+            new[] { Lut256 });
 
         private static readonly IccLut16TagDataEntry Lut16 = new IccLut16TagDataEntry(
-            new IccLut[] { Lut32, Lut32 },
+            new[] { Lut32, Lut32 },
             IccConversionDataClut.Clut2x1,
-            new IccLut[] { LutIdentity });
+            new[] { LutIdentity });
 
         private static readonly IccLut8TagDataEntry Lut8Matrix = new IccLut8TagDataEntry(
             IccConversionDataMatrix.Matrix3x3Random,
-            new IccLut[] { Lut256, Lut256, Lut256 },
+            new[] { Lut256, Lut256, Lut256 },
             IccConversionDataClut.Clut3x1,
-            new IccLut[] { Lut256 });
+            new[] { Lut256 });
 
         private static readonly IccLut16TagDataEntry Lut16Matrix = new IccLut16TagDataEntry(
             IccConversionDataMatrix.Matrix3x3Random,
-            new IccLut[] { Lut32, Lut32, Lut32 },
+            new[] { Lut32, Lut32, Lut32 },
             IccConversionDataClut.Clut3x1,
-            new IccLut[] { LutIdentity });
+            new[] { LutIdentity });
 
         private static IccLut CreateLut(int length)
         {
@@ -45,10 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
             return new IccLut(values);
         }
 
-        private static IccLut CreateIdentityLut(float min, float max)
-        {
-            return new IccLut(new float[] { min, max });
-        }
+        private static IccLut CreateIdentityLut(float min, float max) => new IccLut(new[] { min, max });
 
         public static object[][] Lut8ConversionTestData =
         {

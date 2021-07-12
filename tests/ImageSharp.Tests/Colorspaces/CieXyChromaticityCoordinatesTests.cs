@@ -28,14 +28,14 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var x = default(CieXyChromaticityCoordinates);
             var y = new CieXyChromaticityCoordinates(1, 1);
 
-            Assert.True(default(CieXyChromaticityCoordinates) == default(CieXyChromaticityCoordinates));
-            Assert.True(new CieXyChromaticityCoordinates(1, 0) != default(CieXyChromaticityCoordinates));
-            Assert.False(new CieXyChromaticityCoordinates(1, 0) == default(CieXyChromaticityCoordinates));
-            Assert.Equal(default(CieXyChromaticityCoordinates), default(CieXyChromaticityCoordinates));
+            Assert.True(default(CieXyChromaticityCoordinates) == default);
+            Assert.True(new CieXyChromaticityCoordinates(1, 0) != default);
+            Assert.False(new CieXyChromaticityCoordinates(1, 0) == default);
+            Assert.Equal(default(CieXyChromaticityCoordinates), default);
             Assert.Equal(new CieXyChromaticityCoordinates(1, 0), new CieXyChromaticityCoordinates(1, 0));
             Assert.Equal(new CieXyChromaticityCoordinates(1, 1), new CieXyChromaticityCoordinates(1, 1));
             Assert.False(x.Equals(y));
-            Assert.False(new CieXyChromaticityCoordinates(1, 0) == default(CieXyChromaticityCoordinates));
+            Assert.False(new CieXyChromaticityCoordinates(1, 0) == default);
             Assert.False(x.Equals((object)y));
             Assert.False(x.GetHashCode().Equals(y.GetHashCode()));
         }

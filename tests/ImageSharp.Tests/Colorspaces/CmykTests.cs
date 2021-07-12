@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -33,9 +33,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var x = default(Cmyk);
             var y = new Cmyk(Vector4.One);
 
-            Assert.True(default(Cmyk) == default(Cmyk));
-            Assert.False(default(Cmyk) != default(Cmyk));
-            Assert.Equal(default(Cmyk), default(Cmyk));
+            Assert.True(default(Cmyk) == default);
+            Assert.False(default(Cmyk) != default);
+            Assert.Equal(default(Cmyk), default);
             Assert.Equal(new Cmyk(1, 0, 1, 0), new Cmyk(1, 0, 1, 0));
             Assert.Equal(new Cmyk(Vector4.One), new Cmyk(Vector4.One));
             Assert.False(x.Equals(y));

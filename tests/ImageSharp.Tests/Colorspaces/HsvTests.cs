@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -31,9 +31,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var x = default(Hsv);
             var y = new Hsv(Vector3.One);
 
-            Assert.True(default(Hsv) == default(Hsv));
-            Assert.False(default(Hsv) != default(Hsv));
-            Assert.Equal(default(Hsv), default(Hsv));
+            Assert.True(default == default(Hsv));
+            Assert.False(default(Hsv) != default);
+            Assert.Equal(default(Hsv), default);
             Assert.Equal(new Hsv(1, 0, 1), new Hsv(1, 0, 1));
             Assert.Equal(new Hsv(Vector3.One), new Hsv(Vector3.One));
             Assert.False(x.Equals(y));

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -31,9 +31,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var x = default(LinearRgb);
             var y = new LinearRgb(Vector3.One);
 
-            Assert.True(default(LinearRgb) == default(LinearRgb));
-            Assert.False(default(LinearRgb) != default(LinearRgb));
-            Assert.Equal(default(LinearRgb), default(LinearRgb));
+            Assert.True(default(LinearRgb) == default);
+            Assert.False(default(LinearRgb) != default);
+            Assert.Equal(default(LinearRgb), default);
             Assert.Equal(new LinearRgb(1, 0, 1), new LinearRgb(1, 0, 1));
             Assert.Equal(new LinearRgb(Vector3.One), new LinearRgb(Vector3.One));
             Assert.False(x.Equals(y));

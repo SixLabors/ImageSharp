@@ -1,9 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators

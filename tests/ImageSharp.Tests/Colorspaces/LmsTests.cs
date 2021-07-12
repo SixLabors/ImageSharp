@@ -31,10 +31,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var x = default(Lms);
             var y = new Lms(Vector3.One);
 
-            Assert.True(default(Lms) == default(Lms));
-            Assert.True(new Lms(1, 0, 1) != default(Lms));
-            Assert.False(new Lms(1, 0, 1) == default(Lms));
-            Assert.Equal(default(Lms), default(Lms));
+            Assert.True(default(Lms) == default);
+            Assert.True(new Lms(1, 0, 1) != default);
+            Assert.False(new Lms(1, 0, 1) == default);
+            Assert.Equal(default(Lms), default);
             Assert.Equal(new Lms(1, 0, 1), new Lms(1, 0, 1));
             Assert.Equal(new Lms(Vector3.One), new Lms(Vector3.One));
             Assert.False(x.Equals(y));

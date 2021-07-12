@@ -1,12 +1,13 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
+namespace SixLabors.ImageSharp.Tests.TestDataIcc.Conversion
 {
     public class IccConversionDataLut
     {
-        private static float[] LutEven = { 0, 0.5f, 1 };
-        private static float[] LutUneven = { 0, 0.7f, 1 };
+        private static readonly float[] LutEven = { 0, 0.5f, 1 };
+
+        private static readonly float[] LutUneven = { 0, 0.7f, 1 };
 
         public static object[][] LutConversionTestData =
         {

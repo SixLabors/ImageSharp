@@ -6,8 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
@@ -139,8 +141,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private class DebugSpectralConverter<TPixel> : SpectralConverter
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            private readonly SpectralConverter<TPixel> converter;
-
             private JpegFrame frame;
 
             private LibJpegTools.SpectralData spectralData;
@@ -177,6 +177,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
 
                 this.baselineScanRowCounter++;
+
+                // As spectral buffers are reused for each stride decoding - we need to manually clear it like it's done in SpectralConverter<TPixel>
+                foreach (JpegComponent component in this.frame.Components)
+                {
+                    Buffer2D<Block8x8> spectralBlocks = component.SpectralBlocks;
+                    for (int i = 0; i < spectralBlocks.Height; i++)
+                    {
+                        spectralBlocks.GetRowSpan(i).Clear();
+                    }
+                }
             }
 
             public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)

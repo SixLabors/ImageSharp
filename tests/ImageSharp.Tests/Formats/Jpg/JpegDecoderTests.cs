@@ -131,10 +131,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(0)]
         [InlineData(0.5)]
         [InlineData(0.9)]
-        public async Task Decode_IsCancellable(int percentageOfStreamReadToCancel)
+        public async Task DecodeAsync_IsCancellable(int percentageOfStreamReadToCancel)
         {
             var cts = new CancellationTokenSource();
-            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
             pausedStream.OnWaiting(s =>
             {

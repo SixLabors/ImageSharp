@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg400,
                 TestImages.Jpeg.Baseline.Turtle420,
                 TestImages.Jpeg.Baseline.Testorig420,
-
-                // BUG: The following image has a high difference compared to the expected output: 1.0096%
                 TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Issues.Fuzz.AccessViolationException922,
                 TestImages.Jpeg.Baseline.Jpeg444,
@@ -101,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 [TestImages.Jpeg.Baseline.Bad.BadRST] = 0.0589f / 100,
 
                 [TestImages.Jpeg.Baseline.Testorig420] = 0.38f / 100,
-                [TestImages.Jpeg.Baseline.Jpeg420Small] = 1.1f / 100,
+                [TestImages.Jpeg.Baseline.Jpeg420Small] = 0.287f / 100,
                 [TestImages.Jpeg.Baseline.Turtle420] = 1.0f / 100,
 
                 // Progressive:

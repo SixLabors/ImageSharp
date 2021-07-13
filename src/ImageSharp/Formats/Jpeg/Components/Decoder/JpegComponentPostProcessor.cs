@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Encapsulates postprocessing data for one component for <see cref="JpegImagePostProcessor"/>.
+    /// Encapsulates spectral data to rgba32 processing for one component.
     /// </summary>
     internal class JpegComponentPostProcessor : IDisposable
     {

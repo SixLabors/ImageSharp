@@ -31,13 +31,14 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         /// </param>
         public static void Main(string[] args)
         {
+            LoadResizeSaveParallelMemoryStress.Run();
             // RunJpegEncoderProfilingTests();
             // RunJpegColorProfilingTests();
             // RunDecodeJpegProfilingTests();
             // RunToVector4ProfilingTest();
             // RunResizeProfilingTest();
 
-            Console.ReadLine();
+            // Console.ReadLine();
         }
 
         private static void RunJpegEncoderProfilingTests()

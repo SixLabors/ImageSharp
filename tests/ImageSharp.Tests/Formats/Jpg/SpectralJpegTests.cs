@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
             // This would parse entire image
-            decoder.ParseStream(bufferedStream, scanDecoder, ct: default);
+            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
 
             // Actual verification
             this.VerifySpectralCorrectnessImpl(libJpegData, debugConverter.SpectralData);

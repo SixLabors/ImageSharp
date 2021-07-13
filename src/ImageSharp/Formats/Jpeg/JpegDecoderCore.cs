@@ -248,8 +248,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="stream">The input stream.</param>
         /// <param name="scanDecoder">Scan decoder used exclusively to decode SOS marker.</param>
-        /// <param name="ct">The token to monitor cancellation.</param>
-        internal void ParseStream(BufferedReadStream stream, HuffmanScanDecoder scanDecoder, CancellationToken ct)
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
+        internal void ParseStream(BufferedReadStream stream, HuffmanScanDecoder scanDecoder, CancellationToken cancellationToken)
         {
             bool metadataOnly = scanDecoder == null;
 
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             while (fileMarker.Marker != JpegConstants.Markers.EOI
                 || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
             {
-                ct.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
 
                 if (!fileMarker.Invalid)
                 {
@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker(stream, ct);
+                                this.ProcessStartOfScanMarker(stream, cancellationToken);
                                 break;
                             }
                             else

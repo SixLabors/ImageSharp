@@ -46,23 +46,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
 
-        [Theory(Skip = "Debug only, enable manually!")]
+        //[Theory(Skip = "Debug only, enable manually!")]
+        [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void Decoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-
+            // Calculating data from ImageSharp
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
+            // internal scan decoder which we substitute to assert spectral correctness
+            var debugConverter = new DebugSpectralConverter<TPixel>();
+            var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
-            // TODO: Fix this
-            var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-            VerifyJpeg.SaveSpectralImage(provider, data);
+            // This would parse entire image
+            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+            VerifyJpeg.SaveSpectralImage(provider, debugConverter.SpectralData);
         }
 
         [Theory]

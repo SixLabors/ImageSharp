@@ -1112,32 +1112,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             stream.Read(this.markerBuffer, 0, 2);
             return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
         }
-
-        /// <summary>
-        /// Post processes the pixels into the destination image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private Image<TPixel> PostProcessIntoImage<TPixel>(CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            if (this.ImageWidth == 0 || this.ImageHeight == 0)
-            {
-                JpegThrowHelper.ThrowInvalidImageDimensions(this.ImageWidth, this.ImageHeight);
-            }
-
-            var image = Image.CreateUninitialized<TPixel>(
-                this.Configuration,
-                this.ImageWidth,
-                this.ImageHeight,
-                this.Metadata);
-
-            using (var postProcessor = new JpegImagePostProcessor(this.Configuration, this))
-            {
-                postProcessor.PostProcess(image.Frames.RootFrame, cancellationToken);
-            }
-
-            return image;
-        }
     }
 }

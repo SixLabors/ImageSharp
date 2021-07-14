@@ -104,7 +104,8 @@ namespace SixLabors.ImageSharp.Memory
 
         internal override MemoryGroup<T> AllocateGroup<T>(long totalLength, int bufferAlignment, AllocationOptions options = AllocationOptions.None)
         {
-            if (totalLength < this.sharedArrayPoolThresholdInBytes)
+            long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
+            if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
             {
                 var buffer = new SharedArrayPoolBuffer<T>((int)totalLength);
                 if (options == AllocationOptions.Clean)
@@ -115,7 +116,7 @@ namespace SixLabors.ImageSharp.Memory
                 return MemoryGroup<T>.CreateContiguous(buffer);
             }
 
-            if (totalLength < this.maxContiguousPoolBufferInBytes)
+            if (totalLengthInBytes <= this.maxContiguousPoolBufferInBytes)
             {
                 // Optimized path renting single array from the pool
                 byte[] array = this.pool.Rent(options);

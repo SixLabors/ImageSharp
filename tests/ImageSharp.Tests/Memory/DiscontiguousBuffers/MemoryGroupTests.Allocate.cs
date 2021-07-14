@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
 using Xunit;
@@ -98,6 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 ValidateAllocateMemoryGroup(expectedNumberOfBuffers, expectedBufferSize, expectedSizeOfLastBuffer, g);
             }
 
+
             [Theory]
             [InlineData(AllocationOptions.None)]
             [InlineData(AllocationOptions.Clean)]
@@ -146,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 }
             }
 
-            private static void ValidateAllocateMemoryGroup<T>(
+            internal static void ValidateAllocateMemoryGroup<T>(
                 int expectedNumberOfBuffers,
                 int expectedBufferSize,
                 int expectedSizeOfLastBuffer,
@@ -214,5 +216,17 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 Assert.True(bufferHashes.SetEquals(this.MemoryAllocator.ReturnLog.Select(l => l.HashCodeOfBuffer)));
             }
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 5)]
+    internal struct S5
+    {
+        public override string ToString() => "S5";
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 4)]
+    internal struct S4
+    {
+        public override string ToString() => "S4";
     }
 }

@@ -84,6 +84,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         public int McusPerColumn { get; set; }
 
+        /// <summary>
+        /// Gets the color depth, in number of bits per pixel.
+        /// </summary>
+        public int BitsPerPixel => this.ComponentCount * this.Precision;
+
         /// <inheritdoc/>
         public void Dispose()
         {

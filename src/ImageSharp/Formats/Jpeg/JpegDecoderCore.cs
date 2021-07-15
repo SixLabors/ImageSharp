@@ -128,11 +128,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int ImageHeight => this.ImageSizeInPixels.Height;
 
         /// <summary>
-        /// Gets the color depth, in number of bits per pixel.
-        /// </summary>
-        public int BitsPerPixel => this.ComponentCount * this.Frame.Precision;
-
-        /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; }
@@ -141,9 +136,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
         /// </summary>
         public ImageMetadata Metadata { get; private set; }
-
-        /// <inheritdoc/>
-        public int ComponentCount { get; private set; }
 
         /// <inheritdoc/>
         public JpegColorSpace ColorSpace { get; private set; }
@@ -222,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
 
-            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.Metadata);
+            return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.Metadata);
         }
 
         /// <summary>
@@ -373,14 +365,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Returns the correct colorspace based on the image component count
         /// </summary>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
-        private JpegColorSpace DeduceJpegColorSpace()
+        private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
         {
-            if (this.ComponentCount == 1)
+            if (componentCount == 1)
             {
                 return JpegColorSpace.Grayscale;
             }
 
-            if (this.ComponentCount == 3)
+            if (componentCount == 3)
             {
                 if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
                 {
@@ -392,14 +384,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return JpegColorSpace.YCbCr;
             }
 
-            if (this.ComponentCount == 4)
+            if (componentCount == 4)
             {
                 return this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck
                     ? JpegColorSpace.Ycck
                     : JpegColorSpace.Cmyk;
             }
 
-            JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {this.ComponentCount}");
+            JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {componentCount}");
             return default;
         }
 
@@ -835,18 +827,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Only 8-Bit and 12-Bit precision supported.");
             }
 
-            // 2 byte: height
+            // 2 byte: Height
             int frameHeight = (this.temp[1] << 8) | this.temp[2];
 
-            // 2 byte: width
+            // 2 byte: Width
             int frameWidth = (this.temp[3] << 8) | this.temp[4];
 
             // Validity check: width/height > 0 (they are upper-bounded by 2 byte max value so no need to check that)
             if (frameHeight == 0 || frameWidth == 0)
             {
-                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.PixelWidth, this.Frame.PixelHeight);
+                JpegThrowHelper.ThrowInvalidImageDimensions(frameWidth, frameHeight);
             }
 
+            // 1 byte: Number of components
+            byte componentCount = this.temp[5];
+            this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
 
             this.Frame = new JpegFrame
             {
@@ -855,13 +850,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 Precision = precision,
                 PixelHeight = frameHeight,
                 PixelWidth = frameWidth,
-                ComponentCount = this.temp[5]
+                ComponentCount = componentCount
             };
 
             this.ImageSizeInPixels = new Size(this.Frame.PixelWidth, this.Frame.PixelHeight);
-            this.ComponentCount = this.Frame.ComponentCount;
 
-            this.ColorSpace = this.DeduceJpegColorSpace();
             this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
 
             if (!metadataOnly)
@@ -869,7 +862,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 remaining -= length;
 
                 const int componentBytes = 3;
-                if (remaining > this.ComponentCount * componentBytes)
+                if (remaining > componentCount * componentBytes)
                 {
                     JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
                 }
@@ -877,14 +870,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 stream.Read(this.temp, 0, remaining);
 
                 // No need to pool this. They max out at 4
-                this.Frame.ComponentIds = new byte[this.ComponentCount];
-                this.Frame.ComponentOrder = new byte[this.ComponentCount];
-                this.Frame.Components = new JpegComponent[this.ComponentCount];
+                this.Frame.ComponentIds = new byte[componentCount];
+                this.Frame.ComponentOrder = new byte[componentCount];
+                this.Frame.Components = new JpegComponent[componentCount];
 
                 int maxH = 0;
                 int maxV = 0;
                 int index = 0;
-                for (int i = 0; i < this.ComponentCount; i++)
+                for (int i = 0; i < componentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
                     int h = (hv >> 4) & 15;

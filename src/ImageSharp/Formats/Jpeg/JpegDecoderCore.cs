@@ -835,20 +835,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Only 8-Bit and 12-Bit precision supported.");
             }
 
+            // 2 byte: height
+            int frameHeight = (this.temp[1] << 8) | this.temp[2];
+
+            // 2 byte: width
+            int frameWidth = (this.temp[3] << 8) | this.temp[4];
+
+            // Validity check: width/height > 0 (they are upper-bounded by 2 byte max value so no need to check that)
+            if (frameHeight == 0 || frameWidth == 0)
+            {
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.PixelWidth, this.Frame.PixelHeight);
+            }
+
+
             this.Frame = new JpegFrame
             {
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
                 Precision = precision,
-                PixelHeight = (this.temp[1] << 8) | this.temp[2],
-                PixelWidth = (this.temp[3] << 8) | this.temp[4],
+                PixelHeight = frameHeight,
+                PixelWidth = frameWidth,
                 ComponentCount = this.temp[5]
             };
-
-            if (this.Frame.PixelWidth == 0 || this.Frame.PixelHeight == 0)
-            {
-                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.PixelWidth, this.Frame.PixelHeight);
-            }
 
             this.ImageSizeInPixels = new Size(this.Frame.PixelWidth, this.Frame.PixelHeight);
             this.ComponentCount = this.Frame.ComponentCount;

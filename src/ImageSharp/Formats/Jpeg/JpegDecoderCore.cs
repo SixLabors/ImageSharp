@@ -1044,19 +1044,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
-            // All the comments below are for separate refactoring PR
-            // Main reason it's not fixed here is to make this commit less intrusive
-
-            // This can be passed as ParseEntropyCodedData() parameter as it is used only there
-            this.scanDecoder.ComponentsLength = selectorsCount;
-
             // This is okay to inject here, might be good to wrap it in a separate struct but not really necessary
             this.scanDecoder.SpectralStart = spectralStart;
             this.scanDecoder.SpectralEnd = spectralEnd;
             this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
             this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
 
-            this.scanDecoder.ParseEntropyCodedData();
+            this.scanDecoder.ParseEntropyCodedData(selectorsCount);
         }
 
         /// <summary>

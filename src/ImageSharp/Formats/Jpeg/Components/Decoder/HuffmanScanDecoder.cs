@@ -22,6 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private JpegFrame frame;
         private JpegComponent[] components;
 
+        // The number of interleaved components.
+        private int componentsCount;
+
         /// <summary>
         /// The reset interval determined by RST markers.
         /// </summary>
@@ -86,9 +89,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        // The number of interleaved components.
-        public int ComponentsLength { get; set; }
-
         // The spectral selection start.
         public int SpectralStart { get; set; }
 
@@ -104,9 +104,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Decodes the entropy coded data.
         /// </summary>
-        public void ParseEntropyCodedData()
+        public void ParseEntropyCodedData(int componentCount)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
+
+            this.componentsCount = componentCount;
 
             this.scanBuffer = new HuffmanScanBuffer(this.stream);
 
@@ -138,7 +140,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineData()
         {
-            if (this.ComponentsLength == this.frame.ComponentCount)
+            if (this.componentsCount == this.frame.ComponentCount)
             {
                 this.ParseBaselineDataInterleaved();
             }
@@ -157,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
             // Pre-derive the huffman table to avoid in-loop checks.
-            for (int i = 0; i < this.ComponentsLength; i++)
+            for (int i = 0; i < this.componentsCount; i++)
             {
                 int order = this.frame.ComponentOrder[i];
                 JpegComponent component = this.components[order];
@@ -177,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     // Scan an interleaved mcu... process components in order
                     int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < this.ComponentsLength; k++)
+                    for (int k = 0; k < this.componentsCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
@@ -286,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 // AC scans may have only one component.
-                if (this.ComponentsLength != 1)
+                if (this.componentsCount != 1)
                 {
                     invalid = true;
                 }
@@ -318,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.CheckProgressiveData();
 
-            if (this.ComponentsLength == 1)
+            if (this.componentsCount == 1)
             {
                 this.ParseProgressiveDataNonInterleaved();
             }
@@ -337,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
             // Pre-derive the huffman table to avoid in-loop checks.
-            for (int k = 0; k < this.ComponentsLength; k++)
+            for (int k = 0; k < this.componentsCount; k++)
             {
                 int order = this.frame.ComponentOrder[k];
                 JpegComponent component = this.components[order];
@@ -352,7 +354,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Scan an interleaved mcu... process components in order
                     int mcuRow = mcu / mcusPerLine;
                     int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < this.ComponentsLength; k++)
+                    for (int k = 0; k < this.componentsCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];

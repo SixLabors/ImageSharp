@@ -43,11 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] markerBuffer = new byte[2];
 
         /// <summary>
-        /// The reset interval determined by RST markers.
-        /// </summary>
-        private ushort resetInterval;
-
-        /// <summary>
         /// Whether the image has an EXIF marker.
         /// </summary>
         private bool isExif;
@@ -1001,7 +996,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DRI), remaining);
             }
 
-            this.resetInterval = this.ReadUint16(stream);
+            this.scanDecoder.ResetInterval = this.ReadUint16(stream);
         }
 
         /// <summary>
@@ -1051,9 +1046,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // All the comments below are for separate refactoring PR
             // Main reason it's not fixed here is to make this commit less intrusive
-
-            // This can be injectd in DRI marker callback
-            this.scanDecoder.ResetInterval = this.resetInterval;
 
             // This can be passed as ParseEntropyCodedData() parameter as it is used only there
             this.scanDecoder.ComponentsLength = selectorsCount;

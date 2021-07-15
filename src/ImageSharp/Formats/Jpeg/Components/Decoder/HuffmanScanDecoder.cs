@@ -22,7 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private JpegFrame frame;
         private JpegComponent[] components;
 
-        // The restart interval.
+        /// <summary>
+        /// The reset interval determined by RST markers.
+        /// </summary>
         private int restartInterval;
 
         // How many mcu's are left to do.
@@ -72,7 +74,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.acHuffmanTables = new HuffmanTable[maxTables];
         }
 
-        // Reset interval
+        /// <summary>
+        /// Sets reset interval determined by RST markers.
+        /// </summary>
         public int ResetInterval
         {
             set

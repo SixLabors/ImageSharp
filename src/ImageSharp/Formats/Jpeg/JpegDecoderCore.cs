@@ -43,16 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] markerBuffer = new byte[2];
 
         /// <summary>
-        /// The DC Huffman tables.
-        /// </summary>
-        private HuffmanTable[] dcHuffmanTables;
-
-        /// <summary>
-        /// The AC Huffman tables
-        /// </summary>
-        private HuffmanTable[] acHuffmanTables;
-
-        /// <summary>
         /// The reset interval determined by RST markers.
         /// </summary>
         private ushort resetInterval;
@@ -270,14 +260,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
             this.QuantizationTables = new Block8x8F[4];
 
-            // Only assign what we need
-            if (!metadataOnly)
-            {
-                const int maxTables = 4;
-                this.dcHuffmanTables = new HuffmanTable[maxTables];
-                this.acHuffmanTables = new HuffmanTable[maxTables];
-            }
-
             // Break only when we discover a valid EOI marker.
             // https://github.com/SixLabors/ImageSharp/issues/695
             while (fileMarker.Marker != JpegConstants.Markers.EOI
@@ -392,8 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Set large fields to null.
             this.Frame = null;
-            this.dcHuffmanTables = null;
-            this.acHuffmanTables = null;
+            this.scanDecoder = null;
         }
 
         /// <summary>
@@ -996,8 +977,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                             i += 17 + codeLengthSum;
 
-                            this.BuildHuffmanTable(
-                                tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
+                            this.scanDecoder.BuildHuffmanTable(
+                                tableType,
                                 tableIndex,
                                 codeLengthsSpan,
                                 huffmanValuesSpan);
@@ -1071,10 +1052,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // All the comments below are for separate refactoring PR
             // Main reason it's not fixed here is to make this commit less intrusive
 
-            // Huffman tables can be calculated directly in the scan decoder class
-            this.scanDecoder.DcHuffmanTables = this.dcHuffmanTables;
-            this.scanDecoder.AcHuffmanTables = this.acHuffmanTables;
-
             // This can be injectd in DRI marker callback
             this.scanDecoder.ResetInterval = this.resetInterval;
 
@@ -1089,17 +1066,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.scanDecoder.ParseEntropyCodedData();
         }
-
-        /// <summary>
-        /// Builds the huffman tables
-        /// </summary>
-        /// <param name="tables">The tables</param>
-        /// <param name="index">The table index</param>
-        /// <param name="codeLengths">The codelengths</param>
-        /// <param name="values">The values</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void BuildHuffmanTable(HuffmanTable[] tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-            => tables[index] = new HuffmanTable(codeLengths, values);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes

@@ -31,6 +31,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
         private int eobrun;
 
+        /// <summary>
+        /// The DC Huffman tables.
+        /// </summary>
+        private readonly HuffmanTable[] dcHuffmanTables;
+
+        /// <summary>
+        /// The AC Huffman tables
+        /// </summary>
+        private readonly HuffmanTable[] acHuffmanTables;
+
         // The unzig data.
         private ZigZag dctZigZag;
 
@@ -55,12 +65,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.stream = stream;
             this.spectralConverter = converter;
             this.cancellationToken = cancellationToken;
+
+            // TODO: this is actually a variable value depending on component count
+            const int maxTables = 4;
+            this.dcHuffmanTables = new HuffmanTable[maxTables];
+            this.acHuffmanTables = new HuffmanTable[maxTables];
         }
-
-        // huffman tables
-        public HuffmanTable[] DcHuffmanTables { get; set; }
-
-        public HuffmanTable[] AcHuffmanTables { get; set; }
 
         // Reset interval
         public int ResetInterval
@@ -148,8 +158,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int order = this.frame.ComponentOrder[i];
                 JpegComponent component = this.components[order];
 
-                ref HuffmanTable dcHuffmanTable = ref this.DcHuffmanTables[component.DCHuffmanTableId];
-                ref HuffmanTable acHuffmanTable = ref this.AcHuffmanTables[component.ACHuffmanTableId];
+                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+                ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
                 dcHuffmanTable.Configure();
                 acHuffmanTable.Configure();
             }
@@ -168,8 +178,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
 
-                        ref HuffmanTable dcHuffmanTable = ref this.DcHuffmanTables[component.DCHuffmanTableId];
-                        ref HuffmanTable acHuffmanTable = ref this.AcHuffmanTables[component.ACHuffmanTableId];
+                        ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+                        ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
 
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -221,8 +231,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
 
-            ref HuffmanTable dcHuffmanTable = ref this.DcHuffmanTables[component.DCHuffmanTableId];
-            ref HuffmanTable acHuffmanTable = ref this.AcHuffmanTables[component.ACHuffmanTableId];
+            ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+            ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
             dcHuffmanTable.Configure();
             acHuffmanTable.Configure();
 
@@ -327,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 int order = this.frame.ComponentOrder[k];
                 JpegComponent component = this.components[order];
-                ref HuffmanTable dcHuffmanTable = ref this.DcHuffmanTables[component.DCHuffmanTableId];
+                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                 dcHuffmanTable.Configure();
             }
 
@@ -342,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
-                        ref HuffmanTable dcHuffmanTable = ref this.DcHuffmanTables[component.DCHuffmanTableId];
+                        ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
 
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -390,7 +400,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             if (this.SpectralStart == 0)
             {
-                ref HuffmanTable dcHuffmanTable = ref this.DcHuffmanTables[component.DCHuffmanTableId];
+                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                 dcHuffmanTable.Configure();
 
                 for (int j = 0; j < h; j++)
@@ -418,7 +428,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
             else
             {
-                ref HuffmanTable acHuffmanTable = ref this.AcHuffmanTables[component.ACHuffmanTableId];
+                ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
                 acHuffmanTable.Configure();
 
                 for (int j = 0; j < h; j++)
@@ -721,6 +731,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Build the huffman table using code lengths and code values.
+        /// </summary>
+        /// <param name="type">Table type.</param>
+        /// <param name="index">Table index.</param>
+        /// <param name="codeLengths">Code lengths.</param>
+        /// <param name="values">Code values.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        {
+            HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
+            tables[index] = new HuffmanTable(codeLengths, values);
         }
     }
 }

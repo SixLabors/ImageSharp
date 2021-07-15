@@ -22,10 +22,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly Size blockAreaSize;
 
         /// <summary>
+        /// Jpeg frame instance containing required decoding metadata.
+        /// </summary>
+        private readonly JpegFrame frame;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JpegComponentPostProcessor"/> class.
         /// </summary>
-        public JpegComponentPostProcessor(MemoryAllocator memoryAllocator, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
+        public JpegComponentPostProcessor(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
         {
+            this.frame = frame;
+
             this.Component = component;
             this.RawJpeg = rawJpeg;
             this.blockAreaSize = this.Component.SubSamplingDivisors * 8;
@@ -70,7 +77,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
 
             var blockPp = new JpegBlockPostProcessor(this.RawJpeg, this.Component);
-            float maximumValue = MathF.Pow(2, this.RawJpeg.Precision) - 1;
+
+            // TODO: this is a constant value for ALL components
+            float maximumValue = MathF.Pow(2, this.frame.Precision) - 1;
 
             int destAreaStride = this.ColorBuffer.Width;
 

@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The only supported precision
         /// </summary>
-        private readonly int[] supportedPrecisions = { 8, 12 };
+        private readonly byte[] supportedPrecisions = { 8, 12 };
 
         /// <summary>
         /// The buffer used to temporarily store bytes read from the stream.
@@ -147,9 +147,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc/>
         public JpegColorSpace ColorSpace { get; private set; }
-
-        /// <inheritdoc/>
-        public int Precision { get; private set; }
 
         /// <summary>
         /// Gets the components.
@@ -825,23 +822,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
-            // Read initial marker definitions.
+            // Read initial marker definitions
             const int length = 6;
             stream.Read(this.temp, 0, length);
 
-            // We only support 8-bit and 12-bit precision.
-            if (Array.IndexOf(this.supportedPrecisions, this.temp[0]) == -1)
+            // 1 byte: Bits/sample precision
+            byte precision = this.temp[0];
+
+            // Validity check: only 8-bit and 12-bit precisions are supported
+            if (Array.IndexOf(this.supportedPrecisions, precision) == -1)
             {
                 JpegThrowHelper.ThrowInvalidImageContentException("Only 8-Bit and 12-Bit precision supported.");
             }
-
-            this.Precision = this.temp[0];
 
             this.Frame = new JpegFrame
             {
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
-                Precision = this.temp[0],
+                Precision = precision,
                 PixelHeight = (this.temp[1] << 8) | this.temp[2],
                 PixelWidth = (this.temp[3] << 8) | this.temp[4],
                 ComponentCount = this.temp[5]

@@ -109,10 +109,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void Init()
         {
             this.WidthInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.SamplesPerLine / 8F) * this.HorizontalSamplingFactor / this.Frame.MaxHorizontalFactor);
+                MathF.Ceiling(this.Frame.PixelWidth / 8F) * this.HorizontalSamplingFactor / this.Frame.MaxHorizontalFactor);
 
             this.HeightInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.Scanlines / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
+                MathF.Ceiling(this.Frame.PixelHeight / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
 
             int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
             int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
@@ -125,12 +125,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 JpegThrowHelper.ThrowBadSampling();
             }
+        }
 
-            int totalNumberOfBlocks = blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
-            int width = this.WidthInBlocks + 1;
-            int height = totalNumberOfBlocks / width;
+        public void AllocateSpectral(bool fullScan)
+        {
+            if (this.SpectralBlocks != null)
+            {
+                // this method will be called each scan marker so we need to allocate only once
+                return;
+            }
 
-            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(width, height, AllocationOptions.Clean);
+            int spectralAllocWidth = this.SizeInBlocks.Width;
+            int spectralAllocHeight = fullScan ? this.SizeInBlocks.Height : this.VerticalSamplingFactor;
+
+            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(spectralAllocWidth, spectralAllocHeight, AllocationOptions.Clean);
         }
     }
 }

@@ -21,6 +21,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public bool Progressive { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the frame is encoded using multiple scans (SOS markers).
+        /// </summary>
+        /// <remarks>
+        /// This is true for progressive and baseline non-interleaved images.
+        /// </remarks>
+        public bool MultiScan { get; set; }
+
+        /// <summary>
         /// Gets or sets the precision.
         /// </summary>
         public byte Precision { get; set; }
@@ -28,12 +36,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets or sets the number of scanlines within the frame.
         /// </summary>
-        public int Scanlines { get; set; }
+        public int PixelHeight { get; set; }
 
         /// <summary>
         /// Gets or sets the number of samples per scanline.
         /// </summary>
-        public int SamplesPerLine { get; set; }
+        public int PixelWidth { get; set; }
 
         /// <summary>
         /// Gets or sets the number of components within a frame. In progressive frames this value can range from only 1 to 4.
@@ -95,13 +103,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         public void InitComponents()
         {
-            this.McusPerLine = (int)MathF.Ceiling(this.SamplesPerLine / 8F / this.MaxHorizontalFactor);
-            this.McusPerColumn = (int)MathF.Ceiling(this.Scanlines / 8F / this.MaxVerticalFactor);
+            this.McusPerLine = (int)Numerics.DivideCeil((uint)this.PixelWidth, (uint)this.MaxHorizontalFactor * 8);
+            this.McusPerColumn = (int)Numerics.DivideCeil((uint)this.PixelHeight, (uint)this.MaxVerticalFactor * 8);
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
                 JpegComponent component = this.Components[i];
                 component.Init();
+            }
+        }
+
+        public void AllocateComponents(bool fullScan)
+        {
+            for (int i = 0; i < this.ComponentCount; i++)
+            {
+                JpegComponent component = this.Components[i];
+                component.AllocateSpectral(fullScan);
             }
         }
     }

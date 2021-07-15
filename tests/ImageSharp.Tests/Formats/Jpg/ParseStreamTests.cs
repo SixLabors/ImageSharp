@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var expectedColorSpace = (JpegColorSpace)expectedColorSpaceValue;
 
-            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
+            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile, metaDataOnly: true))
             {
                 Assert.Equal(expectedColorSpace, decoder.ColorSpace);
             }

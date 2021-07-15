@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -79,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var ms = new MemoryStream(bytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-            decoder.ParseStream(bufferedStream);
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
             // I don't know why these numbers are different. All I know is that the decoder works
             // and spectral data is exactly correct also.
@@ -132,10 +131,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(0)]
         [InlineData(0.5)]
         [InlineData(0.9)]
-        public async Task Decode_IsCancellable(int percentageOfStreamReadToCancel)
+        public async Task DecodeAsync_IsCancellable(int percentageOfStreamReadToCancel)
         {
             var cts = new CancellationTokenSource();
-            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
             pausedStream.OnWaiting(s =>
             {

@@ -98,6 +98,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private AdobeMarker adobe;
 
         /// <summary>
+        /// Scan decoder.
+        /// </summary>
+        private HuffmanScanDecoder scanDecoder;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -213,18 +218,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.ParseStream(stream, cancellationToken: cancellationToken);
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
+
+            var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
+
+            this.ParseStream(stream, scanDecoder, cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
-            return this.PostProcessIntoImage<TPixel>(cancellationToken);
+
+            return new Image<TPixel>(this.Configuration, spectralConverter.PixelBuffer, this.Metadata);
         }
 
         /// <inheritdoc/>
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
-            this.ParseStream(stream, true, cancellationToken);
+            this.ParseStream(stream, scanDecoder: null, cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
@@ -234,13 +244,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Parses the input stream for file markers
+        /// Parses the input stream for file markers.
         /// </summary>
-        /// <param name="stream">The input stream</param>
-        /// <param name="metadataOnly">Whether to decode metadata only.</param>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="scanDecoder">Scan decoder used exclusively to decode SOS marker.</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        public void ParseStream(BufferedReadStream stream, bool metadataOnly = false, CancellationToken cancellationToken = default)
+        internal void ParseStream(BufferedReadStream stream, HuffmanScanDecoder scanDecoder, CancellationToken cancellationToken)
         {
+            bool metadataOnly = scanDecoder == null;
+
+            this.scanDecoder = scanDecoder;
+
             this.Metadata = new ImageMetadata();
 
             // Check for the Start Of Image marker.
@@ -852,18 +866,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
                 Precision = this.temp[0],
-                Scanlines = (this.temp[1] << 8) | this.temp[2],
-                SamplesPerLine = (this.temp[3] << 8) | this.temp[4],
+                PixelHeight = (this.temp[1] << 8) | this.temp[2],
+                PixelWidth = (this.temp[3] << 8) | this.temp[4],
                 ComponentCount = this.temp[5]
             };
 
-            if (this.Frame.SamplesPerLine == 0 || this.Frame.Scanlines == 0)
+            if (this.Frame.PixelWidth == 0 || this.Frame.PixelHeight == 0)
             {
-                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.PixelWidth, this.Frame.PixelHeight);
             }
 
-            this.ImageSizeInPixels = new Size(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+            this.ImageSizeInPixels = new Size(this.Frame.PixelWidth, this.Frame.PixelHeight);
             this.ComponentCount = this.Frame.ComponentCount;
+
+            this.ColorSpace = this.DeduceJpegColorSpace();
+            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
 
             if (!metadataOnly)
             {
@@ -881,7 +898,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame.ComponentIds = new byte[this.ComponentCount];
                 this.Frame.ComponentOrder = new byte[this.ComponentCount];
                 this.Frame.Components = new JpegComponent[this.ComponentCount];
-                this.ColorSpace = this.DeduceJpegColorSpace();
 
                 int maxH = 0;
                 int maxV = 0;
@@ -912,10 +928,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 this.Frame.MaxHorizontalFactor = maxH;
                 this.Frame.MaxVerticalFactor = maxV;
-                this.ColorSpace = this.DeduceJpegColorSpace();
-                this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
                 this.Frame.InitComponents();
+
                 this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
+
+                // This can be injected in SOF marker callback
+                this.scanDecoder.InjectFrameData(this.Frame, this);
             }
         }
 
@@ -1016,6 +1034,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             int selectorsCount = stream.ReadByte();
+            this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
             for (int i = 0; i < selectorsCount; i++)
             {
                 int componentIndex = -1;
@@ -1049,20 +1068,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
-            var sd = new HuffmanScanDecoder(
-                stream,
-                this.Frame,
-                this.dcHuffmanTables,
-                this.acHuffmanTables,
-                selectorsCount,
-                this.resetInterval,
-                spectralStart,
-                spectralEnd,
-                successiveApproximation >> 4,
-                successiveApproximation & 15,
-                cancellationToken);
+            // All the comments below are for separate refactoring PR
+            // Main reason it's not fixed here is to make this commit less intrusive
 
-            sd.ParseEntropyCodedData();
+            // Huffman tables can be calculated directly in the scan decoder class
+            this.scanDecoder.DcHuffmanTables = this.dcHuffmanTables;
+            this.scanDecoder.AcHuffmanTables = this.acHuffmanTables;
+
+            // This can be injectd in DRI marker callback
+            this.scanDecoder.ResetInterval = this.resetInterval;
+
+            // This can be passed as ParseEntropyCodedData() parameter as it is used only there
+            this.scanDecoder.ComponentsLength = selectorsCount;
+
+            // This is okay to inject here, might be good to wrap it in a separate struct but not really necessary
+            this.scanDecoder.SpectralStart = spectralStart;
+            this.scanDecoder.SpectralEnd = spectralEnd;
+            this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
+            this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
+
+            this.scanDecoder.ParseEntropyCodedData();
         }
 
         /// <summary>
@@ -1086,33 +1111,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             stream.Read(this.markerBuffer, 0, 2);
             return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
-        }
-
-        /// <summary>
-        /// Post processes the pixels into the destination image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private Image<TPixel> PostProcessIntoImage<TPixel>(CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            if (this.ImageWidth == 0 || this.ImageHeight == 0)
-            {
-                JpegThrowHelper.ThrowInvalidImageDimensions(this.ImageWidth, this.ImageHeight);
-            }
-
-            var image = Image.CreateUninitialized<TPixel>(
-                this.Configuration,
-                this.ImageWidth,
-                this.ImageHeight,
-                this.Metadata);
-
-            using (var postProcessor = new JpegImagePostProcessor(this.Configuration, this))
-            {
-                postProcessor.PostProcess(image.Frames.RootFrame, cancellationToken);
-            }
-
-            return image;
         }
     }
 }

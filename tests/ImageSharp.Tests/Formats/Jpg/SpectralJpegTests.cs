@@ -4,9 +4,12 @@
 using System;
 using System.IO;
 using System.Linq;
-
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
@@ -44,20 +47,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
 
         [Theory(Skip = "Debug only, enable manually!")]
+        //[Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void Decoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-
+            // Calculating data from ImageSharp
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            decoder.ParseStream(bufferedStream);
 
-            var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-            VerifyJpeg.SaveSpectralImage(provider, data);
+            // internal scan decoder which we substitute to assert spectral correctness
+            var debugConverter = new DebugSpectralConverter<TPixel>();
+            var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
+
+            // This would parse entire image
+            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+            VerifyJpeg.SaveSpectralImage(provider, debugConverter.SpectralData);
         }
 
         [Theory]
@@ -70,25 +78,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-
-            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-
-            using var ms = new MemoryStream(sourceBytes);
-            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            decoder.ParseStream(bufferedStream);
-
-            var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-            this.VerifySpectralCorrectnessImpl(provider, imageSharpData);
-        }
-
-        private void VerifySpectralCorrectnessImpl<TPixel>(
-            TestImageProvider<TPixel> provider,
-            LibJpegTools.SpectralData imageSharpData)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
+            // Expected data from libjpeg
             LibJpegTools.SpectralData libJpegData = LibJpegTools.ExtractSpectralData(provider.SourceFileOrDescription);
 
+            // Calculating data from ImageSharp
+            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var ms = new MemoryStream(sourceBytes);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+
+            // internal scan decoder which we substitute to assert spectral correctness
+            var debugConverter = new DebugSpectralConverter<TPixel>();
+            var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
+
+            // This would parse entire image
+            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+
+            // Actual verification
+            this.VerifySpectralCorrectnessImpl(libJpegData, debugConverter.SpectralData);
+        }
+
+        private void VerifySpectralCorrectnessImpl(
+            LibJpegTools.SpectralData libJpegData,
+            LibJpegTools.SpectralData imageSharpData)
+        {
             bool equality = libJpegData.Equals(imageSharpData);
             this.Output.WriteLine("Spectral data equality: " + equality);
 
@@ -108,11 +122,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 LibJpegTools.ComponentData libJpegComponent = libJpegData.Components[i];
                 LibJpegTools.ComponentData imageSharpComponent = imageSharpData.Components[i];
 
-                (double total, double average) diff = LibJpegTools.CalculateDifference(libJpegComponent, imageSharpComponent);
+                (double total, double average) = LibJpegTools.CalculateDifference(libJpegComponent, imageSharpComponent);
 
-                this.Output.WriteLine($"Component{i}: {diff}");
-                averageDifference += diff.average;
-                totalDifference += diff.total;
+                this.Output.WriteLine($"Component{i}: [total: {total} | average: {average}]");
+                averageDifference += average;
+                totalDifference += total;
                 tolerance += libJpegComponent.SpectralBlocks.DangerousGetSingleSpan().Length;
             }
 
@@ -125,6 +139,72 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"TOLERANCE = totalNumOfBlocks / 64 = {tolerance}");
 
             Assert.True(totalDifference < tolerance);
+        }
+
+        private class DebugSpectralConverter<TPixel> : SpectralConverter
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            private JpegFrame frame;
+
+            private LibJpegTools.SpectralData spectralData;
+
+            private int baselineScanRowCounter;
+
+            public LibJpegTools.SpectralData SpectralData
+            {
+                get
+                {
+                    // Due to underlying architecture, baseline interleaved jpegs would inject spectral data during parsing
+                    // Progressive and multi-scan images must be loaded manually
+                    if (this.frame.Progressive || this.frame.MultiScan)
+                    {
+                        LibJpegTools.ComponentData[] components = this.spectralData.Components;
+                        for (int i = 0; i < components.Length; i++)
+                        {
+                            components[i].LoadSpectral(this.frame.Components[i]);
+                        }
+                    }
+
+                    return this.spectralData;
+                }
+            }
+
+            public override void ConvertStrideBaseline()
+            {
+                // This would be called only for baseline non-interleaved images
+                // We must copy spectral strides here
+                LibJpegTools.ComponentData[] components = this.spectralData.Components;
+                for (int i = 0; i < components.Length; i++)
+                {
+                    components[i].LoadSpectralStride(this.frame.Components[i].SpectralBlocks, this.baselineScanRowCounter);
+                }
+
+                this.baselineScanRowCounter++;
+
+                // As spectral buffers are reused for each stride decoding - we need to manually clear it like it's done in SpectralConverter<TPixel>
+                foreach (JpegComponent component in this.frame.Components)
+                {
+                    Buffer2D<Block8x8> spectralBlocks = component.SpectralBlocks;
+                    for (int i = 0; i < spectralBlocks.Height; i++)
+                    {
+                        spectralBlocks.GetRowSpan(i).Clear();
+                    }
+                }
+            }
+
+            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+            {
+                this.frame = frame;
+
+                var spectralComponents = new LibJpegTools.ComponentData[frame.ComponentCount];
+                for (int i = 0; i < spectralComponents.Length; i++)
+                {
+                    JpegComponent component = frame.Components[i];
+                    spectralComponents[i] = new LibJpegTools.ComponentData(component.WidthInBlocks, component.HeightInBlocks, component.Index);
+                }
+
+                this.spectralData = new LibJpegTools.SpectralData(spectralComponents);
+            }
         }
     }
 }

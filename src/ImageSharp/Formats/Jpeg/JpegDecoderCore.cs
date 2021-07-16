@@ -985,7 +985,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (selectorsCount == 0 || selectorsCount > this.Frame.ComponentCount)
             {
                 // TODO: extract as separate method?
-                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}. Must be [1 <= count <= {this.Frame.ComponentCount}].");
+                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}.");
             }
 
             this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
@@ -1009,15 +1009,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 if (componentIndex == -1)
                 {
                     // TODO: extract as separate method?
-                    JpegThrowHelper.ThrowInvalidImageContentException($"Invalid component id in scan: {componentSelectorId}. Must be [0 <= id <= {this.Frame.ComponentCount - 1}]");
+                    JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component id in scan: {componentSelectorId}.");
                 }
 
                 this.Frame.ComponentOrder[i] = (byte)componentIndex;
 
+                JpegComponent component = this.Frame.Components[componentIndex];
+
+                // 1 byte: Huffman table selectors.
+                // 4 bits - dc
+                // 4 bits - ac
                 int tableSpec = stream.ReadByte();
-                ref JpegComponent component = ref this.Frame.Components[componentIndex];
-                component.DCHuffmanTableId = tableSpec >> 4;
-                component.ACHuffmanTableId = tableSpec & 15;
+                int dcTableIndex = tableSpec >> 4;
+                int acTableIndex = tableSpec & 15;
+
+                // Validate: both must be < 4
+                if (dcTableIndex >= 4 || acTableIndex >= 4)
+                {
+                    JpegThrowHelper.ThrowInvalidImageContentException($"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}");
+                }
+
+                component.DCHuffmanTableId = dcTableIndex;
+                component.ACHuffmanTableId = acTableIndex;
             }
 
             // 3 bytes: Progressive scan decoding data

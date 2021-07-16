@@ -18,11 +18,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     {
         private readonly BufferedReadStream stream;
 
-        // Frame related
+        /// <summary>
+        /// <see cref="JpegFrame"/> instance containing decoding-related information.
+        /// </summary>
         private JpegFrame frame;
+
+        /// <summary>
+        /// Shortcut for <see cref="frame"/>.Components.
+        /// </summary>
         private JpegComponent[] components;
 
-        // The number of interleaved components.
+        /// <summary>
+        /// Number of component in the current scan.
+        /// </summary>
         private int componentsCount;
 
         /// <summary>

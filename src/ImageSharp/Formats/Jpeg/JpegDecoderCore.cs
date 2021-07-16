@@ -1034,6 +1034,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 // Validate: both must be < 4
                 if (dcTableIndex >= 4 || acTableIndex >= 4)
                 {
+                    // TODO: extract as separate method?
                     JpegThrowHelper.ThrowInvalidImageContentException($"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}");
                 }
 

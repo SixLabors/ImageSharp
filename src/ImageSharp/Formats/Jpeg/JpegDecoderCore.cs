@@ -250,7 +250,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker(stream, cancellationToken);
+                                this.ProcessStartOfScanMarker(stream, remaining, cancellationToken);
                                 break;
                             }
                             else
@@ -969,7 +969,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
-        private void ProcessStartOfScanMarker(BufferedReadStream stream, CancellationToken cancellationToken)
+        private void ProcessStartOfScanMarker(BufferedReadStream stream, int remaining, CancellationToken cancellationToken)
         {
             if (this.Frame is null)
             {
@@ -986,11 +986,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}.");
             }
 
+            // Validate: marker must contain exactly (4 + selectorsCount*2) bytes
+            int selectorsBytes = selectorsCount * 2;
+            if (remaining != 4 + selectorsBytes)
+            {
+                JpegThrowHelper.ThrowBadMarker("SOS", remaining);
+            }
+
+            // selectorsCount*2 bytes: component index + huffman tables indices
+            stream.Read(this.temp, 0, selectorsBytes);
+
             this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
-            for (int i = 0; i < selectorsCount; i++)
+            for (int i = 0; i < selectorsBytes; i += 2)
             {
                 // 1 byte: Component id
-                int componentSelectorId = stream.ReadByte();
+                int componentSelectorId = this.temp[i];
 
                 int componentIndex = -1;
                 for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
@@ -1010,14 +1020,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component id in scan: {componentSelectorId}.");
                 }
 
-                this.Frame.ComponentOrder[i] = (byte)componentIndex;
+                this.Frame.ComponentOrder[i / 2] = (byte)componentIndex;
 
                 JpegComponent component = this.Frame.Components[componentIndex];
 
                 // 1 byte: Huffman table selectors.
                 // 4 bits - dc
                 // 4 bits - ac
-                int tableSpec = stream.ReadByte();
+                int tableSpec = this.temp[i + 1];
                 int dcTableIndex = tableSpec >> 4;
                 int acTableIndex = tableSpec & 15;
 

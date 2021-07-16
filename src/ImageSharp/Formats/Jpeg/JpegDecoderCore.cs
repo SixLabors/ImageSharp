@@ -984,7 +984,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Validate: 0 < count <= totalComponents
             if (selectorsCount == 0 || selectorsCount > this.Frame.ComponentCount)
             {
-                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}. Must be [0 < count <= {this.Frame.ComponentCount}]");
+                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}. Must be [1 <= count <= {this.Frame.ComponentCount}]");
             }
 
             this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
@@ -1008,22 +1008,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component selector {componentIndex}.");
                 }
 
-                ref JpegComponent component = ref this.Frame.Components[componentIndex];
+                this.Frame.ComponentOrder[i] = (byte)componentIndex;
+
                 int tableSpec = stream.ReadByte();
+                ref JpegComponent component = ref this.Frame.Components[componentIndex];
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
-                this.Frame.ComponentOrder[i] = (byte)componentIndex;
             }
 
+            // 3 bytes: Progressive scan decoding data
             stream.Read(this.temp, 0, 3);
 
             int spectralStart = this.temp[0];
-            int spectralEnd = this.temp[1];
-            int successiveApproximation = this.temp[2];
-
-            // This is okay to inject here, might be good to wrap it in a separate struct but not really necessary
             this.scanDecoder.SpectralStart = spectralStart;
+
+            int spectralEnd = this.temp[1];
             this.scanDecoder.SpectralEnd = spectralEnd;
+
+            int successiveApproximation = this.temp[2];
             this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
             this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
 

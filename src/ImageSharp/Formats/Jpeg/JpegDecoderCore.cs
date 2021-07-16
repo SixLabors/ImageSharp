@@ -984,28 +984,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Validate: 0 < count <= totalComponents
             if (selectorsCount == 0 || selectorsCount > this.Frame.ComponentCount)
             {
-                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}. Must be [1 <= count <= {this.Frame.ComponentCount}]");
+                // TODO: extract as separate method?
+                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}. Must be [1 <= count <= {this.Frame.ComponentCount}].");
             }
 
             this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
             for (int i = 0; i < selectorsCount; i++)
             {
-                int componentIndex = -1;
-                int selector = stream.ReadByte();
+                // 1 byte: Component id
+                int componentSelectorId = stream.ReadByte();
 
+                int componentIndex = -1;
                 for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
                 {
                     byte id = this.Frame.ComponentIds[j];
-                    if (selector == id)
+                    if (componentSelectorId == id)
                     {
                         componentIndex = j;
                         break;
                     }
                 }
 
-                if (componentIndex < 0)
+                // Validate: must be found among registered components
+                if (componentIndex == -1)
                 {
-                    JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component selector {componentIndex}.");
+                    // TODO: extract as separate method?
+                    JpegThrowHelper.ThrowInvalidImageContentException($"Invalid component id in scan: {componentSelectorId}. Must be [0 <= id <= {this.Frame.ComponentCount - 1}]");
                 }
 
                 this.Frame.ComponentOrder[i] = (byte)componentIndex;

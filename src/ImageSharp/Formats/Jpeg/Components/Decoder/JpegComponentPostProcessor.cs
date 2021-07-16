@@ -78,8 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             var blockPp = new JpegBlockPostProcessor(this.RawJpeg, this.Component);
 
-            // TODO: this is a constant value for ALL components
-            float maximumValue = MathF.Pow(2, this.frame.Precision) - 1;
+            float maximumValue = this.frame.MaxColorChannelValue;
 
             int destAreaStride = this.ColorBuffer.Width;
 

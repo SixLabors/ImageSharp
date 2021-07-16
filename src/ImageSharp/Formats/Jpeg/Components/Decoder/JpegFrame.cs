@@ -90,6 +90,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public int McusPerColumn { get; set; }
 
         /// <summary>
+        /// Gets the mcu size of the image.
+        /// </summary>
+        public Size McuSize => new Size(this.McusPerLine, this.McusPerColumn);
+
+        /// <summary>
         /// Gets the color depth, in number of bits per pixel.
         /// </summary>
         public int BitsPerPixel => this.ComponentCount * this.Precision;

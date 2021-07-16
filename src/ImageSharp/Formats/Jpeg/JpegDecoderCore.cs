@@ -113,11 +113,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         Size IImageDecoderInternals.Dimensions => this.Frame.PixelSize;
 
         /// <summary>
-        /// Gets the number of MCU blocks in the image as <see cref="Size"/>.
-        /// </summary>
-        public Size ImageSizeInMCU { get; private set; }
-
-        /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; }
@@ -834,6 +829,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             byte componentCount = this.temp[5];
             this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
 
+            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
+
             this.Frame = new JpegFrame
             {
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
@@ -844,14 +841,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 ComponentCount = componentCount
             };
 
-            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
-
             if (!metadataOnly)
             {
                 remaining -= length;
 
                 const int componentBytes = 3;
-                if (remaining > componentCount * componentBytes)
+                if (remaining != componentCount * componentBytes)
                 {
                     JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
                 }
@@ -894,9 +889,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame.MaxVerticalFactor = maxV;
                 this.Frame.InitComponents();
 
-                this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
-
-                // This can be injected in SOF marker callback
                 this.scanDecoder.InjectFrameData(this.Frame, this);
             }
         }

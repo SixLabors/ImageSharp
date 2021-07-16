@@ -123,8 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
             this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
 
-            JpegComponent c0 = this.Frame.Components[0];
-            this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
+            this.SubSamplingDivisors = new Size(maxSubFactorH, maxSubFactorV).DivideBy(this.SamplingFactors);
 
             if (this.SubSamplingDivisors.Width == 0 || this.SubSamplingDivisors.Height == 0)
             {

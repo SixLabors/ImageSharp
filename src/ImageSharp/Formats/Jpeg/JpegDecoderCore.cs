@@ -107,9 +107,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public JpegFrame Frame { get; private set; }
 
         /// <inheritdoc/>
-        public Size ImageSizeInPixels { get; private set; }
-
-        /// <inheritdoc/>
         Size IImageDecoderInternals.Dimensions => this.Frame.PixelSize;
 
         /// <summary>
@@ -845,12 +842,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 remaining -= length;
 
+                // Validity check: remaining part must be equal to components * 3
                 const int componentBytes = 3;
                 if (remaining != componentCount * componentBytes)
                 {
                     JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
                 }
 
+                // components*3 bytes: component data
                 stream.Read(this.temp, 0, remaining);
 
                 // No need to pool this. They max out at 4
@@ -885,9 +884,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     index += componentBytes;
                 }
 
-                this.Frame.MaxHorizontalFactor = maxH;
-                this.Frame.MaxVerticalFactor = maxV;
-                this.Frame.InitComponents();
+                this.Frame.Init(maxH, maxV);
 
                 this.scanDecoder.InjectFrameData(this.Frame, this);
             }

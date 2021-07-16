@@ -106,13 +106,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.SpectralBlocks = null;
         }
 
-        public void Init()
+        /// <summary>
+        /// Initializes component for future buffers initialization.
+        /// </summary>
+        /// <param name="maxSubFactorH">Maximal horizontal subsampling factor among all the components.</param>
+        /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
+        public void Init(int maxSubFactorH, int maxSubFactorV)
         {
             this.WidthInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.PixelWidth / 8F) * this.HorizontalSamplingFactor / this.Frame.MaxHorizontalFactor);
+                MathF.Ceiling(this.Frame.PixelWidth / 8F) * this.HorizontalSamplingFactor / maxSubFactorH);
 
             this.HeightInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.PixelHeight / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
+                MathF.Ceiling(this.Frame.PixelHeight / 8F) * this.VerticalSamplingFactor / maxSubFactorV);
 
             int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
             int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;

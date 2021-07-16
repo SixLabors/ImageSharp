@@ -70,16 +70,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public JpegComponent[] Components { get; set; }
 
         /// <summary>
-        /// Gets or sets the maximum horizontal sampling factor.
-        /// </summary>
-        public int MaxHorizontalFactor { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum vertical sampling factor.
-        /// </summary>
-        public int MaxVerticalFactor { get; set; }
-
-        /// <summary>
         /// Gets or sets the number of MCU's per line.
         /// </summary>
         public int McusPerLine { get; set; }
@@ -116,15 +106,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Allocates the frame component blocks.
         /// </summary>
-        public void InitComponents()
+        /// <param name="maxSubFactorH">Maximal horizontal subsampling factor among all the components.</param>
+        /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
+        public void Init(int maxSubFactorH, int maxSubFactorV)
         {
-            this.McusPerLine = (int)Numerics.DivideCeil((uint)this.PixelWidth, (uint)this.MaxHorizontalFactor * 8);
-            this.McusPerColumn = (int)Numerics.DivideCeil((uint)this.PixelHeight, (uint)this.MaxVerticalFactor * 8);
+            this.McusPerLine = (int)Numerics.DivideCeil((uint)this.PixelWidth, (uint)maxSubFactorH * 8);
+            this.McusPerColumn = (int)Numerics.DivideCeil((uint)this.PixelHeight, (uint)maxSubFactorV * 8);
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
                 JpegComponent component = this.Components[i];
-                component.Init();
+                component.Init(maxSubFactorH, maxSubFactorV);
             }
         }
 

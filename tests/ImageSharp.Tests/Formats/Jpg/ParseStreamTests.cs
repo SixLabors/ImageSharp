@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(1, decoder.Frame.ComponentCount);
                 Assert.Equal(1, decoder.Components.Length);
 
-                Size expectedSizeInBlocks = decoder.ImageSizeInPixels.DivideRoundUp(8);
+                Size expectedSizeInBlocks = decoder.Frame.PixelSize.DivideRoundUp(8);
 
                 Assert.Equal(expectedSizeInBlocks, decoder.Frame.McuSize);
 
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
             {
                 sb.AppendLine(imageFile);
-                sb.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.Frame.McuSize}");
+                sb.AppendLine($"Size:{decoder.Frame.PixelSize} MCU:{decoder.Frame.McuSize}");
                 JpegComponent c0 = decoder.Components[0];
                 JpegComponent c1 = decoder.Components[1];
 

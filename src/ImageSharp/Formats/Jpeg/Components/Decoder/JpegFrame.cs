@@ -10,15 +10,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
-        /// <summary>
-        /// Gets or sets a value indicating whether the frame uses the extended specification.
-        /// </summary>
-        public bool Extended { get; set; }
+        public JpegFrame(JpegFileMarker sofMarker, byte precision, int width, int height, byte componentCount)
+        {
+            this.Extended = sofMarker.Marker == JpegConstants.Markers.SOF1;
+            this.Progressive = sofMarker.Marker == JpegConstants.Markers.SOF2;
+
+            this.Precision = precision;
+            this.MaxColorChannelValue = MathF.Pow(2, precision) - 1;
+
+            this.PixelWidth = width;
+            this.PixelHeight = height;
+
+            this.ComponentCount = componentCount;
+        }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the frame uses the progressive specification.
+        /// Gets a value indicating whether the frame uses the extended specification.
         /// </summary>
-        public bool Progressive { get; set; }
+        public bool Extended { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the frame uses the progressive specification.
+        /// </summary>
+        public bool Progressive { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the frame is encoded using multiple scans (SOS markers).
@@ -29,19 +43,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public bool MultiScan { get; set; }
 
         /// <summary>
-        /// Gets or sets the precision.
+        /// Gets the precision.
         /// </summary>
-        public byte Precision { get; set; }
+        public byte Precision { get; private set; }
 
         /// <summary>
-        /// Gets or sets the number of scanlines within the frame.
+        /// Gets the maximum color value derived from <see cref="Precision"/>.
         /// </summary>
-        public int PixelHeight { get; set; }
+        public float MaxColorChannelValue { get; private set; }
 
         /// <summary>
-        /// Gets or sets the number of samples per scanline.
+        /// Gets the number of pixel per row.
         /// </summary>
-        public int PixelWidth { get; set; }
+        public int PixelHeight { get; private set; }
+
+        /// <summary>
+        /// Gets the number of pixels per line.
+        /// </summary>
+        public int PixelWidth { get; private set; }
 
         /// <summary>
         /// Gets the pixel size of the image.
@@ -49,9 +68,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public Size PixelSize => new Size(this.PixelWidth, this.PixelHeight);
 
         /// <summary>
-        /// Gets or sets the number of components within a frame. In progressive frames this value can range from only 1 to 4.
+        /// Gets the number of components within a frame. In progressive frames this value can range from only 1 to 4.
         /// </summary>
-        public byte ComponentCount { get; set; }
+        public byte ComponentCount { get; private set; }
 
         /// <summary>
         /// Gets or sets the component id collection.

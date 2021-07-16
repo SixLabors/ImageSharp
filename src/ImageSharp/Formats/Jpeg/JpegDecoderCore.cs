@@ -828,15 +828,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
 
-            this.Frame = new JpegFrame
-            {
-                Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
-                Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
-                Precision = precision,
-                PixelHeight = frameHeight,
-                PixelWidth = frameWidth,
-                ComponentCount = componentCount
-            };
+            this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
 
             if (!metadataOnly)
             {

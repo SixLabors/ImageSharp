@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public Size PixelSize => new Size(this.PixelWidth, this.PixelHeight);
 
         /// <summary>
-        /// Gets the number of components within a frame. In progressive frames this value can range from only 1 to 4.
+        /// Gets the number of components within a frame.
         /// </summary>
         public byte ComponentCount { get; private set; }
 

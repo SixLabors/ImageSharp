@@ -804,7 +804,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // 1 byte: Bits/sample precision
             byte precision = this.temp[0];
 
-            // Validity check: only 8-bit and 12-bit precisions are supported
+            // Validate: only 8-bit and 12-bit precisions are supported
             if (Array.IndexOf(this.supportedPrecisions, precision) == -1)
             {
                 JpegThrowHelper.ThrowInvalidImageContentException("Only 8-Bit and 12-Bit precision supported.");
@@ -816,7 +816,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // 2 byte: Width
             int frameWidth = (this.temp[3] << 8) | this.temp[4];
 
-            // Validity check: width/height > 0 (they are upper-bounded by 2 byte max value so no need to check that)
+            // Validate: width/height > 0 (they are upper-bounded by 2 byte max value so no need to check that)
             if (frameHeight == 0 || frameWidth == 0)
             {
                 JpegThrowHelper.ThrowInvalidImageDimensions(frameWidth, frameHeight);
@@ -834,7 +834,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 remaining -= length;
 
-                // Validity check: remaining part must be equal to components * 3
+                // Validate: remaining part must be equal to components * 3
                 const int componentBytes = 3;
                 if (remaining != componentCount * componentBytes)
                 {
@@ -978,7 +978,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
             }
 
+            // 1 byte: Number of components in scan
             int selectorsCount = stream.ReadByte();
+
+            // Validate: 0 < count <= totalComponents
+            if (selectorsCount == 0 || selectorsCount > this.Frame.ComponentCount)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}. Must be [0 < count <= {this.Frame.ComponentCount}]");
+            }
+
             this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
             for (int i = 0; i < selectorsCount; i++)
             {

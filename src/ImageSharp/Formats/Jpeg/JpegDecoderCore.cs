@@ -513,7 +513,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
             }
 
-            var profile = new byte[remaining];
+            byte[] profile = new byte[remaining];
             stream.Read(profile, 0, remaining);
 
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
@@ -547,14 +547,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            var identifier = new byte[Icclength];
+            byte[] identifier = new byte[Icclength];
             stream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 this.isIcc = true;
-                var profile = new byte[remaining];
+                byte[] profile = new byte[remaining];
                 stream.Read(profile, 0, remaining);
 
                 if (this.iccData is null)
@@ -592,7 +592,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             remaining -= ProfileResolver.AdobePhotoshopApp13Marker.Length;
             if (ProfileResolver.IsProfile(this.temp, ProfileResolver.AdobePhotoshopApp13Marker))
             {
-                var resourceBlockData = new byte[remaining];
+                byte[] resourceBlockData = new byte[remaining];
                 stream.Read(resourceBlockData, 0, remaining);
                 Span<byte> blockDataSpan = resourceBlockData.AsSpan();
 
@@ -607,8 +607,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     Span<byte> imageResourceBlockId = blockDataSpan.Slice(0, 2);
                     if (ProfileResolver.IsProfile(imageResourceBlockId, ProfileResolver.AdobeIptcMarker))
                     {
-                        var resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
-                        var resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
+                        int resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
+                        int resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
                         int dataStartIdx = 2 + resourceBlockNameLength + 4;
                         if (resourceDataSize > 0 && blockDataSpan.Length >= dataStartIdx + resourceDataSize)
                         {
@@ -619,8 +619,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     }
                     else
                     {
-                        var resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
-                        var resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
+                        int resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
+                        int resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
                         int dataStartIdx = 2 + resourceBlockNameLength + 4;
                         if (blockDataSpan.Length < dataStartIdx + resourceDataSize)
                         {
@@ -643,7 +643,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private static int ReadImageResourceNameLength(Span<byte> blockDataSpan)
         {
             byte nameLength = blockDataSpan[2];
-            var nameDataSize = nameLength == 0 ? 2 : nameLength;
+            int nameDataSize = nameLength == 0 ? 2 : nameLength;
             if (nameDataSize % 2 != 0)
             {
                 nameDataSize++;
@@ -660,9 +660,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <returns>The block length.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int ReadResourceDataLength(Span<byte> blockDataSpan, int resourceBlockNameLength)
-        {
-            return BinaryPrimitives.ReadInt32BigEndian(blockDataSpan.Slice(2 + resourceBlockNameLength, 4));
-        }
+            => BinaryPrimitives.ReadInt32BigEndian(blockDataSpan.Slice(2 + resourceBlockNameLength, 4));
 
         /// <summary>
         /// Processes the application header containing the Adobe identifier

@@ -110,22 +110,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Size ImageSizeInPixels { get; private set; }
 
         /// <inheritdoc/>
-        Size IImageDecoderInternals.Dimensions => this.ImageSizeInPixels;
+        Size IImageDecoderInternals.Dimensions => this.Frame.PixelSize;
 
         /// <summary>
         /// Gets the number of MCU blocks in the image as <see cref="Size"/>.
         /// </summary>
         public Size ImageSizeInMCU { get; private set; }
-
-        /// <summary>
-        /// Gets the image width
-        /// </summary>
-        public int ImageWidth => this.ImageSizeInPixels.Width;
-
-        /// <summary>
-        /// Gets the image height
-        /// </summary>
-        public int ImageHeight => this.ImageSizeInPixels.Height;
 
         /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -214,7 +204,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
 
-            return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.Metadata);
+            Size pixelSize = this.Frame.PixelSize;
+            return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), pixelSize.Width, pixelSize.Height, this.Metadata);
         }
 
         /// <summary>
@@ -852,8 +843,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 PixelWidth = frameWidth,
                 ComponentCount = componentCount
             };
-
-            this.ImageSizeInPixels = new Size(this.Frame.PixelWidth, this.Frame.PixelHeight);
 
             this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
 

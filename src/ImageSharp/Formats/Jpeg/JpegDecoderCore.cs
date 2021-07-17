@@ -755,26 +755,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             while (remaining > 0)
             {
-                bool done = false;
-                remaining--;
+                // 1 byte: quantization table spec
+                // bit 0..3: table index (0..3)
+                // bit 4..7: table precision (0 = 8 bit, 1 = 16 bit)
                 int quantizationTableSpec = stream.ReadByte();
                 int tableIndex = quantizationTableSpec & 15;
+                int tablePrecision = quantizationTableSpec >> 4;
 
-                // Max index. 4 Tables max.
+                // Validate:
                 if (tableIndex > 3)
                 {
-                    JpegThrowHelper.ThrowBadQuantizationTable();
+                    JpegThrowHelper.ThrowBadQuantizationTableIndex(tableIndex);
                 }
 
-                switch (quantizationTableSpec >> 4)
+                remaining--;
+                switch (tablePrecision)
                 {
+                    // 8 bit values
                     case 0:
                     {
-                        // 8 bit values
+                        // Validate: 8 bit table needs exactly 64 bytes
                         if (remaining < 64)
                         {
-                            done = true;
-                            break;
+                            JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
                         }
 
                         stream.Read(this.temp, 0, 64);
@@ -785,16 +788,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         {
                             table[j] = this.temp[j];
                         }
+
+                        break;
                     }
 
-                    break;
+                    // 16 bit values
                     case 1:
                     {
-                        // 16 bit values
+                        // Validate: 16 bit table needs exactly 128 bytes
                         if (remaining < 128)
                         {
-                            done = true;
-                            break;
+                            JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
                         }
 
                         stream.Read(this.temp, 0, 128);
@@ -805,26 +809,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         {
                             table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
                         }
+
+                        break;
                     }
 
-                    break;
-
+                    // Unknown precision - error
                     default:
                     {
-                        JpegThrowHelper.ThrowBadQuantizationTable();
+                        JpegThrowHelper.ThrowBadQuantizationTablePrecision(tablePrecision);
                         break;
                     }
                 }
-
-                if (done)
-                {
-                    break;
-                }
-            }
-
-            if (remaining != 0)
-            {
-                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
             }
 
             this.Metadata.GetFormatMetadata(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);

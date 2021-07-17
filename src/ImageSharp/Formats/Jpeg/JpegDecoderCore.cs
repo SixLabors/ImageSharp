@@ -753,6 +753,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void ProcessDefineQuantizationTablesMarker(BufferedReadStream stream, int remaining)
         {
+            JpegMetadata jpegMetadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
+
             while (remaining > 0)
             {
                 // 1 byte: quantization table spec
@@ -769,6 +771,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 remaining--;
+
+                // Decoding single 8x8 table
+                ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                 switch (tablePrecision)
                 {
                     // 8 bit values
@@ -783,7 +788,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         stream.Read(this.temp, 0, 64);
                         remaining -= 64;
 
-                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                         for (int j = 0; j < 64; j++)
                         {
                             table[j] = this.temp[j];
@@ -804,7 +808,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         stream.Read(this.temp, 0, 128);
                         remaining -= 128;
 
-                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                         for (int j = 0; j < 64; j++)
                         {
                             table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
@@ -820,9 +823,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         break;
                     }
                 }
-            }
 
-            this.Metadata.GetFormatMetadata(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
+                // Estimating quality
+                switch (tableIndex)
+                {
+                    // luminance table
+                    case 0:
+                    {
+                        Quantization.EstimateQuality(ref table, Quantization.UnscaledQuant_Luminance, out double quality, out double variance);
+                        jpegMetadata.LumaQuality = quality;
+                        if (variance <= Quantization.StandardLuminanceTableVarianceThreshold)
+                        {
+                            jpegMetadata.lumaQuantizationTable = table.RoundAsInt16Block();
+                        }
+
+                        break;
+                    }
+
+                    // chrominance table
+                    case 1:
+                    {
+                        Quantization.EstimateQuality(ref table, Quantization.UnscaledQuant_Chrominance, out double quality, out double variance);
+                        jpegMetadata.ChromaQuality = quality;
+                        if (variance <= Quantization.StandardChrominanceTableVarianceThreshold)
+                        {
+                            jpegMetadata.chromaQuantizationTable = table.RoundAsInt16Block();
+                        }
+
+                        break;
+                    }
+                }
+            }
         }
 
         /// <summary>

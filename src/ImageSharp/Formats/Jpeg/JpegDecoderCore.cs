@@ -834,7 +834,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         jpegMetadata.LumaQuality = quality;
                         if (variance <= Quantization.StandardLuminanceTableVarianceThreshold)
                         {
-                            jpegMetadata.lumaQuantizationTable = table.RoundAsInt16Block();
+                            jpegMetadata.LumaQuantizationTable = table.RoundAsInt16Block();
                         }
 
                         break;
@@ -847,7 +847,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         jpegMetadata.ChromaQuality = quality;
                         if (variance <= Quantization.StandardChrominanceTableVarianceThreshold)
                         {
-                            jpegMetadata.chromaQuantizationTable = table.RoundAsInt16Block();
+                            jpegMetadata.ChromaQuantizationTable = table.RoundAsInt16Block();
                         }
 
                         break;

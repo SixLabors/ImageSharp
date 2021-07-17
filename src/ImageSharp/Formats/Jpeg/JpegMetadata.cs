@@ -12,26 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     public class JpegMetadata : IDeepCloneable
     {
         /// <summary>
-        /// Luminance qunatization table derived from jpeg image.
-        /// </summary>
-        /// <remarks>
-        /// Would be null if jpeg was encoded using table from ITU spec
-        /// </remarks>
-        internal Block8x8? lumaQuantizationTable;
-
-        /// <summary>
-        /// Luminance qunatization table derived from jpeg image.
-        /// </summary>
-        /// <remarks>
-        /// Would be null if jpeg was encoded using table from ITU spec
-        /// </remarks>
-        internal Block8x8? chromaQuantizationTable;
-
-        internal double LumaQuality;
-
-        internal double ChromaQuality;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
         /// </summary>
         public JpegMetadata()
@@ -47,11 +27,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.Quality = other.Quality;
             this.ColorType = other.ColorType;
 
-            this.lumaQuantizationTable = other.lumaQuantizationTable;
-            this.chromaQuantizationTable = other.chromaQuantizationTable;
+            this.LumaQuantizationTable = other.LumaQuantizationTable;
+            this.ChromaQuantizationTable = other.ChromaQuantizationTable;
             this.LumaQuality = other.LumaQuality;
             this.ChromaQuality = other.ChromaQuality;
         }
+
+        /// <summary>
+        /// Gets or sets luminance qunatization table derived from jpeg image.
+        /// </summary>
+        /// <remarks>
+        /// Would be null if jpeg was encoded using table from ITU spec
+        /// </remarks>
+        internal Block8x8? LumaQuantizationTable { get; set; }
+
+        /// <summary>
+        /// Gets or sets chrominance qunatization table derived from jpeg image.
+        /// </summary>
+        /// <remarks>
+        /// Would be null if jpeg was encoded using table from ITU spec
+        /// </remarks>
+        internal Block8x8? ChromaQuantizationTable { get; set; }
+
+        internal double LumaQuality { get; set; }
+
+        internal double ChromaQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the encoded quality.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets a value indicating whether jpeg was encoded using ITU section spec K.1 quantization tables
         /// </summary>
-        public bool ItuSpecQuantization => !this.lumaQuantizationTable.HasValue && !this.chromaQuantizationTable.HasValue;
+        public bool ItuSpecQuantization => !this.LumaQuantizationTable.HasValue && !this.ChromaQuantizationTable.HasValue;
 
         /// <summary>
         /// Gets or sets the encoded quality.

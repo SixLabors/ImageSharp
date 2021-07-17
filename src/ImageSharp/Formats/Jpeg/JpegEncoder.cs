@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// index must be between 0 and 100 (compression from max to min).
         /// Defaults to <value>75</value>.
         /// </summary>
-        public int? Quality { get; set; } = 75;
+        public int? Quality { get; set; }
 
         /// <summary>
         /// Gets or sets the subsample ration, that will be used to encode the image.

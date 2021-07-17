@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -78,6 +78,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <returns>The <see cref="int"/>.</returns>
         public static int EstimateQuality(Block8x8F[] quantizationTables)
         {
+            DebugGuard.MustBeGreaterThan(quantizationTables.Length, 2, nameof(quantizationTables));
+
             int quality = 75;
             float sum = 0;
 

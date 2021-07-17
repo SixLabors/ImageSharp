@@ -46,8 +46,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.Quality = other.Quality;
             this.ColorType = other.ColorType;
+
             this.lumaQuantizationTable = other.lumaQuantizationTable;
             this.chromaQuantizationTable = other.chromaQuantizationTable;
+            this.LumaQuality = other.LumaQuality;
+            this.ChromaQuality = other.ChromaQuality;
         }
 
         /// <summary>
@@ -63,6 +66,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.ChromaQuality = halfValue;
             }
         }
+
+        /// <summary>
+        /// Gets a value indicating whether jpeg was encoded using ITU section spec K.1 quantization tables
+        /// </summary>
+        public bool ItuSpecQuantization => !this.lumaQuantizationTable.HasValue && !this.chromaQuantizationTable.HasValue;
 
         /// <summary>
         /// Gets or sets the encoded quality.

@@ -69,37 +69,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         // https://github.com/ImpulseAdventure/JPEGsnoop/blob/9732ee0961f100eb69bbff4a0c47438d5997abee/source/JfifDecode.cpp#L4570-L4694
         public static void EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, out double quality, out double variance)
         {
-            // This method can be SIMD'ified if standard table is injected as Block8x8F
-            // Or when we go to full-int16 spectral code implementation and inject both tables as Block8x8
+            // This method can be SIMD'ified if standard table is injected as Block8x8F.
+            // Or when we go to full-int16 spectral code implementation and inject both tables as Block8x8.
             double comparePercent;
             double sumPercent = 0;
             double sumPercentSqr = 0;
 
-            bool allOnes = true;
+            // Corner case - all 1's => 100 quality
+            // It would fail to deduce using algorithm below without this check
+            if (table.EqualsToScalar(1))
+            {
+                // While this is a 100% to be 100 quality, any given table can be scaled to all 1's.
+                // According to jpeg creators, top of the line quality is 99, 100 is just a technical 'limit'.
+                quality = 100;
+                variance = 0;
+                return;
+            }
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
                 float coeff = table[i];
                 int coeffInteger = (int)coeff;
 
-                // coefficients are actually int16 casted to float numbers so there's no truncating error
+                // Coefficients are actually int16 casted to float numbers so there's no truncating error.
                 if (coeffInteger != 0)
                 {
                     comparePercent = 100.0 * (table[i] / target[i]);
                 }
                 else
                 {
+                    // No 'valid' quantization table should contain zero at any position
+                    // while this is okay to decode with, it will throw DivideByZeroException at encoding proces stage.
+                    // Not sure what to do here, we can't throw as this technically correct
+                    // but this will screw up the encoder.
                     comparePercent = 999.99;
                 }
 
                 sumPercent += comparePercent;
                 sumPercentSqr += comparePercent * comparePercent;
-
-                // Check just in case entire table are ones (Quality 100)
-                if (coeffInteger != 1)
-                {
-                    allOnes = false;
-                }
             }
 
             // Perform some statistical analysis of the quality factor
@@ -111,11 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             variance = sumPercentSqr - (sumPercent * sumPercent);
 
             // Generate the equivalent IJQ "quality" factor
-            if (allOnes)
-            {
-                quality = 100;
-            }
-            else if (sumPercent <= 100.0)
+            if (sumPercent <= 100.0)
             {
                 quality = (200 - sumPercent) / 2;
             }

@@ -664,8 +664,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             for (int j = 0; j < Block8x8F.Size; j++)
             {
-                int scaled = ((unscaledQuant[j] * scale) + 50) / 100;
-                quant[j] = Math.Clamp(scaled, 1, 255);
+                int x = unscaledQuant[j];
+                x = ((x * scale) + 50) / 100;
+                if (x < 1)
+                {
+                    x = 1;
+                }
+
+                if (x > 255)
+                {
+                    x = 255;
+                }
+
+                quant[j] = x;
             }
         }
     }

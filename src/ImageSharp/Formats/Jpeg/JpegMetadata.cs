@@ -58,13 +58,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         public int Quality
         {
-            get => (int)Math.Round((this.LumaQuality + this.ChromaQuality) / 2f);
-            set
-            {
-                double halfValue = value / 2.0;
-                this.LumaQuality = halfValue;
-                this.ChromaQuality = halfValue;
-            }
+            get => (int)Math.Round(this.LumaQuality);
+            set => this.LumaQuality = value;
         }
 
         /// <summary>

@@ -72,15 +72,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         };
 
         /// <summary>
-        /// Returns an estimated quality of the image based on the quantization tables.
+        /// Returns a jpeg quality parameter based on the quantization tables.
         /// </summary>
         /// <param name="quantizationTables">The quantization tables.</param>
-        /// <returns>The <see cref="int"/>.</returns>
-        public static int EstimateQuality(Block8x8F[] quantizationTables)
+        /// <param name="quality">Jpeg quality parameter</param>
+        /// <returns><see cref="bool"/> indicating if given quantization tables are equal to standard ITU spec.</returns>
+        public static bool EstimateQuality(Block8x8F[] quantizationTables, out int quality)
         {
             DebugGuard.MustBeGreaterThan(quantizationTables.Length, 2, nameof(quantizationTables));
 
-            int quality = 75;
+            quality = 75;
+
             float sum = 0;
 
             for (int i = 0; i < quantizationTables.Length; i++)
@@ -115,9 +117,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             continue;
                         }
 
-                        if (((quality <= Hash[i]) && (sum <= Sums[i])) || (i >= 50))
+                        bool sumHashCondition = (quality <= Hash[i]) && (sum <= Sums[i]);
+                        if (sumHashCondition || (i >= 50))
                         {
-                            return i + 1;
+                            quality = i + 1;
+                            return sumHashCondition;
                         }
                     }
                 }
@@ -132,15 +136,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             continue;
                         }
 
-                        if (((quality <= Hash1[i]) && (sum <= Sums1[i])) || (i >= 50))
+                        bool sumHashCondition = (quality <= Hash1[i]) && (sum <= Sums1[i]);
+                        if (sumHashCondition || (i >= 50))
                         {
-                            return i + 1;
+                            quality = i + 1;
+                            return sumHashCondition;
                         }
                     }
                 }
             }
 
-            return quality;
+            return false;
         }
     }
 }

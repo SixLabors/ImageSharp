@@ -14,6 +14,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     internal static class Quantization
     {
         /// <summary>
+        /// Upper bound (inclusive) for jpeg quality setting.
+        /// </summary>
+        public const int MaxQualityFactor = 100;
+
+        /// <summary>
+        /// Lower bound (inclusive) for jpeg quality setting.
+        /// </summary>
+        public const int MinQualityFactor = 1;
+
+        /// <summary>
+        /// Represents lowest quality setting which can be estimated with enough confidence.
+        /// Any quality below it results in a highly compressed jpeg image
+        /// which shouldn't use standard itu quantization tables for re-encoding.
+        /// </summary>
+        public const int QualityEstimationConfidenceThreshold = 25;
+
+        /// <summary>
         /// Threshold at which given luminance quantization table should be considered 'standard'.
         /// Bigger the variance - more likely it to be a non-ITU complient table.
         /// </summary>
@@ -21,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
         /// so this is purely a practical value derived from tests.
         /// </remarks>
-        private const double StandardLuminanceTableVarianceThreshold = 10.0;
+        public const double StandardLuminanceTableVarianceThreshold = 10.0;
 
         /// <summary>
         /// Threshold at which given chrominance quantization table should be considered 'standard'.
@@ -31,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
         /// so this is purely a practical value derived from tests.
         /// </remarks>
-        private const double StandardChrominanceTableVarianceThreshold = 10.0;
+        public const double StandardChrominanceTableVarianceThreshold = 10.0;
 
         /// <summary>
         /// Gets the unscaled luminance quantization table in zig-zag order. Each
@@ -42,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
         // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
+        public static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
         {
             16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
             40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
@@ -60,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
         // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
+        public static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
         {
             17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
             99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
@@ -72,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Ported from JPEGsnoop:
         /// https://github.com/ImpulseAdventure/JPEGsnoop/blob/9732ee0961f100eb69bbff4a0c47438d5997abee/source/JfifDecode.cpp#L4570-L4694
         /// <summary>
-        /// Estimates jpeg quality based on quantization table.
+        /// Estimates jpeg quality based on quantization table in zig-zag order.
         /// </summary>
         /// <remarks>
         /// This technically can be used with any given table but internal decoder code uses ITU spec tables:
@@ -80,10 +97,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </remarks>
         /// <param name="table">Input quantization table.</param>
         /// <param name="target">Quantization to estimate against.</param>
-        /// <param name="varianceThreshold">Variance threshold after which given table is considered non-complient.</param>
         /// <param name="quality">Estimated quality</param>
         /// <returns><see cref="bool"/> indicating if given table is target-complient</returns>
-        public static bool EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, double varianceThreshold, out double quality)
+        public static double EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, out double quality)
         {
             // This method can be SIMD'ified if standard table is injected as Block8x8F.
             // Or when we go to full-int16 spectral code implementation and inject both tables as Block8x8.
@@ -99,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 // According to jpeg creators, top of the line quality is 99, 100 is just a technical 'limit' will affect result filesize drastically.
                 // Quality=100 shouldn't be used in usual use case.
                 quality = 100;
-                return true;
+                return 0;
             }
 
             for (int i = 0; i < Block8x8F.Size; i++)
@@ -131,7 +147,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // If the variance is high, it is unlikely to be the case.
             sumPercent /= 64.0;
             sumPercentSqr /= 64.0;
-            double variance = sumPercentSqr - (sumPercent * sumPercent);
 
             // Generate the equivalent IJQ "quality" factor
             if (sumPercent <= 100.0)
@@ -143,28 +158,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 quality = 5000.0 / sumPercent;
             }
 
-            return variance <= varianceThreshold;
+            return sumPercentSqr - (sumPercent * sumPercent);
         }
 
         /// <summary>
-        /// Estimates jpeg luminance quality.
+        /// Estimates jpeg quality based on quantization table in zig-zag order.
         /// </summary>
         /// <param name="luminanceTable">Luminance quantization table.</param>
         /// <param name="quality">Output jpeg quality.</param>
         /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool EstimateLuminanceQuality(ref Block8x8F luminanceTable, out double quality)
-            => EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance, StandardLuminanceTableVarianceThreshold, out quality);
+        {
+            double variance = EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance, out quality);
+            return variance <= StandardLuminanceTableVarianceThreshold;
+        }
 
         /// <summary>
-        /// Estimates jpeg chrominance quality.
+        /// Estimates jpeg quality based on quantization table in zig-zag order.
         /// </summary>
         /// <param name="chrominanceTable">Chrominance quantization table.</param>
         /// <param name="quality">Output jpeg quality.</param>
         /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool EstimateChrominanceQuality(ref Block8x8F chrominanceTable, out double quality)
-            => EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance, StandardChrominanceTableVarianceThreshold, out quality);
+        {
+            double variance = EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance, out quality);
+            return variance <= StandardChrominanceTableVarianceThreshold;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int QualityToScale(int quality)
@@ -172,6 +193,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         private static Block8x8F ScaleQuantizationTable(int scale, ReadOnlySpan<byte> unscaledTable)
         {
+            DebugGuard.MustBeBetweenOrEqualTo(scale, MinQualityFactor, MaxQualityFactor, nameof(scale));
+
             Block8x8F table = default;
             for (int j = 0; j < Block8x8F.Size; j++)
             {

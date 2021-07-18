@@ -831,7 +831,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     case 0:
                     {
                         Quantization.EstimateQuality(ref table, Quantization.UnscaledQuant_Luminance, out double quality, out double variance);
-                        jpegMetadata.LumaQuality = quality;
+                        jpegMetadata.LuminanceQuality = quality;
                         if (variance <= Quantization.StandardLuminanceTableVarianceThreshold)
                         {
                             jpegMetadata.LumaQuantizationTable = table.RoundAsInt16Block();
@@ -844,7 +844,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     case 1:
                     {
                         Quantization.EstimateQuality(ref table, Quantization.UnscaledQuant_Chrominance, out double quality, out double variance);
-                        jpegMetadata.ChromaQuality = quality;
+                        jpegMetadata.ChrominanceQuality = quality;
                         if (variance <= Quantization.StandardChrominanceTableVarianceThreshold)
                         {
                             jpegMetadata.ChromaQuantizationTable = table.RoundAsInt16Block();

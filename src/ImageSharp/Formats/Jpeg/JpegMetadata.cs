@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.LumaQuantizationTable = other.LumaQuantizationTable;
             this.ChromaQuantizationTable = other.ChromaQuantizationTable;
-            this.LumaQuality = other.LumaQuality;
-            this.ChromaQuality = other.ChromaQuality;
+            this.LuminanceQuality = other.LuminanceQuality;
+            this.ChrominanceQuality = other.ChrominanceQuality;
         }
 
         /// <summary>
@@ -49,23 +49,47 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </remarks>
         internal Block8x8? ChromaQuantizationTable { get; set; }
 
-        internal double LumaQuality { get; set; }
+        /// <summary>
+        /// Gets or sets the jpeg luminance quality.
+        /// </summary>
+        /// <remarks>
+        /// This value might not be accurate if it was calculated during jpeg decoding
+        /// with non-complient ITU quantization tables.
+        /// </remarks>
+        public double LuminanceQuality { get; set; }
 
-        internal double ChromaQuality { get; set; }
+        /// <summary>
+        /// Gets or sets the jpeg chrominance quality.
+        /// </summary>
+        /// <remarks>
+        /// This value might not be accurate if it was calculated during jpeg decoding
+        /// with non-complient ITU quantization tables.
+        /// </remarks>
+        public double ChrominanceQuality { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.
+        /// </summary>
+        public bool UsesStandardLuminanceTable => !this.LumaQuantizationTable.HasValue;
+
+        /// <summary>
+        /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.
+        /// </summary>
+        public bool UsesStandardChrominanceTable => !this.ChromaQuantizationTable.HasValue;
 
         /// <summary>
         /// Gets or sets the encoded quality.
         /// </summary>
+        [Obsolete("Use LumanQuality and ChromaQuality instead. Quality is now separated for luminance and chrominance data.")]
         public int Quality
         {
-            get => (int)Math.Round(this.LumaQuality);
-            set => this.LumaQuality = value;
+            get => (int)Math.Round(this.LuminanceQuality + this.ChrominanceQuality);
+            set
+            {
+                this.LuminanceQuality = value;
+                this.ChrominanceQuality = value;
+            }
         }
-
-        /// <summary>
-        /// Gets a value indicating whether jpeg was encoded using ITU section spec K.1 quantization tables
-        /// </summary>
-        public bool ItuSpecQuantization => !this.LumaQuantizationTable.HasValue && !this.ChromaQuantizationTable.HasValue;
 
         /// <summary>
         /// Gets or sets the encoded quality.

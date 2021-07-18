@@ -94,27 +94,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
             this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
 
-            // Convert from a quality rating to a scaling factor.
-            int scale;
-            if (qlty < 50)
-            {
-                scale = 5000 / qlty;
-            }
-            else
-            {
-                scale = 200 - (qlty * 2);
-            }
-
             // Initialize the quantization tables.
             // TODO: This looks ugly, should we write chrominance table for luminance-only images?
             // If not - this can code can be simplified
-            Block8x8F luminanceQuantTable = default;
-            Block8x8F chrominanceQuantTable = default;
-            InitQuantizationTable(0, scale, ref luminanceQuantTable);
-            if (componentCount > 1)
-            {
-                InitQuantizationTable(1, scale, ref chrominanceQuantTable);
-            }
+            Block8x8F luminanceQuantTable = Quantization.ScaleLuminanceTable(qlty);
+            Block8x8F chrominanceQuantTable = Quantization.ScaleChrominanceTable(qlty);
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
@@ -138,10 +122,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var scanEncoder = new HuffmanScanEncoder(stream);
             if (this.colorType == JpegColorType.Luminance)
             {
+                // luminance quantization table only
                 scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
             }
             else
             {
+                // luminance and chrominance quantization tables
                 switch (this.subsample)
                 {
                     case JpegSubsample.Ratio444:
@@ -649,35 +635,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);
             this.outputStream.Write(this.buffer, 0, 4);
-        }
-
-        /// <summary>
-        /// Initializes quantization table.
-        /// </summary>
-        /// <param name="i">The quantization index.</param>
-        /// <param name="scale">The scaling factor.</param>
-        /// <param name="quant">The quantization table.</param>
-        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
-        {
-            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
-            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? Quantization.UnscaledQuant_Luminance : Quantization.UnscaledQuant_Chrominance;
-
-            for (int j = 0; j < Block8x8F.Size; j++)
-            {
-                int x = unscaledQuant[j];
-                x = ((x * scale) + 50) / 100;
-                if (x < 1)
-                {
-                    x = 1;
-                }
-
-                if (x > 255)
-                {
-                    x = 255;
-                }
-
-                quant[j] = x;
-            }
         }
     }
 }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
         /// so this is purely a practical value derived from tests.
         /// </remarks>
-        public const double StandardLuminanceTableVarianceThreshold = 10.0;
+        private const double StandardLuminanceTableVarianceThreshold = 10.0;
 
         /// <summary>
         /// Threshold at which given chrominance quantization table should be considered 'standard'.
@@ -30,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
         /// so this is purely a practical value derived from tests.
         /// </remarks>
-        public const double StandardChrominanceTableVarianceThreshold = 10.0;
+        private const double StandardChrominanceTableVarianceThreshold = 10.0;
 
         /// <summary>
         /// Gets the unscaled luminance quantization table in zig-zag order. Each
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
         // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        public static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
+        private static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
         {
             16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
             40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
         // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        public static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
+        private static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
         {
             17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
             99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
@@ -82,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="varianceThreshold">Variance threshold after which given table is considered non-complient.</param>
         /// <param name="quality">Estimated quality</param>
         /// <returns><see cref="bool"/> indicating if given table is target-complient</returns>
-        private static bool EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, double varianceThreshold, out double quality)
+        public static bool EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, double varianceThreshold, out double quality)
         {
             // This method can be SIMD'ified if standard table is injected as Block8x8F.
             // Or when we go to full-int16 spectral code implementation and inject both tables as Block8x8.
@@ -151,6 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="luminanceTable">Luminance quantization table.</param>
         /// <param name="quality">Output jpeg quality.</param>
         /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool EstimateLuminanceQuality(ref Block8x8F luminanceTable, out double quality)
             => EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance, StandardLuminanceTableVarianceThreshold, out quality);
 
@@ -160,7 +162,43 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="chrominanceTable">Chrominance quantization table.</param>
         /// <param name="quality">Output jpeg quality.</param>
         /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool EstimateChrominanceQuality(ref Block8x8F chrominanceTable, out double quality)
             => EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance, StandardChrominanceTableVarianceThreshold, out quality);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int QualityToScale(int quality)
+            => quality < 50 ? 5000 / quality : 200 - (quality * 2);
+
+        private static Block8x8F ScaleQuantizationTable(int scale, ReadOnlySpan<byte> unscaledTable)
+        {
+            Block8x8F table = default;
+            for (int j = 0; j < Block8x8F.Size; j++)
+            {
+                int x = unscaledTable[j];
+                x = ((x * scale) + 50) / 100;
+                if (x < 1)
+                {
+                    x = 1;
+                }
+
+                if (x > 255)
+                {
+                    x = 255;
+                }
+
+                table[j] = x;
+            }
+
+            return table;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Block8x8F ScaleLuminanceTable(int quality)
+            => ScaleQuantizationTable(scale: QualityToScale(quality), UnscaledQuant_Luminance);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Block8x8F ScaleChrominanceTable(int quality)
+            => ScaleQuantizationTable(scale: QualityToScale(quality), UnscaledQuant_Chrominance);
     }
 }

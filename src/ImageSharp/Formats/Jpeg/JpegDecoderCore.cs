@@ -830,26 +830,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     // luminance table
                     case 0:
                     {
-                        Quantization.EstimateQuality(ref table, Quantization.UnscaledQuant_Luminance, out double quality, out double variance);
-                        jpegMetadata.LuminanceQuality = quality;
-                        if (variance <= Quantization.StandardLuminanceTableVarianceThreshold)
+                        // if quantization table is non-complient to stardard itu table
+                        // we can't reacreate it later with calculated quality as this is an approximation
+                        // so we save it in the metadata
+                        if (!Quantization.EstimateLuminanceQuality(ref table, out double quality))
                         {
                             jpegMetadata.LumaQuantizationTable = table.RoundAsInt16Block();
                         }
 
+                        jpegMetadata.LuminanceQuality = quality;
                         break;
                     }
 
                     // chrominance table
                     case 1:
                     {
-                        Quantization.EstimateQuality(ref table, Quantization.UnscaledQuant_Chrominance, out double quality, out double variance);
-                        jpegMetadata.ChrominanceQuality = quality;
-                        if (variance <= Quantization.StandardChrominanceTableVarianceThreshold)
+                        // if quantization table is non-complient to stardard itu table
+                        // we can't reacreate it later with calculated quality as this is an approximation
+                        // so we save it in the metadata
+                        if (!Quantization.EstimateChrominanceQuality(ref table, out double quality))
                         {
                             jpegMetadata.ChromaQuantizationTable = table.RoundAsInt16Block();
                         }
 
+                        jpegMetadata.ChrominanceQuality = quality;
                         break;
                     }
                 }

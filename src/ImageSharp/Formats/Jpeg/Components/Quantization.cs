@@ -13,7 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     internal static class Quantization
     {
         /// <summary>
-        /// Threshold at which given luminance quantization table should not be considered 'standard'.
+        /// Threshold at which given luminance quantization table should be considered 'standard'.
+        /// Bigger the variance - more likely it to be a non-ITU complient table.
         /// </summary>
         /// <remarks>
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
@@ -22,7 +23,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public const double StandardLuminanceTableVarianceThreshold = 10.0;
 
         /// <summary>
-        /// Threshold at which given luminance quantization table should not be considered 'standard'.
+        /// Threshold at which given chrominance quantization table should be considered 'standard'.
+        /// Bigger the variance - more likely it to be a non-ITU complient table.
         /// </summary>
         /// <remarks>
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
@@ -66,8 +68,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             99, 99, 99, 99, 99, 99, 99, 99,
         };
 
-        // https://github.com/ImpulseAdventure/JPEGsnoop/blob/9732ee0961f100eb69bbff4a0c47438d5997abee/source/JfifDecode.cpp#L4570-L4694
-        public static void EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, out double quality, out double variance)
+        /// Ported from JPEGsnoop:
+        /// https://github.com/ImpulseAdventure/JPEGsnoop/blob/9732ee0961f100eb69bbff4a0c47438d5997abee/source/JfifDecode.cpp#L4570-L4694
+        /// <summary>
+        /// Estimates jpeg quality based on quantization table.
+        /// </summary>
+        /// <remarks>
+        /// This technically can be used with any given table but internal decoder code uses ITU spec tables:
+        /// <see cref="UnscaledQuant_Luminance"/> and <see cref="UnscaledQuant_Chrominance"/>.
+        /// </remarks>
+        /// <param name="table">Input quantization table.</param>
+        /// <param name="target">Quantization to estimate against.</param>
+        /// <param name="varianceThreshold">Variance threshold after which given table is considered non-complient.</param>
+        /// <param name="quality">Estimated quality</param>
+        /// <returns><see cref="bool"/> indicating if given table is target-complient</returns>
+        private static bool EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, double varianceThreshold, out double quality)
         {
             // This method can be SIMD'ified if standard table is injected as Block8x8F.
             // Or when we go to full-int16 spectral code implementation and inject both tables as Block8x8.
@@ -80,10 +95,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             if (table.EqualsToScalar(1))
             {
                 // While this is a 100% to be 100 quality, any given table can be scaled to all 1's.
-                // According to jpeg creators, top of the line quality is 99, 100 is just a technical 'limit'.
+                // According to jpeg creators, top of the line quality is 99, 100 is just a technical 'limit' will affect result filesize drastically.
+                // Quality=100 shouldn't be used in usual use case.
                 quality = 100;
-                variance = 0;
-                return;
+                return true;
             }
 
             for (int i = 0; i < Block8x8F.Size; i++)
@@ -115,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // If the variance is high, it is unlikely to be the case.
             sumPercent /= 64.0;
             sumPercentSqr /= 64.0;
-            variance = sumPercentSqr - (sumPercent * sumPercent);
+            double variance = sumPercentSqr - (sumPercent * sumPercent);
 
             // Generate the equivalent IJQ "quality" factor
             if (sumPercent <= 100.0)
@@ -126,6 +141,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 quality = 5000.0 / sumPercent;
             }
+
+            return variance <= varianceThreshold;
         }
+
+        /// <summary>
+        /// Estimates jpeg luminance quality.
+        /// </summary>
+        /// <param name="luminanceTable">Luminance quantization table.</param>
+        /// <param name="quality">Output jpeg quality.</param>
+        /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
+        public static bool EstimateLuminanceQuality(ref Block8x8F luminanceTable, out double quality)
+            => EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance, StandardLuminanceTableVarianceThreshold, out quality);
+
+        /// <summary>
+        /// Estimates jpeg chrominance quality.
+        /// </summary>
+        /// <param name="chrominanceTable">Chrominance quantization table.</param>
+        /// <param name="quality">Output jpeg quality.</param>
+        /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
+        public static bool EstimateChrominanceQuality(ref Block8x8F chrominanceTable, out double quality)
+            => EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance, StandardChrominanceTableVarianceThreshold, out quality);
     }
 }

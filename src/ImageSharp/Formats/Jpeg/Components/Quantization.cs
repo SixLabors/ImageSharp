@@ -37,8 +37,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <remarks>
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
         /// so this is purely a practical value derived from tests.
+        /// For actual variances output against standard table see tests at Formats.Jpg.QuantizationTests.PrintVariancesFromStandardTables_*.
+        /// Actual value is 2.3629059983706604, truncated unsignificant part.
         /// </remarks>
-        public const double StandardLuminanceTableVarianceThreshold = 10.0;
+        public const double StandardLuminanceTableVarianceThreshold = 2.36291;
 
         /// <summary>
         /// Threshold at which given chrominance quantization table should be considered 'standard'.
@@ -47,8 +49,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <remarks>
         /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
         /// so this is purely a practical value derived from tests.
+        /// For actual variances output against standard table see tests at Formats.Jpg.QuantizationTests.PrintVariancesFromStandardTables_*.
+        /// Actual value is 0.8949631033036098, truncated unsignificant part.
         /// </remarks>
-        public const double StandardChrominanceTableVarianceThreshold = 10.0;
+        public const double StandardChrominanceTableVarianceThreshold = 0.894963;
 
         /// <summary>
         /// Gets the unscaled luminance quantization table in zig-zag order. Each

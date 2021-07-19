@@ -46,7 +46,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             {
                 deframeStream.AllocateNewBytes(byteCount, true);
                 DeflateStream dataStream = deframeStream.CompressedStream;
-                dataStream.Read(buffer, 0, buffer.Length);
+
+                int totalRead = 0;
+                while (totalRead < buffer.Length)
+                {
+                    int bytesRead = dataStream.Read(buffer, totalRead, buffer.Length - totalRead);
+                    if (bytesRead <= 0)
+                    {
+                        break;
+                    }
+
+                    totalRead += bytesRead;
+                }
             }
 
             if (this.Predictor == TiffPredictor.Horizontal)

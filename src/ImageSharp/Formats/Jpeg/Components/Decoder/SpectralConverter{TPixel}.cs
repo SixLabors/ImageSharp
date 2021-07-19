@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
-                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, jpegData, postProcessorBufferSize, frame.Components[i]);
+                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
             }
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel

@@ -48,5 +48,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Processing
                     LuminanceLevels = 256,
                     Method = HistogramEqualizationMethod.AdaptiveTileInterpolation
                 }));
+
+        [Benchmark(Description = "AutoLevel (Min/Max Contrast Stretch)")]
+        public void AutoLevelHistogram()
+            => this.image.Mutate(img => img.AutoLevel());
     }
 }

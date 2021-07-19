@@ -20,8 +20,37 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
-        //[Fact(Skip = "Debug only, enable manually!")]
         [Fact]
+        public void QualityEstimationFromStandardEncoderTables_Luminance()
+        {
+            int firstIndex = JpegQuantization.QualityEstimationConfidenceLowerThreshold;
+            int lastIndex = JpegQuantization.QualityEstimationConfidenceUpperThreshold;
+            for (int quality = firstIndex; quality <= lastIndex; quality++)
+            {
+                Block8x8F table = JpegQuantization.ScaleLuminanceTable(quality);
+                bool isStrandard = JpegQuantization.EstimateLuminanceQuality(ref table, out int actualQuality);
+
+                Assert.True(isStrandard, $"Standard table is estimated to be non-spec complient at quality level {quality}");
+                Assert.Equal(quality, actualQuality);
+            }
+        }
+
+        [Fact]
+        public void QualityEstimationFromStandardEncoderTables_Chrominance()
+        {
+            int firstIndex = JpegQuantization.QualityEstimationConfidenceLowerThreshold;
+            int lastIndex = JpegQuantization.QualityEstimationConfidenceUpperThreshold;
+            for (int quality = firstIndex; quality <= lastIndex; quality++)
+            {
+                Block8x8F table = JpegQuantization.ScaleChrominanceTable(quality);
+                bool isStrandard = JpegQuantization.EstimateChrominanceQuality(ref table, out int actualQuality);
+
+                Assert.True(isStrandard, $"Standard table is estimated to be non-spec complient at quality level {quality}");
+                Assert.Equal(quality, actualQuality);
+            }
+        }
+
+        [Fact(Skip = "Debug only, enable manually!")]
         public void PrintVariancesFromStandardTables_Luminance()
         {
             this.Output.WriteLine("Variances for Luminance table.\nQuality levels 25-100:");
@@ -29,10 +58,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             double minVariance = double.MaxValue;
             double maxVariance = double.MinValue;
 
-            for (int q = JpegQuantization.QualityEstimationConfidenceThreshold; q <= JpegQuantization.MaxQualityFactor; q++)
+            for (int q = JpegQuantization.QualityEstimationConfidenceLowerThreshold; q <= JpegQuantization.MaxQualityFactor; q++)
             {
                 Block8x8F table = JpegQuantization.ScaleLuminanceTable(q);
-                double variance = JpegQuantization.EstimateQuality(ref table, JpegQuantization.UnscaledQuant_Luminance, out double quality);
+                double variance = JpegQuantization.EstimateQuality(ref table, JpegQuantization.UnscaledQuant_Luminance, out int quality);
 
                 minVariance = Math.Min(minVariance, variance);
                 maxVariance = Math.Max(maxVariance, variance);
@@ -43,18 +72,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"Min variance: {minVariance}\nMax variance: {maxVariance}");
         }
 
-        //[Fact(Skip = "Debug only, enable manually!")]
-        [Fact]
+        [Fact(Skip = "Debug only, enable manually!")]
         public void PrintVariancesFromStandardTables_Chrominance()
         {
             this.Output.WriteLine("Variances for Chrominance table.\nQuality levels 25-100:");
 
             double minVariance = double.MaxValue;
             double maxVariance = double.MinValue;
-            for (int q = JpegQuantization.QualityEstimationConfidenceThreshold; q <= JpegQuantization.MaxQualityFactor; q++)
+            for (int q = JpegQuantization.QualityEstimationConfidenceLowerThreshold; q <= JpegQuantization.MaxQualityFactor; q++)
             {
                 Block8x8F table = JpegQuantization.ScaleChrominanceTable(q);
-                double variance = JpegQuantization.EstimateQuality(ref table, JpegQuantization.UnscaledQuant_Chrominance, out double quality);
+                double variance = JpegQuantization.EstimateQuality(ref table, JpegQuantization.UnscaledQuant_Chrominance, out int quality);
 
                 minVariance = Math.Min(minVariance, variance);
                 maxVariance = Math.Max(maxVariance, variance);

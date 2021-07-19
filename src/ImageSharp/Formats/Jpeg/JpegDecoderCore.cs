@@ -833,7 +833,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         // if quantization table is non-complient to stardard itu table
                         // we can't reacreate it later with calculated quality as this is an approximation
                         // so we save it in the metadata
-                        if (!Quantization.EstimateLuminanceQuality(ref table, out double quality))
+                        if (!Quantization.EstimateLuminanceQuality(ref table, out int quality))
                         {
                             jpegMetadata.LumaQuantizationTable = table.RoundAsInt16Block();
                         }
@@ -848,7 +848,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         // if quantization table is non-complient to stardard itu table
                         // we can't reacreate it later with calculated quality as this is an approximation
                         // so we save it in the metadata
-                        if (!Quantization.EstimateChrominanceQuality(ref table, out double quality))
+                        if (!Quantization.EstimateChrominanceQuality(ref table, out int quality))
                         {
                             jpegMetadata.ChromaQuantizationTable = table.RoundAsInt16Block();
                         }

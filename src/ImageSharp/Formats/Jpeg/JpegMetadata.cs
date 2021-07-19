@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public double LuminanceQuality { get; set; }
+        public int LuminanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the jpeg chrominance quality.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public double ChrominanceQuality { get; set; }
+        public int ChrominanceQuality { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         // [Obsolete("Use LumanQuality and ChromaQuality instead. Quality is now separated for luminance and chrominance data.")]
         public int Quality
         {
-            get => (int)Math.Round((this.LuminanceQuality + this.ChrominanceQuality) / 2);
+            get => (int)Math.Round((this.LuminanceQuality + this.ChrominanceQuality) / 2f);
             set
             {
                 this.LuminanceQuality = value;

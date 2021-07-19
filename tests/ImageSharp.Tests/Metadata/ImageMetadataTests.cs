@@ -98,8 +98,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata
 
                 image.Metadata.SyncProfiles();
 
-                Assert.Equal(400, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-                Assert.Equal(500, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+                Assert.Equal(400, image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
+                Assert.Equal(500, image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
             }
         }
     }

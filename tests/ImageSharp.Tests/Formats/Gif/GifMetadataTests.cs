@@ -13,6 +13,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Gif")]
     public class GifMetadataTests
     {

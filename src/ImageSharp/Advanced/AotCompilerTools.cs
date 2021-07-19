@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -195,6 +196,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageEncoderInternals<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            default(WebpEncoderCore).Encode<TPixel>(default, default, default);
             default(BmpEncoderCore).Encode<TPixel>(default, default, default);
             default(GifEncoderCore).Encode<TPixel>(default, default, default);
             default(JpegEncoderCore).Encode<TPixel>(default, default, default);
@@ -211,6 +213,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageDecoderInternals<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            default(WebpDecoderCore).Decode<TPixel>(default, default, default);
             default(BmpDecoderCore).Decode<TPixel>(default, default, default);
             default(GifDecoderCore).Decode<TPixel>(default, default, default);
             default(JpegDecoderCore).Decode<TPixel>(default, default, default);
@@ -227,6 +230,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageEncoders<TPixel>()
            where TPixel : unmanaged, IPixel<TPixel>
         {
+            AotCompileImageEncoder<TPixel, WebpEncoder>();
             AotCompileImageEncoder<TPixel, BmpEncoder>();
             AotCompileImageEncoder<TPixel, GifEncoder>();
             AotCompileImageEncoder<TPixel, JpegEncoder>();
@@ -243,6 +247,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageDecoders<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            AotCompileImageDecoder<TPixel, WebpDecoder>();
             AotCompileImageDecoder<TPixel, BmpDecoder>();
             AotCompileImageDecoder<TPixel, GifDecoder>();
             AotCompileImageDecoder<TPixel, JpegDecoder>();

@@ -505,11 +505,16 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             while (this.currentRow < this.header.Height)
             {
-                int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
-                this.currentRowBytesRead += bytesRead;
-                if (this.currentRowBytesRead < this.bytesPerScanline)
+                Span<byte> scanlineSpan = this.scanline.GetSpan();
+                while (this.currentRowBytesRead < this.bytesPerScanline)
                 {
-                    return;
+                    int bytesRead = compressedStream.Read(scanlineSpan, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
+                    if (bytesRead <= 0)
+                    {
+                        return;
+                    }
+
+                    this.currentRowBytesRead += bytesRead;
                 }
 
                 this.currentRowBytesRead = 0;
@@ -577,11 +582,15 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 while (this.currentRow < this.header.Height)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline.Array, this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
-                    this.currentRowBytesRead += bytesRead;
-                    if (this.currentRowBytesRead < bytesPerInterlaceScanline)
+                    while (this.currentRowBytesRead < bytesPerInterlaceScanline)
                     {
-                        return;
+                        int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
+                        if (bytesRead <= 0)
+                        {
+                            return;
+                        }
+
+                        this.currentRowBytesRead += bytesRead;
                     }
 
                     this.currentRowBytesRead = 0;

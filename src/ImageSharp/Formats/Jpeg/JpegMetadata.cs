@@ -80,7 +80,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets or sets the encoded quality.
         /// </summary>
-        // [Obsolete("Use LumanQuality and ChromaQuality instead. Quality is now separated for luminance and chrominance data.")]
         public int Quality
         {
             get => (int)Math.Round((this.LuminanceQuality + this.ChrominanceQuality) / 2f);

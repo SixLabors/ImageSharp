@@ -12,6 +12,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     public class JpegMetadata : IDeepCloneable
     {
         /// <summary>
+        /// Default JPEG quality for both luminance and chominance tables.
+        /// </summary>
+        private const int DefaultQualityValue = 75;
+
+        private Block8x8F? lumaQuantTable;
+        private Block8x8F? chromaQuantTable;
+
+        private int? lumaQuality;
+        private int? chromaQuality;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
         /// </summary>
         public JpegMetadata()
@@ -33,20 +44,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Gets or sets luminance qunatization table derived from jpeg image.
+        /// Gets or sets luminance qunatization table for jpeg image.
         /// </summary>
-        /// <remarks>
-        /// Would be null if jpeg was encoded using table from ITU spec
-        /// </remarks>
-        internal Block8x8F? LuminanceQuantizationTable { get; set; }
+        internal Block8x8F LuminanceQuantizationTable
+        {
+            get
+            {
+                if (this.lumaQuantTable.HasValue)
+                {
+                    return this.lumaQuantTable.Value;
+                }
+
+                return Quantization.ScaleLuminanceTable(this.LuminanceQuality);
+            }
+
+            set => this.lumaQuantTable = value;
+        }
 
         /// <summary>
-        /// Gets or sets chrominance qunatization table derived from jpeg image.
+        /// Gets or sets chrominance qunatization table for jpeg image.
         /// </summary>
-        /// <remarks>
-        /// Would be null if jpeg was encoded using table from ITU spec
-        /// </remarks>
-        internal Block8x8F? ChromaQuantizationTable { get; set; }
+        internal Block8x8F ChromaQuantizationTable
+        {
+            get
+            {
+                if (this.chromaQuantTable.HasValue)
+                {
+                    return this.chromaQuantTable.Value;
+                }
+
+                return Quantization.ScaleChrominanceTable(this.ChrominanceQuality);
+            }
+
+            set => this.chromaQuantTable = value;
+        }
 
         /// <summary>
         /// Gets or sets the jpeg luminance quality.
@@ -55,7 +86,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int? LuminanceQuality { get; set; }
+        public int LuminanceQuality
+        {
+            get => this.lumaQuality ?? DefaultQualityValue;
+            set => this.lumaQuality = value;
+        }
 
         /// <summary>
         /// Gets or sets the jpeg chrominance quality.
@@ -64,30 +99,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int? ChrominanceQuality { get; set; }
-
-        /// <summary>
-        /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.
-        /// </summary>
-        public bool UsesStandardLuminanceTable => !this.LuminanceQuantizationTable.HasValue;
-
-        /// <summary>
-        /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.
-        /// </summary>
-        public bool UsesStandardChrominanceTable => !this.ChromaQuantizationTable.HasValue;
+        public int ChrominanceQuality
+        {
+            get => this.chromaQuality ?? DefaultQualityValue;
+            set => this.chromaQuality = value;
+        }
 
         /// <summary>
         /// Gets or sets the encoded quality.
         /// </summary>
         public int Quality
         {
-            [Obsolete("This accessor will soon be deprecated. Use LuminanceQuality and ChrominanceQuality getters instead.", error: false)]
             get
             {
-                const int defaultQuality = 75;
-
-                int lumaQuality = this.LuminanceQuality ?? defaultQuality;
-                int chromaQuality = this.LuminanceQuality ?? lumaQuality;
+                int lumaQuality = this.lumaQuality ?? DefaultQualityValue;
+                int chromaQuality = this.chromaQuality ?? lumaQuality;
                 return (int)Math.Round((lumaQuality + chromaQuality) / 2f);
             }
 

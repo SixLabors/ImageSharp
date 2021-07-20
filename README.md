@@ -43,7 +43,7 @@ Support the efforts of the development of the Six Labors projects.
 
 ## Questions
 
-- Do you have questions? We are happy to help! Please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/category_choices), or ask them on [Stack Overflow](https://stackoverflow.com) using the `ImageSharp` tag. Please do not open issues for questions.
+- Do you have questions? We are happy to help! Please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions), or ask them on [Stack Overflow](https://stackoverflow.com) using the `ImageSharp` tag. Please do not open issues for questions.
 - Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening issues or pull requests!
 
 ## Code of Conduct  

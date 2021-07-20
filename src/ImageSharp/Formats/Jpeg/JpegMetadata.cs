@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.ColorType = other.ColorType;
 
-            this.LumaQuantizationTable = other.LumaQuantizationTable;
+            this.LuminanceQuantizationTable = other.LuminanceQuantizationTable;
             this.ChromaQuantizationTable = other.ChromaQuantizationTable;
             this.LuminanceQuality = other.LuminanceQuality;
             this.ChrominanceQuality = other.ChrominanceQuality;
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <remarks>
         /// Would be null if jpeg was encoded using table from ITU spec
         /// </remarks>
-        internal Block8x8? LumaQuantizationTable { get; set; }
+        internal Block8x8F? LuminanceQuantizationTable { get; set; }
 
         /// <summary>
         /// Gets or sets chrominance qunatization table derived from jpeg image.
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <remarks>
         /// Would be null if jpeg was encoded using table from ITU spec
         /// </remarks>
-        internal Block8x8? ChromaQuantizationTable { get; set; }
+        internal Block8x8F? ChromaQuantizationTable { get; set; }
 
         /// <summary>
         /// Gets or sets the jpeg luminance quality.
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.
         /// </summary>
-        public bool UsesStandardLuminanceTable => !this.LumaQuantizationTable.HasValue;
+        public bool UsesStandardLuminanceTable => !this.LuminanceQuantizationTable.HasValue;
 
         /// <summary>
         /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.

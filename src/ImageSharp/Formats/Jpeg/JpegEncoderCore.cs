@@ -646,34 +646,66 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Initializes quntization tables.
         /// </summary>
+        /// <remarks>
+        /// We take quality values in a hierarchical order:
+        /// 1. Check if encoder has set quality
+        /// 2. Check if metadata has special table for encoding
+        /// 3. Check if metadata has set quality
+        /// 4. Take default quality value - 75
+        /// </remarks>
         /// <param name="componentCount">Color components count.</param>
         /// <param name="metadata">Jpeg metadata instance.</param>
         /// <param name="luminanceQuantTable">Output luminance quantization table.</param>
         /// <param name="chrominanceQuantTable">Output chrominance quantization table.</param>
         private void InitQuantizationTables(int componentCount, JpegMetadata metadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable)
         {
-            // We take quality values in a hierarchical order:
-            // 1. Check if encoder has set quality
-            // 2. Check if metadata has special table for encoding
-            // 3. Check if metadata has set quality
-            // 4. Take default quality value - 75
-            int lumaQuality = Numerics.Clamp(
-                this.luminanceQuality ?? metadata.LuminanceQuality ?? DefaultQualityValue,
-                min: 1,
-                max: 100);
+            // encoder quality
+            if (this.luminanceQuality.HasValue)
+            {
+                int lumaQuality = Numerics.Clamp(this.luminanceQuality.Value, 1, 100);
+                luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+            }
 
-            luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+            // non-standard table
+            else if (metadata.LuminanceQuantizationTable.HasValue)
+            {
+                luminanceQuantTable = metadata.LuminanceQuantizationTable.Value;
+            }
+
+            // metadata or default quality
+            else
+            {
+                int lumaQuality = Numerics.Clamp(metadata.LuminanceQuality ?? DefaultQualityValue, 1, 100);
+                luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+            }
+
             chrominanceQuantTable = default;
             if (componentCount > 1)
             {
-                int chromaQuality = Numerics.Clamp(
-                    this.chrominanceQuality ?? metadata.ChrominanceQuality ?? DefaultQualityValue,
-                    min: 1,
-                    max: 100);
+                int chromaQuality;
 
-                this.subsample ??= chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
+                // encoder quality
+                if (this.chrominanceQuality.HasValue)
+                {
+                    chromaQuality = Numerics.Clamp(this.chrominanceQuality.Value, 1, 100);
+                    chrominanceQuantTable = Quantization.ScaleLuminanceTable(chromaQuality);
+                }
 
-                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
+                // non-standard table
+                else if (metadata.ChromaQuantizationTable.HasValue)
+                {
+                    chromaQuality = metadata.ChrominanceQuality.Value;
+                    chrominanceQuantTable = metadata.ChromaQuantizationTable.Value;
+                }
+
+                // metadata or default quality
+                else
+                {
+                    chromaQuality = Numerics.Clamp(metadata.ChrominanceQuality ?? DefaultQualityValue, 1, 100);
+                    chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
+                }
+
+                this.subsample = chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
             }
         }
     }

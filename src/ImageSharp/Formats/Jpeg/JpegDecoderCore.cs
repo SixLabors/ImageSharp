@@ -835,7 +835,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         // so we save it in the metadata
                         if (!Quantization.EstimateLuminanceQuality(ref table, out int quality))
                         {
-                            jpegMetadata.LumaQuantizationTable = table.RoundAsInt16Block();
+                            jpegMetadata.LuminanceQuantizationTable = table;
                         }
 
                         jpegMetadata.LuminanceQuality = quality;
@@ -850,7 +850,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         // so we save it in the metadata
                         if (!Quantization.EstimateChrominanceQuality(ref table, out int quality))
                         {
-                            jpegMetadata.ChromaQuantizationTable = table.RoundAsInt16Block();
+                            jpegMetadata.ChromaQuantizationTable = table;
                         }
 
                         jpegMetadata.ChrominanceQuality = quality;

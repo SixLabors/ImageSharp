@@ -24,6 +24,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     internal sealed unsafe class JpegEncoderCore : IImageEncoderInternals
     {
         /// <summary>
+        /// Default JPEG encoding quality for both luminance and chominance tables.
+        /// </summary>
+        private const int DefaultQualityValue = 75;
+
+        /// <summary>
         /// The number of quantization tables.
         /// </summary>
         private const int QuantizationTableCount = 2;
@@ -41,7 +46,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The quality, that will be used to encode the image.
         /// </summary>
-        private readonly int? quality;
+        private readonly int? luminanceQuality;
+
+        /// <summary>
+        /// The quality, that will be used to encode the image.
+        /// </summary>
+        private readonly int? chrominanceQuality;
 
         /// <summary>
         /// Gets or sets the subsampling method to use.
@@ -59,7 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="options">The options</param>
         public JpegEncoderCore(IJpegEncoderOptions options)
         {
-            this.quality = options.Quality;
+            this.luminanceQuality = options.LuminanceQuality;
+            this.chrominanceQuality = options.ChrominanceQuality;
             this.subsample = options.Subsample;
             this.colorType = options.ColorType;
         }
@@ -86,19 +97,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
+            JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
 
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
 
-            // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
-            this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
-
             // Initialize the quantization tables.
-            // TODO: This looks ugly, should we write chrominance table for luminance-only images?
-            // If not - this can code can be simplified
-            Block8x8F luminanceQuantTable = Quantization.ScaleLuminanceTable(qlty);
-            Block8x8F chrominanceQuantTable = Quantization.ScaleChrominanceTable(qlty);
+            // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
+            int lumaQuality = Numerics.Clamp(this.luminanceQuality ?? jpegMetadata.LuminanceQuality, 1, 100);
+            Block8x8F luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+            Block8x8F chrominanceQuantTable = default;
+            if (componentCount > 1)
+            {
+                int chromaQuality = Numerics.Clamp(this.chrominanceQuality ?? jpegMetadata.ChrominanceQuality, 1, 100);
+                this.subsample ??= chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
+
+                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
+            }
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);

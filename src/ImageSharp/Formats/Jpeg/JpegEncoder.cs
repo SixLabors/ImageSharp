@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// index must be between 0 and 100 (compression from max to min).
         /// Defaults to <value>75</value>.
         /// </summary>
-        public int? Quality { get; set; }
+        public int? Quality
+        {
+            [Obsolete("This accessor will soon be deprecated. Use LuminanceQuality and ChrominanceQuality getters instead.", error: false)]
+            get
+            {
+                const int defaultQuality = 75;
+
+                int lumaQuality = this.LuminanceQuality ?? defaultQuality;
+                int chromaQuality = this.LuminanceQuality ?? lumaQuality;
+                return (int)Math.Round((lumaQuality + chromaQuality) / 2f);
+            }
+
+            set
+            {
+                this.LuminanceQuality = value;
+                this.ChrominanceQuality = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the quality, that will be used to encode luminance image data.
+        /// Quality index must be between 0 and 100 (compression from max to min).
+        /// Defaults to <value>75</value>.
+        /// </summary>
+        public int? LuminanceQuality { get; set; }
+
+        /// <summary>
+        /// Gets or sets the quality, that will be used to encode chrominance image data.
+        /// Quality index must be between 0 and 100 (compression from max to min).
+        /// Defaults to <value>75</value>.
+        /// </summary>
+        public int? ChrominanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the subsample ration, that will be used to encode the image.

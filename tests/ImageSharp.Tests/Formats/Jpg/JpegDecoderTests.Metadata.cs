@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             { TestImages.Jpeg.Baseline.Calliphora, 80 },
             { TestImages.Jpeg.Progressive.Fb, 75 },
-            { TestImages.Jpeg.Issues.IncorrectQuality845, 99 }
+            { TestImages.Jpeg.Issues.IncorrectQuality845, 98 }
         };
 
         [Theory]

@@ -36,7 +36,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowBadMarker(string marker, int length) => throw new InvalidImageContentException($"Marker {marker} has bad length {length}.");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowBadQuantizationTable() => throw new InvalidImageContentException("Bad Quantization Table index.");
+        public static void ThrowBadQuantizationTableIndex(int index) => throw new InvalidImageContentException($"Bad Quantization Table index {index}.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowBadQuantizationTablePrecision(int precision) => throw new InvalidImageContentException($"Unknown Quantization Table precision {precision}.");
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowBadSampling() => throw new InvalidImageContentException("Bad sampling factor.");

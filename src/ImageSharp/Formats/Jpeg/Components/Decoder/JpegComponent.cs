@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             if (quantizationTableIndex > 3)
             {
-                JpegThrowHelper.ThrowBadQuantizationTable();
+                JpegThrowHelper.ThrowBadQuantizationTableIndex(quantizationTableIndex);
             }
 
             this.QuantizationTableIndex = quantizationTableIndex;

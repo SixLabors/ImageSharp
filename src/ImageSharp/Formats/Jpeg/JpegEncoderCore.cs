@@ -102,18 +102,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
 
-            // Initialize the quantization tables.
             // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
-            int lumaQuality = Numerics.Clamp(this.luminanceQuality ?? jpegMetadata.LuminanceQuality, 1, 100);
-            Block8x8F luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
-            Block8x8F chrominanceQuantTable = default;
-            if (componentCount > 1)
-            {
-                int chromaQuality = Numerics.Clamp(this.chrominanceQuality ?? jpegMetadata.ChrominanceQuality, 1, 100);
-                this.subsample ??= chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
-
-                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
-            }
+            // Initialize the quantization tables.
+            this.InitQuantizationTables(componentCount, jpegMetadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable);
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
@@ -650,6 +641,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);
             this.outputStream.Write(this.buffer, 0, 4);
+        }
+
+        /// <summary>
+        /// Initializes quntization tables.
+        /// </summary>
+        /// <param name="componentCount">Color components count.</param>
+        /// <param name="metadata">Jpeg metadata instance.</param>
+        /// <param name="luminanceQuantTable">Output luminance quantization table.</param>
+        /// <param name="chrominanceQuantTable">Output chrominance quantization table.</param>
+        private void InitQuantizationTables(int componentCount, JpegMetadata metadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable)
+        {
+            // We take quality values in a hierarchical order:
+            // 1. Check if encoder has set quality
+            // 2. Check if metadata has special table for encoding
+            // 3. Check if metadata has set quality
+            // 4. Take default quality value - 75
+            int lumaQuality = Numerics.Clamp(
+                this.luminanceQuality ?? metadata.LuminanceQuality ?? DefaultQualityValue,
+                min: 1,
+                max: 100);
+
+            luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+            chrominanceQuantTable = default;
+            if (componentCount > 1)
+            {
+                int chromaQuality = Numerics.Clamp(
+                    this.chrominanceQuality ?? metadata.ChrominanceQuality ?? DefaultQualityValue,
+                    min: 1,
+                    max: 100);
+
+                this.subsample ??= chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
+
+                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
+            }
         }
     }
 }

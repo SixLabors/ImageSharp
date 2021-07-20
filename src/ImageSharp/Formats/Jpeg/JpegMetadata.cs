@@ -24,7 +24,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="other">The metadata to create an instance from.</param>
         private JpegMetadata(JpegMetadata other)
         {
-            this.Quality = other.Quality;
             this.ColorType = other.ColorType;
 
             this.LumaQuantizationTable = other.LumaQuantizationTable;
@@ -56,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int LuminanceQuality { get; set; }
+        public int? LuminanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the jpeg chrominance quality.
@@ -65,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int ChrominanceQuality { get; set; }
+        public int? ChrominanceQuality { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether jpeg luminance data was encoded using ITU complient quantization table.
@@ -82,7 +81,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         public int Quality
         {
-            get => (int)Math.Round((this.LuminanceQuality + this.ChrominanceQuality) / 2f);
+            [Obsolete("This accessor will soon be deprecated. Use LuminanceQuality and ChrominanceQuality getters instead.", error: false)]
+            get
+            {
+                const int defaultQuality = 75;
+
+                int lumaQuality = this.LuminanceQuality ?? defaultQuality;
+                int chromaQuality = this.LuminanceQuality ?? lumaQuality;
+                return (int)Math.Round((lumaQuality + chromaQuality) / 2f);
+            }
+
             set
             {
                 this.LuminanceQuality = value;

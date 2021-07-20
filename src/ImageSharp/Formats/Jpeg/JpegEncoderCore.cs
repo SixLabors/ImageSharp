@@ -679,7 +679,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     chrominanceQuantTable = metadata.ChromaQuantizationTable;
                 }
 
-                this.subsample = chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
+                if (!this.subsample.HasValue)
+                {
+                    this.subsample = chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
+                }
             }
         }
     }

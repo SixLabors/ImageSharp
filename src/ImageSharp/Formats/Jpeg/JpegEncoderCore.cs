@@ -64,8 +64,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="options">The options</param>
         public JpegEncoderCore(IJpegEncoderOptions options)
         {
-            this.luminanceQuality = options.LuminanceQuality;
-            this.chrominanceQuality = options.ChrominanceQuality;
+            this.luminanceQuality = options.Quality;
+            this.chrominanceQuality = options.Quality;
             this.subsample = options.Subsample;
             this.colorType = options.ColorType;
         }

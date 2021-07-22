@@ -675,7 +675,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
                 else
                 {
-                    chromaQuality = metadata.ChrominanceQuality;
+                    chromaQuality = Numerics.Clamp(metadata.ChrominanceQuality, 1, 100);
                     chrominanceQuantTable = metadata.ChromaQuantizationTable;
                 }
 

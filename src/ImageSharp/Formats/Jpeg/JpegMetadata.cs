@@ -108,6 +108,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets or sets the encoded quality.
         /// </summary>
+        /// <remarks>
+        /// Note that jpeg image can have different quality for luminance and chrominance components.
+        /// This property return average for both qualities and sets both qualities to the given value.
+        /// </remarks>
         public int Quality
         {
             get

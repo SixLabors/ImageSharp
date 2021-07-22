@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Gets or sets the encoded quality.
+        /// Gets or sets the color type.
         /// </summary>
         public JpegColorType? ColorType { get; set; }
 

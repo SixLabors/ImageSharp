@@ -33,9 +33,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public WebpFormatType Format { get; set; }
 
         /// <summary>
-        /// Gets or sets all found chunk types ordered by appearance.
+        /// Gets all found chunk types ordered by appearance.
         /// </summary>
-        public Queue<WebpChunkType> ChunkTypes { get; set; } = new Queue<WebpChunkType>();
+        public Queue<WebpChunkType> ChunkTypes { get; } = new Queue<WebpChunkType>();
 
         /// <summary>
         /// Gets or sets a value indicating whether the webp file contains an animation.

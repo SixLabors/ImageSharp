@@ -89,6 +89,21 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+        /// wrapping an external <see cref="Buffer2D{TPixel}"/> pixel bufferx.
+        /// </summary>
+        /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+        /// <param name="pixelBuffer">Pixel buffer.</param>
+        /// <param name="metadata">The images metadata.</param>
+        internal Image(
+            Configuration configuration,
+            Buffer2D<TPixel> pixelBuffer,
+            ImageMetadata metadata)
+            : this(configuration, pixelBuffer.FastMemoryGroup, pixelBuffer.Width, pixelBuffer.Height, metadata)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// wrapping an external <see cref="MemoryGroup{T}"/>.
         /// </summary>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>

@@ -39,11 +39,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private Size subSamplingDivisors;
 
         /// <summary>
-        /// Defines the maximum value derived from the bitdepth.
-        /// </summary>
-        private readonly int maximumValue;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="JpegBlockPostProcessor"/> struct.
         /// </summary>
         /// <param name="decoder">The raw jpeg data.</param>
@@ -53,7 +48,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int qtIndex = component.QuantizationTableIndex;
             this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
             this.subSamplingDivisors = component.SubSamplingDivisors;
-            this.maximumValue = (int)MathF.Pow(2, decoder.Precision) - 1;
 
             this.SourceBlock = default;
             this.WorkspaceBlock1 = default;

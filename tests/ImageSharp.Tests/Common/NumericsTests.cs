@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             int expected = 0;
             int actual = Numerics.Log2(value);
 
-            Assert.True(expected == actual, $"Expected: {expected}, Actual: {actual}");
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 int expected = i;
                 int actual = Numerics.Log2(value);
 
-                Assert.True(expected == actual, $"Expected: {expected}, Actual: {actual}");
+                Assert.Equal(expected, actual);
             }
         }
 
@@ -66,7 +66,35 @@ namespace SixLabors.ImageSharp.Tests.Common
                 int expected = Log2_ReferenceImplementation(value);
                 int actual = Numerics.Log2(value);
 
-                Assert.True(expected == actual, $"Expected: {expected}, Actual: {actual}");
+                Assert.Equal(expected, actual);
+            }
+        }
+
+        private static uint DivideCeil_ReferenceImplementation(uint value, uint divisor) => (uint)MathF.Ceiling((float)value / divisor);
+
+        [Fact]
+        public void DivideCeil_DivideZero()
+        {
+            uint expected = 0;
+            uint actual = Numerics.DivideCeil(0, 100);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData(1, 100)]
+        public void DivideCeil_RandomValues(int seed, int count)
+        {
+            var rng = new Random(seed);
+            for (int i = 0; i < count; i++)
+            {
+                uint value = (uint)rng.Next();
+                uint divisor = (uint)rng.Next();
+
+                uint expected = DivideCeil_ReferenceImplementation(value, divisor);
+                uint actual = Numerics.DivideCeil(value, divisor);
+
+                Assert.True(expected == actual, $"Expected: {expected}\nActual: {actual}\n{value} / {divisor} = {expected}");
             }
         }
     }

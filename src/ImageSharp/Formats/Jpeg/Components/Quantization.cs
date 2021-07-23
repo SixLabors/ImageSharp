@@ -24,6 +24,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public const int MinQualityFactor = 1;
 
         /// <summary>
+        /// Default JPEG quality for both luminance and chominance tables.
+        /// </summary>
+        public const int DefaultQualityFactor = 75;
+
+        /// <summary>
         /// Represents lowest quality setting which can be estimated with enough confidence.
         /// Any quality below it results in a highly compressed jpeg image
         /// which shouldn't use standard itu quantization tables for re-encoding.

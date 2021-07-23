@@ -11,16 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public class JpegMetadata : IDeepCloneable
     {
-        /// <summary>
-        /// Default JPEG quality for both luminance and chominance tables.
-        /// </summary>
-        private const int DefaultQualityValue = 75;
-
         private Block8x8F? lumaQuantTable;
         private Block8x8F? chromaQuantTable;
-
-        private int? lumaQuality;
-        private int? chromaQuality;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
@@ -55,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return this.lumaQuantTable.Value;
                 }
 
-                return Quantization.ScaleLuminanceTable(this.LuminanceQuality);
+                return Quantization.ScaleLuminanceTable(this.LuminanceQuality ?? Quantization.DefaultQualityFactor);
             }
 
             set => this.lumaQuantTable = value;
@@ -73,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return this.chromaQuantTable.Value;
                 }
 
-                return Quantization.ScaleChrominanceTable(this.ChrominanceQuality);
+                return Quantization.ScaleChrominanceTable(this.ChrominanceQuality ?? Quantization.DefaultQualityFactor);
             }
 
             set => this.chromaQuantTable = value;
@@ -86,11 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int LuminanceQuality
-        {
-            get => this.lumaQuality ?? DefaultQualityValue;
-            set => this.lumaQuality = value;
-        }
+        public int? LuminanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the jpeg chrominance quality.
@@ -99,11 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int ChrominanceQuality
-        {
-            get => this.chromaQuality ?? DefaultQualityValue;
-            set => this.chromaQuality = value;
-        }
+        public int? ChrominanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the encoded quality.
@@ -116,8 +100,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             get
             {
-                int lumaQuality = this.lumaQuality ?? DefaultQualityValue;
-                int chromaQuality = this.chromaQuality ?? lumaQuality;
+                int lumaQuality = this.LuminanceQuality ?? Quantization.DefaultQualityFactor;
+                int chromaQuality = this.ChrominanceQuality ?? lumaQuality;
                 return (int)Math.Round((lumaQuality + chromaQuality) / 2f);
             }
 

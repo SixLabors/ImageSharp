@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         public CostManager(ushort[] distArray, int pixCount, CostModel costModel)
         {
-            int costCacheSize = (pixCount > BackwardReferenceEncoder.MaxLength) ? BackwardReferenceEncoder.MaxLength : pixCount;
+            int costCacheSize = pixCount > BackwardReferenceEncoder.MaxLength ? BackwardReferenceEncoder.MaxLength : pixCount;
 
             this.CacheIntervals = new List<CostCacheInterval>();
             this.CostCache = new List<double>();

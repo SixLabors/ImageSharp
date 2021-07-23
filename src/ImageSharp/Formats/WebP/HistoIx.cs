@@ -31,6 +31,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         HistoPalette,
 
-        HistoTotal, // Must be last.
+        HistoTotal
     }
 }

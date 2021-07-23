@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             if (this.Compressed == false)
             {
                 Span<byte> dataSpan = this.Data.Memory.Span;
-                var pixelCount = this.Width * this.Height;
+                int pixelCount = this.Width * this.Height;
                 if (dataSpan.Length < pixelCount)
                 {
                     WebpThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
@@ -222,8 +222,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             // For vertical and gradient filtering, we need to decode the part above the
             // cropTop row, in order to have the correct spatial predictors.
-            int topRow = (this.AlphaFilterType == WebpAlphaFilterType.None || this.AlphaFilterType == WebpAlphaFilterType.Horizontal) ? 0 : this.LastRow;
-            int firstRow = (this.LastRow < topRow) ? topRow : this.LastRow;
+            int topRow = this.AlphaFilterType == WebpAlphaFilterType.None || this.AlphaFilterType == WebpAlphaFilterType.Horizontal ? 0 : this.LastRow;
+            int firstRow = this.LastRow < topRow ? topRow : this.LastRow;
             if (lastRow > firstRow)
             {
                 // Special method for paletted alpha data.
@@ -402,16 +402,13 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte GetAlphaValue(int val)
-        {
-            return (byte)((val >> 8) & 0xff);
-        }
+        private static byte GetAlphaValue(int val) => (byte)((val >> 8) & 0xff);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GradientPredictor(byte a, byte b, byte c)
         {
             int g = a + b - c;
-            return ((g & ~0xff) == 0) ? g : (g < 0) ? 0 : 255;  // clip to 8bit
+            return (g & ~0xff) == 0 ? g : g < 0 ? 0 : 255;  // clip to 8bit.
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -142,8 +142,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int iter = iterMax;
                 int bestLength = 0;
                 uint bestDistance = 0;
-                int minPos = (basePosition > windowSize) ? basePosition - windowSize : 0;
-                int lengthMax = (maxLen < 256) ? maxLen : 256;
+                int minPos = basePosition > windowSize ? basePosition - windowSize : 0;
+                int lengthMax = maxLen < 256 ? maxLen : 256;
                 pos = chain[basePosition];
                 int currLength;
 
@@ -273,12 +273,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetWindowSizeForHashChain(int quality, int xSize)
         {
-            int maxWindowSize = (quality > 75) ? WindowSize
-                : (quality > 50) ? (xSize << 8)
-                : (quality > 25) ? (xSize << 6)
-                : (xSize << 4);
+            int maxWindowSize = quality > 75 ? WindowSize
+                : quality > 50 ? xSize << 8
+                : quality > 25 ? xSize << 6
+                : xSize << 4;
 
-            return (maxWindowSize > WindowSize) ? WindowSize : maxWindowSize;
+            return maxWindowSize > WindowSize ? WindowSize : maxWindowSize;
         }
     }
 }

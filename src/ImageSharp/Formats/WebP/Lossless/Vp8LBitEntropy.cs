@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             double minLimit = (2 * this.Sum) - this.MaxVal;
             minLimit = (mix * minLimit) + ((1.0 - mix) * this.Entropy);
-            return (this.Entropy < minLimit) ? minLimit : this.Entropy;
+            return this.Entropy < minLimit ? minLimit : this.Entropy;
         }
 
         public void BitsEntropyUnrefined(Span<uint> array, int n)

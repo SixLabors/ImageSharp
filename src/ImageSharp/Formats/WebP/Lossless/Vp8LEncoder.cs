@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 this.Refs[i] = new Vp8LBackwardRefs
                 {
-                    BlockSize = (refsBlockSize < MinBlockSize) ? MinBlockSize : refsBlockSize
+                    BlockSize = refsBlockSize < MinBlockSize ? MinBlockSize : refsBlockSize
                 };
             }
         }
@@ -283,10 +283,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 bool useCache = true;
                 this.UsePalette = crunchConfig.EntropyIdx == EntropyIx.Palette ||
                                   crunchConfig.EntropyIdx == EntropyIx.PaletteAndSpatial;
-                this.UseSubtractGreenTransform = (crunchConfig.EntropyIdx == EntropyIx.SubGreen) ||
-                                                 (crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen);
-                this.UsePredictorTransform = (crunchConfig.EntropyIdx == EntropyIx.Spatial) ||
-                                             (crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen);
+                this.UseSubtractGreenTransform = crunchConfig.EntropyIdx == EntropyIx.SubGreen ||
+                                                 crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen;
+                this.UsePredictorTransform = crunchConfig.EntropyIdx == EntropyIx.Spatial ||
+                                             crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen;
                 if (lowEffort)
                 {
                     this.UseCrossColorTransform = false;
@@ -305,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 if (this.nearLossless)
                 {
                     // Apply near-lossless preprocessing.
-                    bool useNearLossless = (this.nearLosslessQuality < 100) && !this.UsePalette && !this.UsePredictorTransform;
+                    bool useNearLossless = this.nearLosslessQuality < 100 && !this.UsePalette && !this.UsePredictorTransform;
                     if (useNearLossless)
                     {
                         this.AllocateTransformBuffer(width, height);
@@ -320,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     this.MapImageFromPalette(width, height);
 
                     // If using a color cache, do not have it bigger than the number of colors.
-                    if (useCache && this.PaletteSize < (1 << WebpConstants.MaxColorCacheBits))
+                    if (useCache && this.PaletteSize < 1 << WebpConstants.MaxColorCacheBits)
                     {
                         this.CacheBits = WebpCommonUtils.BitsLog2Floor((uint)this.PaletteSize) + 1;
                     }
@@ -419,7 +419,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.TransformBits = GetTransformBits(this.method, this.HistoBits);
 
             // Try out multiple LZ77 on images with few colors.
-            int nlz77s = (this.PaletteSize > 0 && this.PaletteSize <= 16) ? 2 : 1;
+            int nlz77s = this.PaletteSize > 0 && this.PaletteSize <= 16 ? 2 : 1;
             EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
             bool doNotCache = false;
@@ -463,7 +463,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     crunchConfig.SubConfigs.Add(new CrunchSubConfig
                     {
-                        Lz77 = (j == 0) ? (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle : (int)Vp8LLz77Type.Lz77Box,
+                        Lz77 = j == 0 ? (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle : (int)Vp8LLz77Type.Lz77Box,
                         DoNotCache = doNotCache
                     });
                 }
@@ -944,7 +944,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, ushort[] histogramSymbols, HuffmanTreeCode[] huffmanCodes)
         {
             int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(width, histoBits) : 1;
-            int tileMask = (histoBits == 0) ? 0 : -(1 << histoBits);
+            int tileMask = histoBits == 0 ? 0 : -(1 << histoBits);
 
             // x and y trace the position in the image.
             int x = 0;
@@ -957,7 +957,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             while (c.MoveNext())
             {
                 PixOrCopy v = c.Current;
-                if ((tileX != (x & tileMask)) || (tileY != (y & tileMask)))
+                if (tileX != (x & tileMask) || tileY != (y & tileMask))
                 {
                     tileX = x & tileMask;
                     tileY = y & tileMask;
@@ -1038,7 +1038,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     uint pix = currentRow[x];
                     uint pixDiff = LosslessUtils.SubPixels(pix, pixPrev);
                     pixPrev = pix;
-                    if ((pixDiff == 0) || (prevRow != null && pix == prevRow[x]))
+                    if (pixDiff == 0 || (prevRow != null && pix == prevRow[x]))
                     {
                         continue;
                     }
@@ -1245,11 +1245,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // This is done line by line.
             if (paletteSize <= 4)
             {
-                xBits = (paletteSize <= 2) ? 3 : 2;
+                xBits = paletteSize <= 2 ? 3 : 2;
             }
             else
             {
-                xBits = (paletteSize <= 16) ? 1 : 0;
+                xBits = paletteSize <= 16 ? 1 : 0;
             }
 
             this.CurrentWidth = LosslessUtils.SubSampleSize(width, xBits);
@@ -1495,17 +1495,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 byte bd = (byte)((diff >> 0) & 0xff);
                 if (rd != 0x00)
                 {
-                    signFound |= (byte)((rd < 0x80) ? 1 : 2);
+                    signFound |= (byte)(rd < 0x80 ? 1 : 2);
                 }
 
                 if (gd != 0x00)
                 {
-                    signFound |= (byte)((gd < 0x80) ? 8 : 16);
+                    signFound |= (byte)(gd < 0x80 ? 8 : 16);
                 }
 
                 if (bd != 0x00)
                 {
-                    signFound |= (byte)((bd < 0x80) ? 64 : 128);
+                    signFound |= (byte)(bd < 0x80 ? 64 : 128);
                 }
             }
 
@@ -1555,8 +1555,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 for (int k = 0; k < 5; k++)
                 {
                     int numSymbols =
-                        (k == 0) ? histo.NumCodes() :
-                        (k == 4) ? WebpConstants.NumDistanceCodes : 256;
+                        k == 0 ? histo.NumCodes() :
+                        k == 4 ? WebpConstants.NumDistanceCodes : 256;
                     huffmanCodes[startIdx + k].NumSymbols = numSymbols;
                 }
             }
@@ -1631,8 +1631,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 histoBits++;
             }
 
-            return (histoBits < WebpConstants.MinHuffmanBits) ? WebpConstants.MinHuffmanBits :
-                (histoBits > WebpConstants.MaxHuffmanBits) ? WebpConstants.MaxHuffmanBits : histoBits;
+            return histoBits < WebpConstants.MinHuffmanBits ? WebpConstants.MinHuffmanBits :
+                histoBits > WebpConstants.MaxHuffmanBits ? WebpConstants.MaxHuffmanBits : histoBits;
         }
 
         /// <summary>
@@ -1681,8 +1681,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetTransformBits(int method, int histoBits)
         {
-            int maxTransformBits = (method < 4) ? 6 : (method > 4) ? 4 : 5;
-            int res = (histoBits > maxTransformBits) ? maxTransformBits : histoBits;
+            int maxTransformBits = method < 4 ? 6 : method > 4 ? 4 : 5;
+            int res = histoBits > maxTransformBits ? maxTransformBits : histoBits;
             return res;
         }
 
@@ -1728,10 +1728,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static uint ApplyPaletteHash0(uint color) => (color >> 8) & 0xff; // Focus on the green color.
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint ApplyPaletteHash1(uint color) => ((uint)((color & 0x00ffffffu) * 4222244071ul)) >> (32 - PaletteInvSizeBits); // Forget about alpha.
+        private static uint ApplyPaletteHash1(uint color) => (uint)((color & 0x00ffffffu) * 4222244071ul) >> (32 - PaletteInvSizeBits); // Forget about alpha.
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint ApplyPaletteHash2(uint color) => ((uint)((color & 0x00ffffffu) * ((1ul << 31) - 1))) >> (32 - PaletteInvSizeBits); // Forget about alpha.
+        private static uint ApplyPaletteHash2(uint color) => (uint)((color & 0x00ffffffu) * ((1ul << 31) - 1)) >> (32 - PaletteInvSizeBits); // Forget about alpha.
 
         // Note that masking with 0xffffffffu is for preventing an
         // 'unsigned int overflow' warning. Doesn't impact the compiled code.
@@ -1739,7 +1739,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static uint HashPix(uint pix) => (uint)((((long)pix + (pix >> 19)) * 0x39c5fba7L) & 0xffffffffu) >> 24;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int PaletteCompareColorsForSort(uint p1, uint p2) => (p1 < p2) ? -1 : 1;
+        private static int PaletteCompareColorsForSort(uint p1, uint p2) => p1 < p2 ? -1 : 1;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint PaletteComponentDistance(uint v) => (v <= 128) ? v : (256 - v);
@@ -1749,7 +1749,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // VP8LResidualImage needs room for 2 scanlines of uint32 pixels with an extra
             // pixel in each, plus 2 regular scanlines of bytes.
             int bgraScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
-            int transformDataSize = (this.UsePredictorTransform || this.UseCrossColorTransform) ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits) : 0;
+            int transformDataSize = this.UsePredictorTransform || this.UseCrossColorTransform ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits) : 0;
 
             this.BgraScratch = this.memoryAllocator.Allocate<uint>(bgraScratchSize);
             this.TransformData = this.memoryAllocator.Allocate<uint>(transformDataSize);

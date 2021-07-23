@@ -14,69 +14,41 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         public uint BgraOrDistance { get; set; }
 
-        public static PixOrCopy CreateCacheIdx(int idx)
-        {
-            return new PixOrCopy()
+        public static PixOrCopy CreateCacheIdx(int idx) =>
+            new PixOrCopy()
             {
                 Mode = PixOrCopyMode.CacheIdx,
                 BgraOrDistance = (uint)idx,
                 Len = 1
             };
-        }
 
-        public static PixOrCopy CreateLiteral(uint bgra)
-        {
-            return new PixOrCopy()
+        public static PixOrCopy CreateLiteral(uint bgra) =>
+            new PixOrCopy()
             {
                 Mode = PixOrCopyMode.Literal,
                 BgraOrDistance = bgra,
                 Len = 1
             };
-        }
 
-        public static PixOrCopy CreateCopy(uint distance, ushort len)
+        public static PixOrCopy CreateCopy(uint distance, ushort len) => new PixOrCopy()
         {
-            return new PixOrCopy()
-            {
-                Mode = PixOrCopyMode.Copy,
-                BgraOrDistance = distance,
-                Len = len
-            };
-        }
+            Mode = PixOrCopyMode.Copy,
+            BgraOrDistance = distance,
+            Len = len
+        };
 
-        public uint Literal(int component)
-        {
-            return (this.BgraOrDistance >> (component * 8)) & 0xff;
-        }
+        public uint Literal(int component) => (this.BgraOrDistance >> (component * 8)) & 0xff;
 
-        public uint CacheIdx()
-        {
-            return this.BgraOrDistance;
-        }
+        public uint CacheIdx() => this.BgraOrDistance;
 
-        public ushort Length()
-        {
-            return this.Len;
-        }
+        public ushort Length() => this.Len;
 
-        public uint Distance()
-        {
-            return this.BgraOrDistance;
-        }
+        public uint Distance() => this.BgraOrDistance;
 
-        public bool IsLiteral()
-        {
-            return this.Mode == PixOrCopyMode.Literal;
-        }
+        public bool IsLiteral() => this.Mode == PixOrCopyMode.Literal;
 
-        public bool IsCacheIdx()
-        {
-            return this.Mode == PixOrCopyMode.CacheIdx;
-        }
+        public bool IsCacheIdx() => this.Mode == PixOrCopyMode.CacheIdx;
 
-        public bool IsCopy()
-        {
-            return this.Mode == PixOrCopyMode.Copy;
-        }
+        public bool IsCopy() => this.Mode == PixOrCopyMode.Copy;
     }
 }

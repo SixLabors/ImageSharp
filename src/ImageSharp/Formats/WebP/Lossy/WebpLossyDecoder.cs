@@ -277,7 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> vDst = yuv.Slice(vOff);
 
             // Initialize left-most block.
-            var end = 16 * WebpConstants.Bps;
+            int end = 16 * WebpConstants.Bps;
             for (int i = 0; i < end; i += WebpConstants.Bps)
             {
                 yuv[i - 1 + yOff] = 129;
@@ -365,7 +365,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         if (mbx >= dec.MbWidth - 1)
                         {
                             // On rightmost border.
-                            var topYuv15 = topYuv.Y[15];
+                            byte topYuv15 = topYuv.Y[15];
                             topRight[0] = topYuv15;
                             topRight[1] = topYuv15;
                             topRight[2] = topYuv15;
@@ -421,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                                 break;
                         }
 
-                        this.DoTransform(bits,  coeffs.AsSpan(n * 16), dst);
+                        this.DoTransform(bits, coeffs.AsSpan(n * 16), dst);
                     }
                 }
                 else
@@ -606,15 +606,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int extraYRows = WebpConstants.FilterExtraRows[(int)dec.Filter];
             int ySize = extraYRows * dec.CacheYStride;
-            int uvSize = (extraYRows / 2) * dec.CacheUvStride;
+            int uvSize = extraYRows / 2 * dec.CacheUvStride;
             Span<byte> yDst = dec.CacheY.Memory.Span;
             Span<byte> uDst = dec.CacheU.Memory.Span;
             Span<byte> vDst = dec.CacheV.Memory.Span;
             int mby = dec.MbY;
             bool isFirstRow = mby == 0;
             bool isLastRow = mby >= dec.BottomRightMbY - 1;
-            bool filterRow = (dec.Filter != LoopFilter.None) &&
-                             (dec.MbY >= dec.TopLeftMbY) && (dec.MbY <= dec.BottomRightMbY);
+            bool filterRow = dec.Filter != LoopFilter.None && dec.MbY >= dec.TopLeftMbY && dec.MbY <= dec.BottomRightMbY;
 
             if (filterRow)
             {
@@ -698,8 +697,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
 
             // Loop over each output pairs of row.
-            var bufferStride2 = 2 * bufferStride;
-            var ioStride2 = 2 * io.YStride;
+            int bufferStride2 = 2 * bufferStride;
+            int ioStride2 = 2 * io.YStride;
             for (; y + 2 < yEnd; y += 2)
             {
                 topU = curU;
@@ -879,7 +878,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             else
             {
                 // Parse DC
-                var dc = new short[16];
+                short[] dc = new short[16];
                 int ctx = (int)(mb.NoneZeroDcCoeffs + leftMb.NoneZeroDcCoeffs);
                 int nz = this.GetCoeffs(br, bands[1], ctx, q.Y2Mat, 0, dc);
                 mb.NoneZeroDcCoeffs = leftMb.NoneZeroDcCoeffs = (uint)(nz > 0 ? 1 : 0);
@@ -913,7 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 {
                     int ctx = l + (tnz & 1);
                     int nz = this.GetCoeffs(br, acProba, ctx, q.Y1Mat, first, dst.AsSpan(dstOffset));
-                    l = (nz > first) ? 1 : 0;
+                    l = nz > first ? 1 : 0;
                     tnz = (byte)((tnz >> 1) | (l << 7));
                     nzCoeffs = NzCodeBits(nzCoeffs, nz, dst[dstOffset] != 0 ? 1 : 0);
                     dstOffset += 16;
@@ -930,7 +929,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (int ch = 0; ch < 4; ch += 2)
             {
                 uint nzCoeffs = 0;
-                var chPlus4 = 4 + ch;
+                int chPlus4 = 4 + ch;
                 tnz = (byte)(mb.NoneZeroAcDcCoeffs >> chPlus4);
                 lnz = (byte)(leftMb.NoneZeroAcDcCoeffs >> chPlus4);
                 for (int y = 0; y < 2; ++y)
@@ -940,7 +939,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         int ctx = l + (tnz & 1);
                         int nz = this.GetCoeffs(br, bands[2], ctx, q.UvMat, 0, dst.AsSpan(dstOffset));
-                        l = (nz > 0) ? 1 : 0;
+                        l = nz > 0 ? 1 : 0;
                         tnz = (byte)((tnz >> 1) | (l << 3));
                         nzCoeffs = NzCodeBits(nzCoeffs, nz, dst[dstOffset] != 0 ? 1 : 0);
                         dstOffset += 16;
@@ -952,7 +951,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Note: we don't really need the per-4x4 details for U/V blocks.
                 nonZeroUv |= nzCoeffs << (4 * ch);
-                outTnz |= (uint)((tnz << 4) << ch);
+                outTnz |= (uint)(tnz << 4 << ch);
                 outLnz |= (uint)((lnz & 0xf0) << ch);
             }
 
@@ -1128,7 +1127,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             vp8FilterHeader.Sharpness = (int)this.bitReader.ReadValue(3);
             vp8FilterHeader.UseLfDelta = this.bitReader.ReadBool();
 
-            dec.Filter = (vp8FilterHeader.FilterLevel == 0) ? LoopFilter.None : vp8FilterHeader.LoopFilter;
+            dec.Filter = vp8FilterHeader.FilterLevel == 0 ? LoopFilter.None : vp8FilterHeader.LoopFilter;
             if (vp8FilterHeader.UseLfDelta)
             {
                 // Update lf-delta?
@@ -1157,7 +1156,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             int extraRows = WebpConstants.FilterExtraRows[(int)dec.Filter];
             int extraY = extraRows * dec.CacheYStride;
-            int extraUv = (extraRows / 2) * dec.CacheUvStride;
+            int extraUv = extraRows / 2 * dec.CacheUvStride;
             dec.CacheYOffset = extraY;
             dec.CacheUvOffset = extraUv;
         }
@@ -1313,7 +1312,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 // For simple filter, we include 'extraPixels' on the other side of the boundary,
                 // since vertical or horizontal filtering of the previous macroblock can modify some abutting pixels.
-                var extraShift4 = (-extraPixels) >> 4;
+                int extraShift4 = -extraPixels >> 4;
                 dec.TopLeftMbX = extraShift4;
                 dec.TopLeftMbY = extraShift4;
                 if (dec.TopLeftMbX < 0)
@@ -1347,7 +1346,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static uint NzCodeBits(uint nzCoeffs, int nz, int dcNz)
         {
             nzCoeffs <<= 2;
-            nzCoeffs |= (uint)((nz > 3) ? 3 : (nz > 1) ? 2 : dcNz);
+            nzCoeffs |= (uint)(nz > 3 ? 3 : nz > 1 ? 2 : dcNz);
             return nzCoeffs;
         }
 
@@ -1359,12 +1358,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 if (mbx == 0)
                 {
-                    return (mby == 0)
+                    return mby == 0
                                ? 6 // B_DC_PRED_NOTOPLEFT
                                : 5; // B_DC_PRED_NOLEFT
                 }
 
-                return (mby == 0)
+                return mby == 0
                            ? 4 // B_DC_PRED_NOTOP
                            : 0; // B_DC_PRED
             }
@@ -1373,9 +1372,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Clip(int value, int max)
-        {
-            return value < 0 ? 0 : value > max ? max : value;
-        }
+        private static int Clip(int value, int max) => value < 0 ? 0 : value > max ? max : value;
     }
 }

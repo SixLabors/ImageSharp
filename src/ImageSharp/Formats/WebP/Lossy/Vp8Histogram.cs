@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // for handling the useful small values which contribute most.
             int maxValue = this.maxValue;
             int lastNonZero = this.lastNonZero;
-            int alpha = (maxValue > 1) ? WebpConstants.AlphaScale * lastNonZero / maxValue : 0;
+            int alpha = maxValue > 1 ? WebpConstants.AlphaScale * lastNonZero / maxValue : 0;
             return alpha;
         }
 
@@ -129,13 +129,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 int a2 = tmp[4 + i] - tmp[8 + i];
                 int a3 = tmp[0 + i] - tmp[12 + i];
                 output[0 + i] = (short)((a0 + a1 + 7) >> 4); // 12b
-                output[4 + i] = (short)((((a2 * 2217) + (a3 * 5352) + 12000) >> 16) + ((a3 != 0) ? 1 : 0));
+                output[4 + i] = (short)((((a2 * 2217) + (a3 * 5352) + 12000) >> 16) + (a3 != 0 ? 1 : 0));
                 output[8 + i] = (short)((a0 - a1 + 7) >> 4);
                 output[12 + i] = (short)(((a3 * 2217) - (a2 * 5352) + 51000) >> 16);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int ClipMax(int v, int max) => (v > max) ? max : v;
+        private static int ClipMax(int v, int max) => v > max ? max : v;
     }
 }

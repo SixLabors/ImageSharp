@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Bgra32 bgra1;
             int i, j;
             int dstIdx = 0;
-            for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
+            for (i = 0, j = 0; i < width >> 1; i += 1, j += 2, dstIdx += 4)
             {
                 bgra0 = rowSpan[j];
                 bgra1 = rowSpan[j + 1];
@@ -291,7 +291,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static int ClipUv(int uv, int rounding)
         {
             uv = (uv + rounding + (128 << (YuvFix + 2))) >> (YuvFix + 2);
-            return ((uv & ~0xff) == 0) ? uv : (uv < 0) ? 0 : 255;
+            return (uv & ~0xff) == 0 ? uv : uv < 0 ? 0 : 255;
         }
     }
 }

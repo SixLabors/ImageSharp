@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int MaxFindCopyLength(int len) => (len < BackwardReferenceEncoder.MaxLength) ? len : BackwardReferenceEncoder.MaxLength;
+        public static int MaxFindCopyLength(int len) => len < BackwardReferenceEncoder.MaxLength ? len : BackwardReferenceEncoder.MaxLength;
 
         public static int PrefixEncodeBits(int distance, ref int extraBits)
         {
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     int i;
                     for (i = 0; i + 8 <= numPixels; i += 8)
                     {
-                        var idx = p + i;
+                        uint* idx = p + i;
                         Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
                         Vector256<byte> in0g0g = Avx2.Shuffle(input, mask);
                         Vector256<byte> output = Avx2.Add(input, in0g0g);
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
-                        var idx = p + i;
+                        uint* idx = p + i;
                         Vector128<byte> input = Sse2.LoadVector128((ushort*)idx).AsByte();
                         Vector128<byte> in0g0g = Ssse3.Shuffle(input, mask);
                         Vector128<byte> output = Sse2.Add(input, in0g0g);
@@ -146,14 +146,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else if (Sse2.IsSupported)
             {
-                var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
+                byte mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;
                 fixed (uint* p = pixelData)
                 {
                     int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
-                        var idx = p + i;
+                        uint* idx = p + i;
                         Vector128<ushort> input = Sse2.LoadVector128((ushort*)idx);
                         Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
                         Vector128<ushort> b = Sse2.ShuffleLow(a, mask);
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     int i;
                     for (i = 0; i + 8 <= numPixels; i += 8)
                     {
-                        var idx = p + i;
+                        uint* idx = p + i;
                         Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
                         Vector256<byte> in0g0g = Avx2.Shuffle(input, mask);
                         Vector256<byte> output = Avx2.Subtract(input, in0g0g);
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
-                        var idx = p + i;
+                        uint* idx = p + i;
                         Vector128<byte> input = Sse2.LoadVector128((ushort*)idx).AsByte();
                         Vector128<byte> in0g0g = Ssse3.Shuffle(input, mask);
                         Vector128<byte> output = Sse2.Subtract(input, in0g0g);
@@ -238,14 +238,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else if (Sse2.IsSupported)
             {
-                var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
+                byte mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;
                 fixed (uint* p = pixelData)
                 {
                     int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
-                        var idx = p + i;
+                        uint* idx = p + i;
                         Vector128<ushort> input = Sse2.LoadVector128((ushort*)idx);
                         Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
                         Vector128<ushort> b = Sse2.ShuffleLow(a, mask);
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int countMask = pixelsPerByte - 1;
                 int bitMask = (1 << bitsPerPixel) - 1;
 
-                var decodedPixelData = new uint[width * height];
+                uint[] decodedPixelData = new uint[width * height];
                 int pixelDataPos = 0;
                 for (int y = 0; y < height; ++y)
                 {
@@ -401,13 +401,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
                 var maskalphagreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
                 var maskredblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-                var shufflemask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
+                byte shufflemask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int idx;
                 fixed (uint* src = data)
                 {
                     for (idx = 0; idx + 4 <= numPixels; idx += 4)
                     {
-                        var pos = src + idx;
+                        uint* pos = src + idx;
                         Vector128<uint> input = Sse2.LoadVector128(pos);
                         Vector128<byte> a = Sse2.And(input.AsByte(), maskalphagreen);
                         Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), shufflemask);
@@ -466,13 +466,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
                 var maskalphagreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-                var shufflemask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
+                byte shufflemask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 fixed (uint* src = pixelData)
                 {
                     int idx;
                     for (idx = 0; idx + 4 <= pixelData.Length; idx += 4)
                     {
-                        var pos = src + idx;
+                        uint* pos = src + idx;
                         Vector128<uint> input = Sse2.LoadVector128(pos);
                         Vector128<byte> a = Sse2.And(input.AsByte(), maskalphagreen);
                         Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), shufflemask);
@@ -754,13 +754,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Fast calculation of log2(v) for integer input.
         /// </summary>
-        public static float FastLog2(uint v) => (v < LogLookupIdxMax) ? WebpLookupTables.Log2Table[v] : FastLog2Slow(v);
+        public static float FastLog2(uint v) => v < LogLookupIdxMax ? WebpLookupTables.Log2Table[v] : FastLog2Slow(v);
 
         /// <summary>
         /// Fast calculation of v * log2(v) for integer input.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static float FastSLog2(uint v) => (v < LogLookupIdxMax) ? WebpLookupTables.SLog2Table[v] : FastSLog2Slow(v);
+        public static float FastSLog2(uint v) => v < LogLookupIdxMax ? WebpLookupTables.SLog2Table[v] : FastSLog2Slow(v);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ColorCodeToMultipliers(uint colorCode, ref Vp8LMultipliers m)
@@ -803,7 +803,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 // The correction factor: log(1 + d) ~ d; for very small d values, so
                 // log2(1 + (v % y) / v) ~ LOG_2_RECIPROCAL * (v % y)/v
                 // LOG_2_RECIPROCAL ~ 23/16
-                var correction = (int)((23 * (origV & (y - 1))) >> 4);
+                int correction = (int)((23 * (origV & (y - 1))) >> 4);
                 return (vF * (WebpLookupTables.Log2Table[v] + logCnt)) + correction;
             }
             else
@@ -855,7 +855,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int highestBit = WebpCommonUtils.BitsLog2Floor((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
-            var code = (2 * highestBit) + secondHighestBit;
+            int code = (2 * highestBit) + secondHighestBit;
             return code;
         }
 
@@ -1252,7 +1252,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Sub3((int)((a >> 16) & 0xff), (int)((b >> 16) & 0xff), (int)((c >> 16) & 0xff)) +
                 Sub3((int)((a >> 8) & 0xff), (int)((b >> 8) & 0xff), (int)((c >> 8) & 0xff)) +
                 Sub3((int)(a & 0xff), (int)(b & 0xff), (int)(c & 0xff));
-            return (paMinusPb <= 0) ? a : b;
+            return paMinusPb <= 0 ? a : b;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

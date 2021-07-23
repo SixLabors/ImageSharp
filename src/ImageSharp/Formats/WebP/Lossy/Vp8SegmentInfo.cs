@@ -74,8 +74,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int v0 = Math.Abs(dcs[1]);
             int v1 = Math.Abs(dcs[2]);
             int v2 = Math.Abs(dcs[4]);
-            int maxV = (v1 > v0) ? v1 : v0;
-            maxV = (v2 > maxV) ? v2 : maxV;
+            int maxV = v1 > v0 ? v1 : v0;
+            maxV = v2 > maxV ? v2 : maxV;
             if (maxV > this.MaxEdge)
             {
                 this.MaxEdge = maxV;

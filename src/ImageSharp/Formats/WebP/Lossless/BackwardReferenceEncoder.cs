@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Improve on simple LZ77 but only for high quality (TraceBackwards is costly).
             if ((lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard || lz77TypeBest == (int)Vp8LLz77Type.Lz77Box) && quality >= 25)
             {
-                Vp8LHashChain hashChainTmp = (lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard) ? hashChain : hashChainBox;
+                Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox;
                 BackwardReferencesTraceBackwards(width, height, bgra, cacheBits, hashChainTmp, best, worst);
                 var histo = new Vp8LHistogram(worst, cacheBits);
                 double bitCostTrace = histo.EstimateBits();
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <returns>Best cache size.</returns>
         private static int CalculateBestCacheSize(ReadOnlySpan<uint> bgra, int quality, Vp8LBackwardRefs refs, int bestCacheBits)
         {
-            int cacheBitsMax = (quality <= 25) ? 0 : bestCacheBits;
+            int cacheBitsMax = quality <= 25 ? 0 : bestCacheBits;
             if (cacheBitsMax == 0)
             {
                 // Local color cache is disabled.
@@ -256,12 +256,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             int pixCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
-            int literalArraySize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((cacheBits > 0) ? (1 << cacheBits) : 0);
+            int literalArraySize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (cacheBits > 0 ? 1 << cacheBits : 0);
             var costModel = new CostModel(literalArraySize);
             int offsetPrev = -1;
             int lenPrev = -1;
             double offsetCost = -1;
-            int firstOffsetIsConstant = -1;  // initialized with 'impossible' value
+            int firstOffsetIsConstant = -1;  // initialized with 'impossible' value.
             int reach = 0;
             var colorCache = new ColorCache();
 
@@ -273,8 +273,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             costModel.Build(xSize, cacheBits, refs);
             var costManager = new CostManager(distArray, pixCount, costModel);
 
-            // We loop one pixel at a time, but store all currently best points to
-            // non-processed locations from this point.
+            // We loop one pixel at a time, but store all currently best points to non-processed locations from this point.
             distArray[0] = 0;
 
             // Add first pixel as literal.
@@ -474,10 +473,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     int lenIni = len;
                     int maxReach = 0;
-                    int jMax = (i + lenIni >= pixCount) ? pixCount - 1 : i + lenIni;
+                    int jMax = i + lenIni >= pixCount ? pixCount - 1 : i + lenIni;
 
                     // Only start from what we have not checked already.
-                    iLastCheck = (i > iLastCheck) ? i : iLastCheck;
+                    iLastCheck = i > iLastCheck ? i : iLastCheck;
 
                     // We know the best match for the current pixel but we try to find the
                     // best matches for the current pixel AND the next one combined.
@@ -640,7 +639,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     // Figure out if we should use the offset/length from the previous pixel
                     // as an initial guess and therefore only inspect the offsets in windowOffsetsNew[].
-                    bool usePrev = (bestLengthPrev > 1) && (bestLengthPrev < MaxLength);
+                    bool usePrev = bestLengthPrev > 1 && bestLengthPrev < MaxLength;
                     int numInd = usePrev ? windowOffsetsNewSize : windowOffsetsSize;
                     bestLength = usePrev ? bestLengthPrev - 1 : 0;
                     bestOffset = usePrev ? bestOffsetPrev : 0;
@@ -663,7 +662,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             int countsJ = counts[j];
                             if (countsJOffset != countsJ)
                             {
-                                currLength += (countsJOffset < countsJ) ? countsJOffset : countsJ;
+                                currLength += countsJOffset < countsJ ? countsJOffset : countsJ;
                                 break;
                             }
 
@@ -728,7 +727,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 int maxLen = LosslessUtils.MaxFindCopyLength(pixelCount - i);
                 int rleLen = LosslessUtils.FindMatchLength(bgra.Slice(i), bgra.Slice(i - 1), 0, maxLen);
-                int prevRowLen = (i < xSize) ? 0 : LosslessUtils.FindMatchLength(bgra.Slice(i), bgra.Slice(i - xSize), 0, maxLen);
+                int prevRowLen = i < xSize ? 0 : LosslessUtils.FindMatchLength(bgra.Slice(i), bgra.Slice(i - xSize), 0, maxLen);
                 if (rleLen >= prevRowLen && rleLen >= MinLength)
                 {
                     refs.Add(PixOrCopy.CreateCopy(1, (ushort)rleLen));

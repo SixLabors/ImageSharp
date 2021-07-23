@@ -429,7 +429,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     }
                     else
                     {
-                        var iccpData = new byte[iccpChunkSize];
+                        byte[] iccpData = new byte[iccpChunkSize];
                         this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
                         var profile = new IccProfile(iccpData);
                         if (profile.CheckIsValid())
@@ -447,7 +447,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 case WebpChunkType.Alpha:
                     uint alphaChunkSize = this.ReadChunkSize();
                     features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
-                    var alphaDataSize = (int)(alphaChunkSize - 1);
+                    int alphaDataSize = (int)(alphaChunkSize - 1);
                     features.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
                     this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
                     break;
@@ -467,7 +467,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 return;
             }
 
-            var streamLength = this.currentStream.Length;
+            long streamLength = this.currentStream.Length;
             while (this.currentStream.Position < streamLength)
             {
                 // Read chunk header.
@@ -476,7 +476,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
                 if (chunkType == WebpChunkType.Exif && this.Metadata.ExifProfile == null)
                 {
-                    var exifData = new byte[chunkLength];
+                    byte[] exifData = new byte[chunkLength];
                     this.currentStream.Read(exifData, 0, (int)chunkLength);
                     this.Metadata.ExifProfile = new ExifProfile(exifData);
                 }

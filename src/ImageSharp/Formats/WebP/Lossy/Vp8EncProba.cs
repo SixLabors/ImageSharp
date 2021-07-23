@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         Vp8ProbaArray p = this.Coeffs[ctype][band].Probabilities[ctx];
                         Vp8CostArray table = this.LevelCost[ctype][band].Costs[ctx];
-                        int cost0 = (ctx > 0) ? LossyUtils.Vp8BitCost(1, p.Probabilities[0]) : 0;
+                        int cost0 = ctx > 0 ? LossyUtils.Vp8BitCost(1, p.Probabilities[0]) : 0;
                         int costBase = LossyUtils.Vp8BitCost(1, p.Probabilities[1]) + cost0;
                         int v;
                         table.Costs[0] = (ushort)(LossyUtils.Vp8BitCost(0, p.Probabilities[1]) + cost0);

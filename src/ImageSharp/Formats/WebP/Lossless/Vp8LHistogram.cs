@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        public int NumCodes() => WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
+        public int NumCodes() => WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (this.PaletteCodeBits > 0 ? 1 << this.PaletteCodeBits : 0);
 
         /// <summary>
         /// Estimate how many bits the combined entropy of literals and distance approximately maps to.
@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 output.IsUsed[i] = this.IsUsed[i] | b.IsUsed[i];
             }
 
-            output.TrivialSymbol = (this.TrivialSymbol == b.TrivialSymbol)
+            output.TrivialSymbol = this.TrivialSymbol == b.TrivialSymbol
                 ? this.TrivialSymbol
                 : NonTrivialSym;
         }

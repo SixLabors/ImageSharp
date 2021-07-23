@@ -506,7 +506,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         public static void TransformWht(Span<short> input, Span<short> output)
         {
-            var tmp = new int[16];
+            int[] tmp = new int[16];
             for (int i = 0; i < 4; ++i)
             {
                 int iPlus4 = 4 + i;
@@ -732,7 +732,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (int k = 3; k > 0; --k)
             {
                 offset += 4 * stride;
-                SimpleVFilter16(p, offset,  stride, thresh);
+                SimpleVFilter16(p, offset, stride, thresh);
             }
         }
 
@@ -833,7 +833,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static void Dst(Span<byte> dst, int x, int y, byte v) => dst[x + (y * WebpConstants.Bps)] = v;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static byte Clip8B(int v) => (byte)((v & ~0xff) == 0 ? v : (v < 0) ? 0 : 255);
+        public static byte Clip8B(int v) => (byte)((v & ~0xff) == 0 ? v : v < 0 ? 0 : 255);
 
         // Cost of coding one event with probability 'proba'.
         public static int Vp8BitCost(int bit, byte proba) => bit == 0 ? WebpLookupTables.Vp8EntropyCost[proba] : WebpLookupTables.Vp8EntropyCost[255 - proba];
@@ -882,7 +882,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int thresh2 = (2 * thresh) + 1;
             while (size-- > 0)
             {
-                if (NeedsFilter2(p, offset,  hStride, thresh2, ithresh))
+                if (NeedsFilter2(p, offset, hStride, thresh2, ithresh))
                 {
                     if (Hev(p, offset, hStride, hevThresh))
                     {
@@ -992,7 +992,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return ((4 * WebpLookupTables.Abs0[p0 - q0]) + WebpLookupTables.Abs0[p1 - q1]) <= t;
+            return (4 * WebpLookupTables.Abs0[p0 - q0]) + WebpLookupTables.Abs0[p1 - q1] <= t;
         }
 
         private static bool NeedsFilter2(Span<byte> p, int offset, int step, int t, int it)
@@ -1007,7 +1007,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q1 = p[offset + step];
             int q2 = p[offset + step2];
             int q3 = p[offset + step3];
-            if (((4 * WebpLookupTables.Abs0[p0 - q0]) + WebpLookupTables.Abs0[p1 - q1]) > t)
+            if ((4 * WebpLookupTables.Abs0[p0 - q0]) + WebpLookupTables.Abs0[p1 - q1] > t)
             {
                 return false;
             }
@@ -1024,7 +1024,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return (WebpLookupTables.Abs0[p1 - p0] > thresh) || (WebpLookupTables.Abs0[q1 - q0] > thresh);
+            return WebpLookupTables.Abs0[p1 - p0] > thresh || WebpLookupTables.Abs0[q1 - q0] > thresh;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1056,7 +1056,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static byte Clip8(int v)
         {
             int yuvMask = (256 << 6) - 1;
-            return (byte)(((v & ~yuvMask) == 0) ? (v >> 6) : (v < 0) ? 0 : 255);
+            return (byte)((v & ~yuvMask) == 0 ? v >> 6 : v < 0 ? 0 : 255);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1081,6 +1081,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Clamp255(int x) => x < 0 ? 0 : (x > 255 ? 255 : x);
+        private static int Clamp255(int x) => x < 0 ? 0 : x > 255 ? 255 : x;
     }
 }

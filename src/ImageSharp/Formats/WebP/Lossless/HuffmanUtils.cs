@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             uint sum = 0;
             for (int i = 0; i < length + 1; ++i)
             {
-                var valuesShouldBeCollapsedToStrideAverage = ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit);
+                bool valuesShouldBeCollapsedToStrideAverage = ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit);
                 if (i == length || goodForRle[i] || (i != 0 && goodForRle[i - 1]) || !valuesShouldBeCollapsedToStrideAverage)
                 {
                     if (stride >= 4 || (stride >= 3 && sum == 0))
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     if (histogram[j] != 0)
                     {
-                        uint count = (histogram[j] < countMin) ? countMin : histogram[j];
+                        uint count = histogram[j] < countMin ? countMin : histogram[j];
                         tree[idx].TotalCount = (int)count;
                         tree[idx].Value = j;
                         tree[idx].PoolIndexLeft = -1;
@@ -229,9 +229,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             }
                         }
 
-                        var endIdx = k + 1;
-                        var num = treeSize - k;
-                        var startIdx = endIdx + num - 1;
+                        int endIdx = k + 1;
+                        int num = treeSize - k;
+                        int startIdx = endIdx + num - 1;
                         for (int i = startIdx; i >= endIdx; i--)
                         {
                             tree[i] = (HuffmanTree)tree[i - 1].DeepClone();
@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         tree[k].Value = -1;
                         tree[k].PoolIndexLeft = treePoolSize - 1;
                         tree[k].PoolIndexRight = treePoolSize - 2;
-                        treeSize = treeSize + 1;
+                        treeSize++;
                     }
 
                     SetBitDepths(tree, treePool, bitDepths, 0);
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     k++;
                 }
 
-                var runs = k - i;
+                int runs = k - i;
                 if (value == 0)
                 {
                     tokenPos += CodeRepeatedZeros(runs, tokensArray.AsSpan(tokenPos));
@@ -308,17 +308,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Guard.MustBeGreaterThan(codeLengthsSize, 0, nameof(codeLengthsSize));
 
             // sorted[codeLengthsSize] is a pre-allocated array for sorting symbols by code length.
-            var sorted = new int[codeLengthsSize];
+            int[] sorted = new int[codeLengthsSize];
             int totalSize = 1 << rootBits; // total size root table + 2nd level table.
             int len; // current code length.
             int symbol; // symbol index in original or sorted table.
-            var counts = new int[WebpConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
-            var offsets = new int[WebpConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
+            int[] counts = new int[WebpConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
+            int[] offsets = new int[WebpConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
 
             // Build histogram of code lengths.
             for (symbol = 0; symbol < codeLengthsSize; ++symbol)
             {
-                var codeLengthOfSymbol = codeLengths[symbol];
+                int codeLengthOfSymbol = codeLengths[symbol];
                 if (codeLengthOfSymbol > WebpConstants.MaxAllowedCodeLength)
                 {
                     return 0;
@@ -338,7 +338,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             for (len = 1; len < WebpConstants.MaxAllowedCodeLength; ++len)
             {
                 int codesOfLength = counts[len];
-                if (codesOfLength > (1 << len))
+                if (codesOfLength > 1 << len)
                 {
                     return 0;
                 }
@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Fill in root table.
             for (len = 1, step = 2; len <= rootBits; ++len, step <<= 1)
             {
-                var countsLen = counts[len];
+                int countsLen = counts[len];
                 numOpen <<= 1;
                 numNodes += numOpen;
                 numOpen -= counts[len];
@@ -652,9 +652,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Heuristics for selecting the stride ranges to collapse.
         /// </summary>
-        private static bool ValuesShouldBeCollapsedToStrideAverage(int a, int b)
-        {
-            return Math.Abs(a - b) < 4;
-        }
+        private static bool ValuesShouldBeCollapsedToStrideAverage(int a, int b) => Math.Abs(a - b) < 4;
     }
 }

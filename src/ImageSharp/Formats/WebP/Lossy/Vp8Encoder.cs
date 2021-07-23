@@ -99,6 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
         /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
         /// <param name="filterStrength">The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).</param>
+        /// <param name="spatialNoiseShaping">The spatial noise shaping. 0=off, 100=maximum.</param>
         public Vp8Encoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, int entropyPasses, int filterStrength, int spatialNoiseShaping)
         {
             this.memoryAllocator = memoryAllocator;
@@ -110,9 +111,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
             this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
             this.spatialNoiseShaping = Numerics.Clamp(spatialNoiseShaping, 0, 100);
-            this.rdOptLevel = (method >= 6) ? Vp8RdLevel.RdOptTrellisAll
-                : (method >= 5) ? Vp8RdLevel.RdOptTrellis
-                : (method >= 3) ? Vp8RdLevel.RdOptBasic
+            this.rdOptLevel = method >= 6 ? Vp8RdLevel.RdOptTrellisAll
+                : method >= 5 ? Vp8RdLevel.RdOptTrellis
+                : method >= 3 ? Vp8RdLevel.RdOptBasic
                 : Vp8RdLevel.RdOptNone;
 
             int pixelCount = width * height;
@@ -362,7 +363,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             bool doSearch = targetSize > 0 || targetPsnr > 0;
             bool fastProbe = (this.method == 0 || this.method == 3) && !doSearch;
             int numPassLeft = this.entropyPasses;
-            Vp8RdLevel rdOpt = (this.method >= 3 || doSearch) ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
+            Vp8RdLevel rdOpt = this.method >= 3 || doSearch ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
             int nbMbs = this.Mbw * this.Mbh;
 
             var stats = new PassStats(targetSize, targetPsnr, QMin, QMax, this.quality);
@@ -374,11 +375,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 if (this.method == 3)
                 {
                     // We need more stats for method 3 to be reliable.
-                    nbMbs = (nbMbs > 200) ? nbMbs >> 1 : 100;
+                    nbMbs = nbMbs > 200 ? nbMbs >> 1 : 100;
                 }
                 else
                 {
-                    nbMbs = (nbMbs > 200) ? nbMbs >> 2 : 50;
+                    nbMbs = nbMbs > 200 ? nbMbs >> 2 : 50;
                 }
             }
 
@@ -536,7 +537,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Simplified k-Means, to assign Nb segments based on alpha-histogram.
         private void AssignSegments(int[] alphas)
         {
-            int nb = (this.SegmentHeader.NumSegments < NumMbSegments) ? this.SegmentHeader.NumSegments : NumMbSegments;
+            int nb = this.SegmentHeader.NumSegments < NumMbSegments ? this.SegmentHeader.NumSegments : NumMbSegments;
             int[] centers = new int[NumMbSegments];
             int weightedAverage = 0;
             int[] map = new int[WebpConstants.MaxAlpha + 1];
@@ -727,7 +728,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Segments with lower complexity ('beta') will be less filtered.
                 int f = baseStrength * level0 / (256 + m.Beta);
-                m.FStrength = (f < WebpConstants.FilterStrengthCutoff) ? 0 : (f > 63) ? 63 : f;
+                m.FStrength = f < WebpConstants.FilterStrengthCutoff ? 0 : f > 63 ? 63 : f;
             }
 
             // We record the initial strength (mainly for the case of 1-segment only).
@@ -754,7 +755,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 probas[1] = (byte)GetProba(p[0], p[1]);
                 probas[2] = (byte)GetProba(p[2], p[3]);
 
-                this.SegmentHeader.UpdateMap = (probas[0] != 255) || (probas[1] != 255) || (probas[2] != 255);
+                this.SegmentHeader.UpdateMap = probas[0] != 255 || probas[1] != 255 || probas[2] != 255;
                 if (!this.SegmentHeader.UpdateMap)
                 {
                     this.ResetSegments();
@@ -969,7 +970,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         int ctx = it.TopNz[4 + ch + x] + it.LeftNz[4 + ch + y];
                         residual.SetCoeffs(rd.UvLevels.AsSpan(16 * ((ch * 2) + x + (y * 2)), 16));
-                        var res = this.bitWriter.PutCoeffs(ctx, residual);
+                        int res = this.bitWriter.PutCoeffs(ctx, residual);
                         it.TopNz[4 + ch + x] = it.LeftNz[4 + ch + y] = res;
                     }
                 }
@@ -1018,7 +1019,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     int ctx = it.TopNz[x] + it.LeftNz[y];
                     Span<short> coeffs = rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16);
                     residual.SetCoeffs(coeffs);
-                    var res = residual.RecordCoeffs(ctx);
+                    int res = residual.RecordCoeffs(ctx);
                     it.TopNz[x] = res;
                     it.LeftNz[y] = res;
                 }
@@ -1059,7 +1060,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static double QualityToCompression(double c)
         {
-            double linearC = (c < 0.75) ? c * (2.0d / 3.0d) : (2.0d * c) - 1.0d;
+            double linearC = c < 0.75 ? c * (2.0d / 3.0d) : (2.0d * c) - 1.0d;
 
             // The file size roughly scales as pow(quantizer, 3.). Actually, the
             // exponent is somewhere between 2.8 and 3.2, but we're mostly interested
@@ -1075,18 +1076,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private int FilterStrengthFromDelta(int sharpness, int delta)
         {
-            int pos = (delta < WebpConstants.MaxDelzaSize) ? delta : WebpConstants.MaxDelzaSize - 1;
+            int pos = delta < WebpConstants.MaxDelzaSize ? delta : WebpConstants.MaxDelzaSize - 1;
             return WebpLookupTables.LevelsFromDelta[sharpness, pos];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static double GetPsnr(long mse, long size) => (mse > 0 && size > 0) ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;
+        private static double GetPsnr(long mse, long size) => mse > 0 && size > 0 ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetProba(int a, int b)
         {
             int total = a + b;
-            return (total == 0) ? 255 // that's the default probability.
+            return total == 0 ? 255 // that's the default probability.
                 : ((255 * a) + (total / 2)) / total;  // rounded proba
         }
     }

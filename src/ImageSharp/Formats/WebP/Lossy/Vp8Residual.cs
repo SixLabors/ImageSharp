@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vp8StatsArray s = this.Stats[n].Stats[ctx];
             if (this.Last < 0)
             {
-                this.RecordStats(0, s,  0);
+                this.RecordStats(0, s, 0);
                 return 0;
             }
 
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
 
                 this.RecordStats(1, s, 1);
-                var bit = (uint)(v + 1) > 2u;
+                bool bit = (uint)(v + 1) > 2u;
                 if (this.RecordStats(bit ? 1 : 0, s, 2) == 0)
                 {
                     // v = -1 or 1
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // bitCost(1, p0) is already incorporated in t[] tables, but only if ctx != 0
             // (as required by the syntax). For ctx0 == 0, we need to add it here or it'll
             // be missing during the loop.
-            int cost = (ctx0 == 0) ? LossyUtils.Vp8BitCost(1, (byte)p0) : 0;
+            int cost = ctx0 == 0 ? LossyUtils.Vp8BitCost(1, (byte)p0) : 0;
 
             if (this.Last < 0)
             {
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (; n < this.Last; ++n)
             {
                 v = Math.Abs(this.Coeffs[n]);
-                int ctx = (v >= 2) ? 2 : v;
+                int ctx = v >= 2 ? 2 : v;
                 cost += LevelCost(t.Costs, v);
                 t = costs[n + 1].Costs[ctx];
             }
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (n < 15)
             {
                 int b = WebpConstants.Vp8EncBands[n + 1];
-                int ctx = (v == 1) ? 1 : 2;
+                int ctx = v == 1 ? 1 : 2;
                 int lastP0 = this.Prob[b].Probabilities[ctx].Probabilities[0];
                 cost += LossyUtils.Vp8BitCost(0, (byte)lastP0);
             }
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         private static int LevelCost(Span<ushort> table, int level)
-            => WebpLookupTables.Vp8LevelFixedCosts[level] + table[(level > WebpConstants.MaxVariableLevel) ? WebpConstants.MaxVariableLevel : level];
+            => WebpLookupTables.Vp8LevelFixedCosts[level] + table[level > WebpConstants.MaxVariableLevel ? WebpConstants.MaxVariableLevel : level];
 
         private int RecordStats(int bit, Vp8StatsArray statsArr, int idx)
         {

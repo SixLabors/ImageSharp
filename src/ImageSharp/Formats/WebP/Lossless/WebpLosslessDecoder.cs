@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 // Note: According to webpinfo color cache bits of 11 are valid, even though 10 is defined in the source code as maximum.
                 // That is why 11 bits is also considered valid here.
-                bool colorCacheBitsIsValid = colorCacheBits >= 1 && colorCacheBits <= (WebpConstants.MaxColorCacheBits + 1);
+                bool colorCacheBitsIsValid = colorCacheBits >= 1 && colorCacheBits <= WebpConstants.MaxColorCacheBits + 1;
                 if (!colorCacheBitsIsValid)
                 {
                     WebpThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
@@ -426,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int totalSize = 0;
                 bool isTrivialLiteral = true;
                 int maxBits = 0;
-                var codeLengths = new int[maxAlphabetSize];
+                int[] codeLengths = new int[maxAlphabetSize];
                 for (int j = 0; j < WebpConstants.HuffmanCodesPerMetaCode; j++)
                 {
                     int alphabetSize = WebpConstants.AlphabetSize[j];
@@ -459,7 +459,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         int k;
                         for (k = 1; k < alphabetSize; ++k)
                         {
-                            var codeLengthK = codeLengths[k];
+                            int codeLengthK = codeLengths[k];
                             if (codeLengthK > localMaxBits)
                             {
                                 localMaxBits = codeLengthK;
@@ -517,7 +517,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 uint firstSymbolLenCode = this.bitReader.ReadValue(1);
 
                 // The first code is either 1 bit or 8 bit code.
-                uint symbol = this.bitReader.ReadValue((firstSymbolLenCode == 0) ? 1 : 8);
+                uint symbol = this.bitReader.ReadValue(firstSymbolLenCode == 0 ? 1 : 8);
                 codeLengths[symbol] = 1;
 
                 // The second code (if present), is always 8 bit long.
@@ -532,7 +532,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 // (ii) Normal Code Length Code:
                 // The code lengths of a Huffman code are read as follows: num_code_lengths specifies the number of code lengths;
                 // the rest of the code lengths (according to the order in kCodeLengthCodeOrder) are zeros.
-                var codeLengthCodeLengths = new int[NumCodeLengthCodes];
+                int[] codeLengthCodeLengths = new int[NumCodeLengthCodes];
                 uint numCodes = this.bitReader.ReadValue(4) + 4;
                 if (numCodes > NumCodeLengthCodes)
                 {
@@ -644,9 +644,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // The transform data contains color table size and the entries in the color table.
                     // 8 bit value for color table size.
                     uint numColors = this.bitReader.ReadValue(8) + 1;
-                    int bits = (numColors > 16) ? 0
-                                     : (numColors > 4) ? 1
-                                     : (numColors > 2) ? 2
+                    int bits = numColors > 16 ? 0
+                                     : numColors > 4 ? 1
+                                     : numColors > 2 ? 2
                                      : 3;
                     transform.Bits = bits;
                     using (IMemoryOwner<uint> colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false))
@@ -661,15 +661,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 case Vp8LTransformType.PredictorTransform:
                 case Vp8LTransformType.CrossColorTransform:
-                    {
-                        // The first 3 bits of prediction data define the block width and height in number of bits.
-                        transform.Bits = (int)this.bitReader.ReadValue(3) + 2;
-                        int blockWidth = LosslessUtils.SubSampleSize(transform.XSize, transform.Bits);
-                        int blockHeight = LosslessUtils.SubSampleSize(transform.YSize, transform.Bits);
-                        IMemoryOwner<uint> transformData = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);
-                        transform.Data = transformData;
-                        break;
-                    }
+                {
+                    // The first 3 bits of prediction data define the block width and height in number of bits.
+                    transform.Bits = (int)this.bitReader.ReadValue(3) + 2;
+                    int blockWidth = LosslessUtils.SubSampleSize(transform.XSize, transform.Bits);
+                    int blockHeight = LosslessUtils.SubSampleSize(transform.YSize, transform.Bits);
+                    IMemoryOwner<uint> transformData = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);
+                    transform.Data = transformData;
+                    break;
+                }
             }
 
             decoder.Transforms.Add(transform);
@@ -732,7 +732,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int lastRow = height;
             const int lenCodeLimit = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes;
             int mask = hdr.HuffmanMask;
-            HTreeGroup[] htreeGroup = (pos < last) ? GetHTreeGroupForPos(hdr, col, row) : null;
+            HTreeGroup[] htreeGroup = pos < last ? GetHTreeGroupForPos(hdr, col, row) : null;
             while (!this.bitReader.Eos && pos < last)
             {
                 // Only update when changing tile.
@@ -754,7 +754,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     {
                         col = 0;
                         ++row;
-                        if (row <= lastRow && (row % WebpConstants.NumArgbCacheRows == 0))
+                        if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
                         {
                             dec.ExtractPalettedAlphaRows(row);
                         }
@@ -784,7 +784,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     {
                         col -= width;
                         ++row;
-                        if (row <= lastRow && (row % WebpConstants.NumArgbCacheRows == 0))
+                        if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
                         {
                             dec.ExtractPalettedAlphaRows(row);
                         }
@@ -813,7 +813,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             decoder.Width = width;
             decoder.Height = height;
             decoder.Metadata.HuffmanXSize = LosslessUtils.SubSampleSize(width, numBits);
-            decoder.Metadata.HuffmanMask = (numBits == 0) ? ~0 : (1 << numBits) - 1;
+            decoder.Metadata.HuffmanMask = numBits == 0 ? ~0 : (1 << numBits) - 1;
         }
 
         private uint ReadPackedSymbols(HTreeGroup[] group, Span<uint> pixelData, int decodedPixels)
@@ -879,11 +879,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetCopyLength(int lengthSymbol)
-        {
-            // Length and distance prefixes are encoded the same way.
-            return this.GetCopyDistance(lengthSymbol);
-        }
+        private int GetCopyLength(int lengthSymbol) =>
+            this.GetCopyDistance(lengthSymbol); // Length and distance prefixes are encoded the same way.
 
         private int GetCopyDistance(int distanceSymbol)
         {
@@ -930,7 +927,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int dist = (yOffset * xSize) + xOffset;
 
             // dist < 1 can happen if xSize is very small.
-            return (dist >= 1) ? dist : 1;
+            return dist >= 1 ? dist : 1;
         }
 
         /// <summary>

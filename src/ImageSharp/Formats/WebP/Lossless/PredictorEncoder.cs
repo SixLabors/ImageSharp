@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxQuantization = 1 << LosslessUtils.NearLosslessBits(nearLosslessQuality);
 
             // TODO: Can we optimize this?
-            var histo = new int[4][];
+            int[][] histo = new int[4][];
             for (int i = 0; i < 4; i++)
             {
                 histo[i] = new int[256];
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxX = GetMin(tileSize, width - startX);
 
             // Whether there exist columns just outside the tile.
-            int haveLeft = (startX > 0) ? 1 : 0;
+            int haveLeft = startX > 0 ? 1 : 0;
 
             // Position and size of the strip covering the tile and adjacent columns if they exist.
             int contextStartX = startX - haveLeft;
@@ -210,8 +210,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
 
             // Prediction modes of the left and above neighbor tiles.
-            int leftMode = (int)((tileX > 0) ? (modes[(tileY * tilesPerRow) + tileX - 1] >> 8) & 0xff : 0xff);
-            int aboveMode = (int)((tileY > 0) ? (modes[((tileY - 1) * tilesPerRow) + tileX] >> 8) & 0xff : 0xff);
+            int leftMode = (int)(tileX > 0 ? (modes[(tileY * tilesPerRow) + tileX - 1] >> 8) & 0xff : 0xff);
+            int aboveMode = (int)(tileY > 0 ? (modes[((tileY - 1) * tilesPerRow) + tileX] >> 8) & 0xff : 0xff);
 
             // The width of upper_row and current_row is one pixel larger than image width
             // to allow the top right pixel to point to the leftmost pixel of the next row
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // the image (wrapping to the leftmost pixel of the next row if it does
                     // not exist in the currentRow).
                     int offset = (y * width) + contextStartX;
-                    Span<uint> src = argb.Slice(offset, maxX + haveLeft + ((y + 1) < height ? 1 : 0));
+                    Span<uint> src = argb.Slice(offset, maxX + haveLeft + (y + 1 < height ? 1 : 0));
                     Span<uint> dst = currentRow.Slice(contextStartX);
                     src.CopyTo(dst);
 
@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         uint residual;
                         if (y == 0)
                         {
-                            predict = (x == 0) ? WebpConstants.ArgbBlack : currentRow[x - 1];  // Left.
+                            predict = x == 0 ? WebpConstants.ArgbBlack : currentRow[x - 1];  // Left.
                         }
                         else if (x == 0)
                         {
@@ -478,7 +478,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 quantization >>= 1;
             }
 
-            if ((value >> 24) == 0 || (value >> 24) == 0xff)
+            if (value >> 24 == 0 || value >> 24 == 0xff)
             {
                 // Preserve transparency of fully transparent or fully opaque pixels.
                 a = NearLosslessDiff((byte)((value >> 24) & 0xff), (byte)((predict >> 24) & 0xff));
@@ -586,7 +586,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Span<uint> tmp32 = upperRow;
                 upperRow = currentRow;
                 currentRow = tmp32;
-                Span<uint> src = argb.Slice(y * width, width + ((y + 1) < height ? 1 : 0));
+                Span<uint> src = argb.Slice(y * width, width + (y + 1 < height ? 1 : 0));
                 src.CopyTo(currentRow);
 
                 if (lowEffort)
@@ -1165,7 +1165,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static uint MultipliersToColorCode(Vp8LMultipliers m) => 0xff000000u | ((uint)m.RedToBlue << 16) | ((uint)m.GreenToBlue << 8) | m.GreenToRed;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetMin(int a, int b) => (a > b) ? b : a;
+        private static int GetMin(int a, int b) => a > b ? b : a;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetMax(int a, int b) => (a < b) ? b : a;

@@ -340,7 +340,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public static readonly byte[] Cat4 = { 176, 155, 140, 135 };
         public static readonly byte[] Cat5 = { 180, 157, 141, 134, 130 };
         public static readonly byte[] Cat6 = { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 };
-        public static readonly byte[] Zigzag = { 0, 1, 4, 8,  5, 2, 3, 6,  9, 12, 13, 10,  7, 11, 14, 15 };
+        public static readonly byte[] Zigzag = { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
 
         public static readonly sbyte[] YModesIntra4 =
         {

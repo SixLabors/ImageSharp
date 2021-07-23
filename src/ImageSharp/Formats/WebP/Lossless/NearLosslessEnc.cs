@@ -102,14 +102,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return biased & ~mask;
         }
 
-        private static bool IsSmooth(Span<uint> prevRow, Span<uint> currRow, Span<uint> nextRow, int ix, int limit)
-        {
-            // Check that all pixels in 4-connected neighborhood are smooth.
-            return IsNear(currRow[ix], currRow[ix - 1], limit) &&
+        private static bool IsSmooth(Span<uint> prevRow, Span<uint> currRow, Span<uint> nextRow, int ix, int limit) =>
+            IsNear(currRow[ix], currRow[ix - 1], limit) && // Check that all pixels in 4-connected neighborhood are smooth.
                     IsNear(currRow[ix], currRow[ix + 1], limit) &&
                     IsNear(currRow[ix], prevRow[ix], limit) &&
                     IsNear(currRow[ix], nextRow[ix], limit);
-        }
 
         // Checks if distance between corresponding channel values of pixels a and b is within the given limit.
         private static bool IsNear(uint a, uint b, int limit)

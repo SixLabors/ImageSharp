@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int i;
             for (i = 0; i < 2; ++i)
             {
-                int isAcCoeff = (i > 0) ? 1 : 0;
+                int isAcCoeff = i > 0 ? 1 : 0;
                 int bias = BiasMatrices[type][isAcCoeff];
                 this.IQ[i] = (ushort)((1 << WebpConstants.QFix) / this.Q[i]);
                 this.Bias[i] = (uint)this.BIAS(bias);

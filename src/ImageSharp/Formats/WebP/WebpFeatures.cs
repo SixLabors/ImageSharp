@@ -47,9 +47,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public bool Animation { get; set; }
 
         /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.AlphaData?.Dispose();
-        }
+        public void Dispose() => this.AlphaData?.Dispose();
     }
 }

@@ -8,10 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8StatsArray"/> class.
         /// </summary>
-        public Vp8StatsArray()
-        {
-            this.Stats = new uint[WebpConstants.NumProbas];
-        }
+        public Vp8StatsArray() => this.Stats = new uint[WebpConstants.NumProbas];
 
         public uint[] Stats { get; }
     }

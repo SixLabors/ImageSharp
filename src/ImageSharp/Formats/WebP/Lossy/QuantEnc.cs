@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             long bestScore = Vp8ModeScore.MaxCost;
             int nz = 0;
             int mode;
-            bool isI16 = tryBothModes || (it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16);
+            bool isI16 = tryBothModes || it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
             Vp8SegmentInfo dqm = segmentInfos[it.CurrentMacroBlockInfo.Segment];
 
             // Some empiric constants, of approximate order of magnitude.
@@ -389,7 +389,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     // Avoid starting a checkerboard resonance from the border. See bug #432 of libwebp.
                     if (IsFlatSource16(src))
                     {
-                        bestMode = (it.X == 0) ? 0 : 2;
+                        bestMode = it.X == 0 ? 0 : 2;
                         tryBothModes = false; // Stick to i16.
                     }
                 }
@@ -530,7 +530,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
 
-            return (last >= 0) ? 1 : 0;
+            return last >= 0 ? 1 : 0;
         }
 
         // Quantize as usual, but also compute and return the quantization error.
@@ -615,7 +615,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 for (int i = 1; i < 16; ++i)
                 {
                     // omit DC, we're only interested in AC
-                    score += (levels[i] != 0) ? 1 : 0;
+                    score += levels[i] != 0 ? 1 : 0;
                     if (score > thresh)
                     {
                         return false;

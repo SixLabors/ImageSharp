@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Q = Numerics.Clamp(quality, qMin, qMax);
             this.LastQ = this.Q;
             this.Target = doSizeSearch ? targetSize
-                : (targetPsnr > 0.0f) ? targetPsnr
+                : targetPsnr > 0.0f ? targetPsnr
                 : 40.0f;   // default, just in case
             this.Value = 0.0f;
             this.LastValue = 0.0f;
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             float dq;
             if (this.IsFirst)
             {
-                dq = (this.Value > this.Target) ? -this.Dq : this.Dq;
+                dq = this.Value > this.Target ? -this.Dq : this.Dq;
                 this.IsFirst = false;
             }
             else if (this.Value != this.LastValue)

@@ -346,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q = quality;
             int kThreshold = 8 + ((17 - 8) * q / 100);
             int k;
-            var dc = new uint[16];
+            uint[] dc = new uint[16];
             uint m;
             uint m2;
             for (k = 0; k < 16; k += 4)
@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
             else
             {
-                var modes = new byte[16];  // DC4
+                byte[] modes = new byte[16];  // DC4
                 this.SetIntra4Mode(modes);
             }
 
@@ -418,7 +418,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     histos[curHisto] = new Vp8Histogram();
                     histos[curHisto].CollectHistogram(src, this.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]), 0, 1);
 
-                    var alpha = histos[curHisto].GetAlpha();
+                    int alpha = histos[curHisto].GetAlpha();
                     if (alpha > bestModeAlpha)
                     {
                         bestModeAlpha = alpha;
@@ -523,7 +523,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     int ctx = this.TopNz[x] + this.LeftNz[y];
                     res.SetCoeffs(rd.YAcLevels.AsSpan((x + (y * 4)) * 16, 16));
                     r += res.GetResidualCost(ctx);
-                    this.TopNz[x] = this.LeftNz[y] = (res.Last >= 0) ? 1 : 0;
+                    this.TopNz[x] = this.LeftNz[y] = res.Last >= 0 ? 1 : 0;
                 }
             }
 
@@ -536,8 +536,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int predIdx = this.predIdx;
             int x = this.I4 & 3;
             int y = this.I4 >> 2;
-            int left = (x == 0) ? this.Preds[predIdx + (y * predsWidth) - 1] : modes[this.I4 - 1];
-            int top = (y == 0) ? this.Preds[predIdx - predsWidth + x] : modes[this.I4 - 4];
+            int left = x == 0 ? this.Preds[predIdx + (y * predsWidth) - 1] : modes[this.I4 - 1];
+            int top = y == 0 ? this.Preds[predIdx - predsWidth + x] : modes[this.I4 - 4];
             return WebpLookupTables.Vp8FixedCostsI4[top, left];
         }
 
@@ -573,7 +573,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         int ctx = this.TopNz[4 + ch + x] + this.LeftNz[4 + ch + y];
                         res.SetCoeffs(rd.UvLevels.AsSpan(((ch * 2) + x + (y * 2)) * 16, 16));
                         r += res.GetResidualCost(ctx);
-                        this.TopNz[4 + ch + x] = this.LeftNz[4 + ch + y] = (res.Last >= 0) ? 1 : 0;
+                        this.TopNz[4 + ch + x] = this.LeftNz[4 + ch + y] = res.Last >= 0 ? 1 : 0;
                     }
                 }
             }
@@ -910,7 +910,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> yLeft = this.YLeft.AsSpan();
             Span<byte> uLeft = this.UvLeft.AsSpan(0, 16);
             Span<byte> vLeft = this.UvLeft.AsSpan(16, 16);
-            byte val = (byte)((this.Y > 0) ? 129 : 127);
+            byte val = (byte)(this.Y > 0 ? 129 : 127);
             yLeft[0] = val;
             uLeft[0] = val;
             vLeft[0] = val;

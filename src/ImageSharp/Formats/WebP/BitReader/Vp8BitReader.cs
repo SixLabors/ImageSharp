@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
 
         private void InitBitreader(uint size, int pos = 0)
         {
-            var posPlusSize = pos + size;
+            long posPlusSize = pos + size;
             this.range = 255 - 1;
             this.value = 0;
             this.bits = -8; // to load the very first 8 bits.

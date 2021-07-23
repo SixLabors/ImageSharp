@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int i;
 #pragma warning disable SA1312 // Variable names should begin with lower-case letter
-            var C = new int[4 * 4];
+            int[] C = new int[4 * 4];
 #pragma warning restore SA1312 // Variable names should begin with lower-case letter
             Span<int> tmp = C.AsSpan();
             for (i = 0; i < 4; ++i)
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static void FTransform(Span<byte> src, Span<byte> reference, Span<short> output)
         {
             int i;
-            var tmp = new int[16];
+            int[] tmp = new int[16];
             int srcIdx = 0;
             int refIdx = 0;
             for (i = 0; i < 4; ++i)
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void FTransformWht(Span<short> input, Span<short> output)
         {
-            var tmp = new int[16];
+            int[] tmp = new int[16];
             int i;
             int inputIdx = 0;
             for (i = 0; i < 4; ++i)
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
                 else
                 {
-                    Vp8Encoding.HorizontalPred(dst, left, size);
+                    HorizontalPred(dst, left, size);
                 }
             }
             else
@@ -310,7 +310,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // then 129, and not 127 as in the VerticalPred case.
                 if (top != null)
                 {
-                    Vp8Encoding.VerticalPred(dst, top, size);
+                    VerticalPred(dst, top, size);
                 }
                 else
                 {
@@ -444,23 +444,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte d = top[topOffset + 3];
 
             LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(j, k, l));
-            var ijk = LossyUtils.Avg3(i, j, k);
+            byte ijk = LossyUtils.Avg3(i, j, k);
             LossyUtils.Dst(dst, 0, 2, ijk);
             LossyUtils.Dst(dst, 1, 3, ijk);
-            var xij = LossyUtils.Avg3(x, i, j);
+            byte xij = LossyUtils.Avg3(x, i, j);
             LossyUtils.Dst(dst, 0, 1, xij);
             LossyUtils.Dst(dst, 1, 2, xij);
             LossyUtils.Dst(dst, 2, 3, xij);
-            var axi = LossyUtils.Avg3(a, x, i);
+            byte axi = LossyUtils.Avg3(a, x, i);
             LossyUtils.Dst(dst, 0, 0, axi);
             LossyUtils.Dst(dst, 1, 1, axi);
             LossyUtils.Dst(dst, 2, 2, axi);
             LossyUtils.Dst(dst, 3, 3, axi);
-            var bax = LossyUtils.Avg3(b, a, x);
+            byte bax = LossyUtils.Avg3(b, a, x);
             LossyUtils.Dst(dst, 1, 0, bax);
             LossyUtils.Dst(dst, 2, 1, bax);
             LossyUtils.Dst(dst, 3, 2, bax);
-            var cba = LossyUtils.Avg3(c, b, a);
+            byte cba = LossyUtils.Avg3(c, b, a);
             LossyUtils.Dst(dst, 2, 0, cba);
             LossyUtils.Dst(dst, 3, 1, cba);
             LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(d, c, b));
@@ -477,25 +477,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte c = top[topOffset + 2];
             byte d = top[topOffset + 3];
 
-            var xa = LossyUtils.Avg2(x, a);
+            byte xa = LossyUtils.Avg2(x, a);
             LossyUtils.Dst(dst, 0, 0, xa);
             LossyUtils.Dst(dst, 1, 2, xa);
-            var ab = LossyUtils.Avg2(a, b);
+            byte ab = LossyUtils.Avg2(a, b);
             LossyUtils.Dst(dst, 1, 0, ab);
             LossyUtils.Dst(dst, 2, 2, ab);
-            var bc = LossyUtils.Avg2(b, c);
+            byte bc = LossyUtils.Avg2(b, c);
             LossyUtils.Dst(dst, 2, 0, bc);
             LossyUtils.Dst(dst, 3, 2, bc);
             LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg2(c, d));
             LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(k, j, i));
             LossyUtils.Dst(dst, 0, 2, LossyUtils.Avg3(j, i, x));
-            var ixa = LossyUtils.Avg3(i, x, a);
+            byte ixa = LossyUtils.Avg3(i, x, a);
             LossyUtils.Dst(dst, 0, 1, ixa);
             LossyUtils.Dst(dst, 1, 3, ixa);
-            var xab = LossyUtils.Avg3(x, a, b);
+            byte xab = LossyUtils.Avg3(x, a, b);
             LossyUtils.Dst(dst, 1, 1, xab);
             LossyUtils.Dst(dst, 2, 3, xab);
-            var abc = LossyUtils.Avg3(a, b, c);
+            byte abc = LossyUtils.Avg3(a, b, c);
             LossyUtils.Dst(dst, 2, 1, abc);
             LossyUtils.Dst(dst, 3, 3, abc);
             LossyUtils.Dst(dst, 3, 1, LossyUtils.Avg3(b, c, d));
@@ -513,23 +513,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte h = top[topOffset + 7];
 
             LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg3(a, b, c));
-            var bcd = LossyUtils.Avg3(b, c, d);
+            byte bcd = LossyUtils.Avg3(b, c, d);
             LossyUtils.Dst(dst, 1, 0, bcd);
             LossyUtils.Dst(dst, 0, 1, bcd);
-            var cde = LossyUtils.Avg3(c, d, e);
+            byte cde = LossyUtils.Avg3(c, d, e);
             LossyUtils.Dst(dst, 2, 0, cde);
             LossyUtils.Dst(dst, 1, 1, cde);
             LossyUtils.Dst(dst, 0, 2, cde);
-            var def = LossyUtils.Avg3(d, e, f);
+            byte def = LossyUtils.Avg3(d, e, f);
             LossyUtils.Dst(dst, 3, 0, def);
             LossyUtils.Dst(dst, 2, 1, def);
             LossyUtils.Dst(dst, 1, 2, def);
             LossyUtils.Dst(dst, 0, 3, def);
-            var efg = LossyUtils.Avg3(e, f, g);
+            byte efg = LossyUtils.Avg3(e, f, g);
             LossyUtils.Dst(dst, 3, 1, efg);
             LossyUtils.Dst(dst, 2, 2, efg);
             LossyUtils.Dst(dst, 1, 3, efg);
-            var fgh = LossyUtils.Avg3(f, g, h);
+            byte fgh = LossyUtils.Avg3(f, g, h);
             LossyUtils.Dst(dst, 3, 2, fgh);
             LossyUtils.Dst(dst, 2, 3, fgh);
             LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(g, h, h));
@@ -547,23 +547,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte h = top[topOffset + 7];
 
             LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(a, b));
-            var bc = LossyUtils.Avg2(b, c);
+            byte bc = LossyUtils.Avg2(b, c);
             LossyUtils.Dst(dst, 1, 0, bc);
             LossyUtils.Dst(dst, 0, 2, bc);
-            var cd = LossyUtils.Avg2(c, d);
+            byte cd = LossyUtils.Avg2(c, d);
             LossyUtils.Dst(dst, 2, 0, cd);
             LossyUtils.Dst(dst, 1, 2, cd);
-            var de = LossyUtils.Avg2(d, e);
+            byte de = LossyUtils.Avg2(d, e);
             LossyUtils.Dst(dst, 3, 0, de);
             LossyUtils.Dst(dst, 2, 2, de);
             LossyUtils.Dst(dst, 0, 1, LossyUtils.Avg3(a, b, c));
-            var bcd = LossyUtils.Avg3(b, c, d);
+            byte bcd = LossyUtils.Avg3(b, c, d);
             LossyUtils.Dst(dst, 1, 1, bcd);
             LossyUtils.Dst(dst, 0, 3, bcd);
-            var cde = LossyUtils.Avg3(c, d, e);
+            byte cde = LossyUtils.Avg3(c, d, e);
             LossyUtils.Dst(dst, 2, 1, cde);
             LossyUtils.Dst(dst, 1, 3, cde);
-            var def = LossyUtils.Avg3(d, e, f);
+            byte def = LossyUtils.Avg3(d, e, f);
             LossyUtils.Dst(dst, 3, 1, def);
             LossyUtils.Dst(dst, 2, 3, def);
             LossyUtils.Dst(dst, 3, 2, LossyUtils.Avg3(e, f, g));
@@ -581,25 +581,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte b = top[topOffset + 1];
             byte c = top[topOffset + 2];
 
-            var ix = LossyUtils.Avg2(i, x);
+            byte ix = LossyUtils.Avg2(i, x);
             LossyUtils.Dst(dst, 0, 0, ix);
             LossyUtils.Dst(dst, 2, 1, ix);
-            var ji = LossyUtils.Avg2(j, i);
+            byte ji = LossyUtils.Avg2(j, i);
             LossyUtils.Dst(dst, 0, 1, ji);
             LossyUtils.Dst(dst, 2, 2, ji);
-            var kj = LossyUtils.Avg2(k, j);
+            byte kj = LossyUtils.Avg2(k, j);
             LossyUtils.Dst(dst, 0, 2, kj);
             LossyUtils.Dst(dst, 2, 3, kj);
             LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg2(l, k));
             LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(a, b, c));
             LossyUtils.Dst(dst, 2, 0, LossyUtils.Avg3(x, a, b));
-            var ixa = LossyUtils.Avg3(i, x, a);
+            byte ixa = LossyUtils.Avg3(i, x, a);
             LossyUtils.Dst(dst, 1, 0, ixa);
             LossyUtils.Dst(dst, 3, 1, ixa);
-            var jix = LossyUtils.Avg3(j, i, x);
+            byte jix = LossyUtils.Avg3(j, i, x);
             LossyUtils.Dst(dst, 1, 1, jix);
             LossyUtils.Dst(dst, 3, 2, jix);
-            var kji = LossyUtils.Avg3(k, j, i);
+            byte kji = LossyUtils.Avg3(k, j, i);
             LossyUtils.Dst(dst, 1, 2, kji);
             LossyUtils.Dst(dst, 3, 3, kji);
             LossyUtils.Dst(dst, 1, 3, LossyUtils.Avg3(l, k, j));
@@ -613,17 +613,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte l = top[topOffset - 5];
 
             LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(i, j));
-            var jk = LossyUtils.Avg2(j, k);
+            byte jk = LossyUtils.Avg2(j, k);
             LossyUtils.Dst(dst, 2, 0, jk);
             LossyUtils.Dst(dst, 0, 1, jk);
-            var kl = LossyUtils.Avg2(k, l);
+            byte kl = LossyUtils.Avg2(k, l);
             LossyUtils.Dst(dst, 2, 1, kl);
             LossyUtils.Dst(dst, 0, 2, kl);
             LossyUtils.Dst(dst, 1, 0, LossyUtils.Avg3(i, j, k));
-            var jkl = LossyUtils.Avg3(j, k, l);
+            byte jkl = LossyUtils.Avg3(j, k, l);
             LossyUtils.Dst(dst, 3, 0, jkl);
             LossyUtils.Dst(dst, 1, 1, jkl);
-            var kll = LossyUtils.Avg3(k, l, l);
+            byte kll = LossyUtils.Avg3(k, l, l);
             LossyUtils.Dst(dst, 3, 1, kll);
             LossyUtils.Dst(dst, 1, 2, kll);
             LossyUtils.Dst(dst, 3, 2, l);
@@ -644,21 +644,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Clip8b(int v)
-        {
-            return ((v & ~0xff) == 0) ? (byte)v : (v < 0) ? (byte)0 : (byte)255;
-        }
+        private static byte Clip8b(int v) => (v & ~0xff) == 0 ? (byte)v : v < 0 ? (byte)0 : (byte)255;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Store(Span<byte> dst, Span<byte> reference, int x, int y, int v)
-        {
-            dst[x + (y * WebpConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebpConstants.Bps)] + (v >> 3));
-        }
+        private static void Store(Span<byte> dst, Span<byte> reference, int x, int y, int v) => dst[x + (y * WebpConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebpConstants.Bps)] + (v >> 3));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Mul(int a, int b)
-        {
-            return (a * b) >> 16;
-        }
+        private static int Mul(int a, int b) => (a * b) >> 16;
     }
 }

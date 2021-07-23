@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             int extraRows = WebpConstants.FilterExtraRows[(int)LoopFilter.Complex]; // assuming worst case: complex filter
             int extraY = extraRows * this.CacheYStride;
-            int extraUv = (extraRows / 2) * this.CacheUvStride;
+            int extraUv = extraRows / 2 * this.CacheUvStride;
             this.YuvBuffer = memoryAllocator.Allocate<byte>((WebpConstants.Bps * 17) + (WebpConstants.Bps * 9) + extraY);
             this.CacheY = memoryAllocator.Allocate<byte>((16 * this.CacheYStride) + extraY);
             int cacheUvSize = (16 * this.CacheUvStride) + extraUv;
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Gets the contextual macroblock info.
         /// </summary>
-        public Vp8MacroBlock[] MacroBlockInfo { get;  }
+        public Vp8MacroBlock[] MacroBlockInfo { get; }
 
         /// <summary>
         /// Gets or sets the loop filter used. The purpose of the loop filter is to eliminate (or at least reduce)
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         }
                     }
 
-                    level = (level < 0) ? 0 : (level > 63) ? 63 : level;
+                    level = level < 0 ? 0 : level > 63 ? 63 : level;
                     if (level > 0)
                     {
                         int iLevel = level;
@@ -313,7 +313,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                         info.InnerLevel = (byte)iLevel;
                         info.Limit = (byte)((2 * level) + iLevel);
-                        info.HighEdgeVarianceThreshold = (byte)((level >= 40) ? 2 : (level >= 15) ? 1 : 0);
+                        info.HighEdgeVarianceThreshold = (byte)(level >= 40 ? 2 : level >= 15 ? 1 : 0);
                     }
                     else
                     {

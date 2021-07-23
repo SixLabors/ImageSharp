@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                             tab = WebpConstants.Cat6;
                         }
 
-                        var tabIdx = 0;
+                        int tabIdx = 0;
                         while (mask != 0)
                         {
                             this.PutBit(v & mask, tab[tabIdx++]);
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="extraSize">The extra size in bytes needed.</param>
         public override void BitWriterResize(int extraSize)
         {
-            var neededSize = this.pos + extraSize;
+            long neededSize = this.pos + extraSize;
             if (neededSize <= this.maxPos)
             {
                 return;
@@ -204,9 +204,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <inheritdoc/>
         public override void Finish()
         {
-           this.PutBits(0, 9 - this.nbBits);
-           this.nbBits = 0;   // pad with zeroes.
-           this.Flush();
+            this.PutBits(0, 9 - this.nbBits);
+            this.nbBits = 0;   // pad with zeroes.
+            this.Flush();
         }
 
         public void PutSegment(int s, Span<byte> p)
@@ -352,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 
             if (value < 0)
             {
-                var valueToWrite = ((-value) << 1) | 1;
+                int valueToWrite = (-value << 1) | 1;
                 this.PutBits((uint)valueToWrite, nbBits + 1);
             }
             else
@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                     // overflow -> propagate carry over pending 0xff's
                     if (pos > 0)
                     {
-                         this.Buffer[pos - 1]++;
+                        this.Buffer[pos - 1]++;
                     }
                 }
 
@@ -497,7 +497,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                 {
                     for (int s = 0; s < 3; ++s)
                     {
-                        if (bitWriter.PutBitUniform((proba.Segments[s] != 255) ? 1 : 0) != 0)
+                        if (bitWriter.PutBitUniform(proba.Segments[s] != 255 ? 1 : 0) != 0)
                         {
                             bitWriter.PutBits(proba.Segments[s], 8);
                         }
@@ -564,7 +564,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 
             if (bitWriter.PutBitUniform(probas.UseSkipProba ? 1 : 0) != 0)
             {
-               bitWriter.PutBits(probas.SkipProba, 8);
+                bitWriter.PutBits(probas.SkipProba, 8);
             }
         }
 

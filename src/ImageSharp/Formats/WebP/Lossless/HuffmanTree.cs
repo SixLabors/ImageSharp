@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                return (t1.Value < t2.Value) ? -1 : 1;
+                return t1.Value < t2.Value ? -1 : 1;
             }
         }
 

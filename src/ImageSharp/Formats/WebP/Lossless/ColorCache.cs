@@ -52,10 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         /// <param name="key">The key to lookup.</param>
         /// <returns>The color for the key.</returns>
-        public uint Lookup(int key)
-        {
-            return this.Colors[key];
-        }
+        public uint Lookup(int key) => this.Colors[key];
 
         /// <summary>
         /// Returns the index of the given color.
@@ -73,24 +70,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         /// <param name="bgra">The color.</param>
         /// <returns>The index for the color.</returns>
-        public int GetIndex(uint bgra)
-        {
-            return HashPix(bgra, this.HashShift);
-        }
+        public int GetIndex(uint bgra) => HashPix(bgra, this.HashShift);
 
         /// <summary>
         /// Adds a new color to the cache.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="bgra">The color to add.</param>
-        public void Set(uint key, uint bgra)
-        {
-            this.Colors[key] = bgra;
-        }
+        public void Set(uint key, uint bgra) => this.Colors[key] = bgra;
 
-        public static int HashPix(uint argb, int shift)
-        {
-            return (int)((argb * HashMul) >> shift);
-        }
+        public static int HashPix(uint argb, int shift) => (int)((argb * HashMul) >> shift);
     }
 }

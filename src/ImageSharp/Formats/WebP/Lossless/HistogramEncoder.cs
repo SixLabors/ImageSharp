@@ -35,8 +35,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int histoYSize = histoBits > 0 ? LosslessUtils.SubSampleSize(ySize, histoBits) : 1;
             int imageHistoRawSize = histoXSize * histoYSize;
             int entropyCombineNumBins = BinSize;
-            var mapTmp = new ushort[imageHistoRawSize];
-            var clusterMappings = new ushort[imageHistoRawSize];
+            ushort[] mapTmp = new ushort[imageHistoRawSize];
+            ushort[] clusterMappings = new ushort[imageHistoRawSize];
             var origHisto = new List<Vp8LHistogram>(imageHistoRawSize);
             for (int i = 0; i < imageHistoRawSize; i++)
             {
@@ -49,11 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Copies the histograms and computes its bitCost. histogramSymbols is optimized.
             int numUsed = HistogramCopyAndAnalyze(origHisto, imageHisto, histogramSymbols);
 
-            var entropyCombine = (numUsed > entropyCombineNumBins * 2) && (quality < 100);
+            bool entropyCombine = numUsed > entropyCombineNumBins * 2 && quality < 100;
             if (entropyCombine)
             {
                 ushort[] binMap = mapTmp;
-                var numClusters = numUsed;
+                int numClusters = numUsed;
                 double combineCostFactor = GetCombineCostFactor(imageHistoRawSize, quality);
                 HistogramAnalyzeEntropyBin(imageHisto, binMap);
 
@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         // For some images, 'tryCombine' turns out to be false for a lot of
                         // histogram pairs. In that case, we fallback to combining
                         // histograms as usual to avoid increasing the header size.
-                        bool tryCombine = (curCombo.TrivialSymbol != NonTrivialSym) || ((histograms[idx].TrivialSymbol == NonTrivialSym) && (histograms[first].TrivialSymbol == NonTrivialSym));
+                        bool tryCombine = curCombo.TrivialSymbol != NonTrivialSym || (histograms[idx].TrivialSymbol == NonTrivialSym && histograms[first].TrivialSymbol == NonTrivialSym);
                         int maxCombineFailures = 32;
                         if (tryCombine || binInfo[binId].NumCombineFailures >= maxCombineFailures)
                         {
@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Create a mapping from a cluster id to its minimal version.
-            var clusterMax = 0;
+            int clusterMax = 0;
             clusterMappingsTmp.AsSpan().Fill(0);
 
             // Re-map the ids.
@@ -305,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             uint seed = 1;
             int triesWithNoSuccess = 0;
-            var numUsed = histograms.Count(h => h != null);
+            int numUsed = histograms.Count(h => h != null);
             int outerIters = numUsed;
             int numTriesNoSuccess = outerIters / 2;
 
@@ -320,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxSize = 9;
 
             // Fill the initial mapping.
-            var mappings = new int[histograms.Count];
+            int[] mappings = new int[histograms.Count];
             for (int j = 0, iter = 0; iter < histograms.Count; iter++)
             {
                 if (histograms[iter] == null)
@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Collapse similar histograms.
             for (int iter = 0; iter < outerIters && numUsed >= minClusterSize && ++triesWithNoSuccess < numTriesNoSuccess; iter++)
             {
-                double bestCost = (histoPriorityList.Count == 0) ? 0.0d : histoPriorityList[0].CostDiff;
+                double bestCost = histoPriorityList.Count == 0 ? 0.0d : histoPriorityList[0].CostDiff;
                 int numTries = numUsed / 2;
                 uint randRange = (uint)((numUsed - 1) * numUsed);
 
@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     idx2 = mappings[idx2];
 
                     // Calculate cost reduction on combination.
-                    var currCost = HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, idx2, bestCost);
+                    double currCost = HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, idx2, bestCost);
 
                     // Found a better pair?
                     if (currCost < 0)
@@ -374,10 +374,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
 
                 // Get the best histograms.
-                var bestIdx1 = histoPriorityList[0].Idx1;
-                var bestIdx2 = histoPriorityList[0].Idx2;
+                int bestIdx1 = histoPriorityList[0].Idx1;
+                int bestIdx2 = histoPriorityList[0].Idx2;
 
-                var mappingIndex = Array.IndexOf(mappings, bestIdx2);
+                int mappingIndex = Array.IndexOf(mappings, bestIdx2);
                 Span<int> src = mappings.AsSpan(mappingIndex + 1, numUsed - mappingIndex - 1);
                 Span<int> dst = mappings.AsSpan(mappingIndex);
                 src.CopyTo(dst);
@@ -554,7 +554,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Recompute each output.
-            var paletteCodeBits = output.First().PaletteCodeBits;
+            int paletteCodeBits = output.First().PaletteCodeBits;
             output.Clear();
             for (int i = 0; i < outSize; i++)
             {
@@ -620,7 +620,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             double sumCost = h1.BitCost + h2.BitCost;
             pair.CostCombo = 0.0d;
-            h1.GetCombinedHistogramEntropy(h2, sumCost + threshold, costInitial: pair.CostCombo, out var cost);
+            h1.GetCombinedHistogramEntropy(h2, sumCost + threshold, costInitial: pair.CostCombo, out double cost);
             pair.CostCombo = cost;
             pair.CostDiff = pair.CostCombo - sumCost;
         }
@@ -633,7 +633,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (pair.CostDiff < histoList[0].CostDiff)
             {
                 // Replace the best pair.
-                var oldIdx = histoList.IndexOf(pair);
+                int oldIdx = histoList.IndexOf(pair);
                 histoList[oldIdx] = histoList[0];
                 histoList[0] = pair;
             }
@@ -642,7 +642,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void HistogramAdd(Vp8LHistogram a, Vp8LHistogram b, Vp8LHistogram output)
         {
             a.Add(b, output);
-            output.TrivialSymbol = (a.TrivialSymbol == b.TrivialSymbol) ? a.TrivialSymbol : NonTrivialSym;
+            output.TrivialSymbol = a.TrivialSymbol == b.TrivialSymbol ? a.TrivialSymbol : NonTrivialSym;
         }
 
         private static double GetCombineCostFactor(int histoSize, int quality)

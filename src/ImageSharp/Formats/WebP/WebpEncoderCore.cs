@@ -48,6 +48,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly int entropyPasses;
 
         /// <summary>
+        /// Spatial Noise Shaping. 0=off, 100=maximum.
+        /// </summary>
+        private readonly int spatialNoiseShaping;
+
+        /// <summary>
         /// The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).
         /// </summary>
         private readonly int filterStrength;
@@ -86,6 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.quality = options.Quality;
             this.method = options.Method;
             this.entropyPasses = options.EntropyPasses;
+            this.spatialNoiseShaping = options.SpatialNoiseShaping;
             this.filterStrength = options.FilterStrength;
             this.exact = options.Exact;
             this.nearLossless = options.NearLossless;
@@ -117,7 +123,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     this.quality,
                     this.method,
                     this.entropyPasses,
-                    this.filterStrength);
+                    this.filterStrength,
+                    this.spatialNoiseShaping);
                 enc.Encode(image, stream);
             }
             else

@@ -40,6 +40,14 @@ namespace SixLabors.ImageSharp.Formats.Webp
         int EntropyPasses { get; }
 
         /// <summary>
+        /// Gets the amplitude of the spatial noise shaping. Spatial noise shaping (or sns for short) refers to a general collection of built-in algorithms
+        /// used to decide which area of the picture should use relatively less bits, and where else to better transfer these bits.
+        /// The possible range goes from 0 (algorithm is off) to 100 (the maximal effect).
+        /// Defaults to 50.
+        /// </summary>
+        int SpatialNoiseShaping { get; }
+
+        /// <summary>
         /// Gets the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).
         /// A value of 0 will turn off any filtering. Higher value will increase the strength of the filtering process applied after decoding the picture.
         /// The higher the value the smoother the picture will appear.

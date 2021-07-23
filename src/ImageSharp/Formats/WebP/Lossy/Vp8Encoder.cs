@@ -48,6 +48,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private readonly int filterStrength;
 
         /// <summary>
+        /// The spatial noise shaping. 0=off, 100=maximum.
+        /// </summary>
+        private readonly int spatialNoiseShaping;
+
+        /// <summary>
         /// A bit writer for writing lossy webp streams.
         /// </summary>
         private Vp8BitWriter bitWriter;
@@ -94,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
         /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
         /// <param name="filterStrength">The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).</param>
-        public Vp8Encoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, int entropyPasses, int filterStrength)
+        public Vp8Encoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, int entropyPasses, int filterStrength, int spatialNoiseShaping)
         {
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
@@ -104,6 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.method = Numerics.Clamp(method, 0, 6);
             this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
             this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
+            this.spatialNoiseShaping = Numerics.Clamp(spatialNoiseShaping, 0, 100);
             this.rdOptLevel = (method >= 6) ? Vp8RdLevel.RdOptTrellisAll
                 : (method >= 5) ? Vp8RdLevel.RdOptTrellis
                 : (method >= 3) ? Vp8RdLevel.RdOptBasic
@@ -353,7 +359,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int targetSize = 0; // TODO: target size is hardcoded.
             float targetPsnr = 0.0f; // TODO: targetPsnr is hardcoded.
-            bool doSearch = false; // TODO: doSearch hardcoded for now.
+            bool doSearch = targetSize > 0 || targetPsnr > 0;
             bool fastProbe = (this.method == 0 || this.method == 3) && !doSearch;
             int numPassLeft = this.entropyPasses;
             Vp8RdLevel rdOpt = (this.method >= 3 || doSearch) ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
@@ -663,8 +669,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int nb = this.SegmentHeader.NumSegments;
             Vp8SegmentInfo[] dqm = this.SegmentInfos;
-            int snsStrength = 50; // TODO: Spatial Noise Shaping, hardcoded for now.
-            double amp = WebpConstants.SnsToDq * snsStrength / 100.0d / 128.0d;
+            double amp = WebpConstants.SnsToDq * this.spatialNoiseShaping / 100.0d / 128.0d;
             double cBase = QualityToCompression(quality / 100.0d);
             for (int i = 0; i < nb; ++i)
             {
@@ -685,25 +690,24 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.DqUvAc = (this.uvAlpha - WebpConstants.QuantEncMidAlpha) * (WebpConstants.QuantEncMaxDqUv - WebpConstants.QuantEncMinDqUv) / (WebpConstants.QuantEncMaxAlpha - WebpConstants.QuantEncMinAlpha);
 
             // We rescale by the user-defined strength of adaptation.
-            this.DqUvAc = this.DqUvAc * snsStrength / 100;
+            this.DqUvAc = this.DqUvAc * this.spatialNoiseShaping / 100;
 
             // and make it safe.
             this.DqUvAc = Numerics.Clamp(this.DqUvAc, WebpConstants.QuantEncMinDqUv, WebpConstants.QuantEncMaxDqUv);
 
             // We also boost the dc-uv-quant a little, based on sns-strength, since
-            // U/V channels are quite more reactive to high quants (flat DC-blocks
-            // tend to appear, and are unpleasant).
-            this.DqUvDc = -4 * snsStrength / 100;
-            this.DqUvDc = Numerics.Clamp(this.DqUvDc, -15, 15);   // 4bit-signed max allowed
+            // U/V channels are quite more reactive to high quants (flat DC-blocks tend to appear, and are unpleasant).
+            this.DqUvDc = -4 * this.spatialNoiseShaping / 100;
+            this.DqUvDc = Numerics.Clamp(this.DqUvDc, -15, 15);   // 4bit-signed max allowed.
 
             this.DqY1Dc = 0;
             this.DqY2Dc = 0;
             this.DqY2Ac = 0;
 
-            // Initialize segments' filtering
+            // Initialize segments' filtering.
             this.SetupFilterStrength();
 
-            this.SetupMatrices(dqm, snsStrength);
+            this.SetupMatrices(dqm);
         }
 
         private void SetupFilterStrength()
@@ -784,9 +788,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             proba.NbSkip = 0;
         }
 
-        private void SetupMatrices(Vp8SegmentInfo[] dqm, int snsStrength)
+        private void SetupMatrices(Vp8SegmentInfo[] dqm)
         {
-            int tlambdaScale = (this.method >= 4) ? snsStrength : 0;
+            int tlambdaScale = (this.method >= 4) ? this.spatialNoiseShaping : 0;
             for (int i = 0; i < dqm.Length; ++i)
             {
                 Vp8SegmentInfo m = dqm[i];

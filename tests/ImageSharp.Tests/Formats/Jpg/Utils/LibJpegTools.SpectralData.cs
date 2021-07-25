@@ -29,14 +29,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.Components = components;
             }
 
-            public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
-            {
-                JpegComponent[] srcComponents = decoder.Frame.Components;
-                LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
-
-                return new SpectralData(destComponents);
-            }
-
             public Image<Rgba32> TryCreateRGBSpectralImage()
             {
                 if (this.ComponentCount != 3)

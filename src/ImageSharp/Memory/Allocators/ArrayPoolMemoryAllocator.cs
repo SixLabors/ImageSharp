@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Memory
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
 
             var buffer = new Buffer<T>(byteArray, length, pool);
-            if (options == AllocationOptions.Clean)
+            if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();
             }
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Memory
             byte[] byteArray = pool.Rent(length);
 
             var buffer = new ManagedByteBuffer(byteArray, length, pool);
-            if (options == AllocationOptions.Clean)
+            if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();
             }

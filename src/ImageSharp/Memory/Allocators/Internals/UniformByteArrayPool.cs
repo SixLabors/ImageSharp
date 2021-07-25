@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             {
                 array = new byte[this.ArrayLength];
             }
-            else if (allocationOptions == AllocationOptions.Clean)
+            else if (allocationOptions.Has(AllocationOptions.Clean))
             {
                 array.AsSpan().Clear();
             }
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 {
                     result[i] = new byte[this.ArrayLength];
                 }
-                else if (allocationOptions == AllocationOptions.Clean)
+                else if (allocationOptions.Has(AllocationOptions.Clean))
                 {
                     result[i].AsSpan().Clear();
                 }

@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Memory
             if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)
             {
                 var buffer = new SharedArrayPoolBuffer<T>(length);
-                if (options == AllocationOptions.Clean)
+                if (options.Has(AllocationOptions.Clean))
                 {
                     buffer.GetSpan().Clear();
                 }
@@ -85,8 +85,8 @@ namespace SixLabors.ImageSharp.Memory
             int length,
             AllocationOptions options = AllocationOptions.None)
         {
-            SharedArrayPoolByteBuffer buffer = new SharedArrayPoolByteBuffer(length);
-            if (options == AllocationOptions.Clean)
+            var buffer = new SharedArrayPoolByteBuffer(length);
+            if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();
             }
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Memory
             if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
             {
                 var buffer = new SharedArrayPoolBuffer<T>((int)totalLength);
-                if (options == AllocationOptions.Clean)
+                if (options.Has(AllocationOptions.Clean))
                 {
                     buffer.Memory.Span.Clear();
                 }
@@ -125,7 +125,9 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             // Attempt to rent the whole group from the pool, allocate a group of unmanaged buffers if the attempt fails:
-            var poolGroup = MemoryGroup<T>.Allocate(this.pool, totalLength, bufferAlignment, options);
+            MemoryGroup<T> poolGroup = options.Has(AllocationOptions.Contiguous) ?
+                null :
+                MemoryGroup<T>.Allocate(this.pool, totalLength, bufferAlignment, options);
             return poolGroup ?? MemoryGroup<T>.Allocate(this.unmnagedAllocator, totalLength, bufferAlignment, options);
         }
     }

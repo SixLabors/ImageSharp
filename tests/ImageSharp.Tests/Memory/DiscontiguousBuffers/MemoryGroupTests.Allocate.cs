@@ -215,6 +215,19 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 Assert.Equal(expectedBlockCount, this.MemoryAllocator.ReturnLog.Count);
                 Assert.True(bufferHashes.SetEquals(this.MemoryAllocator.ReturnLog.Select(l => l.HashCodeOfBuffer)));
             }
+
+            [Theory]
+            [InlineData(128)]
+            [InlineData(1024)]
+            public void Allocate_OptionsContiguous_AllocatesContiguousBuffer(int lengthInBytes)
+            {
+                this.MemoryAllocator.BufferCapacityInBytes = 256;
+                int length = lengthInBytes / Unsafe.SizeOf<S4>();
+                using var g = MemoryGroup<S4>.Allocate(this.MemoryAllocator, length, 32, AllocationOptions.Contiguous);
+                Assert.Equal(length, g.BufferLength);
+                Assert.Equal(length, g.TotalLength);
+                Assert.Equal(1, g.Count);
+            }
         }
     }
 

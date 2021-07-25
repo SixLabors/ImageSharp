@@ -81,7 +81,9 @@ namespace SixLabors.ImageSharp.Memory
             int bufferAlignmentInElements,
             AllocationOptions options = AllocationOptions.None)
         {
-            int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
+            int bufferCapacityInBytes = options.Has(AllocationOptions.Contiguous) ?
+                int.MaxValue :
+                allocator.GetBufferCapacityInBytes();
             Guard.NotNull(allocator, nameof(allocator));
             Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
             Guard.MustBeGreaterThanOrEqualTo(bufferAlignmentInElements, 0, nameof(bufferAlignmentInElements));

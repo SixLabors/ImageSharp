@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
             public Buffer(byte[] data, int length, UniformByteArrayPool sourcePool)
             {
+                DebugGuard.NotNull(data, nameof(data));
                 this.data = data;
                 this.length = length;
                 this.sourcePool = sourcePool;

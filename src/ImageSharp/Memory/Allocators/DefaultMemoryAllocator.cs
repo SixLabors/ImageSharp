@@ -120,8 +120,11 @@ namespace SixLabors.ImageSharp.Memory
             {
                 // Optimized path renting single array from the pool
                 byte[] array = this.pool.Rent(options);
-                var buffer = new UniformByteArrayPool.FinalizableBuffer<T>(array, (int)totalLength, this.pool);
-                return MemoryGroup<T>.CreateContiguous(buffer);
+                if (array != null)
+                {
+                    var buffer = new UniformByteArrayPool.FinalizableBuffer<T>(array, (int)totalLength, this.pool);
+                    return MemoryGroup<T>.CreateContiguous(buffer);
+                }
             }
 
             // Attempt to rent the whole group from the pool, allocate a group of unmanaged buffers if the attempt fails:

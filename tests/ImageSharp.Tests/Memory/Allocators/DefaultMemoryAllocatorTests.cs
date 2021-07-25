@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers;
@@ -75,6 +76,30 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 expectedBufferSize,
                 expectedSizeOfLastBuffer,
                 g);
+        }
+
+        [Fact]
+        public void AllocateGroup_MultipleTimes_ExceedPoolLimit()
+        {
+            var allocator = new DefaultMemoryAllocator(
+                64,
+                128,
+                1024,
+                1024);
+
+            var groups = new List<MemoryGroup<S4>>();
+            for (int i = 0; i < 16; i++)
+            {
+                int lengthInElements = 128 / Unsafe.SizeOf<S4>();
+                MemoryGroup<S4> g = allocator.AllocateGroup<S4>(lengthInElements, 32);
+                MemoryGroupTests.Allocate.ValidateAllocateMemoryGroup(1, -1, lengthInElements, g);
+                groups.Add(g);
+            }
+
+            foreach (MemoryGroup<S4> g in groups)
+            {
+                g.Dispose();
+            }
         }
 
         [Theory]

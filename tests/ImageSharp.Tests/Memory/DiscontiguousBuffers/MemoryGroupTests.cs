@@ -229,17 +229,5 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 target[k] = source[k] * 2;
             }
         }
-
-        [StructLayout(LayoutKind.Sequential, Size = 5)]
-        private struct S5
-        {
-            public override string ToString() => "S5";
-        }
-
-        [StructLayout(LayoutKind.Sequential, Size = 4)]
-        private struct S4
-        {
-            public override string ToString() => "S4";
-        }
     }
 }

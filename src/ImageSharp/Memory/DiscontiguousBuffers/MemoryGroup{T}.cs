@@ -70,44 +70,45 @@ namespace SixLabors.ImageSharp.Memory
         /// Creates a new memory group, allocating it's buffers with the provided allocator.
         /// </summary>
         /// <param name="allocator">The <see cref="MemoryAllocator"/> to use.</param>
-        /// <param name="totalLength">The total length of the buffer.</param>
-        /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
+        /// <param name="totalLengthInElements">The total length of the buffer.</param>
+        /// <param name="bufferAlignmentInElements">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
         /// <param name="options">The <see cref="AllocationOptions"/>.</param>
         /// <returns>A new <see cref="MemoryGroup{T}"/>.</returns>
         /// <exception cref="InvalidMemoryOperationException">Thrown when 'blockAlignment' converted to bytes is greater than the buffer capacity of the allocator.</exception>
         public static MemoryGroup<T> Allocate(
             MemoryAllocator allocator,
-            long totalLength,
-            int bufferAlignment,
+            long totalLengthInElements,
+            int bufferAlignmentInElements,
             AllocationOptions options = AllocationOptions.None)
         {
+            int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
             Guard.NotNull(allocator, nameof(allocator));
-            Guard.MustBeGreaterThanOrEqualTo(totalLength, 0, nameof(totalLength));
-            Guard.MustBeGreaterThanOrEqualTo(bufferAlignment, 0, nameof(bufferAlignment));
+            Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
+            Guard.MustBeGreaterThanOrEqualTo(bufferAlignmentInElements, 0, nameof(bufferAlignmentInElements));
 
-            int blockCapacityInElements = allocator.GetBufferCapacityInBytes() / ElementSize;
+            int blockCapacityInElements = bufferCapacityInBytes / ElementSize;
 
-            if (bufferAlignment > blockCapacityInElements)
+            if (bufferAlignmentInElements > blockCapacityInElements)
             {
                 throw new InvalidMemoryOperationException(
-                    $"The buffer capacity of the provided MemoryAllocator is insufficient for the requested buffer alignment: {bufferAlignment}.");
+                    $"The buffer capacity of the provided MemoryAllocator is insufficient for the requested buffer alignment: {bufferAlignmentInElements}.");
             }
 
-            if (totalLength == 0)
+            if (totalLengthInElements == 0)
             {
                 var buffers0 = new IMemoryOwner<T>[1] { allocator.Allocate<T>(0, options) };
                 return new Owned(buffers0, 0, 0, true);
             }
 
-            int numberOfAlignedSegments = blockCapacityInElements / bufferAlignment;
-            int bufferLength = numberOfAlignedSegments * bufferAlignment;
-            if (totalLength > 0 && totalLength < bufferLength)
+            int numberOfAlignedSegments = blockCapacityInElements / bufferAlignmentInElements;
+            int bufferLength = numberOfAlignedSegments * bufferAlignmentInElements;
+            if (totalLengthInElements > 0 && totalLengthInElements < bufferLength)
             {
-                bufferLength = (int)totalLength;
+                bufferLength = (int)totalLengthInElements;
             }
 
-            int sizeOfLastBuffer = (int)(totalLength % bufferLength);
-            long bufferCount = totalLength / bufferLength;
+            int sizeOfLastBuffer = (int)(totalLengthInElements % bufferLength);
+            long bufferCount = totalLengthInElements / bufferLength;
 
             if (sizeOfLastBuffer == 0)
             {
@@ -129,41 +130,47 @@ namespace SixLabors.ImageSharp.Memory
                 buffers[buffers.Length - 1] = allocator.Allocate<T>(sizeOfLastBuffer, options);
             }
 
-            return new Owned(buffers, bufferLength, totalLength, true);
+            return new Owned(buffers, bufferLength, totalLengthInElements, true);
+        }
+
+        public static MemoryGroup<T> CreateContiguous(IMemoryOwner<T> buffer)
+        {
+            int length = buffer.Memory.Length;
+            var buffers = new IMemoryOwner<T>[1] { buffer };
+            return new Owned(buffers, length, length, true);
         }
 
         public static MemoryGroup<T> Allocate(
             UniformByteArrayPool pool,
-            long totalLength,
-            int bufferAlignment,
+            long totalLengthInElements,
+            int bufferAlignmentInElements,
             AllocationOptions options = AllocationOptions.None)
         {
             Guard.NotNull(pool, nameof(pool));
-            Guard.MustBeGreaterThanOrEqualTo(totalLength, 0, nameof(totalLength));
-            Guard.MustBeGreaterThanOrEqualTo(bufferAlignment, 0, nameof(bufferAlignment));
+            Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
+            Guard.MustBeGreaterThanOrEqualTo(bufferAlignmentInElements, 0, nameof(bufferAlignmentInElements));
 
             int blockCapacityInElements = pool.ArrayLength / ElementSize;
 
-            if (bufferAlignment > blockCapacityInElements)
+            if (bufferAlignmentInElements > blockCapacityInElements)
             {
-                throw new InvalidMemoryOperationException(
-                    $"The ArrayLength of the provided UniformByteArrayPool is insufficient for the requested buffer alignment: {bufferAlignment}.");
+                return null;
             }
 
-            if (totalLength == 0)
+            if (totalLengthInElements == 0)
             {
                 throw new InvalidMemoryOperationException("Allocating 0 length buffer from UniformByteArrayPool is disallowed");
             }
 
-            int numberOfAlignedSegments = blockCapacityInElements / bufferAlignment;
-            int bufferLength = numberOfAlignedSegments * bufferAlignment;
-            if (totalLength > 0 && totalLength < bufferLength)
+            int numberOfAlignedSegments = blockCapacityInElements / bufferAlignmentInElements;
+            int bufferLength = numberOfAlignedSegments * bufferAlignmentInElements;
+            if (totalLengthInElements > 0 && totalLengthInElements < bufferLength)
             {
-                bufferLength = (int)totalLength;
+                bufferLength = (int)totalLengthInElements;
             }
 
-            int sizeOfLastBuffer = (int)(totalLength % bufferLength);
-            int bufferCount = (int)(totalLength / bufferLength);
+            int sizeOfLastBuffer = (int)(totalLengthInElements % bufferLength);
+            int bufferCount = (int)(totalLengthInElements / bufferLength);
 
             if (sizeOfLastBuffer == 0)
             {
@@ -182,7 +189,7 @@ namespace SixLabors.ImageSharp.Memory
                 return null;
             }
 
-            return new Owned(pool, arrays, bufferLength, totalLength, sizeOfLastBuffer);
+            return new Owned(pool, arrays, bufferLength, totalLengthInElements, sizeOfLastBuffer);
         }
 
         public static MemoryGroup<T> Wrap(params Memory<T>[] source)

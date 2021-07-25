@@ -46,5 +46,20 @@ namespace SixLabors.ImageSharp.Memory
         public virtual void ReleaseRetainedResources()
         {
         }
+
+        /// <summary>
+        /// Allocates a <see cref="MemoryGroup{T}"/>.
+        /// </summary>
+        /// <param name="totalLength">The total length of the buffer.</param>
+        /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
+        /// <param name="options">The <see cref="AllocationOptions"/>.</param>
+        /// <returns>A new <see cref="MemoryGroup{T}"/>.</returns>
+        /// <exception cref="InvalidMemoryOperationException">Thrown when 'blockAlignment' converted to bytes is greater than the buffer capacity of the allocator.</exception>
+        internal virtual MemoryGroup<T> AllocateGroup<T>(
+            long totalLength,
+            int bufferAlignment,
+            AllocationOptions options = AllocationOptions.None)
+            where T : struct
+            => MemoryGroup<T>.Allocate(this, totalLength, bufferAlignment, options);
     }
 }

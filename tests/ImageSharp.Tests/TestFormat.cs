@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public TestDecoder Decoder { get; }
 
-        private byte[] header = Guid.NewGuid().ToByteArray();
+        private readonly byte[] header = Guid.NewGuid().ToByteArray();
 
         public MemoryStream CreateStream(byte[] marker = null)
         {
@@ -119,16 +119,16 @@ namespace SixLabors.ImageSharp.Tests
 
         public IEnumerable<string> FileExtensions => this.SupportedExtensions;
 
-        public bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
+        public bool IsSupportedFileFormat(ReadOnlySpan<byte> fileHeader)
         {
-            if (header.Length < this.header.Length)
+            if (fileHeader.Length < this.header.Length)
             {
                 return false;
             }
 
             for (int i = 0; i < this.header.Length; i++)
             {
-                if (header[i] != this.header[i])
+                if (fileHeader[i] != this.header[i])
                 {
                     return false;
                 }
@@ -137,11 +137,11 @@ namespace SixLabors.ImageSharp.Tests
             return true;
         }
 
-        public void Configure(Configuration host)
+        public void Configure(Configuration configuration)
         {
-            host.ImageFormatsManager.AddImageFormatDetector(new TestHeader(this));
-            host.ImageFormatsManager.SetEncoder(this, new TestEncoder(this));
-            host.ImageFormatsManager.SetDecoder(this, new TestDecoder(this));
+            configuration.ImageFormatsManager.AddImageFormatDetector(new TestHeader(this));
+            configuration.ImageFormatsManager.SetEncoder(this, new TestEncoder(this));
+            configuration.ImageFormatsManager.SetDecoder(this, new TestDecoder(this));
         }
 
         public struct DecodeOperation
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public class TestHeader : IImageFormatDetector
         {
-            private TestFormat testFormat;
+            private readonly TestFormat testFormat;
 
             public int HeaderSize => this.testFormat.HeaderSize;
 
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public class TestDecoder : IImageDecoder, IImageInfoDetector
         {
-            private TestFormat testFormat;
+            private readonly TestFormat testFormat;
 
             public TestDecoder(TestFormat testFormat)
             {
@@ -212,20 +212,20 @@ namespace SixLabors.ImageSharp.Tests
 
             public int HeaderSize => this.testFormat.HeaderSize;
 
-            public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream)
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
                 where TPixel : unmanaged, IPixel<TPixel>
-                => this.DecodeImpl<TPixel>(config, stream, default).GetAwaiter().GetResult();
+                => this.DecodeImpl<TPixel>(configuration, stream, default).GetAwaiter().GetResult();
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
+            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
-                => this.DecodeImpl<TPixel>(config, stream, cancellationToken);
+                => this.DecodeImpl<TPixel>(configuration, stream, cancellationToken);
 
             private async Task<Image<TPixel>> DecodeImpl<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 var ms = new MemoryStream();
                 await stream.CopyToAsync(ms, config.StreamProcessingBufferSize, cancellationToken);
-                var marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
+                byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
                     Marker = marker,
@@ -251,9 +251,9 @@ namespace SixLabors.ImageSharp.Tests
                 => await this.DecodeImpl<Rgba32>(configuration, stream, cancellationToken);
         }
 
-        public class TestEncoder : ImageSharp.Formats.IImageEncoder
+        public class TestEncoder : IImageEncoder
         {
-            private TestFormat testFormat;
+            private readonly TestFormat testFormat;
 
             public TestEncoder(TestFormat testFormat)
             {

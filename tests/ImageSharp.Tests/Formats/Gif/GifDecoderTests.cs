@@ -17,6 +17,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Gif")]
     public class GifDecoderTests
     {
@@ -187,6 +188,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [WithFile(TestImages.Gif.Issues.BadAppExtLength, PixelTypes.Rgba32)]
         [WithFile(TestImages.Gif.Issues.BadAppExtLength_2, PixelTypes.Rgba32)]
         public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.DebugSave(provider);
+
+                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+            }
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/1668
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.InvalidColorIndex, PixelTypes.Rgba32)]
+        public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

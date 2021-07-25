@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 {
+    [Trait("Category", "Processors")]
     public class WuQuantizerTests
     {
         [Fact]

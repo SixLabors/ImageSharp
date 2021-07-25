@@ -2,81 +2,59 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Advanced;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
-    /// <summary>
-    /// On-stack worker struct to efficiently encapsulate the TPixel -> Rgb24 -> YCbCr conversion chain of 8x8 pixel blocks.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel type to work on</typeparam>
-    internal ref struct YCbCrForwardConverter<TPixel>
+    internal static class YCbCrForwardConverter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        /// <summary>
-        /// The Y component
-        /// </summary>
-        public Block8x8F Y;
-
-        /// <summary>
-        /// The Cb component
-        /// </summary>
-        public Block8x8F Cb;
-
-        /// <summary>
-        /// The Cr component
-        /// </summary>
-        public Block8x8F Cr;
-
-        /// <summary>
-        /// The color conversion tables
-        /// </summary>
-        private RgbToYCbCrConverterLut colorTables;
-
-        /// <summary>
-        /// Temporal 8x8 block to hold TPixel data
-        /// </summary>
-        private GenericBlock8x8<TPixel> pixelBlock;
-
-        /// <summary>
-        /// Temporal RGB block
-        /// </summary>
-        private GenericBlock8x8<Rgb24> rgbBlock;
-
-        public static YCbCrForwardConverter<TPixel> Create()
+        public static void LoadAndStretchEdges(RowOctet<TPixel> source, Span<TPixel> dest, Point start, Size sampleSize, Size totalSize)
         {
-            var result = default(YCbCrForwardConverter<TPixel>);
-            if (!RgbToYCbCrConverterVectorized.IsSupported)
+            DebugGuard.MustBeBetweenOrEqualTo(start.X, 0, totalSize.Width - 1, nameof(start.X));
+            DebugGuard.MustBeBetweenOrEqualTo(start.Y, 0, totalSize.Height - 1, nameof(start.Y));
+
+            int width = Math.Min(sampleSize.Width, totalSize.Width - start.X);
+            int height = Math.Min(sampleSize.Height, totalSize.Height - start.Y);
+
+            uint byteWidth = (uint)(width * Unsafe.SizeOf<TPixel>());
+            int remainderXCount = sampleSize.Width - width;
+
+            ref byte blockStart = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TPixel, byte>(dest));
+            int rowSizeInBytes = sampleSize.Width * Unsafe.SizeOf<TPixel>();
+
+            for (int y = 0; y < height; y++)
             {
-                // Avoid creating lookup tables, when vectorized converter is supported
-                result.colorTables = RgbToYCbCrConverterLut.Create();
+                Span<TPixel> row = source[y];
+
+                ref byte s = ref Unsafe.As<TPixel, byte>(ref row[start.X]);
+                ref byte d = ref Unsafe.Add(ref blockStart, y * rowSizeInBytes);
+
+                Unsafe.CopyBlock(ref d, ref s, byteWidth);
+
+                ref TPixel last = ref Unsafe.Add(ref Unsafe.As<byte, TPixel>(ref d), width - 1);
+
+                for (int x = 1; x <= remainderXCount; x++)
+                {
+                    Unsafe.Add(ref last, x) = last;
+                }
             }
 
-            return result;
-        }
+            int remainderYCount = sampleSize.Height - height;
 
-        /// <summary>
-        /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
-        /// </summary>
-        public void Convert(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows)
-        {
-            this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, ref currentRows);
-
-            Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
-            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), rgbSpan);
-
-            ref Block8x8F yBlock = ref this.Y;
-            ref Block8x8F cbBlock = ref this.Cb;
-            ref Block8x8F crBlock = ref this.Cr;
-
-            if (RgbToYCbCrConverterVectorized.IsSupported)
+            if (remainderYCount == 0)
             {
-                RgbToYCbCrConverterVectorized.Convert(rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+                return;
             }
-            else
+
+            ref byte lastRowStart = ref Unsafe.Add(ref blockStart, (height - 1) * rowSizeInBytes);
+
+            for (int y = 1; y <= remainderYCount; y++)
             {
-                this.colorTables.Convert(rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+                ref byte remStart = ref Unsafe.Add(ref lastRowStart, rowSizeInBytes * y);
+                Unsafe.CopyBlock(ref remStart, ref lastRowStart, (uint)rowSizeInBytes);
             }
         }
     }

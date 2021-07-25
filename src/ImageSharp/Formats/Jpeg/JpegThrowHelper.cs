@@ -46,5 +46,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowInvalidImageDimensions(int width, int height) => throw new InvalidImageContentException($"Invalid image dimensions: {width}x{height}.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowDimensionsTooLarge(int width, int height) => throw new ImageFormatException($"Image is too large to encode at {width}x{height} for JPEG format.");
     }
 }

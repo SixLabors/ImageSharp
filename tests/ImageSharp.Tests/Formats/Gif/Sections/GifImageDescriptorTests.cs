@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Gif;
 
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Gif
+namespace SixLabors.ImageSharp.Tests.Formats.Gif.Sections
 {
     public class GifImageDescriptorTests
     {

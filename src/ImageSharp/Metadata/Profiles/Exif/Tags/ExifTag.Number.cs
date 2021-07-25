@@ -17,6 +17,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<Number> ImageLength { get; } = new ExifTag<Number>(ExifTagValue.ImageLength);
 
         /// <summary>
+        /// Gets the RowsPerStrip exif tag.
+        /// </summary>
+        public static ExifTag<Number> RowsPerStrip { get; } = new ExifTag<Number>(ExifTagValue.RowsPerStrip);
+
+        /// <summary>
         /// Gets the TileWidth exif tag.
         /// </summary>
         public static ExifTag<Number> TileWidth { get; } = new ExifTag<Number>(ExifTagValue.TileWidth);

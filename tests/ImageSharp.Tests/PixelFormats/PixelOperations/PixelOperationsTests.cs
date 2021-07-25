@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         [Fact]
         public void PixelTypeInfoHasCorrectBitsPerPixel()
         {
-            var bits = this.Operations.GetPixelTypeInfo().BitsPerPixel;
+            int bits = this.Operations.GetPixelTypeInfo().BitsPerPixel;
             Assert.Equal(Unsafe.SizeOf<TPixel>() * 8, bits);
         }
 

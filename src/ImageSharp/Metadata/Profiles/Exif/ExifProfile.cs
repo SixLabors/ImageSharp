@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
@@ -50,6 +51,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Parts = ExifParts.All;
             this.data = data;
             this.InvalidTags = Array.Empty<ExifTag>();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExifProfile" /> class.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="invalidTags">The invalid tags.</param>
+        internal ExifProfile(List<IExifValue> values, IReadOnlyList<ExifTag> invalidTags)
+        {
+            this.Parts = ExifParts.All;
+            this.values = values;
+            this.InvalidTags = invalidTags;
         }
 
         /// <summary>
@@ -154,7 +167,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         /// <param name="tag">The tag of the EXIF value.</param>
         /// <returns>
-        /// The <see cref="bool"/>.
+        /// True, if the value was removed, otherwise false.
         /// </returns>
         public bool RemoveValue(ExifTag tag)
         {

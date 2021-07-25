@@ -7,7 +7,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -54,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The pixel sampling strategy for global quantization.
         /// </summary>
-        private IPixelSamplingStrategy pixelSamplingStrategy;
+        private readonly IPixelSamplingStrategy pixelSamplingStrategy;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
@@ -150,8 +149,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // The palette quantizer can reuse the same pixel map across multiple frames
             // since the palette is unchanging. This allows a reduction of memory usage across
             // multi frame gifs using a global palette.
-            EuclideanPixelMap<TPixel> pixelMap = default;
-            bool pixelMapSet = false;
+            PaletteQuantizer<TPixel> paletteFrameQuantizer = default;
+            bool quantizerInitialized = false;
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
@@ -166,17 +165,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    if (!pixelMapSet)
+                    if (!quantizerInitialized)
                     {
-                        pixelMapSet = true;
-                        pixelMap = new EuclideanPixelMap<TPixel>(this.configuration, quantized.Palette);
+                        quantizerInitialized = true;
+                        paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, quantized.Palette);
                     }
 
-                    using var paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
                     using IndexedImageFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     this.WriteImageData(paletteQuantized, stream);
                 }
             }
+
+            paletteFrameQuantizer.Dispose();
         }
 
         private void EncodeLocal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, Stream stream)
@@ -305,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     }
                     else
                     {
-                        ratio = (byte)(((1 / vr) * 64) - 15);
+                        ratio = (byte)((1 / vr * 64) - 15);
                     }
                 }
             }
@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            for (var i = 0; i < metadata.Comments.Count; i++)
+            for (int i = 0; i < metadata.Comments.Count; i++)
             {
                 string comment = metadata.Comments[i];
                 this.buffer[0] = GifConstants.ExtensionIntroducer;
@@ -470,14 +470,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // The maximum number of colors for the bit depth
             int colorTableLength = ColorNumerics.GetColorCountForBitDepth(this.bitDepth) * Unsafe.SizeOf<Rgb24>();
 
-            using IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength, AllocationOptions.Clean);
+            using IMemoryOwner<byte> colorTable = this.memoryAllocator.Allocate<byte>(colorTableLength, AllocationOptions.Clean);
+            Span<byte> colorTableSpan = colorTable.GetSpan();
+
             PixelOperations<TPixel>.Instance.ToRgb24Bytes(
                 this.configuration,
                 image.Palette.Span,
-                colorTable.GetSpan(),
+                colorTableSpan,
                 image.Palette.Length);
 
-            stream.Write(colorTable.Array, 0, colorTableLength);
+            stream.Write(colorTableSpan);
         }
 
         /// <summary>

@@ -12,6 +12,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
+    [Trait("Category", "Processors")]
     public class GrayscaleTest : BaseImageOperationsExtensionTest
     {
         public static IEnumerable<object[]> ModeTheoryData = new[]

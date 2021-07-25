@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -94,10 +93,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.momentsOwner = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
             this.tagsOwner = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
             this.paletteOwner = this.memoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
-            this.palette = default;
             this.colorCube = new Box[this.maxColors];
             this.isDisposed = false;
             this.pixelMap = default;
+            this.palette = default;
             this.isDithering = this.isDithering = !(this.Options.Dither is null);
         }
 
@@ -127,9 +126,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
 
+            // Slice again since maxColors has been updated since the buffer was created.
+            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan().Slice(0, this.maxColors);
             ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
-            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
-            for (int k = 0; k < this.maxColors; k++)
+            for (int k = 0; k < paletteSpan.Length; k++)
             {
                 this.Mark(ref this.colorCube[k], (byte)k);
 
@@ -142,8 +142,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, this.maxColors);
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
+            if (this.isDithering)
+            {
+                // When called multiple times by QuantizerUtilities.BuildPalette
+                // this prevents memory churn caused by reallocation.
+                if (this.pixelMap is null)
+                {
+                    this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+                }
+                else
+                {
+                    this.pixelMap.Clear(result);
+                }
+            }
+
             this.palette = result;
         }
 
@@ -170,7 +183,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             ReadOnlySpan<byte> tagSpan = this.tagsOwner.GetSpan();
             byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.Palette.Span);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
             match = Unsafe.Add(ref paletteRef, index);
             return index;
         }
@@ -187,6 +200,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.momentsOwner = null;
                 this.tagsOwner = null;
                 this.paletteOwner = null;
+                this.pixelMap?.Dispose();
+                this.pixelMap = null;
             }
         }
 
@@ -200,16 +215,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The index.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetPaletteIndex(int r, int g, int b, int a)
-        {
-            return (r << ((IndexBits * 2) + IndexAlphaBits))
-                + (r << (IndexBits + IndexAlphaBits + 1))
-                + (g << (IndexBits + IndexAlphaBits))
-                + (r << (IndexBits * 2))
-                + (r << (IndexBits + 1))
-                + (g << IndexBits)
-                + ((r + g + b) << IndexAlphaBits)
-                + r + g + b + a;
-        }
+            => (r << ((IndexBits * 2) + IndexAlphaBits))
+            + (r << (IndexBits + IndexAlphaBits + 1))
+            + (g << (IndexBits + IndexAlphaBits))
+            + (r << (IndexBits * 2))
+            + (r << (IndexBits + 1))
+            + (g << IndexBits)
+            + ((r + g + b) << IndexAlphaBits)
+            + r + g + b + a;
 
         /// <summary>
         /// Computes sum over a box of any given statistic.
@@ -218,24 +231,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="moments">The moment.</param>
         /// <returns>The result.</returns>
         private static Moment Volume(ref Box cube, ReadOnlySpan<Moment> moments)
-        {
-            return moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
-                 + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
-                 - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
-                 + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
-        }
+            => moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
+            + moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
+            - moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
+            + moments[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
 
         /// <summary>
         /// Computes part of Volume(cube, moment) that doesn't depend on RMax, GMax, BMax, or AMax (depending on direction).
@@ -820,7 +831,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             public int Volume;
 
             /// <inheritdoc/>
-            public readonly override bool Equals(object obj)
+            public override readonly bool Equals(object obj)
                 => obj is Box box
                 && this.Equals(box);
 
@@ -837,7 +848,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 && this.Volume == other.Volume;
 
             /// <inheritdoc/>
-            public readonly override int GetHashCode()
+            public override readonly int GetHashCode()
             {
                 HashCode hash = default;
                 hash.Add(this.RMin);

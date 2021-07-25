@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Transforms
+namespace SixLabors.ImageSharp.Tests.Processing
 {
     public class IntegralImageTests : BaseImageOperationsExtensionTest
     {

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -57,8 +58,9 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(headerSize, AllocationOptions.Clean))
+            using (IMemoryOwner<byte> buffer = config.MemoryAllocator.Allocate<byte>(headerSize, AllocationOptions.Clean))
             {
+                Span<byte> bufferSpan = buffer.GetSpan();
                 long startPosition = stream.Position;
 
                 // Read doesn't always guarantee the full returned length so read a byte
@@ -67,7 +69,7 @@ namespace SixLabors.ImageSharp
                 int i;
                 do
                 {
-                    i = stream.Read(buffer.Array, n, headerSize - n);
+                    i = stream.Read(bufferSpan, n, headerSize - n);
                     n += i;
                 }
                 while (n < headerSize && i > 0);

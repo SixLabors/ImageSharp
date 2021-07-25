@@ -5,59 +5,20 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
-    /// <summary>
-    /// Reads and parses EXIF data from a byte array.
-    /// </summary>
-    internal sealed class ExifReader
+    internal class ExifReader : BaseExifReader
     {
-        private List<ExifTag> invalidTags;
-        private readonly byte[] exifData;
-        private int position;
-        private bool isBigEndian;
-        private uint exifOffset;
-        private uint gpsOffset;
+        private readonly List<Action> loaders = new List<Action>();
 
         public ExifReader(byte[] exifData)
+            : base(new MemoryStream(exifData ?? throw new ArgumentNullException(nameof(exifData))))
         {
-            this.exifData = exifData ?? throw new ArgumentNullException(nameof(exifData));
-        }
-
-        private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
-
-        /// <summary>
-        /// Gets the invalid tags.
-        /// </summary>
-        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
-
-        /// <summary>
-        /// Gets the thumbnail length in the byte stream.
-        /// </summary>
-        public uint ThumbnailLength { get; private set; }
-
-        /// <summary>
-        /// Gets the thumbnail offset position in the byte stream.
-        /// </summary>
-        public uint ThumbnailOffset { get; private set; }
-
-        /// <summary>
-        /// Gets the remaining length.
-        /// </summary>
-        private int RemainingLength
-        {
-            get
-            {
-                if (this.position >= this.exifData.Length)
-                {
-                    return 0;
-                }
-
-                return this.exifData.Length - this.position;
-            }
         }
 
         /// <summary>
@@ -71,7 +32,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             var values = new List<IExifValue>();
 
             // II == 0x4949
-            this.isBigEndian = this.ReadUInt16() != 0x4949;
+            this.IsBigEndian = this.ReadUInt16() != 0x4949;
 
             if (this.ReadUInt16() != 0x002A)
             {
@@ -79,22 +40,119 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
 
             uint ifdOffset = this.ReadUInt32();
-            this.AddValues(values, ifdOffset);
+            this.ReadValues(values, ifdOffset);
 
             uint thumbnailOffset = this.ReadUInt32();
             this.GetThumbnail(thumbnailOffset);
 
+            this.ReadSubIfd(values);
+
+            foreach (Action loader in this.loaders)
+            {
+                loader();
+            }
+
+            return values;
+        }
+
+        protected override void RegisterExtLoader(uint offset, Action loader) => this.loaders.Add(loader);
+
+        private void GetThumbnail(uint offset)
+        {
+            if (offset == 0)
+            {
+                return;
+            }
+
+            var values = new List<IExifValue>();
+            this.ReadValues(values, offset);
+
+            foreach (ExifValue value in values)
+            {
+                if (value == ExifTag.JPEGInterchangeFormat)
+                {
+                    this.ThumbnailOffset = ((ExifLong)value).Value;
+                }
+                else if (value == ExifTag.JPEGInterchangeFormatLength)
+                {
+                    this.ThumbnailLength = ((ExifLong)value).Value;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads and parses EXIF data from a stream.
+    /// </summary>
+    internal abstract class BaseExifReader
+    {
+        private readonly byte[] offsetBuffer = new byte[4];
+        private readonly byte[] buf4 = new byte[4];
+        private readonly byte[] buf2 = new byte[2];
+
+        private readonly Stream data;
+        private List<ExifTag> invalidTags;
+
+        private uint exifOffset;
+
+        private uint gpsOffset;
+
+        protected BaseExifReader(Stream stream) =>
+            this.data = stream ?? throw new ArgumentNullException(nameof(stream));
+
+        private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
+
+        /// <summary>
+        /// Gets the invalid tags.
+        /// </summary>
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
+
+        /// <summary>
+        /// Gets or sets the thumbnail length in the byte stream.
+        /// </summary>
+        public uint ThumbnailLength { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets the thumbnail offset position in the byte stream.
+        /// </summary>
+        public uint ThumbnailOffset { get; protected set; }
+
+        public bool IsBigEndian { get; protected set; }
+
+        protected abstract void RegisterExtLoader(uint offset, Action loader);
+
+        /// <summary>
+        /// Reads the values to the values collection.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="offset">The IFD offset.</param>
+        protected void ReadValues(List<IExifValue> values, uint offset)
+        {
+            if (offset > this.data.Length)
+            {
+                return;
+            }
+
+            this.Seek(offset);
+            int count = this.ReadUInt16();
+
+            for (int i = 0; i < count; i++)
+            {
+                this.ReadValue(values);
+            }
+        }
+
+        protected void ReadSubIfd(List<IExifValue> values)
+        {
             if (this.exifOffset != 0)
             {
-                this.AddValues(values, this.exifOffset);
+                this.ReadValues(values, this.exifOffset);
             }
 
             if (this.gpsOffset != 0)
             {
-                this.AddValues(values, this.gpsOffset);
+                this.ReadValues(values, this.gpsOffset);
             }
-
-            return values;
         }
 
         private static TDataType[] ToArray<TDataType>(ExifDataType dataType, ReadOnlySpan<byte> data, ConverterMethod<TDataType> converter)
@@ -126,58 +184,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
 
             return Encoding.UTF8.GetString(buffer);
-        }
-
-        /// <summary>
-        /// Adds the collection of EXIF values to the reader.
-        /// </summary>
-        /// <param name="values">The values.</param>
-        /// <param name="index">The index.</param>
-        private void AddValues(List<IExifValue> values, uint index)
-        {
-            if (index > (uint)this.exifData.Length)
-            {
-                return;
-            }
-
-            this.position = (int)index;
-            int count = this.ReadUInt16();
-
-            for (int i = 0; i < count; i++)
-            {
-                if (!this.TryReadValue(out ExifValue value))
-                {
-                    continue;
-                }
-
-                bool duplicate = false;
-                foreach (IExifValue val in values)
-                {
-                    if (val == value)
-                    {
-                        duplicate = true;
-                        break;
-                    }
-                }
-
-                if (duplicate)
-                {
-                    continue;
-                }
-
-                if (value == ExifTag.SubIFDOffset)
-                {
-                    this.exifOffset = ((ExifLong)value).Value;
-                }
-                else if (value == ExifTag.GPSIFDOffset)
-                {
-                    this.gpsOffset = ((ExifLong)value).Value;
-                }
-                else
-                {
-                    values.Add(value);
-                }
-            }
         }
 
         private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, uint numberOfComponents)
@@ -275,27 +281,27 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
-        private bool TryReadValue(out ExifValue exifValue)
+        private void ReadValue(List<IExifValue> values)
         {
-            exifValue = default;
-
             // 2   | 2    | 4     | 4
             // tag | type | count | value offset
-            if (this.RemainingLength < 12)
+            if ((this.data.Length - this.data.Position) < 12)
             {
-                return false;
+                return;
             }
 
             var tag = (ExifTagValue)this.ReadUInt16();
             ExifDataType dataType = EnumUtils.Parse(this.ReadUInt16(), ExifDataType.Unknown);
 
+            uint numberOfComponents = this.ReadUInt32();
+
+            this.TryReadSpan(this.offsetBuffer);
+
             // Ensure that the data type is valid
             if (dataType == ExifDataType.Unknown)
             {
-                return false;
+                return;
             }
-
-            uint numberOfComponents = this.ReadUInt32();
 
             // Issue #132: ExifDataType == Undefined is treated like a byte array.
             // If numberOfComponents == 0 this value can only be handled as an inline value and must fallback to 4 (bytes)
@@ -304,110 +310,103 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 numberOfComponents = 4;
             }
 
-            uint size = numberOfComponents * ExifDataTypes.GetSize(dataType);
-
-            this.TryReadSpan(4, out ReadOnlySpan<byte> offsetBuffer);
-
-            object value;
-            if (size > 4)
-            {
-                int oldIndex = this.position;
-                uint newIndex = this.ConvertToUInt32(offsetBuffer);
-
-                // Ensure that the new index does not overrun the data
-                if (newIndex > int.MaxValue)
-                {
-                    this.AddInvalidTag(new UnkownExifTag(tag));
-                    return false;
-                }
-
-                this.position = (int)newIndex;
-
-                if (this.RemainingLength < size)
-                {
-                    this.AddInvalidTag(new UnkownExifTag(tag));
-
-                    this.position = oldIndex;
-                    return false;
-                }
-
-                this.TryReadSpan((int)size, out ReadOnlySpan<byte> dataBuffer);
-
-                value = this.ConvertValue(dataType, dataBuffer, numberOfComponents);
-                this.position = oldIndex;
-            }
-            else
-            {
-                value = this.ConvertValue(dataType, offsetBuffer, numberOfComponents);
-            }
-
-            exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
+            ExifValue exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
 
             if (exifValue is null)
             {
                 this.AddInvalidTag(new UnkownExifTag(tag));
-                return false;
+                return;
             }
 
-            if (!exifValue.TrySetValue(value))
+            uint size = numberOfComponents * ExifDataTypes.GetSize(dataType);
+            if (size > 4)
             {
-                return false;
+                uint newOffset = this.ConvertToUInt32(this.offsetBuffer);
+
+                // Ensure that the new index does not overrun the data.
+                if (newOffset > int.MaxValue || (newOffset + size) > this.data.Length)
+                {
+                    this.AddInvalidTag(new UnkownExifTag(tag));
+                    return;
+                }
+
+                this.RegisterExtLoader(newOffset, () =>
+                {
+                    byte[] dataBuffer = new byte[size];
+                    this.Seek(newOffset);
+                    if (this.TryReadSpan(dataBuffer))
+                    {
+                        object value = this.ConvertValue(dataType, dataBuffer, numberOfComponents);
+                        this.Add(values, exifValue, value);
+                    }
+                });
+            }
+            else
+            {
+                object value = this.ConvertValue(dataType, this.offsetBuffer, numberOfComponents);
+
+                this.Add(values, exifValue, value);
+            }
+        }
+
+        private void Add(IList<IExifValue> values, IExifValue exif, object value)
+        {
+            if (!exif.TrySetValue(value))
+            {
+                return;
             }
 
-            return true;
+            foreach (IExifValue val in values)
+            {
+                // Sometimes duplicates appear, can compare val.Tag == exif.Tag
+                if (val == exif)
+                {
+                    Debug.WriteLine($"Duplicate Exif tag: tag={exif.Tag}, dataType={exif.DataType}");
+                    return;
+                }
+            }
+
+            if (exif.Tag == ExifTag.SubIFDOffset)
+            {
+                this.exifOffset = (uint)value;
+            }
+            else if (exif.Tag == ExifTag.GPSIFDOffset)
+            {
+                this.gpsOffset = (uint)value;
+            }
+            else
+            {
+                values.Add(exif);
+            }
         }
 
         private void AddInvalidTag(ExifTag tag)
-            => (this.invalidTags ?? (this.invalidTags = new List<ExifTag>())).Add(tag);
+            => (this.invalidTags ??= new List<ExifTag>()).Add(tag);
 
-        private bool TryReadSpan(int length, out ReadOnlySpan<byte> span)
+        private void Seek(long pos)
+            => this.data.Seek(pos, SeekOrigin.Begin);
+
+        private bool TryReadSpan(Span<byte> span)
         {
-            if (this.RemainingLength < length)
+            int length = span.Length;
+            if ((this.data.Length - this.data.Position) < length)
             {
-                span = default;
-
                 return false;
             }
 
-            span = new ReadOnlySpan<byte>(this.exifData, this.position, length);
-
-            this.position += length;
-
-            return true;
+            int read = this.data.Read(span);
+            return read == length;
         }
 
-        private uint ReadUInt32()
-        {
-            // Known as Long in Exif Specification
-            return this.TryReadSpan(4, out ReadOnlySpan<byte> span)
-                ? this.ConvertToUInt32(span)
+        // Known as Long in Exif Specification.
+        protected uint ReadUInt32() =>
+            this.TryReadSpan(this.buf4)
+                ? this.ConvertToUInt32(this.buf4)
                 : default;
-        }
 
-        private ushort ReadUInt16()
-        {
-            return this.TryReadSpan(2, out ReadOnlySpan<byte> span)
-                ? this.ConvertToShort(span)
+        protected ushort ReadUInt16() => this.TryReadSpan(this.buf2)
+                ? this.ConvertToShort(this.buf2)
                 : default;
-        }
-
-        private void GetThumbnail(uint offset)
-        {
-            var values = new List<IExifValue>();
-            this.AddValues(values, offset);
-
-            foreach (ExifValue value in values)
-            {
-                if (value == ExifTag.JPEGInterchangeFormat)
-                {
-                    this.ThumbnailOffset = ((ExifLong)value).Value;
-                }
-                else if (value == ExifTag.JPEGInterchangeFormatLength)
-                {
-                    this.ThumbnailLength = ((ExifLong)value).Value;
-                }
-            }
-        }
 
         private double ConvertToDouble(ReadOnlySpan<byte> buffer)
         {
@@ -416,7 +415,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            long intValue = this.isBigEndian
+            long intValue = this.IsBigEndian
                 ? BinaryPrimitives.ReadInt64BigEndian(buffer)
                 : BinaryPrimitives.ReadInt64LittleEndian(buffer);
 
@@ -425,13 +424,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private uint ConvertToUInt32(ReadOnlySpan<byte> buffer)
         {
-            // Known as Long in Exif Specification
+            // Known as Long in Exif Specification.
             if (buffer.Length < 4)
             {
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadUInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
@@ -443,7 +442,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadUInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         }
@@ -455,7 +454,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            int intValue = this.isBigEndian
+            int intValue = this.IsBigEndian
                 ? BinaryPrimitives.ReadInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadInt32LittleEndian(buffer);
 
@@ -484,7 +483,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadInt32LittleEndian(buffer);
         }
@@ -509,7 +508,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
         }

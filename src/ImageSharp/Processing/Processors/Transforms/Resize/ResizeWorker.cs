@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
 
             // When creating transposedFirstPassBuffer, we made sure it's contiguous:
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             // Copy previous bottom band to the new top:
             // (rows <--> columns, because the buffer is transposed)
-            this.transposedFirstPassBuffer.CopyColumns(
+            this.transposedFirstPassBuffer.DangerousCopyColumns(
                 this.workerHeight - this.windowBandHeight,
                 0,
                 this.windowBandHeight);
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void CalculateFirstPassValues(RowInterval calculationInterval)
         {
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {

@@ -4,8 +4,9 @@
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Icc
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader
 {
+    [Trait("Profile", "Icc")]
     public class IccDataReaderTagDataEntryTests
     {
         [Theory]
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadUnknownTagDataEntry(byte[] data, IccUnknownTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccUnknownTagDataEntry output = reader.ReadUnknownTagDataEntry(size);
 
@@ -27,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadChromaticityTagDataEntry(byte[] data, IccChromaticityTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccChromaticityTagDataEntry output = reader.ReadChromaticityTagDataEntry();
 
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadColorantOrderTagDataEntry(byte[] data, IccColorantOrderTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccColorantOrderTagDataEntry output = reader.ReadColorantOrderTagDataEntry();
 
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadColorantTableTagDataEntry(byte[] data, IccColorantTableTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccColorantTableTagDataEntry output = reader.ReadColorantTableTagDataEntry();
 
@@ -66,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadCurveTagDataEntry(byte[] data, IccCurveTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccCurveTagDataEntry output = reader.ReadCurveTagDataEntry();
 
@@ -79,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadDataTagDataEntry(byte[] data, IccDataTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccDataTagDataEntry output = reader.ReadDataTagDataEntry(size);
 
@@ -92,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadDateTimeTagDataEntry(byte[] data, IccDateTimeTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccDateTimeTagDataEntry output = reader.ReadDateTimeTagDataEntry();
 
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadLut16TagDataEntry(byte[] data, IccLut16TagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccLut16TagDataEntry output = reader.ReadLut16TagDataEntry();
 
@@ -118,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadLut8TagDataEntry(byte[] data, IccLut8TagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccLut8TagDataEntry output = reader.ReadLut8TagDataEntry();
 
@@ -131,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadLutAToBTagDataEntry(byte[] data, IccLutAToBTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccLutAToBTagDataEntry output = reader.ReadLutAtoBTagDataEntry();
 
@@ -144,7 +145,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadLutBToATagDataEntry(byte[] data, IccLutBToATagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccLutBToATagDataEntry output = reader.ReadLutBtoATagDataEntry();
 
@@ -157,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadMeasurementTagDataEntry(byte[] data, IccMeasurementTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccMeasurementTagDataEntry output = reader.ReadMeasurementTagDataEntry();
 
@@ -170,7 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadMultiLocalizedUnicodeTagDataEntry(byte[] data, IccMultiLocalizedUnicodeTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccMultiLocalizedUnicodeTagDataEntry output = reader.ReadMultiLocalizedUnicodeTagDataEntry();
 
@@ -183,7 +184,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadMultiProcessElementsTagDataEntry(byte[] data, IccMultiProcessElementsTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccMultiProcessElementsTagDataEntry output = reader.ReadMultiProcessElementsTagDataEntry();
 
@@ -196,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadNamedColor2TagDataEntry(byte[] data, IccNamedColor2TagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccNamedColor2TagDataEntry output = reader.ReadNamedColor2TagDataEntry();
 
@@ -209,7 +210,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadParametricCurveTagDataEntry(byte[] data, IccParametricCurveTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccParametricCurveTagDataEntry output = reader.ReadParametricCurveTagDataEntry();
 
@@ -222,7 +223,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadProfileSequenceDescTagDataEntry(byte[] data, IccProfileSequenceDescTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccProfileSequenceDescTagDataEntry output = reader.ReadProfileSequenceDescTagDataEntry();
 
@@ -237,7 +238,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             byte[] data,
             IccProfileSequenceIdentifierTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccProfileSequenceIdentifierTagDataEntry output = reader.ReadProfileSequenceIdentifierTagDataEntry();
 
@@ -250,7 +251,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadResponseCurveSet16TagDataEntry(byte[] data, IccResponseCurveSet16TagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccResponseCurveSet16TagDataEntry output = reader.ReadResponseCurveSet16TagDataEntry();
 
@@ -263,7 +264,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadFix16ArrayTagDataEntry(byte[] data, IccFix16ArrayTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccFix16ArrayTagDataEntry output = reader.ReadFix16ArrayTagDataEntry(size);
 
@@ -276,7 +277,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadSignatureTagDataEntry(byte[] data, IccSignatureTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccSignatureTagDataEntry output = reader.ReadSignatureTagDataEntry();
 
@@ -289,7 +290,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadTextTagDataEntry(byte[] data, IccTextTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccTextTagDataEntry output = reader.ReadTextTagDataEntry(size);
 
@@ -302,7 +303,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadUFix16ArrayTagDataEntry(byte[] data, IccUFix16ArrayTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccUFix16ArrayTagDataEntry output = reader.ReadUFix16ArrayTagDataEntry(size);
 
@@ -315,7 +316,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadUInt16ArrayTagDataEntry(byte[] data, IccUInt16ArrayTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccUInt16ArrayTagDataEntry output = reader.ReadUInt16ArrayTagDataEntry(size);
 
@@ -328,7 +329,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadUInt32ArrayTagDataEntry(byte[] data, IccUInt32ArrayTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccUInt32ArrayTagDataEntry output = reader.ReadUInt32ArrayTagDataEntry(size);
 
@@ -341,7 +342,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadUInt64ArrayTagDataEntry(byte[] data, IccUInt64ArrayTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccUInt64ArrayTagDataEntry output = reader.ReadUInt64ArrayTagDataEntry(size);
 
@@ -354,7 +355,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadUInt8ArrayTagDataEntry(byte[] data, IccUInt8ArrayTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccUInt8ArrayTagDataEntry output = reader.ReadUInt8ArrayTagDataEntry(size);
 
@@ -367,7 +368,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadViewingConditionsTagDataEntry(byte[] data, IccViewingConditionsTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccViewingConditionsTagDataEntry output = reader.ReadViewingConditionsTagDataEntry();
 
@@ -380,7 +381,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadXyzTagDataEntry(byte[] data, IccXyzTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccXyzTagDataEntry output = reader.ReadXyzTagDataEntry(size);
 
@@ -393,7 +394,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadTextDescriptionTagDataEntry(byte[] data, IccTextDescriptionTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccTextDescriptionTagDataEntry output = reader.ReadTextDescriptionTagDataEntry();
 
@@ -406,7 +407,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadCrdInfoTagDataEntry(byte[] data, IccCrdInfoTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccCrdInfoTagDataEntry output = reader.ReadCrdInfoTagDataEntry();
 
@@ -419,7 +420,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadScreeningTagDataEntry(byte[] data, IccScreeningTagDataEntry expected)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccScreeningTagDataEntry output = reader.ReadScreeningTagDataEntry();
 
@@ -432,14 +433,14 @@ namespace SixLabors.ImageSharp.Tests.Icc
             MemberType = typeof(IccTestDataTagDataEntry))]
         internal void ReadUcrBgTagDataEntry(byte[] data, IccUcrBgTagDataEntry expected, uint size)
         {
-            IccDataReader reader = this.CreateReader(data);
+            IccDataReader reader = CreateReader(data);
 
             IccUcrBgTagDataEntry output = reader.ReadUcrBgTagDataEntry(size);
 
             Assert.Equal(expected, output);
         }
 
-        private IccDataReader CreateReader(byte[] data)
+        private static IccDataReader CreateReader(byte[] data)
         {
             return new IccDataReader(data);
         }

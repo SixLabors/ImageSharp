@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
@@ -87,8 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </remarks>
         /// <param name="table">Input quantization table.</param>
         /// <param name="target">Quantization to estimate against.</param>
-        /// <param name="quality">Estimated quality</param>
-        /// <returns><see cref="bool"/> indicating if given table is target-complient</returns>
+        /// <returns>Estimated quality</returns>
         public static int EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target)
         {
             // This method can be SIMD'ified if standard table is injected as Block8x8F.
@@ -152,8 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Estimates jpeg quality based on quantization table in zig-zag order.
         /// </summary>
         /// <param name="luminanceTable">Luminance quantization table.</param>
-        /// <param name="quality">Output jpeg quality.</param>
-        /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
+        /// <returns>Estimated quality</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int EstimateLuminanceQuality(ref Block8x8F luminanceTable)
             => EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance);
@@ -162,8 +158,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Estimates jpeg quality based on quantization table in zig-zag order.
         /// </summary>
         /// <param name="chrominanceTable">Chrominance quantization table.</param>
-        /// <param name="quality">Output jpeg quality.</param>
-        /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
+        /// <returns>Estimated quality</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int EstimateChrominanceQuality(ref Block8x8F chrominanceTable)
             => EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance);

@@ -62,10 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             return !TestEnvironment.Is64BitProcess && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);
         }
 
-        public JpegDecoderTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public JpegDecoderTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -163,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var cts = new CancellationTokenSource();
 
-            var file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
             pausedStream.OnWaiting(s =>
             {

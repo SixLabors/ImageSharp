@@ -106,20 +106,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.SpectralBlocks = null;
         }
 
-        public void Init()
+        /// <summary>
+        /// Initializes component for future buffers initialization.
+        /// </summary>
+        /// <param name="maxSubFactorH">Maximal horizontal subsampling factor among all the components.</param>
+        /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
+        public void Init(int maxSubFactorH, int maxSubFactorV)
         {
             this.WidthInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.PixelWidth / 8F) * this.HorizontalSamplingFactor / this.Frame.MaxHorizontalFactor);
+                MathF.Ceiling(this.Frame.PixelWidth / 8F) * this.HorizontalSamplingFactor / maxSubFactorH);
 
             this.HeightInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.PixelHeight / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
+                MathF.Ceiling(this.Frame.PixelHeight / 8F) * this.VerticalSamplingFactor / maxSubFactorV);
 
             int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
             int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
             this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
 
-            JpegComponent c0 = this.Frame.Components[0];
-            this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
+            this.SubSamplingDivisors = new Size(maxSubFactorH, maxSubFactorV).DivideBy(this.SamplingFactors);
 
             if (this.SubSamplingDivisors.Width == 0 || this.SubSamplingDivisors.Height == 0)
             {

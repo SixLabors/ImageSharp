@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int? LuminanceQuality { get; set; }
+        internal int? LuminanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the jpeg chrominance quality.
@@ -87,22 +87,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        public int? ChrominanceQuality { get; set; }
+        internal int? ChrominanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the encoded quality.
         /// </summary>
         /// <remarks>
         /// Note that jpeg image can have different quality for luminance and chrominance components.
-        /// This property return average for both qualities and sets both qualities to the given value.
+        /// This property returns maximum value of luma/chroma qualities.
         /// </remarks>
-        public int Quality
+        public int? Quality
         {
             get
             {
-                int lumaQuality = this.LuminanceQuality ?? Quantization.DefaultQualityFactor;
-                int chromaQuality = this.ChrominanceQuality ?? lumaQuality;
-                return (int)Math.Round((lumaQuality + chromaQuality) / 2f);
+                // Jpeg always has a luminance table thus it must have a luminance quality derived from it
+                if (!this.LuminanceQuality.HasValue)
+                {
+                    return null;
+                }
+
+                // Jpeg might not have a chrominance table
+                if (!this.ChrominanceQuality.HasValue)
+                {
+                    return this.LuminanceQuality.Value;
+                }
+
+                // Theoretically, luma quality would always be greater or equal to chroma quality
+                // But we've already encountered images which can have higher quality of chroma components
+                return Math.Max(this.LuminanceQuality.Value, this.ChrominanceQuality.Value);
             }
 
             set

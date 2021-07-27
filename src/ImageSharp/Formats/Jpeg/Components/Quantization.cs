@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int EstimateChrominanceQuality(ref Block8x8F chrominanceTable)
-            => EstimateQuality(ref chrominanceTable, UnscaledQuant_Luminance);
+            => EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int QualityToScale(int quality)

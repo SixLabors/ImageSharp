@@ -179,19 +179,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Block8x8F table = default;
             for (int j = 0; j < Block8x8F.Size; j++)
             {
-                int x = unscaledTable[j];
-                x = ((x * scale) + 50) / 100;
-                if (x < 1)
-                {
-                    x = 1;
-                }
-
-                if (x > 255)
-                {
-                    x = 255;
-                }
-
-                table[j] = x;
+                int x = ((unscaledTable[j] * scale) + 50) / 100;
+                table[j] = Numerics.Clamp(x, 1, 255);
             }
 
             return table;

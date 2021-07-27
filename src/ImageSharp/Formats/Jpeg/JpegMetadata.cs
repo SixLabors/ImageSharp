@@ -11,7 +11,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public class JpegMetadata : IDeepCloneable
     {
+        /// <summary>
+        /// Backing field for <see cref="LuminanceQuality"/>
+        /// </summary>
         private int? luminanceQuality;
+
+        /// <summary>
+        /// Backing field for <see cref="ChrominanceQuality"/>
+        /// </summary>
         private int? chrominanceQuality;
 
         /// <summary>

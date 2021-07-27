@@ -830,30 +830,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     // luminance table
                     case 0:
                     {
-                        // if quantization table is non-complient to stardard itu table
-                        // we can't reacreate it later with calculated quality as this is an approximation
-                        // so we save it in the metadata
-                        if (!Quantization.EstimateLuminanceQuality(ref table, out int quality))
-                        {
-                            jpegMetadata.LuminanceQuantizationTable = table;
-                        }
-
-                        jpegMetadata.LuminanceQuality = quality;
+                        jpegMetadata.LuminanceQuality = Quantization.EstimateLuminanceQuality(ref table);
                         break;
                     }
 
                     // chrominance table
                     case 1:
                     {
-                        // if quantization table is non-complient to stardard itu table
-                        // we can't reacreate it later with calculated quality as this is an approximation
-                        // so we save it in the metadata
-                        if (!Quantization.EstimateChrominanceQuality(ref table, out int quality))
-                        {
-                            jpegMetadata.ChromaQuantizationTable = table;
-                        }
-
-                        jpegMetadata.ChrominanceQuality = quality;
+                        jpegMetadata.ChrominanceQuality = Quantization.EstimateChrominanceQuality(ref table);
                         break;
                     }
                 }

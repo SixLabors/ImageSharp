@@ -41,12 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The quality, that will be used to encode the image.
         /// </summary>
-        private readonly int? luminanceQuality;
-
-        /// <summary>
-        /// The quality, that will be used to encode the image.
-        /// </summary>
-        private readonly int? chrominanceQuality;
+        private readonly int? quality;
 
         /// <summary>
         /// Gets or sets the subsampling method to use.
@@ -64,8 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="options">The options</param>
         public JpegEncoderCore(IJpegEncoderOptions options)
         {
-            this.luminanceQuality = options.Quality;
-            this.chrominanceQuality = options.Quality;
+            this.quality = options.Quality;
             this.subsample = options.Subsample;
             this.colorType = options.ColorType;
         }
@@ -654,30 +648,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="chrominanceQuantTable">Output chrominance quantization table.</param>
         private void InitQuantizationTables(int componentCount, JpegMetadata metadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable)
         {
-            if (this.luminanceQuality.HasValue)
+            int lumaQuality;
+            int chromaQuality;
+            if (this.quality.HasValue)
             {
-                int lumaQuality = Numerics.Clamp(this.luminanceQuality.Value, 1, 100);
-                luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+                lumaQuality = this.quality.Value;
+                chromaQuality = this.quality.Value;
             }
             else
             {
-                luminanceQuantTable = metadata.LuminanceQuantizationTable;
+                lumaQuality = metadata.LuminanceQuality;
+                chromaQuality = metadata.ChrominanceQuality;
             }
 
+            // Luminance
+            lumaQuality = Numerics.Clamp(lumaQuality, 1, 100);
+            luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+
+            // Chrominance
             chrominanceQuantTable = default;
             if (componentCount > 1)
             {
-                int chromaQuality;
-                if (this.chrominanceQuality.HasValue)
-                {
-                    chromaQuality = Numerics.Clamp(this.chrominanceQuality.Value, 1, 100);
-                    chrominanceQuantTable = Quantization.ScaleLuminanceTable(chromaQuality);
-                }
-                else
-                {
-                    chromaQuality = Numerics.Clamp(metadata.ChrominanceQuality ?? Quantization.DefaultQualityFactor, 1, 100);
-                    chrominanceQuantTable = metadata.ChromaQuantizationTable;
-                }
+                chromaQuality = Numerics.Clamp(chromaQuality, 1, 100);
+                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
 
                 if (!this.subsample.HasValue)
                 {

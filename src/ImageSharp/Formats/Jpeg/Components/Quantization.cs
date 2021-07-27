@@ -41,30 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public const int QualityEstimationConfidenceUpperThreshold = 98;
 
         /// <summary>
-        /// Threshold at which given luminance quantization table should be considered 'standard'.
-        /// Bigger the variance - more likely it to be a non-ITU complient table.
-        /// </summary>
-        /// <remarks>
-        /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
-        /// so this is purely a practical value derived from tests.
-        /// For actual variances output against standard table see tests at Formats.Jpg.QuantizationTests.PrintVariancesFromStandardTables_*.
-        /// Actual value is 2.3629059983706604, truncated unsignificant part.
-        /// </remarks>
-        public const double StandardLuminanceTableVarianceThreshold = 2.36291;
-
-        /// <summary>
-        /// Threshold at which given chrominance quantization table should be considered 'standard'.
-        /// Bigger the variance - more likely it to be a non-ITU complient table.
-        /// </summary>
-        /// <remarks>
-        /// Jpeg does not define either 'quality' nor 'standard quantization table' properties
-        /// so this is purely a practical value derived from tests.
-        /// For actual variances output against standard table see tests at Formats.Jpg.QuantizationTests.PrintVariancesFromStandardTables_*.
-        /// Actual value is 0.8949631033036098, truncated unsignificant part.
-        /// </remarks>
-        public const double StandardChrominanceTableVarianceThreshold = 0.894963;
-
-        /// <summary>
         /// Gets the unscaled luminance quantization table in zig-zag order. Each
         /// encoder copies and scales the tables according to its quality parameter.
         /// The values are derived from ITU section K.1 after converting from natural to
@@ -113,25 +89,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="target">Quantization to estimate against.</param>
         /// <param name="quality">Estimated quality</param>
         /// <returns><see cref="bool"/> indicating if given table is target-complient</returns>
-        public static double EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target, out int quality)
+        public static int EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target)
         {
             // This method can be SIMD'ified if standard table is injected as Block8x8F.
             // Or when we go to full-int16 spectral code implementation and inject both tables as Block8x8.
             double comparePercent;
             double sumPercent = 0;
-            double sumPercentSqr = 0;
 
             // Corner case - all 1's => 100 quality
             // It would fail to deduce using algorithm below without this check
             if (table.EqualsToScalar(1))
             {
                 // While this is a 100% to be 100 quality, any given table can be scaled to all 1's.
-                // According to jpeg creators, top of the line quality is 99, 100 is just a technical 'limit' will affect result filesize drastically.
+                // According to jpeg creators, top of the line quality is 99, 100 is just a technical 'limit' which will affect result filesize drastically.
                 // Quality=100 shouldn't be used in usual use case.
-                quality = 100;
-                return 0;
+                return 100;
             }
 
+            int quality;
             for (int i = 0; i < Block8x8F.Size; i++)
             {
                 float coeff = table[i];
@@ -152,7 +127,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
 
                 sumPercent += comparePercent;
-                sumPercentSqr += comparePercent * comparePercent;
             }
 
             // Perform some statistical analysis of the quality factor
@@ -160,7 +134,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // table being a scaled version of the "standard" tables.
             // If the variance is high, it is unlikely to be the case.
             sumPercent /= 64.0;
-            sumPercentSqr /= 64.0;
 
             // Generate the equivalent IJQ "quality" factor
             if (sumPercent <= 100.0)
@@ -172,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 quality = (int)Math.Round(5000.0 / sumPercent);
             }
 
-            return sumPercentSqr - (sumPercent * sumPercent);
+            return quality;
         }
 
         /// <summary>
@@ -182,11 +155,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="quality">Output jpeg quality.</param>
         /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool EstimateLuminanceQuality(ref Block8x8F luminanceTable, out int quality)
-        {
-            double variance = EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance, out quality);
-            return variance <= StandardLuminanceTableVarianceThreshold;
-        }
+        public static int EstimateLuminanceQuality(ref Block8x8F luminanceTable)
+            => EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance);
 
         /// <summary>
         /// Estimates jpeg quality based on quantization table in zig-zag order.
@@ -195,11 +165,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="quality">Output jpeg quality.</param>
         /// <returns><see cref="bool"/> indicating if given table is ITU-complient.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool EstimateChrominanceQuality(ref Block8x8F chrominanceTable, out int quality)
-        {
-            double variance = EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance, out quality);
-            return variance <= StandardChrominanceTableVarianceThreshold;
-        }
+        public static int EstimateChrominanceQuality(ref Block8x8F chrominanceTable)
+            => EstimateQuality(ref chrominanceTable, UnscaledQuant_Luminance);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int QualityToScale(int quality)

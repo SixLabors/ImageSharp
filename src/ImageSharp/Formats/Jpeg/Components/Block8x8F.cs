@@ -845,7 +845,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 var targetVector = Vector256.Create(value);
                 ref Vector256<float> blockStride = ref this.V0;
 
-                for (nint i = 0; i < RowCount; i++)
+                for (int i = 0; i < RowCount; i++)
                 {
                     Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
                     if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
@@ -860,7 +860,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
 
-                for (nint i = 0; i < Size; i++)
+                for (int i = 0; i < Size; i++)
                 {
                     if ((int)Unsafe.Add(ref scalars, i) != value)
                     {

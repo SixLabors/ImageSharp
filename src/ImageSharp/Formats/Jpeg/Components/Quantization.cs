@@ -165,12 +165,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int QualityToScale(int quality)
-            => quality < 50 ? 5000 / quality : 200 - (quality * 2);
+        {
+            DebugGuard.MustBeBetweenOrEqualTo(quality, MinQualityFactor, MaxQualityFactor, nameof(quality));
+
+            return quality < 50 ? (5000 / quality) : (200 - (quality * 2));
+        }
 
         private static Block8x8F ScaleQuantizationTable(int scale, ReadOnlySpan<byte> unscaledTable)
         {
-            DebugGuard.MustBeBetweenOrEqualTo(scale, MinQualityFactor, MaxQualityFactor, nameof(scale));
-
             Block8x8F table = default;
             for (int j = 0; j < Block8x8F.Size; j++)
             {

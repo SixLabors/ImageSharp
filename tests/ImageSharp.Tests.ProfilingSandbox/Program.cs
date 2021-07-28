@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Threading;
+using SixLabors.ImageSharp.Memory.Internals;
 using SixLabors.ImageSharp.Tests.Formats.Jpg;
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
@@ -32,6 +34,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         public static void Main(string[] args)
         {
             LoadResizeSaveParallelMemoryStress.Run(args);
+            TrimPoolTest();
             // RunJpegEncoderProfilingTests();
             // RunJpegColorProfilingTests();
             // RunDecodeJpegProfilingTests();
@@ -39,6 +42,50 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             // RunResizeProfilingTest();
 
             // Console.ReadLine();
+        }
+
+        private static void TrimPoolTest()
+        {
+            var pool = new UniformByteArrayPool(1024 * 1024, 128);
+            Console.WriteLine($"Before use: {CurrentM()} MB");
+            UsePool(pool);
+            Console.WriteLine($"After use: {CurrentM()} MB");
+
+            GC.Collect();
+            WaitOneTrim(); // 48
+            Console.WriteLine($"Trim 1: {CurrentM()} MB");
+            WaitOneTrim(); // 36
+            Console.WriteLine($"Trim 2:{CurrentM()} MB");
+            WaitOneTrim(); // 27
+            Console.WriteLine($"Trim 3:{CurrentM()} MB");
+            WaitOneTrim(); // 20
+            Console.WriteLine($"Trim 4:{CurrentM()} MB");
+
+            static void WaitOneTrim()
+            {
+                GC.WaitForPendingFinalizers();
+                Thread.Sleep(20); // Wait for the trimming work item to complete on ThreadPool
+                GC.Collect();
+            }
+
+            static void UsePool(UniformByteArrayPool pool)
+            {
+                // 16 16 16 16 | 16 16 16 16
+                byte[][] a1 = pool.Rent(16);
+                byte[][] a2 = pool.Rent(32);
+                pool.Return(a1);
+                byte[][] a3 = pool.Rent(16);
+                pool.Return(a2);
+                byte[][] a4 = pool.Rent(32);
+                byte[][] a5 = pool.Rent(16);
+                pool.Return(a4);
+                pool.Return(a3);
+                pool.Return(a5);
+
+                // Pool should retain 64MB at this point
+            }
+
+            static double CurrentM() => GC.GetTotalMemory(false) / 1048576.0;
         }
 
         private static void RunJpegEncoderProfilingTests()

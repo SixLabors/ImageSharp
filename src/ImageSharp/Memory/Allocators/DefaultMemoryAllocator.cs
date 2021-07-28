@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
         {
-            // TODO: ReleaseRetainedResources() is not thread-safe now, we should consider making it thread-safe.
+            // TODO: ReleaseRetainedResources() is not thread-safe, subsequent Return calls will throw
             this.pool.Release();
             this.pool = new UniformByteArrayPool(this.maxContiguousPoolBufferInBytes, this.poolCapacity);
         }

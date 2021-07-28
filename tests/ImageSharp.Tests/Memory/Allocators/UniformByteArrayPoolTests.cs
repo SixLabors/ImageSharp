@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
@@ -241,6 +243,56 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                     pool.Return(new[] { array });
                 }
             });
+        }
+
+        private readonly ITestOutputHelper output;
+
+        public UniformByteArrayPoolTests(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+
+        [Fact]
+        public void GC_Collect_TrimsPoolAtExpectedRate()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            void RunTest()
+            {
+                var pool = new UniformByteArrayPool(1024 * 1024, 128);
+                UsePool(pool);
+
+                GC.Collect();
+                WaitOneTrim(); // 48
+                WaitOneTrim(); // 36
+                WaitOneTrim(); // 27
+                WaitOneTrim(); // 20
+
+                Assert.True(GC.GetTotalMemory(false) < 21L * 1024 * 1024);
+
+                static void WaitOneTrim()
+                {
+                    GC.WaitForPendingFinalizers();
+                    Thread.Sleep(30); // Wait for the trimming work item to complete on ThreadPool
+                    GC.Collect();
+                }
+
+                static void UsePool(UniformByteArrayPool pool)
+                {
+                    byte[][] a1 = pool.Rent(16);
+                    byte[][] a2 = pool.Rent(32);
+                    pool.Return(a1);
+                    byte[][] a3 = pool.Rent(16);
+                    pool.Return(a2);
+                    byte[][] a4 = pool.Rent(32);
+                    byte[][] a5 = pool.Rent(16);
+                    pool.Return(a4);
+                    pool.Return(a3);
+                    pool.Return(a5);
+
+                    // Pool should retain 64MB at this point
+                }
+            }
         }
     }
 }

@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
@@ -16,6 +17,10 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             this.ArrayLength = arrayLength;
             this.arrays = new byte[capacity][];
+
+#if NETCOREAPP3_1_OR_GREATER
+            Gen2GcCallback.Register(s => ((UniformByteArrayPool)s).RunGcCallback(), this);
+#endif
         }
 
         public int ArrayLength { get; }
@@ -173,7 +178,93 @@ namespace SixLabors.ImageSharp.Memory.Internals
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ThrowReturnedMoreArraysThanRented() => throw new InvalidMemoryOperationException("Returned more arrays then rented");
 
+        // TODO: Do not throw, it's unsafe!
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ThrowReleased() => throw new InvalidMemoryOperationException("UniformByteArrayPool has been released, can not rent anyomre.");
+
+#if NETCOREAPP3_1_OR_GREATER
+        private bool RunGcCallback()
+        {
+            if (this.arrays == null)
+            {
+                // The pool has been released
+                return false;
+            }
+
+            if (this.IsHighMemoryPressure())
+            {
+                return this.TrimAll();
+            }
+
+            // Avoid doing the normal trim work on the finalizer thread.
+            // It's OK to use UnsafeQueueUserWorkItem, because we don't need the ExecutionContext in TrimNormal().
+            ThreadPool.UnsafeQueueUserWorkItem(s => s.TrimNormal(), this, false);
+            return true;
+        }
+
+        private bool TrimAll()
+        {
+            lock (this.arrays)
+            {
+                // Check again after taking the lock:
+                byte[][] arrays = this.arrays;
+                if (arrays == null)
+                {
+                    return false;
+                }
+
+                for (int i = this.index; i < arrays.Length && arrays[i] != null; i++)
+                {
+                    arrays[i] = null;
+                }
+            }
+
+            return true;
+        }
+
+        private void TrimNormal()
+        {
+            // Trim 25% of the reserved resources:
+            const double TrimRate = 0.25f;
+
+            byte[][] arrays = this.arrays;
+            if (arrays == null)
+            {
+                return;
+            }
+
+            lock (arrays)
+            {
+                // Check again after taking the lock:
+                if (this.arrays == null)
+                {
+                    return;
+                }
+
+                // Count the arrays in the pool:
+                int retainedCount = 0;
+                for (int i = this.index; i < arrays.Length && arrays[i] != null; i++)
+                {
+                    retainedCount++;
+                }
+
+                int trimCount = (int)Math.Ceiling(retainedCount * TrimRate);
+                int trimStart = this.index + retainedCount - 1;
+                int trimStop = this.index + retainedCount - trimCount;
+                for (int i = trimStart; i >= trimStop; i--)
+                {
+                    arrays[i] = null;
+                }
+            }
+        }
+
+        private bool IsHighMemoryPressure()
+        {
+            // Be more strict about high threshold than ArrayPool<T>.Shared:
+            const double HighPressureThreshold = 0.8;
+            GCMemoryInfo memoryInfo = GC.GetGCMemoryInfo();
+            return memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * HighPressureThreshold;
+        }
+#endif
     }
 }

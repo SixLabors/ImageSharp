@@ -4,28 +4,67 @@
 using System;
 using System.Diagnostics;
 using System.Text;
+using CommandLine;
 using SixLabors.ImageSharp.Benchmarks.LoadResizeSave;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 {
     // See ImageSharp.Benchmarks/LoadResizeSave/README.md
     internal class LoadResizeSaveParallelMemoryStress
     {
-        private readonly LoadResizeSaveStressRunner benchmarks;
-
         private LoadResizeSaveParallelMemoryStress()
         {
-            this.benchmarks = new LoadResizeSaveStressRunner()
+            this.Benchmarks = new LoadResizeSaveStressRunner()
             {
                 // MaxDegreeOfParallelism = 10,
                 // Filter = JpegKind.Baseline
             };
-            this.benchmarks.Init();
+            this.Benchmarks.Init();
         }
 
-        private double TotalProcessedMegapixels => this.benchmarks.TotalProcessedMegapixels;
+        public LoadResizeSaveStressRunner Benchmarks { get; }
 
-        public static void Run()
+        public static void Run(string[] args)
+        {
+            var options = CommandLineOptions.Parse(args);
+
+            var lrs = new LoadResizeSaveParallelMemoryStress();
+            if (options != null)
+            {
+                lrs.Benchmarks.MaxDegreeOfParallelism = options.MaxDegreeOfParallelism;
+            }
+
+            Console.WriteLine($"\nEnvironment.ProcessorCount={Environment.ProcessorCount}");
+            Stopwatch timer;
+
+            if (options == null || !options.ImageSharp)
+            {
+                RunBenchmarkSwitcher(lrs, out timer);
+            }
+            else
+            {
+                Console.WriteLine("Running ImageSharp with options:");
+                Console.WriteLine(options.ToString());
+                Configuration.Default.MemoryAllocator = options.CreateMemoryAllocator();
+                timer = Stopwatch.StartNew();
+                try
+                {
+                    lrs.ImageSharpBenchmarkParallel();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+
+                timer.Stop();
+            }
+
+            var stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
+            Console.WriteLine(stats.GetMarkdown());
+        }
+
+        private static void RunBenchmarkSwitcher(LoadResizeSaveParallelMemoryStress lrs, out Stopwatch timer)
         {
             Console.WriteLine(@"Choose a library for image resizing stress test:
 
@@ -41,48 +80,34 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             if (key < ConsoleKey.D1 || key > ConsoleKey.D6)
             {
                 Console.WriteLine("Unrecognized command.");
-                return;
+                Environment.Exit(-1);
             }
 
-            try
+            timer = Stopwatch.StartNew();
+
+            switch (key)
             {
-                var lrs = new LoadResizeSaveParallelMemoryStress();
-
-                Console.WriteLine($"\nEnvironment.ProcessorCount={Environment.ProcessorCount}");
-                Console.WriteLine($"Running with MaxDegreeOfParallelism={lrs.benchmarks.MaxDegreeOfParallelism} ...");
-                var timer = Stopwatch.StartNew();
-
-                switch (key)
-                {
-                    case ConsoleKey.D1:
-                        lrs.SystemDrawingBenchmarkParallel();
-                        break;
-                    case ConsoleKey.D2:
-                        lrs.ImageSharpBenchmarkParallel();
-                        break;
-                    case ConsoleKey.D3:
-                        lrs.MagicScalerBenchmarkParallel();
-                        break;
-                    case ConsoleKey.D4:
-                        lrs.SkiaBitmapBenchmarkParallel();
-                        break;
-                    case ConsoleKey.D5:
-                        lrs.NetVipsBenchmarkParallel();
-                        break;
-                    case ConsoleKey.D6:
-                        lrs.MagickBenchmarkParallel();
-                        break;
-                }
-
-                timer.Stop();
-                var stats = new Stats(timer, lrs.TotalProcessedMegapixels);
-                Console.WriteLine("Done. TotalProcessedMegapixels: " + lrs.TotalProcessedMegapixels);
-                Console.WriteLine(stats.GetMarkdown());
+                case ConsoleKey.D1:
+                    lrs.SystemDrawingBenchmarkParallel();
+                    break;
+                case ConsoleKey.D2:
+                    lrs.ImageSharpBenchmarkParallel();
+                    break;
+                case ConsoleKey.D3:
+                    lrs.MagicScalerBenchmarkParallel();
+                    break;
+                case ConsoleKey.D4:
+                    lrs.SkiaBitmapBenchmarkParallel();
+                    break;
+                case ConsoleKey.D5:
+                    lrs.NetVipsBenchmarkParallel();
+                    break;
+                case ConsoleKey.D6:
+                    lrs.MagickBenchmarkParallel();
+                    break;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+
+            timer.Stop();
         }
 
         private struct Stats
@@ -125,18 +150,62 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
         }
 
-        private void ForEachImage(Action<string> action) => this.benchmarks.ForEachImageParallel(action);
+        private class CommandLineOptions
+        {
+            [Option('i', "imagesharp", Required = false, Default = false)]
+            public bool ImageSharp { get; set; }
 
-        private void SystemDrawingBenchmarkParallel() => this.ForEachImage(this.benchmarks.SystemDrawingResize);
+            [Option('a', "arraypool", Required = false, Default = false)]
+            public bool UseArrayPoolMemoryAllocator { get; set; }
 
-        private void ImageSharpBenchmarkParallel() => this.ForEachImage(this.benchmarks.ImageSharpResize);
+            [Option('m', "maxmanaged", Required = false, Default = 2)]
+            public int MaxContiguousPoolBufferMegaBytes { get; set; } = 2;
 
-        private void MagickBenchmarkParallel() => this.ForEachImage(this.benchmarks.MagickResize);
+            [Option('s', "poolsize", Required = false, Default = 2048)]
+            public int MaxPoolSizeMegaBytes { get; set; } = 2048;
 
-        private void MagicScalerBenchmarkParallel() => this.ForEachImage(this.benchmarks.MagicScalerResize);
+            [Option('u', "maxunmg", Required = false, Default = 32)]
+            public int MaxCapacityOfUnmanagedBuffersMegaBytes { get; set; } = 32;
 
-        private void SkiaBitmapBenchmarkParallel() => this.ForEachImage(this.benchmarks.SkiaBitmapResize);
+            [Option('p', "parallelism", Required = false, Default = -1)]
+            public int MaxDegreeOfParallelism { get; set; } = -1;
 
-        private void NetVipsBenchmarkParallel() => this.ForEachImage(this.benchmarks.NetVipsResize);
+            public static CommandLineOptions Parse(string[] args)
+            {
+                CommandLineOptions result = null;
+                Parser.Default.ParseArguments<CommandLineOptions>(args).WithParsed(o =>
+                {
+                    result = o;
+                });
+                return result;
+            }
+
+            public override string ToString() =>
+                $"p={this.MaxDegreeOfParallelism}, i={this.ImageSharp}, a={this.UseArrayPoolMemoryAllocator}, c={this.MaxContiguousPoolBufferMegaBytes}, p={this.MaxPoolSizeMegaBytes}, u={this.MaxCapacityOfUnmanagedBuffersMegaBytes}";
+
+            public MemoryAllocator CreateMemoryAllocator() =>
+                this.UseArrayPoolMemoryAllocator ?
+                    ArrayPoolMemoryAllocator.CreateDefault() :
+                    new DefaultMemoryAllocator(
+                        (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                        B(this.MaxPoolSizeMegaBytes),
+                        (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes));
+
+            private static long B(double megaBytes) => (long)(megaBytes * 1024 * 1024);
+        }
+
+        private void ForEachImage(Action<string> action) => this.Benchmarks.ForEachImageParallel(action);
+
+        private void SystemDrawingBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SystemDrawingResize);
+
+        private void ImageSharpBenchmarkParallel() => this.ForEachImage(this.Benchmarks.ImageSharpResize);
+
+        private void MagickBenchmarkParallel() => this.ForEachImage(this.Benchmarks.MagickResize);
+
+        private void MagicScalerBenchmarkParallel() => this.ForEachImage(this.Benchmarks.MagicScalerResize);
+
+        private void SkiaBitmapBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SkiaBitmapResize);
+
+        private void NetVipsBenchmarkParallel() => this.ForEachImage(this.Benchmarks.NetVipsResize);
     }
 }

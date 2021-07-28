@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public DefaultMemoryAllocator(
             int maxContiguousPoolBufferInBytes,
-            int maxPoolSizeInBytes,
+            long maxPoolSizeInBytes,
             int maxContiguousUnmanagedBufferInBytes)
             : this(
                 OneMegabyte,
@@ -36,12 +36,12 @@ namespace SixLabors.ImageSharp.Memory
         internal DefaultMemoryAllocator(
             int sharedArrayPoolThresholdInBytes,
             int maxContiguousPoolBufferInBytes,
-            int maxPoolSizeInBytes,
+            long maxPoolSizeInBytes,
             int maxCapacityOfUnmanagedBuffers)
         {
             this.sharedArrayPoolThresholdInBytes = sharedArrayPoolThresholdInBytes;
             this.maxContiguousPoolBufferInBytes = maxContiguousPoolBufferInBytes;
-            this.poolCapacity = maxPoolSizeInBytes / maxContiguousPoolBufferInBytes;
+            this.poolCapacity = (int)(maxPoolSizeInBytes / maxContiguousPoolBufferInBytes);
             this.pool = new UniformByteArrayPool(maxContiguousPoolBufferInBytes, this.poolCapacity);
             this.unmnagedAllocator = new UnmanagedMemoryAllocator(maxCapacityOfUnmanagedBuffers);
         }

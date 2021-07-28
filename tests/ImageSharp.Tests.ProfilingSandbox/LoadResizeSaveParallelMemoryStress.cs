@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p={this.MaxDegreeOfParallelism}, i={this.ImageSharp}, a={this.UseArrayPoolMemoryAllocator}, c={this.MaxContiguousPoolBufferMegaBytes}, p={this.MaxPoolSizeMegaBytes}, u={this.MaxCapacityOfUnmanagedBuffersMegaBytes}";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})";
 
             public MemoryAllocator CreateMemoryAllocator() =>
                 this.UseArrayPoolMemoryAllocator ?

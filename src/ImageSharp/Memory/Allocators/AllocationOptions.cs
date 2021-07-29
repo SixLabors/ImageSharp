@@ -27,9 +27,4 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         Contiguous = 2
     }
-
-    internal static class AllocationOptionsExtensions
-    {
-        public static bool Has(this AllocationOptions options, AllocationOptions flag) => (options & flag) == flag;
-    }
 }

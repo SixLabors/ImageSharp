@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 this.pinHandle = GCHandle.Alloc(this.GetPinnableObject(), GCHandleType.Pinned);
             }
 
-            void* ptr = Unsafe.Add<T>((void*) this.pinHandle.AddrOfPinnedObject(), elementIndex);
+            void* ptr = Unsafe.Add<T>((void*)this.pinHandle.AddrOfPinnedObject(), elementIndex);
             return new MemoryHandle(ptr, this.pinHandle);
         }
 

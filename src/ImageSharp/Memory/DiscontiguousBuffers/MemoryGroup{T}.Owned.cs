@@ -39,6 +39,10 @@ namespace SixLabors.ImageSharp.Memory
 
             ~Owned() => this.Dispose(false);
 
+            public bool Swappable { get; }
+
+            private bool IsDisposed => this.memoryOwners == null;
+
             private static IMemoryOwner<T>[] CreateBuffers(UniformByteArrayPool pool, byte[][] pooledArrays, int bufferLength, int sizeOfLastBuffer)
             {
                 var result = new IMemoryOwner<T>[pooledArrays.Length];
@@ -50,10 +54,6 @@ namespace SixLabors.ImageSharp.Memory
                 result[result.Length - 1] = new UniformByteArrayPool.Buffer<T>(pooledArrays[pooledArrays.Length - 1], sizeOfLastBuffer, pool);
                 return result;
             }
-
-            public bool Swappable { get; }
-
-            private bool IsDisposed => this.memoryOwners == null;
 
             public override int Count
             {

@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Memory
         /// This is the default. Should be good for most use cases.
         /// </summary>
         /// <returns>The memory manager.</returns>
-        public static ArrayPoolMemoryAllocator CreateDefault()
+        public static new ArrayPoolMemoryAllocator CreateDefault()
         {
             return new ArrayPoolMemoryAllocator(
                 DefaultMaxPooledBufferSizeInBytes,

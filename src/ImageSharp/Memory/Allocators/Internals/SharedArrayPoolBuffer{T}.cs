@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -9,30 +12,31 @@ namespace SixLabors.ImageSharp.Memory.Internals
         where T : struct
     {
         private readonly int lengthInBytes;
-        protected byte[] array;
 
         public SharedArrayPoolBuffer(int lengthInElements)
         {
             this.lengthInBytes = lengthInElements * Unsafe.SizeOf<T>();
-            this.array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
+            this.Array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
         }
 
         ~SharedArrayPoolBuffer() => this.Dispose(false);
 
+        protected byte[] Array { get; set; }
+
         protected override void Dispose(bool disposing)
         {
-            if (this.array == null)
+            if (this.Array == null)
             {
                 return;
             }
 
-            ArrayPool<byte>.Shared.Return(this.array);
-            this.array = null;
+            ArrayPool<byte>.Shared.Return(this.Array);
+            this.Array = null;
         }
 
-        public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.array.AsSpan(0, this.lengthInBytes));
+        public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Array.AsSpan(0, this.lengthInBytes));
 
-        protected override object GetPinnableObject() => this.array;
+        protected override object GetPinnableObject() => this.Array;
     }
 
     internal class SharedArrayPoolByteBuffer : SharedArrayPoolBuffer<byte>, IManagedByteBuffer
@@ -42,6 +46,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
         }
 
-        public byte[] Array => this.array;
+        public byte[] Array => base.Array;
     }
 }

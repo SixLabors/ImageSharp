@@ -24,14 +24,12 @@ namespace SixLabors.ImageSharp.Memory
         public DefaultMemoryAllocator(
             int maxContiguousPoolBufferInBytes,
             long maxPoolSizeInBytes,
-            int maxContiguousUnmanagedBufferInBytes,
-            float trimRate = UniformByteArrayPool.DefaultTrimRate)
+            int maxContiguousUnmanagedBufferInBytes)
             : this(
                 OneMegabyte,
                 maxContiguousPoolBufferInBytes,
                 maxPoolSizeInBytes,
-                maxContiguousUnmanagedBufferInBytes,
-                trimRate)
+                maxContiguousUnmanagedBufferInBytes)
         {
         }
 

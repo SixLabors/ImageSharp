@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             this.trimRate = trimRate;
 
 #if NETCOREAPP3_1_OR_GREATER
-            Gen2GcCallback.Register(s => ((UniformByteArrayPool)s).OnGen2GC(), this);
+            Gen2GcCallback.Register(s => ((UniformByteArrayPool)s).Trim(), this);
 #endif
         }
 
@@ -187,55 +187,18 @@ namespace SixLabors.ImageSharp.Memory.Internals
         private static void ThrowReleased() => throw new InvalidMemoryOperationException("UniformByteArrayPool has been released, can not rent anyomre.");
 
 #if NETCOREAPP3_1_OR_GREATER
-        private bool OnGen2GC()
+        private bool Trim()
         {
-            if (this.arrays == null)
+            byte[][] arraysLocal = this.arrays;
+            if (arraysLocal == null)
             {
                 // The pool has been released
                 return false;
             }
 
-            if (this.IsHighMemoryPressure())
-            {
-                return this.TrimAll();
-            }
+            bool isHighPressure = this.IsHighMemoryPressure();
 
-            // Avoid doing the normal trim work on the finalizer thread.
-            // It's OK to use UnsafeQueueUserWorkItem, because we don't need the ExecutionContext in TrimNormal().
-            // ThreadPool.UnsafeQueueUserWorkItem(s => s.TrimNormal(), this, false);
-            // return true;
-            return this.TrimNormal();
-        }
-
-        private bool TrimAll()
-        {
-            lock (this.arrays)
-            {
-                // Check again after taking the lock:
-                byte[][] arrays = this.arrays;
-                if (arrays == null)
-                {
-                    return false;
-                }
-
-                for (int i = this.index; i < arrays.Length && arrays[i] != null; i++)
-                {
-                    arrays[i] = null;
-                }
-            }
-
-            return true;
-        }
-
-        private bool TrimNormal()
-        {
-            byte[][] arrays = this.arrays;
-            if (arrays == null)
-            {
-                return false;
-            }
-
-            lock (arrays)
+            lock (arraysLocal)
             {
                 // Check again after taking the lock:
                 if (this.arrays == null)
@@ -243,19 +206,31 @@ namespace SixLabors.ImageSharp.Memory.Internals
                     return false;
                 }
 
-                // Count the arrays in the pool:
-                int retainedCount = 0;
-                for (int i = this.index; i < arrays.Length && arrays[i] != null; i++)
+                if (isHighPressure)
                 {
-                    retainedCount++;
+                    // Trim all:
+                    for (int i = this.index; i < arraysLocal.Length && arraysLocal[i] != null; i++)
+                    {
+                        arraysLocal[i] = null;
+                    }
                 }
-
-                int trimCount = (int)Math.Ceiling(retainedCount * this.trimRate);
-                int trimStart = this.index + retainedCount - 1;
-                int trimStop = this.index + retainedCount - trimCount;
-                for (int i = trimStart; i >= trimStop; i--)
+                else
                 {
-                    arrays[i] = null;
+                    // Count the arrays in the pool:
+                    int retainedCount = 0;
+                    for (int i = this.index; i < arraysLocal.Length && arraysLocal[i] != null; i++)
+                    {
+                        retainedCount++;
+                    }
+
+                    // Trim 'trimRate' of 'retainedCount':
+                    int trimCount = (int)Math.Ceiling(retainedCount * this.trimRate);
+                    int trimStart = this.index + retainedCount - 1;
+                    int trimStop = this.index + retainedCount - trimCount;
+                    for (int i = trimStart; i >= trimStop; i--)
+                    {
+                        arraysLocal[i] = null;
+                    }
                 }
             }
 

@@ -38,14 +38,4 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         protected override object GetPinnableObject() => this.Array;
     }
-
-    internal class SharedArrayPoolByteBuffer : SharedArrayPoolBuffer<byte>, IManagedByteBuffer
-    {
-        public SharedArrayPoolByteBuffer(int lengthInElements)
-            : base(lengthInElements)
-        {
-        }
-
-        public byte[] Array => base.Array;
-    }
 }

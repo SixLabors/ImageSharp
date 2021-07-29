@@ -144,27 +144,7 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
 
-        /// <inheritdoc />
-        public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-
-            ArrayPool<byte> pool = this.GetArrayPool(length);
-            byte[] byteArray = pool.Rent(length);
-
-            var buffer = new ManagedByteBuffer(byteArray, length, pool);
-            if (options.Has(AllocationOptions.Clean))
-            {
-                buffer.GetSpan().Clear();
-            }
-
-            return buffer;
-        }
-
-        private static int GetLargeBufferThresholdInBytes(int maxPoolSizeInBytes)
-        {
-            return maxPoolSizeInBytes / 4;
-        }
+        private static int GetLargeBufferThresholdInBytes(int maxPoolSizeInBytes) => maxPoolSizeInBytes / 4;
 
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ThrowInvalidAllocationException<T>(int length, int max) =>

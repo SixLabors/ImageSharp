@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Memory.Internals;
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Contains <see cref="Buffer{T}"/> and <see cref="ManagedByteBuffer"/>.
+    /// Contains <see cref="Buffer{T}"/>.
     /// </summary>
     public partial class ArrayPoolMemoryAllocator
     {
@@ -86,20 +86,6 @@ namespace SixLabors.ImageSharp.Memory
             {
                 throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
             }
-        }
-
-        /// <summary>
-        /// The <see cref="IManagedByteBuffer"/> implementation of <see cref="ArrayPoolMemoryAllocator"/>.
-        /// </summary>
-        private sealed class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
-        {
-            public ManagedByteBuffer(byte[] data, int length, ArrayPool<byte> sourcePool)
-                : base(data, length, sourcePool)
-            {
-            }
-
-            /// <inheritdoc />
-            public byte[] Array => this.Data;
         }
     }
 }

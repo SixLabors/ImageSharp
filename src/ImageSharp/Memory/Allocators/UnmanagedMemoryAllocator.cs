@@ -28,10 +28,5 @@ namespace SixLabors.ImageSharp.Memory
 
             return buffer;
         }
-
-        public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            throw new NotSupportedException();
-        }
     }
 }

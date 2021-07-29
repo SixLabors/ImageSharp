@@ -90,20 +90,6 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <inheritdoc />
-        public override IManagedByteBuffer AllocateManagedByteBuffer(
-            int length,
-            AllocationOptions options = AllocationOptions.None)
-        {
-            var buffer = new SharedArrayPoolByteBuffer(length);
-            if (options.Has(AllocationOptions.Clean))
-            {
-                buffer.GetSpan().Clear();
-            }
-
-            return buffer;
-        }
-
-        /// <inheritdoc />
         public override void ReleaseRetainedResources() =>
             this.pool = new UniformByteArrayPool(this.maxContiguousPoolBufferInBytes, this.poolCapacity, this.trimRate);
 

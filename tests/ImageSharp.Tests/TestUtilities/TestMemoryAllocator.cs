@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        private class ManagedByteBuffer : BasicArrayBuffer<byte>, IManagedByteBuffer
+        private class ManagedByteBuffer : BasicArrayBuffer<byte>, IMemoryOwner<byte>
         {
             public ManagedByteBuffer(byte[] array, TestMemoryAllocator allocator)
                 : base(array, allocator)

@@ -43,18 +43,6 @@ namespace SixLabors.ImageSharp.Memory
 
             private bool IsDisposed => this.memoryOwners == null;
 
-            private static IMemoryOwner<T>[] CreateBuffers(UniformByteArrayPool pool, byte[][] pooledArrays, int bufferLength, int sizeOfLastBuffer)
-            {
-                var result = new IMemoryOwner<T>[pooledArrays.Length];
-                for (int i = 0; i < pooledArrays.Length - 1; i++)
-                {
-                    result[i] = new UniformByteArrayPool.Buffer<T>(pooledArrays[i], bufferLength, pool);
-                }
-
-                result[result.Length - 1] = new UniformByteArrayPool.Buffer<T>(pooledArrays[pooledArrays.Length - 1], sizeOfLastBuffer, pool);
-                return result;
-            }
-
             public override int Count
             {
                 [MethodImpl(InliningOptions.ShortMethod)]
@@ -72,6 +60,18 @@ namespace SixLabors.ImageSharp.Memory
                     this.EnsureNotDisposed();
                     return this.memoryOwners[index].Memory;
                 }
+            }
+
+            private static IMemoryOwner<T>[] CreateBuffers(UniformByteArrayPool pool, byte[][] pooledArrays, int bufferLength, int sizeOfLastBuffer)
+            {
+                var result = new IMemoryOwner<T>[pooledArrays.Length];
+                for (int i = 0; i < pooledArrays.Length - 1; i++)
+                {
+                    result[i] = new UniformByteArrayPool.Buffer<T>(pooledArrays[i], bufferLength, pool);
+                }
+
+                result[result.Length - 1] = new UniformByteArrayPool.Buffer<T>(pooledArrays[pooledArrays.Length - 1], sizeOfLastBuffer, pool);
+                return result;
             }
 
             /// <inheritdoc/>

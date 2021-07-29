@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers;
 using Xunit;
@@ -119,6 +120,46 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             Assert.Equal(length, g.BufferLength);
             Assert.Equal(length, g.TotalLength);
             Assert.Equal(1, g.Count);
+        }
+
+        [Fact]
+        public void MemoryAllocator_CreateDefault_WithoutOptions_AllocatesDiscontiguousMemory()
+        {
+            RunTest();
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                var allocator = MemoryAllocator.CreateDefault();
+                long sixteenMegabytes = 16 * (1 << 20);
+
+                // Should allocate 4 times 4MB discontiguos blocks:
+                MemoryGroup<byte> g = allocator.AllocateGroup<byte>(sixteenMegabytes, 1024);
+                Assert.Equal(4, g.Count);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MemoryAllocator_CreateDefault_WithOptions_CanForceContiguousAllocation(bool poolAllocation)
+        {
+            RunTest(poolAllocation.ToString());
+            RemoteExecutor.Invoke(RunTest, poolAllocation.ToString()).Dispose();
+
+            static void RunTest(string poolAllocationStr)
+            {
+                int fortyEightMegabytes = 48 * (1 << 20);
+                var allocator = MemoryAllocator.CreateDefault(new MemoryAllocatorOptions()
+                {
+                    MaxPoolSizeMegabytes = bool.Parse(poolAllocationStr) ? 64 : 0,
+                    MinimumContiguousBlockBytes = fortyEightMegabytes
+                });
+
+                MemoryGroup<byte> g = allocator.AllocateGroup<byte>(fortyEightMegabytes, 1024);
+                Assert.Equal(1, g.Count);
+                Assert.Equal(fortyEightMegabytes, g.TotalLength);
+            }
         }
     }
 }

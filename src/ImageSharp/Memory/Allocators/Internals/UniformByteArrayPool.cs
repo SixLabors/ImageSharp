@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             this.arrays = new byte[capacity][];
             this.trimRate = trimRate;
 
-#if SUPPORTS_BITOPERATIONS
+#if NETCORE31COMPATIBLE
             Gen2GcCallback.Register(s => ((UniformByteArrayPool)s).Trim(), this);
 #endif
         }
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         private static void ThrowReturnedMoreArraysThanRented() =>
             throw new InvalidMemoryOperationException("Returned more arrays then rented");
 
-#if SUPPORTS_BITOPERATIONS
+#if NETCORE31COMPATIBLE
         private bool Trim()
         {
             byte[][] arraysLocal = this.arrays;

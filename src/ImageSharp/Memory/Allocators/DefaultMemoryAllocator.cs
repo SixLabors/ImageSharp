@@ -16,8 +16,11 @@ namespace SixLabors.ImageSharp.Memory
         private UniformByteArrayPool pool;
         private readonly UnmanagedMemoryAllocator unmnagedAllocator;
 
-        public DefaultMemoryAllocator()
-            : this(2 * OneMegabyte, 256 * OneMegabyte, 48 * OneMegabyte)
+        public DefaultMemoryAllocator(int? maxPoolSizeMegabytes, int? minimumContiguousBlockBytes)
+            : this(
+                minimumContiguousBlockBytes.HasValue ? minimumContiguousBlockBytes.Value : 4 * OneMegabyte,
+                maxPoolSizeMegabytes.HasValue ? (long)maxPoolSizeMegabytes.Value * OneMegabyte : GetDefaultMaxPoolSizeBytes(),
+                minimumContiguousBlockBytes.HasValue ? Math.Max(minimumContiguousBlockBytes.Value, 32 * OneMegabyte) : 32 * OneMegabyte)
         {
         }
 
@@ -134,6 +137,18 @@ namespace SixLabors.ImageSharp.Memory
                 null :
                 MemoryGroup<T>.Allocate(this.pool, totalLength, bufferAlignment, options);
             return poolGroup ?? MemoryGroup<T>.Allocate(this.unmnagedAllocator, totalLength, bufferAlignment, options);
+        }
+
+        private static long GetDefaultMaxPoolSizeBytes()
+        {
+#if NETCORE31COMPATIBLE
+            // On .NET Core 3.1+, determine the pool size by the total available memory:
+            GCMemoryInfo info = GC.GetGCMemoryInfo();
+            return info.TotalAvailableMemoryBytes / 8;
+#else
+            // Stick to a conservative value of 128 Megabytes on other platforms:
+            return 128 * OneMegabyte;
+#endif
         }
     }
 }

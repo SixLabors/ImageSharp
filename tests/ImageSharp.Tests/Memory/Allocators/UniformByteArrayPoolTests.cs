@@ -94,18 +94,19 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
-        [Conditional("DEBUG")] // This is a DEBUG-only exception
         public void Return_SingleArray_MoreThanRented_DebugBuild_ThrowsInvalidOperationException()
         {
+            #if DEBUG
             var pool = new UniformByteArrayPool(2, 5);
             byte[] array = new byte[2];
             Assert.Throws<InvalidMemoryOperationException>(() => pool.Return(array));
+            #endif
         }
 
         [Fact]
-        [Conditional("DEBUG")] // This is a DEBUG-only exception
         public void Return_MultiArray_MoreThanRented_DebugBuild_ThrowsInvalidOperationException()
         {
+            #if DEBUG
             var pool = new UniformByteArrayPool(2, 5);
             pool.Rent(); // Rent 1 array
 
@@ -113,6 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             byte[][] attempt2 = { new byte[2], new byte[2], new byte[2] };
             Assert.Throws<InvalidMemoryOperationException>(() => pool.Return(attempt1));
             Assert.Throws<InvalidMemoryOperationException>(() => pool.Return(attempt2));
+            #endif
         }
 
         [Theory]
@@ -256,7 +258,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 static void WaitOneTrim()
                 {
                     GC.WaitForPendingFinalizers();
-                    Thread.Sleep(30); // Wait for the trimming work item to complete on ThreadPool
                     GC.Collect();
                 }
 
@@ -274,6 +275,57 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                     pool.Return(a5);
 
                     // Pool should retain 64MB at this point
+                }
+            }
+        }
+
+        public static bool Is32BitProcess = !Environment.Is64BitProcess;
+
+        private static readonly List<byte[]> pressureArrays = new List<byte[]>();
+
+        [ConditionalFact(nameof(Is32BitProcess))]
+        public static void GC_Collect_OnHighLoad_TrimsEntirePool()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+            static void RunTest()
+            {
+                Assert.False(Environment.Is64BitProcess);
+                const int OneMb = 1024 * 1024;
+
+                GCMemoryInfo memInfo = GC.GetGCMemoryInfo();
+                int highLoadThreshold = (int)(memInfo.HighMemoryLoadThresholdBytes / OneMb);
+                highLoadThreshold = (int)(0.5 * highLoadThreshold);
+
+                var pool = new UniformByteArrayPool(OneMb, 16);
+                byte[][] arrays = pool.Rent(16);
+                pool.Return(arrays);
+
+                int[] hashCodes = arrays.Select(a => a.GetHashCode()).ToArray();
+
+                for (int i = 0; i < highLoadThreshold; i++)
+                {
+                    byte[] array = new byte[OneMb];
+                    TouchPage(array);
+                    pressureArrays.Add(array);
+                }
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers(); // The pool should be fully trimmed after this point
+
+                byte[] array1 = pool.Rent();
+                int hash1 = array1.GetHashCode();
+                Assert.DoesNotContain(hashCodes, h => h == hash1);
+
+                static void TouchPage(byte[] b)
+                {
+                    uint size = (uint)b.Length;
+                    const uint pageSize = 4096;
+                    uint numPages = size / pageSize;
+
+                    for (uint i = 0; i < numPages; i++)
+                    {
+                        b[i * pageSize] = (byte)(i % 256);
+                    }
                 }
             }
         }

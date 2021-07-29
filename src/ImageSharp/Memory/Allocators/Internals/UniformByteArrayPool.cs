@@ -11,19 +11,29 @@ namespace SixLabors.ImageSharp.Memory.Internals
 {
     internal partial class UniformByteArrayPool
     {
-        internal const float DefaultTrimRate = 0.25f;
+        // Be more strict about high pressure threshold than ArrayPool<T>.Shared.
+        // A 32 bit process can OOM way before reaching HighMemoryLoadThresholdBytes:
+        private const float HighPressureThresholdRate = 0.5f;
 
-        private byte[][] arrays;
+        // Trim half of the pool on each Gen 2 GC:
+        internal const float DefaultTrimRate = 0.5f;
+
+        private readonly byte[][] arrays;
         private int index;
+
+        // The trimRate is configurable for testability
         private readonly float trimRate;
 
-        public UniformByteArrayPool(int arrayLength, int capacity, float trimRate = DefaultTrimRate)
+        public UniformByteArrayPool(
+            int arrayLength,
+            int capacity,
+            float trimRate = DefaultTrimRate)
         {
             this.ArrayLength = arrayLength;
             this.arrays = new byte[capacity][];
             this.trimRate = trimRate;
 
-#if NETCOREAPP3_1_OR_GREATER
+#if SUPPORTS_BITOPERATIONS
             Gen2GcCallback.Register(s => ((UniformByteArrayPool)s).Trim(), this);
 #endif
         }
@@ -137,7 +147,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
             lock (arraysLocal)
             {
-                if (this.index - arraysLocal.Length + 1 <= 0)
+                if (this.index - arrays.Length + 1 <= 0)
                 {
                     ThrowReturnedMoreArraysThanRented();
                 }
@@ -159,7 +169,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         private static void ThrowReturnedMoreArraysThanRented() =>
             throw new InvalidMemoryOperationException("Returned more arrays then rented");
 
-#if NETCOREAPP3_1_OR_GREATER
+#if SUPPORTS_BITOPERATIONS
         private bool Trim()
         {
             byte[][] arraysLocal = this.arrays;
@@ -206,10 +216,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         private bool IsHighMemoryPressure()
         {
-            // Be more strict about high threshold than ArrayPool<T>.Shared:
-            const double HighPressureThreshold = 0.8;
             GCMemoryInfo memoryInfo = GC.GetGCMemoryInfo();
-            return memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * HighPressureThreshold;
+            return memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * HighPressureThresholdRate;
         }
 #endif
     }

@@ -3,7 +3,7 @@
 
 // Port of BCL internal utility:
 // https://github.com/dotnet/runtime/blob/57bfe474518ab5b7cfe6bf7424a79ce3af9d6657/src/libraries/System.Private.CoreLib/src/System/Gen2GcCallback.cs
-#if NETCOREAPP3_1_OR_GREATER
+#if SUPPORTS_BITOPERATIONS
 using System;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;

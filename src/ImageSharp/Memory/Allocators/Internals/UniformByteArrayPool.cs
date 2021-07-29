@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -34,11 +35,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public byte[] Rent(AllocationOptions allocationOptions = AllocationOptions.None)
         {
             byte[][] arraysLocal = this.arrays;
-
-            if (arraysLocal == null)
-            {
-                ThrowReleased();
-            }
 
             // Avoid taking the lock if we are over limit:
             if (this.index == arraysLocal.Length)
@@ -77,11 +73,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public byte[][] Rent(int arrayCount, AllocationOptions allocationOptions = AllocationOptions.None)
         {
             byte[][] arraysLocal = this.arrays;
-
-            if (arraysLocal == null)
-            {
-                ThrowReleased();
-            }
 
             // Avoid taking the lock if we are over limit:
             if (this.index + arrayCount >= arraysLocal.Length + 1)
@@ -127,21 +118,16 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             Guard.IsTrue(array.Length == this.ArrayLength, nameof(array), "Incorrect array length, array not rented from pool.");
 
-            byte[][] arraysLocal = this.arrays;
-            if (arraysLocal == null)
-            {
-                // The pool has been released, Return() is NOP
-                return;
-            }
-
-            lock (arraysLocal)
+            lock (this.arrays)
             {
                 if (this.index == 0)
                 {
                     ThrowReturnedMoreArraysThanRented();
                 }
-
-                arraysLocal[--this.index] = array;
+                else
+                {
+                    this.arrays[--this.index] = array;
+                }
             }
         }
 
@@ -149,53 +135,34 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             byte[][] arraysLocal = this.arrays;
 
-            if (arraysLocal == null)
-            {
-                // The pool has been released, Return() is NOP
-                return;
-            }
-
             lock (arraysLocal)
             {
-                if (this.index - arrays.Length + 1 <= 0)
+                if (this.index - arraysLocal.Length + 1 <= 0)
                 {
                     ThrowReturnedMoreArraysThanRented();
                 }
-
-                for (int i = arrays.Length - 1; i >= 0; i--)
+                else
                 {
-                    byte[] array = arrays[i];
-                    Guard.IsTrue(array.Length == this.ArrayLength, nameof(arrays), "Incorrect array length, array not rented from pool.");
-                    arraysLocal[--this.index] = arrays[i];
+                    for (int i = arrays.Length - 1; i >= 0; i--)
+                    {
+                        byte[] array = arrays[i];
+                        Guard.IsTrue(array.Length == this.ArrayLength, nameof(arrays), "Incorrect array length, array not rented from pool.");
+                        arraysLocal[--this.index] = arrays[i];
+                    }
                 }
             }
         }
 
-        public void Release()
-        {
-            lock (this.arrays)
-            {
-                this.arrays = null;
-            }
-        }
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private static void ThrowReturnedMoreArraysThanRented() => throw new InvalidMemoryOperationException("Returned more arrays then rented");
-
-        // TODO: Do not throw, it's unsafe!
-        [MethodImpl(InliningOptions.ColdPath)]
-        private static void ThrowReleased() => throw new InvalidMemoryOperationException("UniformByteArrayPool has been released, can not rent anyomre.");
+        // This indicates a bug in the library, however Return() might be called from a finalizer,
+        // therefore we should never throw here in production.
+        [Conditional("DEBUG")]
+        private static void ThrowReturnedMoreArraysThanRented() =>
+            throw new InvalidMemoryOperationException("Returned more arrays then rented");
 
 #if NETCOREAPP3_1_OR_GREATER
         private bool Trim()
         {
             byte[][] arraysLocal = this.arrays;
-            if (arraysLocal == null)
-            {
-                // The pool has been released
-                return false;
-            }
-
             bool isHighPressure = this.IsHighMemoryPressure();
 
             lock (arraysLocal)

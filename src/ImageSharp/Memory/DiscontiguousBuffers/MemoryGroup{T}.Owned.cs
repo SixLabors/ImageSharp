@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             private IMemoryOwner<T>[] memoryOwners;
 
-            private UniformByteArrayPool pool;
+            private WeakReference<UniformByteArrayPool> poolReference;
             private byte[][] pooledArrays;
 
             public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Memory
             public Owned(UniformByteArrayPool pool, byte[][] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer)
                 : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
             {
-                this.pool = pool;
+                this.poolReference = new WeakReference<UniformByteArrayPool>(pool);
                 this.pooledArrays = pooledArrays;
             }
 
@@ -97,14 +97,12 @@ namespace SixLabors.ImageSharp.Memory
 
                 this.View.Invalidate();
 
-                if (this.pool != null)
+                if (this.poolReference != null && this.poolReference.TryGetTarget(out UniformByteArrayPool pool))
                 {
                     // Dispose(false) could be called from a finalizer, so we can return the rented arrays,
                     // even if user code is leaking.
                     // We are fine to do this, since byte[][] and UniformByteArrayPool are not finalizable.
-                    // Note that UniformByteArrayPool.Return() can throw an exception, so calling it from a finalizer
-                    // is a strongly unsafe operation. Such an exception could only occur, if our own memory management code has a bug.
-                    this.pool.Return(this.pooledArrays);
+                    pool.Return(this.pooledArrays);
                     foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
                     {
                         ((UniformByteArrayPool.Buffer<T>)memoryOwner).MarkDisposed();
@@ -120,7 +118,7 @@ namespace SixLabors.ImageSharp.Memory
 
                 this.memoryOwners = null;
                 this.IsValid = false;
-                this.pool = null;
+                this.poolReference = null;
                 this.pooledArrays = null;
             }
 
@@ -147,19 +145,19 @@ namespace SixLabors.ImageSharp.Memory
                 IMemoryOwner<T>[] tempOwners = a.memoryOwners;
                 long tempTotalLength = a.TotalLength;
                 int tempBufferLength = a.BufferLength;
-                UniformByteArrayPool tempPool = a.pool;
+                WeakReference<UniformByteArrayPool> tempPoolReference = a.poolReference;
                 byte[][] tempPooledArrays = a.pooledArrays;
 
                 a.memoryOwners = b.memoryOwners;
                 a.TotalLength = b.TotalLength;
                 a.BufferLength = b.BufferLength;
-                a.pool = b.pool;
+                a.poolReference = b.poolReference;
                 a.pooledArrays = b.pooledArrays;
 
                 b.memoryOwners = tempOwners;
                 b.TotalLength = tempTotalLength;
                 b.BufferLength = tempBufferLength;
-                b.pool = tempPool;
+                b.poolReference = tempPoolReference;
                 b.pooledArrays = tempPooledArrays;
 
                 a.View.Invalidate();

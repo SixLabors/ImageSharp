@@ -22,14 +22,14 @@ namespace SixLabors.ImageSharp.Memory.Internals
             /// </summary>
             private readonly int length;
 
-            private UniformByteArrayPool sourcePool;
+            private WeakReference<UniformByteArrayPool> sourcePoolReference;
 
             public Buffer(byte[] data, int length, UniformByteArrayPool sourcePool)
             {
                 DebugGuard.NotNull(data, nameof(data));
                 this.data = data;
                 this.length = length;
-                this.sourcePool = sourcePool;
+                this.sourcePoolReference = new WeakReference<UniformByteArrayPool>(sourcePool);
             }
 
             /// <inheritdoc />
@@ -51,19 +51,23 @@ namespace SixLabors.ImageSharp.Memory.Internals
             /// <inheritdoc />
             protected override void Dispose(bool disposing)
             {
-                if (this.data is null || this.sourcePool is null)
+                if (this.data is null || this.sourcePoolReference is null)
                 {
                     return;
                 }
 
-                this.sourcePool.Return(this.data);
-                this.sourcePool = null;
+                if (this.sourcePoolReference.TryGetTarget(out UniformByteArrayPool pool))
+                {
+                    pool.Return(this.data);
+                }
+
+                this.sourcePoolReference = null;
                 this.data = null;
             }
 
             internal void MarkDisposed()
             {
-                this.sourcePool = null;
+                this.sourcePoolReference = null;
                 this.data = null;
             }
 

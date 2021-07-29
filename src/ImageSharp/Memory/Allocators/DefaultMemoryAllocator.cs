@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Memory
         private readonly int sharedArrayPoolThresholdInBytes;
         private readonly int maxContiguousPoolBufferInBytes;
         private readonly int poolCapacity;
+        private readonly float trimRate;
 
         private UniformByteArrayPool pool;
         private readonly UnmanagedMemoryAllocator unmnagedAllocator;
@@ -45,6 +46,7 @@ namespace SixLabors.ImageSharp.Memory
             this.sharedArrayPoolThresholdInBytes = sharedArrayPoolThresholdInBytes;
             this.maxContiguousPoolBufferInBytes = maxContiguousPoolBufferInBytes;
             this.poolCapacity = (int)(maxPoolSizeInBytes / maxContiguousPoolBufferInBytes);
+            this.trimRate = trimRate;
             this.pool = new UniformByteArrayPool(maxContiguousPoolBufferInBytes, this.poolCapacity, trimRate);
             this.unmnagedAllocator = new UnmanagedMemoryAllocator(maxCapacityOfUnmanagedBuffers);
         }
@@ -98,14 +100,13 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <inheritdoc />
-        public override void ReleaseRetainedResources()
-        {
-            // TODO: ReleaseRetainedResources() is not thread-safe, subsequent Return calls will throw
-            this.pool.Release();
-            this.pool = new UniformByteArrayPool(this.maxContiguousPoolBufferInBytes, this.poolCapacity);
-        }
+        public override void ReleaseRetainedResources() =>
+            this.pool = new UniformByteArrayPool(this.maxContiguousPoolBufferInBytes, this.poolCapacity, this.trimRate);
 
-        internal override MemoryGroup<T> AllocateGroup<T>(long totalLength, int bufferAlignment, AllocationOptions options = AllocationOptions.None)
+        internal override MemoryGroup<T> AllocateGroup<T>(
+            long totalLength,
+            int bufferAlignment,
+            AllocationOptions options = AllocationOptions.None)
         {
             long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
             if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)

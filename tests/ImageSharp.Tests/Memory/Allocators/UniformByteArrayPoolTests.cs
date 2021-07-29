@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,7 +94,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
-        public void Return_SingleArray_MoreThanRented_ThrowsInvalidOperationException()
+        [Conditional("DEBUG")] // This is a DEBUG-only exception
+        public void Return_SingleArray_MoreThanRented_DebugBuild_ThrowsInvalidOperationException()
         {
             var pool = new UniformByteArrayPool(2, 5);
             byte[] array = new byte[2];
@@ -101,7 +103,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
-        public void Return_MultiArray_MoreThanRented_ThrowsInvalidOperationException()
+        [Conditional("DEBUG")] // This is a DEBUG-only exception
+        public void Return_MultiArray_MoreThanRented_DebugBuild_ThrowsInvalidOperationException()
         {
             var pool = new UniformByteArrayPool(2, 5);
             pool.Rent(); // Rent 1 array
@@ -186,26 +189,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             var pool = new UniformByteArrayPool(128, capacity);
             Assert.NotNull(pool.Rent(initialRent));
             Assert.NotNull(pool.Rent(attempt));
-        }
-
-        [Fact]
-        public void Release_Rent_Throws()
-        {
-            var pool = new UniformByteArrayPool(10, 3);
-            pool.Release();
-            Assert.Throws<InvalidMemoryOperationException>(() => pool.Rent());
-            Assert.Throws<InvalidMemoryOperationException>(() => pool.Rent(2));
-        }
-
-        [Fact]
-        public void Release_Return_Allowed()
-        {
-            var pool = new UniformByteArrayPool(10, 3);
-            byte[] a = pool.Rent();
-            byte[][] b = pool.Rent(2);
-            pool.Release();
-            pool.Return(a);
-            pool.Return(b);
         }
 
         [Fact]

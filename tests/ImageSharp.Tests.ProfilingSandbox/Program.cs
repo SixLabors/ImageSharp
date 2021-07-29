@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         public static void Main(string[] args)
         {
             LoadResizeSaveParallelMemoryStress.Run(args);
-            TrimPoolTest();
+            // TrimPoolTest();
             // RunJpegEncoderProfilingTests();
             // RunJpegColorProfilingTests();
             // RunDecodeJpegProfilingTests();

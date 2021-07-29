@@ -10,16 +10,20 @@ namespace SixLabors.ImageSharp.Memory.Internals
 {
     internal partial class UniformByteArrayPool
     {
+        internal const float DefaultTrimRate = 0.25f;
+
         private byte[][] arrays;
         private int index;
+        private readonly float trimRate;
 
-        public UniformByteArrayPool(int arrayLength, int capacity)
+        public UniformByteArrayPool(int arrayLength, int capacity, float trimRate = DefaultTrimRate)
         {
             this.ArrayLength = arrayLength;
             this.arrays = new byte[capacity][];
+            this.trimRate = trimRate;
 
 #if NETCOREAPP3_1_OR_GREATER
-            Gen2GcCallback.Register(s => ((UniformByteArrayPool)s).RunGcCallback(), this);
+            Gen2GcCallback.Register(s => ((UniformByteArrayPool)s).OnGen2GC(), this);
 #endif
         }
 
@@ -183,7 +187,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         private static void ThrowReleased() => throw new InvalidMemoryOperationException("UniformByteArrayPool has been released, can not rent anyomre.");
 
 #if NETCOREAPP3_1_OR_GREATER
-        private bool RunGcCallback()
+        private bool OnGen2GC()
         {
             if (this.arrays == null)
             {
@@ -198,8 +202,9 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
             // Avoid doing the normal trim work on the finalizer thread.
             // It's OK to use UnsafeQueueUserWorkItem, because we don't need the ExecutionContext in TrimNormal().
-            ThreadPool.UnsafeQueueUserWorkItem(s => s.TrimNormal(), this, false);
-            return true;
+            // ThreadPool.UnsafeQueueUserWorkItem(s => s.TrimNormal(), this, false);
+            // return true;
+            return this.TrimNormal();
         }
 
         private bool TrimAll()
@@ -222,15 +227,12 @@ namespace SixLabors.ImageSharp.Memory.Internals
             return true;
         }
 
-        private void TrimNormal()
+        private bool TrimNormal()
         {
-            // Trim 25% of the reserved resources:
-            const double TrimRate = 0.25f;
-
             byte[][] arrays = this.arrays;
             if (arrays == null)
             {
-                return;
+                return false;
             }
 
             lock (arrays)
@@ -238,7 +240,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 // Check again after taking the lock:
                 if (this.arrays == null)
                 {
-                    return;
+                    return false;
                 }
 
                 // Count the arrays in the pool:
@@ -248,7 +250,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                     retainedCount++;
                 }
 
-                int trimCount = (int)Math.Ceiling(retainedCount * TrimRate);
+                int trimCount = (int)Math.Ceiling(retainedCount * this.trimRate);
                 int trimStart = this.index + retainedCount - 1;
                 int trimStop = this.index + retainedCount - trimCount;
                 for (int i = trimStart; i >= trimStop; i--)
@@ -256,6 +258,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
                     arrays[i] = null;
                 }
             }
+
+            return true;
         }
 
         private bool IsHighMemoryPressure()

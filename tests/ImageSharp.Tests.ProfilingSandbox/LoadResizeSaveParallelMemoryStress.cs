@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
 using CommandLine;
 using SixLabors.ImageSharp.Benchmarks.LoadResizeSave;
 using SixLabors.ImageSharp.Memory;
@@ -50,7 +51,10 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                 timer = Stopwatch.StartNew();
                 try
                 {
-                    lrs.ImageSharpBenchmarkParallel();
+                    for (int i = 0; i < options.RepeatCount; i++)
+                    {
+                        lrs.ImageSharpBenchmarkParallel();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -158,17 +162,23 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('a', "arraypool", Required = false, Default = false)]
             public bool UseArrayPoolMemoryAllocator { get; set; }
 
-            [Option('m', "maxmanaged", Required = false, Default = 2)]
-            public int MaxContiguousPoolBufferMegaBytes { get; set; } = 2;
+            [Option('m', "maxmanaged", Required = false, Default = 4)]
+            public int MaxContiguousPoolBufferMegaBytes { get; set; } = 4;
 
-            [Option('s', "poolsize", Required = false, Default = 2048)]
-            public int MaxPoolSizeMegaBytes { get; set; } = 2048;
+            [Option('s', "poolsize", Required = false, Default = 4096)]
+            public int MaxPoolSizeMegaBytes { get; set; } = 4096;
 
             [Option('u', "maxunmg", Required = false, Default = 32)]
             public int MaxCapacityOfUnmanagedBuffersMegaBytes { get; set; } = 32;
 
             [Option('p', "parallelism", Required = false, Default = -1)]
             public int MaxDegreeOfParallelism { get; set; } = -1;
+
+            [Option('t', "trimrate", Required = false, Default = 0.25)]
+            public double TrimRate { get; set; } = 0.25;
+
+            [Option('r', "repeatcount", Required = false, Default = 1)]
+            public int RepeatCount { get; set; } = 1;
 
             public static CommandLineOptions Parse(string[] args)
             {
@@ -181,7 +191,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_t({this.TrimRate})_r({this.RepeatCount})";
 
             public MemoryAllocator CreateMemoryAllocator() =>
                 this.UseArrayPoolMemoryAllocator ?
@@ -189,7 +199,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                     new DefaultMemoryAllocator(
                         (int)B(this.MaxContiguousPoolBufferMegaBytes),
                         B(this.MaxPoolSizeMegaBytes),
-                        (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes));
+                        (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
+                        (float)this.TrimRate);
 
             private static long B(double megaBytes) => (long)(megaBytes * 1024 * 1024);
         }

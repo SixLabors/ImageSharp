@@ -19,6 +19,9 @@ namespace SixLabors.ImageSharp.Memory
         {
             private IMemoryOwner<T>[] memoryOwners;
 
+            // When user calls DefaultMemoryAllocator.ReleaseRetainedResources(), we want
+            // UniformByteArrayPool to be released and GC-d ASAP. We need to prevent existing Image-s and buffers
+            // to keep it alive, so we use WeakReference instead of directly referencing the pool.
             private WeakReference<UniformByteArrayPool> poolReference;
             private byte[][] pooledArrays;
 

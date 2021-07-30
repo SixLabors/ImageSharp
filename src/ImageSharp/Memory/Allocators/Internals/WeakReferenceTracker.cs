@@ -7,7 +7,8 @@ using System.Collections.Concurrent;
 namespace SixLabors.ImageSharp.Memory.Internals
 {
     /// <summary>
-    /// Since finalizer order is non-deterministic, the runtime is free to call finalizer on a <see cref="WeakReference{T}"/>
+    /// Since <see cref="WeakReference{T}"/> is finalizable and finalizer order is non-deterministic,
+    /// the runtime is free to call finalizer on a <see cref="WeakReference{T}"/>
     /// before the finalizer of the object owning it. To prevent this, we keep the <see cref="WeakReference{T}"/>-s
     /// alive in a global registry.
     /// </summary>

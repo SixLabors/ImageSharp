@@ -159,25 +159,28 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('i', "imagesharp", Required = false, Default = false)]
             public bool ImageSharp { get; set; }
 
-            [Option('a', "arraypool", Required = false, Default = false)]
+            [Option('a', "arraypool-alloc", Required = false, Default = false)]
             public bool UseArrayPoolMemoryAllocator { get; set; }
 
-            [Option('m', "maxmanaged", Required = false, Default = 4)]
+            [Option('d', "default-alloc", Required = false, Default = false)]
+            public bool UseDefaultAllocatorWithDefaultSettings { get; set; }
+
+            [Option('m', "max-managed", Required = false, Default = 4)]
             public int MaxContiguousPoolBufferMegaBytes { get; set; } = 4;
 
             [Option('s', "poolsize", Required = false, Default = 4096)]
             public int MaxPoolSizeMegaBytes { get; set; } = 4096;
 
-            [Option('u', "maxunmg", Required = false, Default = 32)]
+            [Option('u', "max-unmg", Required = false, Default = 32)]
             public int MaxCapacityOfUnmanagedBuffersMegaBytes { get; set; } = 32;
 
             [Option('p', "parallelism", Required = false, Default = -1)]
             public int MaxDegreeOfParallelism { get; set; } = -1;
 
-            [Option('t', "trimrate", Required = false, Default = 0.25)]
-            public double TrimRate { get; set; } = 0.25;
+            [Option('t', "trimrate", Required = false, Default = 0.5)]
+            public double TrimRate { get; set; } = 0.5;
 
-            [Option('r', "repeatcount", Required = false, Default = 1)]
+            [Option('r', "repeat-count", Required = false, Default = 1)]
             public int RepeatCount { get; set; } = 1;
 
             public static CommandLineOptions Parse(string[] args)
@@ -191,16 +194,27 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_t({this.TrimRate})_r({this.RepeatCount})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_d({this.UseDefaultAllocatorWithDefaultSettings})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_t({this.TrimRate})_r({this.RepeatCount})";
 
-            public MemoryAllocator CreateMemoryAllocator() =>
-                this.UseArrayPoolMemoryAllocator ?
-                    ArrayPoolMemoryAllocator.CreateDefault() :
-                    new DefaultMemoryAllocator(
-                        (int)B(this.MaxContiguousPoolBufferMegaBytes),
-                        B(this.MaxPoolSizeMegaBytes),
-                        (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
-                        (float)this.TrimRate);
+            public MemoryAllocator CreateMemoryAllocator()
+            {
+                if (this.UseArrayPoolMemoryAllocator)
+                {
+                    return ArrayPoolMemoryAllocator.CreateDefault();
+                }
+
+                if (this.UseDefaultAllocatorWithDefaultSettings)
+                {
+                    return MemoryAllocator.CreateDefault();
+                }
+
+                return new DefaultMemoryAllocator(
+                    1024 * 1024,
+                    (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                    B(this.MaxPoolSizeMegaBytes),
+                    (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
+                    (float)this.TrimRate);
+            }
 
             private static long B(double megaBytes) => (long)(megaBytes * 1024 * 1024);
         }

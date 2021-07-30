@@ -31,6 +31,9 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 this.SourcePoolReference = new WeakReference<UniformByteArrayPool>(sourcePool);
             }
 
+            // When user calls DefaultMemoryAllocator.ReleaseRetainedResources(), we want
+            // UniformByteArrayPool to be released and GC-d ASAP. We need to prevent existing Image-s and buffers
+            // to keep it alive, so we use WeakReference instead of directly referencing the pool.
             protected WeakReference<UniformByteArrayPool> SourcePoolReference { get; private set; }
 
             /// <inheritdoc />
@@ -99,6 +102,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 WeakReferenceTracker.Add(this.SourcePoolReference);
             }
 
+            ~FinalizableBuffer()
+            {
+                this.Dispose(false);
+            }
+
             protected override void Dispose(bool disposing)
             {
                 if (this.SourcePoolReference != null)
@@ -107,11 +115,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 }
 
                 base.Dispose(disposing);
-            }
-
-            ~FinalizableBuffer()
-            {
-                this.Dispose(false);
             }
         }
     }

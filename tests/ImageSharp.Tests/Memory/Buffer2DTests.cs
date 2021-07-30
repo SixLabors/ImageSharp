@@ -227,13 +227,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
             int actual1 = dest.GetRowSpan(0)[0];
             int actual2 = dest.GetRowSpan(0)[0];
             int actual3 = dest.GetSafeRowMemory(0).Span[0];
-            int actual4 = dest.GetFastRowMemory(0).Span[0];
             int actual5 = dest[0, 0];
 
             Assert.Equal(1, actual1);
             Assert.Equal(1, actual2);
             Assert.Equal(1, actual3);
-            Assert.Equal(1, actual4);
             Assert.Equal(1, actual5);
         }
 

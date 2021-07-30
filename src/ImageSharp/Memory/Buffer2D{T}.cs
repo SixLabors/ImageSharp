@@ -19,8 +19,6 @@ namespace SixLabors.ImageSharp.Memory
     public sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
-        private Memory<T> cachedMemory = default;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>
@@ -32,11 +30,6 @@ namespace SixLabors.ImageSharp.Memory
             this.FastMemoryGroup = memoryGroup;
             this.Width = width;
             this.Height = height;
-
-            if (memoryGroup.Count == 1)
-            {
-                this.cachedMemory = memoryGroup[0];
-            }
         }
 
         /// <summary>
@@ -89,11 +82,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Disposes the <see cref="Buffer2D{T}"/> instance
         /// </summary>
-        public void Dispose()
-        {
-            this.FastMemoryGroup.Dispose();
-            this.cachedMemory = default;
-        }
+        public void Dispose() => this.FastMemoryGroup.Dispose();
 
         /// <summary>
         /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
@@ -111,39 +100,14 @@ namespace SixLabors.ImageSharp.Memory
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
-            return this.cachedMemory.Length > 0
-                ? this.cachedMemory.Span.Slice(y * this.Width, this.Width)
-                : this.GetRowMemorySlow(y).Span;
+            return this.GetRowMemoryCore(y).Span;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ref T GetElementUnsafe(int x, int y)
         {
-            if (this.cachedMemory.Length > 0)
-            {
-                Span<T> span = this.cachedMemory.Span;
-                ref T start = ref MemoryMarshal.GetReference(span);
-                return ref Unsafe.Add(ref start, (y * this.Width) + x);
-            }
-
-            return ref this.GetElementSlow(x, y);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
-        /// This method is intended for internal use only, since it does not use the indirection provided by
-        /// <see cref="MemoryGroupView{T}"/>.
-        /// </summary>
-        /// <param name="y">The y (row) coordinate.</param>
-        /// <returns>The <see cref="Span{T}"/>.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal Memory<T> GetFastRowMemory(int y)
-        {
-            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
-            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-            return this.cachedMemory.Length > 0
-                ? this.cachedMemory.Slice(y * this.Width, this.Width)
-                : this.GetRowMemorySlow(y);
+            Span<T> span = this.GetRowMemoryCore(y).Span;
+            return ref span[x];
         }
 
         /// <summary>
@@ -168,11 +132,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal Span<T> DangerousGetSingleSpan()
-        {
-            // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : this.DangerousGetSingleSpanSlow();
-        }
+        internal Span<T> DangerousGetSingleSpan() => this.FastMemoryGroup.Single().Span;
 
         /// <summary>
         /// Gets a <see cref="Memory{T}"/> to the backing data of if the backing group consists of a single contiguous memory buffer.
@@ -183,11 +143,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal Memory<T> DangerousGetSingleMemory()
-        {
-            // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory : this.DangerousGetSingleMemorySlow();
-        }
+        internal Memory<T> DangerousGetSingleMemory() => this.FastMemoryGroup.Single();
 
         /// <summary>
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
@@ -195,27 +151,14 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         internal static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            bool swap = MemoryGroup<T>.SwapOrCopyContent(destination.FastMemoryGroup, source.FastMemoryGroup);
-            SwapOwnData(destination, source, swap);
+            MemoryGroup<T>.SwapOrCopyContent(destination.FastMemoryGroup, source.FastMemoryGroup);
+            SwapOwnData(destination, source);
         }
 
-        [MethodImpl(InliningOptions.ColdPath)]
-        private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private Memory<T> GetRowMemoryCore(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
 
-        [MethodImpl(InliningOptions.ColdPath)]
-        private Memory<T> DangerousGetSingleMemorySlow() => this.FastMemoryGroup.Single();
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private Span<T> DangerousGetSingleSpanSlow() => this.FastMemoryGroup.Single().Span;
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private ref T GetElementSlow(int x, int y)
-        {
-            Span<T> span = this.GetRowMemorySlow(y).Span;
-            return ref span[x];
-        }
-
-        private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b, bool swapCachedMemory)
+        private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b)
         {
             Size aSize = a.Size();
             Size bSize = b.Size();
@@ -225,13 +168,6 @@ namespace SixLabors.ImageSharp.Memory
 
             a.Width = bSize.Width;
             a.Height = bSize.Height;
-
-            if (swapCachedMemory)
-            {
-                Memory<T> aCached = a.cachedMemory;
-                a.cachedMemory = b.cachedMemory;
-                b.cachedMemory = aCached;
-            }
         }
     }
 }

@@ -218,6 +218,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 AllocateGroupAndForget(allocator, sharedInner);
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
 
                 using MemoryGroup<byte> g = allocator.AllocateGroup<byte>(sharedInner ? 300 : 600, 100);
                 Assert.Equal(42, g.Single().Span[0]);

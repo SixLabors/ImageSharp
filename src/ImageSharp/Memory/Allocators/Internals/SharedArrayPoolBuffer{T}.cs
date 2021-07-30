@@ -12,11 +12,12 @@ namespace SixLabors.ImageSharp.Memory.Internals
         where T : struct
     {
         private readonly int lengthInBytes;
+        private byte[] array;
 
         public SharedArrayPoolBuffer(int lengthInElements)
         {
             this.lengthInBytes = lengthInElements * Unsafe.SizeOf<T>();
-            this.Array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
+            this.array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
         }
 
         ~SharedArrayPoolBuffer()
@@ -24,21 +25,19 @@ namespace SixLabors.ImageSharp.Memory.Internals
             this.Dispose(false);
         }
 
-        protected byte[] Array { get; set; }
-
         protected override void Dispose(bool disposing)
         {
-            if (this.Array == null)
+            if (this.array == null)
             {
                 return;
             }
 
-            ArrayPool<byte>.Shared.Return(this.Array);
-            this.Array = null;
+            ArrayPool<byte>.Shared.Return(this.array);
+            this.array = null;
         }
 
-        public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Array.AsSpan(0, this.lengthInBytes));
+        public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.array.AsSpan(0, this.lengthInBytes));
 
-        protected override object GetPinnableObject() => this.Array;
+        protected override object GetPinnableObject() => this.array;
     }
 }

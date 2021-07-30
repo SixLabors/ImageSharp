@@ -33,9 +33,11 @@ namespace SixLabors.ImageSharp.Memory
             public Owned(UniformByteArrayPool pool, byte[][] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer)
                 : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
             {
-                this.poolReference = new WeakReference<UniformByteArrayPool>(pool);
-                WeakReferenceTracker.Add(this.poolReference);
                 this.pooledArrays = pooledArrays;
+                this.poolReference = new WeakReference<UniformByteArrayPool>(pool);
+
+                // Track all WeakReference's to make sure they are not finalized before ~FinalizableBuffer<T>()
+                WeakReferenceTracker.Add(this.poolReference);
             }
 
             ~Owned()

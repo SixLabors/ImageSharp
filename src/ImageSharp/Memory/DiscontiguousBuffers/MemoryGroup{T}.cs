@@ -45,7 +45,11 @@ namespace SixLabors.ImageSharp.Memory
         public abstract Memory<T> this[int index] { get; }
 
         /// <inheritdoc />
-        public void Dispose() => this.Dispose(true);
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
         protected abstract void Dispose(bool disposing);
 

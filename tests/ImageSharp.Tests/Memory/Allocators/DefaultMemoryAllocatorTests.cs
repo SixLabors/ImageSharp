@@ -188,43 +188,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
-        public void BufferFinalizer_ReturnsToPool(bool shared)
-        {
-            RemoteExecutor.Invoke(RunTest, shared.ToString()).Dispose();
-
-            static void RunTest(string sharedStr)
-            {
-                var allocator = new DefaultMemoryAllocator(512, 1024, 16 * 1024, 1024, 0.0f);
-                bool sharedStrInner = bool.Parse(sharedStr);
-
-                AllocateBufferAndForget(allocator, sharedStrInner);
-                Thread.Sleep(200);
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-
-                using IMemoryOwner<byte> b = allocator.Allocate<byte>(bool.Parse(sharedStr) ? 300 : 600);
-                Assert.Equal(42, b.GetSpan()[0]);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoOptimization | MethodImplOptions.NoInlining)]
-        private static void AllocateBufferAndForget(DefaultMemoryAllocator allocator, bool sharedInner)
-        {
-            IMemoryOwner<byte> b0 = allocator.Allocate<byte>(sharedInner ? 300 : 600);
-            b0.GetSpan()[0] = 42;
-
-            if (sharedInner)
-            {
-                // For ArrayPool.Shared, first array will be returned to the TLS storage of the finalizer thread,
-                // repeat rental to make sure per-core buckets are also utilized.
-                IMemoryOwner<byte> b1 = allocator.Allocate<byte>(sharedInner ? 300 : 600);
-                b1.GetSpan()[0] = 42;
-            }
-        }
-
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
         public void MemoryGroupDisposal_ReturnsToPool(bool shared)
         {
             RemoteExecutor.Invoke(RunTest, shared.ToString()).Dispose();
@@ -238,7 +201,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 using MemoryGroup<byte> g1 = allocator.AllocateGroup<byte>(bool.Parse(sharedStr) ? 300 : 600, 100);
                 Assert.Equal(42, g1.Single().Span[0]);
             }
-
         }
 
         [Theory]

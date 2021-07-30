@@ -85,7 +85,9 @@ namespace SixLabors.ImageSharp.Memory
                 byte[] array = this.pool.Rent(options);
                 if (array != null)
                 {
-                    var buffer = new UniformByteArrayPool.FinalizableBuffer<T>(array, length, this.pool);
+                    // Non-group Allocate<T> is mostly called from library internals, and doesn't leak,
+                    // therefore we prefer to avoid the overhead of UniformByteArrayPool.FinalizableBuffer<T>
+                    var buffer = new UniformByteArrayPool.Buffer<T>(array, length, this.pool);
                     if (options.Has(AllocationOptions.Clean))
                     {
                         buffer.GetSpan().Clear();
@@ -102,11 +104,18 @@ namespace SixLabors.ImageSharp.Memory
         public override void ReleaseRetainedResources() =>
             this.pool = new UniformByteArrayPool(this.poolBufferSizeInBytes, this.poolCapacity, this.trimRate);
 
+        /// <inheritdoc />
         internal override MemoryGroup<T> AllocateGroup<T>(
             long totalLength,
             int bufferAlignment,
             AllocationOptions options = AllocationOptions.None)
         {
+            // ----
+            // Note on finalizable buffers:
+            // MemoryGroup's are heavy by design, and their lifecycle is typically exposed to the user through Image<T>.
+            // So unlike in Allocate<T>, we prefer to expose finalizable buffers/groups to mitigate potential
+            // programming errors in user code (omitting Dispose) leading to pool exhaustion.
+            // ----
             long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
             if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
             {

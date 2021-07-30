@@ -98,13 +98,14 @@ namespace SixLabors.ImageSharp.Common.Helpers
         }
 
         /// <summary>
-        /// Sets the exif profile resolution values.
+        /// Gets the exif profile resolution values.
         /// </summary>
         /// <param name="unit">The resolution unit.</param>
         /// <param name="horizontal">The horizontal resolution value.</param>
         /// <param name="vertical">The vertical resolution value.</param>
+        /// <returns><see cref="ExifResolutionValues"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static (ushort, double?, double?) AdjustToExif(PixelResolutionUnit unit, double horizontal, double vertical)
+        public static ExifResolutionValues GetExifResolutionValues(PixelResolutionUnit unit, double horizontal, double vertical)
         {
             switch (unit)
             {
@@ -128,10 +129,10 @@ namespace SixLabors.ImageSharp.Common.Helpers
             ushort exifUnit = (ushort)(unit + 1);
             if (unit == PixelResolutionUnit.AspectRatio)
             {
-                return (exifUnit, null, null);
+                return new ExifResolutionValues(exifUnit, null, null);
             }
 
-            return (exifUnit, horizontal, vertical);
+            return new ExifResolutionValues(exifUnit, horizontal, vertical);
         }
     }
 }

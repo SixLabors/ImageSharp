@@ -239,26 +239,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             private void ProcessResolution(ImageMetadata imageMetadata)
             {
-                (ushort, double?, double?) exifValues = UnitConverter.AdjustToExif(
+                ExifResolutionValues resolution = UnitConverter.GetExifResolutionValues(
                     imageMetadata.ResolutionUnits,
                     imageMetadata.HorizontalResolution,
                     imageMetadata.VerticalResolution);
 
                 this.Collector.AddOrReplace(new ExifShort(ExifTagValue.ResolutionUnit)
                 {
-                    Value = exifValues.Item1
+                    Value = resolution.ResolutionUnit
                 });
 
-                if (exifValues.Item2 != null && exifValues.Item3 != null)
+                if (resolution.VerticalResolution.HasValue && resolution.HorizontalResolution.HasValue)
                 {
                     this.Collector.AddOrReplace(new ExifRational(ExifTagValue.XResolution)
                     {
-                        Value = new Rational(exifValues.Item2.Value)
+                        Value = new Rational(resolution.HorizontalResolution.Value)
                     });
 
                     this.Collector.AddOrReplace(new ExifRational(ExifTagValue.YResolution)
                     {
-                        Value = new Rational(exifValues.Item3.Value)
+                        Value = new Rational(resolution.VerticalResolution.Value)
                     });
                 }
             }

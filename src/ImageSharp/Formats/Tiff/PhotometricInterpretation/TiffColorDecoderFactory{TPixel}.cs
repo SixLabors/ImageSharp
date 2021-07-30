@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal static class TiffColorDecoderFactory<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        public static TiffBaseColorDecoder<TPixel> Create(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap)
+        public static TiffBaseColorDecoder<TPixel> Create(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
         {
             switch (colorType)
             {
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         && bitsPerSample.Channel0 == 16,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
-                    return new RgbTiffColor<TPixel>(bitsPerSample);
+                    return new Rgb161616TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
 
                 case TiffColorType.PaletteColor:
                     DebugGuard.NotNull(colorMap, "colorMap");

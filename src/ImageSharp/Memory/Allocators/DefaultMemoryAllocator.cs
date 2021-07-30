@@ -9,9 +9,13 @@ using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
+    // MemoryAllocator implementation that uses:
+    // 1. ArrayPool<byte>.Shared for small (< 1MB) buffers
+    // 2. UniformByteArrayPool to allocate discontiguous buffers up to the pool's capacity
+    // 3. UnmanagedMemoryAllocator's unmanaged buffers in other cases
     internal sealed class DefaultMemoryAllocator : MemoryAllocator
     {
-        private const int OneMegabyte = 1024 * 1024;
+        private const int OneMegabyte = 1 << 20;
         private const int DefaultContiguousPoolBlockSizeBytes = 4 * OneMegabyte;
         private const int DefaultUnmanagedBlockSizeBytes = 32 * OneMegabyte;
         private readonly int sharedArrayPoolThresholdInBytes;

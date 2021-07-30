@@ -9,6 +9,9 @@ using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
+    /// <summary>
+    /// Custom array pool that holds GC arrays of uniform size.
+    /// </summary>
     internal partial class UniformByteArrayPool
     {
         // Be more strict about high pressure threshold than ArrayPool<T>.Shared.

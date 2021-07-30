@@ -8,14 +8,50 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     public class MemoryAllocatorOptions
     {
-        /// <summary>
-        /// Gets or sets a value defining the maximum size of the pool in Megabytes, null means platform default.
-        /// </summary>
-        public int? MaxPoolSizeMegabytes { get; set; }
+        private int? maximumPoolSizeMegabytes;
+        private int? minimumContiguousBlockBytes;
 
         /// <summary>
-        /// Gets or sets a value defining the minimum contiguous block size, null means platform default.
+        /// Gets or sets a value defining the maximum size of the <see cref="MemoryAllocator"/>'s internal memory pool
+        /// in Megabytes. <see langword="null"/> means platform default.
         /// </summary>
-        public int? MinimumContiguousBlockBytes { get; set; }
+        public int? MaximumPoolSizeMegabytes
+        {
+            get => this.maximumPoolSizeMegabytes;
+            set
+            {
+                if (value.HasValue)
+                {
+                    Guard.MustBeGreaterThanOrEqualTo(value.Value, 0, nameof(this.MaximumPoolSizeMegabytes));
+                }
+
+                this.maximumPoolSizeMegabytes = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value defining the minimum contiguous block size when allocating buffers for
+        /// <see cref="MemoryGroup{T}"/>, <see cref="Buffer2D{T}"/> or <see cref="Image{TPixel}"/>.
+        /// <see langword="null"/> means platform default.
+        /// </summary>
+        /// <remarks>
+        /// Overriding this value is useful for interop scenarios
+        /// ensuring <see cref="Image{TPixel}.TryGetSinglePixelSpan"/> succeeds.
+        /// </remarks>
+        public int? MinimumContiguousBlockBytes
+        {
+            get => this.minimumContiguousBlockBytes;
+            set
+            {
+                if (value.HasValue)
+                {
+                    // It doesn't make sense to set this to small values in practice.
+                    // Defining an arbitrary minimum of 65536.
+                    Guard.MustBeGreaterThanOrEqualTo(value.Value, 65536, nameof(this.MaximumPoolSizeMegabytes));
+                }
+
+                this.minimumContiguousBlockBytes = value;
+            }
+        }
     }
 }

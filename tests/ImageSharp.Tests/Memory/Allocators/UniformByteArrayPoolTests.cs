@@ -237,7 +237,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             this.output = output;
         }
 
-        [Fact]
+        public static readonly bool IsNetCore31Compatible =
+            TestEnvironment.NetCoreVersion != null && TestEnvironment.NetCoreVersion >= new Version(3, 1);
+
+        [ConditionalFact(nameof(IsNetCore31Compatible))]
         public void GC_Collect_TrimsPoolAtExpectedRate()
         {
             RemoteExecutor.Invoke(RunTest).Dispose();
@@ -279,9 +282,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
+#if NETCORE31COMPATIBLE
         public static bool Is32BitProcess = !Environment.Is64BitProcess;
 
-        private static readonly List<byte[]> pressureArrays = new List<byte[]>();
+        private static readonly List<byte[]> PressureArrays = new List<byte[]>();
 
         [ConditionalFact(nameof(Is32BitProcess))]
         public static void GC_Collect_OnHighLoad_TrimsEntirePool()
@@ -306,7 +310,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 {
                     byte[] array = new byte[OneMb];
                     TouchPage(array);
-                    pressureArrays.Add(array);
+                    PressureArrays.Add(array);
                 }
 
                 GC.Collect();
@@ -329,5 +333,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 }
             }
         }
+#endif
     }
 }

@@ -19,7 +19,10 @@ namespace SixLabors.ImageSharp.Memory.Internals
             this.Array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
         }
 
-        ~SharedArrayPoolBuffer() => this.Dispose(false);
+        ~SharedArrayPoolBuffer()
+        {
+            this.Dispose(false);
+        }
 
         protected byte[] Array { get; set; }
 

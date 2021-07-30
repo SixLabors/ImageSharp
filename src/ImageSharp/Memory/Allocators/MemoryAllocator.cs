@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="options">The <see cref="MemoryAllocatorOptions"/>.</param>
         /// <returns>The <see cref="MemoryAllocator"/>.</returns>
         public static MemoryAllocator CreateDefault(MemoryAllocatorOptions options) =>
-            new DefaultMemoryAllocator(options.MaxPoolSizeMegabytes, options.MinimumContiguousBlockBytes);
+            new DefaultMemoryAllocator(options.MaximumPoolSizeMegabytes, options.MinimumContiguousBlockBytes);
 
         /// <summary>
         /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.

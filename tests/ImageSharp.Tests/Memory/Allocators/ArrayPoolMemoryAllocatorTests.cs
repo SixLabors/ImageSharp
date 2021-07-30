@@ -223,15 +223,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             Assert.Equal(0, buffer.Memory.Length);
         }
 
-        [Theory]
-        [InlineData(-1)]
-        public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-        {
-            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                this.LocalFixture.MemoryAllocator.AllocateManagedByteBuffer(length));
-            Assert.Equal("length", ex.ParamName);
-        }
-
         private class MemoryAllocatorFixture
         {
             public ArrayPoolMemoryAllocator MemoryAllocator { get; set; } =

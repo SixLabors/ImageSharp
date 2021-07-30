@@ -99,7 +99,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 ValidateAllocateMemoryGroup(expectedNumberOfBuffers, expectedBufferSize, expectedSizeOfLastBuffer, g);
             }
 
-
             [Theory]
             [InlineData(AllocationOptions.None)]
             [InlineData(AllocationOptions.Clean)]

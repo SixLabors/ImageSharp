@@ -135,8 +135,13 @@ namespace SixLabors.ImageSharp.Memory
             return new Owned(buffers, bufferLength, totalLengthInElements, true);
         }
 
-        public static MemoryGroup<T> CreateContiguous(IMemoryOwner<T> buffer)
+        public static MemoryGroup<T> CreateContiguous(IMemoryOwner<T> buffer, bool clear)
         {
+            if (clear)
+            {
+                buffer.GetSpan().Clear();
+            }
+
             int length = buffer.Memory.Length;
             var buffers = new IMemoryOwner<T>[1] { buffer };
             return new Owned(buffers, length, length, true);

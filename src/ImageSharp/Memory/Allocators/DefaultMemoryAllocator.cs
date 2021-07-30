@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -11,8 +12,10 @@ namespace SixLabors.ImageSharp.Memory
     internal sealed class DefaultMemoryAllocator : MemoryAllocator
     {
         private const int OneMegabyte = 1024 * 1024;
+        private const int DefaultContiguousPoolBlockSizeBytes = 4 * OneMegabyte;
+        private const int DefaultUnmanagedBlockSizeBytes = 32 * OneMegabyte;
         private readonly int sharedArrayPoolThresholdInBytes;
-        private readonly int maxContiguousPoolBufferInBytes;
+        private readonly int poolBufferSizeInBytes;
         private readonly int poolCapacity;
         private readonly float trimRate;
 
@@ -21,42 +24,42 @@ namespace SixLabors.ImageSharp.Memory
 
         public DefaultMemoryAllocator(int? maxPoolSizeMegabytes, int? minimumContiguousBlockBytes)
             : this(
-                minimumContiguousBlockBytes.HasValue ? minimumContiguousBlockBytes.Value : 4 * OneMegabyte,
+                minimumContiguousBlockBytes.HasValue ? minimumContiguousBlockBytes.Value : DefaultContiguousPoolBlockSizeBytes,
                 maxPoolSizeMegabytes.HasValue ? (long)maxPoolSizeMegabytes.Value * OneMegabyte : GetDefaultMaxPoolSizeBytes(),
-                minimumContiguousBlockBytes.HasValue ? Math.Max(minimumContiguousBlockBytes.Value, 32 * OneMegabyte) : 32 * OneMegabyte)
+                minimumContiguousBlockBytes.HasValue ? Math.Max(minimumContiguousBlockBytes.Value, DefaultUnmanagedBlockSizeBytes) : DefaultUnmanagedBlockSizeBytes)
         {
         }
 
         public DefaultMemoryAllocator(
-            int maxContiguousPoolBufferInBytes,
+            int poolBufferSizeInBytes,
             long maxPoolSizeInBytes,
-            int maxContiguousUnmanagedBufferInBytes)
+            int unmanagedBufferSizeInBytes)
             : this(
                 OneMegabyte,
-                maxContiguousPoolBufferInBytes,
+                poolBufferSizeInBytes,
                 maxPoolSizeInBytes,
-                maxContiguousUnmanagedBufferInBytes)
+                unmanagedBufferSizeInBytes)
         {
         }
 
         // Internal constructor allowing to change the shared array pool threshold for testing purposes.
         internal DefaultMemoryAllocator(
             int sharedArrayPoolThresholdInBytes,
-            int maxContiguousPoolBufferInBytes,
+            int poolBufferSizeInBytes,
             long maxPoolSizeInBytes,
-            int maxCapacityOfUnmanagedBuffers,
+            int unmanagedBufferSizeInBytes,
             float trimRate = UniformByteArrayPool.DefaultTrimRate)
         {
             this.sharedArrayPoolThresholdInBytes = sharedArrayPoolThresholdInBytes;
-            this.maxContiguousPoolBufferInBytes = maxContiguousPoolBufferInBytes;
-            this.poolCapacity = (int)(maxPoolSizeInBytes / maxContiguousPoolBufferInBytes);
+            this.poolBufferSizeInBytes = poolBufferSizeInBytes;
+            this.poolCapacity = (int)(maxPoolSizeInBytes / poolBufferSizeInBytes);
             this.trimRate = trimRate;
-            this.pool = new UniformByteArrayPool(maxContiguousPoolBufferInBytes, this.poolCapacity, trimRate);
-            this.unmnagedAllocator = new UnmanagedMemoryAllocator(maxCapacityOfUnmanagedBuffers);
+            this.pool = new UniformByteArrayPool(poolBufferSizeInBytes, this.poolCapacity, trimRate);
+            this.unmnagedAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
         }
 
         /// <inheritdoc />
-        protected internal override int GetBufferCapacityInBytes() => this.maxContiguousPoolBufferInBytes;
+        protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
 
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(
@@ -77,12 +80,18 @@ namespace SixLabors.ImageSharp.Memory
                 return buffer;
             }
 
-            if (lengthInBytes <= this.maxContiguousPoolBufferInBytes)
+            if (lengthInBytes <= this.poolBufferSizeInBytes)
             {
                 byte[] array = this.pool.Rent(options);
                 if (array != null)
                 {
-                    return new UniformByteArrayPool.FinalizableBuffer<T>(array, length, this.pool);
+                    var buffer = new UniformByteArrayPool.FinalizableBuffer<T>(array, length, this.pool);
+                    if (options.Has(AllocationOptions.Clean))
+                    {
+                        buffer.GetSpan().Clear();
+                    }
+
+                    return buffer;
                 }
             }
 
@@ -91,7 +100,7 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <inheritdoc />
         public override void ReleaseRetainedResources() =>
-            this.pool = new UniformByteArrayPool(this.maxContiguousPoolBufferInBytes, this.poolCapacity, this.trimRate);
+            this.pool = new UniformByteArrayPool(this.poolBufferSizeInBytes, this.poolCapacity, this.trimRate);
 
         internal override MemoryGroup<T> AllocateGroup<T>(
             long totalLength,
@@ -102,22 +111,17 @@ namespace SixLabors.ImageSharp.Memory
             if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
             {
                 var buffer = new SharedArrayPoolBuffer<T>((int)totalLength);
-                if (options.Has(AllocationOptions.Clean))
-                {
-                    buffer.Memory.Span.Clear();
-                }
-
-                return MemoryGroup<T>.CreateContiguous(buffer);
+                return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
             }
 
-            if (totalLengthInBytes <= this.maxContiguousPoolBufferInBytes)
+            if (totalLengthInBytes <= this.poolBufferSizeInBytes)
             {
                 // Optimized path renting single array from the pool
                 byte[] array = this.pool.Rent(options);
                 if (array != null)
                 {
                     var buffer = new UniformByteArrayPool.FinalizableBuffer<T>(array, (int)totalLength, this.pool);
-                    return MemoryGroup<T>.CreateContiguous(buffer);
+                    return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
                 }
             }
 
@@ -131,13 +135,18 @@ namespace SixLabors.ImageSharp.Memory
         private static long GetDefaultMaxPoolSizeBytes()
         {
 #if NETCORE31COMPATIBLE
-            // On .NET Core 3.1+, determine the pool size by the total available memory:
-            GCMemoryInfo info = GC.GetGCMemoryInfo();
-            return info.TotalAvailableMemoryBytes / 8;
-#else
-            // Stick to a conservative value of 128 Megabytes on other platforms:
-            return 128 * OneMegabyte;
+            // On .NET Core 3.1+, determine the pool as portion of the total available memory.
+            // There is a bug in GC.GetGCMemoryInfo() on .NET 5 + 32 bit, making TotalAvailableMemoryBytes unreliable:
+            // https://github.com/dotnet/runtime/issues/55126#issuecomment-876779327
+            if (Environment.Is64BitProcess || !RuntimeInformation.FrameworkDescription.StartsWith(".NET 5.0"))
+            {
+                GCMemoryInfo info = GC.GetGCMemoryInfo();
+                return info.TotalAvailableMemoryBytes / 8;
+            }
 #endif
+
+            // Stick to a conservative value of 128 Megabytes on other platforms and 32 bit .NET 5.0:
+            return 128 * OneMegabyte;
         }
     }
 }

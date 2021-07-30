@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -22,15 +23,15 @@ namespace SixLabors.ImageSharp.Memory.Internals
             /// </summary>
             private readonly int length;
 
-            private WeakReference<UniformByteArrayPool> sourcePoolReference;
-
             public Buffer(byte[] data, int length, UniformByteArrayPool sourcePool)
             {
                 DebugGuard.NotNull(data, nameof(data));
                 this.data = data;
                 this.length = length;
-                this.sourcePoolReference = new WeakReference<UniformByteArrayPool>(sourcePool);
+                this.SourcePoolReference = new WeakReference<UniformByteArrayPool>(sourcePool);
             }
+
+            protected WeakReference<UniformByteArrayPool> SourcePoolReference { get; private set; }
 
             /// <inheritdoc />
             public override Span<T> GetSpan()
@@ -51,23 +52,24 @@ namespace SixLabors.ImageSharp.Memory.Internals
             /// <inheritdoc />
             protected override void Dispose(bool disposing)
             {
-                if (this.data is null || this.sourcePoolReference is null)
+                if (this.data is null || this.SourcePoolReference is null)
                 {
                     return;
                 }
 
-                if (this.sourcePoolReference.TryGetTarget(out UniformByteArrayPool pool))
+                if (this.SourcePoolReference.TryGetTarget(out UniformByteArrayPool pool))
                 {
                     pool.Return(this.data);
                 }
 
-                this.sourcePoolReference = null;
+                WeakReferenceTracker.Remove(this.SourcePoolReference);
+                this.SourcePoolReference = null;
                 this.data = null;
             }
 
             internal void MarkDisposed()
             {
-                this.sourcePoolReference = null;
+                this.SourcePoolReference = null;
                 this.data = null;
             }
 
@@ -93,9 +95,24 @@ namespace SixLabors.ImageSharp.Memory.Internals
             public FinalizableBuffer(byte[] data, int length, UniformByteArrayPool sourcePool)
                 : base(data, length, sourcePool)
             {
+                // Track all WeakReference's to make sure they are not finalized before ~FinalizableBuffer<T>()
+                WeakReferenceTracker.Add(this.SourcePoolReference);
             }
 
-            ~FinalizableBuffer() => this.Dispose(false);
+            protected override void Dispose(bool disposing)
+            {
+                if (this.SourcePoolReference != null)
+                {
+                    WeakReferenceTracker.Remove(this.SourcePoolReference);
+                }
+
+                base.Dispose(disposing);
+            }
+
+            ~FinalizableBuffer()
+            {
+                this.Dispose(false);
+            }
         }
     }
 }

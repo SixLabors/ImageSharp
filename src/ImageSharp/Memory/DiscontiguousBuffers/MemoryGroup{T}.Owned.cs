@@ -34,10 +34,14 @@ namespace SixLabors.ImageSharp.Memory
                 : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
             {
                 this.poolReference = new WeakReference<UniformByteArrayPool>(pool);
+                WeakReferenceTracker.Add(this.poolReference);
                 this.pooledArrays = pooledArrays;
             }
 
-            ~Owned() => this.Dispose(false);
+            ~Owned()
+            {
+                this.Dispose(false);
+            }
 
             public bool Swappable { get; }
 
@@ -102,6 +106,7 @@ namespace SixLabors.ImageSharp.Memory
                     // Dispose(false) could be called from a finalizer, so we can return the rented arrays,
                     // even if user code is leaking.
                     // We are fine to do this, since byte[][] and UniformByteArrayPool are not finalizable.
+                    WeakReferenceTracker.Remove(this.poolReference);
                     pool.Return(this.pooledArrays);
                     foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
                     {

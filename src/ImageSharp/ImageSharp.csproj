@@ -14,7 +14,6 @@
     <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
     <DefineConstants Condition="'$(Configuration)' == 'Debug-InnerLoop'">$(DefineConstants);DEBUG</DefineConstants>
-    <DefineConstants Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','netcoreapp3.1'))">$(DefineConstants);NETCORE31COMPATIBLE</DefineConstants>
   </PropertyGroup>
   <Choose>
     <When Condition="$(SIXLABORS_TESTING) == true">

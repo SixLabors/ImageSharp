@@ -10,35 +10,67 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
-        /// <summary>
-        /// Gets or sets a value indicating whether the frame uses the extended specification.
-        /// </summary>
-        public bool Extended { get; set; }
+        public JpegFrame(JpegFileMarker sofMarker, byte precision, int width, int height, byte componentCount)
+        {
+            this.Extended = sofMarker.Marker == JpegConstants.Markers.SOF1;
+            this.Progressive = sofMarker.Marker == JpegConstants.Markers.SOF2;
+
+            this.Precision = precision;
+            this.MaxColorChannelValue = MathF.Pow(2, precision) - 1;
+
+            this.PixelWidth = width;
+            this.PixelHeight = height;
+
+            this.ComponentCount = componentCount;
+        }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the frame uses the progressive specification.
+        /// Gets a value indicating whether the frame uses the extended specification.
         /// </summary>
-        public bool Progressive { get; set; }
+        public bool Extended { get; private set; }
 
         /// <summary>
-        /// Gets or sets the precision.
+        /// Gets a value indicating whether the frame uses the progressive specification.
         /// </summary>
-        public byte Precision { get; set; }
+        public bool Progressive { get; private set; }
 
         /// <summary>
-        /// Gets or sets the number of scanlines within the frame.
+        /// Gets or sets a value indicating whether the frame is encoded using multiple scans (SOS markers).
         /// </summary>
-        public int Scanlines { get; set; }
+        /// <remarks>
+        /// This is true for progressive and baseline non-interleaved images.
+        /// </remarks>
+        public bool MultiScan { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of samples per scanline.
+        /// Gets the precision.
         /// </summary>
-        public int SamplesPerLine { get; set; }
+        public byte Precision { get; private set; }
 
         /// <summary>
-        /// Gets or sets the number of components within a frame. In progressive frames this value can range from only 1 to 4.
+        /// Gets the maximum color value derived from <see cref="Precision"/>.
         /// </summary>
-        public byte ComponentCount { get; set; }
+        public float MaxColorChannelValue { get; private set; }
+
+        /// <summary>
+        /// Gets the number of pixel per row.
+        /// </summary>
+        public int PixelHeight { get; private set; }
+
+        /// <summary>
+        /// Gets the number of pixels per line.
+        /// </summary>
+        public int PixelWidth { get; private set; }
+
+        /// <summary>
+        /// Gets the pixel size of the image.
+        /// </summary>
+        public Size PixelSize => new Size(this.PixelWidth, this.PixelHeight);
+
+        /// <summary>
+        /// Gets the number of components within a frame.
+        /// </summary>
+        public byte ComponentCount { get; private set; }
 
         /// <summary>
         /// Gets or sets the component id collection.
@@ -57,16 +89,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public JpegComponent[] Components { get; set; }
 
         /// <summary>
-        /// Gets or sets the maximum horizontal sampling factor.
-        /// </summary>
-        public int MaxHorizontalFactor { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum vertical sampling factor.
-        /// </summary>
-        public int MaxVerticalFactor { get; set; }
-
-        /// <summary>
         /// Gets or sets the number of MCU's per line.
         /// </summary>
         public int McusPerLine { get; set; }
@@ -75,6 +97,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Gets or sets the number of MCU's per column.
         /// </summary>
         public int McusPerColumn { get; set; }
+
+        /// <summary>
+        /// Gets the mcu size of the image.
+        /// </summary>
+        public Size McuSize => new Size(this.McusPerLine, this.McusPerColumn);
+
+        /// <summary>
+        /// Gets the color depth, in number of bits per pixel.
+        /// </summary>
+        public int BitsPerPixel => this.ComponentCount * this.Precision;
 
         /// <inheritdoc/>
         public void Dispose()
@@ -93,15 +125,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Allocates the frame component blocks.
         /// </summary>
-        public void InitComponents()
+        /// <param name="maxSubFactorH">Maximal horizontal subsampling factor among all the components.</param>
+        /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
+        public void Init(int maxSubFactorH, int maxSubFactorV)
         {
-            this.McusPerLine = (int)MathF.Ceiling(this.SamplesPerLine / 8F / this.MaxHorizontalFactor);
-            this.McusPerColumn = (int)MathF.Ceiling(this.Scanlines / 8F / this.MaxVerticalFactor);
+            this.McusPerLine = (int)Numerics.DivideCeil((uint)this.PixelWidth, (uint)maxSubFactorH * 8);
+            this.McusPerColumn = (int)Numerics.DivideCeil((uint)this.PixelHeight, (uint)maxSubFactorV * 8);
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
                 JpegComponent component = this.Components[i];
-                component.Init();
+                component.Init(maxSubFactorH, maxSubFactorV);
+            }
+        }
+
+        public void AllocateComponents(bool fullScan)
+        {
+            for (int i = 0; i < this.ComponentCount; i++)
+            {
+                JpegComponent component = this.Components[i];
+                component.AllocateSpectral(fullScan);
             }
         }
     }

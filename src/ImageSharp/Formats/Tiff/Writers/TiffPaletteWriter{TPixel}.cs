@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             else
             {
                 int stripPixels = width * height;
-                this.indexedPixelsBuffer ??= this.MemoryAllocator.AllocateManagedByteBuffer(stripPixels);
+                this.indexedPixelsBuffer ??= this.MemoryAllocator.Allocate<byte>(stripPixels);
                 Span<byte> indexedPixels = this.indexedPixelsBuffer.GetSpan();
                 int lastRow = y + height;
                 int indexedPixelsRowIdx = 0;
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 
         private void AddColorMapTag()
         {
-            using IMemoryOwner<byte> colorPaletteBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(this.colorPaletteBytes);
+            using IMemoryOwner<byte> colorPaletteBuffer = this.MemoryAllocator.Allocate<byte>(this.colorPaletteBytes);
             Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
 
             ReadOnlySpan<TPixel> quantizedColors = this.quantizedImage.Palette.Span;

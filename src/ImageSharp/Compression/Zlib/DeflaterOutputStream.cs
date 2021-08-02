@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -14,8 +15,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
     internal sealed class DeflaterOutputStream : Stream
     {
         private const int BufferLength = 512;
-        private IManagedByteBuffer memoryOwner;
-        private readonly byte[] buffer;
+        private IMemoryOwner<byte> memoryOwner;
+        private readonly Memory<byte> buffer;
         private Deflater deflater;
         private readonly Stream rawStream;
         private bool isDisposed;
@@ -29,8 +30,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         public DeflaterOutputStream(MemoryAllocator memoryAllocator, Stream rawStream, int compressionLevel)
         {
             this.rawStream = rawStream;
-            this.memoryOwner = memoryAllocator.AllocateManagedByteBuffer(BufferLength);
-            this.buffer = this.memoryOwner.Array;
+            this.memoryOwner = memoryAllocator.Allocate<byte>(BufferLength);
+            this.buffer = this.memoryOwner.Memory;
             this.deflater = new Deflater(memoryAllocator, compressionLevel);
         }
 
@@ -49,15 +50,9 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <inheritdoc/>
         public override long Position
         {
-            get
-            {
-                return this.rawStream.Position;
-            }
+            get => this.rawStream.Position;
 
-            set
-            {
-                throw new NotSupportedException();
-            }
+            set => throw new NotSupportedException();
         }
 
         /// <inheritdoc/>
@@ -93,14 +88,14 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         {
             while (flushing || !this.deflater.IsNeedingInput)
             {
-                int deflateCount = this.deflater.Deflate(this.buffer, 0, BufferLength);
+                int deflateCount = this.deflater.Deflate(this.buffer.Span, 0, BufferLength);
 
                 if (deflateCount <= 0)
                 {
                     break;
                 }
 
-                this.rawStream.Write(this.buffer, 0, deflateCount);
+                this.rawStream.Write(this.buffer.Span.Slice(0, deflateCount));
             }
 
             if (!this.deflater.IsNeedingInput)
@@ -114,13 +109,13 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             this.deflater.Finish();
             while (!this.deflater.IsFinished)
             {
-                int len = this.deflater.Deflate(this.buffer, 0, BufferLength);
+                int len = this.deflater.Deflate(this.buffer.Span, 0, BufferLength);
                 if (len <= 0)
                 {
                     break;
                 }
 
-                this.rawStream.Write(this.buffer, 0, len);
+                this.rawStream.Write(this.buffer.Span.Slice(0, len));
             }
 
             if (!this.deflater.IsFinished)

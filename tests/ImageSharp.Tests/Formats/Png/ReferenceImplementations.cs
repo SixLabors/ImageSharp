@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EncodePaethFilter(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
+        public static void EncodePaethFilter(ReadOnlySpan<byte> scanline, Span<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
         {
-            DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+            DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EncodeSubFilter(Span<byte> scanline, Span<byte> result, int bytesPerPixel, out int sum)
+        public static void EncodeSubFilter(ReadOnlySpan<byte> scanline, Span<byte> result, int bytesPerPixel, out int sum)
         {
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EncodeUpFilter(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, out int sum)
+        public static void EncodeUpFilter(ReadOnlySpan<byte> scanline, Span<byte> previousScanline, Span<byte> result, out int sum)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EncodeAverageFilter(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
+        public static void EncodeAverageFilter(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));

@@ -4,6 +4,7 @@
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Tests;
 using SDSize = System.Drawing.Size;
@@ -39,21 +40,46 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
 
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder { IgnoreMetadata = true });
-            decoder.ParseStream(bufferedStream);
+            var scanDecoder = new HuffmanScanDecoder(bufferedStream, new NoopSpectralConverter(), cancellationToken: default);
+            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
             decoder.Dispose();
         }
-    }
 
-    /*
-    |                      Method |        Job |       Runtime |            TestImage |     Mean |     Error |    StdDev | Ratio |   Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |---------------------------- |----------- |-------------- |--------------------- |---------:|----------:|----------:|------:|--------:|------:|------:|----------:|
-    |       'System.Drawing FULL' | Job-HITJFX |    .NET 4.7.2 | Jpg/b(...)e.jpg [21] | 5.828 ms | 0.9885 ms | 0.0542 ms |  1.00 | 46.8750 |     - |     - |  211566 B |
-    | JpegDecoderCore.ParseStream | Job-HITJFX |    .NET 4.7.2 | Jpg/b(...)e.jpg [21] | 5.833 ms | 0.2923 ms | 0.0160 ms |  1.00 |       - |     - |     - |   12416 B |
-    |                             |            |               |                      |          |           |           |       |         |       |       |           |
-    |       'System.Drawing FULL' | Job-WPSKZD | .NET Core 2.1 | Jpg/b(...)e.jpg [21] | 6.018 ms | 2.1374 ms | 0.1172 ms |  1.00 | 46.8750 |     - |     - |  210768 B |
-    | JpegDecoderCore.ParseStream | Job-WPSKZD | .NET Core 2.1 | Jpg/b(...)e.jpg [21] | 4.382 ms | 0.9009 ms | 0.0494 ms |  0.73 |       - |     - |     - |   12360 B |
-    |                             |            |               |                      |          |           |           |       |         |       |       |           |
-    |       'System.Drawing FULL' | Job-ZLSNRP | .NET Core 3.1 | Jpg/b(...)e.jpg [21] | 5.714 ms | 0.4078 ms | 0.0224 ms |  1.00 |       - |     - |     - |     176 B |
-    | JpegDecoderCore.ParseStream | Job-ZLSNRP | .NET Core 3.1 | Jpg/b(...)e.jpg [21] | 4.239 ms | 1.0943 ms | 0.0600 ms |  0.74 |       - |     - |     - |   12406 B |
-    */
+        // We want to test only stream parsing and scan decoding, we don't need to convert spectral data to actual pixels
+        // Nor we need to allocate final pixel buffer
+        // Note: this still introduces virtual method call overhead for baseline interleaved images
+        // There's no way to eliminate it as spectral conversion is built into the scan decoding loop for memory footprint reduction
+        private class NoopSpectralConverter : SpectralConverter
+        {
+            public override void ConvertStrideBaseline()
+            {
+            }
+
+            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+            {
+            }
+        }
+    }
 }
+
+/*
+BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042.1083 (20H2/October2020Update)
+Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
+.NET SDK=6.0.100-preview.3.21202.5
+  [Host]     : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
+  Job-VAJCIU : .NET Core 2.1.26 (CoreCLR 4.6.29812.02, CoreFX 4.6.29812.01), X64 RyuJIT
+  Job-INPXCR : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
+  Job-JRCLOJ : .NET Framework 4.8 (4.8.4390.0), X64 RyuJIT
+
+IterationCount=3  LaunchCount=1  WarmupCount=3
+|                      Method |        Job |              Runtime |             TestImage |     Mean |     Error |    StdDev | Ratio |   Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------- |----------- |--------------------- |---------------------- |---------:|----------:|----------:|------:|--------:|------:|------:|----------:|
+|       'System.Drawing FULL' | Job-VAJCIU |        .NET Core 2.1 | Jpg/baseline/Lake.jpg | 5.196 ms | 0.7520 ms | 0.0412 ms |  1.00 | 46.8750 |     - |     - | 210,768 B |
+| JpegDecoderCore.ParseStream | Job-VAJCIU |        .NET Core 2.1 | Jpg/baseline/Lake.jpg | 3.467 ms | 0.0784 ms | 0.0043 ms |  0.67 |       - |     - |     - |  12,416 B |
+|                             |            |                      |                       |          |           |           |       |         |       |       |           |
+|       'System.Drawing FULL' | Job-INPXCR |        .NET Core 3.1 | Jpg/baseline/Lake.jpg | 5.201 ms | 0.4105 ms | 0.0225 ms |  1.00 |       - |     - |     - |     183 B |
+| JpegDecoderCore.ParseStream | Job-INPXCR |        .NET Core 3.1 | Jpg/baseline/Lake.jpg | 3.349 ms | 0.0468 ms | 0.0026 ms |  0.64 |       - |     - |     - |  12,408 B |
+|                             |            |                      |                       |          |           |           |       |         |       |       |           |
+|       'System.Drawing FULL' | Job-JRCLOJ | .NET Framework 4.7.2 | Jpg/baseline/Lake.jpg | 5.164 ms | 0.6524 ms | 0.0358 ms |  1.00 | 46.8750 |     - |     - | 211,571 B |
+| JpegDecoderCore.ParseStream | Job-JRCLOJ | .NET Framework 4.7.2 | Jpg/baseline/Lake.jpg | 4.548 ms | 0.3357 ms | 0.0184 ms |  0.88 |       - |     - |     - |  12,480 B |
+*/

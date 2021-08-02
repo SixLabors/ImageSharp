@@ -18,17 +18,21 @@
 
   <ItemGroup>
     <!-- Test Dependencies -->
-    <PackageReference Update="BenchmarkDotNet" Version="0.12.1" />
-    <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" Condition="'$(IsWindows)'=='true'" />
-    <PackageReference Update="Colourful" Version="2.0.5" />
-    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.23.2.1" />
+    <PackageReference Update="BenchmarkDotNet" Version="0.13.0" />
+    <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.0" Condition="'$(IsWindows)'=='true'" />
+    <PackageReference Update="Colourful" Version="3.0.0" />
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="8.0.1" />
     <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="6.0.0-beta.21311.3" />
     <PackageReference Update="Microsoft.DotNet.XUnitExtensions" Version="6.0.0-beta.21311.3" />
     <PackageReference Update="Moq" Version="4.14.6" />
+    <PackageReference Update="NetVips" Version="2.0.1" />
+    <PackageReference Update="NetVips.Native" Version="8.11.0" />
+    <PackageReference Update="PhotoSauce.MagicScaler" Version="0.12.1" />
     <PackageReference Update="Pfim" Version="0.9.1" />
-    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" Condition="'$(IsOSX)'=='true'" />
-    <PackageReference Update="SharpZipLib" Version="1.3.0" />
-    <PackageReference Update="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Update="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" Condition="'$(IsOSX)'=='true'" />
+    <PackageReference Update="SharpZipLib" Version="1.3.2" />
+    <PackageReference Update="SkiaSharp" Version="2.80.2" />
+    <PackageReference Update="System.Drawing.Common" Version="5.0.2" />
   </ItemGroup>
 
 </Project>

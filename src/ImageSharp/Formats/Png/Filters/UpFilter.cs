@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(Span<byte> scanline, Span<byte> previousScanline)
         {
-            DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
+            DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
 
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, out int sum)
+        public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, out int sum)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));

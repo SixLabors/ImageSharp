@@ -12,24 +12,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal interface IRawJpegData : IDisposable
     {
         /// <summary>
-        /// Gets the image size in pixels.
-        /// </summary>
-        Size ImageSizeInPixels { get; }
-
-        /// <summary>
-        /// Gets the number of components.
-        /// </summary>
-        int ComponentCount { get; }
-
-        /// <summary>
         /// Gets the color space
         /// </summary>
         JpegColorSpace ColorSpace { get; }
-
-        /// <summary>
-        /// Gets the number of bits used for precision.
-        /// </summary>
-        int Precision { get; }
 
         /// <summary>
         /// Gets the components.

@@ -261,6 +261,8 @@ namespace SixLabors.ImageSharp.Tests
                     public const string AccessViolationException827 = "Jpg/issues/fuzz/Issue827-AccessViolationException.jpg";
                     public const string ExecutionEngineException839 = "Jpg/issues/fuzz/Issue839-ExecutionEngineException.jpg";
                     public const string AccessViolationException922 = "Jpg/issues/fuzz/Issue922-AccessViolationException.jpg";
+                    public const string IndexOutOfRangeException1693A = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-A.jpg";
+                    public const string IndexOutOfRangeException1693B = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-B.jpg";
                 }
             }
 
@@ -580,6 +582,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower12BitGray = "Tiff/flower-minisblack-12.tiff";
             public const string Flower14BitGray = "Tiff/flower-minisblack-14.tiff";
             public const string Flower16BitGray = "Tiff/flower-minisblack-16.tiff";
+            public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

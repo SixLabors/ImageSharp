@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             {
                 // Write uncompressed image.
                 int bytesPerStrip = this.BytesPerRow * height;
-                this.bitStrip ??= this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerStrip);
+                this.bitStrip ??= this.MemoryAllocator.Allocate<byte>(bytesPerStrip);
                 this.pixelsAsGray ??= this.MemoryAllocator.Allocate<byte>(width);
                 Span<byte> pixelAsGraySpan = this.pixelsAsGray.GetSpan();
 

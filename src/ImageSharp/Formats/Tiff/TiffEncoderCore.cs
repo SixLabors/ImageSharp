@@ -74,6 +74,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         private const TiffPhotometricInterpretation DefaultPhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
 
+        private readonly List<(long, uint)> frameMarkers = new List<(long, uint)>();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
         /// </summary>
@@ -147,13 +149,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             // Make sure, the Encoder options makes sense in combination with each other.
             this.SanitizeAndSetEncoderOptions(bitsPerPixel, image.PixelType.BitsPerPixel, photometricInterpretation, compression, predictor);
 
-            using (var writer = new TiffStreamWriter(stream))
-            {
-                long firstIfdMarker = this.WriteHeader(writer);
+            using var writer = new TiffStreamWriter(stream);
+            long ifdMarker = this.WriteHeader(writer);
 
-                // TODO: multiframing is not supported
-                this.WriteImage(writer, image, firstIfdMarker);
+            Image<TPixel> metadataImage = image;
+            foreach (ImageFrame<TPixel> frame in image.Frames)
+            {
+                var subfileType = (TiffNewSubfileType)(frame.Metadata.ExifProfile?.GetValue(ExifTag.SubfileType)?.Value ?? (int)TiffNewSubfileType.FullImage);
+
+                ifdMarker = this.WriteFrame(writer, frame, image.Metadata, metadataImage, ifdMarker);
+                metadataImage = null;
             }
+
+            long currentOffset = writer.BaseStream.Position;
+            foreach ((long, uint) marker in this.frameMarkers)
+            {
+                writer.WriteMarkerFast(marker.Item1, marker.Item2);
+            }
+
+            writer.BaseStream.Seek(currentOffset, SeekOrigin.Begin);
         }
 
         /// <summary>
@@ -174,41 +188,56 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Writes all data required to define an image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+        /// <param name="writer">The <see cref="BinaryWriter" /> to write data to.</param>
+        /// <param name="frame">The tiff frame.</param>
+        /// <param name="imageMetadata">The image metadata (resolution values for each frame).</param>
+        /// <param name="image">The image (common metadata for root frame).</param>
         /// <param name="ifdOffset">The marker to write this IFD offset.</param>
-        private void WriteImage<TPixel>(TiffStreamWriter writer, Image<TPixel> image, long ifdOffset)
+        /// <returns>
+        /// The next IFD offset value.
+        /// </returns>
+        private long WriteFrame<TPixel>(
+            TiffStreamWriter writer,
+            ImageFrame<TPixel> frame,
+            ImageMetadata imageMetadata,
+            Image<TPixel> image,
+            long ifdOffset)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var entriesCollector = new TiffEncoderEntriesCollector();
-
             using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
                 this.CompressionType ?? TiffCompression.None,
                 writer.BaseStream,
                 this.memoryAllocator,
-                image.Width,
+                frame.Width,
                 (int)this.BitsPerPixel,
                 this.compressionLevel,
                 this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor.Value : TiffPredictor.None);
 
+            var entriesCollector = new TiffEncoderEntriesCollector();
             using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
                 this.PhotometricInterpretation,
-                image.Frames.RootFrame,
+                frame,
                 this.quantizer,
                 this.memoryAllocator,
                 this.configuration,
                 entriesCollector,
                 (int)this.BitsPerPixel);
 
-            int rowsPerStrip = this.CalcRowsPerStrip(image.Frames.RootFrame.Height, colorWriter.BytesPerRow);
+            int rowsPerStrip = this.CalcRowsPerStrip(frame.Height, colorWriter.BytesPerRow);
 
             colorWriter.Write(compressor, rowsPerStrip);
 
-            entriesCollector.ProcessImageFormat(this);
-            entriesCollector.ProcessGeneral(image);
+            if (image != null)
+            {
+                entriesCollector.ProcessMetadata(image);
+            }
 
-            writer.WriteMarker(ifdOffset, (uint)writer.Position);
-            long nextIfdMarker = this.WriteIfd(writer, entriesCollector.Entries);
+            entriesCollector.ProcessFrameInfo(frame, imageMetadata);
+            entriesCollector.ProcessImageFormat(this);
+
+            this.frameMarkers.Add((ifdOffset, (uint)writer.Position));
+
+            return this.WriteIfd(writer, entriesCollector.Entries);
         }
 
         /// <summary>
@@ -272,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
                 else
                 {
-                    var raw = new byte[length];
+                    byte[] raw = new byte[length];
                     int sz = ExifWriter.WriteValue(entry, raw, 0);
                     DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
                     largeDataBlocks.Add(raw);

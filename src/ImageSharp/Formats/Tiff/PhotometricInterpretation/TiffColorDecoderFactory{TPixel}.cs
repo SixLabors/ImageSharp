@@ -145,12 +145,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             }
         }
 
-        public static RgbPlanarTiffColor<TPixel> CreatePlanar(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap)
+        public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
         {
             switch (colorType)
             {
                 case TiffColorType.RgbPlanar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    if (bitsPerSample.Channel0 == 16 && bitsPerSample.Channel1 == 16 && bitsPerSample.Channel2 == 16)
+                    {
+                        return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                    }
+
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
 
                 default:

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     /// <summary>
     /// Implements the 'RGB' photometric interpretation with 'Planar' layout (for all bit depths).
     /// </summary>
-    internal class RgbPlanarTiffColor<TPixel>
+    internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly float rFactor;
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        public void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
+        public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
             var color = default(TPixel);
 

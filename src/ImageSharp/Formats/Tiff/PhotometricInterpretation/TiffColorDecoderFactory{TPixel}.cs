@@ -32,6 +32,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new WhiteIsZero8TiffColor<TPixel>();
 
+                case TiffColorType.WhiteIsZero16:
+                    DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 16, "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new WhiteIsZero16TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.BlackIsZero:
                     DebugGuard.IsTrue(bitsPerSample.Channels == 1, "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");

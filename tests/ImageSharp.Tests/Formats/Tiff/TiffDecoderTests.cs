@@ -142,6 +142,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Flower16BitGrayLittleEndian, PixelTypes.Rgba32)]
         [WithFile(Flower16BitGray, PixelTypes.Rgba32)]
+        [WithFile(Flower16BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 

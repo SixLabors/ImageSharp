@@ -582,6 +582,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower12BitGray = "Tiff/flower-minisblack-12.tiff";
             public const string Flower14BitGray = "Tiff/flower-minisblack-14.tiff";
             public const string Flower16BitGray = "Tiff/flower-minisblack-16.tiff";
+            public const string Flower16BitGrayLittleEndian = "Tiff/flower-minisblack-16_lsb.tiff";
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";

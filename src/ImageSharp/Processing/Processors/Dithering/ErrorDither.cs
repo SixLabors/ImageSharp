@@ -27,6 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public ErrorDither(in DenseMatrix<float> matrix, int offset)
         {
+            Guard.MustBeGreaterThan(offset, 0, nameof(offset));
+
             this.matrix = matrix;
             this.offset = offset;
         }

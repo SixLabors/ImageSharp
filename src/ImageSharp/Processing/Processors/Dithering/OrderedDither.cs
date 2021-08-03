@@ -24,6 +24,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public OrderedDither(uint length)
         {
+            Guard.MustBeGreaterThan(length, 0, nameof(length));
+
             DenseMatrix<uint> ditherMatrix = OrderedDitherFactory.CreateDitherMatrix(length);
 
             // Create a new matrix to run against, that pre-thresholds the values.

@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime;
 using System.Text;
 using System.Threading;
 using CommandLine;
@@ -62,10 +63,32 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                 }
 
                 timer.Stop();
+
+                if (options.ReleaseRetainedResourcesAtEnd)
+                {
+                    Configuration.Default.MemoryAllocator.ReleaseRetainedResources();
+                }
+
+                for (int i = 0; i < options.FinalGcCount; i++)
+                {
+                    if (options.CompactLohOnFinalGc)
+                    {
+                        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                    }
+
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    Thread.Sleep(1000);
+                }
             }
 
             var stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
             Console.WriteLine(stats.GetMarkdown());
+            if (options != null && options.PauseAtEnd)
+            {
+                Console.WriteLine("Press ENTER");
+                Console.ReadLine();
+            }
         }
 
         private static void RunBenchmarkSwitcher(LoadResizeSaveParallelMemoryStress lrs, out Stopwatch timer)
@@ -183,6 +206,19 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('r', "repeat-count", Required = false, Default = 1)]
             public int RepeatCount { get; set; } = 1;
 
+            // This is to test trimming and virtual memory decommit
+            [Option('g', "final-gc-count", Required = false, Default = 0)]
+            public int FinalGcCount { get; set; }
+
+            [Option('l', "compact-loh-on-final-gc", Required = false, Default = false)]
+            public bool CompactLohOnFinalGc { get; set; }
+
+            [Option('e', "release-at-end", Required = false, Default = false)]
+            public bool ReleaseRetainedResourcesAtEnd { get; set; }
+
+            [Option('w', "pause", Required = false, Default = false)]
+            public bool PauseAtEnd { get; set; }
+
             public static CommandLineOptions Parse(string[] args)
             {
                 CommandLineOptions result = null;
@@ -194,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_d({this.UseDefaultAllocatorWithDefaultSettings})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_t({this.TrimRate})_r({this.RepeatCount})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_d({this.UseDefaultAllocatorWithDefaultSettings})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_t({this.TrimRate})_r({this.RepeatCount})_g({this.FinalGcCount})_l({this.CompactLohOnFinalGc})_e({this.ReleaseRetainedResourcesAtEnd})";
 
             public MemoryAllocator CreateMemoryAllocator()
             {

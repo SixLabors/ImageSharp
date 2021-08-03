@@ -32,6 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var l16 = default(L16);
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
                 if (this.isBigEndian)
                 {
                     for (int x = left; x < left + width; x++)
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ushort intensity = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
 
-                        pixels[x, y] = TiffUtils.ColorFromL16(l16, intensity, color);
+                        pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
                     }
                 }
                 else
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ushort intensity = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
                         offset += 2;
 
-                        pixels[x, y] = TiffUtils.ColorFromL16(l16, intensity, color);
+                        pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
                     }
                 }
             }

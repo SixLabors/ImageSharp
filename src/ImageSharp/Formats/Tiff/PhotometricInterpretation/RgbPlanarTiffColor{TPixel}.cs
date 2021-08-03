@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
@@ -57,6 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
                 for (int x = left; x < left + width; x++)
                 {
                     float r = rBitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
@@ -64,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
                     color.FromVector4(new Vector4(r, g, b, 1.0f));
-                    pixels[x, y] = color;
+                    pixelRow[x] = color;
                 }
 
                 rBitReader.NextRow();

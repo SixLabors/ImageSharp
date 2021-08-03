@@ -35,6 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var rgba = default(Rgba64);
             for (int y = top; y < top + height; y++)
             {
+                System.Span<TPixel> pixelRow = pixels.GetRowSpan(y);
                 if (this.isBigEndian)
                 {
                     for (int x = left; x < left + width; x++)
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 2;
 
-                        pixels[x, y] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
                     }
                 }
                 else
@@ -58,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 2;
 
-                        pixels[x, y] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
                     }
                 }
             }

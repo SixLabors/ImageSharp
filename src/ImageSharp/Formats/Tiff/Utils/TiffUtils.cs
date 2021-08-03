@@ -22,6 +22,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             BinaryPrimitives.ReadUInt16LittleEndian(buffer);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorFromL8<TPixel>(L8 l8, byte intensity, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            l8.PackedValue = intensity;
+            color.FromL8(l8);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ColorFromL16<TPixel>(L16 l16, ushort intensity, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {

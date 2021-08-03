@@ -35,10 +35,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
                 for (int x = left; x < left + width; x++)
                 {
                     int index = bitReader.ReadBits(this.bitsPerSample0);
-                    pixels[x, y] = this.palette[index];
+                    pixelRow[x] = this.palette[index];
                 }
 
                 bitReader.NextRow();

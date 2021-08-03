@@ -3,6 +3,8 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 {
@@ -11,8 +13,30 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
     /// </summary>
     internal static class TiffUtils
     {
-        public static ushort ConvertToShort(ReadOnlySpan<byte> buffer, bool isBigEndian) => isBigEndian
-            ? BinaryPrimitives.ReadUInt16BigEndian(buffer)
-            : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort ConvertToShortBigEndian(ReadOnlySpan<byte> buffer) =>
+            BinaryPrimitives.ReadUInt16BigEndian(buffer);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort ConvertToShortLittleEndian(ReadOnlySpan<byte> buffer) =>
+            BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorFromL16<TPixel>(L16 l16, ushort intensity, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            l16.PackedValue = intensity;
+            color.FromL16(l16);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorFromRgba64<TPixel>(Rgba64 rgba, ulong r, ulong g, ulong b, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            rgba.PackedValue = r | (g << 16) | (b << 32) | (0xfffful << 48);
+            color.FromRgba64(rgba);
+            return color;
+        }
     }
 }

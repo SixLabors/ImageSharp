@@ -32,15 +32,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var l16 = default(L16);
             for (int y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x++)
+                if (this.isBigEndian)
                 {
-                    ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToShort(data.Slice(offset, 2), this.isBigEndian));
-                    offset += 2;
+                    for (int x = left; x < left + width; x++)
+                    {
+                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2)));
+                        offset += 2;
 
-                    l16.PackedValue = intensity;
-                    color.FromL16(l16);
+                        pixels[x, y] = TiffUtils.ColorFromL16(l16, intensity, color);
+                    }
+                }
+                else
+                {
+                    for (int x = left; x < left + width; x++)
+                    {
+                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2)));
+                        offset += 2;
 
-                    pixels[x, y] = color;
+                        pixels[x, y] = TiffUtils.ColorFromL16(l16, intensity, color);
+                    }
                 }
             }
         }

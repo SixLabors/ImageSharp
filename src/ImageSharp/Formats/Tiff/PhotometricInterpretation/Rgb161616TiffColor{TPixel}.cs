@@ -34,19 +34,33 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);
 
-                for (int x = left; x < left + width; x++)
+                if (this.isBigEndian)
                 {
-                    ulong r = TiffUtils.ConvertToShort(data.Slice(offset, 2), this.isBigEndian);
-                    offset += 2;
-                    ulong g = TiffUtils.ConvertToShort(data.Slice(offset, 2), this.isBigEndian);
-                    offset += 2;
-                    ulong b = TiffUtils.ConvertToShort(data.Slice(offset, 2), this.isBigEndian);
-                    offset += 2;
+                    for (int x = left; x < left + width; x++)
+                    {
+                        ulong r = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
+                        offset += 2;
+                        ulong g = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
+                        offset += 2;
+                        ulong b = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
+                        offset += 2;
 
-                    rgba.PackedValue = r | (g << 16) | (b << 32) | (0xfffful << 48);
-                    color.FromRgba64(rgba);
+                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                    }
+                }
+                else
+                {
+                    for (int x = left; x < left + width; x++)
+                    {
+                        ulong r = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
+                        offset += 2;
+                        ulong g = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
+                        offset += 2;
+                        ulong b = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
+                        offset += 2;
 
-                    pixelRow[x] = color;
+                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                    }
                 }
             }
         }

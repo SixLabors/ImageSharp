@@ -35,17 +35,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var rgba = default(Rgba64);
             for (int y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x++)
+                if (this.isBigEndian)
                 {
-                    ulong r = TiffUtils.ConvertToShort(redData.Slice(offset, 2), this.isBigEndian);
-                    ulong g = TiffUtils.ConvertToShort(greenData.Slice(offset, 2), this.isBigEndian);
-                    ulong b = TiffUtils.ConvertToShort(blueData.Slice(offset, 2), this.isBigEndian);
+                    for (int x = left; x < left + width; x++)
+                    {
+                        ulong r = TiffUtils.ConvertToShortBigEndian(redData.Slice(offset, 2));
+                        ulong g = TiffUtils.ConvertToShortBigEndian(greenData.Slice(offset, 2));
+                        ulong b = TiffUtils.ConvertToShortBigEndian(blueData.Slice(offset, 2));
 
-                    offset += 2;
+                        offset += 2;
 
-                    rgba.PackedValue = r | (g << 16) | (b << 32) | (0xfffful << 48);
-                    color.FromRgba64(rgba);
-                    pixels[x, y] = color;
+                        pixels[x, y] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                    }
+                }
+                else
+                {
+                    for (int x = left; x < left + width; x++)
+                    {
+                        ulong r = TiffUtils.ConvertToShortLittleEndian(redData.Slice(offset, 2));
+                        ulong g = TiffUtils.ConvertToShortLittleEndian(greenData.Slice(offset, 2));
+                        ulong b = TiffUtils.ConvertToShortLittleEndian(blueData.Slice(offset, 2));
+
+                        offset += 2;
+
+                        pixels[x, y] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                    }
                 }
             }
         }

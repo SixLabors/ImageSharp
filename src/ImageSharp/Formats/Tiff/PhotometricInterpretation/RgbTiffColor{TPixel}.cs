@@ -47,14 +47,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             for (int y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x++)
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
+                for (int x = 0; x < pixelRow.Length; x++)
                 {
                     float r = bitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
                     float g = bitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                     float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
                     color.FromVector4(new Vector4(r, g, b, 1.0f));
-                    pixels[x, y] = color;
+                    pixelRow[x] = color;
                 }
 
                 bitReader.NextRow();

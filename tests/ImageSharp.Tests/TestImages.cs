@@ -562,7 +562,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
             public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
             public const string FlowerRgb161616Contiguous = "Tiff/flower-rgb-contig-16.tiff";
+            public const string FlowerRgb161616ContiguousLittleEndian = "Tiff/flower-rgb-contig-16_lsb.tiff";
             public const string FlowerRgb161616Planar = "Tiff/flower-rgb-planar-16.tiff";
+            public const string FlowerRgb161616PlanarLittleEndian = "Tiff/flower-rgb-planar-16_lsb.tiff";
             public const string FlowerRgb141414Contiguous = "Tiff/flower-rgb-contig-14.tiff";
             public const string FlowerRgb141414Planar = "Tiff/flower-rgb-planar-14.tiff";
             public const string FlowerRgb101010Contiguous = "Tiff/flower-rgb-contig-10.tiff";
@@ -582,6 +584,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower12BitGray = "Tiff/flower-minisblack-12.tiff";
             public const string Flower14BitGray = "Tiff/flower-minisblack-14.tiff";
             public const string Flower16BitGray = "Tiff/flower-minisblack-16.tiff";
+            public const string Flower16BitGrayLittleEndian = "Tiff/flower-minisblack-16_lsb.tiff";
+            public const string Flower16BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-16_lsb.tiff";
+            public const string Flower16BitGrayMinIsWhiteBigEndian = "Tiff/flower-miniswhite-16.tiff";
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";

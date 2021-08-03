@@ -166,6 +166,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
                     }
 
+                    if (bitsPerSample.Channel0 == 24 && bitsPerSample.Channel1 == 24 && bitsPerSample.Channel2 == 24)
+                    {
+                        return new Rgb24PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                    }
+
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
 
                 default:

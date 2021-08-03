@@ -176,6 +176,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(FlowerRgb242424Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb242424ContiguousLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb242424Planar, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb242424PlanarLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_72Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 

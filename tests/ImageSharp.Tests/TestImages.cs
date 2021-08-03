@@ -561,6 +561,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbPalette = "Tiff/rgb_palette.tiff";
             public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
             public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
+            public const string FlowerRgb242424Planar = "Tiff/flower-rgb-planar-24.tiff";
+            public const string FlowerRgb242424PlanarLittleEndian = "Tiff/flower-rgb-planar-24_lsb.tiff";
             public const string FlowerRgb242424Contiguous = "Tiff/flower-rgb-contig-24.tiff";
             public const string FlowerRgb242424ContiguousLittleEndian = "Tiff/flower-rgb-contig-24_lsb.tiff";
             public const string FlowerRgb161616Contiguous = "Tiff/flower-rgb-contig-16.tiff";

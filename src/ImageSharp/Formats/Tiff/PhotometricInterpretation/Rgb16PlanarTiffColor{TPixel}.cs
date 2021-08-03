@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
-    /// Implements the 'RGB' photometric interpretation with 'Planar' layout for all 16 bit.
+    /// Implements the 'RGB' photometric interpretation with 'Planar' layout for each color channel with 16 bit.
     /// </summary>
     internal class Rgb16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>

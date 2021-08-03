@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 }
                 else
                 {
-                    for (int x = left; x < left + width; x++)
+                    for (int x = 0; x < pixelRow.Length; x++)
                     {
                         ulong r = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
                         offset += 2;

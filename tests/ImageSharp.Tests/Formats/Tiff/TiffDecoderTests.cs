@@ -165,6 +165,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(FlowerRgb161616Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb161616ContiguousLittleEndian, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb161616Planar, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb161616PlanarLittleEndian, PixelTypes.Rgba32)]
         [WithFile(Issues1716Rgb161616BitLittleEndian, PixelTypes.Rgba32)]

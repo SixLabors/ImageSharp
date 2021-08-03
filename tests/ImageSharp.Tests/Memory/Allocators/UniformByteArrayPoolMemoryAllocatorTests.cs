@@ -14,12 +14,12 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
-    public class DefaultMemoryAllocatorTests
+    public class UniformByteArrayPoolMemoryAllocatorTests
     {
         public class BufferTests1 : BufferTestSuite
         {
             private static MemoryAllocator CreateMemoryAllocator() =>
-                new DefaultMemoryAllocator(
+                new UniformByteArrayPoolMemoryAllocator(
                     sharedArrayPoolThresholdInBytes: 1024,
                     poolBufferSizeInBytes: 2048,
                     maxPoolSizeInBytes: 2048 * 4,
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public class BufferTests2 : BufferTestSuite
         {
             private static MemoryAllocator CreateMemoryAllocator() =>
-                new DefaultMemoryAllocator(
+                new UniformByteArrayPoolMemoryAllocator(
                     sharedArrayPoolThresholdInBytes: 512,
                     poolBufferSizeInBytes: 1024,
                     maxPoolSizeInBytes: 1024 * 4,
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             int expectedSizeOfLastBuffer)
             where T : struct
         {
-            var allocator = new DefaultMemoryAllocator(
+            var allocator = new UniformByteArrayPoolMemoryAllocator(
                 sharedArrayPoolThresholdInBytes,
                 maxContiguousPoolBufferInBytes,
                 maxPoolSizeInBytes,
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Fact]
         public void AllocateGroup_MultipleTimes_ExceedPoolLimit()
         {
-            var allocator = new DefaultMemoryAllocator(
+            var allocator = new UniformByteArrayPoolMemoryAllocator(
                 64,
                 128,
                 1024,
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(65536)]
         public void AllocateGroup_OptionsContiguous_AllocatesContiguousBuffer(int lengthInBytes)
         {
-            var allocator = new DefaultMemoryAllocator(
+            var allocator = new UniformByteArrayPoolMemoryAllocator(
                 128,
                 1024,
                 2048,
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             static void RunTest(string sharedStr)
             {
-                var allocator = new DefaultMemoryAllocator(512, 1024, 16 * 1024, 1024);
+                var allocator = new UniformByteArrayPoolMemoryAllocator(512, 1024, 16 * 1024, 1024);
                 IMemoryOwner<byte> buffer0 = allocator.Allocate<byte>(bool.Parse(sharedStr) ? 300 : 600);
                 buffer0.GetSpan()[0] = 42;
                 buffer0.Dispose();
@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             static void RunTest(string sharedStr)
             {
-                var allocator = new DefaultMemoryAllocator(512, 1024, 16 * 1024, 1024);
+                var allocator = new UniformByteArrayPoolMemoryAllocator(512, 1024, 16 * 1024, 1024);
                 MemoryGroup<byte> g0 = allocator.AllocateGroup<byte>(bool.Parse(sharedStr) ? 300 : 600, 100);
                 g0.Single().Span[0] = 42;
                 g0.Dispose();
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             static void RunTest(string sharedStr)
             {
-                var allocator = new DefaultMemoryAllocator(512, 1024, 16 * 1024, 1024, 0.0f);
+                var allocator = new UniformByteArrayPoolMemoryAllocator(512, 1024, 16 * 1024, 1024, 0.0f);
                 bool sharedInner = bool.Parse(sharedStr);
 
                 AllocateGroupAndForget(allocator, sharedInner);
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        private static void AllocateGroupAndForget(DefaultMemoryAllocator allocator, bool sharedInner)
+        private static void AllocateGroupAndForget(UniformByteArrayPoolMemoryAllocator allocator, bool sharedInner)
         {
             MemoryGroup<byte> g0 = allocator.AllocateGroup<byte>(sharedInner ? 300 : 600, 100);
             g0.Single().Span[0] = 42;

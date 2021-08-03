@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             Configuration.Default.MemoryAllocator.ReleaseRetainedResources();
             GC.Collect();
             Configuration.Default.MemoryAllocator =
-                new DefaultMemoryAllocator(this.BufferSize * OneMegaByte, 4096L * OneMegaByte, 32 * OneMegaByte);
+                new UniformByteArrayPoolMemoryAllocator(this.BufferSize * OneMegaByte, 4096L * OneMegaByte, 32 * OneMegaByte);
         }
 
         [Benchmark]

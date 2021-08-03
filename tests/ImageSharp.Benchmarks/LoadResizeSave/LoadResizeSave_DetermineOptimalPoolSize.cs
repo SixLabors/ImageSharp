@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             Configuration.Default.MemoryAllocator.ReleaseRetainedResources();
             GC.Collect();
             Configuration.Default.MemoryAllocator =
-                new DefaultMemoryAllocator(2 * OneMegaByte, this.PoolSize * OneMegaByte, 32 * OneMegaByte);
+                new UniformByteArrayPoolMemoryAllocator(2 * OneMegaByte, this.PoolSize * OneMegaByte, 32 * OneMegaByte);
             this.runner.MaxDegreeOfParallelism = this.Parallelism;
         }
 

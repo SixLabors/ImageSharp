@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                     return MemoryAllocator.CreateDefault();
                 }
 
-                return new DefaultMemoryAllocator(
+                return new UniformByteArrayPoolMemoryAllocator(
                     1024 * 1024,
                     (int)B(this.MaxContiguousPoolBufferMegaBytes),
                     B(this.MaxPoolSizeMegaBytes),

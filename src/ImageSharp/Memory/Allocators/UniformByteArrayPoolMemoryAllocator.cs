@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Memory
     // 1. ArrayPool<byte>.Shared for small (< 1MB) buffers
     // 2. UniformByteArrayPool to allocate discontiguous buffers up to the pool's capacity
     // 3. UnmanagedMemoryAllocator's unmanaged buffers in other cases
-    internal sealed class DefaultMemoryAllocator : MemoryAllocator
+    internal sealed class UniformByteArrayPoolMemoryAllocator : MemoryAllocator
     {
         private const int OneMegabyte = 1 << 20;
         private const int DefaultContiguousPoolBlockSizeBytes = 4 * OneMegabyte;
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Memory
         private UniformByteArrayPool pool;
         private readonly UnmanagedMemoryAllocator unmnagedAllocator;
 
-        public DefaultMemoryAllocator(int? maxPoolSizeMegabytes, int? minimumContiguousBlockBytes)
+        public UniformByteArrayPoolMemoryAllocator(int? maxPoolSizeMegabytes, int? minimumContiguousBlockBytes)
             : this(
                 minimumContiguousBlockBytes.HasValue ? minimumContiguousBlockBytes.Value : DefaultContiguousPoolBlockSizeBytes,
                 maxPoolSizeMegabytes.HasValue ? (long)maxPoolSizeMegabytes.Value * OneMegabyte : GetDefaultMaxPoolSizeBytes(),
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Memory
         {
         }
 
-        public DefaultMemoryAllocator(
+        public UniformByteArrayPoolMemoryAllocator(
             int poolBufferSizeInBytes,
             long maxPoolSizeInBytes,
             int unmanagedBufferSizeInBytes)
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         // Internal constructor allowing to change the shared array pool threshold for testing purposes.
-        internal DefaultMemoryAllocator(
+        internal UniformByteArrayPoolMemoryAllocator(
             int sharedArrayPoolThresholdInBytes,
             int poolBufferSizeInBytes,
             long maxPoolSizeInBytes,

@@ -21,12 +21,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         public static L16 L16Default { get; } = new L16(0);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort ConvertToShortBigEndian(ReadOnlySpan<byte> buffer) =>
-            BinaryPrimitives.ReadUInt16BigEndian(buffer);
+        public static ushort ConvertToUShortBigEndian(ReadOnlySpan<byte> buffer) => BinaryPrimitives.ReadUInt16BigEndian(buffer);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort ConvertToShortLittleEndian(ReadOnlySpan<byte> buffer) =>
-            BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+        public static ushort ConvertToUShortLittleEndian(ReadOnlySpan<byte> buffer) => BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint ConvertToUIntBigEndian(ReadOnlySpan<byte> buffer) => BinaryPrimitives.ReadUInt32BigEndian(buffer);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint ConvertToUIntLittleEndian(ReadOnlySpan<byte> buffer) => BinaryPrimitives.ReadUInt32LittleEndian(buffer);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ColorFromL8<TPixel>(L8 l8, byte intensity, TPixel color)

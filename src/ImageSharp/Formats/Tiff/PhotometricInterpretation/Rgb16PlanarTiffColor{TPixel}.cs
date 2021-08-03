@@ -44,9 +44,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ulong r = TiffUtils.ConvertToShortBigEndian(redData.Slice(offset, 2));
-                        ulong g = TiffUtils.ConvertToShortBigEndian(greenData.Slice(offset, 2));
-                        ulong b = TiffUtils.ConvertToShortBigEndian(blueData.Slice(offset, 2));
+                        ulong r = TiffUtils.ConvertToUShortBigEndian(redData.Slice(offset, 2));
+                        ulong g = TiffUtils.ConvertToUShortBigEndian(greenData.Slice(offset, 2));
+                        ulong b = TiffUtils.ConvertToUShortBigEndian(blueData.Slice(offset, 2));
 
                         offset += 2;
 
@@ -57,9 +57,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ulong r = TiffUtils.ConvertToShortLittleEndian(redData.Slice(offset, 2));
-                        ulong g = TiffUtils.ConvertToShortLittleEndian(greenData.Slice(offset, 2));
-                        ulong b = TiffUtils.ConvertToShortLittleEndian(blueData.Slice(offset, 2));
+                        ulong r = TiffUtils.ConvertToUShortLittleEndian(redData.Slice(offset, 2));
+                        ulong g = TiffUtils.ConvertToUShortLittleEndian(greenData.Slice(offset, 2));
+                        ulong b = TiffUtils.ConvertToUShortLittleEndian(blueData.Slice(offset, 2));
 
                         offset += 2;
 

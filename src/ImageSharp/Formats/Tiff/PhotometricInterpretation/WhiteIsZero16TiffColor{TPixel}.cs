@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2)));
+                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2)));
                         offset += 2;
 
                         pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2)));
+                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToUShortLittleEndian(data.Slice(offset, 2)));
                         offset += 2;
 
                         pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);

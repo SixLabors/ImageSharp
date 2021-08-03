@@ -136,6 +136,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb161616TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.Rgb242424:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 3
+                        && bitsPerSample.Channel2 == 24
+                        && bitsPerSample.Channel1 == 24
+                        && bitsPerSample.Channel0 == 24,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgb242424TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.PaletteColor:
                     DebugGuard.NotNull(colorMap, "colorMap");
                     return new PaletteTiffColor<TPixel>(bitsPerSample, colorMap);

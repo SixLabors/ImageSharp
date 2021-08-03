@@ -24,9 +24,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var rgba = default(Rgba32);
             for (int y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
 
-                for (int x = left; x < left + width; x++)
+                for (int x = 0; x < pixelRow.Length; x++)
                 {
                     byte r = data[offset++];
                     byte g = data[offset++];

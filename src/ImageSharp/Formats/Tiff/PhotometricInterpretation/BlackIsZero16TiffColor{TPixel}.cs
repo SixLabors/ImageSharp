@@ -34,10 +34,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
                 if (this.isBigEndian)
                 {
-                    for (int x = left; x < left + width; x++)
+                    for (int x = 0; x < pixelRow.Length; x++)
                     {
                         ushort intensity = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 }
                 else
                 {
-                    for (int x = left; x < left + width; x++)
+                    for (int x = 0; x < pixelRow.Length; x++)
                     {
                         ushort intensity = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
                         offset += 2;

@@ -37,6 +37,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new WhiteIsZero16TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.WhiteIsZero24:
+                    DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 24, "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new WhiteIsZero24TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.BlackIsZero:
                     DebugGuard.IsTrue(bitsPerSample.Channels == 1, "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
@@ -61,6 +66,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 16, "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new BlackIsZero16TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
+                case TiffColorType.BlackIsZero24:
+                    DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 24, "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new BlackIsZero24TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
                 case TiffColorType.Rgb:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");

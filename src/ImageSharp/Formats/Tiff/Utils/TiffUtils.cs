@@ -14,6 +14,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
     /// </summary>
     internal static class TiffUtils
     {
+        private const float Scale = 1.0f / 0xFFFFFF;
+
         public static Vector4 Vector4Default { get; } = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 
         public static Rgba64 Rgba64Default { get; } = new Rgba64(0, 0, 0, 0);
@@ -42,6 +44,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorFromRgba64<TPixel>(Rgba64 rgba, ulong r, ulong g, ulong b, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            rgba.PackedValue = r | (g << 16) | (b << 32) | (0xfffful << 48);
+            color.FromRgba64(rgba);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorScaleTo24Bit<TPixel>(ulong r, ulong g, ulong b, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var colorVector = new Vector4(r * Scale, g * Scale, b * Scale, 1.0f);
+            color.FromVector4(colorVector);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ColorFromL16<TPixel>(L16 l16, ushort intensity, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -51,11 +71,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel ColorFromRgba64<TPixel>(Rgba64 rgba, ulong r, ulong g, ulong b, TPixel color)
+        public static TPixel ColorScaleTo24Bit<TPixel>(ulong intensity, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            rgba.PackedValue = r | (g << 16) | (b << 32) | (0xfffful << 48);
-            color.FromRgba64(rgba);
+            var colorVector = new Vector4(intensity * Scale, intensity * Scale, intensity * Scale, 1.0f);
+            color.FromVector4(colorVector);
             return color;
         }
     }

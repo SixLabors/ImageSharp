@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -31,7 +30,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
-            float scale = 1.0f / 0xFFFFFF;
             byte[] buffer = new byte[4];
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
@@ -56,10 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 3;
 
-                        var colorVector = new Vector4(r * scale, g * scale, b * scale, 1.0f);
-                        color.FromVector4(colorVector);
-
-                        pixelRow[x] = color;
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, color);
                     }
                 }
                 else
@@ -75,10 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 3;
 
-                        var colorVector = new Vector4(r * scale, g * scale, b * scale, 1.0f);
-                        color.FromVector4(colorVector);
-
-                        pixelRow[x] = color;
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, color);
                     }
                 }
             }

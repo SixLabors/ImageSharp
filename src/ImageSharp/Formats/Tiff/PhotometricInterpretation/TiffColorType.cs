@@ -34,6 +34,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         BlackIsZero16,
 
         /// <summary>
+        /// Grayscale: 0 is imaged as black. The maximum value is imaged as white. Optimized implementation for 24-bit images.
+        /// </summary>
+        BlackIsZero24,
+
+        /// <summary>
         /// Grayscale: 0 is imaged as white. The maximum value is imaged as black.
         /// </summary>
         WhiteIsZero,
@@ -57,6 +62,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// Grayscale: 0 is imaged as white. The maximum value is imaged as black. Optimized implementation for 16-bit images.
         /// </summary>
         WhiteIsZero16,
+
+        /// <summary>
+        /// Grayscale: 0 is imaged as white. The maximum value is imaged as black. Optimized implementation for 24-bit images.
+        /// </summary>
+        WhiteIsZero24,
 
         /// <summary>
         /// Palette-color.

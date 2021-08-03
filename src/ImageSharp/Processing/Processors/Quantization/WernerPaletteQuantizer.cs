@@ -9,13 +9,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class WernerPaletteQuantizer : PaletteQuantizer
     {
-        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="WernerPaletteQuantizer" /> class.
         /// </summary>
         public WernerPaletteQuantizer()
-            : this(DefaultOptions)
+            : this(new QuantizerOptions())
         {
         }
 

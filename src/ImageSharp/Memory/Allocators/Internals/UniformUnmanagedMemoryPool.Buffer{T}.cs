@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             where T : struct
         {
             private UniformUnmanagedMemoryPool pool;
-            private UnmanagedMemoryHandle bufferHandle;
+            protected UnmanagedMemoryHandle bufferHandle;
             private readonly int length;
 
             public Buffer(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle bufferHandle, int length)
@@ -24,18 +24,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
             }
 
             private void* Pointer => (void*)this.bufferHandle.DangerousGetHandle();
-
-            protected override void Dispose(bool disposing)
-            {
-                if (this.pool == null)
-                {
-                    return;
-                }
-
-                this.pool.Return(this.bufferHandle);
-                this.pool = null;
-                this.bufferHandle = null;
-            }
 
             public override Span<T> GetSpan() => new Span<T>(this.Pointer, this.length);
 
@@ -53,7 +41,48 @@ namespace SixLabors.ImageSharp.Memory.Internals
             /// <inheritdoc />
             public override void Unpin() => this.bufferHandle.DangerousRelease();
 
+            protected override void Dispose(bool disposing)
+            {
+                if (this.pool == null)
+                {
+                    return;
+                }
 
+                this.pool.Return(this.bufferHandle);
+                this.pool = null;
+                this.bufferHandle = null;
+            }
+
+            internal void MarkDisposed()
+            {
+                this.pool = null;
+                this.bufferHandle = null;
+            }
+        }
+
+        public class FinalizableBuffer<T> : Buffer<T>
+            where T : struct
+        {
+            public FinalizableBuffer(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle bufferHandle, int length)
+                : base(pool, bufferHandle, length)
+            {
+                bufferHandle.UnResurrect();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (!disposing && this.bufferHandle != null)
+                {
+                    this.bufferHandle.Resurrect();
+                }
+
+                base.Dispose(disposing);
+            }
+
+            ~FinalizableBuffer()
+            {
+                this.Dispose(false);
+            }
         }
     }
 }

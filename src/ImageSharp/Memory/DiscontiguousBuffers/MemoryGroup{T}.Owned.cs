@@ -22,8 +22,10 @@ namespace SixLabors.ImageSharp.Memory
             // When user calls DefaultMemoryAllocator.ReleaseRetainedResources(), we want
             // UniformByteArrayPool to be released and GC-d ASAP. We need to prevent existing Image-s and buffers
             // to keep it alive, so we use WeakReference instead of directly referencing the pool.
-            private WeakReference<UniformByteArrayPool> poolReference;
+            private WeakReference<UniformByteArrayPool> arrayPoolReference;
             private byte[][] pooledArrays;
+            private UniformUnmanagedMemoryPool unmanagedMemoryPool;
+            private UnmanagedMemoryHandle[] pooledHandles;
 
             public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
                 : base(bufferLength, totalLength)
@@ -37,10 +39,17 @@ namespace SixLabors.ImageSharp.Memory
                 : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
             {
                 this.pooledArrays = pooledArrays;
-                this.poolReference = new WeakReference<UniformByteArrayPool>(pool);
+                this.arrayPoolReference = new WeakReference<UniformByteArrayPool>(pool);
 
                 // Track all WeakReference's to make sure they are not finalized before ~FinalizableBuffer<T>()
-                WeakReferenceTracker.Add(this.poolReference);
+                WeakReferenceTracker.Add(this.arrayPoolReference);
+            }
+
+            public Owned(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle[] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer)
+                : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
+            {
+                this.pooledHandles = pooledArrays;
+                this.unmanagedMemoryPool = pool;
             }
 
             ~Owned()
@@ -83,6 +92,19 @@ namespace SixLabors.ImageSharp.Memory
                 return result;
             }
 
+            private static IMemoryOwner<T>[] CreateBuffers(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle[] pooledArrays, int bufferLength, int sizeOfLastBuffer)
+            {
+                var result = new IMemoryOwner<T>[pooledArrays.Length];
+                for (int i = 0; i < pooledArrays.Length - 1; i++)
+                {
+                    pooledArrays[i].UnResurrect();
+                    result[i] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledArrays[i], bufferLength);
+                }
+
+                result[result.Length - 1] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledArrays[pooledArrays.Length - 1], sizeOfLastBuffer);
+                return result;
+            }
+
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
             public override MemoryGroupEnumerator<T> GetEnumerator()
@@ -106,12 +128,28 @@ namespace SixLabors.ImageSharp.Memory
 
                 this.View.Invalidate();
 
-                if (this.poolReference != null && this.poolReference.TryGetTarget(out UniformByteArrayPool pool))
+                if (this.unmanagedMemoryPool != null)
+                {
+                    if (!disposing)
+                    {
+                        foreach (UnmanagedMemoryHandle handle in this.pooledHandles)
+                        {
+                            handle.Resurrect();
+                        }
+                    }
+
+                    this.unmanagedMemoryPool.Return(this.pooledHandles);
+                    foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                    {
+                        ((UniformUnmanagedMemoryPool.Buffer<T>)memoryOwner).MarkDisposed();
+                    }
+                }
+                else if (this.arrayPoolReference != null && this.arrayPoolReference.TryGetTarget(out UniformByteArrayPool pool))
                 {
                     // Dispose(false) could be called from a finalizer, so we can return the rented arrays,
                     // even if user code is leaking.
                     // We are fine to do this, since byte[][] and UniformByteArrayPool are not finalizable.
-                    WeakReferenceTracker.Remove(this.poolReference);
+                    WeakReferenceTracker.Remove(this.arrayPoolReference);
                     pool.Return(this.pooledArrays);
                     foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
                     {
@@ -128,8 +166,10 @@ namespace SixLabors.ImageSharp.Memory
 
                 this.memoryOwners = null;
                 this.IsValid = false;
-                this.poolReference = null;
+                this.arrayPoolReference = null;
                 this.pooledArrays = null;
+                this.unmanagedMemoryPool = null;
+                this.pooledHandles = null;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -155,20 +195,26 @@ namespace SixLabors.ImageSharp.Memory
                 IMemoryOwner<T>[] tempOwners = a.memoryOwners;
                 long tempTotalLength = a.TotalLength;
                 int tempBufferLength = a.BufferLength;
-                WeakReference<UniformByteArrayPool> tempPoolReference = a.poolReference;
+                WeakReference<UniformByteArrayPool> tempPoolReference = a.arrayPoolReference;
                 byte[][] tempPooledArrays = a.pooledArrays;
+                UniformUnmanagedMemoryPool tempUnmangedPool = a.unmanagedMemoryPool;
+                UnmanagedMemoryHandle[] tempPooledHandles = a.pooledHandles;
 
                 a.memoryOwners = b.memoryOwners;
                 a.TotalLength = b.TotalLength;
                 a.BufferLength = b.BufferLength;
-                a.poolReference = b.poolReference;
+                a.arrayPoolReference = b.arrayPoolReference;
                 a.pooledArrays = b.pooledArrays;
+                a.unmanagedMemoryPool = b.unmanagedMemoryPool;
+                a.pooledHandles = b.pooledHandles;
 
                 b.memoryOwners = tempOwners;
                 b.TotalLength = tempTotalLength;
                 b.BufferLength = tempBufferLength;
-                b.poolReference = tempPoolReference;
+                b.arrayPoolReference = tempPoolReference;
                 b.pooledArrays = tempPooledArrays;
+                b.unmanagedMemoryPool = tempUnmangedPool;
+                b.pooledHandles = tempPooledHandles;
 
                 a.View.Invalidate();
                 b.View.Invalidate();

@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
     internal sealed class UnmanagedMemoryHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         private readonly int lengthInBytes;
+        private bool resurrected;
 
         public UnmanagedMemoryHandle(int lengthInBytes)
             : base(true)
@@ -38,6 +39,21 @@ namespace SixLabors.ImageSharp.Memory.Internals
             this.handle = IntPtr.Zero;
 
             return true;
+        }
+
+        internal void Resurrect()
+        {
+            GC.SuppressFinalize(this);
+            this.resurrected = true;
+        }
+
+        internal void UnResurrect()
+        {
+            if (this.resurrected)
+            {
+                GC.ReRegisterForFinalize(this);
+                this.resurrected = true;
+            }
         }
     }
 }

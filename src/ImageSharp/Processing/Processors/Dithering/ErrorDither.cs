@@ -95,6 +95,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
+
             int offsetY = bounds.Top;
             int offsetX = bounds.Left;
             float scale = quantizer.Options.DitherScale;
@@ -210,5 +215,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         public override int GetHashCode()
             => HashCode.Combine(this.offset, this.matrix);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowDefaultInstance()
+            => throw new ImageProcessingException("Cannot use the default value type instance to dither.");
     }
 }

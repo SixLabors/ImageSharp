@@ -25,11 +25,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
+            // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
+            // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
+            Rgba64 rgba = TiffUtils.Rgba64Default;
             var color = default(TPixel);
+            color.FromVector4(TiffUtils.Vector4Default);
 
             int offset = 0;
 
-            var rgba = default(Rgba64);
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);

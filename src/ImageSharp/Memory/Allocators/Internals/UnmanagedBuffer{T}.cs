@@ -16,8 +16,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
     internal sealed unsafe class UnmanagedBuffer<T> : MemoryManager<T>
         where T : struct
     {
-        private bool isDisposed;
-        private readonly SafeHandle safeHandle;
+        private readonly UnmanagedMemoryHandle bufferHandle;
         private readonly int lengthInElements;
 
         /// <summary>
@@ -27,12 +26,12 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public UnmanagedBuffer(int lengthInElements)
         {
             this.lengthInElements = lengthInElements;
-            this.safeHandle = new SafeHGlobalHandle(lengthInElements * Unsafe.SizeOf<T>());
+            this.bufferHandle = new UnmanagedMemoryHandle(lengthInElements * Unsafe.SizeOf<T>());
         }
 
-        private void* Pointer => (void*)this.safeHandle.DangerousGetHandle();
+        private void* Pointer => (void*)this.bufferHandle.DangerousGetHandle();
 
-        public override unsafe Span<T> GetSpan()
+        public override Span<T> GetSpan()
             => new Span<T>(this.Pointer, this.lengthInElements);
 
         /// <inheritdoc />
@@ -40,64 +39,26 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             // Will be released in Unpin
             bool unused = false;
-            this.safeHandle.DangerousAddRef(ref unused);
+            this.bufferHandle.DangerousAddRef(ref unused);
 
             void* pbData = Unsafe.Add<T>(this.Pointer, elementIndex);
             return new MemoryHandle(pbData);
         }
 
         /// <inheritdoc />
-        public override void Unpin() => this.safeHandle.DangerousRelease();
+        public override void Unpin() => this.bufferHandle.DangerousRelease();
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
-            if (this.isDisposed || this.safeHandle.IsInvalid)
+            if (this.bufferHandle.IsInvalid)
             {
                 return;
             }
 
             if (disposing)
             {
-                this.safeHandle.Dispose();
-            }
-
-            this.isDisposed = true;
-        }
-
-        private sealed class SafeHGlobalHandle : SafeHandle
-        {
-            private readonly int byteCount;
-
-            public SafeHGlobalHandle(int size)
-                : base(IntPtr.Zero, true)
-            {
-                this.SetHandle(Marshal.AllocHGlobal(size));
-                this.byteCount = size;
-                if (size > 0)
-                {
-                    GC.AddMemoryPressure(size);
-                }
-            }
-
-            public override bool IsInvalid => this.handle == IntPtr.Zero;
-
-            protected override bool ReleaseHandle()
-            {
-                if (this.IsInvalid)
-                {
-                    return false;
-                }
-
-                Marshal.FreeHGlobal(this.handle);
-                if (this.byteCount > 0)
-                {
-                    GC.RemoveMemoryPressure(this.byteCount);
-                }
-
-                this.handle = IntPtr.Zero;
-
-                return true;
+                this.bufferHandle.Dispose();
             }
         }
     }

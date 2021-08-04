@@ -24,6 +24,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public OrderedDither(uint length)
         {
+            Guard.MustBeGreaterThan(length, 0, nameof(length));
+
             DenseMatrix<uint> ditherMatrix = OrderedDitherFactory.CreateDitherMatrix(length);
 
             // Create a new matrix to run against, that pre-thresholds the values.
@@ -109,6 +111,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
+
             int spread = CalculatePaletteSpread(destination.Palette.Length);
             float scale = quantizer.Options.DitherScale;
 
@@ -134,6 +141,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
+
             int spread = CalculatePaletteSpread(processor.Palette.Length);
             float scale = processor.DitherScale;
 
@@ -201,5 +213,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
             => HashCode.Combine(this.thresholdMatrix, this.modulusX, this.modulusY);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowDefaultInstance()
+            => throw new ImageProcessingException("Cannot use the default value type instance to dither.");
     }
 }

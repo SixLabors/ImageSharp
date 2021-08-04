@@ -134,8 +134,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         Rgb323232,
 
         /// <summary>
-        /// RGB Full Color. Planar configuration of data.
+        /// RGB Full Color. Planar configuration of data. 8 Bit per color channel.
         /// </summary>
-        RgbPlanar,
+        Rgb888Planar,
+
+        /// <summary>
+        /// RGB Full Color. Planar configuration of data. 16 Bit per color channel.
+        /// </summary>
+        Rgb161616Planar,
+
+        /// <summary>
+        /// RGB Full Color. Planar configuration of data. 24 Bit per color channel.
+        /// </summary>
+        Rgb242424Planar,
+
+        /// <summary>
+        /// RGB Full Color. Planar configuration of data. 32 Bit per color channel.
+        /// </summary>
+        Rgb323232Planar,
     }
 }

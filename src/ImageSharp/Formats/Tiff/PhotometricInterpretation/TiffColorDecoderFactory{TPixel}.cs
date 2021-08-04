@@ -189,19 +189,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         {
             switch (colorType)
             {
-                case TiffColorType.RgbPlanar:
+                case TiffColorType.Rgb888Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
-                    if (bitsPerSample.Channel0 == 16 && bitsPerSample.Channel1 == 16 && bitsPerSample.Channel2 == 16)
-                    {
-                        return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
-                    }
-
-                    if (bitsPerSample.Channel0 == 24 && bitsPerSample.Channel1 == 24 && bitsPerSample.Channel2 == 24)
-                    {
-                        return new Rgb24PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
-                    }
-
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.Rgb161616Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
+                case TiffColorType.Rgb242424Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgb24PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
+                case TiffColorType.Rgb323232Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgb32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());

@@ -270,7 +270,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        options.ColorType = TiffColorType.RgbPlanar;
+                        ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                        switch (bitsPerChannel)
+                        {
+                            case 32:
+                                options.ColorType = TiffColorType.Rgb323232Planar;
+                                break;
+                            case 24:
+                                options.ColorType = TiffColorType.Rgb242424Planar;
+                                break;
+                            case 16:
+                                options.ColorType = TiffColorType.Rgb161616Planar;
+                                break;
+                            default:
+                                options.ColorType = TiffColorType.Rgb888Planar;
+                                break;
+                        }
                     }
 
                     break;

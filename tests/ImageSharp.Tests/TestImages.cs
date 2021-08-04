@@ -562,7 +562,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
             public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
             public const string FlowerRgb323232Contiguous = "Tiff/flower-rgb-contig-32.tiff";
+            public const string FlowerRgb323232ContiguousLittleEndian = "Tiff/flower-rgb-contig-32_lsb.tiff";
             public const string FlowerRgb323232Planar = "Tiff/flower-rgb-planar-32.tiff";
+            public const string FlowerRgb323232PlanarLittleEndian = "Tiff/flower-rgb-planar-32_lsb.tiff";
             public const string FlowerRgb242424Planar = "Tiff/flower-rgb-planar-24.tiff";
             public const string FlowerRgb242424PlanarLittleEndian = "Tiff/flower-rgb-planar-24_lsb.tiff";
             public const string FlowerRgb242424Contiguous = "Tiff/flower-rgb-contig-24.tiff";
@@ -590,11 +592,14 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower12BitGray = "Tiff/flower-minisblack-12.tiff";
             public const string Flower14BitGray = "Tiff/flower-minisblack-14.tiff";
             public const string Flower16BitGray = "Tiff/flower-minisblack-16.tiff";
-            public const string Flower24BitGray = "Tiff/flower-minisblack-24.tiff";
-            public const string Flower32BitGray = "Tiff/flower-minisblack-32.tiff";
             public const string Flower16BitGrayLittleEndian = "Tiff/flower-minisblack-16_lsb.tiff";
             public const string Flower16BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-16_lsb.tiff";
             public const string Flower16BitGrayMinIsWhiteBigEndian = "Tiff/flower-miniswhite-16.tiff";
+            public const string Flower24BitGray = "Tiff/flower-minisblack-24.tiff";
+            public const string Flower24BitGrayLittleEndian = "Tiff/flower-minisblack-24_lsb.tiff";
+            public const string Flower32BitGray = "Tiff/flower-minisblack-32.tiff";
+            public const string Flower32BitGrayLittleEndian = "Tiff/flower-minisblack-32_lsb.tiff";
+
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";

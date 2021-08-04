@@ -157,6 +157,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Flower24BitGray, PixelTypes.Rgba32)]
+        [WithFile(Flower24BitGrayLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_24Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
@@ -168,6 +169,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Flower32BitGray, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitGrayLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_32Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
@@ -201,7 +203,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(FlowerRgb323232Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb323232ContiguousLittleEndian, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb323232Planar, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb323232PlanarLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_96Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
 namespace SixLabors.ImageSharp.Memory.Internals
@@ -11,6 +12,9 @@ namespace SixLabors.ImageSharp.Memory.Internals
     {
         private readonly int lengthInBytes;
         private bool resurrected;
+
+        // Track allocations for testing purposes:
+        private static int totalOutstandingHandles;
 
         public UnmanagedMemoryHandle(int lengthInBytes)
             : base(true)
@@ -21,7 +25,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
             {
                 GC.AddMemoryPressure(lengthInBytes);
             }
+
+            Interlocked.Increment(ref totalOutstandingHandles);
         }
+
+        internal static int TotalOutstandingHandles => totalOutstandingHandles;
 
         protected override bool ReleaseHandle()
         {
@@ -37,7 +45,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             }
 
             this.handle = IntPtr.Zero;
-
+            Interlocked.Decrement(ref totalOutstandingHandles);
             return true;
         }
 

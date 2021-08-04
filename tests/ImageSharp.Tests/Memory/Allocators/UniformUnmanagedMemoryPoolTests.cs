@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
 using Xunit;
 using Xunit.Abstractions;
@@ -47,9 +48,28 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
+        [Fact]
+        public void Return_DoesNotDeallocateMemory()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                var pool = new UniformUnmanagedMemoryPool(16, 16);
+                UnmanagedMemoryHandle a = pool.Rent();
+                UnmanagedMemoryHandle[] b = pool.Rent(2);
+
+                Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                pool.Return(a);
+                pool.Return(b);
+                Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
+            }
+        }
+
         private static void CheckBuffer(int length, UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle h)
         {
             Assert.NotNull(h);
+            Assert.False(h.IsClosed);
             Span<byte> span = GetSpan(pool, h);
             span.Fill(123);
 
@@ -162,6 +182,74 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             var pool = new UniformUnmanagedMemoryPool(128, capacity);
             Assert.NotNull(pool.Rent(initialRent));
             Assert.NotNull(pool.Rent(attempt));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Release_SubsequentRentReturnsNull(bool multiple)
+        {
+            var pool = new UniformUnmanagedMemoryPool(16, 16);
+            pool.Rent(); // Dummy rent
+            pool.Release();
+            if (multiple)
+            {
+                UnmanagedMemoryHandle b = pool.Rent();
+                Assert.Null(b);
+            }
+            else
+            {
+                UnmanagedMemoryHandle[] b = pool.Rent(2);
+                Assert.Null(b);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Release_SubsequentReturnClosesHandle(bool multiple)
+        {
+            var pool = new UniformUnmanagedMemoryPool(16, 16);
+            if (multiple)
+            {
+                UnmanagedMemoryHandle[] b = pool.Rent(2);
+                pool.Release();
+
+                Assert.False(b[0].IsClosed);
+                Assert.False(b[1].IsClosed);
+
+                pool.Return(b);
+
+                Assert.True(b[0].IsClosed);
+                Assert.True(b[1].IsClosed);
+            }
+            else
+            {
+                UnmanagedMemoryHandle b = pool.Rent();
+                pool.Release();
+                Assert.False(b.IsClosed);
+                pool.Return(b);
+                Assert.True(b.IsClosed);
+            }
+        }
+
+        [Fact]
+        public void Release_ShouldFreeRetainedMemory()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                var pool = new UniformUnmanagedMemoryPool(16, 16);
+                UnmanagedMemoryHandle a = pool.Rent();
+                UnmanagedMemoryHandle[] b = pool.Rent(2);
+                pool.Return(a);
+                pool.Return(b);
+
+                Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                pool.Release();
+                Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
+            }
         }
 
         [Fact]

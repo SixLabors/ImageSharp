@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -52,7 +53,7 @@ namespace SixLabors.ImageSharp.Memory
             this.sharedArrayPoolThresholdInBytes = sharedArrayPoolThresholdInBytes;
             this.poolBufferSizeInBytes = poolBufferSizeInBytes;
             this.poolCapacity = (int)(maxPoolSizeInBytes / poolBufferSizeInBytes);
-            this.pool = new UniformUnmanagedMemoryPool(poolBufferSizeInBytes, this.poolCapacity);
+            this.pool = new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity);
             this.unmnagedAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
         }
 
@@ -119,6 +120,14 @@ namespace SixLabors.ImageSharp.Memory
                 null :
                 MemoryGroup<T>.Allocate(this.pool, totalLength, bufferAlignment, options);
             return poolGroup ?? MemoryGroup<T>.Allocate(this.unmnagedAllocator, totalLength, bufferAlignment, options);
+        }
+
+        public override void ReleaseRetainedResources()
+        {
+            UniformUnmanagedMemoryPool oldPool = Interlocked.Exchange(
+                ref this.pool,
+                new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity));
+            oldPool.Release();
         }
 
         private static long GetDefaultMaxPoolSizeBytes()

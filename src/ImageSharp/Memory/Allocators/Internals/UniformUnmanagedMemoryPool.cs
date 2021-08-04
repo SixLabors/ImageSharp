@@ -3,12 +3,13 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
     internal partial class UniformUnmanagedMemoryPool
     {
-        private readonly UnmanagedMemoryHandle[] buffers;
+        private UnmanagedMemoryHandle[] buffers;
         private int index;
 
         public UniformUnmanagedMemoryPool(int bufferLength, int capacity)
@@ -26,8 +27,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
 
-            // Avoid taking the lock if we are over limit:
-            if (this.index == buffersLocal.Length)
+            // Avoid taking the lock if the pool is released or is over limit:
+            if (buffersLocal == null || this.index == buffersLocal.Length)
             {
                 return null;
             }
@@ -37,15 +38,13 @@ namespace SixLabors.ImageSharp.Memory.Internals
             lock (buffersLocal)
             {
                 // Check again after taking the lock:
-                if (this.index < buffersLocal.Length)
-                {
-                    array = buffersLocal[this.index];
-                    buffersLocal[this.index++] = null;
-                }
-                else
+                if (this.buffers == null || this.index == buffersLocal.Length)
                 {
                     return null;
                 }
+
+                array = buffersLocal[this.index];
+                buffersLocal[this.index++] = null;
             }
 
             if (array == null)
@@ -65,8 +64,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
 
-            // Avoid taking the lock if we are over limit:
-            if (this.index + bufferCount >= buffersLocal.Length + 1)
+            // Avoid taking the lock if the pool is released or is over limit:
+            if (buffersLocal == null || this.index + bufferCount >= buffersLocal.Length + 1)
             {
                 return null;
             }
@@ -75,18 +74,16 @@ namespace SixLabors.ImageSharp.Memory.Internals
             lock (buffersLocal)
             {
                 // Check again after taking the lock:
-                if (this.index + bufferCount <= buffersLocal.Length)
-                {
-                    result = new UnmanagedMemoryHandle[bufferCount];
-                    for (int i = 0; i < bufferCount; i++)
-                    {
-                        result[i] = buffersLocal[this.index];
-                        buffersLocal[this.index++] = null;
-                    }
-                }
-                else
+                if (this.buffers == null || this.index + bufferCount >= buffersLocal.Length + 1)
                 {
                     return null;
+                }
+
+                result = new UnmanagedMemoryHandle[bufferCount];
+                for (int i = 0; i < bufferCount; i++)
+                {
+                    result[i] = buffersLocal[this.index];
+                    buffersLocal[this.index++] = null;
                 }
             }
 
@@ -108,35 +105,77 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         public void Return(UnmanagedMemoryHandle buffer)
         {
-            lock (this.buffers)
+            UnmanagedMemoryHandle[] buffersLocal = this.buffers;
+            if (buffersLocal == null)
             {
+                buffer.Dispose();
+                return;
+            }
+
+            lock (buffersLocal)
+            {
+                // Check again after taking the lock:
+                if (this.buffers == null)
+                {
+                    buffer.Dispose();
+                    return;
+                }
+
                 if (this.index == 0)
                 {
-                    ThrowReturnedMoreArraysThanRented();
+                    ThrowReturnedMoreArraysThanRented(); // DEBUG-only exception
+                    buffer.Dispose();
+                    return;
                 }
-                else
-                {
-                    this.buffers[--this.index] = buffer;
-                }
+
+                this.buffers[--this.index] = buffer;
             }
         }
 
         public void Return(Span<UnmanagedMemoryHandle> buffers)
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
+            if (buffersLocal == null)
+            {
+                DisposeAll(buffers);
+                return;
+            }
+
             lock (buffersLocal)
             {
+                // Check again after taking the lock:
+                if (this.buffers == null)
+                {
+                    DisposeAll(buffers);
+                    return;
+                }
+
                 if (this.index - buffers.Length + 1 <= 0)
                 {
                     ThrowReturnedMoreArraysThanRented();
+                    DisposeAll(buffers);
+                    return;
                 }
-                else
+
+                for (int i = buffers.Length - 1; i >= 0; i--)
                 {
-                    for (int i = buffers.Length - 1; i >= 0; i--)
-                    {
-                        buffersLocal[--this.index] = buffers[i];
-                    }
+                    buffersLocal[--this.index] = buffers[i];
                 }
+            }
+        }
+
+        public void Release()
+        {
+            UnmanagedMemoryHandle[] oldBuffers = Interlocked.Exchange(ref this.buffers, null);
+            DebugGuard.NotNull(oldBuffers, nameof(oldBuffers));
+            DisposeAll(oldBuffers);
+        }
+
+        private static void DisposeAll(Span<UnmanagedMemoryHandle> buffers)
+        {
+            foreach (UnmanagedMemoryHandle handle in buffers)
+            {
+                handle?.Dispose();
             }
         }
 

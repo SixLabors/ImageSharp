@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Memory.Internals;
 using SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers;
 using Xunit;
 
@@ -199,6 +200,39 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 g0.Dispose();
                 using MemoryGroup<byte> g1 = allocator.AllocateGroup<byte>(bool.Parse(sharedStr) ? 300 : 600, 100);
                 Assert.Equal(42, g1.Single().Span[0]);
+            }
+        }
+
+        [Fact]
+        public void ReleaseRetainedResources_ShouldFreePooledMemory()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+            static void RunTest()
+            {
+                var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(128, 512, 16 * 512, 1024);
+                MemoryGroup<byte> g = allocator.AllocateGroup<byte>(2048, 128);
+                g.Dispose();
+                Assert.Equal(4, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                allocator.ReleaseRetainedResources();
+                Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
+            }
+        }
+
+        [Fact]
+        public void ReleaseRetainedResources_DoesNotFreeOutstandingBuffers()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+            static void RunTest()
+            {
+                var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(128, 512, 16 * 512, 1024);
+                IMemoryOwner<byte> b = allocator.Allocate<byte>(256);
+                MemoryGroup<byte> g = allocator.AllocateGroup<byte>(2048, 128);
+                Assert.Equal(5, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                allocator.ReleaseRetainedResources();
+                Assert.Equal(5, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                b.Dispose();
+                g.Dispose();
+                Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
             }
         }
 

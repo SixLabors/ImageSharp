@@ -177,16 +177,20 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
         }
 
+        private enum AllocatorKind
+        {
+            Classic,
+            Managed,
+            Unmanaged
+        }
+
         private class CommandLineOptions
         {
             [Option('i', "imagesharp", Required = false, Default = false)]
             public bool ImageSharp { get; set; }
 
-            [Option('a', "arraypool-alloc", Required = false, Default = false)]
-            public bool UseArrayPoolMemoryAllocator { get; set; }
-
-            [Option('d', "default-alloc", Required = false, Default = false)]
-            public bool UseDefaultAllocatorWithDefaultSettings { get; set; }
+            [Option('a', "allocator", Required = false, Default = AllocatorKind.Managed)]
+            public AllocatorKind Allocator { get; set; }
 
             [Option('m', "max-managed", Required = false, Default = 4)]
             public int MaxContiguousPoolBufferMegaBytes { get; set; } = 4;
@@ -230,26 +234,30 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.UseArrayPoolMemoryAllocator})_d({this.UseDefaultAllocatorWithDefaultSettings})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_t({this.TrimRate})_r({this.RepeatCount})_g({this.FinalGcCount})_l({this.CompactLohOnFinalGc})_e({this.ReleaseRetainedResourcesAtEnd})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.Allocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_t({this.TrimRate})_r({this.RepeatCount})_g({this.FinalGcCount})_l({this.CompactLohOnFinalGc})_e({this.ReleaseRetainedResourcesAtEnd})";
 
             public MemoryAllocator CreateMemoryAllocator()
             {
-                if (this.UseArrayPoolMemoryAllocator)
+                switch (this.Allocator)
                 {
-                    return ArrayPoolMemoryAllocator.CreateDefault();
+                    case AllocatorKind.Classic:
+                        return ArrayPoolMemoryAllocator.CreateDefault();
+                    case AllocatorKind.Managed:
+                        return new UniformByteArrayPoolMemoryAllocator(
+                            1024 * 1024,
+                            (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                            B(this.MaxPoolSizeMegaBytes),
+                            (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
+                            (float)this.TrimRate);
+                    case AllocatorKind.Unmanaged:
+                        return new UniformUnmanagedMemoryPoolMemoryAllocator(
+                            1024 * 1024,
+                            (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                            B(this.MaxPoolSizeMegaBytes),
+                            (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes));
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
-
-                if (this.UseDefaultAllocatorWithDefaultSettings)
-                {
-                    return MemoryAllocator.CreateDefault();
-                }
-
-                return new UniformByteArrayPoolMemoryAllocator(
-                    1024 * 1024,
-                    (int)B(this.MaxContiguousPoolBufferMegaBytes),
-                    B(this.MaxPoolSizeMegaBytes),
-                    (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
-                    (float)this.TrimRate);
             }
 
             private static long B(double megaBytes) => (long)(megaBytes * 1024 * 1024);

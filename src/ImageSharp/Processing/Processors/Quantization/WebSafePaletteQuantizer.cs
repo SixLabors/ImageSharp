@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
@@ -10,13 +8,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class WebSafePaletteQuantizer : PaletteQuantizer
     {
-        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.
         /// </summary>
         public WebSafePaletteQuantizer()
-            : this(DefaultOptions)
+            : this(new QuantizerOptions())
         {
         }
 

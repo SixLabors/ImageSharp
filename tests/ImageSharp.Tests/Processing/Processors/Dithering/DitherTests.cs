@@ -43,6 +43,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
                 { KnownDitherings.Ordered3x3, nameof(KnownDitherings.Ordered3x3) }
             };
 
+        public static readonly TheoryData<IDither> DefaultInstanceDitherers
+            = new TheoryData<IDither>
+            {
+                default(ErrorDither),
+                default(OrderedDither)
+            };
+
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
 
         private static IDither DefaultDitherer => KnownDitherings.Bayer4x4;
@@ -174,6 +181,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
                 41,
                 c => c.Dither(dither),
                 name);
+        }
+
+        [Theory]
+        [MemberData(nameof(DefaultInstanceDitherers))]
+        public void ShouldThrowForDefaultDitherInstance(IDither dither)
+        {
+            void Command()
+            {
+                using var image = new Image<Rgba32>(10, 10);
+                image.Mutate(x => x.Dither(dither));
+            }
+
+            Assert.Throws<ImageProcessingException>(Command);
         }
     }
 }

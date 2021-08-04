@@ -37,6 +37,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private BufferedReadStream inputStream;
 
         /// <summary>
+        /// Indicates the byte order of the stream.
+        /// </summary>
+        private ByteOrder byteOrder;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -109,6 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var reader = new DirectoryReader(stream);
 
             IEnumerable<ExifProfile> directories = reader.Read();
+            this.byteOrder = reader.ByteOrder;
 
             var frames = new List<ImageFrame<TPixel>>();
             foreach (ExifProfile ifd in directories)
@@ -260,7 +266,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
-                RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
+                TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
 
                 for (int i = 0; i < stripsPerPlane; i++)
                 {
@@ -310,7 +316,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.Predictor,
                 this.FaxCompressionOptions);
 
-            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
+            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {

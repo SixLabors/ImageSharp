@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
@@ -12,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     /// <summary>
     /// Implements the 'RGB' photometric interpretation with 'Planar' layout (for all bit depths).
     /// </summary>
-    internal class RgbPlanarTiffColor<TPixel>
+    internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly float rFactor;
@@ -47,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        public void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
+        public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
             var color = default(TPixel);
 
@@ -57,14 +58,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             for (int y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x++)
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
+                for (int x = 0; x < pixelRow.Length; x++)
                 {
                     float r = rBitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
                     float g = gBitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                     float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
                     color.FromVector4(new Vector4(r, g, b, 1.0f));
-                    pixels[x, y] = color;
+                    pixelRow[x] = color;
                 }
 
                 rBitReader.NextRow();

@@ -157,6 +157,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Fb = "Jpg/progressive/fb.jpg";
                 public const string Progress = "Jpg/progressive/progress.jpg";
                 public const string Festzug = "Jpg/progressive/Festzug.jpg";
+                public const string Winter = "Jpg/progressive/winter.jpg";
 
                 public static class Bad
                 {
@@ -198,6 +199,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Iptc = "Jpg/baseline/iptc.jpg";
                 public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
                 public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
+                public const string ForestBridgeDifferentComponentsQuality = "Jpg/baseline/forest_bridge.jpg";
 
                 public static readonly string[] All =
                 {

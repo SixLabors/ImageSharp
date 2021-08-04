@@ -14,7 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
     /// </summary>
     internal static class TiffUtils
     {
-        private const float Scale = 1.0f / 0xFFFFFF;
+        private const float Scale24Bit = 1.0f / 0xFFFFFF;
+
+        private const float Scale32Bit = 1.0f / 0xFFFFFFFF;
 
         public static Vector4 Vector4Default { get; } = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -56,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         public static TPixel ColorScaleTo24Bit<TPixel>(ulong r, ulong g, ulong b, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var colorVector = new Vector4(r * Scale, g * Scale, b * Scale, 1.0f);
+            var colorVector = new Vector4(r * Scale24Bit, g * Scale24Bit, b * Scale24Bit, 1.0f);
             color.FromVector4(colorVector);
             return color;
         }
@@ -74,7 +76,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         public static TPixel ColorScaleTo24Bit<TPixel>(ulong intensity, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var colorVector = new Vector4(intensity * Scale, intensity * Scale, intensity * Scale, 1.0f);
+            var colorVector = new Vector4(intensity * Scale24Bit, intensity * Scale24Bit, intensity * Scale24Bit, 1.0f);
+            color.FromVector4(colorVector);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorScaleTo32Bit<TPixel>(ulong intensity, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var colorVector = new Vector4(intensity * Scale32Bit, intensity * Scale32Bit, intensity * Scale32Bit, 1.0f);
             color.FromVector4(colorVector);
             return color;
         }

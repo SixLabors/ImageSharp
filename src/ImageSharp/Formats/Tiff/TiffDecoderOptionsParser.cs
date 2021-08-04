@@ -104,13 +104,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                    if (bitsPerChannel > 24)
+                    if (bitsPerChannel > 32)
                     {
                         TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
                     }
 
                     switch (bitsPerChannel)
                     {
+                        case 32:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero32;
+                            break;
+                        }
+
                         case 24:
                         {
                             options.ColorType = TiffColorType.WhiteIsZero24;
@@ -159,13 +165,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                    if (bitsPerChannel > 24)
+                    if (bitsPerChannel > 32)
                     {
                         TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
                     }
 
                     switch (bitsPerChannel)
                     {
+                        case 32:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero32;
+                            break;
+                        }
+
                         case 24:
                         {
                             options.ColorType = TiffColorType.BlackIsZero24;

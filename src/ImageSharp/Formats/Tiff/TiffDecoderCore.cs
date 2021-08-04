@@ -272,11 +272,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     int stripHeight = i < stripsPerPlane - 1 || frame.Height % rowsPerStrip == 0 ? rowsPerStrip : frame.Height % rowsPerStrip;
 
+                    int stripIndex = i;
                     for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
                     {
-                        int stripIndex = (i * stripsPerPixel) + planeIndex;
-
                         decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
+                        stripIndex += stripsPerPlane;
                     }
 
                     colorDecoder.Decode(stripBuffers, pixels, 0, rowsPerStrip * i, frame.Width, stripHeight);

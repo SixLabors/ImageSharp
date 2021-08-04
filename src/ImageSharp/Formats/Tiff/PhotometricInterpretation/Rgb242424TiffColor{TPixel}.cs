@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
-    /// Implements the 'RGB' photometric interpretation with 16 bits for each channel.
+    /// Implements the 'RGB' photometric interpretation with 24 bits for each channel.
     /// </summary>
     internal class Rgb242424TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>

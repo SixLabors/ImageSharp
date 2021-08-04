@@ -64,6 +64,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorScaleTo32Bit<TPixel>(ulong r, ulong g, ulong b, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var colorVector = new Vector4(r * Scale32Bit, g * Scale32Bit, b * Scale32Bit, 1.0f);
+            color.FromVector4(colorVector);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ColorFromL16<TPixel>(L16 l16, ushort intensity, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {

@@ -85,6 +85,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(FlowerRgb888Planar6Strips, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb888Planar15Strips, PixelTypes.Rgba32)]
+        public void TiffDecoder_Planar<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         [WithFile(PaletteDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(RgbPalette, PixelTypes.Rgba32)]

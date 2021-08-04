@@ -493,5 +493,96 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(data[i], dest[i]);
             }
         }
+
+        [Fact]
+        public void EqualsToScalar_AllOne()
+        {
+            static void RunTest()
+            {
+                // Fill matrix with valid value
+                Block8x8F block = default;
+                for (int i = 0; i < Block8x8F.Size; i++)
+                {
+                    block[i] = 1;
+                }
+
+                bool isEqual = block.EqualsToScalar(1);
+                Assert.True(isEqual);
+            }
+
+            // 2 paths:
+            // 1. DisableFMA - call avx implementation
+            // 3. DisableAvx2 - call fallback code of float implementation
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
+
+        [Theory]
+        [InlineData(10)]
+        public void EqualsToScalar_OneOffEachPosition(int equalsTo)
+        {
+            static void RunTest(string serializedEqualsTo)
+            {
+                int equalsTo = FeatureTestRunner.Deserialize<int>(serializedEqualsTo);
+                int offValue = 0;
+
+                // Fill matrix with valid value
+                Block8x8F block = default;
+                for (int i = 0; i < Block8x8F.Size; i++)
+                {
+                    block[i] = equalsTo;
+                }
+
+                // Assert with invalid values at different positions
+                for (int i = 0; i < Block8x8F.Size; i++)
+                {
+                    block[i] = offValue;
+
+                    bool isEqual = block.EqualsToScalar(equalsTo);
+                    Assert.False(isEqual, $"False equality:\n{block}");
+
+                    // restore valid value for next iteration assertion
+                    block[i] = equalsTo;
+                }
+            }
+
+            // 2 paths:
+            // 1. DisableFMA - call avx implementation
+            // 3. DisableAvx2 - call fallback code of float implementation
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                equalsTo,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
+
+        [Theory]
+        [InlineData(39)]
+        public void EqualsToScalar_Valid(int equalsTo)
+        {
+            static void RunTest(string serializedEqualsTo)
+            {
+                int equalsTo = FeatureTestRunner.Deserialize<int>(serializedEqualsTo);
+
+                // Fill matrix with valid value
+                Block8x8F block = default;
+                for (int i = 0; i < Block8x8F.Size; i++)
+                {
+                    block[i] = equalsTo;
+                }
+
+                // Assert
+                bool isEqual = block.EqualsToScalar(equalsTo);
+                Assert.True(isEqual);
+            }
+
+            // 2 paths:
+            // 1. DisableFMA - call avx implementation
+            // 3. DisableAvx2 - call fallback code of float implementation
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                equalsTo,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
     }
 }

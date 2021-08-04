@@ -141,6 +141,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
+
             int spread = CalculatePaletteSpread(processor.Palette.Length);
             float scale = processor.DitherScale;
 

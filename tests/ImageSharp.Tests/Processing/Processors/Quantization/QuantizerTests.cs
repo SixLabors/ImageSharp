@@ -155,10 +155,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 
         public static readonly TheoryData<IDither> DefaultInstanceDitherers
             = new TheoryData<IDither>
-        {
-            default(ErrorDither),
-            default(OrderedDither)
-        };
+            {
+                default(ErrorDither),
+                default(OrderedDither)
+            };
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05F);
 

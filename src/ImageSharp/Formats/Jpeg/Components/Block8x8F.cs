@@ -830,5 +830,46 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 d.V7R.W = this.V7R.W;
             }
         }
+
+        /// <summary>
+        /// Compares entire 8x8 block to a single scalar value.
+        /// </summary>
+        /// <param name="value">Value to compare to.</param>
+        public bool EqualsToScalar(int value)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
+
+                var targetVector = Vector256.Create(value);
+                ref Vector256<float> blockStride = ref this.V0;
+
+                for (int i = 0; i < RowCount; i++)
+                {
+                    Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
+                    if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+#endif
+            {
+                ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
+
+                for (int i = 0; i < Size; i++)
+                {
+                    if ((int)Unsafe.Add(ref scalars, i) != value)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
     }
 }

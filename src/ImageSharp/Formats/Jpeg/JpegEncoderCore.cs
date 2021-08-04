@@ -65,44 +65,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Gets the unscaled quantization tables in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from section K.1 after converting from natural to
-        /// zig-zag order.
-        /// </summary>
-        // The C# compiler emits this as a compile-time constant embedded in the PE file.
-        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
-        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
-        {
-            // Luminance.
-            16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
-            40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
-            57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
-            109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
-            100, 120, 92, 101, 103, 99,
-        };
-
-        /// <summary>
-        /// Gets the unscaled quantization tables in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from section K.1 after converting from natural to
-        /// zig-zag order.
-        /// </summary>
-        // The C# compiler emits this as a compile-time constant embedded in the PE file.
-        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
-        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        private static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
-        {
-            // Chrominance.
-            17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
-            99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-            99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-            99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-            99, 99, 99, 99, 99, 99, 99, 99,
-        };
-
-        /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -124,35 +86,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
+            JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
 
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
 
-            // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
-            this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
-
-            // Convert from a quality rating to a scaling factor.
-            int scale;
-            if (qlty < 50)
-            {
-                scale = 5000 / qlty;
-            }
-            else
-            {
-                scale = 200 - (qlty * 2);
-            }
-
+            // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
             // Initialize the quantization tables.
-            // TODO: This looks ugly, should we write chrominance table for luminance-only images?
-            // If not - this can code can be simplified
-            Block8x8F luminanceQuantTable = default;
-            Block8x8F chrominanceQuantTable = default;
-            InitQuantizationTable(0, scale, ref luminanceQuantTable);
-            if (componentCount > 1)
-            {
-                InitQuantizationTable(1, scale, ref chrominanceQuantTable);
-            }
+            this.InitQuantizationTables(componentCount, jpegMetadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable);
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
@@ -176,10 +117,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var scanEncoder = new HuffmanScanEncoder(stream);
             if (this.colorType == JpegColorType.Luminance)
             {
+                // luminance quantization table only
                 scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
             }
             else
             {
+                // luminance and chrominance quantization tables
                 switch (this.subsample)
                 {
                     case JpegSubsample.Ratio444:
@@ -690,31 +633,49 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Initializes quantization table.
+        /// Initializes quntization tables.
         /// </summary>
-        /// <param name="i">The quantization index.</param>
-        /// <param name="scale">The scaling factor.</param>
-        /// <param name="quant">The quantization table.</param>
-        private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
+        /// <remarks>
+        /// We take quality values in a hierarchical order:
+        /// 1. Check if encoder has set quality
+        /// 2. Check if metadata has special table for encoding
+        /// 3. Check if metadata has set quality
+        /// 4. Take default quality value - 75
+        /// </remarks>
+        /// <param name="componentCount">Color components count.</param>
+        /// <param name="metadata">Jpeg metadata instance.</param>
+        /// <param name="luminanceQuantTable">Output luminance quantization table.</param>
+        /// <param name="chrominanceQuantTable">Output chrominance quantization table.</param>
+        private void InitQuantizationTables(int componentCount, JpegMetadata metadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable)
         {
-            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
-            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
-
-            for (int j = 0; j < Block8x8F.Size; j++)
+            int lumaQuality;
+            int chromaQuality;
+            if (this.quality.HasValue)
             {
-                int x = unscaledQuant[j];
-                x = ((x * scale) + 50) / 100;
-                if (x < 1)
-                {
-                    x = 1;
-                }
+                lumaQuality = this.quality.Value;
+                chromaQuality = this.quality.Value;
+            }
+            else
+            {
+                lumaQuality = metadata.LuminanceQuality;
+                chromaQuality = metadata.ChrominanceQuality;
+            }
 
-                if (x > 255)
-                {
-                    x = 255;
-                }
+            // Luminance
+            lumaQuality = Numerics.Clamp(lumaQuality, 1, 100);
+            luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
 
-                quant[j] = x;
+            // Chrominance
+            chrominanceQuantTable = default;
+            if (componentCount > 1)
+            {
+                chromaQuality = Numerics.Clamp(chromaQuality, 1, 100);
+                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
+
+                if (!this.subsample.HasValue)
+                {
+                    this.subsample = chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
+                }
             }
         }
     }

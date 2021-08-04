@@ -5,7 +5,8 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
-
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
@@ -19,6 +20,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// Number of bits read.
         /// </summary>
         private int bitsRead;
+
+        /// <summary>
+        /// The logical order of bits within a byte.
+        /// </summary>
+        private readonly TiffFillOrder fillOrder;
 
         /// <summary>
         /// Current value.
@@ -221,12 +227,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// Initializes a new instance of the <see cref="T4BitReader" /> class.
         /// </summary>
         /// <param name="input">The compressed input stream.</param>
+        /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
         /// <param name="allocator">The memory allocator.</param>
         /// <param name="eolPadding">Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.</param>
         /// <param name="isModifiedHuffman">Indicates, if its the modified huffman code variation. Defaults to false.</param>
-        public T4BitReader(Stream input, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false, bool isModifiedHuffman = false)
+        public T4BitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false, bool isModifiedHuffman = false)
         {
+            this.fillOrder = fillOrder;
             this.Data = allocator.Allocate<byte>(bytesToRead);
             this.ReadImageDataFromStream(input, bytesToRead);
 
@@ -375,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     break;
                 }
 
-                var currBit = this.ReadValue(1);
+                uint currBit = this.ReadValue(1);
                 this.value = (this.value << 1) | currBit;
 
                 if (this.IsEndOfScanLine)
@@ -816,7 +824,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
             Span<byte> dataSpan = this.Data.GetSpan();
             int shift = 8 - this.bitsRead - 1;
-            var bit = (uint)((dataSpan[(int)this.position] & (1 << shift)) != 0 ? 1 : 0);
+            uint bit = (uint)((dataSpan[(int)this.position] & (1 << shift)) != 0 ? 1 : 0);
             this.bitsRead++;
 
             return bit;
@@ -837,6 +845,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             Span<byte> dataSpan = this.Data.GetSpan();
             input.Read(dataSpan, 0, bytesToRead);
+
+            if (this.fillOrder == TiffFillOrder.LeastSignificantBitFirst)
+            {
+                for (int i = 0; i < dataSpan.Length; i++)
+                {
+                    dataSpan[i] = ReverseBits(dataSpan[i]);
+                }
+            }
         }
+
+        // http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte ReverseBits(byte b) =>
+            (byte)((((b * 0x80200802UL) & 0x0884422110UL) * 0x0101010101UL) >> 32);
     }
 }

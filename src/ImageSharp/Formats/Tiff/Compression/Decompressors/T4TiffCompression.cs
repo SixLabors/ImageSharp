@@ -24,19 +24,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// Initializes a new instance of the <see cref="T4TiffCompression" /> class.
         /// </summary>
         /// <param name="allocator">The memory allocator.</param>
+        /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="width">The image width.</param>
         /// <param name="bitsPerPixel">The number of bits per pixel.</param>
         /// <param name="faxOptions">Fax compression options.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
-        public T4TiffCompression(MemoryAllocator allocator, int width, int bitsPerPixel, FaxCompressionOptions faxOptions, TiffPhotometricInterpretation photometricInterpretation)
+        public T4TiffCompression(MemoryAllocator allocator, TiffFillOrder fillOrder, int width, int bitsPerPixel, FaxCompressionOptions faxOptions, TiffPhotometricInterpretation photometricInterpretation)
             : base(allocator, width, bitsPerPixel)
         {
             this.faxCompressionOptions = faxOptions;
+            this.FillOrder = fillOrder;
 
             bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
             this.blackValue = (byte)(isWhiteZero ? 1 : 0);
         }
+
+        /// <summary>
+        /// Gets the logical order of bits within a byte.
+        /// </summary>
+        protected TiffFillOrder FillOrder { get; }
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
@@ -46,8 +53,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 TiffThrowHelper.ThrowNotSupported("TIFF CCITT 2D compression is not yet supported");
             }
 
-            var eolPadding = this.faxCompressionOptions.HasFlag(FaxCompressionOptions.EolPadding);
-            using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, eolPadding);
+            bool eolPadding = this.faxCompressionOptions.HasFlag(FaxCompressionOptions.EolPadding);
+            using var bitReader = new T4BitReader(stream, this.FillOrder, byteCount, this.Allocator, eolPadding);
 
             buffer.Clear();
             uint bitsWritten = 0;

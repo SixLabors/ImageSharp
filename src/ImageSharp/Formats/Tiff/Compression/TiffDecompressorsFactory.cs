@@ -16,7 +16,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             int width,
             int bitsPerPixel,
             TiffPredictor predictor,
-            FaxCompressionOptions faxOptions)
+            FaxCompressionOptions faxOptions,
+            TiffFillOrder fillOrder)
         {
             switch (method)
             {
@@ -40,11 +41,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
                 case TiffDecoderCompressionType.T4:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                    return new T4TiffCompression(allocator, width, bitsPerPixel, faxOptions, photometricInterpretation);
+                    return new T4TiffCompression(allocator, fillOrder, width, bitsPerPixel, faxOptions, photometricInterpretation);
 
                 case TiffDecoderCompressionType.HuffmanRle:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                    return new ModifiedHuffmanTiffCompression(allocator, width, bitsPerPixel, photometricInterpretation);
+                    return new ModifiedHuffmanTiffCompression(allocator, fillOrder, width, bitsPerPixel, photometricInterpretation);
 
                 default:
                     throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));

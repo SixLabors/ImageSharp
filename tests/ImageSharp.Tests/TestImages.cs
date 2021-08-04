@@ -539,6 +539,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
             public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
             public const string HuffmanRleAllMakeupCodes = "Tiff/huffman_rle_all_makeup_codes.tiff";
+            public const string CcittFax3LowerOrderBitsFirst01 = "Tiff/f8179f8f5e566349cf3583a1ff3ea95c.tiff";
+            public const string CcittFax3LowerOrderBitsFirst02 = "Tiff/g3test.tiff";
+            public const string HuffmanRleLowerOrderBitsFirst = "Tiff/basi3p02_huffman_rle_lowerOrderBitsFirst.tiff";
 
             // Test case for an issue, that the last bits in a row got ignored.
             public const string HuffmanRle_basi3p02 = "Tiff/basi3p02_huffman_rle.tiff";

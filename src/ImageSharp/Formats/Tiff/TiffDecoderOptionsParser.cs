@@ -111,6 +111,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     switch (bitsPerChannel)
                     {
+                        case 16:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero16;
+                            break;
+                        }
+
                         case 8:
                         {
                             options.ColorType = TiffColorType.WhiteIsZero8;
@@ -154,6 +160,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     switch (bitsPerChannel)
                     {
+                        case 16:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero16;
+                            break;
+                        }
+
                         case 8:
                         {
                             options.ColorType = TiffColorType.BlackIsZero8;

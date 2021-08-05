@@ -20,6 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private readonly byte blackValue;
 
+        private readonly int width;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="T4TiffCompression" /> class.
         /// </summary>
@@ -34,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             this.faxCompressionOptions = faxOptions;
             this.FillOrder = fillOrder;
-
+            this.width = width;
             bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
             this.blackValue = (byte)(isWhiteZero ? 1 : 0);
@@ -58,22 +60,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
             buffer.Clear();
             uint bitsWritten = 0;
+            uint pixelWritten = 0;
             while (bitReader.HasMoreData)
             {
                 bitReader.ReadNextRun();
 
                 if (bitReader.RunLength > 0)
                 {
-                    if (bitReader.IsWhiteRun)
-                    {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
-                        bitsWritten += bitReader.RunLength;
-                    }
-                    else
-                    {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
-                        bitsWritten += bitReader.RunLength;
-                    }
+                    this.WritePixelRun(buffer, bitReader, bitsWritten);
+
+                    bitsWritten += bitReader.RunLength;
+                    pixelWritten += bitReader.RunLength;
                 }
 
                 if (bitReader.IsEndOfScanLine)
@@ -85,7 +82,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
+
+                    pixelWritten = 0;
                 }
+            }
+
+            // Edge case for when we are at the last byte, but there are still some unwritten pixels left.
+            if (pixelWritten > 0 && pixelWritten < this.width)
+            {
+                bitReader.ReadNextRun();
+                this.WritePixelRun(buffer, bitReader, bitsWritten);
+            }
+        }
+
+        private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, uint bitsWritten)
+        {
+            if (bitReader.IsWhiteRun)
+            {
+                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
+            }
+            else
+            {
+                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
             }
         }
 

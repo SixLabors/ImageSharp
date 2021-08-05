@@ -220,9 +220,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 case TiffPhotometricInterpretation.Rgb:
                 {
-                    if (options.BitsPerSample.Channels != 3)
+                    TiffBitsPerSample bitsPerSample = options.BitsPerSample;
+                    if (bitsPerSample.Channels != 3)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    if (!(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2))
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only BitsPerSample with equal bits per channel are supported.");
                     }
 
                     if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)

@@ -33,6 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             byte[] buffer = new byte[4];
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
+            Span<byte> bufferSpan = buffer.AsSpan(bufferStartIdx);
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
@@ -41,15 +42,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong r = TiffUtils.ConvertToUIntBigEndian(buffer);
                         offset += 3;
 
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong g = TiffUtils.ConvertToUIntBigEndian(buffer);
                         offset += 3;
 
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong b = TiffUtils.ConvertToUIntBigEndian(buffer);
                         offset += 3;
 
@@ -60,15 +61,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong r = TiffUtils.ConvertToUIntLittleEndian(buffer);
                         offset += 3;
 
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong g = TiffUtils.ConvertToUIntLittleEndian(buffer);
                         offset += 3;
 
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong b = TiffUtils.ConvertToUIntLittleEndian(buffer);
                         offset += 3;
 

@@ -32,6 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             byte[] buffer = new byte[4];
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
+            Span<byte> bufferSpan = buffer.AsSpan(bufferStartIdx);
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong intensity = TiffUtils.ConvertToUIntBigEndian(buffer);
                         offset += 3;
 
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        data.Slice(offset, 3).CopyTo(buffer.AsSpan(bufferStartIdx));
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
                         ulong intensity = TiffUtils.ConvertToUIntLittleEndian(buffer);
                         offset += 3;
 

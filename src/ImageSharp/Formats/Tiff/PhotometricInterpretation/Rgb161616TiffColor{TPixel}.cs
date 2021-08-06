@@ -16,11 +16,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     {
         private readonly bool isBigEndian;
 
+        private readonly Configuration configuration;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb161616TiffColor{TPixel}" /> class.
         /// </summary>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public Rgb161616TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        public Rgb161616TiffColor(Configuration configuration, bool isBigEndian)
+        {
+            this.configuration = configuration;
+            this.isBigEndian = isBigEndian;
+        }
 
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -53,17 +60,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 }
                 else
                 {
-                    for (int x = 0; x < pixelRow.Length; x++)
-                    {
-                        ulong r = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
-                        offset += 2;
-                        ulong g = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
-                        offset += 2;
-                        ulong b = TiffUtils.ConvertToShortLittleEndian(data.Slice(offset, 2));
-                        offset += 2;
+                    int byteCount = pixelRow.Length * 6;
+                    PixelOperations<TPixel>.Instance.FromRgb48Bytes(
+                        this.configuration,
+                        data.Slice(offset, byteCount),
+                        pixelRow,
+                        pixelRow.Length);
 
-                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
-                    }
+                    offset += byteCount;
                 }
             }
         }

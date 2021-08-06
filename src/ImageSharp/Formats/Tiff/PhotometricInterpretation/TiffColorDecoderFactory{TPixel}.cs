@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal static class TiffColorDecoderFactory<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        public static TiffBaseColorDecoder<TPixel> Create(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
+        public static TiffBaseColorDecoder<TPixel> Create(Configuration configuration, TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
         {
             switch (colorType)
             {
@@ -55,12 +55,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.BlackIsZero8:
                     DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 8, "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
-                    return new BlackIsZero8TiffColor<TPixel>();
+                    return new BlackIsZero8TiffColor<TPixel>(configuration);
 
                 case TiffColorType.BlackIsZero16:
                     DebugGuard.IsTrue(bitsPerSample.Channels == 1 && bitsPerSample.Channel0 == 16, "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
-                    return new BlackIsZero16TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+                    return new BlackIsZero16TiffColor<TPixel>(configuration, byteOrder == ByteOrder.BigEndian);
 
                 case TiffColorType.Rgb:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         && bitsPerSample.Channel0 == 8,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
-                    return new Rgb888TiffColor<TPixel>();
+                    return new Rgb888TiffColor<TPixel>(configuration);
 
                 case TiffColorType.Rgb101010:
                     DebugGuard.IsTrue(
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         && bitsPerSample.Channel0 == 16,
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
-                    return new Rgb161616TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+                    return new Rgb161616TiffColor<TPixel>(configuration, isBigEndian: byteOrder == ByteOrder.BigEndian);
 
                 case TiffColorType.PaletteColor:
                     DebugGuard.NotNull(colorMap, "colorMap");

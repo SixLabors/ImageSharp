@@ -330,7 +330,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.FaxCompressionOptions,
                 this.FillOrder);
 
-            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
+            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.Configuration, this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {

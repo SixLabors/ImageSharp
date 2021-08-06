@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    new BlackIsZero8TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
+                    new BlackIsZero8TiffColor<Rgba32>(Configuration.Default).Decode(inputData, pixels, left, top, width, height);
                 });
         }
     }

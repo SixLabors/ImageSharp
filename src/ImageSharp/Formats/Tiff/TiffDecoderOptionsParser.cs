@@ -104,13 +104,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                    if (bitsPerChannel > 16)
+                    if (bitsPerChannel > 32)
                     {
                         TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
                     }
 
                     switch (bitsPerChannel)
                     {
+                        case 32:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero32;
+                            break;
+                        }
+
+                        case 24:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero24;
+                            break;
+                        }
+
                         case 16:
                         {
                             options.ColorType = TiffColorType.WhiteIsZero16;
@@ -153,13 +165,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                    if (bitsPerChannel > 16)
+                    if (bitsPerChannel > 32)
                     {
                         TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
                     }
 
                     switch (bitsPerChannel)
                     {
+                        case 32:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero32;
+                            break;
+                        }
+
+                        case 24:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero24;
+                            break;
+                        }
+
                         case 16:
                         {
                             options.ColorType = TiffColorType.BlackIsZero16;
@@ -196,9 +220,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 case TiffPhotometricInterpretation.Rgb:
                 {
-                    if (options.BitsPerSample.Channels != 3)
+                    TiffBitsPerSample bitsPerSample = options.BitsPerSample;
+                    if (bitsPerSample.Channels != 3)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    if (!(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2))
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only BitsPerSample with equal bits per channel are supported.");
                     }
 
                     if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
@@ -206,6 +236,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         ushort bitsPerChannel = options.BitsPerSample.Channel0;
                         switch (bitsPerChannel)
                         {
+                            case 32:
+                                options.ColorType = TiffColorType.Rgb323232;
+                                break;
+
+                            case 24:
+                                options.ColorType = TiffColorType.Rgb242424;
+                                break;
+
                             case 16:
                                 options.ColorType = TiffColorType.Rgb161616;
                                 break;
@@ -238,7 +276,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        options.ColorType = TiffColorType.RgbPlanar;
+                        ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                        switch (bitsPerChannel)
+                        {
+                            case 32:
+                                options.ColorType = TiffColorType.Rgb323232Planar;
+                                break;
+                            case 24:
+                                options.ColorType = TiffColorType.Rgb242424Planar;
+                                break;
+                            case 16:
+                                options.ColorType = TiffColorType.Rgb161616Planar;
+                                break;
+                            default:
+                                options.ColorType = TiffColorType.Rgb888Planar;
+                                break;
+                        }
                     }
 
                     break;

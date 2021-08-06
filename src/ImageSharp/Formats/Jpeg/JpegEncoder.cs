@@ -13,11 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
     {
-        /// <summary>
-        /// Gets or sets the quality, that will be used to encode the image. Quality
-        /// index must be between 0 and 100 (compression from max to min).
-        /// Defaults to <value>75</value>.
-        /// </summary>
+        /// <inheritdoc/>
         public int? Quality { get; set; }
 
         /// <summary>

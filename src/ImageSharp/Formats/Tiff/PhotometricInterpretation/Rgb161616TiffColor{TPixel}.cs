@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,43 +16,60 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     {
         private readonly bool isBigEndian;
 
+        private readonly Configuration configuration;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb161616TiffColor{TPixel}" /> class.
         /// </summary>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public Rgb161616TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        public Rgb161616TiffColor(Configuration configuration, bool isBigEndian)
+        {
+            this.configuration = configuration;
+            this.isBigEndian = isBigEndian;
+        }
 
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
+            // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
+            // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
+            Rgba64 rgba = TiffUtils.Rgba64Default;
             var color = default(TPixel);
+            color.FromVector4(TiffUtils.Vector4Default);
 
             int offset = 0;
 
-            var rgba = default(Rgba64);
             for (int y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
 
-                for (int x = left; x < left + width; x++)
+                if (this.isBigEndian)
                 {
-                    ulong r = this.ConvertToShort(data.Slice(offset, 2));
-                    offset += 2;
-                    ulong g = this.ConvertToShort(data.Slice(offset, 2));
-                    offset += 2;
-                    ulong b = this.ConvertToShort(data.Slice(offset, 2));
-                    offset += 2;
+                    for (int x = 0; x < pixelRow.Length; x++)
+                    {
+                        ulong r = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                        offset += 2;
+                        ulong g = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                        offset += 2;
+                        ulong b = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                        offset += 2;
 
-                    rgba.PackedValue = r | (g << 16) | (b << 32) | (0xfffful << 48);
-                    color.FromRgba64(rgba);
+                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                    }
+                }
+                else
+                {
+                    int byteCount = pixelRow.Length * 6;
+                    PixelOperations<TPixel>.Instance.FromRgb48Bytes(
+                        this.configuration,
+                        data.Slice(offset, byteCount),
+                        pixelRow,
+                        pixelRow.Length);
 
-                    pixelRow[x] = color;
+                    offset += byteCount;
                 }
             }
         }
-
-        private ushort ConvertToShort(ReadOnlySpan<byte> buffer) => this.isBigEndian
-                ? BinaryPrimitives.ReadUInt16BigEndian(buffer)
-                : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
     }
 }

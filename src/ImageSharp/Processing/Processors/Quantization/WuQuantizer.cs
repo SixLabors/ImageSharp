@@ -10,14 +10,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class WuQuantizer : IQuantizer
     {
-        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="WuQuantizer"/> class
         /// using the default <see cref="QuantizerOptions"/>.
         /// </summary>
         public WuQuantizer()
-            : this(DefaultOptions)
+            : this(new QuantizerOptions())
         {
         }
 

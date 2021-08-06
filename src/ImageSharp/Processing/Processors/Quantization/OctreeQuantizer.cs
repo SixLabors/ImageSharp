@@ -11,14 +11,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class OctreeQuantizer : IQuantizer
     {
-        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class
         /// using the default <see cref="QuantizerOptions"/>.
         /// </summary>
         public OctreeQuantizer()
-            : this(DefaultOptions)
+            : this(new QuantizerOptions())
         {
         }
 

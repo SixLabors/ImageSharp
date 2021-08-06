@@ -11,7 +11,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class PaletteQuantizer : IQuantizer
     {
-        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
         private readonly ReadOnlyMemory<Color> colorPalette;
 
         /// <summary>
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="palette">The color palette.</param>
         public PaletteQuantizer(ReadOnlyMemory<Color> palette)
-            : this(palette, DefaultOptions)
+            : this(palette, new QuantizerOptions())
         {
         }
 

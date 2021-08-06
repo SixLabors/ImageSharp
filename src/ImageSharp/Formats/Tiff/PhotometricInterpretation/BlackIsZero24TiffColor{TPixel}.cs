@@ -9,28 +9,30 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
-    /// Implements the 'WhiteIsZero' photometric interpretation for 16-bit grayscale images.
+    /// Implements the 'BlackIsZero' photometric interpretation for 24-bit grayscale images.
     /// </summary>
-    internal class WhiteIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
+    internal class BlackIsZero24TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly bool isBigEndian;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WhiteIsZero16TiffColor{TPixel}" /> class.
+        /// Initializes a new instance of the <see cref="BlackIsZero24TiffColor{TPixel}" /> class.
         /// </summary>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public WhiteIsZero16TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        public BlackIsZero24TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
 
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
             // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
-            L16 l16 = TiffUtils.L16Default;
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
+            byte[] buffer = new byte[4];
+            int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
+            Span<byte> bufferSpan = buffer.AsSpan(bufferStartIdx);
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {
@@ -39,20 +41,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2)));
-                        offset += 2;
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
+                        ulong intensity = TiffUtils.ConvertToUIntBigEndian(buffer);
+                        offset += 3;
 
-                        pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(intensity, color);
                     }
                 }
                 else
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToUShortLittleEndian(data.Slice(offset, 2)));
-                        offset += 2;
+                        data.Slice(offset, 3).CopyTo(bufferSpan);
+                        ulong intensity = TiffUtils.ConvertToUIntLittleEndian(buffer);
+                        offset += 3;
 
-                        pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(intensity, color);
                     }
                 }
             }

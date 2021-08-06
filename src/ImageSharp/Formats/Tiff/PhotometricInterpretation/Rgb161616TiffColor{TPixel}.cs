@@ -48,11 +48,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ulong r = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
+                        ulong r = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
-                        ulong g = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
+                        ulong g = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
-                        ulong b = TiffUtils.ConvertToShortBigEndian(data.Slice(offset, 2));
+                        ulong b = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
 
                         pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);

@@ -16,11 +16,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     {
         private readonly bool isBigEndian;
 
+        private readonly Configuration configuration;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="BlackIsZero16TiffColor{TPixel}" /> class.
         /// </summary>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public BlackIsZero16TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        public BlackIsZero16TiffColor(Configuration configuration, bool isBigEndian)
+        {
+            this.configuration = configuration;
+            this.isBigEndian = isBigEndian;
+        }
 
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -47,13 +54,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 }
                 else
                 {
-                    for (int x = 0; x < pixelRow.Length; x++)
-                    {
-                        ushort intensity = TiffUtils.ConvertToUShortLittleEndian(data.Slice(offset, 2));
-                        offset += 2;
+                    int byteCount = pixelRow.Length * 2;
+                    PixelOperations<TPixel>.Instance.FromL16Bytes(
+                        this.configuration,
+                        data.Slice(offset, byteCount),
+                        pixelRow,
+                        pixelRow.Length);
 
-                        pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
-                    }
+                    offset += byteCount;
                 }
             }
         }

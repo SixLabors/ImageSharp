@@ -134,6 +134,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         Rgb323232,
 
         /// <summary>
+        /// RGB color image with 32 bits floats for each channel.
+        /// </summary>
+        RgbFloat323232,
+
+        /// <summary>
         /// RGB Full Color. Planar configuration of data. 8 Bit per color channel.
         /// </summary>
         Rgb888Planar,

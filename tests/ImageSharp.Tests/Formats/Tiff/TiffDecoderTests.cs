@@ -238,6 +238,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(FlowerRgbFloat323232, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgbFloat323232LittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Float_96Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
         [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(RgbDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(Calliphora_GrayscaleDeflate, PixelTypes.Rgba32)]

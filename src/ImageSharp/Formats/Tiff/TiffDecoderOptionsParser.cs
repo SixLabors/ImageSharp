@@ -45,14 +45,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowNotSupported("TIFF images with FloatingPoint horizontal predictor are not supported.");
             }
 
-            TiffSampleFormat[] sampleFormat = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
-            if (sampleFormat != null)
+            TiffSampleFormat[] sampleFormats = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
+            TiffSampleFormat? sampleFormat = null;
+            if (sampleFormats != null)
             {
-                foreach (TiffSampleFormat format in sampleFormat)
+                sampleFormat = sampleFormats[0];
+                foreach (TiffSampleFormat format in sampleFormats)
                 {
-                    if (format != TiffSampleFormat.UnsignedInteger)
+                    if (format != TiffSampleFormat.UnsignedInteger && format != TiffSampleFormat.Float)
                     {
-                        TiffThrowHelper.ThrowNotSupported("ImageSharp only supports the UnsignedInteger SampleFormat.");
+                        TiffThrowHelper.ThrowNotSupported("ImageSharp only supports the UnsignedInteger and Float SampleFormat.");
                     }
                 }
             }
@@ -67,6 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
             options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
             options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
+            options.SampleFormat = sampleFormat ?? TiffSampleFormat.UnsignedInteger;
             options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
             options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
 
@@ -229,6 +232,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     if (!(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2))
                     {
                         TiffThrowHelper.ThrowNotSupported("Only BitsPerSample with equal bits per channel are supported.");
+                    }
+
+                    if (options.SampleFormat == TiffSampleFormat.Float)
+                    {
+                        options.ColorType = TiffColorType.RgbFloat323232;
+                        return;
                     }
 
                     if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)

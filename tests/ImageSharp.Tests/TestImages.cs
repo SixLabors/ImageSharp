@@ -607,6 +607,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower32BitGrayLittleEndian = "Tiff/flower-minisblack-32_lsb.tiff";
             public const string Flower32BitFloatGray = "Tiff/flower-minisblack-float32_msb.tiff";
             public const string Flower32BitFloatGrayLittleEndian = "Tiff/flower-minisblack-float32_lsb.tiff";
+            public const string Flower32BitFloatGrayMinIsWhite = "Tiff/flower-miniswhite-float32_msb.tiff";
+            public const string Flower32BitFloatGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-float32_lsb.tiff";
             public const string Flower32BitGrayMinIsWhite = "Tiff/flower-miniswhite-32.tiff";
             public const string Flower32BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-32_lsb.tiff";
 

@@ -251,6 +251,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Flower32BitFloatGray, PixelTypes.Rgba32)]
         [WithFile(Flower32BitFloatGrayLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitFloatGrayMinIsWhite, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitFloatGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Float_96Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

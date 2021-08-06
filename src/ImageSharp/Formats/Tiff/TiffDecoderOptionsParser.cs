@@ -116,6 +116,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         case 32:
                         {
+                            if (options.SampleFormat == TiffSampleFormat.Float)
+                            {
+                                options.ColorType = TiffColorType.WhiteIsZero32Float;
+                                return;
+                            }
+
                             options.ColorType = TiffColorType.WhiteIsZero32;
                             break;
                         }

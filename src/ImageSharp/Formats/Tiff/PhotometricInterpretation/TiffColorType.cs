@@ -84,6 +84,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         WhiteIsZero32,
 
         /// <summary>
+        /// Grayscale: 0 is imaged as black. The maximum value is imaged as white. Pixel data is 32-bit float.
+        /// </summary>
+        WhiteIsZero32Float,
+
+        /// <summary>
         /// Palette-color.
         /// </summary>
         PaletteColor,

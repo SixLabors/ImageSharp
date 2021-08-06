@@ -10,18 +10,18 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
-    /// Implements the 'RGB' photometric interpretation with 32 bits for each channel.
+    /// Implements the 'BlackIsZero' photometric interpretation for 32-bit float grayscale images.
     /// </summary>
-    internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
+    internal class BlackIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly bool isBigEndian;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RgbFloat323232TiffColor{TPixel}" /> class.
+        /// Initializes a new instance of the <see cref="BlackIsZero32FloatTiffColor{TPixel}" /> class.
         /// </summary>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public RgbFloat323232TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        public BlackIsZero32FloatTiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
 
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -30,33 +30,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
-            int offset = 0;
             byte[] buffer = new byte[4];
 
+            int offset = 0;
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
-
                 if (this.isBigEndian)
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
                         data.Slice(offset, 4).CopyTo(buffer);
                         Array.Reverse(buffer);
-                        float r = BitConverter.ToSingle(buffer, 0);
+                        float intensity = BitConverter.ToSingle(buffer, 0);
                         offset += 4;
 
-                        data.Slice(offset, 4).CopyTo(buffer);
-                        Array.Reverse(buffer);
-                        float g = BitConverter.ToSingle(buffer, 0);
-                        offset += 4;
-
-                        data.Slice(offset, 4).CopyTo(buffer);
-                        Array.Reverse(buffer);
-                        float b = BitConverter.ToSingle(buffer, 0);
-                        offset += 4;
-
-                        var colorVector = new Vector4(r, g, b, 1.0f);
+                        var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
                         color.FromVector4(colorVector);
                         pixelRow[x] = color;
                     }
@@ -66,18 +55,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
                         data.Slice(offset, 4).CopyTo(buffer);
-                        float r = BitConverter.ToSingle(buffer, 0);
+                        float intensity = BitConverter.ToSingle(buffer, 0);
                         offset += 4;
 
-                        data.Slice(offset, 4).CopyTo(buffer);
-                        float g = BitConverter.ToSingle(buffer, 0);
-                        offset += 4;
-
-                        data.Slice(offset, 4).CopyTo(buffer);
-                        float b = BitConverter.ToSingle(buffer, 0);
-                        offset += 4;
-
-                        var colorVector = new Vector4(r, g, b, 1.0f);
+                        var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
                         color.FromVector4(colorVector);
                         pixelRow[x] = color;
                     }

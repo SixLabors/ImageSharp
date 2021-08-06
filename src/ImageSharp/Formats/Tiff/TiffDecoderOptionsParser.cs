@@ -177,6 +177,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         case 32:
                         {
+                            if (options.SampleFormat == TiffSampleFormat.Float)
+                            {
+                                options.ColorType = TiffColorType.BlackIsZero32Float;
+                                return;
+                            }
+
                             options.ColorType = TiffColorType.BlackIsZero32;
                             break;
                         }
@@ -234,18 +240,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         TiffThrowHelper.ThrowNotSupported("Only BitsPerSample with equal bits per channel are supported.");
                     }
 
-                    if (options.SampleFormat == TiffSampleFormat.Float)
-                    {
-                        options.ColorType = TiffColorType.RgbFloat323232;
-                        return;
-                    }
-
                     if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
                     {
                         ushort bitsPerChannel = options.BitsPerSample.Channel0;
                         switch (bitsPerChannel)
                         {
                             case 32:
+                                if (options.SampleFormat == TiffSampleFormat.Float)
+                                {
+                                    options.ColorType = TiffColorType.RgbFloat323232;
+                                    return;
+                                }
+
                                 options.ColorType = TiffColorType.Rgb323232;
                                 break;
 

@@ -270,6 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.PhotometricInterpretation,
                     frame.Width,
                     bitsPerPixel,
+                    this.ColorType,
                     this.Predictor,
                     this.FaxCompressionOptions,
                     this.byteOrder);
@@ -321,6 +322,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.PhotometricInterpretation,
                 frame.Width,
                 bitsPerPixel,
+                this.ColorType,
                 this.Predictor,
                 this.FaxCompressionOptions,
                 this.byteOrder);

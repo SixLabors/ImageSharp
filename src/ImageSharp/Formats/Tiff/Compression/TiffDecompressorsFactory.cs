@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression
@@ -15,6 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             TiffPhotometricInterpretation photometricInterpretation,
             int width,
             int bitsPerPixel,
+            TiffColorType colorType,
             TiffPredictor predictor,
             FaxCompressionOptions faxOptions,
             ByteOrder byteOrder)
@@ -33,11 +35,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
                 case TiffDecoderCompressionType.Deflate:
                     DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                    return new DeflateTiffCompression(allocator, width, bitsPerPixel, predictor, byteOrder == ByteOrder.BigEndian);
+                    return new DeflateTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian);
 
                 case TiffDecoderCompressionType.Lzw:
                     DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                    return new LzwTiffCompression(allocator, width, bitsPerPixel, predictor, byteOrder == ByteOrder.BigEndian);
+                    return new LzwTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian);
 
                 case TiffDecoderCompressionType.T4:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

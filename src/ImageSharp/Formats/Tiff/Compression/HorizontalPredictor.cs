@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -20,21 +21,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// </summary>
         /// <param name="pixelBytes">Buffer with decompressed pixel data.</param>
         /// <param name="width">The width of the image or strip.</param>
-        /// <param name="bitsPerPixel">Bits per pixel.</param>
+        /// <param name="colorType">The color type of the pixel data.</param>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public static void Undo(Span<byte> pixelBytes, int width, int bitsPerPixel, bool isBigEndian)
+        public static void Undo(Span<byte> pixelBytes, int width, TiffColorType colorType, bool isBigEndian)
         {
-            if (bitsPerPixel == 8)
+            switch (colorType)
             {
-                Undo8Bit(pixelBytes, width);
-            }
-            else if (bitsPerPixel == 16)
-            {
-                Undo16Bit(pixelBytes, width, isBigEndian);
-            }
-            else if (bitsPerPixel == 24)
-            {
-                Undo24Bit(pixelBytes, width);
+                case TiffColorType.BlackIsZero8:
+                case TiffColorType.WhiteIsZero8:
+                case TiffColorType.PaletteColor:
+                    UndoGray8Bit(pixelBytes, width);
+                    break;
+                case TiffColorType.BlackIsZero16:
+                case TiffColorType.WhiteIsZero16:
+                    UndoGray16Bit(pixelBytes, width, isBigEndian);
+                    break;
+                case TiffColorType.BlackIsZero32:
+                case TiffColorType.WhiteIsZero32:
+                    UndoGray32Bit(pixelBytes, width, isBigEndian);
+                    break;
+                case TiffColorType.Rgb888:
+                    UndoRgb24Bit(pixelBytes, width);
+                    break;
             }
         }
 
@@ -99,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             }
         }
 
-        private static void Undo8Bit(Span<byte> pixelBytes, int width)
+        private static void UndoGray8Bit(Span<byte> pixelBytes, int width)
         {
             int rowBytesCount = width;
             int height = pixelBytes.Length / rowBytesCount;
@@ -116,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             }
         }
 
-        private static void Undo16Bit(Span<byte> pixelBytes, int width, bool isBigEndian)
+        private static void UndoGray16Bit(Span<byte> pixelBytes, int width, bool isBigEndian)
         {
             int rowBytesCount = width * 2;
             int height = pixelBytes.Length / rowBytesCount;
@@ -160,7 +168,51 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             }
         }
 
-        private static void Undo24Bit(Span<byte> pixelBytes, int width)
+        private static void UndoGray32Bit(Span<byte> pixelBytes, int width, bool isBigEndian)
+        {
+            int rowBytesCount = width * 4;
+            int height = pixelBytes.Length / rowBytesCount;
+            if (isBigEndian)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    int offset = 0;
+                    Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+                    uint pixelValue = TiffUtils.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
+                    offset += 4;
+
+                    for (int x = 1; x < width; x++)
+                    {
+                        Span<byte> rowSpan = rowBytes.Slice(offset, 4);
+                        uint diff = TiffUtils.ConvertToUIntBigEndian(rowSpan);
+                        pixelValue += diff;
+                        BinaryPrimitives.WriteUInt32BigEndian(rowSpan, pixelValue);
+                        offset += 4;
+                    }
+                }
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    int offset = 0;
+                    Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+                    uint pixelValue = TiffUtils.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
+                    offset += 4;
+
+                    for (int x = 1; x < width; x++)
+                    {
+                        Span<byte> rowSpan = rowBytes.Slice(offset, 4);
+                        uint diff = TiffUtils.ConvertToUIntLittleEndian(rowSpan);
+                        pixelValue += diff;
+                        BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, pixelValue);
+                        offset += 4;
+                    }
+                }
+            }
+        }
+
+        private static void UndoRgb24Bit(Span<byte> pixelBytes, int width)
         {
             int rowBytesCount = width * 3;
             int height = pixelBytes.Length / rowBytesCount;

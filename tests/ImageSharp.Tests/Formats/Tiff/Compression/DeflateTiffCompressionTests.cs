@@ -5,6 +5,7 @@ using System.IO;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.IO;
 
 using Xunit;
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             {
                 var buffer = new byte[data.Length];
 
-                using var decompressor = new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None, false);
+                using var decompressor = new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false);
 
                 decompressor.Decompress(stream, 0, (uint)stream.Length, buffer);
 

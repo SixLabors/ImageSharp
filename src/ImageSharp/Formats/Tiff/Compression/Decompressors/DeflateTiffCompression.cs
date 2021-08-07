@@ -6,6 +6,7 @@ using System.IO.Compression;
 
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -21,16 +22,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     {
         private readonly bool isBigEndian;
 
+        private readonly TiffColorType colorType;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.
         /// </summary>
         /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
         /// <param name="width">The image width.</param>
         /// <param name="bitsPerPixel">The bits used per pixel.</param>
+        /// <param name="colorType">The color type of the pixel data.</param>
         /// <param name="predictor">The tiff predictor used.</param>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor, bool isBigEndian)
-            : base(memoryAllocator, width, bitsPerPixel, predictor) => this.isBigEndian = isBigEndian;
+        public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian)
+            : base(memoryAllocator, width, bitsPerPixel, predictor)
+        {
+            this.colorType = colorType;
+            this.isBigEndian = isBigEndian;
+        }
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
@@ -62,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
             if (this.Predictor == TiffPredictor.Horizontal)
             {
-                HorizontalPredictor.Undo(buffer, this.Width, this.BitsPerPixel, this.isBigEndian);
+                HorizontalPredictor.Undo(buffer, this.Width, this.colorType, this.isBigEndian);
             }
         }
 

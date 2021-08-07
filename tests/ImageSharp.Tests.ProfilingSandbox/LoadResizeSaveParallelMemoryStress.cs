@@ -232,8 +232,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('f', "file", Required = false, Default = null)]
             public string FileOutput { get; set; }
 
-            [Option('t', "trim-time", Required = false, Default = 60)]
-            public int TrimTimeSeconds { get; set; }
+            [Option('t', "trim-time", Required = false, Default = null)]
+            public int? TrimTimeSeconds { get; set; }
 
             public static CommandLineOptions Parse(string[] args)
             {
@@ -257,15 +257,27 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                         return ArrayPoolMemoryAllocator.CreateDefault();
 #pragma warning restore CS0618
                     case AllocatorKind.Unmanaged:
-                        return new UniformUnmanagedMemoryPoolMemoryAllocator(
-                            1024 * 1024,
-                            (int)B(this.MaxContiguousPoolBufferMegaBytes),
-                            B(this.MaxPoolSizeMegaBytes),
-                            (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
-                            new UniformUnmanagedMemoryPool.TrimSettings
-                            {
-                                TrimPeriodMilliseconds = this.TrimTimeSeconds * 100
-                            });
+                        if (this.TrimTimeSeconds.HasValue)
+                        {
+                            return new UniformUnmanagedMemoryPoolMemoryAllocator(
+                                1024 * 1024,
+                                (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                                B(this.MaxPoolSizeMegaBytes),
+                                (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
+                                new UniformUnmanagedMemoryPool.TrimSettings
+                                {
+                                    TrimPeriodMilliseconds = this.TrimTimeSeconds.Value * 1000
+                                });
+                        }
+                        else
+                        {
+                            return new UniformUnmanagedMemoryPoolMemoryAllocator(
+                                1024 * 1024,
+                                (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                                B(this.MaxPoolSizeMegaBytes),
+                                (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes));
+                        }
+
                     default:
                         throw new ArgumentOutOfRangeException();
                 }

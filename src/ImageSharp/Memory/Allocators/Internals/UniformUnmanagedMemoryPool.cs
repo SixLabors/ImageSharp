@@ -44,6 +44,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 #if NETCORE31COMPATIBLE
                 Gen2GcCallback.Register(s => ((UniformUnmanagedMemoryPool)s).Trim(), this);
 #endif
+                this.lastTrimTimestamp = Stopwatch.ElapsedMilliseconds;
             }
         }
 
@@ -262,6 +263,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 // Trim all:
                 for (int i = this.index; i < buffersLocal.Length && buffersLocal[i] != null; i++)
                 {
+                    buffersLocal[i].Dispose();
                     buffersLocal[i] = null;
                 }
             }
@@ -316,13 +318,12 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public class TrimSettings
         {
             // Trim half of the retained pool buffers every minute.
-            public int TrimPeriodMilliseconds { get; set; } = 20_000;
+            public int TrimPeriodMilliseconds { get; set; } = 60_000;
 
             public float Rate { get; set; } = 0.5f;
 
-            // Be more strict about high pressure threshold than ArrayPool<T>.Shared.
-            // A 32 bit process can OOM before reaching HighMemoryLoadThresholdBytes.
-            public float HighPressureThresholdRate { get; set; } = 0.5f;
+            // Be more strict about high pressure on 32 bit.
+            public unsafe float HighPressureThresholdRate { get; set; } = sizeof(IntPtr) == 8 ? 0.9f : 0.6f;
 
             public bool Enabled => this.Rate > 0;
 

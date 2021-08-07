@@ -18,6 +18,7 @@ namespace SixLabors.ImageSharp.Memory
         private readonly int sharedArrayPoolThresholdInBytes;
         private readonly int poolBufferSizeInBytes;
         private readonly int poolCapacity;
+        private readonly UniformUnmanagedMemoryPool.TrimSettings trimSettings;
 
         private UniformUnmanagedMemoryPool pool;
         private readonly UnmanagedMemoryAllocator nonPoolAllocator;
@@ -42,17 +43,32 @@ namespace SixLabors.ImageSharp.Memory
         {
         }
 
-        // Internal constructor allowing to change the shared array pool threshold for testing purposes.
         internal UniformUnmanagedMemoryPoolMemoryAllocator(
             int sharedArrayPoolThresholdInBytes,
             int poolBufferSizeInBytes,
             long maxPoolSizeInBytes,
             int unmanagedBufferSizeInBytes)
+            : this(
+                sharedArrayPoolThresholdInBytes,
+                poolBufferSizeInBytes,
+                maxPoolSizeInBytes,
+                unmanagedBufferSizeInBytes,
+                UniformUnmanagedMemoryPool.TrimSettings.Default)
+        {
+        }
+
+        internal UniformUnmanagedMemoryPoolMemoryAllocator(
+            int sharedArrayPoolThresholdInBytes,
+            int poolBufferSizeInBytes,
+            long maxPoolSizeInBytes,
+            int unmanagedBufferSizeInBytes,
+            UniformUnmanagedMemoryPool.TrimSettings trimSettings)
         {
             this.sharedArrayPoolThresholdInBytes = sharedArrayPoolThresholdInBytes;
             this.poolBufferSizeInBytes = poolBufferSizeInBytes;
             this.poolCapacity = (int)(maxPoolSizeInBytes / poolBufferSizeInBytes);
-            this.pool = new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity);
+            this.trimSettings = trimSettings;
+            this.pool = new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity, this.trimSettings);
             this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
         }
 
@@ -125,7 +141,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             UniformUnmanagedMemoryPool oldPool = Interlocked.Exchange(
                 ref this.pool,
-                new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity));
+                new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity, this.trimSettings));
             oldPool.Release();
         }
 

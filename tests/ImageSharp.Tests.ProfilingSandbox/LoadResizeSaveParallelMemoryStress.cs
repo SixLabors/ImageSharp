@@ -11,6 +11,7 @@ using System.Threading;
 using CommandLine;
 using SixLabors.ImageSharp.Benchmarks.LoadResizeSave;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 {
@@ -231,6 +232,9 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('f', "file", Required = false, Default = null)]
             public string FileOutput { get; set; }
 
+            [Option('t', "trim-time", Required = false, Default = 60)]
+            public int TrimTimeSeconds { get; set; }
+
             public static CommandLineOptions Parse(string[] args)
             {
                 CommandLineOptions result = null;
@@ -257,7 +261,11 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                             1024 * 1024,
                             (int)B(this.MaxContiguousPoolBufferMegaBytes),
                             B(this.MaxPoolSizeMegaBytes),
-                            (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes));
+                            (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
+                            new UniformUnmanagedMemoryPool.TrimSettings
+                            {
+                                TrimPeriodMilliseconds = this.TrimTimeSeconds * 100
+                            });
                     default:
                         throw new ArgumentOutOfRangeException();
                 }

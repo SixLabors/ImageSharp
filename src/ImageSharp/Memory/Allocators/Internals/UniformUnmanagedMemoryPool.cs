@@ -34,9 +34,10 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 // Invoke the timer callback more frequently, than trimSettings.TrimPeriodMilliseconds,
                 // and also invoke it on Gen 2 GC.
                 // We are checking in the callback if enough time passed since the last trimming. If not, we do nothing.
+                var weakPoolRef = new WeakReference<UniformUnmanagedMemoryPool>(this);
                 this.trimTimer = new Timer(
-                    s => ((UniformUnmanagedMemoryPool)s)?.Trim(),
-                    this,
+                    s => TimerCallback((WeakReference<UniformUnmanagedMemoryPool>)s),
+                    weakPoolRef,
                     this.trimSettings.TrimPeriodMilliseconds / 4,
                     this.trimSettings.TrimPeriodMilliseconds / 4);
 
@@ -217,6 +218,14 @@ namespace SixLabors.ImageSharp.Memory.Internals
         private static void ThrowReturnedMoreArraysThanRented() =>
             throw new InvalidMemoryOperationException("Returned more arrays then rented");
 
+        private static void TimerCallback(WeakReference<UniformUnmanagedMemoryPool> weakPoolRef)
+        {
+            if (weakPoolRef.TryGetTarget(out UniformUnmanagedMemoryPool pool))
+            {
+                pool.Trim();
+            }
+        }
+
         private bool Trim()
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
@@ -307,7 +316,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public class TrimSettings
         {
             // Trim half of the retained pool buffers every minute.
-            public int TrimPeriodMilliseconds { get; set; } = 60_000;
+            public int TrimPeriodMilliseconds { get; set; } = 20_000;
 
             public float Rate { get; set; } = 0.5f;
 

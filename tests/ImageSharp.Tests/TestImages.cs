@@ -567,6 +567,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerRgb323232ContiguousLittleEndian = "Tiff/flower-rgb-contig-32_lsb.tiff";
             public const string FlowerRgb323232Planar = "Tiff/flower-rgb-planar-32.tiff";
             public const string FlowerRgb323232PlanarLittleEndian = "Tiff/flower-rgb-planar-32_lsb.tiff";
+            public const string FlowerRgb323232PredictorBigEndian = "Tiff/flower-rgb-contig-32_msb_zip_predictor.tiff";
+            public const string FlowerRgb323232PredictorLittleEndian = "Tiff/flower-rgb-contig-32_lsb_zip_predictor.tiff";
             public const string FlowerRgb242424Planar = "Tiff/flower-rgb-planar-24.tiff";
             public const string FlowerRgb242424PlanarLittleEndian = "Tiff/flower-rgb-planar-24_lsb.tiff";
             public const string FlowerRgb242424Contiguous = "Tiff/flower-rgb-contig-24.tiff";

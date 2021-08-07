@@ -261,6 +261,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(FlowerRgb323232PredictorBigEndian, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb323232PredictorLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_96Bit_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
         [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(RgbDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(Calliphora_GrayscaleDeflate, PixelTypes.Rgba32)]

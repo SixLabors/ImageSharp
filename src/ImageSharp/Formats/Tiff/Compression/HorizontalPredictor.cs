@@ -2,9 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression
@@ -20,11 +21,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <param name="pixelBytes">Buffer with decompressed pixel data.</param>
         /// <param name="width">The width of the image or strip.</param>
         /// <param name="bitsPerPixel">Bits per pixel.</param>
-        public static void Undo(Span<byte> pixelBytes, int width, int bitsPerPixel)
+        /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
+        public static void Undo(Span<byte> pixelBytes, int width, int bitsPerPixel, bool isBigEndian)
         {
             if (bitsPerPixel == 8)
             {
                 Undo8Bit(pixelBytes, width);
+            }
+            else if (bitsPerPixel == 16)
+            {
+                Undo16Bit(pixelBytes, width, isBigEndian);
             }
             else if (bitsPerPixel == 24)
             {
@@ -106,6 +112,50 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     pixelValue += rowBytes[x];
                     rowBytes[x] = pixelValue;
+                }
+            }
+        }
+
+        private static void Undo16Bit(Span<byte> pixelBytes, int width, bool isBigEndian)
+        {
+            int rowBytesCount = width * 2;
+            int height = pixelBytes.Length / rowBytesCount;
+            if (isBigEndian)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    int offset = 0;
+                    Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+                    ushort pixelValue = TiffUtils.ConvertToUShortBigEndian(rowBytes.Slice(offset, 2));
+                    offset += 2;
+
+                    for (int x = 1; x < width; x++)
+                    {
+                        Span<byte> rowSpan = rowBytes.Slice(offset, 2);
+                        ushort diff = TiffUtils.ConvertToUShortBigEndian(rowSpan);
+                        pixelValue += diff;
+                        BinaryPrimitives.WriteUInt16BigEndian(rowSpan, pixelValue);
+                        offset += 2;
+                    }
+                }
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    int offset = 0;
+                    Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+                    ushort pixelValue = TiffUtils.ConvertToUShortLittleEndian(rowBytes.Slice(offset, 2));
+                    offset += 2;
+
+                    for (int x = 1; x < width; x++)
+                    {
+                        Span<byte> rowSpan = rowBytes.Slice(offset, 2);
+                        ushort diff = TiffUtils.ConvertToUShortLittleEndian(rowSpan);
+                        pixelValue += diff;
+                        BinaryPrimitives.WriteUInt16LittleEndian(rowSpan, pixelValue);
+                        offset += 2;
+                    }
                 }
             }
         }

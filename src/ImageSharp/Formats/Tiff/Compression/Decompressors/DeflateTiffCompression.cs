@@ -5,7 +5,6 @@ using System;
 using System.IO.Compression;
 
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -20,6 +19,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// </remarks>
     internal class DeflateTiffCompression : TiffBaseDecompressor
     {
+        private readonly bool isBigEndian;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.
         /// </summary>
@@ -27,10 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="width">The image width.</param>
         /// <param name="bitsPerPixel">The bits used per pixel.</param>
         /// <param name="predictor">The tiff predictor used.</param>
-        public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor)
-            : base(memoryAllocator, width, bitsPerPixel, predictor)
-        {
-        }
+        /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
+        public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor, bool isBigEndian)
+            : base(memoryAllocator, width, bitsPerPixel, predictor) => this.isBigEndian = isBigEndian;
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
             if (this.Predictor == TiffPredictor.Horizontal)
             {
-                HorizontalPredictor.Undo(buffer, this.Width, this.BitsPerPixel);
+                HorizontalPredictor.Undo(buffer, this.Width, this.BitsPerPixel, this.isBigEndian);
             }
         }
 

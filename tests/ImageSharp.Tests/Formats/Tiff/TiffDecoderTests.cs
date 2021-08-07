@@ -162,6 +162,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(Flower16BitGrayPredictorBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower16BitGrayPredictorLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_16Bit_Gray_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(Flower24BitGray, PixelTypes.Rgba32)]
         [WithFile(Flower24BitGrayLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_24Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)

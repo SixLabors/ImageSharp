@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             using BufferedReadStream stream = CreateCompressedStream(data);
             var buffer = new byte[data.Length];
 
-            using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None);
+            using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None, false);
             decompressor.Decompress(stream, 0, (uint)stream.Length, buffer);
 
             Assert.Equal(data, buffer);

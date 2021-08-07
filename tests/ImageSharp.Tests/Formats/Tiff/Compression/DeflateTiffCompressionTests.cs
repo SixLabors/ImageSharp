@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             {
                 var buffer = new byte[data.Length];
 
-                using var decompressor = new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None);
+                using var decompressor = new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None, false);
 
                 decompressor.Decompress(stream, 0, (uint)stream.Length, buffer);
 

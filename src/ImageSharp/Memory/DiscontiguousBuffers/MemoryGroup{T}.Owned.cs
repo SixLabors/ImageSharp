@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -17,6 +18,9 @@ namespace SixLabors.ImageSharp.Memory
         public sealed class Owned : MemoryGroup<T>, IEnumerable<Memory<T>>
         {
             private IMemoryOwner<T>[] memoryOwners;
+            private byte[][] pooledArrays;
+            private UniformUnmanagedMemoryPool unmanagedMemoryPool;
+            private UnmanagedMemoryHandle[] pooledHandles;
 
             public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
                 : base(bufferLength, totalLength)
@@ -25,6 +29,15 @@ namespace SixLabors.ImageSharp.Memory
                 this.Swappable = swappable;
                 this.View = new MemoryGroupView<T>(this);
             }
+
+            public Owned(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle[] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer)
+                : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
+            {
+                this.pooledHandles = pooledArrays;
+                this.unmanagedMemoryPool = pool;
+            }
+
+            ~Owned() => this.Dispose(false);
 
             public bool Swappable { get; }
 
@@ -49,6 +62,23 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
+            private static IMemoryOwner<T>[] CreateBuffers(
+                UniformUnmanagedMemoryPool pool,
+                UnmanagedMemoryHandle[] pooledBuffers,
+                int bufferLength,
+                int sizeOfLastBuffer)
+            {
+                var result = new IMemoryOwner<T>[pooledBuffers.Length];
+                for (int i = 0; i < pooledBuffers.Length - 1; i++)
+                {
+                    pooledBuffers[i].AssignedToNewOwner();
+                    result[i] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[i], bufferLength);
+                }
+
+                result[result.Length - 1] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer);
+                return result;
+            }
+
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
             public override MemoryGroupEnumerator<T> GetEnumerator()
@@ -63,7 +93,7 @@ namespace SixLabors.ImageSharp.Memory
                 return this.memoryOwners.Select(mo => mo.Memory).GetEnumerator();
             }
 
-            public override void Dispose()
+            protected override void Dispose(bool disposing)
             {
                 if (this.IsDisposed)
                 {
@@ -72,13 +102,37 @@ namespace SixLabors.ImageSharp.Memory
 
                 this.View.Invalidate();
 
-                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                if (this.unmanagedMemoryPool != null)
                 {
-                    memoryOwner.Dispose();
+                    this.unmanagedMemoryPool.Return(this.pooledHandles);
+                    if (!disposing)
+                    {
+                        foreach (UnmanagedMemoryHandle handle in this.pooledHandles)
+                        {
+                            // We need to prevent handle finalization here.
+                            // See comments on UnmanagedMemoryHandle.Resurrect()
+                            handle.Resurrect();
+                        }
+                    }
+
+                    foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                    {
+                        ((UniformUnmanagedMemoryPool.Buffer<T>)memoryOwner).MarkDisposed();
+                    }
+                }
+                else if (disposing)
+                {
+                    foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                    {
+                        memoryOwner.Dispose();
+                    }
                 }
 
                 this.memoryOwners = null;
                 this.IsValid = false;
+                this.pooledArrays = null;
+                this.unmanagedMemoryPool = null;
+                this.pooledHandles = null;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -91,10 +145,7 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             [MethodImpl(MethodImplOptions.NoInlining)]
-            private static void ThrowObjectDisposedException()
-            {
-                throw new ObjectDisposedException(nameof(MemoryGroup<T>));
-            }
+            private static void ThrowObjectDisposedException() => throw new ObjectDisposedException(nameof(MemoryGroup<T>));
 
             internal static void SwapContents(Owned a, Owned b)
             {
@@ -104,14 +155,23 @@ namespace SixLabors.ImageSharp.Memory
                 IMemoryOwner<T>[] tempOwners = a.memoryOwners;
                 long tempTotalLength = a.TotalLength;
                 int tempBufferLength = a.BufferLength;
+                byte[][] tempPooledArrays = a.pooledArrays;
+                UniformUnmanagedMemoryPool tempUnmangedPool = a.unmanagedMemoryPool;
+                UnmanagedMemoryHandle[] tempPooledHandles = a.pooledHandles;
 
                 a.memoryOwners = b.memoryOwners;
                 a.TotalLength = b.TotalLength;
                 a.BufferLength = b.BufferLength;
+                a.pooledArrays = b.pooledArrays;
+                a.unmanagedMemoryPool = b.unmanagedMemoryPool;
+                a.pooledHandles = b.pooledHandles;
 
                 b.memoryOwners = tempOwners;
                 b.TotalLength = tempTotalLength;
                 b.BufferLength = tempBufferLength;
+                b.pooledArrays = tempPooledArrays;
+                b.unmanagedMemoryPool = tempUnmangedPool;
+                b.pooledHandles = tempPooledHandles;
 
                 a.View.Invalidate();
                 b.View.Invalidate();

@@ -524,7 +524,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileMemoryManagers<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            AotCompileMemoryManager<TPixel, ArrayPoolMemoryAllocator>();
+            AotCompileMemoryManager<TPixel, UniformUnmanagedMemoryPoolMemoryAllocator>();
             AotCompileMemoryManager<TPixel, SimpleGcMemoryAllocator>();
         }
 

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory.Internals
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 this.pinHandle = GCHandle.Alloc(this.GetPinnableObject(), GCHandleType.Pinned);
             }
 
-            void* ptr = (void*)this.pinHandle.AddrOfPinnedObject();
+            void* ptr = Unsafe.Add<T>((void*)this.pinHandle.AddrOfPinnedObject(), elementIndex);
             return new MemoryHandle(ptr, this.pinHandle);
         }
 

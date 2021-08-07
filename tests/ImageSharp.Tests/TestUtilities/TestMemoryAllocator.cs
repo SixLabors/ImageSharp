@@ -40,12 +40,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
             return new BasicArrayBuffer<T>(array, length, this);
         }
 
-        public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            byte[] array = this.AllocateArray<byte>(length, options);
-            return new ManagedByteBuffer(array, this);
-        }
-
         private T[] AllocateArray<T>(int length, AllocationOptions options)
             where T : struct
         {
@@ -171,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        private class ManagedByteBuffer : BasicArrayBuffer<byte>, IManagedByteBuffer
+        private class ManagedByteBuffer : BasicArrayBuffer<byte>, IMemoryOwner<byte>
         {
             public ManagedByteBuffer(byte[] array, TestMemoryAllocator allocator)
                 : base(array, allocator)

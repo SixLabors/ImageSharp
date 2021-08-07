@@ -416,6 +416,27 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        public static void CompareBuffers<T>(Buffer2D<T> expected, Buffer2D<T> actual)
+            where T : struct, IEquatable<T>
+        {
+            Assert.True(expected.Size() == actual.Size(), "Buffer sizes are not equal!");
+
+            for (int y = 0; y < expected.Height; y++)
+            {
+                Span<T> expectedRow = expected.GetRowSpan(y);
+                Span<T> actualRow = actual.GetRowSpan(y);
+                for (int x = 0; x < expectedRow.Length; x++)
+                {
+                    T expectedVal = expectedRow[x];
+                    T actualVal = actualRow[x];
+
+                    Assert.True(
+                        expectedVal.Equals(actualVal),
+                        $"Buffers differ at position ({x},{y})! Expected: {expectedVal} | Actual: {actualVal}");
+                }
+            }
+        }
+
         /// <summary>
         /// All pixels in all frames should be exactly equal to 'expectedPixel'.
         /// </summary>
@@ -663,7 +684,11 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var allocator = (ArrayPoolMemoryAllocator)provider.Configuration.MemoryAllocator;
+            // TODO: Use a test-only allocator for this.
+#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
+            var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+#pragma warning restore
+            provider.Configuration.MemoryAllocator = allocator;
             return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
         }
 
@@ -746,6 +771,7 @@ namespace SixLabors.ImageSharp.Tests
 
     internal class AllocatorBufferCapacityConfigurator
     {
+#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
         private readonly ArrayPoolMemoryAllocator allocator;
         private readonly int pixelSizeInBytes;
 
@@ -754,6 +780,7 @@ namespace SixLabors.ImageSharp.Tests
             this.allocator = allocator;
             this.pixelSizeInBytes = pixelSizeInBytes;
         }
+#pragma warning restore CS0618
 
         public void InBytes(int totalBytes) => this.allocator.BufferCapacityInBytes = totalBytes;
 

@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // Resize_WorksWithAllResamplers_TestPattern301x1180_NearestNeighbor-300x480.png
             // TODO: Should we investigate this?
             bool allowHigherInaccuracy = !TestEnvironment.Is64BitProcess
-                                         && string.IsNullOrEmpty(TestEnvironment.NetCoreVersion)
+                                         && TestEnvironment.NetCoreVersion == null
                                          && sampler is NearestNeighborResampler;
 
             var comparer = ImageComparer.TolerantPercentage(allowHigherInaccuracy ? 0.3f : 0.017f);

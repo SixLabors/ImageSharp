@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
+#pragma warning disable CS0618
     public class ArrayPoolMemoryAllocatorTests
     {
         private const int MaxPooledBufferSizeInBytes = 2048;
@@ -223,15 +224,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             Assert.Equal(0, buffer.Memory.Length);
         }
 
-        [Theory]
-        [InlineData(-1)]
-        public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-        {
-            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                this.LocalFixture.MemoryAllocator.AllocateManagedByteBuffer(length));
-            Assert.Equal("length", ex.ParamName);
-        }
-
         private class MemoryAllocatorFixture
         {
             public ArrayPoolMemoryAllocator MemoryAllocator { get; set; } =
@@ -268,4 +260,5 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         {
         }
     }
+#pragma warning restore CS0618
 }

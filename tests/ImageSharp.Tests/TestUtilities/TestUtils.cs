@@ -165,7 +165,10 @@ namespace SixLabors.ImageSharp.Tests
             int width = expected.Width;
             expected.Mutate(process);
 
+            // TODO: Use a test-only allocator for this
+#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
             var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+#pragma warning restore CS0618
             provider.Configuration.MemoryAllocator = allocator;
             allocator.BufferCapacityInBytes = bufferCapacityInPixelRows * width * Unsafe.SizeOf<TPixel>();
 

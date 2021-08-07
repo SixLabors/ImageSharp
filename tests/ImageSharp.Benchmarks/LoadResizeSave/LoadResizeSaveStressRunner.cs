@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         public int MaxDegreeOfParallelism { get; set; } = -1;
 
-        public JpegKind Filter { get; set; }
+        public JpegKind Filter { get; set; } = JpegKind.Any;
 
         private static readonly string[] ProgressiveFiles =
         {

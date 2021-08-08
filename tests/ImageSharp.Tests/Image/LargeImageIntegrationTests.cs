@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
@@ -19,10 +21,28 @@ namespace SixLabors.ImageSharp.Tests
             image.DebugSave(provider);
         }
 
+        [Fact]
+        public unsafe void Set_MaximumPoolSizeMegabytes_CreateImage_MaximumPoolSizeMegabytes()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                Configuration.Default.MemoryAllocator = MemoryAllocator.CreateDefault(new MemoryAllocatorOptions()
+                {
+                    MinimumContiguousBlockBytes = sizeof(Rgba32) * 8192 * 4096
+                });
+                using Image<Rgba32> image = new Image<Rgba32>(8192, 4096);
+                Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> span));
+                Assert.Equal(8192 * 4096, span.Length);
+            }
+        }
+
         [Theory]
         [WithBasicTestPatternImages(width: 10, height: 10, PixelTypes.Rgba32)]
-        public void GetSingleSpan(TestImageProvider<Rgba32> provider)
+        public void TryGetSinglePixelSpan_WhenImageTooLarge_ReturnsFalse(TestImageProvider<Rgba32> provider)
         {
+
             provider.LimitAllocatorBufferCapacity().InPixels(10);
             using Image<Rgba32> image = provider.GetImage();
             Assert.False(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));

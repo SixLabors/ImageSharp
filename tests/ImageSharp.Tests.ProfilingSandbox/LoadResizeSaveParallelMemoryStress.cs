@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             string fileName = ss[0];
             string content = ss[1]
                 .Replace("TotalSeconds", stats.TotalSeconds.ToString(CultureInfo.InvariantCulture))
-                .Replace("EOL", Environment.NewLine, StringComparison.OrdinalIgnoreCase);
+                .Replace("EOL", Environment.NewLine);
             File.AppendAllText(fileName, content);
         }
 

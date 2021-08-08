@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Memory
     internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocator
     {
         private const int OneMegabyte = 1 << 20;
+
+        // 4 MB seemed to perform slightly better in benchmarks than 2MB or higher values:
         private const int DefaultContiguousPoolBlockSizeBytes = 4 * OneMegabyte;
         private const int DefaultNonPoolBlockSizeBytes = 32 * OneMegabyte;
         private readonly int sharedArrayPoolThresholdInBytes;

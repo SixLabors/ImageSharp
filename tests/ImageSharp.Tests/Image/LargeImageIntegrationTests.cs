@@ -42,7 +42,6 @@ namespace SixLabors.ImageSharp.Tests
         [WithBasicTestPatternImages(width: 10, height: 10, PixelTypes.Rgba32)]
         public void TryGetSinglePixelSpan_WhenImageTooLarge_ReturnsFalse(TestImageProvider<Rgba32> provider)
         {
-
             provider.LimitAllocatorBufferCapacity().InPixels(10);
             using Image<Rgba32> image = provider.GetImage();
             Assert.False(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));

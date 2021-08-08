@@ -69,6 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
             options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
             options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
+            options.ReferenceBlackAndWhite = exifProfile.GetValue(ExifTag.ReferenceBlackWhite)?.Value;
+            options.YcbcrCoefficients = exifProfile.GetValue(ExifTag.YCbCrCoefficients)?.Value;
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);
@@ -261,6 +263,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         TiffThrowHelper.ThrowNotSupported("The TIFF ColorMap entry is missing for a palette color image.");
                     }
 
+                    break;
+                }
+
+                case TiffPhotometricInterpretation.YCbCr:
+                {
+                    options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
+                    if (options.BitsPerSample.Channels != 3)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    options.ColorType = TiffColorType.YCbCr;
                     break;
                 }
 

@@ -75,6 +75,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         public TiffColorType ColorType { get; set; }
 
+        public Rational[] ReferenceBlackAndWhite { get; set; }
+
+        public Rational[] YcbcrCoefficients { get; set; }
+
         /// <summary>
         /// Gets or sets the compression used, when the image was encoded.
         /// </summary>
@@ -316,7 +320,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.Predictor,
                 this.FaxCompressionOptions);
 
-            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
+            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
+                this.ColorType,
+                this.BitsPerSample,
+                this.ColorMap,
+                this.ReferenceBlackAndWhite,
+                this.YcbcrCoefficients,
+                this.byteOrder);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {

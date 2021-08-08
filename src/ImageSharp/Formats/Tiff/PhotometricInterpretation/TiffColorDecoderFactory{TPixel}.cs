@@ -8,7 +8,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal static class TiffColorDecoderFactory<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        public static TiffBaseColorDecoder<TPixel> Create(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
+        public static TiffBaseColorDecoder<TPixel> Create(
+            TiffColorType colorType,
+            TiffBitsPerSample bitsPerSample,
+            ushort[] colorMap,
+            Rational[] referenceBlackAndWhite,
+            Rational[] ycbcrCoefficients,
+            ByteOrder byteOrder)
         {
             switch (colorType)
             {
@@ -139,6 +145,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.PaletteColor:
                     DebugGuard.NotNull(colorMap, "colorMap");
                     return new PaletteTiffColor<TPixel>(bitsPerSample, colorMap);
+
+                case TiffColorType.YCbCr:
+                    return new YCbCrTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients);
 
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());

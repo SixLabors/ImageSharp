@@ -107,5 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// RGB Full Color. Planar configuration of data.
         /// </summary>
         RgbPlanar,
+
+        YCbCr
     }
 }

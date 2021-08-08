@@ -29,6 +29,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
 
+        public GifEncoderTests()
+        {
+            // Free the pool on 32 bit:
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                Configuration.Default.MemoryAllocator.ReleaseRetainedResources();
+            }
+        }
+
         [Theory]
         [WithTestPatternImages(100, 100, TestPixelTypes, false)]
         [WithTestPatternImages(100, 100, TestPixelTypes, false)]

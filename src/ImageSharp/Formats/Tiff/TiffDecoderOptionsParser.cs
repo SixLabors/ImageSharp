@@ -57,6 +57,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
+            ushort[] ycbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
+            if (ycbcrSubSampling != null && ycbcrSubSampling[0] != ycbcrSubSampling[1])
+            {
+                TiffThrowHelper.ThrowNotSupported("ImageSharp only supports YCbCr images with equal luma and chroma samples.");
+            }
+
             if (exifProfile.GetValue(ExifTag.StripRowCounts)?.Value != null)
             {
                 TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
@@ -272,6 +278,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     if (options.BitsPerSample.Channels != 3)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                    if (bitsPerChannel != 8)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for YCbCr images.");
                     }
 
                     options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.YCbCr : TiffColorType.YCbCrPlanar;

@@ -575,8 +575,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerRgb888Contiguous = "Tiff/flower-rgb-contig-08.tiff";
             public const string FlowerRgb888Planar6Strips = "Tiff/flower-rgb-planar-08-6strips.tiff";
             public const string FlowerRgb888Planar15Strips = "Tiff/flower-rgb-planar-08-15strips.tiff";
-            public const string FlowerYCbCr888Contiguous = "Tiff/flower_ycbcr_contig-08.tiff";
-            public const string FlowerYCbCr888Planar = "Tiff/flower_ycbcr_planar-08.tiff";
+            public const string FlowerYCbCr888Contiguous = "Tiff/flower-ycbcr-contig-08.tiff";
+            public const string FlowerYCbCr888Planar = "Tiff/flower-ycbcr-planar-08.tiff";
             public const string FlowerRgb444Contiguous = "Tiff/flower-rgb-contig-04.tiff";
             public const string FlowerRgb444Planar = "Tiff/flower-rgb-planar-04.tiff";
             public const string FlowerRgb222Contiguous = "Tiff/flower-rgb-contig-02.tiff";

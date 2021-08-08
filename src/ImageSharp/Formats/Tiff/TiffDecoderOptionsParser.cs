@@ -274,7 +274,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
-                    options.ColorType = TiffColorType.YCbCr;
+                    options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.YCbCr : TiffColorType.YCbCrPlanar;
+
                     break;
                 }
 

@@ -154,7 +154,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             }
         }
 
-        public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
+        public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(
+            TiffColorType colorType,
+            TiffBitsPerSample bitsPerSample,
+            ushort[] colorMap,
+            Rational[] referenceBlackAndWhite,
+            Rational[] ycbcrCoefficients,
+            ByteOrder byteOrder)
         {
             switch (colorType)
             {
@@ -166,6 +172,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     }
 
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.YCbCrPlanar:
+                    return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients);
 
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());

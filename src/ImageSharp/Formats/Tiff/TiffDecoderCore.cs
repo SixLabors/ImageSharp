@@ -268,9 +268,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     stripBuffers[stripIndex] = this.memoryAllocator.Allocate<byte>(uncompressedStripSize);
                 }
 
-                using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
+                using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
+                    this.CompressionType,
+                    this.memoryAllocator,
+                    this.PhotometricInterpretation,
+                    frame.Width,
+                    bitsPerPixel,
+                    this.Predictor,
+                    this.FaxCompressionOptions);
 
-                TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
+                TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
+                    this.ColorType,
+                    this.BitsPerSample,
+                    this.ColorMap,
+                    this.ReferenceBlackAndWhite,
+                    this.YcbcrCoefficients,
+                    this.byteOrder);
 
                 for (int i = 0; i < stripsPerPlane; i++)
                 {

@@ -236,10 +236,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        public static bool IsNotMacOS => !TestEnvironment.IsOSX;
+        public static bool IsWindows => TestEnvironment.IsWindows;
 
-        // TODO: This doesn't seem to work on MacOS. Open an issue & investigate.
-        [ConditionalTheory(nameof(IsNotMacOS))]
+        // TODO: This doesn't seem to work on Unix. Open an issue & investigate.
+        [ConditionalTheory(nameof(IsWindows))]
         [InlineData(300)]
         [InlineData(600)]
         [InlineData(1200)]

@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Configuration.Default.MemoryAllocator = MemoryAllocator.CreateDefault(new MemoryAllocatorOptions()
                 {
-                    MinimumContiguousBlockBytes = sizeof(Rgba32) * 8192 * 4096
+                    MinimumContiguousBlockSizeBytes = sizeof(Rgba32) * 8192 * 4096
                 });
                 using Image<Rgba32> image = new Image<Rgba32>(8192, 4096);
                 Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> span));

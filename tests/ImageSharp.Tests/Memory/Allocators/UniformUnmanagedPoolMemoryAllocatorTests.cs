@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 var allocator = MemoryAllocator.CreateDefault(new MemoryAllocatorOptions()
                 {
                     MaximumPoolSizeMegabytes = bool.Parse(poolAllocationStr) ? 64 : 0,
-                    MinimumContiguousBlockBytes = fortyEightMegabytes
+                    MinimumContiguousBlockSizeBytes = fortyEightMegabytes
                 });
 
                 MemoryGroup<byte> g = allocator.AllocateGroup<byte>(fortyEightMegabytes, 1024);

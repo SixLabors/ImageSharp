@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Memory
     public class MemoryAllocatorOptions
     {
         private int? maximumPoolSizeMegabytes;
-        private int? minimumContiguousBlockBytes;
+        private int? minimumContiguousBlockSizeBytes;
 
         /// <summary>
         /// Gets or sets a value defining the maximum size of the <see cref="MemoryAllocator"/>'s internal memory pool
@@ -38,9 +38,9 @@ namespace SixLabors.ImageSharp.Memory
         /// Overriding this value is useful for interop scenarios
         /// ensuring <see cref="Image{TPixel}.TryGetSinglePixelSpan"/> succeeds.
         /// </remarks>
-        public int? MinimumContiguousBlockBytes
+        public int? MinimumContiguousBlockSizeBytes
         {
-            get => this.minimumContiguousBlockBytes;
+            get => this.minimumContiguousBlockSizeBytes;
             set
             {
                 if (value.HasValue)
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Memory
                     Guard.MustBeGreaterThanOrEqualTo(value.Value, 65536, nameof(this.MaximumPoolSizeMegabytes));
                 }
 
-                this.minimumContiguousBlockBytes = value;
+                this.minimumContiguousBlockSizeBytes = value;
             }
         }
     }

@@ -5,10 +5,10 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Runtime;
 using System.Text;
 using System.Threading;
 using CommandLine;
+using CommandLine.Text;
 using SixLabors.ImageSharp.Benchmarks.LoadResizeSave;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
@@ -22,7 +22,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         {
             this.Benchmarks = new LoadResizeSaveStressRunner()
             {
-                // MaxDegreeOfParallelism = 10,
                 // Filter = JpegKind.Baseline
             };
             this.Benchmarks.Init();
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         public static void Run(string[] args)
         {
-            var options = CommandLineOptions.Parse(args);
+            var options = args.Length > 0 ? CommandLineOptions.Parse(args) : null;
 
             var lrs = new LoadResizeSaveParallelMemoryStress();
             if (options != null)
@@ -198,55 +197,60 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private class CommandLineOptions
         {
-            [Option('i', "imagesharp", Required = false, Default = false)]
+            [Option('i', "imagesharp", Required = false, Default = false, HelpText = "Test ImageSharp without benchmark switching")]
             public bool ImageSharp { get; set; }
 
-            [Option('a', "allocator", Required = false, Default = AllocatorKind.Unmanaged)]
+            [Option('a', "allocator", Required = false, Default = AllocatorKind.Unmanaged, HelpText = "Select allocator: Classic (ArrayPoolMemoryAllocator) or Unmanaged")]
             public AllocatorKind Allocator { get; set; }
 
-            [Option('m', "max-contiguous", Required = false, Default = 4)]
+            [Option('m', "max-contiguous", Required = false, Default = 4, HelpText = "Maximum size of contiguous pool buffers in MegaBytes")]
             public int MaxContiguousPoolBufferMegaBytes { get; set; } = 4;
 
-            [Option('s', "poolsize", Required = false, Default = 4096)]
+            [Option('s', "poolsize", Required = false, Default = 4096, HelpText = "The size of the pool in MegaBytes")]
             public int MaxPoolSizeMegaBytes { get; set; } = 4096;
 
-            [Option('u', "max-unmg", Required = false, Default = 32)]
-            public int MaxCapacityOfUnmanagedBuffersMegaBytes { get; set; } = 32;
+            [Option('u', "max-nonpool", Required = false, Default = 32, HelpText = "Maximum size of non-pooled contiguous blocks in MegaBytes")]
+            public int MaxCapacityOfNonPoolBuffersMegaBytes { get; set; } = 32;
 
-            [Option('p', "parallelism", Required = false, Default = -1)]
+            [Option('p', "parallelism", Required = false, Default = -1, HelpText = "Level of parallelism")]
             public int MaxDegreeOfParallelism { get; set; } = -1;
 
-            [Option('r', "repeat-count", Required = false, Default = 1)]
+            [Option('r', "repeat-count", Required = false, Default = 1, HelpText = "Times to run the whole benchmark")]
             public int RepeatCount { get; set; } = 1;
 
-            // This is to test trimming and virtual memory decommit
-            [Option('g', "final-gc-count", Required = false, Default = 0)]
+            [Option('g', "final-gc-count", Required = false, Default = 0, HelpText = "How many times to GC.Collect after execution")]
             public int FinalGcCount { get; set; }
 
-            [Option('e', "release-at-end", Required = false, Default = false)]
+            [Option('e', "release-at-end", Required = false, Default = false, HelpText = "Specify to run ReleaseRetainedResources() after execution")]
             public bool ReleaseRetainedResourcesAtEnd { get; set; }
 
-            [Option('w', "pause", Required = false, Default = false)]
+            [Option('w', "pause", Required = false, Default = false, HelpText = "Specify to pause and wait for user input after the execution")]
             public bool PauseAtEnd { get; set; }
 
-            [Option('f', "file", Required = false, Default = null)]
+            [Option('f', "file", Required = false, Default = null, HelpText = "Specify to print the execution time to a file. Format: '<file>;<formatstr>' see the code for formatstr semantics.")]
             public string FileOutput { get; set; }
 
-            [Option('t', "trim-time", Required = false, Default = null)]
+            [Option('t', "trim-period", Required = false, Default = null, HelpText = "Trim period for the pool in seconds")]
             public int? TrimTimeSeconds { get; set; }
 
             public static CommandLineOptions Parse(string[] args)
             {
                 CommandLineOptions result = null;
-                Parser.Default.ParseArguments<CommandLineOptions>(args).WithParsed(o =>
+                ParserResult<CommandLineOptions> parserResult = Parser.Default.ParseArguments<CommandLineOptions>(args).WithParsed(o =>
                 {
                     result = o;
                 });
+
+                if (result == null)
+                {
+                    Console.WriteLine(HelpText.RenderUsageText(parserResult));
+                }
+
                 return result;
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.Allocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfUnmanagedBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.Allocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd})";
 
             public MemoryAllocator CreateMemoryAllocator()
             {
@@ -263,7 +267,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                                 1024 * 1024,
                                 (int)B(this.MaxContiguousPoolBufferMegaBytes),
                                 B(this.MaxPoolSizeMegaBytes),
-                                (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes),
+                                (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes),
                                 new UniformUnmanagedMemoryPool.TrimSettings
                                 {
                                     TrimPeriodMilliseconds = this.TrimTimeSeconds.Value * 1000
@@ -275,7 +279,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                                 1024 * 1024,
                                 (int)B(this.MaxContiguousPoolBufferMegaBytes),
                                 B(this.MaxPoolSizeMegaBytes),
-                                (int)B(this.MaxCapacityOfUnmanagedBuffersMegaBytes));
+                                (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes));
                         }
 
                     default:

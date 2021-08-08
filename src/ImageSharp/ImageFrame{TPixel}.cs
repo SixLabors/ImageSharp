@@ -170,6 +170,9 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
         /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
+        /// <para />
+        /// WARNING: Disposing or leaking the underlying image while still working with it's <see cref="Span{T}"/>
+        /// might lead to memory corruption.
         /// </summary>
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
@@ -185,6 +188,13 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
         /// stored in row major order, if the backing buffer is contiguous.
+        /// <para />
+        /// To ensure the memory is contiguous, <see cref="Configuration.MemoryAllocator"/> should be initialized
+        /// with a <see cref="MemoryAllocator"/> that enforces larger contiguous buffers.
+        /// See <see cref="MemoryAllocatorOptions.MinimumContiguousBlockSizeBytes"/>.
+        /// <para />
+        /// WARNING: Disposing or leaking the underlying image while still working with it's <see cref="Span{T}"/>
+        /// might lead to memory corruption.
         /// </summary>
         /// <param name="span">The <see cref="Span{T}"/>.</param>
         /// <returns>The <see cref="bool"/>.</returns>

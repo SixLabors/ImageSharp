@@ -206,6 +206,9 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
         /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
+        /// <para />
+        /// WARNING: Disposing or leaking the underlying image while still working with it's <see cref="Span{T}"/>
+        /// might lead to memory corruption.
         /// </summary>
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>

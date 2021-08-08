@@ -63,6 +63,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowNotSupported("ImageSharp only supports YCbCr images with equal luma and chroma samples.");
             }
 
+            if (ycbcrSubSampling != null && ycbcrSubSampling[0] != 1)
+            {
+                TiffThrowHelper.ThrowNotSupported("ImageSharp only supports YCbCr images without subsampling.");
+            }
+
             if (exifProfile.GetValue(ExifTag.StripRowCounts)?.Value != null)
             {
                 TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");

@@ -63,7 +63,7 @@
 |PaletteColor               |   Y   |   Y   | General implementation only |
 |TransparencyMask           |       |       |                          |
 |Separated (TIFF Extension) |       |       |                          |
-|YCbCr (TIFF Extension)     |       |       |                          |
+|YCbCr (TIFF Extension)     |       |   Y   |                          |
 |CieLab (TIFF Extension)    |       |       |                          |
 |IccLab (TechNote 1)        |       |       |                          |
 
@@ -165,10 +165,10 @@
 |JPEGQTables                |       |       |                          |
 |JPEGDCTables               |       |       |                          |
 |JPEGACTables               |       |       |                          |
-|YCbCrCoefficients          |       |       |                          |
-|YCbCrSubSampling           |       |       |                          |
+|YCbCrCoefficients          |       |   Y   |                          |
+|YCbCrSubSampling           |       |   Y   |                          |
 |YCbCrPositioning           |       |       |                          |
-|ReferenceBlackWhite        |       |       |                          |
+|ReferenceBlackWhite        |       |   Y   |                          |
 |StripRowCounts             |   -   |   -   | See RFC 2301 (File Format for Internet Fax). |
 |XMP                        |   Y   |   Y   |                          |
 |ImageID                    |       |       |                          |

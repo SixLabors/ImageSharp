@@ -20,7 +20,9 @@ namespace SixLabors.ImageSharp.Memory.Internals
             this.array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
         }
 
+#pragma warning disable CA2015 // Adding a finalizer to a type derived from MemoryManager<T> may permit memory to be freed while it is still in use by a Span<T>
         ~SharedArrayPoolBuffer() => this.Dispose(false);
+#pragma warning restore
 
         protected override void Dispose(bool disposing)
         {

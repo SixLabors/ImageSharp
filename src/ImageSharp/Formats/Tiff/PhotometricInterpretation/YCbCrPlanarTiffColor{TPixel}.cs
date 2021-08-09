@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -35,6 +36,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             var color = default(TPixel);
             int offset = 0;
+            int widthPadding = 0;
+            if (this.ycbcrSubSampling != null)
+            {
+                // Round to the next integer multiple of horizontalSubSampling.
+                widthPadding = TiffUtils.PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
+            }
+
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
@@ -45,11 +53,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     pixelRow[x] = color;
                     offset++;
                 }
+
+                offset += widthPadding;
             }
         }
 
         private static void ReverseChromaSubSampling(int width, int height, int horizontalSubSampling, int verticalSubSampling, Span<byte> planarCb, Span<byte> planarCr)
         {
+            // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
+            // then the source data will be padded.
+            width += TiffUtils.PaddingToNextInteger(width, horizontalSubSampling);
+            height += TiffUtils.PaddingToNextInteger(height, verticalSubSampling);
+
             for (int row = height - 1; row >= 0; row--)
             {
                 for (int col = width - 1; col >= 0; col--)

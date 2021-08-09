@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             if (this.ycbcrSubSampling != null)
             {
                 // Round to the next integer multiple of horizontalSubSampling.
-                widthPadding = PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
+                widthPadding = TiffUtils.PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
             }
 
             for (int y = top; y < top + height; y++)
@@ -68,8 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         {
             // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
             // then the source data will be padded.
-            width += PaddingToNextInteger(width, horizontalSubSampling);
-            height += PaddingToNextInteger(height, verticalSubSampling);
+            width += TiffUtils.PaddingToNextInteger(width, horizontalSubSampling);
+            height += TiffUtils.PaddingToNextInteger(height, verticalSubSampling);
             int blockWidth = width / horizontalSubSampling;
             int blockHeight = height / verticalSubSampling;
             int cbCrOffsetInBlock = horizontalSubSampling * verticalSubSampling;
@@ -96,17 +97,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     }
                 }
             }
-        }
-
-        private static int PaddingToNextInteger(int valueToRoundUp, int subSampling)
-        {
-            if (valueToRoundUp % subSampling == 0)
-            {
-                return 0;
-            }
-
-            int padding = subSampling - (valueToRoundUp % subSampling);
-            return padding;
         }
     }
 }

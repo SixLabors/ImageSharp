@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -14,29 +13,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal class Rgb888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly Configuration configuration;
+
+        public Rgb888TiffColor(Configuration configuration) => this.configuration = configuration;
+
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            var color = default(TPixel);
-
             int offset = 0;
 
-            var rgba = default(Rgba32);
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
+                int byteCount = pixelRow.Length * 3;
+                PixelOperations<TPixel>.Instance.FromRgb24Bytes(
+                    this.configuration,
+                    data.Slice(offset, byteCount),
+                    pixelRow,
+                    pixelRow.Length);
 
-                for (int x = 0; x < pixelRow.Length; x++)
-                {
-                    byte r = data[offset++];
-                    byte g = data[offset++];
-                    byte b = data[offset++];
-
-                    rgba.PackedValue = (uint)(r | (g << 8) | (b << 16) | (0xff << 24));
-                    color.FromRgba32(rgba);
-
-                    pixelRow[x] = color;
-                }
+                offset += byteCount;
             }
         }
     }

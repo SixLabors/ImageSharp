@@ -539,6 +539,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
             public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
             public const string HuffmanRleAllMakeupCodes = "Tiff/huffman_rle_all_makeup_codes.tiff";
+            public const string CcittFax3LowerOrderBitsFirst = "Tiff/basi3p02_fax3_lowerOrderBitsFirst.tiff";
+            public const string HuffmanRleLowerOrderBitsFirst = "Tiff/basi3p02_huffman_rle_lowerOrderBitsFirst.tiff";
 
             // Test case for an issue, that the last bits in a row got ignored.
             public const string HuffmanRle_basi3p02 = "Tiff/basi3p02_huffman_rle.tiff";
@@ -563,6 +565,14 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbPalette = "Tiff/rgb_palette.tiff";
             public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
             public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
+            public const string FlowerRgb323232Contiguous = "Tiff/flower-rgb-contig-32.tiff";
+            public const string FlowerRgb323232ContiguousLittleEndian = "Tiff/flower-rgb-contig-32_lsb.tiff";
+            public const string FlowerRgb323232Planar = "Tiff/flower-rgb-planar-32.tiff";
+            public const string FlowerRgb323232PlanarLittleEndian = "Tiff/flower-rgb-planar-32_lsb.tiff";
+            public const string FlowerRgb242424Planar = "Tiff/flower-rgb-planar-24.tiff";
+            public const string FlowerRgb242424PlanarLittleEndian = "Tiff/flower-rgb-planar-24_lsb.tiff";
+            public const string FlowerRgb242424Contiguous = "Tiff/flower-rgb-contig-24.tiff";
+            public const string FlowerRgb242424ContiguousLittleEndian = "Tiff/flower-rgb-contig-24_lsb.tiff";
             public const string FlowerRgb161616Contiguous = "Tiff/flower-rgb-contig-16.tiff";
             public const string FlowerRgb161616ContiguousLittleEndian = "Tiff/flower-rgb-contig-16_lsb.tiff";
             public const string FlowerRgb161616Planar = "Tiff/flower-rgb-planar-16.tiff";
@@ -598,6 +608,13 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower16BitGrayLittleEndian = "Tiff/flower-minisblack-16_lsb.tiff";
             public const string Flower16BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-16_lsb.tiff";
             public const string Flower16BitGrayMinIsWhiteBigEndian = "Tiff/flower-miniswhite-16.tiff";
+            public const string Flower24BitGray = "Tiff/flower-minisblack-24.tiff";
+            public const string Flower24BitGrayLittleEndian = "Tiff/flower-minisblack-24_lsb.tiff";
+            public const string Flower32BitGray = "Tiff/flower-minisblack-32.tiff";
+            public const string Flower32BitGrayLittleEndian = "Tiff/flower-minisblack-32_lsb.tiff";
+            public const string Flower32BitGrayMinIsWhite = "Tiff/flower-miniswhite-32.tiff";
+            public const string Flower32BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-32_lsb.tiff";
+
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
@@ -611,7 +628,6 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
 
-            public const string FillOrder2 = "Tiff/b0350_fillorder2.tiff";
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 
             public const string Fax4_Motorola = "Tiff/moy.tiff";
@@ -626,7 +642,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, FillOrder2, Calliphora_Fax4Compressed, Fax4_Motorola };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, Calliphora_Fax4Compressed, Fax4_Motorola };
         }
     }
 }

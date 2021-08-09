@@ -25,7 +25,7 @@
 
 ## Implementation Status
 
-- The Decoder and Encoder currently only supports a single frame per image.
+- The Decoder currently only supports a single frame per image.
 - Some compression formats are not yet supported. See the list below.
 
 ### Deviations from the TIFF spec (to be fixed)
@@ -81,7 +81,7 @@
 |Thresholding               |       |       |                          |
 |CellWidth                  |       |       |                          |
 |CellLength                 |       |       |                          |
-|FillOrder                  |       |   -   | Ignore. In practice is very uncommon, and is not recommended. |
+|FillOrder                  |       |   Y   | 						   |
 |ImageDescription           |   Y   |   Y   |                          |
 |Make                       |   Y   |   Y   |                          |
 |Model                      |   Y   |   Y   |                          |

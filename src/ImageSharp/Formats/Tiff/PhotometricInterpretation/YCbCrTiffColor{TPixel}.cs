@@ -30,7 +30,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             ReadOnlySpan<byte> ycbcrData = data;
             if (this.ycbcrSubSampling != null && !(this.ycbcrSubSampling[0] == 1 && this.ycbcrSubSampling[1] == 1))
             {
-                using IMemoryOwner<byte> tmpBuffer = this.memoryAllocator.Allocate<byte>(data.Length);
+                // 4 extra rows and columns for possible padding.
+                int paddedWidth = width + 4;
+                int paddedHeight = height + 4;
+                int requiredBytes = paddedWidth * paddedHeight * 3;
+                using IMemoryOwner<byte> tmpBuffer = this.memoryAllocator.Allocate<byte>(requiredBytes);
                 Span<byte> tmpBufferSpan = tmpBuffer.GetSpan();
                 ReverseChromaSubSampling(width, height, this.ycbcrSubSampling[0], this.ycbcrSubSampling[1], data, tmpBufferSpan);
                 ycbcrData = tmpBufferSpan;
@@ -53,6 +57,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private static void ReverseChromaSubSampling(int width, int height, int horizontalSubSampling, int verticalSubSampling, ReadOnlySpan<byte> source, Span<byte> destination)
         {
+            // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
+            // then the source data will be padded.
+            width += width % horizontalSubSampling;
+            height += height % verticalSubSampling;
             int blockWidth = width / horizontalSubSampling;
             int blockHeight = height / verticalSubSampling;
             int cbCrOffsetInBlock = horizontalSubSampling * verticalSubSampling;

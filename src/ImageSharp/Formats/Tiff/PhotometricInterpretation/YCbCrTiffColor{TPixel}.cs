@@ -42,6 +42,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             var color = default(TPixel);
             int offset = 0;
+            int widthPadding = 0;
+            if (this.ycbcrSubSampling != null)
+            {
+                // Round to the next integer multiple of horizontalSubSampling.
+                widthPadding = PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
+            }
+
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
@@ -52,6 +59,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     pixelRow[x] = color;
                     offset += 3;
                 }
+
+                offset += widthPadding * 3;
             }
         }
 
@@ -59,8 +68,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         {
             // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
             // then the source data will be padded.
-            width += width % horizontalSubSampling;
-            height += height % verticalSubSampling;
+            width += PaddingToNextInteger(width, horizontalSubSampling);
+            height += PaddingToNextInteger(height, verticalSubSampling);
             int blockWidth = width / horizontalSubSampling;
             int blockHeight = height / verticalSubSampling;
             int cbCrOffsetInBlock = horizontalSubSampling * verticalSubSampling;
@@ -87,6 +96,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     }
                 }
             }
+        }
+
+        private static int PaddingToNextInteger(int valueToRoundUp, int subSampling)
+        {
+            if (valueToRoundUp % subSampling == 0)
+            {
+                return 0;
+            }
+
+            int padding = subSampling - (valueToRoundUp % subSampling);
+            return padding;
         }
     }
 }

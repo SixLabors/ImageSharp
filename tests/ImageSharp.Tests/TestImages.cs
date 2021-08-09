@@ -539,6 +539,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
             public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
             public const string HuffmanRleAllMakeupCodes = "Tiff/huffman_rle_all_makeup_codes.tiff";
+            public const string CcittFax3LowerOrderBitsFirst = "Tiff/basi3p02_fax3_lowerOrderBitsFirst.tiff";
+            public const string HuffmanRleLowerOrderBitsFirst = "Tiff/basi3p02_huffman_rle_lowerOrderBitsFirst.tiff";
 
             // Test case for an issue, that the last bits in a row got ignored.
             public const string HuffmanRle_basi3p02 = "Tiff/basi3p02_huffman_rle.tiff";
@@ -625,7 +627,6 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
 
-            public const string FillOrder2 = "Tiff/b0350_fillorder2.tiff";
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 
             public const string Fax4_Motorola = "Tiff/moy.tiff";
@@ -640,7 +641,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, FillOrder2, Calliphora_Fax4Compressed, Fax4_Motorola };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, Calliphora_Fax4Compressed, Fax4_Motorola };
         }
     }
 }

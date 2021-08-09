@@ -585,8 +585,11 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerRgb888Contiguous = "Tiff/flower-rgb-contig-08.tiff";
             public const string FlowerRgb888Planar6Strips = "Tiff/flower-rgb-planar-08-6strips.tiff";
             public const string FlowerRgb888Planar15Strips = "Tiff/flower-rgb-planar-08-15strips.tiff";
-            public const string FlowerYCbCr888Contiguous = "Tiff/flower-ycbcr-contig-08.tiff";
-            public const string FlowerYCbCr888Planar = "Tiff/flower-ycbcr-planar-08.tiff";
+            public const string FlowerYCbCr888Contiguous = "Tiff/flower-ycbcr-contig-08_h1v1.tiff";
+            public const string FlowerYCbCr888Planar = "Tiff/flower-ycbcr-planar-08_h1v1.tiff";
+            public const string FlowerYCbCr888Contiguoush2v1 = "Tiff/flower-ycbcr-contig-08_h2v1.tiff";
+            public const string FlowerYCbCr888Contiguoush2v2 = "Tiff/flower-ycbcr-contig-08_h2v2.tiff";
+            public const string FlowerYCbCr888Contiguoush4v4 = "Tiff/flower-ycbcr-contig-08_h4v4.tiff";
             public const string RgbYCbCr888Contiguoush1v1 = "Tiff/rgb-ycbcr-contig-08_h1v1.tiff";
             public const string RgbYCbCr888Contiguoush2v1 = "Tiff/rgb-ycbcr-contig-08_h2v1.tiff";
             public const string RgbYCbCr888Contiguoush2v2 = "Tiff/rgb-ycbcr-contig-08_h2v2.tiff";

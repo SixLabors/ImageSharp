@@ -314,6 +314,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(CcittFax3LowerOrderBitsFirst, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Compressed_LowerOrderBitsFirst<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(Calliphora_RgbPackbits, PixelTypes.Rgba32)]
         [WithFile(RgbPackbits, PixelTypes.Rgba32)]
         [WithFile(RgbPackbitsMultistrip, PixelTypes.Rgba32)]

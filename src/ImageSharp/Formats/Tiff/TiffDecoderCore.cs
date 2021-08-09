@@ -86,6 +86,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public FaxCompressionOptions FaxCompressionOptions { get; set; }
 
         /// <summary>
+        /// Gets or sets the the logical order of bits within a byte.
+        /// </summary>
+        public TiffFillOrder FillOrder { get; set; }
+
+        /// <summary>
         /// Gets or sets the planar configuration type to use when decoding the image.
         /// </summary>
         public TiffPlanarConfiguration PlanarConfiguration { get; set; }
@@ -273,6 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.ColorType,
                     this.Predictor,
                     this.FaxCompressionOptions,
+                    this.FillOrder,
                     this.byteOrder);
 
                 TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
@@ -325,6 +331,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.ColorType,
                 this.Predictor,
                 this.FaxCompressionOptions,
+                this.FillOrder,
                 this.byteOrder);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.Configuration, this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);

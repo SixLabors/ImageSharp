@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             TiffFillOrder fillOrder = (TiffFillOrder?)exifProfile.GetValue(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
-            if (fillOrder != TiffFillOrder.MostSignificantBitFirst)
+            if (fillOrder == TiffFillOrder.LeastSignificantBitFirst && frameMetadata.BitsPerPixel != TiffBitsPerPixel.Bit1)
             {
-                TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
+                TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is only supported in combination with 1bit per pixel bicolor tiff's.");
             }
 
             if (frameMetadata.Predictor == TiffPredictor.FloatingPoint)
@@ -69,6 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
             options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
             options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
+            options.FillOrder = fillOrder;
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);

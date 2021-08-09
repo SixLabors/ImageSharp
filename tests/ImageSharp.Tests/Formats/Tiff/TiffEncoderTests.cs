@@ -117,7 +117,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Jpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.OldDeflate, TiffBitsPerPixel.Bit24, TiffCompression.None)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.OldJpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        public void EncoderOptions_SetPhotometricInterpretationAndCompression_Works(TiffPhotometricInterpretation? photometricInterpretation, TiffCompression compression, TiffBitsPerPixel expectedBitsPerPixel, TiffCompression expectedCompression)
+        public void EncoderOptions_SetPhotometricInterpretationAndCompression_Works(
+            TiffPhotometricInterpretation? photometricInterpretation,
+            TiffCompression compression,
+            TiffBitsPerPixel expectedBitsPerPixel,
+            TiffCompression expectedCompression)
         {
             // arrange
             var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation, Compression = compression };

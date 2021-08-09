@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         private static byte RoundAndClampTo8Bit(float value)
         {
             int input = (int)MathF.Round(value);
-            return (byte)Math.Clamp(input, 0, 255);
+            return (byte)Numerics.Clamp(input, 0, 255);
         }
 
         private readonly struct CodingRangeExpander

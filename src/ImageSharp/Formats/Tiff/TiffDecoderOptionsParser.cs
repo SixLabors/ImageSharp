@@ -58,14 +58,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             ushort[] ycbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
-            if (ycbcrSubSampling != null && ycbcrSubSampling[0] != ycbcrSubSampling[1])
+            if (ycbcrSubSampling != null && ycbcrSubSampling.Length != 2)
             {
-                TiffThrowHelper.ThrowNotSupported("ImageSharp only supports YCbCr images with equal luma and chroma samples.");
+                TiffThrowHelper.ThrowImageFormatException("Invalid YCbCrSubsampling, expected 2 values.");
             }
 
-            if (ycbcrSubSampling != null && ycbcrSubSampling[0] != 1)
+            if (ycbcrSubSampling != null && ycbcrSubSampling[1] > ycbcrSubSampling[0])
             {
-                TiffThrowHelper.ThrowNotSupported("ImageSharp only supports YCbCr images without subsampling.");
+                TiffThrowHelper.ThrowImageFormatException("ChromaSubsampleVert shall always be less than or equal to ChromaSubsampleHoriz.");
             }
 
             if (exifProfile.GetValue(ExifTag.StripRowCounts)?.Value != null)
@@ -82,6 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
             options.ReferenceBlackAndWhite = exifProfile.GetValue(ExifTag.ReferenceBlackWhite)?.Value;
             options.YcbcrCoefficients = exifProfile.GetValue(ExifTag.YCbCrCoefficients)?.Value;
+            options.YcbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);

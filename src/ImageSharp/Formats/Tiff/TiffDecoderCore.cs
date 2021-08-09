@@ -75,9 +75,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         public TiffColorType ColorType { get; set; }
 
+        /// <summary>
+        /// Gets or sets the reference black and white for decoding YCbCr pixel data.
+        /// </summary>
         public Rational[] ReferenceBlackAndWhite { get; set; }
 
+        /// <summary>
+        /// Gets or sets the YCbCr coefficients.
+        /// </summary>
         public Rational[] YcbcrCoefficients { get; set; }
+
+        /// <summary>
+        /// Gets or sets the YCbCr sub sampling.
+        /// </summary>
+        public ushort[] YcbcrSubSampling { get; set; }
 
         /// <summary>
         /// Gets or sets the compression used, when the image was encoded.
@@ -283,6 +294,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.ColorMap,
                     this.ReferenceBlackAndWhite,
                     this.YcbcrCoefficients,
+                    this.YcbcrSubSampling,
                     this.byteOrder);
 
                 for (int i = 0; i < stripsPerPlane; i++)
@@ -334,11 +346,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.FaxCompressionOptions);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
+                this.memoryAllocator,
                 this.ColorType,
                 this.BitsPerSample,
                 this.ColorMap,
                 this.ReferenceBlackAndWhite,
                 this.YcbcrCoefficients,
+                this.YcbcrSubSampling,
                 this.byteOrder);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)

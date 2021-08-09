@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,13 +11,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly MemoryAllocator memoryAllocator;
+
         private readonly YCbCrConverter converter;
 
-        public YCbCrTiffColor(Rational[] referenceBlackAndWhite, Rational[] coefficients) => this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
+        private readonly ushort[] ycbcrSubSampling;
+
+        public YCbCrTiffColor(MemoryAllocator memoryAllocator, Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
+        {
+            this.memoryAllocator = memoryAllocator;
+            this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
+            this.ycbcrSubSampling = ycbcrSubSampling;
+        }
 
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
+            ReadOnlySpan<byte> ycbcrData = data;
+            if (this.ycbcrSubSampling != null && !(this.ycbcrSubSampling[0] == 1 && this.ycbcrSubSampling[1] == 1))
+            {
+                using IMemoryOwner<byte> tmpBuffer = this.memoryAllocator.Allocate<byte>(data.Length);
+                Span<byte> tmpBufferSpan = tmpBuffer.GetSpan();
+                ReverseChromaSubSampling(width, height, this.ycbcrSubSampling[0], this.ycbcrSubSampling[1], data, tmpBufferSpan);
+                ycbcrData = tmpBufferSpan;
+            }
+
             var color = default(TPixel);
             int offset = 0;
             for (int y = top; y < top + height; y++)
@@ -24,10 +43,40 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    Rgba32 rgba = this.converter.ConvertToRgba32(data[offset], data[offset + 1], data[offset + 2]);
+                    Rgba32 rgba = this.converter.ConvertToRgba32(ycbcrData[offset], ycbcrData[offset + 1], ycbcrData[offset + 2]);
                     color.FromRgba32(rgba);
                     pixelRow[x] = color;
                     offset += 3;
+                }
+            }
+        }
+
+        private static void ReverseChromaSubSampling(int width, int height, int horizontalSubSampling, int verticalSubSampling, ReadOnlySpan<byte> source, Span<byte> destination)
+        {
+            int blockWidth = width / horizontalSubSampling;
+            int blockHeight = height / verticalSubSampling;
+            int cbCrOffsetInBlock = horizontalSubSampling * verticalSubSampling;
+            int blockByteCount = cbCrOffsetInBlock + 2;
+
+            for (int blockRow = blockHeight - 1; blockRow >= 0; blockRow--)
+            {
+                for (int blockCol = blockWidth - 1; blockCol >= 0; blockCol--)
+                {
+                    int blockOffset = (blockRow * blockWidth) + blockCol;
+                    ReadOnlySpan<byte> blockData = source.Slice(blockOffset * blockByteCount, blockByteCount);
+                    byte cr = blockData[cbCrOffsetInBlock + 1];
+                    byte cb = blockData[cbCrOffsetInBlock];
+
+                    for (int row = verticalSubSampling - 1; row >= 0; row--)
+                    {
+                        for (int col = horizontalSubSampling - 1; col >= 0; col--)
+                        {
+                            int offset = 3 * ((((blockRow * verticalSubSampling) + row) * width) + (blockCol * horizontalSubSampling) + col);
+                            destination[offset + 2] = cr;
+                            destination[offset + 1] = cb;
+                            destination[offset] = blockData[(row * horizontalSubSampling) + col];
+                        }
+                    }
                 }
             }
         }

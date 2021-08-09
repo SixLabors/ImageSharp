@@ -13,7 +13,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     {
         private readonly YCbCrConverter converter;
 
-        public YCbCrPlanarTiffColor(Rational[] referenceBlackAndWhite, Rational[] coefficients) => this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
+        private readonly ushort[] ycbcrSubSampling;
+
+        public YCbCrPlanarTiffColor(Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
+        {
+            this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
+            this.ycbcrSubSampling = ycbcrSubSampling;
+        }
 
         /// <inheritdoc/>
         public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -21,6 +27,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             Span<byte> yData = data[0].GetSpan();
             Span<byte> cbData = data[1].GetSpan();
             Span<byte> crData = data[2].GetSpan();
+
+            if (this.ycbcrSubSampling != null && !(this.ycbcrSubSampling[0] == 1 && this.ycbcrSubSampling[1] == 1))
+            {
+                ReverseChromaSubSampling(width, height, this.ycbcrSubSampling[0], this.ycbcrSubSampling[1], cbData, crData);
+            }
 
             var color = default(TPixel);
             int offset = 0;
@@ -33,6 +44,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     color.FromRgba32(rgba);
                     pixelRow[x] = color;
                     offset++;
+                }
+            }
+        }
+
+        private static void ReverseChromaSubSampling(int width, int height, int horizontalSubSampling, int verticalSubSampling, Span<byte> planarCb, Span<byte> planarCr)
+        {
+            for (int row = height - 1; row >= 0; row--)
+            {
+                for (int col = width - 1; col >= 0; col--)
+                {
+                    int offset = (row * width) + col;
+                    int subSampleOffset = (row / verticalSubSampling * (width / horizontalSubSampling)) + (col / horizontalSubSampling);
+                    planarCb[offset] = planarCb[subSampleOffset];
+                    planarCr[offset] = planarCr[subSampleOffset];
                 }
             }
         }

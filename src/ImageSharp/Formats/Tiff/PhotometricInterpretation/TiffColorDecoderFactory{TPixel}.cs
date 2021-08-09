@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
@@ -9,11 +10,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         where TPixel : unmanaged, IPixel<TPixel>
     {
         public static TiffBaseColorDecoder<TPixel> Create(
+            MemoryAllocator memoryAllocator,
             TiffColorType colorType,
             TiffBitsPerSample bitsPerSample,
             ushort[] colorMap,
             Rational[] referenceBlackAndWhite,
             Rational[] ycbcrCoefficients,
+            ushort[] ycbcrSubSampling,
             ByteOrder byteOrder)
         {
             switch (colorType)
@@ -147,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     return new PaletteTiffColor<TPixel>(bitsPerSample, colorMap);
 
                 case TiffColorType.YCbCr:
-                    return new YCbCrTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients);
+                    return new YCbCrTiffColor<TPixel>(memoryAllocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());
@@ -160,6 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             ushort[] colorMap,
             Rational[] referenceBlackAndWhite,
             Rational[] ycbcrCoefficients,
+            ushort[] ycbcrSubSampling,
             ByteOrder byteOrder)
         {
             switch (colorType)
@@ -174,7 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
 
                 case TiffColorType.YCbCrPlanar:
-                    return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients);
+                    return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());

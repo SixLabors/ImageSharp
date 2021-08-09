@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
+    [Collection("RunSerial")]
     public class ArrayPoolMemoryAllocatorTests
     {
         private const int MaxPooledBufferSizeInBytes = 2048;
@@ -56,19 +57,14 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             [Fact]
             public void When_PoolSelectorThresholdInBytes_IsGreaterThan_MaxPooledBufferSizeInBytes_ExceptionIsThrown()
-            {
-                Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(100, 200));
-            }
+                => Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(100, 200));
         }
 
         [Theory]
         [InlineData(32)]
         [InlineData(512)]
         [InlineData(MaxPooledBufferSizeInBytes - 1)]
-        public void SmallBuffersArePooled_OfByte(int size)
-        {
-            Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<byte>(size));
-        }
+        public void SmallBuffersArePooled_OfByte(int size) => Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<byte>(size));
 
         [Theory]
         [InlineData(128 * 1024 * 1024)]

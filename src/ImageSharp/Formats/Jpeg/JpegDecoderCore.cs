@@ -345,10 +345,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Returns the correct colorspace based on the image component count
+        /// Returns the correct colorspace based on the image component count and the jpeg frame components.
         /// </summary>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
-        private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
+        private JpegColorSpace DeduceJpegColorSpace(byte componentCount, JpegComponent[] components)
         {
             if (componentCount == 1)
             {
@@ -358,6 +358,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (componentCount == 3)
             {
                 if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                {
+                    return JpegColorSpace.RGB;
+                }
+
+                // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
+                if (components[0].Id == 82 && components[1].Id == 71 && components[2].Id == 66)
                 {
                     return JpegColorSpace.RGB;
                 }
@@ -836,9 +842,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // 1 byte: Number of components
             byte componentCount = this.temp[5];
-            this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
-
-            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
 
             this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
 
@@ -887,6 +890,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                     index += componentBytes;
                 }
+
+                this.ColorSpace = this.DeduceJpegColorSpace(componentCount, this.Frame.Components);
+                this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
 
                 this.Frame.Init(maxH, maxV);
 

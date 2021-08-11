@@ -101,6 +101,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
 
         /// <summary>
+        /// Gets or sets the sample format.
+        /// </summary>
+        public TiffSampleFormat SampleFormat { get; set; }
+
+        /// <summary>
         /// Gets or sets the horizontal predictor.
         /// </summary>
         public TiffPredictor Predictor { get; set; }
@@ -275,9 +280,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.PhotometricInterpretation,
                     frame.Width,
                     bitsPerPixel,
+                    this.ColorType,
                     this.Predictor,
                     this.FaxCompressionOptions,
-                    this.FillOrder);
+                    this.FillOrder,
+                    this.byteOrder);
 
                 TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
 
@@ -326,9 +333,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.PhotometricInterpretation,
                 frame.Width,
                 bitsPerPixel,
+                this.ColorType,
                 this.Predictor,
                 this.FaxCompressionOptions,
-                this.FillOrder);
+                this.FillOrder,
+                this.byteOrder);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.Configuration, this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
 

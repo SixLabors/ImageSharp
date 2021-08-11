@@ -44,6 +44,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         BlackIsZero32,
 
         /// <summary>
+        /// Grayscale: 0 is imaged as black. The maximum value is imaged as white. Pixel data is 32-bit float.
+        /// </summary>
+        BlackIsZero32Float,
+
+        /// <summary>
         /// Grayscale: 0 is imaged as white. The maximum value is imaged as black.
         /// </summary>
         WhiteIsZero,
@@ -77,6 +82,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// Grayscale: 0 is imaged as white. The maximum value is imaged as black. Optimized implementation for 32-bit images.
         /// </summary>
         WhiteIsZero32,
+
+        /// <summary>
+        /// Grayscale: 0 is imaged as black. The maximum value is imaged as white. Pixel data is 32-bit float.
+        /// </summary>
+        WhiteIsZero32Float,
 
         /// <summary>
         /// Palette-color.
@@ -132,6 +142,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// RGB color image with 32 bits for each channel.
         /// </summary>
         Rgb323232,
+
+        /// <summary>
+        /// RGB color image with 32 bits floats for each channel.
+        /// </summary>
+        RgbFloat323232,
 
         /// <summary>
         /// RGB Full Color. Planar configuration of data. 8 Bit per color channel.

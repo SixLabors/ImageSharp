@@ -554,6 +554,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
             public const string RgbJpegCompressed = "Tiff/rgb_jpegcompression.tiff";
             public const string RgbWithStripsJpegCompressed = "Tiff/rgb_jpegcompressed_stripped.tiff";
+            public const string RgbJpegCompressedNoJpegTable = "Tiff/rgb_jpegcompressed_nojpegtable.tiff";
             public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
             public const string RgbLzwNoPredictor = "Tiff/rgb_lzw_no_predictor.tiff";
             public const string RgbLzwNoPredictorMultistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";

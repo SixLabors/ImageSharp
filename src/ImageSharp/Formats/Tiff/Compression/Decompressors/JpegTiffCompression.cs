@@ -42,16 +42,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
-            var jpegDecoder = new JpegDecoderCore(this.configuration, new JpegDecoder());
+            Image<Rgb24> image;
+            if (this.jpegTables != null)
+            {
+                var jpegDecoder = new JpegDecoderCore(this.configuration, new JpegDecoder());
 
-            // Should we pass through the CancellationToken from the tiff decoder?
-            using var spectralConverter = new SpectralConverter<Rgb24>(this.configuration, CancellationToken.None);
-            var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
-            jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
-            scanDecoder.ResetInterval = 0;
-            jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
+                // Should we pass through the CancellationToken from the tiff decoder?
+                using var spectralConverter = new SpectralConverter<Rgb24>(this.configuration, CancellationToken.None);
+                var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
+                jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
+                scanDecoder.ResetInterval = 0;
+                jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
 
-            var image = new Image<Rgb24>(this.configuration, spectralConverter.PixelBuffer, new ImageMetadata());
+                image = new Image<Rgb24>(this.configuration, spectralConverter.PixelBuffer, new ImageMetadata());
+            }
+            else
+            {
+                image = Image.Load<Rgb24>(stream);
+            }
+
             int offset = 0;
             for (int y = 0; y < image.Height; y++)
             {

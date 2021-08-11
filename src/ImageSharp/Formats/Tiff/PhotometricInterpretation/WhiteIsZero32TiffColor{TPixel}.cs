@@ -29,6 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
+            const uint maxValue = 0xFFFFFFFF;
 
             int offset = 0;
             for (int y = top; y < top + height; y++)
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ulong intensity = TiffUtils.ConvertToUIntBigEndian(data.Slice(offset, 4));
+                        ulong intensity = maxValue - TiffUtils.ConvertToUIntBigEndian(data.Slice(offset, 4));
                         offset += 4;
 
                         pixelRow[x] = TiffUtils.ColorScaleTo32Bit(intensity, color);
@@ -48,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        ulong intensity = TiffUtils.ConvertToUIntLittleEndian(data.Slice(offset, 4));
+                        ulong intensity = maxValue - TiffUtils.ConvertToUIntLittleEndian(data.Slice(offset, 4));
                         offset += 4;
 
                         pixelRow[x] = TiffUtils.ColorScaleTo32Bit(intensity, color);

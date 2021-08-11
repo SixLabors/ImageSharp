@@ -116,6 +116,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
 
         /// <summary>
+        /// Gets or sets the sample format.
+        /// </summary>
+        public TiffSampleFormat SampleFormat { get; set; }
+
+        /// <summary>
         /// Gets or sets the horizontal predictor.
         /// </summary>
         public TiffPredictor Predictor { get; set; }

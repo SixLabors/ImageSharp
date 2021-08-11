@@ -280,9 +280,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.PhotometricInterpretation,
                     frame.Width,
                     bitsPerPixel,
+                    this.ColorType,
                     this.Predictor,
                     this.FaxCompressionOptions,
-                    this.FillOrder);
+                    this.FillOrder,
+                    this.byteOrder);
 
                 TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
 
@@ -331,9 +333,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.PhotometricInterpretation,
                 frame.Width,
                 bitsPerPixel,
+                this.ColorType,
                 this.Predictor,
                 this.FaxCompressionOptions,
-                this.FillOrder);
+                this.FillOrder,
+                this.byteOrder);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.Configuration, this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
 

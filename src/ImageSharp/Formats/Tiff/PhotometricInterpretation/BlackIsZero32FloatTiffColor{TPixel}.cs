@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -9,18 +10,18 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
-    /// Implements the 'WhiteIsZero' photometric interpretation for 24-bit grayscale images.
+    /// Implements the 'BlackIsZero' photometric interpretation for 32-bit float grayscale images.
     /// </summary>
-    internal class WhiteIsZero24TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
+    internal class BlackIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly bool isBigEndian;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WhiteIsZero24TiffColor{TPixel}" /> class.
+        /// Initializes a new instance of the <see cref="BlackIsZero32FloatTiffColor{TPixel}" /> class.
         /// </summary>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public WhiteIsZero24TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        public BlackIsZero32FloatTiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
 
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -30,10 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
             byte[] buffer = new byte[4];
-            int bufferStartIdx = this.isBigEndian ? 1 : 0;
-            const uint maxValue = 0xFFFFFF;
 
-            Span<byte> bufferSpan = buffer.AsSpan(bufferStartIdx);
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {
@@ -42,22 +40,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        data.Slice(offset, 3).CopyTo(bufferSpan);
-                        ulong intensity = maxValue - TiffUtils.ConvertToUIntBigEndian(buffer);
-                        offset += 3;
+                        data.Slice(offset, 4).CopyTo(buffer);
+                        Array.Reverse(buffer);
+                        float intensity = BitConverter.ToSingle(buffer, 0);
+                        offset += 4;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(intensity, color);
+                        var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
+                        color.FromVector4(colorVector);
+                        pixelRow[x] = color;
                     }
                 }
                 else
                 {
                     for (int x = 0; x < pixelRow.Length; x++)
                     {
-                        data.Slice(offset, 3).CopyTo(bufferSpan);
-                        ulong intensity = maxValue - TiffUtils.ConvertToUIntLittleEndian(buffer);
-                        offset += 3;
+                        data.Slice(offset, 4).CopyTo(buffer);
+                        float intensity = BitConverter.ToSingle(buffer, 0);
+                        offset += 4;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(intensity, color);
+                        var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
+                        color.FromVector4(colorVector);
+                        pixelRow[x] = color;
                     }
                 }
             }

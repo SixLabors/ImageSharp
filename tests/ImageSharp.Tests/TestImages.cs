@@ -571,12 +571,16 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerRgb323232ContiguousLittleEndian = "Tiff/flower-rgb-contig-32_lsb.tiff";
             public const string FlowerRgb323232Planar = "Tiff/flower-rgb-planar-32.tiff";
             public const string FlowerRgb323232PlanarLittleEndian = "Tiff/flower-rgb-planar-32_lsb.tiff";
+            public const string FlowerRgb323232PredictorBigEndian = "Tiff/flower-rgb-contig-32_msb_zip_predictor.tiff";
+            public const string FlowerRgb323232PredictorLittleEndian = "Tiff/flower-rgb-contig-32_lsb_zip_predictor.tiff";
             public const string FlowerRgb242424Planar = "Tiff/flower-rgb-planar-24.tiff";
             public const string FlowerRgb242424PlanarLittleEndian = "Tiff/flower-rgb-planar-24_lsb.tiff";
             public const string FlowerRgb242424Contiguous = "Tiff/flower-rgb-contig-24.tiff";
             public const string FlowerRgb242424ContiguousLittleEndian = "Tiff/flower-rgb-contig-24_lsb.tiff";
             public const string FlowerRgb161616Contiguous = "Tiff/flower-rgb-contig-16.tiff";
             public const string FlowerRgb161616ContiguousLittleEndian = "Tiff/flower-rgb-contig-16_lsb.tiff";
+            public const string FlowerRgb161616PredictorBigEndian = "Tiff/flower-rgb-contig-16_msb_zip_predictor.tiff";
+            public const string FlowerRgb161616PredictorLittleEndian = "Tiff/flower-rgb-contig-16_lsb_zip_predictor.tiff";
             public const string FlowerRgb161616Planar = "Tiff/flower-rgb-planar-16.tiff";
             public const string FlowerRgb161616PlanarLittleEndian = "Tiff/flower-rgb-planar-16_lsb.tiff";
             public const string FlowerRgb141414Contiguous = "Tiff/flower-rgb-contig-14.tiff";
@@ -612,6 +616,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower16BitGray = "Tiff/flower-minisblack-16.tiff";
             public const string Flower16BitGrayLittleEndian = "Tiff/flower-minisblack-16_lsb.tiff";
             public const string Flower16BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-16_lsb.tiff";
+            public const string Flower16BitGrayPredictorBigEndian = "Tiff/flower-minisblack-16_msb_lzw_predictor.tiff";
+            public const string Flower16BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-16_lsb_lzw_predictor.tiff";
             public const string Flower16BitGrayMinIsWhiteBigEndian = "Tiff/flower-miniswhite-16_msb.tiff";
             public const string Flower24BitGray = "Tiff/flower-minisblack-24_msb.tiff";
             public const string Flower24BitGrayLittleEndian = "Tiff/flower-minisblack-24_lsb.tiff";
@@ -623,6 +629,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower32BitFloatGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-float32_lsb.tiff";
             public const string Flower32BitGrayMinIsWhite = "Tiff/flower-miniswhite-32_msb.tiff";
             public const string Flower32BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-32_lsb.tiff";
+            public const string Flower32BitGrayPredictorBigEndian = "Tiff/flower-minisblack-32_msb_deflate_predictor.tiff";
+            public const string Flower32BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-32_lsb_deflate_predictor.tiff";
 
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
 

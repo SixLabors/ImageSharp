@@ -98,5 +98,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             color.FromVector4(colorVector);
             return color;
         }
+
+        /// <summary>
+        /// Finds the padding needed to round 'valueToRoundUp' to the next integer multiple of subSampling value.
+        /// </summary>
+        /// <param name="valueToRoundUp">The width or height to round up.</param>
+        /// <param name="subSampling">The sub sampling.</param>
+        /// <returns>The padding.</returns>
+        public static int PaddingToNextInteger(int valueToRoundUp, int subSampling)
+        {
+            if (valueToRoundUp % subSampling == 0)
+            {
+                return 0;
+            }
+
+            int padding = subSampling - (valueToRoundUp % subSampling);
+            return padding;
+        }
     }
 }

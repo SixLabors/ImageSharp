@@ -59,6 +59,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
+            ushort[] ycbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
+            if (ycbcrSubSampling != null && ycbcrSubSampling.Length != 2)
+            {
+                TiffThrowHelper.ThrowImageFormatException("Invalid YCbCrSubsampling, expected 2 values.");
+            }
+
+            if (ycbcrSubSampling != null && ycbcrSubSampling[1] > ycbcrSubSampling[0])
+            {
+                TiffThrowHelper.ThrowImageFormatException("ChromaSubsampleVert shall always be less than or equal to ChromaSubsampleHoriz.");
+            }
+
             if (exifProfile.GetValue(ExifTag.StripRowCounts)?.Value != null)
             {
                 TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
@@ -72,6 +83,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.SampleFormat = sampleFormat ?? TiffSampleFormat.UnsignedInteger;
             options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
             options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
+            options.ReferenceBlackAndWhite = exifProfile.GetValue(ExifTag.ReferenceBlackWhite)?.Value;
+            options.YcbcrCoefficients = exifProfile.GetValue(ExifTag.YCbCrCoefficients)?.Value;
+            options.YcbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
             options.FillOrder = fillOrder;
 
             options.ParseColorType(exifProfile);
@@ -335,6 +349,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         TiffThrowHelper.ThrowNotSupported("The TIFF ColorMap entry is missing for a palette color image.");
                     }
+
+                    break;
+                }
+
+                case TiffPhotometricInterpretation.YCbCr:
+                {
+                    options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
+                    if (options.BitsPerSample.Channels != 3)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                    if (bitsPerChannel != 8)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for YCbCr images.");
+                    }
+
+                    options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.YCbCr : TiffColorType.YCbCrPlanar;
 
                     break;
                 }

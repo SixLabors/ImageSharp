@@ -179,6 +179,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(FlowerYCbCr888Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Planar, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush1v1, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush2v2, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Contiguoush2v2, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_YCbCr_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
+            // converting the pixel data from Magick.Net to our format with YCbCr?
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
         [WithFile(FlowerRgb101010Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb101010Planar, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_30Bit<TPixel>(TestImageProvider<TPixel> provider)

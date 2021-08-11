@@ -167,5 +167,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// RGB Full Color. Planar configuration of data. 32 Bit per color channel.
         /// </summary>
         Rgb323232Planar,
+
+        /// <summary>
+        /// The pixels are stored in YCbCr format.
+        /// </summary>
+        YCbCr,
+
+        /// <summary>
+        /// The pixels are stored in YCbCr format as planar.
+        /// </summary>
+        YCbCrPlanar
     }
 }

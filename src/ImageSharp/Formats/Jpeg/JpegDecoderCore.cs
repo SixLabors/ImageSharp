@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -136,8 +137,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Finds the next file marker within the byte stream.
         /// </summary>
-        /// <param name="marker">The buffer to read file markers to</param>
-        /// <param name="stream">The input stream</param>
+        /// <param name="marker">The buffer to read file markers to.</param>
+        /// <param name="stream">The input stream.</param>
         /// <returns>The <see cref="JpegFileMarker"/></returns>
         public static JpegFileMarker FindNextFileMarker(byte[] marker, BufferedReadStream stream)
         {
@@ -201,6 +202,67 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Load quantization and/or Huffman tables for subsequent use for jpeg's embedded in tiff's,
+        /// so those tables do not need to be duplicated with segmented tiff's (tiff's with multiple strips).
+        /// </summary>
+        /// <param name="tableBytes">The table bytes.</param>
+        /// <param name="huffmanScanDecoder">The scan decoder.</param>
+        public void LoadTables(byte[] tableBytes, HuffmanScanDecoder huffmanScanDecoder)
+        {
+            this.Metadata = new ImageMetadata();
+            this.QuantizationTables = new Block8x8F[4];
+            this.scanDecoder = huffmanScanDecoder;
+            using var ms = new MemoryStream(tableBytes);
+            using var stream = new BufferedReadStream(this.Configuration, ms);
+
+            // Check for the Start Of Image marker.
+            stream.Read(this.markerBuffer, 0, 2);
+            var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
+            if (fileMarker.Marker != JpegConstants.Markers.SOI)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
+            }
+
+            // Read next marker.
+            stream.Read(this.markerBuffer, 0, 2);
+            byte marker = this.markerBuffer[1];
+            fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
+
+            while (fileMarker.Marker != JpegConstants.Markers.EOI || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
+            {
+                if (!fileMarker.Invalid)
+                {
+                    // Get the marker length.
+                    int remaining = this.ReadUint16(stream) - 2;
+
+                    switch (fileMarker.Marker)
+                    {
+                        case JpegConstants.Markers.SOI:
+                            break;
+                        case JpegConstants.Markers.RST0:
+                        case JpegConstants.Markers.RST7:
+                            break;
+                        case JpegConstants.Markers.DHT:
+                            this.ProcessDefineHuffmanTablesMarker(stream, remaining);
+                            break;
+                        case JpegConstants.Markers.DQT:
+                            this.ProcessDefineQuantizationTablesMarker(stream, remaining);
+                            break;
+                        case JpegConstants.Markers.DRI:
+                            this.ProcessDefineRestartIntervalMarker(stream, remaining);
+                            break;
+                        case JpegConstants.Markers.EOI:
+                            return;
+                    }
+                }
+
+                // Read next marker.
+                stream.Read(this.markerBuffer, 0, 2);
+                fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
+            }
+        }
+
+        /// <summary>
         /// Parses the input stream for file markers.
         /// </summary>
         /// <param name="stream">The input stream.</param>
@@ -225,7 +287,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             stream.Read(this.markerBuffer, 0, 2);
             byte marker = this.markerBuffer[1];
             fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
-            this.QuantizationTables = new Block8x8F[4];
+            this.QuantizationTables ??= new Block8x8F[4];
 
             // Break only when we discover a valid EOI marker.
             // https://github.com/SixLabors/ImageSharp/issues/695
@@ -236,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (!fileMarker.Invalid)
                 {
-                    // Get the marker length
+                    // Get the marker length.
                     int remaining = this.ReadUint16(stream) - 2;
 
                     switch (fileMarker.Marker)
@@ -345,7 +407,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Returns the correct colorspace based on the image component count
+        /// Returns the correct colorspace based on the image component count.
         /// </summary>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
         private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
@@ -576,7 +638,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <summary>
         /// Processes a App13 marker, which contains IPTC data stored with Adobe Photoshop.
-        /// The content of an APP13 segment is formed by an identifier string followed by a sequence of resource data blocks.
+        /// The tableBytes of an APP13 segment is formed by an identifier string followed by a sequence of resource data blocks.
         /// </summary>
         /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>

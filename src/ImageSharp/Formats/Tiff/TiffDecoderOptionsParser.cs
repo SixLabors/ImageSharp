@@ -87,6 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.YcbcrCoefficients = exifProfile.GetValue(ExifTag.YCbCrCoefficients)?.Value;
             options.YcbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
             options.FillOrder = fillOrder;
+            options.JpegTables = exifProfile.GetValue(ExifTag.JPEGTables)?.Value;
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);
@@ -421,6 +422,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompression.Ccitt1D:
                 {
                     options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
+                    break;
+                }
+
+                case TiffCompression.Jpeg:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.Jpeg;
                     break;
                 }
 

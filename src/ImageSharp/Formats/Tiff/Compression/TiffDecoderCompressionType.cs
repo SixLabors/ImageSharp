@@ -37,5 +37,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// Image data is compressed using modified huffman compression.
         /// </summary>
         HuffmanRle = 5,
+
+        /// <summary>
+        /// The image data is compressed as a JPEG stream.
+        /// </summary>
+        Jpeg = 6,
     }
 }

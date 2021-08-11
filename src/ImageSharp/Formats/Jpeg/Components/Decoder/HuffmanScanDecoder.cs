@@ -38,10 +38,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private int restartInterval;
 
-        // How many mcu's are left to do.
+        /// <summary>
+        /// How many mcu's are left to do.
+        /// </summary>
         private int todo;
 
-        // The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
+        /// <summary>
+        /// The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
+        /// </summary>
         private int eobrun;
 
         /// <summary>
@@ -54,7 +58,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private readonly HuffmanTable[] acHuffmanTables;
 
-        // The unzig data.
+        /// <summary>
+        /// The unzig data.
+        /// </summary>
         private ZigZag dctZigZag;
 
         private HuffmanScanBuffer scanBuffer;

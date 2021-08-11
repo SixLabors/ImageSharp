@@ -106,6 +106,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffFillOrder FillOrder { get; set; }
 
         /// <summary>
+        /// Gets or sets the JPEG tables when jpeg compression is used.
+        /// </summary>
+        public byte[] JpegTables { get; set; }
+
+        /// <summary>
         /// Gets or sets the planar configuration type to use when decoding the image.
         /// </summary>
         public TiffPlanarConfiguration PlanarConfiguration { get; set; }
@@ -290,6 +295,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
+                    this.Configuration,
                     this.CompressionType,
                     this.memoryAllocator,
                     this.PhotometricInterpretation,
@@ -298,6 +304,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.ColorType,
                     this.Predictor,
                     this.FaxCompressionOptions,
+                    this.JpegTables,
                     this.FillOrder,
                     this.byteOrder);
 
@@ -350,6 +357,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
             using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
+                this.Configuration,
                 this.CompressionType,
                 this.memoryAllocator,
                 this.PhotometricInterpretation,
@@ -358,6 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.ColorType,
                 this.Predictor,
                 this.FaxCompressionOptions,
+				this.JpegTables,
                 this.FillOrder,
                 this.byteOrder);
 

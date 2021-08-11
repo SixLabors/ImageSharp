@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
@@ -8,7 +9,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal static class TiffColorDecoderFactory<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        public static TiffBaseColorDecoder<TPixel> Create(Configuration configuration, TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
+        public static TiffBaseColorDecoder<TPixel> Create(
+            Configuration configuration,
+            MemoryAllocator memoryAllocator,
+            TiffColorType colorType,
+            TiffBitsPerSample bitsPerSample,
+            ushort[] colorMap,
+            Rational[] referenceBlackAndWhite,
+            Rational[] ycbcrCoefficients,
+            ushort[] ycbcrSubSampling,
+            ByteOrder byteOrder)
         {
             switch (colorType)
             {
@@ -200,18 +210,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.NotNull(colorMap, "colorMap");
                     return new PaletteTiffColor<TPixel>(bitsPerSample, colorMap);
 
+                case TiffColorType.YCbCr:
+                    return new YCbCrTiffColor<TPixel>(memoryAllocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
+
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());
             }
         }
 
-        public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(TiffColorType colorType, TiffBitsPerSample bitsPerSample, ushort[] colorMap, ByteOrder byteOrder)
+        public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(
+            TiffColorType colorType,
+            TiffBitsPerSample bitsPerSample,
+            ushort[] colorMap,
+            Rational[] referenceBlackAndWhite,
+            Rational[] ycbcrCoefficients,
+            ushort[] ycbcrSubSampling,
+            ByteOrder byteOrder)
         {
             switch (colorType)
             {
                 case TiffColorType.Rgb888Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.YCbCrPlanar:
+                    return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
                 case TiffColorType.Rgb161616Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");

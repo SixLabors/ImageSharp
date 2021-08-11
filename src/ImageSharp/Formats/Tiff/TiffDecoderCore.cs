@@ -76,6 +76,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffColorType ColorType { get; set; }
 
         /// <summary>
+        /// Gets or sets the reference black and white for decoding YCbCr pixel data.
+        /// </summary>
+        public Rational[] ReferenceBlackAndWhite { get; set; }
+
+        /// <summary>
+        /// Gets or sets the YCbCr coefficients.
+        /// </summary>
+        public Rational[] YcbcrCoefficients { get; set; }
+
+        /// <summary>
+        /// Gets or sets the YCbCr sub sampling.
+        /// </summary>
+        public ushort[] YcbcrSubSampling { get; set; }
+
+        /// <summary>
         /// Gets or sets the compression used, when the image was encoded.
         /// </summary>
         public TiffDecoderCompressionType CompressionType { get; set; }
@@ -286,7 +301,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.FillOrder,
                     this.byteOrder);
 
-                TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
+                TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
+                    this.ColorType,
+                    this.BitsPerSample,
+                    this.ColorMap,
+                    this.ReferenceBlackAndWhite,
+                    this.YcbcrCoefficients,
+                    this.YcbcrSubSampling,
+                    this.byteOrder);
 
                 for (int i = 0; i < stripsPerPlane; i++)
                 {
@@ -339,7 +361,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.FillOrder,
                 this.byteOrder);
 
-            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.Configuration, this.ColorType, this.BitsPerSample, this.ColorMap, this.byteOrder);
+            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
+                this.Configuration,
+                this.memoryAllocator,
+                this.ColorType,
+                this.BitsPerSample,
+                this.ColorMap,
+                this.ReferenceBlackAndWhite,
+                this.YcbcrCoefficients,
+                this.YcbcrSubSampling,
+                this.byteOrder);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {

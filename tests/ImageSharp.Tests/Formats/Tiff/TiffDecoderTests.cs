@@ -369,6 +369,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]
         public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

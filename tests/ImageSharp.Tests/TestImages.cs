@@ -552,7 +552,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
             public const string RgbDeflatePredictor = "Tiff/rgb_deflate_predictor.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
-            public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
+            public const string RgbJpegCompressed = "Tiff/rgb_jpegcompression.tiff";
+            public const string RgbWithStripsJpegCompressed = "Tiff/rgb_jpegcompressed_stripped.tiff";
             public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
             public const string RgbLzwNoPredictor = "Tiff/rgb_lzw_no_predictor.tiff";
             public const string RgbLzwNoPredictorMultistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";
@@ -600,6 +601,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbYCbCr888Contiguoush2v1 = "Tiff/rgb-ycbcr-contig-08_h2v1.tiff";
             public const string RgbYCbCr888Contiguoush2v2 = "Tiff/rgb-ycbcr-contig-08_h2v2.tiff";
             public const string RgbYCbCr888Contiguoush4v4 = "Tiff/rgb-ycbcr-contig-08_h4v4.tiff";
+            public const string YCbCrJpegCompressed = "Tiff/ycbcr_jpegcompressed.tiff";
             public const string FlowerRgb444Contiguous = "Tiff/flower-rgb-contig-04.tiff";
             public const string FlowerRgb444Planar = "Tiff/flower-rgb-planar-04.tiff";
             public const string FlowerRgb222Contiguous = "Tiff/flower-rgb-contig-02.tiff";
@@ -659,7 +661,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, Calliphora_Fax4Compressed, Fax4_Motorola };
+            public static readonly string[] NotSupported = { RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, Calliphora_Fax4Compressed, Fax4_Motorola };
         }
     }
 }

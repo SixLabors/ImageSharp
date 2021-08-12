@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.ColorType,
                 this.Predictor,
                 this.FaxCompressionOptions,
-				this.JpegTables,
+                this.JpegTables,
                 this.FillOrder,
                 this.byteOrder);
 

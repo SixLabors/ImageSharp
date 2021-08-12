@@ -155,6 +155,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Image<TPixel> metadataImage = image;
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var subfileType = (TiffNewSubfileType)(frame.Metadata.ExifProfile?.GetValue(ExifTag.SubfileType)?.Value ?? (int)TiffNewSubfileType.FullImage);
 
                 ifdMarker = this.WriteFrame(writer, frame, image.Metadata, metadataImage, ifdMarker);

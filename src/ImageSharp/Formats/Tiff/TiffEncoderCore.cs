@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 entriesCollector,
                 (int)this.BitsPerPixel);
 
-            int rowsPerStrip = this.CalcRowsPerStrip(frame.Height, colorWriter.BytesPerRow);
+            int rowsPerStrip = this.CalcRowsPerStrip(frame.Height, colorWriter.BytesPerRow, this.CompressionType);
 
             colorWriter.Write(compressor, rowsPerStrip);
 
@@ -245,13 +245,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <param name="height">The height of the image.</param>
         /// <param name="bytesPerRow">The number of bytes per row.</param>
+        /// <param name="compression">The compression used.</param>
         /// <returns>Number of rows per strip.</returns>
-        private int CalcRowsPerStrip(int height, int bytesPerRow)
+        private int CalcRowsPerStrip(int height, int bytesPerRow, TiffCompression? compression)
         {
             DebugGuard.MustBeGreaterThan(height, 0, nameof(height));
             DebugGuard.MustBeGreaterThan(bytesPerRow, 0, nameof(bytesPerRow));
 
-            int rowsPerStrip = TiffConstants.DefaultStripSize / bytesPerRow;
+            // Jpeg compressed images should be written in one strip.
+            if (compression is TiffCompression.Jpeg)
+            {
+                return height;
+            }
+
+            // If compression is used, change stripSizeInBytes heuristically to a larger value to not write to many strips.
+            int stripSizeInBytes = compression is TiffCompression.Deflate || compression is TiffCompression.Lzw ? TiffConstants.DefaultStripSize * 2 : TiffConstants.DefaultStripSize;
+            int rowsPerStrip = stripSizeInBytes / bytesPerRow;
 
             if (rowsPerStrip > 0)
             {

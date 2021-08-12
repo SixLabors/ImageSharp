@@ -90,6 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
+            byte[] componentIds = this.GetComponentIds();
 
             // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
             // Initialize the quantization tables.
@@ -105,13 +106,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
 
             // Write the image dimensions.
-            this.WriteStartOfFrame(image.Width, image.Height, componentCount);
+            this.WriteStartOfFrame(image.Width, image.Height, componentCount, componentIds);
 
             // Write the Huffman tables.
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the scan header.
-            this.WriteStartOfScan(image, componentCount, cancellationToken);
+            this.WriteStartOfScan(componentCount, componentIds);
 
             // Write the scan compressed data.
             var scanEncoder = new HuffmanScanEncoder(stream);
@@ -131,6 +132,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     case JpegSubsample.Ratio420:
                         scanEncoder.Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
                         break;
+                    case JpegSubsample.Rgb:
+                        scanEncoder.EncodeRgb(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        break;
                 }
             }
 
@@ -141,12 +145,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Writes data to "Define Quantization Tables" block for QuantIndex
+        /// Gets the component ids.
+        /// For color space RGB this will be RGB as ASCII, otherwise 1, 2, 3.
         /// </summary>
-        /// <param name="dqt">The "Define Quantization Tables" block</param>
-        /// <param name="offset">Offset in "Define Quantization Tables" block</param>
-        /// <param name="i">The quantization index</param>
-        /// <param name="quant">The quantization table to copy data from</param>
+        /// <returns>The component Ids.</returns>
+        private byte[] GetComponentIds()
+        {
+            if (this.subsample == JpegSubsample.Rgb)
+            {
+                return new byte[] { 82, 71, 66 };
+            }
+
+            return new byte[] { 1, 2, 3 };
+        }
+
+        /// <summary>
+        /// Writes data to "Define Quantization Tables" block for QuantIndex.
+        /// </summary>
+        /// <param name="dqt">The "Define Quantization Tables" block.</param>
+        /// <param name="offset">Offset in "Define Quantization Tables" block.</param>
+        /// <param name="i">The quantization index.</param>
+        /// <param name="quant">The quantization table to copy data from.</param>
         private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F quant)
         {
             dqt[offset++] = (byte)i;
@@ -343,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 throw new ImageFormatException($"Iptc profile size exceeds limit of {Max} bytes");
             }
 
-            var app13Length = 2 + ProfileResolver.AdobePhotoshopApp13Marker.Length +
+            int app13Length = 2 + ProfileResolver.AdobePhotoshopApp13Marker.Length +
                               ProfileResolver.AdobeImageResourceBlockMarker.Length +
                               ProfileResolver.AdobeIptcMarker.Length +
                               2 + 4 + data.Length;
@@ -478,12 +497,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Writes the Start Of Frame (Baseline) marker
+        /// Writes the Start Of Frame (Baseline) marker.
         /// </summary>
-        /// <param name="width">The width of the image</param>
-        /// <param name="height">The height of the image</param>
-        /// <param name="componentCount">The number of components in a pixel</param>
-        private void WriteStartOfFrame(int width, int height, int componentCount)
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="componentCount">The number of components in a pixel.</param>
+        /// <param name="componentIds">The component Id's.</param>
+        private void WriteStartOfFrame(int width, int height, int componentCount, byte[] componentIds)
         {
             // "default" to 4:2:0
             Span<byte> subsamples = stackalloc byte[]
@@ -513,6 +533,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 switch (this.subsample)
                 {
+                    case JpegSubsample.Rgb:
                     case JpegSubsample.Ratio444:
                         subsamples = stackalloc byte[]
                         {
@@ -545,8 +566,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             for (int i = 0; i < componentCount; i++)
             {
                 int i3 = 3 * i;
-                this.buffer[i3 + 6] = (byte)(i + 1);
 
+                // Component ID.
+                this.buffer[i3 + 6] = componentIds[i];
                 this.buffer[i3 + 7] = subsamples[i];
                 this.buffer[i3 + 8] = chroma[i];
             }
@@ -557,19 +579,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The pixel accessor providing access to the image pixels.</param>
         /// <param name="componentCount">The number of components in a pixel.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void WriteStartOfScan<TPixel>(Image<TPixel> image, int componentCount, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        /// <param name="componentIds">The componentId's.</param>
+        private void WriteStartOfScan(int componentCount, byte[] componentIds)
         {
-            Span<byte> componentId = stackalloc byte[]
-            {
-                0x01,
-                0x02,
-                0x03
-            };
             Span<byte> huffmanId = stackalloc byte[]
             {
                 0x00,
@@ -597,7 +610,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             for (int i = 0; i < componentCount; i++)
             {
                 int i2 = 2 * i;
-                this.buffer[i2 + 5] = componentId[i]; // Component Id
+                this.buffer[i2 + 5] = componentIds[i]; // Component Id
                 this.buffer[i2 + 6] = huffmanId[i]; // DC/AC Huffman table
             }
 
@@ -633,7 +646,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Initializes quntization tables.
+        /// Initializes quantization tables.
         /// </summary>
         /// <remarks>
         /// We take quality values in a hierarchical order:

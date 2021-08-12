@@ -18,6 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Medium Quality - The horizontal sampling is halved and the Cb and Cr channels are only
         /// sampled on each alternate line.
         /// </summary>
-        Ratio420
+        Ratio420,
+
+        /// <summary>
+        /// The pixel data will be preserved as RGB without any sub sampling.
+        /// </summary>
+        Rgb,
     }
 }

@@ -34,19 +34,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] buffer = new byte[20];
 
         /// <summary>
-        /// Gets or sets the subsampling method to use.
-        /// </summary>
-        private JpegSubsample? subsample;
-
-        /// <summary>
         /// The quality, that will be used to encode the image.
         /// </summary>
         private readonly int? quality;
 
         /// <summary>
-        /// Gets or sets the subsampling method to use.
+        /// Gets or sets the colorspace to use.
         /// </summary>
-        private readonly JpegColorType? colorType;
+        private JpegColorType? colorType;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -56,11 +51,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The options</param>
+        /// <param name="options">The options.</param>
         public JpegEncoderCore(IJpegEncoderOptions options)
         {
             this.quality = options.Quality;
-            this.subsample = options.Subsample;
             this.colorType = options.ColorType;
         }
 
@@ -118,21 +112,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var scanEncoder = new HuffmanScanEncoder(stream);
             if (this.colorType == JpegColorType.Luminance)
             {
-                // luminance quantization table only
+                // luminance quantization table only.
                 scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
             }
             else
             {
-                // luminance and chrominance quantization tables
-                switch (this.subsample)
+                // luminance and chrominance quantization tables.
+                switch (this.colorType)
                 {
-                    case JpegSubsample.Ratio444:
+                    case JpegColorType.YCbCrRatio444:
+                    case JpegColorType.Luminance:
                         scanEncoder.Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
                         break;
-                    case JpegSubsample.Ratio420:
+                    case JpegColorType.YCbCrRatio420:
                         scanEncoder.Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
                         break;
-                    case JpegSubsample.Rgb:
+                    case JpegColorType.Rgb:
                         scanEncoder.EncodeRgb(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
                         break;
                 }
@@ -151,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <returns>The component Ids.</returns>
         private byte[] GetComponentIds()
         {
-            if (this.subsample == JpegSubsample.Rgb)
+            if (this.colorType == JpegColorType.Rgb)
             {
                 return new byte[] { 82, 71, 66 };
             }
@@ -268,7 +263,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void WriteDefineQuantizationTables(ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable)
         {
-            // Marker + quantization table lengths
+            // Marker + quantization table lengths.
             int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.Size));
             this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
 
@@ -404,7 +399,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="iccProfile">The ICC profile to write.</param>
         /// <exception cref="ImageFormatException">
-        /// Thrown if any of the ICC profiles size exceeds the limit
+        /// Thrown if any of the ICC profiles size exceeds the limit.
         /// </exception>
         private void WriteIccProfile(IccProfile iccProfile)
         {
@@ -424,7 +419,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            // Calculate the number of markers we'll need, rounding up of course
+            // Calculate the number of markers we'll need, rounding up of course.
             int dataLength = data.Length;
             int count = dataLength / MaxData;
 
@@ -531,10 +526,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
             else
             {
-                switch (this.subsample)
+                switch (this.colorType)
                 {
-                    case JpegSubsample.Rgb:
-                    case JpegSubsample.Ratio444:
+                    case JpegColorType.YCbCrRatio444:
+                    case JpegColorType.Rgb:
                         subsamples = stackalloc byte[]
                         {
                             0x11,
@@ -542,7 +537,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             0x11
                         };
                         break;
-                    case JpegSubsample.Ratio420:
+                    case JpegColorType.YCbCrRatio420:
                         subsamples = stackalloc byte[]
                         {
                             0x22,
@@ -685,9 +680,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 chromaQuality = Numerics.Clamp(chromaQuality, 1, 100);
                 chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
 
-                if (!this.subsample.HasValue)
+                if (!this.colorType.HasValue)
                 {
-                    this.subsample = chromaQuality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
+                    this.colorType = chromaQuality >= 91 ? JpegColorType.YCbCrRatio444 : JpegColorType.YCbCrRatio420;
                 }
             }
         }

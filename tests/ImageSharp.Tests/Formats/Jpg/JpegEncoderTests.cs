@@ -31,15 +31,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 { TestImages.Jpeg.Progressive.Fb, 75 }
             };
 
-        public static readonly TheoryData<JpegSubsample, int> BitsPerPixel_Quality =
-            new TheoryData<JpegSubsample, int>
+        public static readonly TheoryData<JpegColorType, int> BitsPerPixel_Quality =
+            new TheoryData<JpegColorType, int>
             {
-                { JpegSubsample.Ratio420, 40 },
-                { JpegSubsample.Ratio420, 60 },
-                { JpegSubsample.Ratio420, 100 },
-                { JpegSubsample.Ratio444, 40 },
-                { JpegSubsample.Ratio444, 60 },
-                { JpegSubsample.Ratio444, 100 },
+                { JpegColorType.Rgb, 40 },
+                { JpegColorType.Rgb, 60 },
+                { JpegColorType.Rgb, 100 },
+                { JpegColorType.YCbCrRatio420, 40 },
+                { JpegColorType.YCbCrRatio420, 60 },
+                { JpegColorType.YCbCrRatio420, 100 },
+                { JpegColorType.YCbCrRatio444, 40 },
+                { JpegColorType.YCbCrRatio444, 60 },
+                { JpegColorType.YCbCrRatio444, 100 },
             };
 
         public static readonly TheoryData<int> Grayscale_Quality =
@@ -91,8 +94,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 600, 400, PixelTypes.Rgba32)]
         [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.L8)]
-        public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
+        public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
         [Theory]
         [WithFile(TestImages.Png.BikeGrayscale, nameof(Grayscale_Quality), PixelTypes.L8)]
@@ -102,33 +105,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La16, 100)]
         [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La32, 100)]
         public void EncodeBaseline_Grayscale<TPixel>(TestImageProvider<TPixel> provider, int quality)
-            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, null, quality, JpegColorType.Luminance);
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, JpegColorType.Luminance, quality);
 
         [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
-        public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
+        public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
         [Theory]
-        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, JpegSubsample.Ratio444)]
-        [WithTestPatternImages(587, 821, PixelTypes.Rgba32, JpegSubsample.Ratio444)]
-        [WithTestPatternImages(677, 683, PixelTypes.Bgra32, JpegSubsample.Ratio420)]
-        [WithSolidFilledImages(400, 400, "Red", PixelTypes.Bgr24, JpegSubsample.Ratio420)]
-        public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample)
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
+        [WithTestPatternImages(587, 821, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
+        [WithTestPatternImages(677, 683, PixelTypes.Bgra32, JpegColorType.YCbCrRatio420)]
+        [WithSolidFilledImages(400, 400, "Red", PixelTypes.Bgr24, JpegColorType.YCbCrRatio420)]
+        public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ImageComparer comparer = subsample == JpegSubsample.Ratio444
+            ImageComparer comparer = colorType == JpegColorType.YCbCrRatio444
                 ? ImageComparer.TolerantPercentage(0.1f)
                 : ImageComparer.TolerantPercentage(5f);
 
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
-            TestJpegEncoderCore(provider, subsample, 100, JpegColorType.YCbCr, comparer);
+            TestJpegEncoderCore(provider, colorType, 100, comparer);
         }
 
         /// <summary>
         /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
         /// </summary>
-        private static ImageComparer GetComparer(int quality, JpegSubsample? subsample)
+        private static ImageComparer GetComparer(int quality, JpegColorType? colorType)
         {
             float tolerance = 0.015f; // ~1.5%
 
@@ -136,10 +139,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 tolerance *= 10f;
             }
-            else if (quality < 75 || subsample == JpegSubsample.Ratio420)
+            else if (quality < 75 || colorType == JpegColorType.YCbCrRatio420)
             {
                 tolerance *= 5f;
-                if (subsample == JpegSubsample.Ratio420)
+                if (colorType == JpegColorType.YCbCrRatio420)
                 {
                     tolerance *= 2f;
                 }
@@ -150,9 +153,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static void TestJpegEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
-            JpegSubsample? subsample,
+            JpegColorType colorType = JpegColorType.YCbCrRatio420,
             int quality = 100,
-            JpegColorType colorType = JpegColorType.YCbCr,
             ImageComparer comparer = null)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -163,13 +165,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var encoder = new JpegEncoder
             {
-                Subsample = subsample,
                 Quality = quality,
                 ColorType = colorType
             };
-            string info = $"{subsample}-Q{quality}";
+            string info = $"{colorType}-Q{quality}";
 
-            comparer ??= GetComparer(quality, subsample);
+            comparer ??= GetComparer(quality, colorType);
 
             // Does DebugSave & load reference CompareToReferenceInput():
             image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
@@ -312,9 +313,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(JpegSubsample.Ratio420)]
-        [InlineData(JpegSubsample.Ratio444)]
-        public async Task Encode_IsCancellable(JpegSubsample subsample)
+        [InlineData(JpegColorType.YCbCrRatio420)]
+        [InlineData(JpegColorType.YCbCrRatio444)]
+        public async Task Encode_IsCancellable(JpegColorType colorType)
         {
             var cts = new CancellationTokenSource();
             using var pausedStream = new PausedStream(new MemoryStream());
@@ -336,7 +337,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var image = new Image<Rgba32>(5000, 5000);
             await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             {
-                var encoder = new JpegEncoder() { Subsample = subsample };
+                var encoder = new JpegEncoder() { ColorType = colorType };
                 await image.SaveAsync(pausedStream, encoder, cts.Token);
             });
         }

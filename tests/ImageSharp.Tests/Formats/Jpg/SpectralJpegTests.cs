@@ -21,10 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public class SpectralJpegTests
     {
-        public SpectralJpegTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public SpectralJpegTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -46,7 +43,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
 
         [Theory(Skip = "Debug only, enable manually!")]
-        //[Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void Decoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

@@ -312,7 +312,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker(stream, remaining, cancellationToken);
+                                this.ProcessStartOfScanMarker(stream, remaining);
                                 break;
                             }
                             else
@@ -953,7 +953,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.ColorSpace = this.DeduceJpegColorSpace(componentCount, this.Frame.Components);
 
-            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
+            switch (this.ColorSpace)
+            {
+                case JpegColorSpace.Grayscale:
+                    this.Metadata.GetJpegMetadata().ColorType = JpegColorType.Luminance;
+                    break;
+                case JpegColorSpace.RGB:
+                    this.Metadata.GetJpegMetadata().ColorType = JpegColorType.Rgb;
+                    break;
+                default:
+                    this.Metadata.GetJpegMetadata().ColorType = JpegColorType.YCbCrRatio420;
+                    break;
+            }
 
             if (!metadataOnly)
             {
@@ -1051,7 +1062,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
-        private void ProcessStartOfScanMarker(BufferedReadStream stream, int remaining, CancellationToken cancellationToken)
+        private void ProcessStartOfScanMarker(BufferedReadStream stream, int remaining)
         {
             if (this.Frame is null)
             {

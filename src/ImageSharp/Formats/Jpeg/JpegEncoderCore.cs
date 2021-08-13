@@ -34,6 +34,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] buffer = new byte[20];
 
         /// <summary>
+        /// The default component id's.
+        /// </summary>
+        private static readonly byte[] DefaultComponentIds = { 1, 2, 3 };
+
+        /// <summary>
+        /// Component id's for RGB colorspace.
+        /// </summary>
+        private static readonly byte[] RgbComponentIds = { 82, 71, 66 };
+
+        /// <summary>
         /// The quality, that will be used to encode the image.
         /// </summary>
         private readonly int? quality;
@@ -148,10 +158,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.colorType == JpegColorType.Rgb)
             {
-                return new byte[] { 82, 71, 66 };
+                return RgbComponentIds;
             }
 
-            return new byte[] { 1, 2, 3 };
+            return DefaultComponentIds;
         }
 
         /// <summary>

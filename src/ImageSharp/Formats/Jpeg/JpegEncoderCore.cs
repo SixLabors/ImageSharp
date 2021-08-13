@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
-            byte[] componentIds = this.GetComponentIds();
+            ReadOnlySpan<byte> componentIds = this.GetComponentIds();
 
             // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
             // Initialize the quantization tables.
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// For color space RGB this will be RGB as ASCII, otherwise 1, 2, 3.
         /// </summary>
         /// <returns>The component Ids.</returns>
-        private byte[] GetComponentIds()
+        private ReadOnlySpan<byte> GetComponentIds()
         {
             if (this.colorType == JpegColorType.Rgb)
             {
@@ -508,7 +508,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="height">The height of the image.</param>
         /// <param name="componentCount">The number of components in a pixel.</param>
         /// <param name="componentIds">The component Id's.</param>
-        private void WriteStartOfFrame(int width, int height, int componentCount, byte[] componentIds)
+        private void WriteStartOfFrame(int width, int height, int componentCount, ReadOnlySpan<byte> componentIds)
         {
             // "default" to 4:2:0
             Span<byte> subsamples = stackalloc byte[]
@@ -586,7 +586,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="componentCount">The number of components in a pixel.</param>
         /// <param name="componentIds">The componentId's.</param>
-        private void WriteStartOfScan(int componentCount, byte[] componentIds)
+        private void WriteStartOfScan(int componentCount, ReadOnlySpan<byte> componentIds)
         {
             Span<byte> huffmanId = stackalloc byte[]
             {

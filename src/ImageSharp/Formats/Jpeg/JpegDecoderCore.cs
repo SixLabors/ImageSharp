@@ -363,7 +363,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
-                if (components[0].Id == 82 && components[1].Id == 71 && components[2].Id == 66)
+                if (components[2].Id == 66 && components[1].Id == 71 && components[0].Id == 82)
                 {
                     return JpegColorSpace.RGB;
                 }

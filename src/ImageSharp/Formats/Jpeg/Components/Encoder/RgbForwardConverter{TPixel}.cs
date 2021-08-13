@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private static void CopyToBlock(Span<Rgb24> rgbSpan, ref Block8x8F redBlock, ref Block8x8F greenBlock, ref Block8x8F blueBlock)
         {
-            ref Rgb24 rgbStart = ref rgbSpan[0];
+            ref Rgb24 rgbStart = ref MemoryMarshal.GetReference(rgbSpan);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {

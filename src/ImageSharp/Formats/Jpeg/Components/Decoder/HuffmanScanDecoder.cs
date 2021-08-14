@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private readonly SpectralConverter spectralConverter;
 
-        private CancellationToken cancellationToken;
+        private readonly CancellationToken cancellationToken;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanScanDecoder"/> class.

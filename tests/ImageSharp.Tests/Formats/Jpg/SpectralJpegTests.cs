@@ -7,6 +7,7 @@ using System.Linq;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -200,6 +201,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 this.spectralData = new LibJpegTools.SpectralData(spectralComponents);
             }
+
+            public override JpegColorConverter GetConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
     }
 }

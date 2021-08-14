@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Reflection;
 using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 using SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -33,7 +34,16 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         /// </param>
         public static void Main(string[] args)
         {
-            LoadResizeSaveParallelMemoryStress.Run(args);
+            try
+            {
+                Console.WriteLine("WUT: " + GetNetCoreVersion());
+                LoadResizeSaveParallelMemoryStress.Run(args);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
             // RunJpegEncoderProfilingTests();
             // RunJpegColorProfilingTests();
             // RunDecodeJpegProfilingTests();
@@ -41,6 +51,20 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             // RunResizeProfilingTest();
 
             // Console.ReadLine();
+        }
+
+        private static Version GetNetCoreVersion()
+        {
+            Assembly assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
+            Console.WriteLine(assembly.Location);
+            string[] assemblyPath = assembly.Location.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
+            if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+            {
+                return Version.Parse(assemblyPath[netCoreAppIndex + 1]);
+            }
+
+            return null;
         }
 
         private static void RunJpegEncoderProfilingTests()

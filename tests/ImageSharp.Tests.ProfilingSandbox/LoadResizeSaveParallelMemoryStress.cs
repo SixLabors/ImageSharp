@@ -31,6 +31,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         public static void Run(string[] args)
         {
+            Console.WriteLine($"Running: {typeof(LoadResizeSaveParallelMemoryStress).Assembly.Location}");
+            Console.WriteLine($"64 bit: {Environment.Is64BitProcess}");
             var options = args.Length > 0 ? CommandLineOptions.Parse(args) : null;
 
             var lrs = new LoadResizeSaveParallelMemoryStress();
@@ -80,6 +82,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             var stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
+            Console.WriteLine("Total Megapixels: " + stats.TotalMegapixels);
             Console.WriteLine(stats.GetMarkdown());
             if (options?.FileOutput != null)
             {

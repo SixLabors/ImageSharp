@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         private static void PrepareRemoteExecutor()
         {
-            if (!IsFramework)
+            if (!IsFramework || !Environment.Is64BitProcess)
             {
                 return;
             }

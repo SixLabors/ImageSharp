@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -203,6 +204,22 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        public void ProcessPixelRows(PixelAccessorAction<TPixel> processPixels) => throw new NotImplementedException();
+
+        public void ProcessPixelRows<TPixel2>(
+            Image<TPixel2> image2,
+            PixelAccessorAction<TPixel, TPixel2> processPixels)
+            where TPixel2 : unmanaged, IPixel<TPixel2>
+            => throw new NotImplementedException();
+
+        public void ProcessPixelRows<TPixel2, TPixel3>(
+            Image<TPixel2> image2,
+            Image<TPixel3> image3,
+            PixelAccessorAction<TPixel, TPixel2, TPixel3> processPixels)
+            where TPixel2 : unmanaged, IPixel<TPixel2>
+            where TPixel3 : unmanaged, IPixel<TPixel3>
+            => throw new NotImplementedException();
+
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
         /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
@@ -241,6 +258,8 @@ namespace SixLabors.ImageSharp
             span = default;
             return false;
         }
+
+        public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory) => throw new NotImplementedException();
 
         /// <summary>
         /// Clones the current image

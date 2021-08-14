@@ -12,6 +12,8 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
+
+
     /// <summary>
     /// Represents a pixel-specific image frame containing all pixel data and <see cref="ImageFrameMetadata"/>.
     /// In case of animated formats like gif, it contains the single frame in a animation.
@@ -184,6 +186,22 @@ namespace SixLabors.ImageSharp
 
             return this.PixelBuffer.GetRowSpan(rowIndex);
         }
+
+        public void ProcessPixelRows(PixelAccessorAction<TPixel> processPixels) => throw new NotImplementedException();
+
+        public void ProcessPixelRows<TPixel2>(
+            Image<TPixel2> image2,
+            PixelAccessorAction<TPixel, TPixel2> processPixels)
+            where TPixel2 : unmanaged, IPixel<TPixel2>
+            => throw new NotImplementedException();
+
+        public void ProcessPixelRows<TPixel2, TPixel3>(
+            Image<TPixel2> image2,
+            Image<TPixel3> image3,
+            PixelAccessorAction<TPixel, TPixel2, TPixel3> processPixels)
+            where TPixel2 : unmanaged, IPixel<TPixel2>
+            where TPixel3 : unmanaged, IPixel<TPixel3>
+            => throw new NotImplementedException();
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format

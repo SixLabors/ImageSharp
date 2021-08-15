@@ -409,8 +409,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Returns the correct colorspace based on the image component count and the jpeg frame component id's.
         /// </summary>
+        /// <param name="componentCount">The number of components.</param>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
-        private JpegColorSpace DeduceJpegColorSpace(byte componentCount, JpegComponent[] components)
+        private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
         {
             if (componentCount == 1)
             {
@@ -425,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
-                if (components[2].Id == 66 && components[1].Id == 71 && components[0].Id == 82)
+                if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
                 {
                     return JpegColorSpace.RGB;
                 }
@@ -444,6 +445,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {componentCount}");
             return default;
+        }
+
+        /// <summary>
+        /// Returns the jpeg color type based on the colorspace and subsampling used.
+        /// </summary>
+        /// <returns>Jpeg color type.</returns>
+        private JpegColorType DeduceJpegColorType()
+        {
+            switch (this.ColorSpace)
+            {
+                case JpegColorSpace.Grayscale:
+                    return JpegColorType.Luminance;
+                case JpegColorSpace.RGB:
+                    return JpegColorType.Rgb;
+                case JpegColorSpace.YCbCr:
+                    if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
+                    {
+                        return JpegColorType.YCbCrRatio444;
+                    }
+                    else
+                    {
+                        return JpegColorType.YCbCrRatio420;
+                    }
+
+                default:
+                    return JpegColorType.YCbCrRatio420;
+            }
         }
 
         /// <summary>
@@ -859,7 +889,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Processes the Start of Frame marker.  Specified in section B.2.2.
+        /// Processes the Start of Frame marker. Specified in section B.2.2.
         /// </summary>
         /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
@@ -951,20 +981,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 index += componentBytes;
             }
 
-            this.ColorSpace = this.DeduceJpegColorSpace(componentCount, this.Frame.Components);
-
-            switch (this.ColorSpace)
-            {
-                case JpegColorSpace.Grayscale:
-                    this.Metadata.GetJpegMetadata().ColorType = JpegColorType.Luminance;
-                    break;
-                case JpegColorSpace.RGB:
-                    this.Metadata.GetJpegMetadata().ColorType = JpegColorType.Rgb;
-                    break;
-                default:
-                    this.Metadata.GetJpegMetadata().ColorType = JpegColorType.YCbCrRatio420;
-                    break;
-            }
+            this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
+            this.Metadata.GetJpegMetadata().ColorType = this.DeduceJpegColorType();
 
             if (!metadataOnly)
             {

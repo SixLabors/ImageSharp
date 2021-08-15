@@ -30,6 +30,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The pixel data will be preserved as RGB without any sub sampling.
         /// </summary>
-        Rgb,
+        Rgb = 3,
     }
 }

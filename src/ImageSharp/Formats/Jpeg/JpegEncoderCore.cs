@@ -65,7 +65,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public JpegEncoderCore(IJpegEncoderOptions options)
         {
             this.quality = options.Quality;
-            this.colorType = options.ColorType;
+
+            if (IsSupportedColorType(options.ColorType))
+            {
+                this.colorType = options.ColorType;
+            }
         }
 
         /// <summary>
@@ -92,8 +96,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
 
-            // If the color type was not specified by the user, preserve the color type of the input image.
-            this.colorType ??= jpegMetadata.ColorType;
+            // If the color type was not specified by the user, preserve the color type of the input image, if it's a supported color type.
+            if (!this.colorType.HasValue && IsSupportedColorType(jpegMetadata.ColorType))
+            {
+                this.colorType = jpegMetadata.ColorType;
+            }
 
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
@@ -108,6 +115,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Write Exif, ICC and IPTC profiles
             this.WriteProfiles(metadata);
+
+            if (this.colorType == JpegColorType.Rgb)
+            {
+                // Write App14 marker to indicate RGB color space.
+                this.WriteApp14Marker();
+            }
 
             // Write the quantization tables.
             this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
@@ -150,6 +163,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteEndOfImageMarker();
 
             stream.Flush();
+        }
+
+        /// <summary>
+        /// Returns true, if the color type is supported by the encoder.
+        /// </summary>
+        /// <param name="colorType">The color type.</param>
+        /// <returns>true, if color type is supported.</returns>
+        private static bool IsSupportedColorType(JpegColorType? colorType)
+        {
+            if (colorType == JpegColorType.YCbCrRatio444 || colorType == JpegColorType.YCbCrRatio420 || colorType == JpegColorType.Luminance || colorType == JpegColorType.Rgb)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -290,6 +318,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref chrominanceQuantTable);
 
             this.outputStream.Write(dqt, 0, dqtCount);
+        }
+
+        /// <summary>
+        /// Writes the APP14 marker to indicate the image is in RGB color space.
+        /// </summary>
+        private void WriteApp14Marker()
+        {
+            this.WriteMarkerHeader(JpegConstants.Markers.APP14, 2 + AdobeMarker.Length);
+
+            // Identifier: ASCII "Adobe".
+            this.buffer[0] = 0x41;
+            this.buffer[1] = 0x64;
+            this.buffer[2] = 0x6F;
+            this.buffer[3] = 0x62;
+            this.buffer[4] = 0x65;
+
+            // Version, currently 100.
+            BinaryPrimitives.WriteInt16BigEndian(this.buffer.AsSpan(5, 2), 100);
+
+            // Flags0
+            BinaryPrimitives.WriteInt16BigEndian(this.buffer.AsSpan(7, 2), 0);
+
+            // Flags1
+            BinaryPrimitives.WriteInt16BigEndian(this.buffer.AsSpan(9, 2), 0);
+
+            // Transform byte, 0 in combination with three components means the image is in RGB colorspace.
+            this.buffer[11] = 0;
+
+            this.outputStream.Write(this.buffer.AsSpan(0, 12));
         }
 
         /// <summary>

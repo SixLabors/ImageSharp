@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
 
             // color converter from Rgba32 to TPixel
-            this.colorConverter = this.GetConverter(frame, jpegData);
+            this.colorConverter = this.GetColorConverter(frame, jpegData);
         }
 
         /// <inheritdoc/>
@@ -104,9 +104,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 cpp.ClearSpectralBuffers();
             }
         }
-
-        /// <inheritdoc/>
-        public override JpegColorConverter GetConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
 
         public void Dispose()
         {

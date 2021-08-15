@@ -28,6 +28,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        public override JpegColorConverter GetConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(JpegColorSpace.RGB, frame.Precision);
+        public override JpegColorConverter GetColorConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(JpegColorSpace.RGB, frame.Precision);
     }
 }

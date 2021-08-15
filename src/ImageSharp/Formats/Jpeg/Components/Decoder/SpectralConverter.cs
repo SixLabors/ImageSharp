@@ -39,6 +39,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="frame">The jpeg frame with the color space to convert to.</param>
         /// <param name="jpegData">The raw JPEG data.</param>
         /// <returns>The color converter.</returns>
-        public abstract JpegColorConverter GetConverter(JpegFrame frame, IRawJpegData jpegData);
+        public virtual JpegColorConverter GetColorConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
     }
 }

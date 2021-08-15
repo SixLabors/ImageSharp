@@ -5,7 +5,6 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Tests;
 using SDSize = System.Drawing.Size;
@@ -59,8 +58,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
             {
             }
-
-            public override JpegColorConverter GetConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
         }
     }
 }

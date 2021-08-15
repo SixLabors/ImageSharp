@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Issue1732_DecodesWithRgbColorSpace<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new JpegDecoder()))
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);

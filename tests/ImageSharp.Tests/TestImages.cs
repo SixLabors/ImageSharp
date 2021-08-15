@@ -190,6 +190,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Jpeg420Exif = "Jpg/baseline/jpeg420exif.jpg";
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
                 public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
+                public const string JpegRgb = "Jpg/baseline/jpeg-rgb.jpg";
                 public const string Testorig420 = "Jpg/baseline/testorig.jpg";
                 public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
                 public const string Ratio1x1 = "Jpg/baseline/ratio-1x1.jpg";

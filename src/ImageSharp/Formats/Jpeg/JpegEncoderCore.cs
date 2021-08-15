@@ -92,6 +92,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
 
+            // If the color type was not specified by the user, preserve the color type of the input image.
+            this.colorType ??= jpegMetadata.ColorType;
+
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
             ReadOnlySpan<byte> componentIds = this.GetComponentIds();

@@ -24,6 +24,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public class JpegEncoderTests
     {
+        private static JpegEncoder JpegEncoder => new JpegEncoder();
+
+        private static JpegDecoder JpegDecoder => new JpegDecoder();
+
         public static readonly TheoryData<string, int> QualityFiles =
             new TheoryData<string, int>
             {
@@ -62,17 +66,37 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             };
 
         [Theory]
-        [MemberData(nameof(QualityFiles))]
-        public void Encode_PreserveQuality(string imagePath, int quality)
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32, JpegColorType.Luminance)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgba32, JpegColorType.YCbCrRatio420)]
+        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, JpegColorType.Rgb)]
+        public void Encode_PreservesColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            var options = new JpegEncoder();
+            // arrange
+            using Image<TPixel> input = provider.GetImage(JpegDecoder);
+            using var memoryStream = new MemoryStream();
 
+            // act
+            input.Save(memoryStream, JpegEncoder);
+
+            // assert
+            memoryStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memoryStream);
+            JpegMetadata meta = output.Metadata.GetJpegMetadata();
+            Assert.Equal(expectedColorType, meta.ColorType);
+        }
+
+        [Theory]
+        [MemberData(nameof(QualityFiles))]
+        public void Encode_PreservesQuality(string imagePath, int quality)
+        {
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, JpegEncoder);
 
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
@@ -226,14 +250,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(RatioFiles))]
         public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
-            var options = new JpegEncoder();
-
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, JpegEncoder);
 
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
@@ -254,11 +276,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var input = new Image<Rgba32>(1, 1);
             input.Metadata.IptcProfile = new IptcProfile();
             input.Metadata.IptcProfile.SetValue(IptcTag.Byline, "unit_test");
-            var encoder = new JpegEncoder();
 
             // act
             using var memStream = new MemoryStream();
-            input.Save(memStream, encoder);
+            input.Save(memStream, JpegEncoder);
 
             // assert
             memStream.Position = 0;
@@ -276,11 +297,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var input = new Image<Rgba32>(1, 1);
             input.Metadata.ExifProfile = new ExifProfile();
             input.Metadata.ExifProfile.SetValue(ExifTag.Software, "unit_test");
-            var encoder = new JpegEncoder();
 
             // act
             using var memStream = new MemoryStream();
-            input.Save(memStream, encoder);
+            input.Save(memStream, JpegEncoder);
 
             // assert
             memStream.Position = 0;
@@ -297,11 +317,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // arrange
             using var input = new Image<Rgba32>(1, 1);
             input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.Profile_Random_Array);
-            var encoder = new JpegEncoder();
 
             // act
             using var memStream = new MemoryStream();
-            input.Save(memStream, encoder);
+            input.Save(memStream, JpegEncoder);
 
             // assert
             memStream.Position = 0;

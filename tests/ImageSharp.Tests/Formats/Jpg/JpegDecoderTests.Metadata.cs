@@ -143,6 +143,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegColorType.YCbCrRatio420)]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegColorType.YCbCrRatio444)]
         [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegColorType.Rgb)]
+        [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorType.Cmyk)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegColorType.YCbCrRatio410)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg422, JpegColorType.YCbCrRatio422)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegColorType.YCbCrRatio411)]
         public void Identify_DetectsCorrectColorType(string imagePath, JpegColorType expectedColorType)
         {
             var testFile = TestFile.Create(imagePath);
@@ -159,6 +163,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgba32, JpegColorType.YCbCrRatio420)]
         [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
         [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, JpegColorType.Rgb)]
+        [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgba32, JpegColorType.Cmyk)]
         public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {

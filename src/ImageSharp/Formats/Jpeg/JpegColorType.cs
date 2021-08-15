@@ -23,13 +23,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         YCbCrRatio444 = 1,
 
         /// <summary>
+        /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
+        /// The two chroma components are sampled at half the horizontal sample rate of luma while vertically it has full resolution.
+        ///
+        /// Note: Not supported by the encoder.
+        /// </summary>
+        YCbCrRatio422 = 2,
+
+        /// <summary>
+        /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
+        /// In 4:1:1 chroma subsampling, the horizontal color resolution is quartered.
+        ///
+        /// Note: Not supported by the encoder.
+        /// </summary>
+        YCbCrRatio411 = 3,
+
+        /// <summary>
+        /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
+        /// This ratio uses half of the vertical and one-fourth the horizontal color resolutions.
+        /// 
+        /// Note: Not supported by the encoder.
+        /// </summary>
+        YCbCrRatio410 = 4,
+
+        /// <summary>
         /// Single channel, luminance.
         /// </summary>
-        Luminance = 2,
+        Luminance = 5,
 
         /// <summary>
         /// The pixel data will be preserved as RGB without any sub sampling.
         /// </summary>
-        Rgb = 3,
+        Rgb = 6,
+
+        /// <summary>
+        /// CMYK colorspace (cyan, magenta, yellow, and key black) intended for printing.
+        ///
+        /// Note: Not supported by the encoder.
+        /// </summary>
+        Cmyk = 7,
     }
 }

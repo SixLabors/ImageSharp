@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithFile(TestImages.Jpeg.Baseline.Jpeg410, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.Jpeg411, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.Jpeg422, PixelTypes.Rgba32)]
-        public void Encode_WithUnsupportedColorType_FromInput_DefaultsToYCbCr420<TPixel>(TestImageProvider<TPixel> provider)
+        public void Encode_WithUnsupportedColorType_FromInputImage_DefaultsToYCbCr420<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
@@ -100,7 +100,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var memoryStream = new MemoryStream();
 
             // act
-            input.Save(memoryStream, JpegEncoder);
+            input.Save(memoryStream, new JpegEncoder()
+            {
+                Quality = 75
+            });
 
             // assert
             memoryStream.Position = 0;
@@ -110,12 +113,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.Cmyk)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.YCbCrRatio410)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.YCbCrRatio411)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.YCbCrRatio422)]
-        public void Encode_WithUnsupportedColorType_DefaultsToYCbCr420<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType)
-            where TPixel : unmanaged, IPixel<TPixel>
+        [InlineData(JpegColorType.Cmyk)]
+        [InlineData(JpegColorType.YCbCrRatio410)]
+        [InlineData(JpegColorType.YCbCrRatio411)]
+        [InlineData(JpegColorType.YCbCrRatio422)]
+        public void Encode_WithUnsupportedColorType_DefaultsToYCbCr420(JpegColorType colorType)
         {
             // arrange
             var jpegEncoder = new JpegEncoder() { ColorType = colorType };
@@ -152,6 +154,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
         }
+
+        [Theory]
+        [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
+        public void EncodeBaseline_CalliphoraPartial<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]

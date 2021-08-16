@@ -265,7 +265,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteDefineHuffmanTables(int componentCount)
         {
             // Table identifiers.
-            Span<byte> headers = stackalloc byte[]
+            ReadOnlySpan<byte> headers = new byte[]
             {
                 0x00,
                 0x10,
@@ -568,15 +568,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="componentIds">The component Id's.</param>
         private void WriteStartOfFrame(int width, int height, int componentCount, ReadOnlySpan<byte> componentIds)
         {
+            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
+            // and doesn't incur any allocation at all.
             // "default" to 4:2:0
-            Span<byte> subsamples = stackalloc byte[]
+            ReadOnlySpan<byte> subsamples = new byte[]
             {
                 0x22,
                 0x11,
                 0x11
             };
 
-            Span<byte> chroma = stackalloc byte[]
+            ReadOnlySpan<byte> chroma = new byte[]
             {
                 0x00,
                 0x01,
@@ -585,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (this.colorType == JpegColorType.Luminance)
             {
-                subsamples = stackalloc byte[]
+                subsamples = new byte[]
                 {
                     0x11,
                     0x00,
@@ -598,7 +600,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 {
                     case JpegColorType.YCbCrRatio444:
                     case JpegColorType.Rgb:
-                        subsamples = stackalloc byte[]
+                        subsamples = new byte[]
                         {
                             0x11,
                             0x11,
@@ -607,7 +609,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         if (this.colorType == JpegColorType.Rgb)
                         {
-                            chroma = stackalloc byte[]
+                            chroma = new byte[]
                             {
                                 0x00,
                                 0x00,
@@ -617,7 +619,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         break;
                     case JpegColorType.YCbCrRatio420:
-                        subsamples = stackalloc byte[]
+                        subsamples = new byte[]
                         {
                             0x22,
                             0x11,
@@ -658,7 +660,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="componentIds">The componentId's.</param>
         private void WriteStartOfScan(int componentCount, ReadOnlySpan<byte> componentIds)
         {
-            Span<byte> huffmanId = stackalloc byte[]
+            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
+            // and doesn't incur any allocation at all.
+            ReadOnlySpan<byte> huffmanId = new byte[]
             {
                 0x00,
                 0x11,
@@ -668,7 +672,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Use the same DC/AC tables for all channels for RGB.
             if (this.colorType == JpegColorType.Rgb)
             {
-                huffmanId = stackalloc byte[]
+                huffmanId = new byte[]
                 {
                     0x00,
                     0x00,

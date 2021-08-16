@@ -237,9 +237,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
-        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
+        public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
@@ -247,7 +246,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             var unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
-            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+            int prevDCR = 0, prevDCG = 0, prevDCB = 0;
 
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
@@ -264,25 +263,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 {
                     pixelConverter.Convert(x, y, ref currentRows);
 
-                    prevDCY = this.WriteBlock(
+                    prevDCR = this.WriteBlock(
                         QuantIndex.Luminance,
-                        prevDCY,
+                        prevDCR,
                         ref pixelConverter.R,
                         ref luminanceQuantTable,
                         ref unzig);
 
-                    prevDCCb = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCb,
+                    prevDCG = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCG,
                         ref pixelConverter.G,
-                        ref chrominanceQuantTable,
+                        ref luminanceQuantTable,
                         ref unzig);
 
-                    prevDCCr = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCr,
+                    prevDCB = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCB,
                         ref pixelConverter.B,
-                        ref chrominanceQuantTable,
+                        ref luminanceQuantTable,
                         ref unzig);
                 }
             }

@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         scanEncoder.Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
                         break;
                     case JpegColorType.Rgb:
-                        scanEncoder.EncodeRgb(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        scanEncoder.EncodeRgb(image, ref luminanceQuantTable, cancellationToken);
                         break;
                 }
             }
@@ -620,6 +620,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             0x11,
                             0x11
                         };
+
+                        if (this.colorType == JpegColorType.Rgb)
+                        {
+                            chroma = stackalloc byte[]
+                            {
+                                0x00,
+                                0x00,
+                                0x00
+                            };
+                        }
+
                         break;
                     case JpegColorType.YCbCrRatio420:
                         subsamples = stackalloc byte[]
@@ -668,6 +679,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 0x11,
                 0x11
             };
+
+            // Use the same DC/AC tables for all channels for RGB.
+            if (this.colorType == JpegColorType.Rgb)
+            {
+                huffmanId = stackalloc byte[]
+                {
+                    0x00,
+                    0x00,
+                    0x00
+                };
+            }
 
             // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
             // - the marker length "\x00\x0c",

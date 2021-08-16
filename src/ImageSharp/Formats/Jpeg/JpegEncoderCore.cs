@@ -642,9 +642,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 int i3 = 3 * i;
 
                 // Component ID.
-                this.buffer[i3 + 6] = componentIds[i];
-                this.buffer[i3 + 7] = subsamples[i];
-                this.buffer[i3 + 8] = chroma[i];
+                Span<byte> bufferSpan = this.buffer.AsSpan(i3 + 6, 3);
+                bufferSpan[2] = chroma[i];
+                bufferSpan[1] = subsamples[i];
+                bufferSpan[0] = componentIds[i];
             }
 
             this.outputStream.Write(this.buffer, 0, (3 * (componentCount - 1)) + 9);

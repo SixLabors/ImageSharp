@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 return null;
             }
 
-            UnmanagedMemoryHandle array;
+            UnmanagedMemoryHandle buffer;
 
             lock (buffersLocal)
             {
@@ -72,21 +72,21 @@ namespace SixLabors.ImageSharp.Memory.Internals
                     return null;
                 }
 
-                array = buffersLocal[this.index];
+                buffer = buffersLocal[this.index];
                 buffersLocal[this.index++] = null;
             }
 
-            if (array == null)
+            if (buffer == null)
             {
-                array = new UnmanagedMemoryHandle(this.BufferLength);
+                buffer = UnmanagedMemoryHandle.Allocate(this.BufferLength);
             }
 
             if (allocationOptions.Has(AllocationOptions.Clean))
             {
-                this.GetSpan(array).Clear();
+                this.GetSpan(buffer).Clear();
             }
 
-            return array;
+            return buffer;
         }
 
         public UnmanagedMemoryHandle[] Rent(int bufferCount, AllocationOptions allocationOptions = AllocationOptions.None)
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             {
                 if (result[i] == null)
                 {
-                    result[i] = new UnmanagedMemoryHandle(this.BufferLength);
+                    result[i] = UnmanagedMemoryHandle.Allocate(this.BufferLength);
                 }
 
                 if (allocationOptions.Has(AllocationOptions.Clean))
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
                 if (this.index == 0)
                 {
-                    ThrowReturnedMoreArraysThanRented(); // DEBUG-only exception
+                    ThrowReturnedMoreBuffersThanRented(); // DEBUG-only exception
                     buffer.Dispose();
                     return;
                 }
@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
                 if (this.index - buffers.Length + 1 <= 0)
                 {
-                    ThrowReturnedMoreArraysThanRented();
+                    ThrowReturnedMoreBuffersThanRented();
                     DisposeAll(buffers);
                     return;
                 }
@@ -216,8 +216,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
         // This indicates a bug in the library, however Return() might be called from a finalizer,
         // therefore we should never throw here in production.
         [Conditional("DEBUG")]
-        private static void ThrowReturnedMoreArraysThanRented() =>
-            throw new InvalidMemoryOperationException("Returned more arrays then rented");
+        private static void ThrowReturnedMoreBuffersThanRented() =>
+            throw new InvalidMemoryOperationException("Returned more buffers then rented");
 
         private static void TimerCallback(WeakReference<UniformUnmanagedMemoryPool> weakPoolRef)
         {
@@ -271,18 +271,18 @@ namespace SixLabors.ImageSharp.Memory.Internals
             return true;
         }
 
-        private bool TrimLowPressure(UnmanagedMemoryHandle[] arraysLocal)
+        private bool TrimLowPressure(UnmanagedMemoryHandle[] buffersLocal)
         {
-            lock (arraysLocal)
+            lock (buffersLocal)
             {
                 if (this.buffers == null)
                 {
                     return false;
                 }
 
-                // Count the arrays in the pool:
+                // Count the buffers in the pool:
                 int retainedCount = 0;
-                for (int i = this.index; i < arraysLocal.Length && arraysLocal[i] != null; i++)
+                for (int i = this.index; i < buffersLocal.Length && buffersLocal[i] != null; i++)
                 {
                     retainedCount++;
                 }
@@ -293,8 +293,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 int trimStop = this.index + retainedCount - trimCount;
                 for (int i = trimStart; i >= trimStop; i--)
                 {
-                    arraysLocal[i].Dispose();
-                    arraysLocal[i] = null;
+                    buffersLocal[i].Dispose();
+                    buffersLocal[i] = null;
                 }
 
                 this.lastTrimTimestamp = Stopwatch.ElapsedMilliseconds;

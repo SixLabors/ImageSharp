@@ -10,16 +10,23 @@ namespace SixLabors.ImageSharp.Memory.Internals
 {
     internal sealed class UnmanagedMemoryHandle : SafeHandle
     {
+        // Number of allocation re-attempts when OutOfMemoryException is thrown.
+        private const int MaxAllocationAttempts = 1000;
+
         private readonly int lengthInBytes;
         private bool resurrected;
 
         // Track allocations for testing purposes:
         private static int totalOutstandingHandles;
 
-        public UnmanagedMemoryHandle(int lengthInBytes)
-            : base(IntPtr.Zero, true)
+        private static long totalOomRetries;
+
+        // A Monitor to wait/signal when we are low on memory.
+        private static object lowMemoryMonitor;
+
+        private UnmanagedMemoryHandle(IntPtr handle, int lengthInBytes)
+            : base(handle, true)
         {
-            this.SetHandle(Marshal.AllocHGlobal(lengthInBytes));
             this.lengthInBytes = lengthInBytes;
             if (lengthInBytes > 0)
             {
@@ -30,9 +37,14 @@ namespace SixLabors.ImageSharp.Memory.Internals
         }
 
         /// <summary>
-        /// Gets a value indicating the total outstanding handle allocations for testing purposes.
+        /// Gets the total outstanding handle allocations for testing purposes.
         /// </summary>
         internal static int TotalOutstandingHandles => totalOutstandingHandles;
+
+        /// <summary>
+        /// Gets the total number <see cref="OutOfMemoryException"/>-s retried.
+        /// </summary>
+        internal static long TotalOomRetries => totalOomRetries;
 
         /// <inheritdoc />
         public override bool IsInvalid => this.handle == IntPtr.Zero;
@@ -50,9 +62,57 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 GC.RemoveMemoryPressure(this.lengthInBytes);
             }
 
+            if (lowMemoryMonitor != null)
+            {
+                // We are low on memory. Signal all threads waiting in AllocateHandle().
+                Monitor.Enter(lowMemoryMonitor);
+                Monitor.PulseAll(lowMemoryMonitor);
+                Monitor.Exit(lowMemoryMonitor);
+            }
+
             this.handle = IntPtr.Zero;
             Interlocked.Decrement(ref totalOutstandingHandles);
             return true;
+        }
+
+        internal static UnmanagedMemoryHandle Allocate(int lengthInBytes)
+        {
+            IntPtr handle = AllocateHandle(lengthInBytes);
+            return new UnmanagedMemoryHandle(handle, lengthInBytes);
+        }
+
+        private static IntPtr AllocateHandle(int lengthInBytes)
+        {
+            int counter = 0;
+            IntPtr handle = IntPtr.Zero;
+            while (handle == IntPtr.Zero)
+            {
+                try
+                {
+                    handle = Marshal.AllocHGlobal(lengthInBytes);
+                }
+                catch (OutOfMemoryException)
+                {
+                    // We are low on memory, but expect some memory to be freed soon.
+                    // Block the thread & retry to avoid OOM.
+                    if (counter < MaxAllocationAttempts)
+                    {
+                        counter++;
+                        Interlocked.Increment(ref totalOomRetries);
+
+                        Interlocked.CompareExchange(ref lowMemoryMonitor, new object(), null);
+                        Monitor.Enter(lowMemoryMonitor);
+                        Monitor.Wait(lowMemoryMonitor, millisecondsTimeout: 1);
+                        Monitor.Exit(lowMemoryMonitor);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            return handle;
         }
 
         /// <summary>

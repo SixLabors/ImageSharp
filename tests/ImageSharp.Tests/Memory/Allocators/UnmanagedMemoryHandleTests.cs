@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
     public class UnmanagedMemoryHandleTests
     {
         [Fact]
-        public unsafe void Constructor_AllocatesReadWriteMemory()
+        public unsafe void Allocate_AllocatesReadWriteMemory()
         {
-            using var h = new UnmanagedMemoryHandle(128);
+            using var h = UnmanagedMemoryHandle.Allocate(128);
             Assert.False(h.IsClosed);
             Assert.False(h.IsInvalid);
             byte* ptr = (byte*)h.DangerousGetHandle();
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Fact]
         public void Dispose_ClosesHandle()
         {
-            var h = new UnmanagedMemoryHandle(128);
+            var h = UnmanagedMemoryHandle.Allocate(128);
             h.Dispose();
             Assert.True(h.IsClosed);
             Assert.True(h.IsInvalid);
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 for (int i = 0; i < countInner; i++)
                 {
                     Assert.Equal(i, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                    var h = new UnmanagedMemoryHandle(42);
+                    var h = UnmanagedMemoryHandle.Allocate(42);
                     Assert.Equal(i + 1, UnmanagedMemoryHandle.TotalOutstandingHandles);
                     l.Add(h);
                 }
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 var l = new List<UnmanagedMemoryHandle>();
                 for (int i = 0; i < countInner; i++)
                 {
-                    var h = new UnmanagedMemoryHandle(42);
+                    var h = UnmanagedMemoryHandle.Allocate(42);
                     l.Add(h);
                 }
 
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             static void AllocateResurrect()
             {
-                var h = new UnmanagedMemoryHandle(42);
+                var h = UnmanagedMemoryHandle.Allocate(42);
                 h.Resurrect();
             }
         }
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             static void AllocateAndForget()
             {
-                _ = new HandleOwner(new UnmanagedMemoryHandle(42));
+                _ = new HandleOwner(UnmanagedMemoryHandle.Allocate(42));
             }
 
             static void VerifyResurrectedHandle(bool reAssign)

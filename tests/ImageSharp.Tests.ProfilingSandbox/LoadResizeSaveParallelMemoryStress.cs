@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             var stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
-            Console.WriteLine("Total Megapixels: " + stats.TotalMegapixels);
+            Console.WriteLine($"Total Megapixels: {stats.TotalMegapixels}, TotalOomRetries: {UnmanagedMemoryHandle.TotalOomRetries}");
             Console.WriteLine(stats.GetMarkdown());
             if (options?.FileOutput != null)
             {

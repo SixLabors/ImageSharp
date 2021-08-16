@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public UnmanagedBuffer(int lengthInElements)
         {
             this.lengthInElements = lengthInElements;
-            this.bufferHandle = new UnmanagedMemoryHandle(lengthInElements * Unsafe.SizeOf<T>());
+            this.bufferHandle = UnmanagedMemoryHandle.Allocate(lengthInElements * Unsafe.SizeOf<T>());
         }
 
         private void* Pointer => (void*)this.bufferHandle.DangerousGetHandle();

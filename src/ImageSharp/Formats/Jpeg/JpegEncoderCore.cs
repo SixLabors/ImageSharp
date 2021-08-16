@@ -111,7 +111,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitQuantizationTables(componentCount, jpegMetadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable);
 
             // Write the Start Of Image marker.
-            this.WriteApplicationHeader(metadata);
+            this.WriteStartOfImage();
+
+            // Do not write APP0 marker for RGB colorspace.
+            if (this.colorType != JpegColorType.Rgb)
+            {
+                this.WriteJfifApplicationHeader(metadata);
+            }
 
             // Write Exif, ICC and IPTC profiles
             this.WriteProfiles(metadata);
@@ -212,52 +218,60 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Writes the application header containing the JFIF identifier plus extra data.
+        /// Write the start of image marker.
         /// </summary>
-        /// <param name="meta">The image metadata.</param>
-        private void WriteApplicationHeader(ImageMetadata meta)
+        private void WriteStartOfImage()
         {
-            // Write the start of image marker. Markers are always prefixed with 0xff.
+            // Markers are always prefixed with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = JpegConstants.Markers.SOI;
 
+            this.outputStream.Write(this.buffer, 0, 2);
+        }
+
+        /// <summary>
+        /// Writes the application header containing the JFIF identifier plus extra data.
+        /// </summary>
+        /// <param name="meta">The image metadata.</param>
+        private void WriteJfifApplicationHeader(ImageMetadata meta)
+        {
             // Write the JFIF headers
-            this.buffer[2] = JpegConstants.Markers.XFF;
-            this.buffer[3] = JpegConstants.Markers.APP0; // Application Marker
-            this.buffer[4] = 0x00;
-            this.buffer[5] = 0x10;
-            this.buffer[6] = 0x4a; // J
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.APP0; // Application Marker
+            this.buffer[2] = 0x00;
+            this.buffer[3] = 0x10;
+            this.buffer[4] = 0x4a; // J
+            this.buffer[5] = 0x46; // F
+            this.buffer[6] = 0x49; // I
             this.buffer[7] = 0x46; // F
-            this.buffer[8] = 0x49; // I
-            this.buffer[9] = 0x46; // F
-            this.buffer[10] = 0x00; // = "JFIF",'\0'
-            this.buffer[11] = 0x01; // versionhi
-            this.buffer[12] = 0x01; // versionlo
+            this.buffer[8] = 0x00; // = "JFIF",'\0'
+            this.buffer[9] = 0x01; // versionhi
+            this.buffer[10] = 0x01; // versionlo
 
             // Resolution. Big Endian
-            Span<byte> hResolution = this.buffer.AsSpan(14, 2);
-            Span<byte> vResolution = this.buffer.AsSpan(16, 2);
+            Span<byte> hResolution = this.buffer.AsSpan(12, 2);
+            Span<byte> vResolution = this.buffer.AsSpan(14, 2);
 
             if (meta.ResolutionUnits == PixelResolutionUnit.PixelsPerMeter)
             {
                 // Scale down to PPI
-                this.buffer[13] = (byte)PixelResolutionUnit.PixelsPerInch; // xyunits
+                this.buffer[11] = (byte)PixelResolutionUnit.PixelsPerInch; // xyunits
                 BinaryPrimitives.WriteInt16BigEndian(hResolution, (short)Math.Round(UnitConverter.MeterToInch(meta.HorizontalResolution)));
                 BinaryPrimitives.WriteInt16BigEndian(vResolution, (short)Math.Round(UnitConverter.MeterToInch(meta.VerticalResolution)));
             }
             else
             {
                 // We can simply pass the value.
-                this.buffer[13] = (byte)meta.ResolutionUnits; // xyunits
+                this.buffer[11] = (byte)meta.ResolutionUnits; // xyunits
                 BinaryPrimitives.WriteInt16BigEndian(hResolution, (short)Math.Round(meta.HorizontalResolution));
                 BinaryPrimitives.WriteInt16BigEndian(vResolution, (short)Math.Round(meta.VerticalResolution));
             }
 
             // No thumbnail
-            this.buffer[18] = 0x00; // Thumbnail width
-            this.buffer[19] = 0x00; // Thumbnail height
+            this.buffer[16] = 0x00; // Thumbnail width
+            this.buffer[17] = 0x00; // Thumbnail height
 
-            this.outputStream.Write(this.buffer, 0, 20);
+            this.outputStream.Write(this.buffer, 0, 18);
         }
 
         /// <summary>

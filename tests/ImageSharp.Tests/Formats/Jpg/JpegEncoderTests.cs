@@ -162,22 +162,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 96, 48, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 138, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 158, 24, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 153, 21, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 600, 400, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 138, 24, PixelTypes.Rgba32)]
         public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
         [Theory]
-        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
         [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.L8)]
+        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 143, 81, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 96, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
-
         public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.12f));
 
@@ -226,14 +227,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             if (quality < 50)
             {
-                tolerance *= 2.5f;
+                tolerance *= 4.5f;
             }
             else if (quality < 75 || colorType == JpegColorType.YCbCrRatio420)
             {
-                tolerance *= 1.5f;
+                tolerance *= 2.0f;
                 if (colorType == JpegColorType.YCbCrRatio420)
                 {
-                    tolerance *= 2f;
+                    tolerance *= 2.0f;
                 }
             }
 

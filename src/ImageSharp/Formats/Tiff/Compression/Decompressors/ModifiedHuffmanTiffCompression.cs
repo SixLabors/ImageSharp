@@ -22,11 +22,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// Initializes a new instance of the <see cref="ModifiedHuffmanTiffCompression" /> class.
         /// </summary>
         /// <param name="allocator">The memory allocator.</param>
+        /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="width">The image width.</param>
         /// <param name="bitsPerPixel">The number of bits per pixel.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
-        public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
-            : base(allocator, width, bitsPerPixel, FaxCompressionOptions.None, photometricInterpretation)
+        public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffFillOrder fillOrder, int width, int bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
+            : base(allocator, fillOrder, width, bitsPerPixel, FaxCompressionOptions.None, photometricInterpretation)
         {
             bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
@@ -36,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
-            using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, eolPadding: false, isModifiedHuffman: true);
+            using var bitReader = new T4BitReader(stream, this.FillOrder, byteCount, this.Allocator, eolPadding: false, isModifiedHuffman: true);
 
             buffer.Clear();
             uint bitsWritten = 0;

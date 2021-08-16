@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp
         {
             if (simplify)
             {
-                var rational = new LongRational(numerator, denominator).Simplify();
+                LongRational rational = new LongRational(numerator, denominator).Simplify();
 
                 this.Numerator = (uint)rational.Numerator;
                 this.Denominator = (uint)rational.Denominator;
@@ -93,10 +93,7 @@ namespace SixLabors.ImageSharp
         /// <param name="left">The first <see cref="Rational"/>  to compare.</param>
         /// <param name="right"> The second <see cref="Rational"/>  to compare.</param>
         /// <returns>The <see cref="bool"/></returns>
-        public static bool operator ==(Rational left, Rational right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(Rational left, Rational right) => left.Equals(right);
 
         /// <summary>
         /// Determines whether the specified <see cref="Rational"/> instances are not considered equal.
@@ -104,10 +101,7 @@ namespace SixLabors.ImageSharp
         /// <param name="left">The first <see cref="Rational"/> to compare.</param>
         /// <param name="right"> The second <see cref="Rational"/> to compare.</param>
         /// <returns>The <see cref="bool"/></returns>
-        public static bool operator !=(Rational left, Rational right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(Rational left, Rational right) => !left.Equals(right);
 
         /// <summary>
         /// Converts the specified <see cref="double"/> to an instance of this type.
@@ -116,10 +110,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="Rational"/>.
         /// </returns>
-        public static Rational FromDouble(double value)
-        {
-            return new Rational(value, false);
-        }
+        public static Rational FromDouble(double value) => new Rational(value, false);
 
         /// <summary>
         /// Converts the specified <see cref="double"/> to an instance of this type.
@@ -129,16 +120,10 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="Rational"/>.
         /// </returns>
-        public static Rational FromDouble(double value, bool bestPrecision)
-        {
-            return new Rational(value, bestPrecision);
-        }
+        public static Rational FromDouble(double value, bool bestPrecision) => new Rational(value, bestPrecision);
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is Rational other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is Rational other && this.Equals(other);
 
         /// <inheritdoc/>
         public bool Equals(Rational other)
@@ -162,16 +147,18 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="double"/>.
         /// </returns>
-        public double ToDouble()
-        {
-            return this.Numerator / (double)this.Denominator;
-        }
+        public double ToDouble() => this.Numerator / (double)this.Denominator;
+
+        /// <summary>
+        /// Converts a rational number to the nearest <see cref="float"/>.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="float"/>.
+        /// </returns>
+        public float ToSingle() => this.Numerator / (float)this.Denominator;
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.ToString(CultureInfo.InvariantCulture);
-        }
+        public override string ToString() => this.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Converts the numeric value of this instance to its equivalent string representation using

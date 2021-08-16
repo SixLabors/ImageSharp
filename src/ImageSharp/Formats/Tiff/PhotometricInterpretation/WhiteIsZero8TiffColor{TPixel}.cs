@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    byte intensity = (byte)(255 - data[offset++]);
+                    byte intensity = (byte)(byte.MaxValue - data[offset++]);
                     pixelRow[x] = TiffUtils.ColorFromL8(l8, intensity, color);
                 }
             }

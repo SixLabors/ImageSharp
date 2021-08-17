@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
                 public const string ForestBridgeDifferentComponentsQuality = "Jpg/baseline/forest_bridge.jpg";
                 public const string ArithmeticCoding = "Jpg/baseline/arithmetic_coding.jpg";
-                public const string ArithmeticCodingProgressive = "Jpg/baseline/arithmetic_progressive.jpg";
+                public const string ArithmeticCodingProgressive = "Jpg/progressive/arithmetic_progressive.jpg";
                 public const string Lossless = "Jpg/baseline/lossless.jpg";
 
                 public static readonly string[] All =

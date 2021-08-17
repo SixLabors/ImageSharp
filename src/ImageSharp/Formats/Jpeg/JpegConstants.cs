@@ -184,6 +184,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             public const byte SOF3 = 0xC3;
 
             /// <summary>
+            /// Start of Frame marker, differential, Huffman coding, Differential sequential DCT.
+            /// </summary>
+            public const byte SOF5 = 0xC5;
+
+            /// <summary>
+            /// Start of Frame marker, differential, Huffman coding, Differential progressive DCT.
+            /// </summary>
+            public const byte SOF6 = 0xC6;
+
+            /// <summary>
             /// Start of Frame marker, differential lossless, Huffman coding.
             /// </summary>
             public const byte SOF7 = 0xC7;

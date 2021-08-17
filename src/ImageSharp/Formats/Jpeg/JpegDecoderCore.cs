@@ -247,6 +247,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.ProcessStartOfFrameMarker(stream, remaining, fileMarker, metadataOnly);
                             break;
 
+                        case JpegConstants.Markers.SOF5:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential sequential DCT is not supported.");
+                            break;
+
+                        case JpegConstants.Markers.SOF6:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential progressive DCT is not supported.");
+                            break;
+
                         case JpegConstants.Markers.SOF3:
                         case JpegConstants.Markers.SOF7:
                             JpegThrowHelper.ThrowNotSupportedException("Decoding lossless jpeg files is not supported.");

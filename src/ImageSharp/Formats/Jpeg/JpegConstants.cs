@@ -134,6 +134,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             public const byte APP15 = 0xEF;
 
             /// <summary>
+            /// Define arithmetic coding conditioning marker.
+            /// </summary>
+            public const byte DAC = 0xCC;
+
+            /// <summary>
             /// The text comment marker
             /// </summary>
             public const byte COM = 0xFE;
@@ -172,6 +177,46 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             /// </remarks>
             /// </summary>
             public const byte SOF2 = 0xC2;
+
+            /// <summary>
+            /// Start of Frame marker, non differential lossless, Huffman coding.
+            /// </summary>
+            public const byte SOF3 = 0xC3;
+
+            /// <summary>
+            /// Start of Frame marker, differential lossless, Huffman coding.
+            /// </summary>
+            public const byte SOF7 = 0xC7;
+
+            /// <summary>
+            /// Start of Frame marker, non-differential, arithmetic coding, Extended sequential DCT.
+            /// </summary>
+            public const byte SOF9 = 0xC9;
+
+            /// <summary>
+            /// Start of Frame marker, non-differential, arithmetic coding, Progressive DCT.
+            /// </summary>
+            public const byte SOF10 = 0xCA;
+
+            /// <summary>
+            /// Start of Frame marker, non-differential, arithmetic coding, Lossless (sequential).
+            /// </summary>
+            public const byte SOF11 = 0xCB;
+
+            /// <summary>
+            /// Start of Frame marker, differential, arithmetic coding, Differential sequential DCT.
+            /// </summary>
+            public const byte SOF13 = 0xCD;
+
+            /// <summary>
+            /// Start of Frame marker, differential, arithmetic coding, Differential progressive DCT.
+            /// </summary>
+            public const byte SOF14 = 0xCE;
+
+            /// <summary>
+            /// Start of Frame marker, differential, arithmetic coding, Differential lossless (sequential).
+            /// </summary>
+            public const byte SOF15 = 0xCF;
 
             /// <summary>
             /// Define Huffman Table(s)

@@ -13,15 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class WebpMetaDataTests
     {
-        private readonly Configuration configuration;
-
         private static WebpDecoder WebpDecoder => new WebpDecoder() { IgnoreMetadata = false };
-
-        public WebpMetaDataTests()
-        {
-            this.configuration = new Configuration();
-            this.configuration.AddWebp();
-        }
 
         [Theory]
         [WithFile(TestImages.WebP.Lossy.WithExif, PixelTypes.Rgba32, false)]
@@ -86,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             memoryStream.Position = 0;
 
             // assert
-            using Image<Rgba32> image = WebpDecoder.Decode<Rgba32>(this.configuration, memoryStream);
+            using var image = Image.Load<Rgba32>(memoryStream);
             ExifProfile actualExif = image.Metadata.ExifProfile;
             Assert.NotNull(actualExif);
             Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);
@@ -107,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             memoryStream.Position = 0;
 
             // assert
-            using Image<Rgba32> image = WebpDecoder.Decode<Rgba32>(this.configuration, memoryStream);
+            using var image = Image.Load<Rgba32>(memoryStream);
             ExifProfile actualExif = image.Metadata.ExifProfile;
             Assert.NotNull(actualExif);
             Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);

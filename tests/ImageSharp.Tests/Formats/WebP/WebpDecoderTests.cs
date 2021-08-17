@@ -18,17 +18,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class WebpDecoderTests
     {
-        private readonly Configuration configuration;
-
         private static WebpDecoder WebpDecoder => new WebpDecoder();
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
-
-        public WebpDecoderTests()
-        {
-            this.configuration = new Configuration();
-            this.configuration.AddWebp();
-        }
 
         [Theory]
         [InlineData(Lossless.GreenTransform1, 1000, 307, 32)]
@@ -46,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo imageInfo = Image.Identify(this.configuration, stream);
+                IImageInfo imageInfo = Image.Identify(stream);
                 Assert.NotNull(imageInfo);
                 Assert.Equal(expectedWidth, imageInfo.Width);
                 Assert.Equal(expectedHeight, imageInfo.Height);

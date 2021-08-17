@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -33,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// A buffer for reducing the number of stream writes when emitting Huffman tables.
         /// </summary>
-        private readonly byte[] emitBuffer = new byte[EmitBufferSizeInBytes];
+        private readonly uint[] emitBuffer = new uint[EmitBufferSizeInBytes / 4];
 
         private readonly byte[] streamWriteBuffer = new byte[EmitBufferSizeInBytes * 2];
 
@@ -47,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Emmited bits 'micro buffer' before being transfered to the <see cref="emitBuffer"/>.
         /// </summary>
-        private int accumulatedBits;
+        private uint accumulatedBits;
 
         /// <summary>
         /// Number of jagged bits stored in <see cref="accumulatedBits"/>
@@ -121,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref chrominanceQuantTable,
                         ref unzig);
 
-                    if (this.emitLen + BytesPerCodingUnit > EmitBufferSizeInBytes)
+                    if (this.emitLen + (BytesPerCodingUnit / 4) > EmitBufferSizeInBytes / 4)
                     {
                         this.WriteToStream();
                     }
@@ -320,27 +322,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="bits">The packed bits.</param>
         /// <param name="count">The number of bits</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void Emit(int bits, int count)
+        private void Emit(uint bits, int count)
         {
+            uint correctedBits = bits << (32 - count);
+
+            this.accumulatedBits |= correctedBits >> this.bitCount;
+
             count += this.bitCount;
-            bits <<= 32 - count;
-            bits |= this.accumulatedBits;
 
-            // Only write if more than 8 bits.
-            if (count >= 8)
+            if (count >= 32)
             {
-                // Track length
-                while (count >= 8)
-                {
-                    byte b = (byte)(bits >> 24);
-                    this.emitBuffer[this.emitLen++] = b;
+                this.emitBuffer[this.emitLen++] = this.accumulatedBits;
+                this.accumulatedBits = correctedBits << (32 - this.bitCount);
 
-                    bits <<= 8;
-                    count -= 8;
-                }
+                count -= 32;
             }
 
-            this.accumulatedBits = bits;
             this.bitCount = count;
         }
 
@@ -353,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void EmitHuff(int[] table, int value)
         {
             int x = table[value];
-            this.Emit(x >> 8, x & 0xff);
+            this.Emit((uint)x >> 8, x & 0xff);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -372,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.EmitHuff(table, bt);
             if (bt > 0)
             {
-                this.Emit(b & ((1 << bt) - 1), bt);
+                this.Emit((uint)(b & ((1 << bt) - 1)), bt);
             }
         }
 
@@ -396,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int bt = GetHuffmanEncodingLength((uint)a);
 
             this.EmitHuff(table, (runLength << 4) | bt);
-            this.Emit(b & ((1 << bt) - 1), bt);
+            this.Emit((uint)(b & ((1 << bt) - 1)), bt);
         }
 
         /// <summary>
@@ -406,12 +403,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void FlushInternalBuffer()
         {
             // pad last byte with 1's
-            int padBitsCount = 8 - (this.bitCount % 8);
-            if (padBitsCount != 0)
-            {
-                this.Emit((1 << padBitsCount) - 1, padBitsCount);
-                this.target.Write(this.emitBuffer, 0, this.emitLen);
-            }
+            //int padBitsCount = 8 - (this.bitCount % 8);
+            //if (padBitsCount != 0)
+            //{
+            //    this.Emit((1 << padBitsCount) - 1, padBitsCount);
+            //    this.target.Write(this.emitBuffer, 0, this.emitLen);
+            //}
         }
 
         /// <summary>
@@ -514,10 +511,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(InliningOptions.ShortMethod)]
         private void WriteToStream()
         {
+            Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
+
             int writeIdx = 0;
-            for (int i = 0; i < this.emitLen; i++)
+            for (int i = 0; i < this.emitLen * 4; i++)
             {
-                byte value = this.emitBuffer[i];
+                byte value = emitBytes[i];
                 this.streamWriteBuffer[writeIdx++] = value;
                 if (value == 0xff)
                 {

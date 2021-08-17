@@ -102,6 +102,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data)
@@ -116,6 +117,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data, out IImageFormat format)
@@ -131,6 +133,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, byte[] data)
@@ -154,6 +157,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, byte[] data, out IImageFormat format)
@@ -175,6 +179,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
@@ -198,6 +203,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, byte[] data, IImageDecoder decoder)
@@ -216,10 +222,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="data">The byte span containing encoded image data to read the header from.</param>
         /// <returns>The format or null if none found.</returns>
-        public static IImageFormat DetectFormat(ReadOnlySpan<byte> data)
-        {
-            return DetectFormat(Configuration.Default, data);
-        }
+        public static IImageFormat DetectFormat(ReadOnlySpan<byte> data) => DetectFormat(Configuration.Default, data);
 
         /// <summary>
         /// By reading the header on the provided byte span this calculates the images format.
@@ -258,6 +261,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -271,6 +275,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -284,6 +289,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -298,6 +304,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static unsafe Image<TPixel> Load<TPixel>(Configuration configuration, ReadOnlySpan<byte> data)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -321,6 +328,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static unsafe Image<TPixel> Load<TPixel>(
             Configuration configuration,
@@ -347,6 +355,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static unsafe Image<TPixel> Load<TPixel>(
             Configuration configuration,
@@ -372,6 +381,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(byte[] data, out IImageFormat format)
             => Load(Configuration.Default, data, out format);
@@ -384,6 +394,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(byte[] data, IImageDecoder decoder)
             => Load(Configuration.Default, data, decoder);
@@ -397,6 +408,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, byte[] data)
             => Load(configuration, data, out _);
@@ -411,6 +423,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, byte[] data, IImageDecoder decoder)
         {
@@ -430,6 +443,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The data is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, byte[] data, out IImageFormat format)
         {
@@ -445,6 +459,7 @@ namespace SixLabors.ImageSharp
         /// <param name="data">The byte span containing image data.</param>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(ReadOnlySpan<byte> data)
             => Load(Configuration.Default, data);
@@ -458,6 +473,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(ReadOnlySpan<byte> data, IImageDecoder decoder)
             => Load(Configuration.Default, data, decoder);
@@ -470,6 +486,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(ReadOnlySpan<byte> data, out IImageFormat format)
             => Load(Configuration.Default, data, out format);
@@ -491,7 +508,7 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
@@ -518,6 +535,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static unsafe Image Load(
             Configuration configuration,

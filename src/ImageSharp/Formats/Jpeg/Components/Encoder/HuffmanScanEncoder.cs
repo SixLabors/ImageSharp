@@ -35,6 +35,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private readonly byte[] emitBuffer = new byte[EmitBufferSizeInBytes];
 
+        private readonly byte[] streamWriteBuffer = new byte[EmitBufferSizeInBytes * 2];
+
+        private const int BytesPerCodingUnit = 256 * 3;
+
         /// <summary>
         /// Number of filled bytes in <see cref="emitBuffer"/> buffer
         /// </summary>
@@ -116,6 +120,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.Cr,
                         ref chrominanceQuantTable,
                         ref unzig);
+
+                    if (this.emitLen + BytesPerCodingUnit > EmitBufferSizeInBytes)
+                    {
+                        this.WriteToStream();
+                    }
                 }
             }
 
@@ -326,27 +335,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     byte b = (byte)(bits >> 24);
                     this.emitBuffer[this.emitLen++] = b;
 
-                    // Adding stuff byte
-                    // This is because by JPEG standard scan data can contain JPEG markers (indicated by the 0xFF byte, followed by a non-zero byte)
-                    // Considering this every 0xFF byte must be followed by 0x00 padding byte to signal that this is not a marker
-                    if (b == byte.MaxValue)
-                    {
-                        this.emitBuffer[this.emitLen++] = byte.MinValue;
-                    }
-
                     bits <<= 8;
                     count -= 8;
-                }
-
-                // This can emit 4 times of:
-                // 1 byte guaranteed
-                // 1 extra byte.MinValue byte if previous one was byte.MaxValue
-                // Thus writing (1 + 1) * 4 = 8 bytes max
-                // So we must check if emit buffer has extra 8 bytes, if not - call stream.Write
-                if (this.emitLen > EmitBufferSizeInBytes - 8)
-                {
-                    this.target.Write(this.emitBuffer, 0, this.emitLen);
-                    this.emitLen = 0;
                 }
             }
 
@@ -519,6 +509,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 // this implementation will return 0 if all ac components and dc are zero
                 return index;
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void WriteToStream()
+        {
+            int writeIdx = 0;
+            for (int i = 0; i < this.emitLen; i++)
+            {
+                byte value = this.emitBuffer[i];
+                this.streamWriteBuffer[writeIdx++] = value;
+                if (value == 0xff)
+                {
+                    this.streamWriteBuffer[writeIdx++] = 0x00;
+                }
+            }
+
+            this.target.Write(this.streamWriteBuffer, 0, writeIdx);
+            this.emitLen = 0;
         }
     }
 }

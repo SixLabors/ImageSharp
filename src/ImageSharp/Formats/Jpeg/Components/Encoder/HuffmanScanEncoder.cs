@@ -349,16 +349,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(InliningOptions.ShortMethod)]
         private void Emit(uint bits, int count)
         {
-            uint correctedBits = bits << (32 - count);
-
-            this.accumulatedBits |= correctedBits >> this.bitCount;
+            this.accumulatedBits |= bits >> this.bitCount;
 
             count += this.bitCount;
 
             if (count >= 32)
             {
                 this.emitBuffer[--this.emitWriteIndex] = this.accumulatedBits;
-                this.accumulatedBits = correctedBits << (32 - this.bitCount);
+                this.accumulatedBits = bits << (32 - this.bitCount);
 
                 count -= 32;
             }
@@ -375,7 +373,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void EmitHuff(int[] table, int value)
         {
             int x = table[value];
-            this.Emit((uint)x >> 8, x & 0xff);
+            this.Emit((uint)x & 0xffff_ff00u, x & 0xff);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -389,13 +387,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            int bt = GetHuffmanEncodingLength((uint)a);
+            int valueLen = GetHuffmanEncodingLength((uint)a);
 
-            this.EmitHuff(table, bt);
-            if (bt > 0)
-            {
-                this.Emit((uint)(b & ((1 << bt) - 1)), bt);
-            }
+            this.EmitHuff(table, valueLen);
+            this.Emit((uint)b << (32 - valueLen), valueLen);
         }
 
         /// <summary>
@@ -415,10 +410,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            int bt = GetHuffmanEncodingLength((uint)a);
+            int valueLen = GetHuffmanEncodingLength((uint)a);
 
-            this.EmitHuff(table, (runLength << 4) | bt);
-            this.Emit((uint)(b & ((1 << bt) - 1)), bt);
+            this.EmitHuff(table, (runLength << 4) | valueLen);
+            this.Emit((uint)b << (32 - valueLen), valueLen);
         }
 
         /// <summary>

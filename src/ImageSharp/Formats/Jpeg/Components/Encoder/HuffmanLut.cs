@@ -4,6 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     /// <summary>
+    /// TODO: THIS IS NO LONGER TRUE, INTERNAL REPRESENTATION WAS CHANGED AND THIS DOC SHOULD BE CHANGED TOO!!!
     /// A compiled look-up table representation of a huffmanSpec.
     /// Each value maps to a int32 of which the 24 most significant bits hold the
     /// codeword in bits and the 8 least significant bits hold the codeword size.
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 int len = i + 1;
                 for (int j = 0; j < spec.Count[i]; j++)
                 {
-                    this.Values[spec.Values[k]] = len | (code << 8);
+                    this.Values[spec.Values[k]] = len | (code << (32 - len));
                     code++;
                     k++;
                 }

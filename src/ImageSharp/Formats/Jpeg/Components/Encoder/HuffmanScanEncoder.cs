@@ -41,10 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private const int BytesPerCodingUnit = 256 * 3;
 
-        /// <summary>
-        /// Number of filled bytes in <see cref="emitBuffer"/> buffer
-        /// </summary>
-        private int emitLen = 0;
+        private int emitWriteIndex = (EmitBufferSizeInBytes / 4);
 
         /// <summary>
         /// Emmited bits 'micro buffer' before being transfered to the <see cref="emitBuffer"/>.
@@ -123,14 +120,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref chrominanceQuantTable,
                         ref unzig);
 
-                    if (this.emitLen + (BytesPerCodingUnit / 4) > EmitBufferSizeInBytes / 4)
+                    if (this.emitWriteIndex < this.emitBuffer.Length / 2)
                     {
                         this.WriteToStream();
                     }
                 }
             }
 
-            this.FlushInternalBuffer();
+            this.EmitFinalBits();
         }
 
         /// <summary>
@@ -311,6 +308,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             return dc;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void EmitFinalBits()
+        {
+            // Bytes count we want to write to the output stream
+            int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
+
+            // Padding all 4 bytes with 1's while not corrupting initial bits stored in accumulatedBits
+            uint packedBytes = (this.accumulatedBits | (uint.MaxValue >> this.bitCount)) >> ((4 - valuableBytesCount) * 8);
+
+            // 2x size due to possible stuff bytes, max out to 8
+            Span<byte> tempBuffer = stackalloc byte[valuableBytesCount * 2];
+
+            // Write bytes to temporal buffer
+            int writeCount = 0;
+            for (int i = 0; i < valuableBytesCount; i++)
+            {
+                byte value = (byte)(packedBytes >> (i * 8));
+                tempBuffer[writeCount++] = value;
+                if (value == 0xff)
+                {
+                    tempBuffer[writeCount++] = 0;
+                }
+            }
+
+            // Write temporal buffer to the output stream
+            this.target.Write(tempBuffer, 0, writeCount);
+        }
+
         /// <summary>
         /// Emits the least significant count of bits to the stream write buffer.
         /// The precondition is bits
@@ -332,7 +357,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             if (count >= 32)
             {
-                this.emitBuffer[this.emitLen++] = this.accumulatedBits;
+                this.emitBuffer[--this.emitWriteIndex] = this.accumulatedBits;
                 this.accumulatedBits = correctedBits << (32 - this.bitCount);
 
                 count -= 32;
@@ -514,7 +539,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
 
             int writeIdx = 0;
-            for (int i = 0; i < this.emitLen * 4; i++)
+            int start = emitBytes.Length - 1;
+            int end = (this.emitWriteIndex * 4) - 1;
+            for (int i = start; i > end; i--)
             {
                 byte value = emitBytes[i];
                 this.streamWriteBuffer[writeIdx++] = value;
@@ -525,7 +552,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 
             this.target.Write(this.streamWriteBuffer, 0, writeIdx);
-            this.emitLen = 0;
+            this.emitWriteIndex = this.emitBuffer.Length;
         }
     }
 }

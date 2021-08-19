@@ -92,7 +92,7 @@ jobs:
 
             - name: Build
               shell: pwsh
-              run: ./ci-build.ps1 "${{matrix.options.framework}}"
+              run: ./ci-build.ps1
               env:
                 SIXLABORS_TESTING: True
 

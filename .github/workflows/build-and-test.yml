@@ -34,43 +34,30 @@ jobs:
                       codecov: false
                     - os: ubuntu-latest
                       framework: net5.0
-                      sdk: 5.0.x
-                      sdk-preview: false
                       runtime: -x64
                       codecov: false
                     - os: macos-latest
                       framework: net5.0
-                      sdk: 5.0.x
-                      sdk-preview: false
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
                       framework: net5.0
-                      sdk: 5.0.x
-                      sdk-preview: false
                       runtime: -x64
                       codecov: false
                     - os: ubuntu-latest
                       framework: netcoreapp3.1
-                      sdk: 3.1.x
-                      sdk-preview: false
                       runtime: -x64
                       codecov: true
                     - os: macos-latest
                       framework: netcoreapp3.1
-                      sdk: 3.1.x
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
                       framework: netcoreapp3.1
-                      sdk: 3.1.x
-                      sdk-preview: false
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
                       framework: netcoreapp2.1
-                      sdk: 2.1.x
-                      sdk-preview: false
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
@@ -123,11 +110,11 @@ jobs:
                   restore-keys: ${{ runner.os }}-nuget-
 
             - name: DotNet Setup
-              if: ${{ matrix.options.sdk != '' }}
+              if: ${{ matrix.options.sdk-preview == true }}
               uses: actions/setup-dotnet@v1
               with:
                 dotnet-version: ${{ matrix.options.sdk }}
-                include-prerelease: ${{ matrix.options.sdk-preview }}
+                include-prerelease: true
 
             - name: DotNet Build
               if: ${{ matrix.options.sdk-preview != true }}

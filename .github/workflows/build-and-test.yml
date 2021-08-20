@@ -87,7 +87,7 @@ jobs:
 
         steps:
         - name: Conditional Check
-          if: ${{ ${{matrix.options.sdk-preview}} == true }} 
+          if: ${{ matrix.options.sdk-preview == true }} 
           shell: bash
           run: echo ${{matrix.options.sdk-preview}}
 

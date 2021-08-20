@@ -18,7 +18,7 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING) == true">
       <PropertyGroup>
-        <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
+        <TargetFrameworks>net6.0;net5.0;netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
       </PropertyGroup>
     </When>
     <When Condition="$(Configuration.EndsWith('InnerLoop')) == true">

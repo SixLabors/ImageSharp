@@ -122,7 +122,7 @@ jobs:
                   restore-keys: ${{ runner.os }}-nuget-
 
             - name: Setup dotnet
-              if: ${{ "${{matrix.options.sdk}}" != "" }}
+              if: ${{ '${{matrix.options.sdk}}' != '' }}
               uses: actions/setup-dotnet@v1
               with:
                   dotnet-version: ${{ matrix.options.sdk }}

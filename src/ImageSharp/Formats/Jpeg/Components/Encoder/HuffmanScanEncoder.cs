@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // Emit the DC delta.
             int dc = (int)refTemp2[0];
-            this.EmitDirectCurrentTerm(this.huffmanTables[2 * (int)index].Values, dc - prevDC);
+            this.EmitHuffRLE(this.huffmanTables[2 * (int)index].Values, 0, dc - prevDC);
 
             // Emit the AC components.
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
@@ -376,23 +376,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.Emit((uint)x & 0xffff_ff00u, x & 0xff);
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitDirectCurrentTerm(int[] table, int value)
-        {
-            int a = value;
-            int b = value;
-            if (a < 0)
-            {
-                a = -value;
-                b = value - 1;
-            }
-
-            int valueLen = GetHuffmanEncodingLength((uint)a);
-
-            this.EmitHuff(table, valueLen);
-            this.Emit((uint)b << (32 - valueLen), valueLen);
-        }
-
         /// <summary>
         /// Emits a run of runLength copies of value encoded with the given Huffman encoder.
         /// </summary>
@@ -412,8 +395,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             int valueLen = GetHuffmanEncodingLength((uint)a);
 
-            this.EmitHuff(table, (runLength << 4) | valueLen);
-            this.Emit((uint)b << (32 - valueLen), valueLen);
+            // Huffman prefix code
+            int huffPackage = table[(runLength << 4) | valueLen];
+            int prefixLen = huffPackage & 0xff;
+            uint prefix = (uint)huffPackage & 0xffff_0000u;
+
+            // Actual encoded value
+            uint encodedValue = (uint)b << (32 - valueLen);
+
+            // Doing two binary shifts to get rid of leading 1's in negative value case
+            this.Emit(prefix | (encodedValue >> prefixLen), prefixLen + valueLen);
         }
 
         /// <summary>

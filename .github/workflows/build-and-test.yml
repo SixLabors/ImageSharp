@@ -129,16 +129,33 @@ jobs:
                   include-prerelease: ${{ matrix.options.sdk-preview }}
 
             - name: Build
+              if: ${{ ${{matrix.options.sdk-preview}} != true }}
               shell: pwsh
               run: ./ci-build.ps1 "${{matrix.options.framework}}"
               env:
                 SIXLABORS_TESTING: True
 
+            - name: Build Preview
+              if: ${{ ${{matrix.options.sdk-preview}} == true }}
+              shell: pwsh
+              run: ./ci-build.ps1 "${{matrix.options.framework}}"
+              env:
+                SIXLABORS_TESTING_PREVIEW: True
+
             - name: Test
+              if: ${{ ${{matrix.options.sdk-preview}} != true }}
               shell: pwsh
               run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
                   SIXLABORS_TESTING: True
+                  XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+
+            - name: Test Preview
+              if: ${{ ${{matrix.options.sdk-preview}} == true }}
+              shell: pwsh
+              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+              env:
+                  SIXLABORS_TESTING_PREVIEW: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
             - name: Export Failed Output

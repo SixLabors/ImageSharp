@@ -19,8 +19,7 @@
   <Import Project="$(MSBuildThisFileDirectory)shared-infrastructure\msbuild\props\SixLabors.Global.props" />
 
   <PropertyGroup Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
-    <!-- Workaround: https://github.com/dotnet/sdk/issues/19050 -->
-    <DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>
+    <!-- Workaround various issues bound to implicit language features. -->
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 

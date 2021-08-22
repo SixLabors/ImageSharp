@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
-            using var bitReader = new T4BitReader(stream, this.FillOrder, byteCount, this.Allocator, eolPadding: false, isModifiedHuffman: true);
+            using var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount, this.Allocator);
 
             buffer.Clear();
             uint bitsWritten = 0;
@@ -51,20 +51,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     if (bitReader.IsWhiteRun)
                     {
                         BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
-                        bitsWritten += bitReader.RunLength;
-                        pixelsWritten += bitReader.RunLength;
                     }
                     else
                     {
                         BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
-                        bitsWritten += bitReader.RunLength;
-                        pixelsWritten += bitReader.RunLength;
                     }
+
+                    bitsWritten += bitReader.RunLength;
+                    pixelsWritten += bitReader.RunLength;
                 }
 
-                if (pixelsWritten % this.Width == 0)
+                if (pixelsWritten == this.Width)
                 {
                     bitReader.StartNewRow();
+                    pixelsWritten = 0;
 
                     // Write padding bits, if necessary.
                     uint pad = 8 - (bitsWritten % 8);
@@ -73,6 +73,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
+                }
+
+                if (pixelsWritten > this.Width)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, decoded more pixels then image width");
                 }
             }
         }

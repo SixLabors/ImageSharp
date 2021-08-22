@@ -317,7 +317,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     int stripIndex = i;
                     for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
                     {
-                        decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
+                        decompressor.Decompress(
+                            this.inputStream,
+                            (uint)stripOffsets[stripIndex],
+                            (uint)stripByteCounts[stripIndex],
+                            stripHeight,
+                            stripBuffers[planeIndex].GetSpan());
                         stripIndex += stripsPerPlane;
                     }
 
@@ -385,7 +390,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
-                decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripBufferSpan);
+                decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripHeight, stripBufferSpan);
 
                 colorDecoder.Decode(stripBufferSpan, pixels, 0, top, frame.Width, stripHeight);
             }

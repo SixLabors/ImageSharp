@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
             long pos = stream.Position;
             using (var deframeStream = new ZlibInflateStream(

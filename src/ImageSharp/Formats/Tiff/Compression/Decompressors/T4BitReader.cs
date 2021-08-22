@@ -17,29 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     internal class T4BitReader : IDisposable
     {
         /// <summary>
-        /// Number of bits read.
-        /// </summary>
-        private int bitsRead;
-
-        /// <summary>
         /// The logical order of bits within a byte.
         /// </summary>
         private readonly TiffFillOrder fillOrder;
-
-        /// <summary>
-        /// Current value.
-        /// </summary>
-        private uint value;
-
-        /// <summary>
-        /// Number of bits read for the current run value.
-        /// </summary>
-        private int curValueBitsRead;
-
-        /// <summary>
-        /// Byte position in the buffer.
-        /// </summary>
-        private ulong position;
 
         /// <summary>
         /// Indicates whether its the first line of data which is read from the image.
@@ -58,19 +38,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         private bool isStartOfRow;
 
         /// <summary>
-        /// Indicates whether the modified huffman compression, as specified in the TIFF spec in section 10, is used.
-        /// </summary>
-        private readonly bool isModifiedHuffmanRle;
-
-        /// <summary>
         /// Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.
         /// </summary>
         private readonly bool eolPadding;
 
-        private readonly int dataLength;
-
+        /// <summary>
+        /// The minimum code length in bits.
+        /// </summary>
         private const int MinCodeLength = 2;
 
+        /// <summary>
+        /// The maximum code length in bits.
+        /// </summary>
         private readonly int maxCodeLength = 13;
 
         private static readonly Dictionary<uint, uint> WhiteLen4TermCodes = new Dictionary<uint, uint>()
@@ -231,19 +210,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
         /// <param name="allocator">The memory allocator.</param>
         /// <param name="eolPadding">Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.</param>
-        /// <param name="isModifiedHuffman">Indicates, if its the modified huffman code variation. Defaults to false.</param>
-        public T4BitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false, bool isModifiedHuffman = false)
+        public T4BitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false)
         {
             this.fillOrder = fillOrder;
             this.Data = allocator.Allocate<byte>(bytesToRead);
             this.ReadImageDataFromStream(input, bytesToRead);
 
-            this.isModifiedHuffmanRle = isModifiedHuffman;
-            this.dataLength = bytesToRead;
-            this.bitsRead = 0;
-            this.value = 0;
-            this.curValueBitsRead = 0;
-            this.position = 0;
+            this.DataLength = bytesToRead;
+            this.BitsRead = 0;
+            this.Value = 0;
+            this.CurValueBitsRead = 0;
+            this.Position = 0;
             this.IsWhiteRun = true;
             this.isFirstScanLine = true;
             this.isStartOfRow = true;
@@ -258,6 +235,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <summary>
+        /// Gets the current value.
+        /// </summary>
+        protected uint Value { get; private set; }
+
+        /// <summary>
+        /// Gets the number of bits read for the current run value.
+        /// </summary>
+        protected int CurValueBitsRead { get; private set; }
+
+        /// <summary>
+        /// Gets the number of bits read.
+        /// </summary>
+        protected int BitsRead { get; private set; }
+
+        /// <summary>
+        /// Gets the available data in bytes.
+        /// </summary>
+        protected int DataLength { get; }
+
+        /// <summary>
+        /// Gets or sets the byte position in the buffer.
+        /// </summary>
+        protected ulong Position { get; set; }
+
+        /// <summary>
         /// Gets the compressed image data.
         /// </summary>
         public IMemoryOwner<byte> Data { get; }
@@ -265,23 +267,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <summary>
         /// Gets a value indicating whether there is more data to read left.
         /// </summary>
-        public bool HasMoreData
-        {
-            get
-            {
-                if (this.isModifiedHuffmanRle)
-                {
-                    return this.position < (ulong)this.dataLength - 1 || (this.bitsRead > 0 && this.bitsRead < 7);
-                }
-
-                return this.position < (ulong)this.dataLength - 1;
-            }
-        }
+        public virtual bool HasMoreData => this.Position < (ulong)this.DataLength - 1;
 
         /// <summary>
-        /// Gets a value indicating whether the current run is a white pixel run, otherwise its a black pixel run.
+        /// Gets or sets a value indicating whether the current run is a white pixel run, otherwise its a black pixel run.
         /// </summary>
-        public bool IsWhiteRun { get; private set; }
+        public bool IsWhiteRun { get; protected set; }
 
         /// <summary>
         /// Gets the number of pixels in the current run.
@@ -291,16 +282,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <summary>
         /// Gets a value indicating whether the end of a pixel row has been reached.
         /// </summary>
-        public bool IsEndOfScanLine
+        public virtual bool IsEndOfScanLine
         {
             get
             {
                 if (this.eolPadding)
                 {
-                    return this.curValueBitsRead >= 12 && this.value == 1;
+                    return this.CurValueBitsRead >= 12 && this.Value == 1;
                 }
 
-                return this.curValueBitsRead == 12 && this.value == 1;
+                return this.CurValueBitsRead == 12 && this.Value == 1;
             }
         }
 
@@ -315,29 +306,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 this.terminationCodeFound = false;
             }
 
+            // Initialize for next run.
             this.Reset();
 
-            if (this.isFirstScanLine && !this.isModifiedHuffmanRle)
-            {
-                // We expect an EOL before the first data.
-                this.value = this.ReadValue(this.eolPadding ? 16 : 12);
-
-                if (!this.IsEndOfScanLine)
-                {
-                    TiffThrowHelper.ThrowImageFormatException("t4 parsing error: expected start of data marker not found");
-                }
-
-                this.Reset();
-            }
+            // We expect an EOL before the first data.
+            this.ReadEolBeforeFirstData();
 
             // A code word must have at least 2 bits.
-            this.value = this.ReadValue(MinCodeLength);
+            this.Value = this.ReadValue(MinCodeLength);
 
             do
             {
-                if (this.curValueBitsRead > this.maxCodeLength)
+                if (this.CurValueBitsRead > this.maxCodeLength)
                 {
-                    TiffThrowHelper.ThrowImageFormatException("t4 parsing error: invalid code length read");
+                    TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error: invalid code length read");
                 }
 
                 bool isMakeupCode = this.IsMakeupCode();
@@ -363,10 +345,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     // Each line starts with a white run. If the image starts with black, a white run with length zero is written.
                     if (this.isStartOfRow && this.IsWhiteRun && this.WhiteTerminatingCodeRunLength() == 0)
                     {
-                        this.IsWhiteRun = !this.IsWhiteRun;
                         this.Reset();
                         this.isStartOfRow = false;
-                        continue;
+                        this.terminationCodeFound = true;
+                        this.RunLength = 0;
+                        break;
                     }
 
                     if (this.IsWhiteRun)
@@ -384,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 }
 
                 uint currBit = this.ReadValue(1);
-                this.value = (this.value << 1) | currBit;
+                this.Value = (this.Value << 1) | currBit;
 
                 if (this.IsEndOfScanLine)
                 {
@@ -396,55 +379,106 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.isFirstScanLine = false;
         }
 
-        public void StartNewRow()
+        /// <summary>
+        /// Initialization for a new row.
+        /// </summary>
+        public virtual void StartNewRow()
         {
             // Each new row starts with a white run.
             this.IsWhiteRun = true;
             this.isStartOfRow = true;
             this.terminationCodeFound = false;
-
-            if (this.isModifiedHuffmanRle)
-            {
-                int pad = 8 - (this.bitsRead % 8);
-                if (pad != 8)
-                {
-                    // Skip padding bits, move to next byte.
-                    this.position++;
-                    this.bitsRead = 0;
-                }
-            }
         }
 
         /// <inheritdoc/>
         public void Dispose() => this.Data.Dispose();
 
+        /// <summary>
+        /// An EOL is expected before the first data.
+        /// </summary>
+        protected virtual void ReadEolBeforeFirstData()
+        {
+            if (this.isFirstScanLine)
+            {
+                this.Value = this.ReadValue(this.eolPadding ? 16 : 12);
+
+                if (!this.IsEndOfScanLine)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error: expected start of data marker not found");
+                }
+
+                this.Reset();
+            }
+        }
+
+        /// <summary>
+        /// Resets the current value read and the number of bits read.
+        /// </summary>
+        /// <param name="resetRunLength">if set to true resets also the run length.</param>
+        protected void Reset(bool resetRunLength = true)
+        {
+            this.Value = 0;
+            this.CurValueBitsRead = 0;
+
+            if (resetRunLength)
+            {
+                this.RunLength = 0;
+            }
+        }
+
+        /// <summary>
+        /// Resets the bits read to 0.
+        /// </summary>
+        protected void ResetBitsRead() => this.BitsRead = 0;
+
+        /// <summary>
+        /// Reads the next value.
+        /// </summary>
+        /// <param name="nBits">The number of bits to read.</param>
+        /// <returns>The value read.</returns>
+        protected uint ReadValue(int nBits)
+        {
+            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+
+            uint v = 0;
+            int shift = nBits;
+            while (shift-- > 0)
+            {
+                uint bit = this.GetBit();
+                v |= bit << shift;
+                this.CurValueBitsRead++;
+            }
+
+            return v;
+        }
+
         private uint WhiteTerminatingCodeRunLength()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 4:
                 {
-                    return WhiteLen4TermCodes[this.value];
+                    return WhiteLen4TermCodes[this.Value];
                 }
 
                 case 5:
                 {
-                    return WhiteLen5TermCodes[this.value];
+                    return WhiteLen5TermCodes[this.Value];
                 }
 
                 case 6:
                 {
-                    return WhiteLen6TermCodes[this.value];
+                    return WhiteLen6TermCodes[this.Value];
                 }
 
                 case 7:
                 {
-                    return WhiteLen7TermCodes[this.value];
+                    return WhiteLen7TermCodes[this.Value];
                 }
 
                 case 8:
                 {
-                    return WhiteLen8TermCodes[this.value];
+                    return WhiteLen8TermCodes[this.Value];
                 }
             }
 
@@ -453,61 +487,61 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private uint BlackTerminatingCodeRunLength()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 2:
                 {
-                    return BlackLen2TermCodes[this.value];
+                    return BlackLen2TermCodes[this.Value];
                 }
 
                 case 3:
                 {
-                    return BlackLen3TermCodes[this.value];
+                    return BlackLen3TermCodes[this.Value];
                 }
 
                 case 4:
                 {
-                    return BlackLen4TermCodes[this.value];
+                    return BlackLen4TermCodes[this.Value];
                 }
 
                 case 5:
                 {
-                    return BlackLen5TermCodes[this.value];
+                    return BlackLen5TermCodes[this.Value];
                 }
 
                 case 6:
                 {
-                    return BlackLen6TermCodes[this.value];
+                    return BlackLen6TermCodes[this.Value];
                 }
 
                 case 7:
                 {
-                    return BlackLen7TermCodes[this.value];
+                    return BlackLen7TermCodes[this.Value];
                 }
 
                 case 8:
                 {
-                    return BlackLen8TermCodes[this.value];
+                    return BlackLen8TermCodes[this.Value];
                 }
 
                 case 9:
                 {
-                    return BlackLen9TermCodes[this.value];
+                    return BlackLen9TermCodes[this.Value];
                 }
 
                 case 10:
                 {
-                    return BlackLen10TermCodes[this.value];
+                    return BlackLen10TermCodes[this.Value];
                 }
 
                 case 11:
                 {
-                    return BlackLen11TermCodes[this.value];
+                    return BlackLen11TermCodes[this.Value];
                 }
 
                 case 12:
                 {
-                    return BlackLen12TermCodes[this.value];
+                    return BlackLen12TermCodes[this.Value];
                 }
             }
 
@@ -516,41 +550,41 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private uint WhiteMakeupCodeRunLength()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 5:
                 {
-                    return WhiteLen5MakeupCodes[this.value];
+                    return WhiteLen5MakeupCodes[this.Value];
                 }
 
                 case 6:
                 {
-                    return WhiteLen6MakeupCodes[this.value];
+                    return WhiteLen6MakeupCodes[this.Value];
                 }
 
                 case 7:
                 {
-                    return WhiteLen7MakeupCodes[this.value];
+                    return WhiteLen7MakeupCodes[this.Value];
                 }
 
                 case 8:
                 {
-                    return WhiteLen8MakeupCodes[this.value];
+                    return WhiteLen8MakeupCodes[this.Value];
                 }
 
                 case 9:
                 {
-                    return WhiteLen9MakeupCodes[this.value];
+                    return WhiteLen9MakeupCodes[this.Value];
                 }
 
                 case 11:
                 {
-                    return WhiteLen11MakeupCodes[this.value];
+                    return WhiteLen11MakeupCodes[this.Value];
                 }
 
                 case 12:
                 {
-                    return WhiteLen12MakeupCodes[this.value];
+                    return WhiteLen12MakeupCodes[this.Value];
                 }
             }
 
@@ -559,26 +593,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private uint BlackMakeupCodeRunLength()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 10:
                 {
-                    return BlackLen10MakeupCodes[this.value];
+                    return BlackLen10MakeupCodes[this.Value];
                 }
 
                 case 11:
                 {
-                    return BlackLen11MakeupCodes[this.value];
+                    return BlackLen11MakeupCodes[this.Value];
                 }
 
                 case 12:
                 {
-                    return BlackLen12MakeupCodes[this.value];
+                    return BlackLen12MakeupCodes[this.Value];
                 }
 
                 case 13:
                 {
-                    return BlackLen13MakeupCodes[this.value];
+                    return BlackLen13MakeupCodes[this.Value];
                 }
             }
 
@@ -597,49 +631,41 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private bool IsWhiteMakeupCode()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 5:
                 {
-                    return WhiteLen5MakeupCodes.ContainsKey(this.value);
+                    return WhiteLen5MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 6:
                 {
-                    return WhiteLen6MakeupCodes.ContainsKey(this.value);
+                    return WhiteLen6MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 7:
                 {
-                    return WhiteLen7MakeupCodes.ContainsKey(this.value);
+                    return WhiteLen7MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 8:
                 {
-                    return WhiteLen8MakeupCodes.ContainsKey(this.value);
+                    return WhiteLen8MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 9:
                 {
-                    return WhiteLen9MakeupCodes.ContainsKey(this.value);
+                    return WhiteLen9MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 11:
                 {
-                    return WhiteLen11MakeupCodes.ContainsKey(this.value);
+                    return WhiteLen11MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 12:
                 {
-                    if (this.isModifiedHuffmanRle)
-                    {
-                        if (this.value == 1)
-                        {
-                            return true;
-                        }
-                    }
-
-                    return WhiteLen12MakeupCodes.ContainsKey(this.value);
+                    return WhiteLen12MakeupCodes.ContainsKey(this.Value);
                 }
             }
 
@@ -648,34 +674,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private bool IsBlackMakeupCode()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 10:
                 {
-                    return BlackLen10MakeupCodes.ContainsKey(this.value);
+                    return BlackLen10MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 11:
                 {
-                    if (this.isModifiedHuffmanRle)
-                    {
-                        if (this.value == 0)
-                        {
-                            return true;
-                        }
-                    }
-
-                    return BlackLen11MakeupCodes.ContainsKey(this.value);
+                    return BlackLen11MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 12:
                 {
-                    return BlackLen12MakeupCodes.ContainsKey(this.value);
+                    return BlackLen12MakeupCodes.ContainsKey(this.Value);
                 }
 
                 case 13:
                 {
-                    return BlackLen13MakeupCodes.ContainsKey(this.value);
+                    return BlackLen13MakeupCodes.ContainsKey(this.Value);
                 }
             }
 
@@ -694,31 +712,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private bool IsWhiteTerminatingCode()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 4:
                 {
-                    return WhiteLen4TermCodes.ContainsKey(this.value);
+                    return WhiteLen4TermCodes.ContainsKey(this.Value);
                 }
 
                 case 5:
                 {
-                    return WhiteLen5TermCodes.ContainsKey(this.value);
+                    return WhiteLen5TermCodes.ContainsKey(this.Value);
                 }
 
                 case 6:
                 {
-                    return WhiteLen6TermCodes.ContainsKey(this.value);
+                    return WhiteLen6TermCodes.ContainsKey(this.Value);
                 }
 
                 case 7:
                 {
-                    return WhiteLen7TermCodes.ContainsKey(this.value);
+                    return WhiteLen7TermCodes.ContainsKey(this.Value);
                 }
 
                 case 8:
                 {
-                    return WhiteLen8TermCodes.ContainsKey(this.value);
+                    return WhiteLen8TermCodes.ContainsKey(this.Value);
                 }
             }
 
@@ -727,117 +745,90 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private bool IsBlackTerminatingCode()
         {
-            switch (this.curValueBitsRead)
+            switch (this.CurValueBitsRead)
             {
                 case 2:
                 {
-                    return BlackLen2TermCodes.ContainsKey(this.value);
+                    return BlackLen2TermCodes.ContainsKey(this.Value);
                 }
 
                 case 3:
                 {
-                    return BlackLen3TermCodes.ContainsKey(this.value);
+                    return BlackLen3TermCodes.ContainsKey(this.Value);
                 }
 
                 case 4:
                 {
-                    return BlackLen4TermCodes.ContainsKey(this.value);
+                    return BlackLen4TermCodes.ContainsKey(this.Value);
                 }
 
                 case 5:
                 {
-                    return BlackLen5TermCodes.ContainsKey(this.value);
+                    return BlackLen5TermCodes.ContainsKey(this.Value);
                 }
 
                 case 6:
                 {
-                    return BlackLen6TermCodes.ContainsKey(this.value);
+                    return BlackLen6TermCodes.ContainsKey(this.Value);
                 }
 
                 case 7:
                 {
-                    return BlackLen7TermCodes.ContainsKey(this.value);
+                    return BlackLen7TermCodes.ContainsKey(this.Value);
                 }
 
                 case 8:
                 {
-                    return BlackLen8TermCodes.ContainsKey(this.value);
+                    return BlackLen8TermCodes.ContainsKey(this.Value);
                 }
 
                 case 9:
                 {
-                    return BlackLen9TermCodes.ContainsKey(this.value);
+                    return BlackLen9TermCodes.ContainsKey(this.Value);
                 }
 
                 case 10:
                 {
-                    return BlackLen10TermCodes.ContainsKey(this.value);
+                    return BlackLen10TermCodes.ContainsKey(this.Value);
                 }
 
                 case 11:
                 {
-                    return BlackLen11TermCodes.ContainsKey(this.value);
+                    return BlackLen11TermCodes.ContainsKey(this.Value);
                 }
 
                 case 12:
                 {
-                    return BlackLen12TermCodes.ContainsKey(this.value);
+                    return BlackLen12TermCodes.ContainsKey(this.Value);
                 }
             }
 
             return false;
         }
 
-        private void Reset(bool resetRunLength = true)
-        {
-            this.value = 0;
-            this.curValueBitsRead = 0;
-
-            if (resetRunLength)
-            {
-                this.RunLength = 0;
-            }
-        }
-
-        private uint ReadValue(int nBits)
-        {
-            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
-
-            uint v = 0;
-            int shift = nBits;
-            while (shift-- > 0)
-            {
-                uint bit = this.GetBit();
-                v |= bit << shift;
-                this.curValueBitsRead++;
-            }
-
-            return v;
-        }
-
         private uint GetBit()
         {
-            if (this.bitsRead >= 8)
+            if (this.BitsRead >= 8)
             {
                 this.LoadNewByte();
             }
 
             Span<byte> dataSpan = this.Data.GetSpan();
-            int shift = 8 - this.bitsRead - 1;
-            uint bit = (uint)((dataSpan[(int)this.position] & (1 << shift)) != 0 ? 1 : 0);
-            this.bitsRead++;
+            int shift = 8 - this.BitsRead - 1;
+            uint bit = (uint)((dataSpan[(int)this.Position] & (1 << shift)) != 0 ? 1 : 0);
+            this.BitsRead++;
 
             return bit;
         }
 
         private void LoadNewByte()
         {
-            this.position++;
-            this.bitsRead = 0;
+            this.Position++;
+            this.ResetBitsRead();
 
-            if (this.position >= (ulong)this.dataLength)
+            if (this.Position >= (ulong)this.DataLength)
             {
-                TiffThrowHelper.ThrowImageFormatException("tiff image has invalid t4 compressed data");
+                TiffThrowHelper.ThrowImageFormatException("tiff image has invalid ccitt compressed data");
             }
         }
 

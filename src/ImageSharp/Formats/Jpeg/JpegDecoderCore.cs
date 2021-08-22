@@ -345,10 +345,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Returns the correct colorspace based on the image component count
+        /// Returns the correct colorspace based on the image component count and the jpeg frame components.
         /// </summary>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
-        private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
+        private JpegColorSpace DeduceJpegColorSpace(byte componentCount, JpegComponent[] components)
         {
             if (componentCount == 1)
             {
@@ -358,6 +358,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (componentCount == 3)
             {
                 if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                {
+                    return JpegColorSpace.RGB;
+                }
+
+                // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
+                if (components[2].Id == 66 && components[1].Id == 71 && components[0].Id == 82)
                 {
                     return JpegColorSpace.RGB;
                 }
@@ -836,60 +842,60 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // 1 byte: Number of components
             byte componentCount = this.temp[5];
-            this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
-
-            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
 
             this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
 
+            remaining -= length;
+
+            // Validate: remaining part must be equal to components * 3
+            const int componentBytes = 3;
+            if (remaining != componentCount * componentBytes)
+            {
+                JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
+            }
+
+            // components*3 bytes: component data
+            stream.Read(this.temp, 0, remaining);
+
+            // No need to pool this. They max out at 4
+            this.Frame.ComponentIds = new byte[componentCount];
+            this.Frame.ComponentOrder = new byte[componentCount];
+            this.Frame.Components = new JpegComponent[componentCount];
+
+            int maxH = 0;
+            int maxV = 0;
+            int index = 0;
+            for (int i = 0; i < componentCount; i++)
+            {
+                byte hv = this.temp[index + 1];
+                int h = (hv >> 4) & 15;
+                int v = hv & 15;
+
+                if (maxH < h)
+                {
+                    maxH = h;
+                }
+
+                if (maxV < v)
+                {
+                    maxV = v;
+                }
+
+                var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+
+                this.Frame.Components[i] = component;
+                this.Frame.ComponentIds[i] = component.Id;
+
+                index += componentBytes;
+            }
+
+            this.ColorSpace = this.DeduceJpegColorSpace(componentCount, this.Frame.Components);
+
+            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
+
             if (!metadataOnly)
             {
-                remaining -= length;
-
-                // Validate: remaining part must be equal to components * 3
-                const int componentBytes = 3;
-                if (remaining != componentCount * componentBytes)
-                {
-                    JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
-                }
-
-                // components*3 bytes: component data
-                stream.Read(this.temp, 0, remaining);
-
-                // No need to pool this. They max out at 4
-                this.Frame.ComponentIds = new byte[componentCount];
-                this.Frame.ComponentOrder = new byte[componentCount];
-                this.Frame.Components = new JpegComponent[componentCount];
-
-                int maxH = 0;
-                int maxV = 0;
-                int index = 0;
-                for (int i = 0; i < componentCount; i++)
-                {
-                    byte hv = this.temp[index + 1];
-                    int h = (hv >> 4) & 15;
-                    int v = hv & 15;
-
-                    if (maxH < h)
-                    {
-                        maxH = h;
-                    }
-
-                    if (maxV < v)
-                    {
-                        maxV = v;
-                    }
-
-                    var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
-
-                    this.Frame.Components[i] = component;
-                    this.Frame.ComponentIds[i] = component.Id;
-
-                    index += componentBytes;
-                }
-
                 this.Frame.Init(maxH, maxV);
-
                 this.scanDecoder.InjectFrameData(this.Frame, this);
             }
         }

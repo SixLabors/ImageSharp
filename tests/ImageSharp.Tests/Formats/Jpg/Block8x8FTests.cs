@@ -462,7 +462,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             short[] data = Create8x8ShortData();
 
-            var source = new Block8x8(data);
+            var source = Block8x8.Load(data);
 
             Block8x8F dest = default;
             dest.LoadFromInt16Scalar(ref source);
@@ -483,7 +483,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             short[] data = Create8x8ShortData();
 
-            var source = new Block8x8(data);
+            var source = Block8x8.Load(data);
 
             Block8x8F dest = default;
             dest.LoadFromInt16ExtendedAvx2(ref source);

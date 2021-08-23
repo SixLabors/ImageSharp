@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             short[] data = Create8x8ShortData();
 
-            var block = new Block8x8(data);
+            var block = Block8x8.Load(data);
 
             for (int i = 0; i < Block8x8.Size; i++)
             {
@@ -44,31 +44,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public unsafe void Indexer_GetScalarAt_SetScalarAt()
-        {
-            int sum;
-            var block = default(Block8x8);
-
-            for (int i = 0; i < Block8x8.Size; i++)
-            {
-                Block8x8.SetScalarAt(&block, i, (short)i);
-            }
-
-            sum = 0;
-            for (int i = 0; i < Block8x8.Size; i++)
-            {
-                sum += Block8x8.GetScalarAt(&block, i);
-            }
-
-            Assert.Equal(sum, 64 * 63 / 2);
-        }
-
-        [Fact]
         public void AsFloatBlock()
         {
             short[] data = Create8x8ShortData();
 
-            var source = new Block8x8(data);
+            var source = Block8x8.Load(data);
 
             Block8x8F dest = source.AsFloatBlock();
 
@@ -82,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void ToArray()
         {
             short[] data = Create8x8ShortData();
-            var block = new Block8x8(data);
+            var block = Block8x8.Load(data);
 
             short[] result = block.ToArray();
 
@@ -93,8 +73,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Equality_WhenTrue()
         {
             short[] data = Create8x8ShortData();
-            var block1 = new Block8x8(data);
-            var block2 = new Block8x8(data);
+            var block1 = Block8x8.Load(data);
+            var block2 = Block8x8.Load(data);
 
             block1[0] = 42;
             block2[0] = 42;
@@ -107,8 +87,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Equality_WhenFalse()
         {
             short[] data = Create8x8ShortData();
-            var block1 = new Block8x8(data);
-            var block2 = new Block8x8(data);
+            var block1 = Block8x8.Load(data);
+            var block2 = Block8x8.Load(data);
 
             block1[0] = 42;
             block2[0] = 666;
@@ -131,8 +111,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void TotalDifference()
         {
             short[] data = Create8x8ShortData();
-            var block1 = new Block8x8(data);
-            var block2 = new Block8x8(data);
+            var block1 = Block8x8.Load(data);
+            var block2 = Block8x8.Load(data);
 
             block2[10] += 7;
             block2[63] += 8;

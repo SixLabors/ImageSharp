@@ -29,17 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private fixed short data[Size];
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Block8x8"/> struct.
-        /// </summary>
-        /// <param name="coefficients">A <see cref="Span{T}"/> of coefficients</param>
-        public Block8x8(Span<short> coefficients)
-        {
-            ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
-            ref byte sourceRef = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(coefficients));
-            Unsafe.CopyBlock(ref selfRef, ref sourceRef, Size * sizeof(short));
-        }
-
-        /// <summary>
         /// Gets or sets a <see cref="short"/> value at the given index
         /// </summary>
         /// <param name="idx">The index</param>
@@ -75,15 +64,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             set => this[(y * 8) + x] = value;
         }
 
-        public static bool operator ==(Block8x8 left, Block8x8 right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(Block8x8 left, Block8x8 right) => left.Equals(right);
 
-        public static bool operator !=(Block8x8 left, Block8x8 right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(Block8x8 left, Block8x8 right) => !left.Equals(right);
 
         /// <summary>
         /// Multiply all elements by a given <see cref="int"/>
@@ -149,34 +132,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             return result;
         }
 
-        /// <summary>
-        /// Pointer-based "Indexer" (getter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <returns>The scaleVec value at the specified index</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static short GetScalarAt(Block8x8* blockPtr, int idx)
+        public static Block8x8 Load(Span<short> data)
         {
-            GuardBlockIndex(idx);
-
-            short* fp = blockPtr->data;
-            return fp[idx];
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (setter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <param name="value">Value</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SetScalarAt(Block8x8* blockPtr, int idx, short value)
-        {
-            GuardBlockIndex(idx);
-
-            short* fp = blockPtr->data;
-            fp[idx] = value;
+            Block8x8 result = default;
+            result.LoadFrom(data);
+            return result;
         }
 
         /// <summary>
@@ -194,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         public short[] ToArray()
         {
-            var result = new short[Size];
+            short[] result = new short[Size];
             this.CopyTo(result);
             return result;
         }
@@ -218,6 +178,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 destination[i] = this[i];
             }
+        }
+
+        /// <summary>
+        /// Load raw 16bit integers from source.
+        /// </summary>
+        /// <param name="source">Source</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void LoadFrom(Span<short> source)
+        {
+            ref byte s = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(source));
+            ref byte d = ref Unsafe.As<Block8x8, byte>(ref this);
+
+            Unsafe.CopyBlock(ref d, ref s, Size * sizeof(short));
         }
 
         /// <summary>
@@ -271,16 +244,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is Block8x8 other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is Block8x8 other && this.Equals(other);
 
         /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            return (this[0] * 31) + this[1];
-        }
+        public override int GetHashCode() => (this[0] * 31) + this[1];
 
         /// <summary>
         /// Calculate the total sum of absolute differences of elements in 'a' and 'b'.

@@ -182,6 +182,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, string path)
@@ -196,6 +197,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static async Task<Image> LoadAsync(
@@ -219,6 +221,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, string path, IImageDecoder decoder)
@@ -241,6 +244,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image> LoadAsync(string path, CancellationToken cancellationToken = default)
@@ -255,6 +259,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image> LoadAsync(string path, IImageDecoder decoder)
@@ -269,6 +274,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
@@ -287,6 +293,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image> LoadAsync(
@@ -313,6 +320,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
@@ -338,6 +346,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image<TPixel>> LoadAsync<TPixel>(string path)
@@ -353,6 +362,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
@@ -376,6 +386,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(string path, IImageDecoder decoder)
@@ -388,6 +399,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(string path)
@@ -402,6 +414,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(string path, out IImageFormat format)
@@ -416,6 +429,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
@@ -440,6 +454,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
@@ -465,6 +480,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration configuration, string path, out IImageFormat format)
@@ -485,6 +501,7 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
@@ -502,6 +519,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>

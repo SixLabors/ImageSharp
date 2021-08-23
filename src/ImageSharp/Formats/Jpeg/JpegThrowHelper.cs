@@ -9,6 +9,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     internal static class JpegThrowHelper
     {
         /// <summary>
+        /// Cold path optimization for throwing <see cref="NotSupportedException"/>'s.
+        /// </summary>
+        /// <param name="errorMessage">The error message for the exception.</param>
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNotSupportedException(string errorMessage) => throw new NotSupportedException(errorMessage);
+
+        /// <summary>
         /// Cold path optimization for throwing <see cref="InvalidImageContentException"/>'s.
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>

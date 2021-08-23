@@ -247,6 +247,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.ProcessStartOfFrameMarker(stream, remaining, fileMarker, metadataOnly);
                             break;
 
+                        case JpegConstants.Markers.SOF5:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential sequential DCT is not supported.");
+                            break;
+
+                        case JpegConstants.Markers.SOF6:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential progressive DCT is not supported.");
+                            break;
+
+                        case JpegConstants.Markers.SOF3:
+                        case JpegConstants.Markers.SOF7:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding lossless jpeg files is not supported.");
+                            break;
+
+                        case JpegConstants.Markers.SOF9:
+                        case JpegConstants.Markers.SOF10:
+                        case JpegConstants.Markers.SOF11:
+                        case JpegConstants.Markers.SOF13:
+                        case JpegConstants.Markers.SOF14:
+                        case JpegConstants.Markers.SOF15:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with arithmetic coding is not supported.");
+                            break;
+
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
@@ -325,6 +347,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.APP15:
                         case JpegConstants.Markers.COM:
                             stream.Skip(remaining);
+                            break;
+
+                        case JpegConstants.Markers.DAC:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with arithmetic coding is not supported.");
                             break;
                     }
                 }

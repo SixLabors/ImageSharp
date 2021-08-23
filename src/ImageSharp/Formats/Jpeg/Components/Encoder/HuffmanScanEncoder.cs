@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -441,7 +442,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Lzcnt would return 32 for input value of 0 - no need to check that with branching
             // Fallback code if Lzcnt is not supported still use if-check
             // But most modern CPUs support this instruction so this should not be a problem
-            return 32 - System.Numerics.BitOperations.LeadingZeroCount(value);
+            return 32 - BitOperations.LeadingZeroCount(value);
 #else
             // Ideally:
             // if 0 - return 0 in this case
@@ -458,13 +459,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Returns index of the last non-zero element in given mcu block.
-        /// If all values of the mcu block are zero, this method might return different results depending on the runtime and hardware support.
-        /// This is jpeg mcu specific code, mcu[0] stores a dc value which will be encoded outside of the loop.
-        /// This method is guaranteed to return either -1 or 0 if all elements are zero.
+        /// Returns index of the last non-zero element in given matrix.
         /// </summary>
         /// <remarks>
-        /// This is an internal operation supposed to be used only in <see cref="HuffmanScanEncoder"/> class for jpeg encoding.
+        /// Returns 0 for all-zero matrix by convention.
         /// </remarks>
         /// <param name="mcu">Mcu block.</param>
         /// <returns>Index of the last non-zero element.</returns>
@@ -484,24 +482,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 {
                     int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref mcuStride, i)), zero8).AsByte());
 
-                    // we do not know for sure if this stride contain all non-zero elements or if it has some trailing zeros
                     if (areEqual != equalityMask)
                     {
-                        // last index in the stride, we go from the end to the start of the stride
-                        int startIndex = i * 8;
-                        int index = startIndex + 7;
-                        ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
-                        while (index >= startIndex && (int)Unsafe.Add(ref elemRef, index) == 0)
-                        {
-                            index--;
-                        }
+                        // Each 4 bits represents comparison operation for each 4-byte element in input vectors
+                        // LSB represents first element in the stride
+                        // MSB represents last element in the stride
+                        // lzcnt operation would calculate number of zero numbers at the end
 
-                        // this implementation will return -1 if all ac components are zero and dc are zero
-                        return index;
+                        // Given mask is not actually suitable for lzcnt as 1's represent zero elements and 0's represent non-zero elements
+                        // So we need to invert it
+                        int lzcnt = BitOperations.LeadingZeroCount(~(uint)areEqual);
+
+                        // As input number is represented by 4 bits in the mask, we need to divide lzcnt result by 4
+                        // to get the exact number of zero elements in the stride
+                        int strideRelativeIndex = 7 - (lzcnt / 4);
+                        return (i * 8) + strideRelativeIndex;
                     }
                 }
 
-                return -1;
+                return 0;
             }
             else
 #endif
@@ -514,7 +513,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     index--;
                 }
 
-                // this implementation will return 0 if all ac components and dc are zero
                 return index;
             }
         }

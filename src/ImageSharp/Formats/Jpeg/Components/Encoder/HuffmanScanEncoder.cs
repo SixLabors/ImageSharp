@@ -482,7 +482,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 for (int i = 7; i >= 0; i--)
                 {
-                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Avx.ConvertToVector256Int32(Unsafe.Add(ref mcuStride, i)), zero8).AsByte());
+                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref mcuStride, i)), zero8).AsByte());
 
                     // we do not know for sure if this stride contain all non-zero elements or if it has some trailing zeros
                     if (areEqual != equalityMask)

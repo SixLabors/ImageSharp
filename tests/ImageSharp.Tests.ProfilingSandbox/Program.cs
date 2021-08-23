@@ -66,6 +66,15 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             // Elapsed: 4644ms across 200 iterations
             // Average: 23,22ms
 
+
+            /* Fixed last valuable index calculation */
+            // Elapsed: 4606ms across 200 iterations
+            // Average: 23,03ms
+
+            /* Intrinsic last valuable index */
+            // Elapsed: 4519ms across 200 iterations
+            // Average: 22,595ms
+
             BenchmarkEncoder("uniform_size", 200, 100);
 
             //ReEncodeImage("uniform_size", 100);

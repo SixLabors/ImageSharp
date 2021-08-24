@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed as a jpeg stream.
     /// </summary>
-    internal class JpegTiffCompression : TiffBaseDecompressor
+    internal sealed class JpegTiffCompression : TiffBaseDecompressor
     {
         private readonly Configuration configuration;
 
@@ -49,12 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
-            Image<Rgb24> image;
             if (this.jpegTables != null)
             {
-                var jpegDecoder = new JpegDecoderCore(this.configuration, new JpegDecoder());
+                using var jpegDecoder = new JpegDecoderCore(this.configuration, new JpegDecoder());
 
                 // TODO: Should we pass through the CancellationToken from the tiff decoder?
                 // If the PhotometricInterpretation is YCbCr we explicitly assume the JPEG data is in RGB color space.
@@ -66,13 +65,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 scanDecoder.ResetInterval = 0;
                 jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
 
-                image = new Image<Rgb24>(this.configuration, spectralConverter.PixelBuffer, new ImageMetadata());
+                using var image = new Image<Rgb24>(this.configuration, spectralConverter.PixelBuffer, new ImageMetadata());
+                CopyImageBytesToBuffer(buffer, image);
             }
             else
             {
-                image = Image.Load<Rgb24>(stream);
+                using var image = Image.Load<Rgb24>(stream);
+                CopyImageBytesToBuffer(buffer, image);
             }
+        }
 
+        private static void CopyImageBytesToBuffer(Span<byte> buffer, Image<Rgb24> image)
+        {
             int offset = 0;
             for (int y = 0; y < image.Height; y++)
             {

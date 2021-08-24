@@ -28,8 +28,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
         [Theory]
-        [WithFile(Calliphora_RgbJpeg, PixelTypes.Rgba32)]
-        [WithFile(RgbJpeg, PixelTypes.Rgba32)]
         [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
         [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
         [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]

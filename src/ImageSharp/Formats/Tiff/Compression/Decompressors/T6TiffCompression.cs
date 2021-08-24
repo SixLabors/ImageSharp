@@ -84,8 +84,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
 
             // Write padding bytes, if necessary.
-            uint pad = 8 - (bitsWritten % 8);
-            if (pad != 8)
+            uint remainder = bitsWritten % 8;
+            if (remainder != 0)
             {
                 BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
                 bitsWritten += pad;

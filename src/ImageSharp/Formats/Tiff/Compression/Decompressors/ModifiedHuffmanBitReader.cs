@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        public override bool HasMoreData => this.Position < (ulong)this.DataLength - 1 || (this.BitsRead > 0 && this.BitsRead < 7);
+        public override bool HasMoreData => this.Position < (ulong)this.DataLength - 1 || ((uint)(this.BitsRead - 1) < (7 - 1));
 
         /// <inheritdoc/>
         public override bool IsEndOfScanLine
@@ -53,8 +53,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             base.StartNewRow();
 
-            int pad = 8 - (this.BitsRead % 8);
-            if (pad != 8)
+            int remainder = this.BitsRead & 7;    // bit-hack for % 8
+            if (remainder != 0)
             {
                 // Skip padding bits, move to next byte.
                 this.Position++;

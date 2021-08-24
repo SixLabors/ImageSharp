@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using Modified Huffman Compression.
     /// </summary>
-    internal class ModifiedHuffmanTiffCompression : T4TiffCompression
+    internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
     {
         private readonly byte whiteValue;
 
@@ -27,17 +27,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="bitsPerPixel">The number of bits per pixel.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
         public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffFillOrder fillOrder, int width, int bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
-            : base(allocator, fillOrder, width, bitsPerPixel, FaxCompressionOptions.None, photometricInterpretation)
+            : base(allocator, width, bitsPerPixel)
         {
+            this.FillOrder = fillOrder;
             bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
             this.blackValue = (byte)(isWhiteZero ? 1 : 0);
         }
 
+        /// <summary>
+        /// Gets the logical order of bits within a byte.
+        /// </summary>
+        private TiffFillOrder FillOrder { get; }
+
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
-            using var bitReader = new T4BitReader(stream, this.FillOrder, byteCount, this.Allocator, eolPadding: false, isModifiedHuffman: true);
+            using var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount, this.Allocator);
 
             buffer.Clear();
             uint bitsWritten = 0;
@@ -51,20 +57,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     if (bitReader.IsWhiteRun)
                     {
                         BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
-                        bitsWritten += bitReader.RunLength;
-                        pixelsWritten += bitReader.RunLength;
                     }
                     else
                     {
                         BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
-                        bitsWritten += bitReader.RunLength;
-                        pixelsWritten += bitReader.RunLength;
                     }
+
+                    bitsWritten += bitReader.RunLength;
+                    pixelsWritten += bitReader.RunLength;
                 }
 
-                if (pixelsWritten % this.Width == 0)
+                if (pixelsWritten == this.Width)
                 {
                     bitReader.StartNewRow();
+                    pixelsWritten = 0;
 
                     // Write padding bits, if necessary.
                     uint pad = 8 - (bitsWritten % 8);
@@ -74,7 +80,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         bitsWritten += pad;
                     }
                 }
+
+                if (pixelsWritten > this.Width)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, decoded more pixels then image width");
+                }
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 }

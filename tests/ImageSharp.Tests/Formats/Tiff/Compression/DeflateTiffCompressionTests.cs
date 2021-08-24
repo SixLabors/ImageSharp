@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
 
                 using var decompressor = new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false);
 
-                decompressor.Decompress(stream, 0, (uint)stream.Length, buffer);
+                decompressor.Decompress(stream, 0, (uint)stream.Length, 1, buffer);
 
                 Assert.Equal(data, buffer);
             }

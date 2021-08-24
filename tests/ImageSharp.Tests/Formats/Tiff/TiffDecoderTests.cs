@@ -23,14 +23,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         public static readonly string[] MultiframeTestImages = Multiframes;
 
-        public static readonly string[] NotSupportedImages = NotSupported;
-
         private static TiffDecoder TiffDecoder => new TiffDecoder();
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
         [Theory]
-        [WithFileCollection(nameof(NotSupportedImages), PixelTypes.Rgba32)]
+        [WithFile(Calliphora_RgbJpeg, PixelTypes.Rgba32)]
+        [WithFile(RgbJpeg, PixelTypes.Rgba32)]
+        [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
+        [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
+        [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
 
@@ -354,6 +356,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Calliphora_Fax3Compressed_WithEolPadding, PixelTypes.Rgba32)]
         [WithFile(Fax3Uncompressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Fax3Compressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Fax4Compressed, PixelTypes.Rgba32)]
+        [WithFile(Fax4CompressedLowerOrderBitsFirst, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_Fax4Compressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Fax4Compressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]

@@ -29,9 +29,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         Lzw = 3,
 
         /// <summary>
-        /// Image data is compressed using T4-encoding: CCITT T.4.
+        /// Image data is compressed using CCITT T.4 fax compression.
         /// </summary>
         T4 = 4,
+
+        /// <summary>
+        /// Image data is compressed using CCITT T.6 fax compression.
+        /// </summary>
+        T6 = 6,
 
         /// <summary>
         /// Image data is compressed using modified huffman compression.

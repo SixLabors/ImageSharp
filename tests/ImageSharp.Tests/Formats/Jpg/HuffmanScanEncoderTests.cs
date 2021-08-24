@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 int expectedLessThan = 1;
 
-                int actual = HuffmanScanEncoder.GetLastValuableElementIndex(ref data);
+                int actual = data.GetLastValuableElementIndex();
 
                 Assert.True(actual < expectedLessThan);
             }
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 int expected = Block8x8F.Size - 1;
 
-                int actual = HuffmanScanEncoder.GetLastValuableElementIndex(ref data);
+                int actual = data.GetLastValuableElementIndex();
 
                 Assert.Equal(expected, actual);
             }
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = setIndex;
 
-                    int actual = HuffmanScanEncoder.GetLastValuableElementIndex(ref data);
+                    int actual = data.GetLastValuableElementIndex();
 
                     Assert.Equal(expected, actual);
                 }
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = lastIndex;
 
-                    int actual = HuffmanScanEncoder.GetLastValuableElementIndex(ref data);
+                    int actual = data.GetLastValuableElementIndex();
 
                     Assert.Equal(expected, actual);
                 }
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = lastIndex2;
 
-                    int actual = HuffmanScanEncoder.GetLastValuableElementIndex(ref data);
+                    int actual = data.GetLastValuableElementIndex();
 
                     Assert.Equal(expected, actual);
                 }

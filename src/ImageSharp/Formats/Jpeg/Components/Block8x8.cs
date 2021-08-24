@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
@@ -275,6 +277,64 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         /// <inheritdoc />
         public override int GetHashCode() => (this[0] * 31) + this[1];
+
+        /// <summary>
+        /// Returns index of the last non-zero element in given matrix.
+        /// </summary>
+        /// <remarks>
+        /// Returns 0 for all-zero matrix by convention.
+        /// </remarks>
+        /// <returns>Index of the last non-zero element.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetLastValuableElementIndex()
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
+
+                Vector256<int> zero8 = Vector256<int>.Zero;
+
+                ref Vector256<short> mcuStride = ref Unsafe.As<Block8x8, Vector256<short>>(ref this);
+
+                for (int i = 7; i >= 0; i--)
+                {
+                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Unsafe.Add(ref mcuStride, i).AsInt32(), zero8).AsByte());
+
+                    if (areEqual != equalityMask)
+                    {
+                        // Each 2 bits represents comparison operation for each 2-byte element in input vectors
+                        // LSB represents first element in the stride
+                        // MSB represents last element in the stride
+                        // lzcnt operation would calculate number of zero numbers at the end
+
+                        // Given mask is not actually suitable for lzcnt as 1's represent zero elements and 0's represent non-zero elements
+                        // So we need to invert it
+                        int lzcnt = BitOperations.LeadingZeroCount(~(uint)areEqual);
+
+                        // As input number is represented by 2 bits in the mask, we need to divide lzcnt result by 2
+                        // to get the exact number of zero elements in the stride
+                        int strideRelativeIndex = 7 - (lzcnt / 2);
+                        return (i * 8) + strideRelativeIndex;
+                    }
+                }
+
+                return 0;
+            }
+            else
+#endif
+            {
+                int index = Size - 1;
+                ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
+
+                while (index > 0 && Unsafe.Add(ref elemRef, index) == 0)
+                {
+                    index--;
+                }
+
+                return index;
+            }
+        }
 
         /// <summary>
         /// Calculate the total sum of absolute differences of elements in 'a' and 'b'.

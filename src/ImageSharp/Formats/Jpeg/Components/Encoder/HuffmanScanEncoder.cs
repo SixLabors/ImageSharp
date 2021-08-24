@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
             int runLength = 0;
-            int lastValuableIndex = GetLastValuableElementIndex(ref refTemp2);
+            int lastValuableIndex = refTemp2.GetLastValuableElementIndex();
             for (int zig = 1; zig <= lastValuableIndex; zig++)
             {
                 int ac = (int)refTemp2[zig];
@@ -456,65 +456,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // And this eliminates need to check if input value is zero - it is a standard convention which Log2SoftwareFallback adheres to
             return Numerics.Log2(value << 1);
 #endif
-        }
-
-        /// <summary>
-        /// Returns index of the last non-zero element in given matrix.
-        /// </summary>
-        /// <remarks>
-        /// Returns 0 for all-zero matrix by convention.
-        /// </remarks>
-        /// <param name="mcu">Mcu block.</param>
-        /// <returns>Index of the last non-zero element.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal static int GetLastValuableElementIndex(ref Block8x8F mcu)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported)
-            {
-                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
-
-                Vector256<int> zero8 = Vector256<int>.Zero;
-
-                ref Vector256<float> mcuStride = ref mcu.V0;
-
-                for (int i = 7; i >= 0; i--)
-                {
-                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref mcuStride, i)), zero8).AsByte());
-
-                    if (areEqual != equalityMask)
-                    {
-                        // Each 4 bits represents comparison operation for each 4-byte element in input vectors
-                        // LSB represents first element in the stride
-                        // MSB represents last element in the stride
-                        // lzcnt operation would calculate number of zero numbers at the end
-
-                        // Given mask is not actually suitable for lzcnt as 1's represent zero elements and 0's represent non-zero elements
-                        // So we need to invert it
-                        int lzcnt = BitOperations.LeadingZeroCount(~(uint)areEqual);
-
-                        // As input number is represented by 4 bits in the mask, we need to divide lzcnt result by 4
-                        // to get the exact number of zero elements in the stride
-                        int strideRelativeIndex = 7 - (lzcnt / 4);
-                        return (i * 8) + strideRelativeIndex;
-                    }
-                }
-
-                return 0;
-            }
-            else
-#endif
-            {
-                int index = Block8x8F.Size - 1;
-                ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
-
-                while (index > 0 && (int)Unsafe.Add(ref elemRef, index) == 0)
-                {
-                    index--;
-                }
-
-                return index;
-            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

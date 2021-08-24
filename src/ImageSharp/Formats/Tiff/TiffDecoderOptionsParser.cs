@@ -418,6 +418,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
+                case TiffCompression.CcittGroup4Fax:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.T6;
+                    options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
+
+                    break;
+                }
+
                 case TiffCompression.Ccitt1D:
                 {
                     options.CompressionType = TiffDecoderCompressionType.HuffmanRle;

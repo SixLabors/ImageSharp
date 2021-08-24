@@ -46,6 +46,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     return new T4TiffCompression(allocator, fillOrder, width, bitsPerPixel, faxOptions, photometricInterpretation);
 
+                case TiffDecoderCompressionType.T6:
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
+                    return new T6TiffCompression(allocator, fillOrder, width, bitsPerPixel, photometricInterpretation);
+
                 case TiffDecoderCompressionType.HuffmanRle:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     return new ModifiedHuffmanTiffCompression(allocator, fillOrder, width, bitsPerPixel, photometricInterpretation);

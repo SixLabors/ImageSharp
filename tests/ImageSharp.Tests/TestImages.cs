@@ -538,6 +538,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_Fax4Compressed = "Tiff/Calliphora_ccitt_fax4.tiff";
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
             public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";
+            public const string Fax4Compressed = "Tiff/basi3p02_fax4.tiff";
+            public const string Fax4CompressedLowerOrderBitsFirst = "Tiff/basi3p02_fax4_lowerOrderBitsFirst.tiff";
 
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
@@ -662,8 +664,6 @@ namespace SixLabors.ImageSharp.Tests
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
-
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, Calliphora_Fax4Compressed, Fax4_Motorola };
         }
     }
 }

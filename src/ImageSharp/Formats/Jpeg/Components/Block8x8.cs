@@ -281,25 +281,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns index of the last non-zero element in given matrix.
         /// </summary>
-        /// <remarks>
-        /// Returns 0 for all-zero matrix by convention.
-        /// </remarks>
-        /// <returns>Index of the last non-zero element.</returns>
+        /// <returns>
+        /// Index of the last non-zero element. Returns -1 if all elements are equal to zero.
+        /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetLastValuableElementIndex()
+        public int GetLastNonZeroIndex()
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
 
-                Vector256<int> zero8 = Vector256<int>.Zero;
+                Vector256<short> zero16 = Vector256<short>.Zero;
 
                 ref Vector256<short> mcuStride = ref Unsafe.As<Block8x8, Vector256<short>>(ref this);
 
-                for (int i = 7; i >= 0; i--)
+                for (int i = 3; i >= 0; i--)
                 {
-                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Unsafe.Add(ref mcuStride, i).AsInt32(), zero8).AsByte());
+                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Unsafe.Add(ref mcuStride, i), zero16).AsByte());
 
                     if (areEqual != equalityMask)
                     {
@@ -314,12 +313,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                         // As input number is represented by 2 bits in the mask, we need to divide lzcnt result by 2
                         // to get the exact number of zero elements in the stride
-                        int strideRelativeIndex = 7 - (lzcnt / 2);
-                        return (i * 8) + strideRelativeIndex;
+                        int strideRelativeIndex = 15 - (lzcnt / 2);
+                        return (i * 16) + strideRelativeIndex;
                     }
                 }
 
-                return 0;
+                return -1;
             }
             else
 #endif
@@ -327,7 +326,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 int index = Size - 1;
                 ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
 
-                while (index > 0 && Unsafe.Add(ref elemRef, index) == 0)
+                while (index >= 0 && Unsafe.Add(ref elemRef, index) == 0)
                 {
                     index--;
                 }

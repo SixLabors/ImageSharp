@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void GetLastValuableElementIndex_AllZero()
+        public void GetLastNonZeroIndex_AllZero()
         {
             static void RunTest()
             {
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 int expectedLessThan = 1;
 
-                int actual = data.GetLastValuableElementIndex();
+                int actual = data.GetLastNonZeroIndex();
 
                 Assert.True(actual < expectedLessThan);
             }
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void GetLastValuableElementIndex_AllNonZero()
+        public void GetLastNonZeroIndex_AllNonZero()
         {
             static void RunTest()
             {
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 int expected = Block8x8F.Size - 1;
 
-                int actual = data.GetLastValuableElementIndex();
+                int actual = data.GetLastNonZeroIndex();
 
                 Assert.Equal(expected, actual);
             }
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
-        public void GetLastValuableElementIndex_RandomFilledSingle(int seed)
+        public void GetLastNonZeroIndex_RandomFilledSingle(int seed)
         {
             static void RunTest(string seedSerialized)
             {
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = setIndex;
 
-                    int actual = data.GetLastValuableElementIndex();
+                    int actual = data.GetLastNonZeroIndex();
 
                     Assert.Equal(expected, actual);
                 }
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
-        public void GetLastValuableElementIndex_RandomFilledPartially(int seed)
+        public void GetLastNonZeroIndex_RandomFilledPartially(int seed)
         {
             static void RunTest(string seedSerialized)
             {
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = lastIndex;
 
-                    int actual = data.GetLastValuableElementIndex();
+                    int actual = data.GetLastNonZeroIndex();
 
                     Assert.Equal(expected, actual);
                 }
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
-        public void GetLastValuableElementIndex_RandomFilledFragmented(int seed)
+        public void GetLastNonZeroIndex_RandomFilledFragmented(int seed)
         {
             static void RunTest(string seedSerialized)
             {
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = lastIndex2;
 
-                    int actual = data.GetLastValuableElementIndex();
+                    int actual = data.GetLastNonZeroIndex();
 
                     Assert.Equal(expected, actual);
                 }

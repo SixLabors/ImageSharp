@@ -868,9 +868,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns index of the last non-zero element in this matrix.
         /// </summary>
-        /// <returns>Index of the last non-zero element. Returns -1 if all elements are equal to zero.</returns>
+        /// <returns>
+        /// Index of the last non-zero element. Returns -1 if all elements are equal to zero.
+        /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetLastValuableElementIndex()
+        public int GetLastNonZeroIndex()
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)

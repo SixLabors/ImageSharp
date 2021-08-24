@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
             int runLength = 0;
-            int lastValuableIndex = refTemp2.GetLastValuableElementIndex();
+            int lastValuableIndex = refTemp2.GetLastNonZeroIndex();
             for (int zig = 1; zig <= lastValuableIndex; zig++)
             {
                 int ac = (int)refTemp2[zig];

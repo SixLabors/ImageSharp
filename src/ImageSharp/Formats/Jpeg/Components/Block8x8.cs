@@ -2,17 +2,18 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
-    /// Represents a Jpeg block with <see cref="short"/> coefficients.
+    /// 8x8 coefficients matrix of <see cref="short"/> type.
     /// </summary>
     // ReSharper disable once InconsistentNaming
+    [StructLayout(LayoutKind.Explicit)]
     internal unsafe struct Block8x8 : IEquatable<Block8x8>
     {
         /// <summary>
@@ -20,13 +21,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         public const int Size = 64;
 
+#pragma warning disable IDE0051 // Remove unused private member
         /// <summary>
-        /// A fixed size buffer holding the values.
-        /// See: <see>
-        ///         <cref>https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/unsafe-code-pointers/fixed-size-buffers</cref>
-        ///     </see>
+        /// A placeholder buffer so the actual struct occupies exactly 64 * 2 bytes.
         /// </summary>
+        /// <remarks>
+        /// This is not used directly in the code.
+        /// </remarks>
+        [FieldOffset(0)]
         private fixed short data[Size];
+#pragma warning restore IDE0051
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [FieldOffset(0)]
+        public Vector128<short> V0;
+        [FieldOffset(16)]
+        public Vector128<short> V1;
+        [FieldOffset(32)]
+        public Vector128<short> V2;
+        [FieldOffset(48)]
+        public Vector128<short> V3;
+        [FieldOffset(64)]
+        public Vector128<short> V4;
+        [FieldOffset(80)]
+        public Vector128<short> V5;
+        [FieldOffset(96)]
+        public Vector128<short> V6;
+        [FieldOffset(112)]
+        public Vector128<short> V7;
+
+        [FieldOffset(0)]
+        public Vector256<short> V01;
+        [FieldOffset(32)]
+        public Vector256<short> V23;
+        [FieldOffset(64)]
+        public Vector256<short> V45;
+        [FieldOffset(96)]
+        public Vector256<short> V67;
+#endif
 
         /// <summary>
         /// Gets or sets a <see cref="short"/> value at the given index
@@ -38,7 +70,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                GuardBlockIndex(idx);
+                DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
+
                 ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
                 return Unsafe.Add(ref selfRef, idx);
             }
@@ -46,7 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                GuardBlockIndex(idx);
+                DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
+
                 ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
                 Unsafe.Add(ref selfRef, idx) = value;
             }
@@ -202,13 +236,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 this[i] = (short)source[i];
             }
-        }
-
-        [Conditional("DEBUG")]
-        private static void GuardBlockIndex(int idx)
-        {
-            DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
-            DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
         }
 
         /// <inheritdoc />

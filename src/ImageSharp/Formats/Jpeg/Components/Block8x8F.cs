@@ -16,7 +16,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
-    /// Represents a Jpeg block with <see cref="float"/> coefficients.
+    /// 8x8 coefficients matrix of <see cref="float"/> type.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     internal partial struct Block8x8F : IEquatable<Block8x8F>
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                GuardBlockIndex(idx);
+                DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
                 ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
                 return Unsafe.Add(ref selfRef, idx);
             }
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                GuardBlockIndex(idx);
+                DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
                 ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
                 Unsafe.Add(ref selfRef, idx) = value;
             }
@@ -670,13 +670,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             row = Vector.Max(row, Vector<float>.Zero);
             row = Vector.Min(row, max);
             return row.FastRound();
-        }
-
-        [Conditional("DEBUG")]
-        private static void GuardBlockIndex(int idx)
-        {
-            DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
-            DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
         }
 
         /// <summary>

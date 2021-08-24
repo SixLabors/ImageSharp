@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using LZW compression.
     /// </summary>
-    internal class LzwTiffCompression : TiffBaseDecompressor
+    internal sealed class LzwTiffCompression : TiffBaseDecompressor
     {
         private readonly bool isBigEndian;
 

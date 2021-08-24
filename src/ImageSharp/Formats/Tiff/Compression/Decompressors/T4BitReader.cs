@@ -438,7 +438,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <returns>The value read.</returns>
         protected uint ReadValue(int nBits)
         {
-            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+            DebugGuard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
             uint v = 0;
             int shift = nBits;

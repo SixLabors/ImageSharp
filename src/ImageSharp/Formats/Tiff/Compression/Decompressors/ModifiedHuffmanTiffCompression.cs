@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using Modified Huffman Compression.
     /// </summary>
-    internal class ModifiedHuffmanTiffCompression : T4TiffCompression
+    internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
     {
         private readonly byte whiteValue;
 
@@ -27,12 +27,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="bitsPerPixel">The number of bits per pixel.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
         public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffFillOrder fillOrder, int width, int bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
-            : base(allocator, fillOrder, width, bitsPerPixel, FaxCompressionOptions.None, photometricInterpretation)
+            : base(allocator, width, bitsPerPixel)
         {
+            this.FillOrder = fillOrder;
             bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
             this.blackValue = (byte)(isWhiteZero ? 1 : 0);
         }
+
+        /// <summary>
+        /// Gets the logical order of bits within a byte.
+        /// </summary>
+        private TiffFillOrder FillOrder { get; }
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
@@ -80,6 +86,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, decoded more pixels then image width");
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 }

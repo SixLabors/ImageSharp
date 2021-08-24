@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// Bit reader for reading CCITT T6 compressed fax data.
     /// See: Facsimile Coding Schemes and Coding Control Functions for Group 4 Facsimile Apparatus, itu-t recommendation t.6
     /// </summary>
-    internal class T6BitReader : T4BitReader
+    internal sealed class T6BitReader : T4BitReader
     {
         private readonly int maxCodeLength = 12;
 

@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <returns>Position of b1.</returns>
         public int FindB1(int a0, byte a0Byte)
         {
-            if (this.scanLine.IsEmpty)
+            if (this.IsEmpty)
             {
                 return this.FindB1ForImaginaryWhiteLine(a0, a0Byte);
             }
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <returns>Position of b1.</returns>
         public int FindB2(int b1)
         {
-            if (this.scanLine.IsEmpty)
+            if (this.IsEmpty)
             {
                 return this.FindB2ForImaginaryWhiteLine();
             }

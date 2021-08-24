@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using CCITT T6 compression.
     /// </summary>
-    internal class T6TiffCompression : TiffBaseDecompressor
+    internal sealed class T6TiffCompression : TiffBaseDecompressor
     {
         private readonly bool isWhiteZero;
 

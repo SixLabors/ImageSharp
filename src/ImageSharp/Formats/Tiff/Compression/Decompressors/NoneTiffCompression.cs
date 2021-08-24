@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is not compressed.
     /// </summary>
-    internal class NoneTiffCompression : TiffBaseDecompressor
+    internal sealed class NoneTiffCompression : TiffBaseDecompressor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="NoneTiffCompression" /> class.

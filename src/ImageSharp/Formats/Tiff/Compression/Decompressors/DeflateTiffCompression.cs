@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <remarks>
     /// Note that the 'OldDeflate' compression type is identical to the 'Deflate' compression type.
     /// </remarks>
-    internal class DeflateTiffCompression : TiffBaseDecompressor
+    internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     {
         private readonly bool isBigEndian;
 

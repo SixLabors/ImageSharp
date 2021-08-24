@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// Bit reader for data encoded with the modified huffman rle method.
     /// See TIFF 6.0 specification, section 10.
     /// </summary>
-    internal class ModifiedHuffmanBitReader : T4BitReader
+    internal sealed class ModifiedHuffmanBitReader : T4BitReader
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ModifiedHuffmanBitReader"/> class.

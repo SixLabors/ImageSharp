@@ -6,10 +6,6 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-#endif
 using System.Threading;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -316,25 +312,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
 
             // Padding all 4 bytes with 1's while not corrupting initial bits stored in accumulatedBits
-            uint packedBytes = (this.accumulatedBits | (uint.MaxValue >> this.bitCount)) >> ((4 - valuableBytesCount) * 8);
+            uint packedBytes = this.accumulatedBits | (uint.MaxValue >> this.bitCount);
 
-            // 2x size due to possible stuff bytes, max out to 8
-            Span<byte> tempBuffer = stackalloc byte[valuableBytesCount * 2];
+            int writeIndex = this.emitWriteIndex;
+            this.emitBuffer[writeIndex - 1] = packedBytes;
 
-            // Write bytes to temporal buffer
-            int writeCount = 0;
-            for (int i = 0; i < valuableBytesCount; i++)
-            {
-                byte value = (byte)(packedBytes >> (i * 8));
-                tempBuffer[writeCount++] = value;
-                if (value == 0xff)
-                {
-                    tempBuffer[writeCount++] = 0;
-                }
-            }
-
-            // Write temporal buffer to the output stream
-            this.target.Write(tempBuffer, 0, writeCount);
+            this.WriteToStream((writeIndex * 4) - valuableBytesCount);
         }
 
         /// <summary>
@@ -459,14 +442,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void WriteToStream()
+        private void WriteToStream() => this.WriteToStream(this.emitWriteIndex * 4);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void WriteToStream(int endIndex)
         {
             Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
 
             int writeIdx = 0;
-            int start = emitBytes.Length - 1;
-            int end = (this.emitWriteIndex * 4) - 1;
-            for (int i = start; i > end; i--)
+            int startIndex = emitBytes.Length - 1;
+            for (int i = startIndex; i >= endIndex; i--)
             {
                 byte value = emitBytes[i];
                 this.streamWriteBuffer[writeIdx++] = value;

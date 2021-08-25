@@ -114,11 +114,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfScan(image, componentCount, cancellationToken);
 
             // Write the scan compressed data.
-            var scanEncoder = new HuffmanScanEncoder(stream);
             if (this.colorType == JpegColorType.Luminance)
             {
                 // luminance quantization table only
-                scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
+                new HuffmanScanEncoder(1, stream).EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
             }
             else
             {
@@ -126,10 +125,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 switch (this.subsample)
                 {
                     case JpegSubsample.Ratio444:
-                        scanEncoder.Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        new HuffmanScanEncoder(3, stream).Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
                         break;
                     case JpegSubsample.Ratio420:
-                        scanEncoder.Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                        new HuffmanScanEncoder(6, stream).Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
                         break;
                 }
             }

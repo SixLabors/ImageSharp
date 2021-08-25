@@ -15,30 +15,74 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     internal class HuffmanScanEncoder
     {
         /// <summary>
+        /// Maximum number of bytes encoded jpeg 8x8 block can occupy.
+        /// It's highly unlikely for block to occupy this much space - it's a theoretical limit.
+        /// </summary>
+        /// <remarks>
+        /// Where 16 is maximum huffman code binary length according to itu
+        /// specs. 10 is maximum value binary length, value comes from discrete
+        /// cosine tranform with value range: [-1024..1023]. Block stores
+        /// 8x8 = 64 values thus multiplication by 64. Then divided by 8 to get
+        /// the number of bytes. This value is then multiplied by
+        /// <see cref="MaxBytesPerBlockMultiplier"/> for performance reasons.
+        /// </remarks>
+        private const int MaxBytesPerBlock = (16 + 10) * 64 / 8 * MaxBytesPerBlockMultiplier;
+
+        /// <summary>
+        /// Multiplier used within cache buffers size calculation.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Theoretically, <see cref="MaxBytesPerBlock"/> bytes buffer can fit
+        /// exactly one minimal coding unit. In reality, coding blocks occupy much
+        /// less space than the theoretical maximum - this can be exploited.
+        /// If temporal buffer size is multiplied by at least 2, second half of
+        /// the resulting buffer will be used as an overflow 'guard' if next
+        /// block would occupy maximum number of bytes. While first half may fit
+        /// many blocks before needing to flush.
+        /// </para>
+        /// <para>
+        /// This is subject to change. This can be equal to 1 but recomended
+        /// value is 2 or even greater - futher benchmarking needed.
+        /// </para>
+        /// </remarks>
+        private const int MaxBytesPerBlockMultiplier = 2;
+
+        /// <summary>
+        /// <see cref="streamWriteBuffer"/> size multiplier.
+        /// </summary>
+        /// <remarks>
+        /// Jpeg specification requiers to insert 'stuff' bytes after each
+        /// 0xff byte value. Worst case scenarion is when all bytes are 0xff.
+        /// While it's highly unlikely (if not impossible) to get such
+        /// combination, it's theoretically possible so buffer size must be guarded.
+        /// </remarks>
+        private const int OutputBufferLengthMultiplier = 2;
+
+        /// <summary>
         /// Compiled huffman tree to encode given values.
         /// </summary>
         /// <remarks>Yields codewords by index consisting of [run length | bitsize].</remarks>
         private HuffmanLut[] huffmanTables;
 
         /// <summary>
-        /// Number of bytes cached before being written to target stream via Stream.Write(byte[], offest, count).
+        /// Buffer for temporal storage of huffman rle encoding bit data.
         /// </summary>
         /// <remarks>
-        /// This is subject to change, 1024 seems to be the best value in terms of performance.
-        /// <see cref="Emit(int, int)"/> expects it to be at least 8 (see comments in method body).
+        /// Encoding bits are assembled to 4 byte unsigned integers and then copied to this buffer.
+        /// This process does NOT include inserting stuff bytes.
         /// </remarks>
-        private const int EmitBufferSizeInBytes = 1024;
+        private readonly uint[] emitBuffer;
 
         /// <summary>
-        /// A buffer for reducing the number of stream writes when emitting Huffman tables.
+        /// Buffer for temporal storage which is then written to the output stream.
         /// </summary>
-        private readonly uint[] emitBuffer = new uint[EmitBufferSizeInBytes / 4];
+        /// <remarks>
+        /// Encoding bits from <see cref="emitBuffer"/> are copied to this byte buffer including stuff bytes.
+        /// </remarks>
+        private readonly byte[] streamWriteBuffer;
 
-        private readonly byte[] streamWriteBuffer = new byte[EmitBufferSizeInBytes * 2];
-
-        private const int BytesPerCodingUnit = 256 * 3;
-
-        private int emitWriteIndex = (EmitBufferSizeInBytes / 4);
+        private int emitWriteIndex;
 
         /// <summary>
         /// Emmited bits 'micro buffer' before being transfered to the <see cref="emitBuffer"/>.
@@ -58,9 +102,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private readonly Stream target;
 
-        public HuffmanScanEncoder(Stream outputStream)
+        public HuffmanScanEncoder(int componentCount, Stream outputStream)
         {
+            int emitBufferByteLength = MaxBytesPerBlock * componentCount;
+            this.emitBuffer = new uint[emitBufferByteLength / sizeof(uint)];
+            this.emitWriteIndex = this.emitBuffer.Length;
+
+            this.streamWriteBuffer = new byte[emitBufferByteLength * OutputBufferLengthMultiplier];
+
             this.target = outputStream;
+        }
+
+        private bool IsFlushNeeded
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.emitWriteIndex < this.emitBuffer.Length / 2;
         }
 
         /// <summary>
@@ -117,14 +173,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref chrominanceQuantTable,
                         ref unzig);
 
-                    if (this.emitWriteIndex < this.emitBuffer.Length / 2)
+                    if (this.IsFlushNeeded)
                     {
-                        this.WriteToStream();
+                        this.FlushToStream();
                     }
                 }
             }
 
-            this.EmitFinalBits();
+            this.FlushRemainingBytes();
         }
 
         /// <summary>
@@ -190,10 +246,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.Cr,
                         ref chrominanceQuantTable,
                         ref unzig);
+
+                    if (this.IsFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
                 }
             }
 
-            this.FlushInternalBuffer();
+            this.FlushRemainingBytes();
         }
 
         /// <summary>
@@ -233,10 +294,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.Y,
                         ref luminanceQuantTable,
                         ref unzig);
+
+                    if (this.IsFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
                 }
             }
 
-            this.FlushInternalBuffer();
+            this.FlushRemainingBytes();
         }
 
         /// <summary>
@@ -306,7 +372,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitFinalBits()
+        private void FlushRemainingBytes()
         {
             // Bytes count we want to write to the output stream
             int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
@@ -317,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int writeIndex = this.emitWriteIndex;
             this.emitBuffer[writeIndex - 1] = packedBytes;
 
-            this.WriteToStream((writeIndex * 4) - valuableBytesCount);
+            this.FlushToStream((writeIndex * 4) - valuableBytesCount);
         }
 
         /// <summary>
@@ -392,21 +458,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Writes remaining bytes from internal buffer to the target stream.
-        /// </summary>
-        /// <remarks>Pads last byte with 1's if necessary</remarks>
-        private void FlushInternalBuffer()
-        {
-            // pad last byte with 1's
-            //int padBitsCount = 8 - (this.bitCount % 8);
-            //if (padBitsCount != 0)
-            //{
-            //    this.Emit((1 << padBitsCount) - 1, padBitsCount);
-            //    this.target.Write(this.emitBuffer, 0, this.emitLen);
-            //}
-        }
-
-        /// <summary>
         /// Calculates how many minimum bits needed to store given value for Huffman jpeg encoding.
         /// </summary>
         /// <remarks>
@@ -442,10 +493,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void WriteToStream() => this.WriteToStream(this.emitWriteIndex * 4);
+        private void FlushToStream() => this.FlushToStream(this.emitWriteIndex * 4);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void WriteToStream(int endIndex)
+        private void FlushToStream(int endIndex)
         {
             Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
 

@@ -18,6 +18,11 @@
   <!-- Import the shared global .props file -->
   <Import Project="$(MSBuildThisFileDirectory)shared-infrastructure\msbuild\props\SixLabors.Global.props" />
 
+  <PropertyGroup Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
+    <!-- Workaround various issues bound to implicit language features. -->
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
   <!--
   Ensure all custom build configurations based upon "Release" are optimized.
   This is easier than setting each project individually.

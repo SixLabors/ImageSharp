@@ -16,14 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public int? Quality { get; set; }
 
-        /// <summary>
-        /// Gets or sets the subsample ration, that will be used to encode the image.
-        /// </summary>
-        public JpegSubsample? Subsample { get; set; }
-
-        /// <summary>
-        /// Gets or sets the color type, that will be used to encode the image.
-        /// </summary>
+        /// <inheritdoc/>
         public JpegColorType? ColorType { get; set; }
 
         /// <summary>
@@ -36,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.InitializeColorType<TPixel>(image);
+            this.InitializeColorType(image);
             encoder.Encode(image, stream);
         }
 
@@ -52,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.InitializeColorType<TPixel>(image);
+            this.InitializeColorType(image);
             return encoder.EncodeAsync(image, stream, cancellationToken);
         }
 
@@ -75,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 bool isGrayscale =
                     typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
                     typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
-                this.ColorType = isGrayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
+                this.ColorType = isGrayscale ? JpegColorType.Luminance : JpegColorType.YCbCrRatio420;
             }
         }
     }

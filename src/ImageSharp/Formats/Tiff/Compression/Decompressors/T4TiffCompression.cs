@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using CCITT T4 compression.
     /// </summary>
-    internal class T4TiffCompression : TiffBaseDecompressor
+    internal sealed class T4TiffCompression : TiffBaseDecompressor
     {
         private readonly FaxCompressionOptions faxCompressionOptions;
 
@@ -31,7 +31,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="bitsPerPixel">The number of bits per pixel.</param>
         /// <param name="faxOptions">Fax compression options.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
-        public T4TiffCompression(MemoryAllocator allocator, TiffFillOrder fillOrder, int width, int bitsPerPixel, FaxCompressionOptions faxOptions, TiffPhotometricInterpretation photometricInterpretation)
+        public T4TiffCompression(
+            MemoryAllocator allocator,
+            TiffFillOrder fillOrder,
+            int width,
+            int bitsPerPixel,
+            FaxCompressionOptions faxOptions,
+            TiffPhotometricInterpretation photometricInterpretation)
             : base(allocator, width, bitsPerPixel)
         {
             this.faxCompressionOptions = faxOptions;
@@ -45,10 +51,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <summary>
         /// Gets the logical order of bits within a byte.
         /// </summary>
-        protected TiffFillOrder FillOrder { get; }
+        private TiffFillOrder FillOrder { get; }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
             if (this.faxCompressionOptions.HasFlag(FaxCompressionOptions.TwoDimensionalCoding))
             {

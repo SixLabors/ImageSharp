@@ -87,6 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.YcbcrCoefficients = exifProfile.GetValue(ExifTag.YCbCrCoefficients)?.Value;
             options.YcbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
             options.FillOrder = fillOrder;
+            options.JpegTables = exifProfile.GetValue(ExifTag.JPEGTables)?.Value;
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);
@@ -418,9 +419,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
+                case TiffCompression.CcittGroup4Fax:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.T6;
+                    options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
+
+                    break;
+                }
+
                 case TiffCompression.Ccitt1D:
                 {
                     options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
+                    break;
+                }
+
+                case TiffCompression.Jpeg:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.Jpeg;
                     break;
                 }
 

@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -136,8 +137,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Finds the next file marker within the byte stream.
         /// </summary>
-        /// <param name="marker">The buffer to read file markers to</param>
-        /// <param name="stream">The input stream</param>
+        /// <param name="marker">The buffer to read file markers to.</param>
+        /// <param name="stream">The input stream.</param>
         /// <returns>The <see cref="JpegFileMarker"/></returns>
         public static JpegFileMarker FindNextFileMarker(byte[] marker, BufferedReadStream stream)
         {
@@ -201,6 +202,67 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Load quantization and/or Huffman tables for subsequent use for jpeg's embedded in tiff's,
+        /// so those tables do not need to be duplicated with segmented tiff's (tiff's with multiple strips).
+        /// </summary>
+        /// <param name="tableBytes">The table bytes.</param>
+        /// <param name="huffmanScanDecoder">The scan decoder.</param>
+        public void LoadTables(byte[] tableBytes, HuffmanScanDecoder huffmanScanDecoder)
+        {
+            this.Metadata = new ImageMetadata();
+            this.QuantizationTables = new Block8x8F[4];
+            this.scanDecoder = huffmanScanDecoder;
+            using var ms = new MemoryStream(tableBytes);
+            using var stream = new BufferedReadStream(this.Configuration, ms);
+
+            // Check for the Start Of Image marker.
+            stream.Read(this.markerBuffer, 0, 2);
+            var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
+            if (fileMarker.Marker != JpegConstants.Markers.SOI)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
+            }
+
+            // Read next marker.
+            stream.Read(this.markerBuffer, 0, 2);
+            byte marker = this.markerBuffer[1];
+            fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
+
+            while (fileMarker.Marker != JpegConstants.Markers.EOI || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
+            {
+                if (!fileMarker.Invalid)
+                {
+                    // Get the marker length.
+                    int remaining = this.ReadUint16(stream) - 2;
+
+                    switch (fileMarker.Marker)
+                    {
+                        case JpegConstants.Markers.SOI:
+                            break;
+                        case JpegConstants.Markers.RST0:
+                        case JpegConstants.Markers.RST7:
+                            break;
+                        case JpegConstants.Markers.DHT:
+                            this.ProcessDefineHuffmanTablesMarker(stream, remaining);
+                            break;
+                        case JpegConstants.Markers.DQT:
+                            this.ProcessDefineQuantizationTablesMarker(stream, remaining);
+                            break;
+                        case JpegConstants.Markers.DRI:
+                            this.ProcessDefineRestartIntervalMarker(stream, remaining);
+                            break;
+                        case JpegConstants.Markers.EOI:
+                            return;
+                    }
+                }
+
+                // Read next marker.
+                stream.Read(this.markerBuffer, 0, 2);
+                fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
+            }
+        }
+
+        /// <summary>
         /// Parses the input stream for file markers.
         /// </summary>
         /// <param name="stream">The input stream.</param>
@@ -225,7 +287,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             stream.Read(this.markerBuffer, 0, 2);
             byte marker = this.markerBuffer[1];
             fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
-            this.QuantizationTables = new Block8x8F[4];
+            this.QuantizationTables ??= new Block8x8F[4];
 
             // Break only when we discover a valid EOI marker.
             // https://github.com/SixLabors/ImageSharp/issues/695
@@ -236,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (!fileMarker.Invalid)
                 {
-                    // Get the marker length
+                    // Get the marker length.
                     int remaining = this.ReadUint16(stream) - 2;
 
                     switch (fileMarker.Marker)
@@ -247,10 +309,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.ProcessStartOfFrameMarker(stream, remaining, fileMarker, metadataOnly);
                             break;
 
+                        case JpegConstants.Markers.SOF5:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential sequential DCT is not supported.");
+                            break;
+
+                        case JpegConstants.Markers.SOF6:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with differential progressive DCT is not supported.");
+                            break;
+
+                        case JpegConstants.Markers.SOF3:
+                        case JpegConstants.Markers.SOF7:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding lossless jpeg files is not supported.");
+                            break;
+
+                        case JpegConstants.Markers.SOF9:
+                        case JpegConstants.Markers.SOF10:
+                        case JpegConstants.Markers.SOF11:
+                        case JpegConstants.Markers.SOF13:
+                        case JpegConstants.Markers.SOF14:
+                        case JpegConstants.Markers.SOF15:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with arithmetic coding is not supported.");
+                            break;
+
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker(stream, remaining, cancellationToken);
+                                this.ProcessStartOfScanMarker(stream, remaining);
                                 break;
                             }
                             else
@@ -326,6 +410,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.COM:
                             stream.Skip(remaining);
                             break;
+
+                        case JpegConstants.Markers.DAC:
+                            JpegThrowHelper.ThrowNotSupportedException("Decoding jpeg files with arithmetic coding is not supported.");
+                            break;
                     }
                 }
 
@@ -345,10 +433,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Returns the correct colorspace based on the image component count and the jpeg frame components.
+        /// Returns the correct colorspace based on the image component count and the jpeg frame component id's.
         /// </summary>
+        /// <param name="componentCount">The number of components.</param>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
-        private JpegColorSpace DeduceJpegColorSpace(byte componentCount, JpegComponent[] components)
+        private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
         {
             if (componentCount == 1)
             {
@@ -363,7 +452,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
-                if (components[2].Id == 66 && components[1].Id == 71 && components[0].Id == 82)
+                if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
                 {
                     return JpegColorSpace.RGB;
                 }
@@ -382,6 +471,64 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {componentCount}");
             return default;
+        }
+
+        /// <summary>
+        /// Returns the jpeg color type based on the colorspace and subsampling used.
+        /// </summary>
+        /// <returns>Jpeg color type.</returns>
+        private JpegColorType DeduceJpegColorType()
+        {
+            switch (this.ColorSpace)
+            {
+                case JpegColorSpace.Grayscale:
+                    return JpegColorType.Luminance;
+
+                case JpegColorSpace.RGB:
+                    return JpegColorType.Rgb;
+
+                case JpegColorSpace.YCbCr:
+                    if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
+                    {
+                        return JpegColorType.YCbCrRatio444;
+                    }
+                    else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
+                        this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
+                    {
+                        return JpegColorType.YCbCrRatio420;
+                    }
+                    else if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 2 &&
+                        this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 2)
+                    {
+                        return JpegColorType.YCbCrRatio422;
+                    }
+                    else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                             this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
+                             this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
+                    {
+                        return JpegColorType.YCbCrRatio411;
+                    }
+                    else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
+                             this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
+                             this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
+                    {
+                        return JpegColorType.YCbCrRatio410;
+                    }
+                    else
+                    {
+                        return JpegColorType.YCbCrRatio420;
+                    }
+
+                case JpegColorSpace.Cmyk:
+                    return JpegColorType.Cmyk;
+
+                default:
+                    return JpegColorType.YCbCrRatio420;
+            }
         }
 
         /// <summary>
@@ -582,7 +729,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <summary>
         /// Processes a App13 marker, which contains IPTC data stored with Adobe Photoshop.
-        /// The content of an APP13 segment is formed by an identifier string followed by a sequence of resource data blocks.
+        /// The tableBytes of an APP13 segment is formed by an identifier string followed by a sequence of resource data blocks.
         /// </summary>
         /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
@@ -797,7 +944,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Processes the Start of Frame marker.  Specified in section B.2.2.
+        /// Processes the Start of Frame marker. Specified in section B.2.2.
         /// </summary>
         /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
@@ -889,9 +1036,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 index += componentBytes;
             }
 
-            this.ColorSpace = this.DeduceJpegColorSpace(componentCount, this.Frame.Components);
-
-            this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
+            this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
+            this.Metadata.GetJpegMetadata().ColorType = this.DeduceJpegColorType();
 
             if (!metadataOnly)
             {
@@ -989,7 +1135,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
-        private void ProcessStartOfScanMarker(BufferedReadStream stream, int remaining, CancellationToken cancellationToken)
+        private void ProcessStartOfScanMarker(BufferedReadStream stream, int remaining)
         {
             if (this.Frame is null)
             {

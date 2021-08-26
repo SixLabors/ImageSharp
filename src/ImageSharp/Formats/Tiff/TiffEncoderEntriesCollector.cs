@@ -396,6 +396,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     case TiffCompression.Ccitt1D:
                         return (ushort)TiffCompression.Ccitt1D;
+
+                    case TiffCompression.Jpeg:
+                        return (ushort)TiffCompression.Jpeg;
                 }
 
                 return (ushort)TiffCompression.None;

@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Rgb24 c = Unsafe.Add(ref rgbStart, i);
+                Rgb24 c = Unsafe.Add(ref rgbStart, (nint)(uint)i);
 
                 redBlock[i] = c.R;
                 greenBlock[i] = c.G;

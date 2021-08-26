@@ -12,7 +12,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
-    /// 8x8 coefficients matrix of <see cref="short"/> type.
+    /// 8x8 matrix of <see cref="short"/> coefficients.
     /// </summary>
     // ReSharper disable once InconsistentNaming
     [StructLayout(LayoutKind.Explicit)]

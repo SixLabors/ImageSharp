@@ -16,7 +16,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
-    /// 8x8 coefficients matrix of <see cref="float"/> type.
+    /// 8x8 matrix of <see cref="float"/> coefficients.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     internal partial struct Block8x8F : IEquatable<Block8x8F>
@@ -66,30 +66,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public Vector4 V7L;
         [FieldOffset(240)]
         public Vector4 V7R;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        /// <summary>
-        /// A number of rows of 8 scalar coefficients each in <see cref="Block8x8F"/>
-        /// </summary>
-        public const int RowCount = 8;
-
-        [FieldOffset(0)]
-        public Vector256<float> V0;
-        [FieldOffset(32)]
-        public Vector256<float> V1;
-        [FieldOffset(64)]
-        public Vector256<float> V2;
-        [FieldOffset(96)]
-        public Vector256<float> V3;
-        [FieldOffset(128)]
-        public Vector256<float> V4;
-        [FieldOffset(160)]
-        public Vector256<float> V5;
-        [FieldOffset(192)]
-        public Vector256<float> V6;
-        [FieldOffset(224)]
-        public Vector256<float> V7;
-#endif
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
         /// <summary>
@@ -187,13 +163,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             result.LoadFrom(data);
             return result;
         }
-
-        /// <summary>
-        /// Fill the block with defaults (zeroes).
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Clear()
-            => this = default; // The cheapest way to do this in C#:
 
         /// <summary>
         /// Load raw 32bit floating point data from source.
@@ -302,7 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public float[] ToArray()
         {
-            var result = new float[Size];
+            float[] result = new float[Size];
             this.ScaledCopyTo(result);
             return result;
         }
@@ -434,100 +403,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Quantize the block.
+        /// Quantize input block, apply zig-zag ordering and store result as 16bit integers.
         /// </summary>
-        /// <param name="blockPtr">The block pointer.</param>
-        /// <param name="qtPtr">The qt pointer.</param>
-        /// <param name="unzigPtr">Unzig pointer</param>
-        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
-        {
-            float* b = (float*)blockPtr;
-            float* qtp = (float*)qtPtr;
-            for (int qtIndex = 0; qtIndex < Size; qtIndex++)
-            {
-                byte blockIndex = unzigPtr[qtIndex];
-                float* unzigPos = b + blockIndex;
-
-                float val = *unzigPos;
-                val *= qtp[qtIndex];
-                *unzigPos = val;
-            }
-        }
-
-        /// <summary>
-        /// Quantize 'block' into 'dest' using the 'qt' quantization table:
-        /// Unzig the elements of block into dest, while dividing them by elements of qt and "pre-rounding" the values.
-        /// To finish the rounding it's enough to (int)-cast these values.
-        /// </summary>
-        /// <param name="block">Source block</param>
-        /// <param name="dest">Destination block</param>
-        /// <param name="qt">The quantization table</param>
-        /// <param name="unZig">The 8x8 Unzig block.</param>
-        public static unsafe void Quantize(
-            ref Block8x8F block,
-            ref Block8x8F dest,
-            ref Block8x8F qt,
-            ref ZigZag unZig)
-        {
-            for (int zig = 0; zig < Size; zig++)
-            {
-                dest[zig] = block[unZig[zig]];
-            }
-
-            DivideRoundAll(ref dest, ref qt);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
+        /// <param name="block">Source block.</param>
+        /// <param name="dest">Destination block.</param>
+        /// <param name="qt">The quantization table.</param>
+        public static void Quantize(ref Block8x8F block, ref Block8x8 dest, ref Block8x8F qt)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx.IsSupported)
+            if (Avx2.IsSupported)
             {
-                var vnegOne = Vector256.Create(-1f);
-                var vadd = Vector256.Create(.5F);
-                var vone = Vector256.Create(1f);
-
-                for (int i = 0; i < RowCount; i++)
-                {
-                    ref Vector256<float> aRow = ref Unsafe.Add(ref a.V0, i);
-                    ref Vector256<float> bRow = ref Unsafe.Add(ref b.V0, i);
-                    Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, aRow), vone), vadd);
-                    aRow = Avx.Add(Avx.Divide(aRow, bRow), voff);
-                }
+                DivideIntoInt16_Avx2(ref block, ref qt, ref dest);
+                ZigZag.ApplyZigZagOrderingAvx(ref dest, ref dest);
+            }
+            else if (Ssse3.IsSupported)
+            {
+                DivideIntoInt16_Sse2(ref block, ref qt, ref dest);
+                ZigZag.ApplyZigZagOrderingSse(ref dest, ref dest);
             }
             else
 #endif
             {
-                a.V0L = DivideRound(a.V0L, b.V0L);
-                a.V0R = DivideRound(a.V0R, b.V0R);
-                a.V1L = DivideRound(a.V1L, b.V1L);
-                a.V1R = DivideRound(a.V1R, b.V1R);
-                a.V2L = DivideRound(a.V2L, b.V2L);
-                a.V2R = DivideRound(a.V2R, b.V2R);
-                a.V3L = DivideRound(a.V3L, b.V3L);
-                a.V3R = DivideRound(a.V3R, b.V3R);
-                a.V4L = DivideRound(a.V4L, b.V4L);
-                a.V4R = DivideRound(a.V4R, b.V4R);
-                a.V5L = DivideRound(a.V5L, b.V5L);
-                a.V5R = DivideRound(a.V5R, b.V5R);
-                a.V6L = DivideRound(a.V6L, b.V6L);
-                a.V6R = DivideRound(a.V6R, b.V6R);
-                a.V7L = DivideRound(a.V7L, b.V7L);
-                a.V7R = DivideRound(a.V7R, b.V7R);
+                for (int i = 0; i < Size; i++)
+                {
+                    // TODO: find a way to index block & qt matrices with natural order indices for performance?
+                    int zig = ZigZag.ZigZagOrder[i];
+                    float divRes = block[zig] / qt[zig];
+                    dest[i] = (short)(divRes + (divRes > 0 ? 0.5f : -0.5f));
+                }
             }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
-        {
-            var neg = new Vector4(-1);
-            var add = new Vector4(.5F);
-
-            // sign(dividend) = max(min(dividend, 1), -1)
-            Vector4 sign = Numerics.Clamp(dividend, neg, Vector4.One);
-
-            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
-            return (dividend / divisor) + (sign * add);
         }
 
         public void RoundInto(ref Block8x8 dest)

@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             dqt[offset++] = (byte)i;
             for (int j = 0; j < Block8x8F.Size; j++)
             {
-                dqt[offset++] = (byte)quant[j];
+                dqt[offset++] = (byte)quant[ZigZag.ZigZagOrder[j]];
             }
         }
 
@@ -635,11 +635,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Initializes quntization tables.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// Zig-zag ordering is NOT applied to the resulting tables.
+        /// </para>
+        /// <para>
         /// We take quality values in a hierarchical order:
         /// 1. Check if encoder has set quality
-        /// 2. Check if metadata has special table for encoding
-        /// 3. Check if metadata has set quality
-        /// 4. Take default quality value - 75
+        /// 2. Check if metadata has set quality
+        /// 3. Take default quality value - 75
+        /// </para>
         /// </remarks>
         /// <param name="componentCount">Color components count.</param>
         /// <param name="metadata">Jpeg metadata instance.</param>

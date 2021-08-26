@@ -740,9 +740,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         stream.Read(this.temp, 0, 64);
                         remaining -= 64;
 
+                        // Parsing quantization table & saving it in natural order
                         for (int j = 0; j < 64; j++)
                         {
-                            table[j] = this.temp[j];
+                            table[ZigZag.ZigZagOrder[j]] = this.temp[j];
                         }
 
                         break;
@@ -760,9 +761,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         stream.Read(this.temp, 0, 128);
                         remaining -= 128;
 
+                        // Parsing quantization table & saving it in natural order
                         for (int j = 0; j < 64; j++)
                         {
-                            table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
+                            table[ZigZag.ZigZagOrder[j]] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
                         }
 
                         break;

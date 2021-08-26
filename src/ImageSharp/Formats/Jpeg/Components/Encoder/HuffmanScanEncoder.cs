@@ -96,6 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private Block8x8F temporalBlock1;
         private Block8x8F temporalBlock2;
+        private Block8x8 temporalShortBlock;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -132,8 +133,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
-            var unzig = ZigZag.CreateUnzigTable();
-
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
@@ -156,22 +155,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref luminanceQuantTable,
-                        ref unzig);
+                        ref luminanceQuantTable);
 
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref pixelConverter.Cb,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
 
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref pixelConverter.Cr,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
 
                     if (this.IsFlushNeeded)
                     {
@@ -197,8 +193,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
-            var unzig = ZigZag.CreateUnzigTable();
-
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
@@ -222,30 +216,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             QuantIndex.Luminance,
                             prevDCY,
                             ref pixelConverter.YLeft,
-                            ref luminanceQuantTable,
-                            ref unzig);
+                            ref luminanceQuantTable);
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
                             ref pixelConverter.YRight,
-                            ref luminanceQuantTable,
-                            ref unzig);
+                            ref luminanceQuantTable);
                     }
 
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref pixelConverter.Cb,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
 
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref pixelConverter.Cr,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
 
                     if (this.IsFlushNeeded)
                     {
@@ -269,8 +259,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
-            var unzig = ZigZag.CreateUnzigTable();
-
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0;
 
@@ -292,8 +280,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref luminanceQuantTable,
-                        ref unzig);
+                        ref luminanceQuantTable);
 
                     if (this.IsFlushNeeded)
                     {
@@ -320,28 +307,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             QuantIndex index,
             int prevDC,
             ref Block8x8F src,
-            ref Block8x8F quant,
-            ref ZigZag unZig)
+            ref Block8x8F quant)
         {
             ref Block8x8F refTemp1 = ref this.temporalBlock1;
             ref Block8x8F refTemp2 = ref this.temporalBlock2;
+            ref Block8x8 spectralBlock = ref this.temporalShortBlock;
 
             FastFloatingPointDCT.TransformFDCT(ref src, ref refTemp1, ref refTemp2);
 
-            Block8x8F.Quantize(ref refTemp1, ref refTemp2, ref quant, ref unZig);
+            Block8x8F.Quantize(ref refTemp1, ref spectralBlock, ref quant);
 
             // Emit the DC delta.
-            int dc = (int)refTemp2[0];
+            int dc = spectralBlock[0];
             this.EmitHuffRLE(this.huffmanTables[2 * (int)index].Values, 0, dc - prevDC);
 
             // Emit the AC components.
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
             int runLength = 0;
-            int lastValuableIndex = refTemp2.GetLastNonZeroIndex();
+            int lastValuableIndex = spectralBlock.GetLastNonZeroIndex();
             for (int zig = 1; zig <= lastValuableIndex; zig++)
             {
-                int ac = (int)refTemp2[zig];
+                int ac = spectralBlock[zig];
 
                 if (ac == 0)
                 {

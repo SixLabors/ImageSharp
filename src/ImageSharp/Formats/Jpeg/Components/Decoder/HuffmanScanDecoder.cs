@@ -54,9 +54,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private readonly HuffmanTable[] acHuffmanTables;
 
-        // The unzig data.
-        private ZigZag dctZigZag;
-
         private HuffmanScanBuffer scanBuffer;
 
         private readonly SpectralConverter spectralConverter;
@@ -74,7 +71,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             SpectralConverter converter,
             CancellationToken cancellationToken)
         {
-            this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
             this.spectralConverter = converter;
             this.cancellationToken = cancellationToken;
@@ -477,7 +473,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-            ref ZigZag zigzag = ref this.dctZigZag;
 
             // DC
             int t = buffer.DecodeHuffman(ref dcTable);
@@ -502,7 +497,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     i += r;
                     s = buffer.Receive(s);
-                    Unsafe.Add(ref blockDataRef, zigzag[i++]) = (short)s;
+                    Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i++]) = (short)s;
                 }
                 else
                 {
@@ -556,7 +551,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-                ref ZigZag zigzag = ref this.dctZigZag;
                 int start = this.SpectralStart;
                 int end = this.SpectralEnd;
                 int low = this.SuccessiveLow;
@@ -572,7 +566,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     if (s != 0)
                     {
                         s = buffer.Receive(s);
-                        Unsafe.Add(ref blockDataRef, zigzag[i]) = (short)(s << low);
+                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i]) = (short)(s << low);
                     }
                     else
                     {
@@ -602,7 +596,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             // Refinement scan for these AC coefficients
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-            ref ZigZag zigzag = ref this.dctZigZag;
             int start = this.SpectralStart;
             int end = this.SpectralEnd;
 
@@ -649,7 +642,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     do
                     {
-                        ref short coef = ref Unsafe.Add(ref blockDataRef, zigzag[k]);
+                        ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
                         if (coef != 0)
                         {
                             buffer.CheckBits();
@@ -675,7 +668,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     if ((s != 0) && (k < 64))
                     {
-                        Unsafe.Add(ref blockDataRef, zigzag[k]) = (short)s;
+                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]) = (short)s;
                     }
                 }
             }
@@ -684,7 +677,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 for (; k <= end; k++)
                 {
-                    ref short coef = ref Unsafe.Add(ref blockDataRef, zigzag[k]);
+                    ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
 
                     if (coef != 0)
                     {

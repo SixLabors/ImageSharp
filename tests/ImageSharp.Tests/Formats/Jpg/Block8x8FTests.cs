@@ -272,32 +272,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.CompareBlocks(expected, actual, 0);
         }
 
+        // TODO: intrinsic tests
         [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        public unsafe void Quantize(int seed)
+        [InlineData(1, 2)]
+        [InlineData(2, 1)]
+        public void Quantize(int srcSeed, int qtSeed)
         {
-            var block = default(Block8x8F);
-            block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
+            Block8x8F source = CreateRandomFloatBlock(-2000, 2000, srcSeed);
+            Block8x8F quant = CreateRandomFloatBlock(-2000, 2000, qtSeed);
 
-            var qt = default(Block8x8F);
-            qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
+            Block8x8 expected = default;
+            ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.ZigZagOrder);
 
-            var unzig = ZigZag.CreateUnzigTable();
+            Block8x8 actual = default;
+            Block8x8F.Quantize(ref source, ref actual, ref quant);
 
-            int* expectedResults = stackalloc int[Block8x8F.Size];
-            ReferenceImplementations.QuantizeRational(&block, expectedResults, &qt, unzig.Data);
-
-            var actualResults = default(Block8x8F);
-
-            Block8x8F.Quantize(ref block, ref actualResults, ref qt, ref unzig);
-
-            for (int i = 0; i < Block8x8F.Size; i++)
+            for (int i = 0; i < Block8x8.Size; i++)
             {
-                int expected = expectedResults[i];
-                int actual = (int)actualResults[i];
-
-                Assert.Equal(expected, actual);
+                Assert.Equal(expected[i], actual[i]);
             }
         }
 
@@ -366,48 +358,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
-        }
-
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(3)]
-        public unsafe void DequantizeBlock(int seed)
-        {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
-            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
-
-            var unzig = ZigZag.CreateUnzigTable();
-
-            Block8x8F expected = original;
-            Block8x8F actual = original;
-
-            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
-            Block8x8F.DequantizeBlock(&actual, &qt, unzig.Data);
-
-            this.CompareBlocks(expected, actual, 0);
-        }
-
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(3)]
-        public unsafe void ZigZag_CreateDequantizationTable_MultiplicationShouldQuantize(int seed)
-        {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
-            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
-
-            var unzig = ZigZag.CreateUnzigTable();
-            Block8x8F zigQt = ZigZag.CreateDequantizationTable(ref qt);
-
-            Block8x8F expected = original;
-            Block8x8F actual = original;
-
-            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
-
-            actual.MultiplyInPlace(ref zigQt);
-
-            this.CompareBlocks(expected, actual, 0);
         }
 
         [Fact]

@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public JpegBlockPostProcessor(IRawJpegData decoder, IJpegComponent component)
         {
             int qtIndex = component.QuantizationTableIndex;
-            this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
+            this.DequantiazationTable = decoder.QuantizationTables[qtIndex];
             this.subSamplingDivisors = component.SubSamplingDivisors;
 
             this.SourceBlock = default;

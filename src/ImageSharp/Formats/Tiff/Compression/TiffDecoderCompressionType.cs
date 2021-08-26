@@ -36,11 +36,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <summary>
         /// Image data is compressed using CCITT T.6 fax compression.
         /// </summary>
-        T6 = 6,
+        T6 = 5,
 
         /// <summary>
         /// Image data is compressed using modified huffman compression.
         /// </summary>
-        HuffmanRle = 5,
+        HuffmanRle = 6,
+
+        /// <summary>
+        /// The image data is compressed as a JPEG stream.
+        /// </summary>
+        Jpeg = 7,
     }
 }

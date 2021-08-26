@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private int emitLen = 0;
 
         /// <summary>
-        /// Emmited bits 'micro buffer' before being transfered to the <see cref="emitBuffer"/>.
+        /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
         /// </summary>
         private int accumulatedBits;
 
@@ -58,18 +58,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private readonly Stream target;
 
-        public HuffmanScanEncoder(Stream outputStream)
-        {
-            this.target = outputStream;
-        }
+        public HuffmanScanEncoder(Stream outputStream) => this.target = outputStream;
 
         /// <summary>
         /// Encodes the image with no subsampling.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
-        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
+        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -128,8 +125,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
-        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
+        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -196,7 +193,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -226,6 +223,64 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
+                        ref luminanceQuantTable,
+                        ref unzig);
+                }
+            }
+
+            this.FlushInternalBuffer();
+        }
+
+        /// <summary>
+        /// Encodes the image with no subsampling and keeps the pixel data as Rgb24.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+
+            var unzig = ZigZag.CreateUnzigTable();
+
+            // ReSharper disable once InconsistentNaming
+            int prevDCR = 0, prevDCG = 0, prevDCB = 0;
+
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
+            RowOctet<TPixel> currentRows = default;
+
+            var pixelConverter = new RgbForwardConverter<TPixel>(frame);
+
+            for (int y = 0; y < pixels.Height; y += 8)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                currentRows.Update(pixelBuffer, y);
+
+                for (int x = 0; x < pixels.Width; x += 8)
+                {
+                    pixelConverter.Convert(x, y, ref currentRows);
+
+                    prevDCR = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCR,
+                        ref pixelConverter.R,
+                        ref luminanceQuantTable,
+                        ref unzig);
+
+                    prevDCG = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCG,
+                        ref pixelConverter.G,
+                        ref luminanceQuantTable,
+                        ref unzig);
+
+                    prevDCB = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCB,
+                        ref pixelConverter.B,
                         ref luminanceQuantTable,
                         ref unzig);
                 }
@@ -437,7 +492,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             DebugGuard.IsTrue(value <= (1 << 16), "Huffman encoder is supposed to encode a value of 16bit size max");
 #if SUPPORTS_BITOPERATIONS
             // This should have been implemented as (BitOperations.Log2(value) + 1) as in non-intrinsic implementation
-            // But internal log2 is implementated like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
+            // But internal log2 is implemented like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
 
             // BitOperations.Log2 implementation also checks if input value is zero for the convention 0->0
             // Lzcnt would return 32 for input value of 0 - no need to check that with branching
@@ -449,7 +504,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // if 0 - return 0 in this case
             // else - return log2(value) + 1
             //
-            // Hack based on input value constaint:
+            // Hack based on input value constraint:
             // We know that input values are guaranteed to be maximum 16 bit large for huffman encoding
             // We can safely shift input value for one bit -> log2(value << 1)
             // Because of the 16 bit value constraint it won't overflow

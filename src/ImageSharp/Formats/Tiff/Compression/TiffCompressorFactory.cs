@@ -25,7 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 // The following compression types are not implemented in the encoder and will default to no compression instead.
                 case TiffCompression.ItuTRecT43:
                 case TiffCompression.ItuTRecT82:
-                case TiffCompression.Jpeg:
                 case TiffCompression.OldJpeg:
                 case TiffCompression.OldDeflate:
                 case TiffCompression.None:
@@ -33,6 +32,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
 
                     return new NoCompressor(output, allocator, width, bitsPerPixel);
+
+                case TiffCompression.Jpeg:
+                    DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
+                    return new TiffJpegCompressor(output, allocator, width, bitsPerPixel);
 
                 case TiffCompression.PackBits:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");

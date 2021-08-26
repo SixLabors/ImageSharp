@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
@@ -30,5 +32,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Actual stride height depends on the subsampling factor of the given component.
         /// </remarks>
         public abstract void ConvertStrideBaseline();
+
+        /// <summary>
+        /// Gets the color converter.
+        /// </summary>
+        /// <param name="frame">The jpeg frame with the color space to convert to.</param>
+        /// <param name="jpegData">The raw JPEG data.</param>
+        /// <returns>The color converter.</returns>
+        public virtual JpegColorConverter GetColorConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
     }
 }

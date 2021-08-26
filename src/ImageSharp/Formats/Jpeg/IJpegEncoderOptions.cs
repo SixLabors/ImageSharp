@@ -16,13 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int? Quality { get; set; }
 
         /// <summary>
-        /// Gets the subsample ration, that will be used to encode the image.
-        /// </summary>
-        /// <value>The subsample ratio of the jpg image.</value>
-        JpegSubsample? Subsample { get; }
-
-        /// <summary>
-        /// Gets the color type.
+        /// Gets the color type, that will be used to encode the image.
         /// </summary>
         JpegColorType? ColorType { get; }
     }

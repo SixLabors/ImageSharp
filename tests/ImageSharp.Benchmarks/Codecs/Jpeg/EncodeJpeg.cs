@@ -40,8 +40,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
                 this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpCore.Metadata.ExifProfile = null;
-                this.encoder420 = new JpegEncoder { Quality = this.Quality, Subsample = JpegSubsample.Ratio420 };
-                this.encoder444 = new JpegEncoder { Quality = this.Quality, Subsample = JpegSubsample.Ratio444 };
+                this.encoder420 = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio420 };
+                this.encoder444 = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio444 };
 
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = SDImage.FromStream(this.bmpStream);

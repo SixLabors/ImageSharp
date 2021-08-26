@@ -106,6 +106,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffFillOrder FillOrder { get; set; }
 
         /// <summary>
+        /// Gets or sets the JPEG tables when jpeg compression is used.
+        /// </summary>
+        public byte[] JpegTables { get; set; }
+
+        /// <summary>
         /// Gets or sets the planar configuration type to use when decoding the image.
         /// </summary>
         public TiffPlanarConfiguration PlanarConfiguration { get; set; }
@@ -144,7 +149,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var frames = new List<ImageFrame<TPixel>>();
             foreach (ExifProfile ifd in directories)
             {
-                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd);
+                cancellationToken.ThrowIfCancellationRequested();
+                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
                 frames.Add(frame);
             }
 
@@ -186,10 +192,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="tags">The IFD tags.</param>
-        /// <returns>
-        /// The tiff frame.
-        /// </returns>
-        private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags)
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
+        /// <returns> The tiff frame. </returns>
+        private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ImageFrameMetadata imageFrameMetaData = this.ignoreMetadata ?
@@ -211,11 +216,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
-                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts);
+                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
             }
             else
             {
-                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts);
+                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
             }
 
             return frame;
@@ -263,14 +268,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Decodes the image data for strip encoded data.
+        /// Decodes the image data for planar encoded pixel data.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="frame">The image frame to decode data into.</param>
         /// <param name="rowsPerStrip">The number of rows per strip of data.</param>
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts)
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Channels;
@@ -290,6 +296,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
+                    this.Configuration,
                     this.CompressionType,
                     this.memoryAllocator,
                     this.PhotometricInterpretation,
@@ -298,6 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.ColorType,
                     this.Predictor,
                     this.FaxCompressionOptions,
+                    this.JpegTables,
                     this.FillOrder,
                     this.byteOrder);
 
@@ -312,6 +320,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 for (int i = 0; i < stripsPerPlane; i++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     int stripHeight = i < stripsPerPlane - 1 || frame.Height % rowsPerStrip == 0 ? rowsPerStrip : frame.Height % rowsPerStrip;
 
                     int stripIndex = i;
@@ -338,7 +348,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts)
+        /// <summary>
+        /// Decodes the image data for chunky encoded pixel data.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="frame">The image frame to decode data into.</param>
+        /// <param name="rowsPerStrip">The rows per strip.</param>
+        /// <param name="stripOffsets">The strip offsets.</param>
+        /// <param name="stripByteCounts">The strip byte counts.</param>
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, CancellationToken cancellationToken)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             // If the rowsPerStrip has the default value, which is effectively infinity. That is, the entire image is one strip.
@@ -355,6 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
             using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
+                this.Configuration,
                 this.CompressionType,
                 this.memoryAllocator,
                 this.PhotometricInterpretation,
@@ -363,6 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.ColorType,
                 this.Predictor,
                 this.FaxCompressionOptions,
+                this.JpegTables,
                 this.FillOrder,
                 this.byteOrder);
 
@@ -379,6 +400,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 int stripHeight = stripIndex < stripOffsets.Length - 1 || frame.Height % rowsPerStrip == 0
                     ? rowsPerStrip
                     : frame.Height % rowsPerStrip;

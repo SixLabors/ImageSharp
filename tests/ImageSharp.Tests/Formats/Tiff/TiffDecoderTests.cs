@@ -28,8 +28,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
         [Theory]
-        [WithFile(Calliphora_RgbJpeg, PixelTypes.Rgba32)]
-        [WithFile(RgbJpeg, PixelTypes.Rgba32)]
         [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
         [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
         [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
@@ -39,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(SmallRgbDeflate, 24, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(Calliphora_GrayscaleUncompressed, 8, 804, 1198, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(Calliphora_GrayscaleUncompressed, 8, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Flower4BitPalette, 4, 73, 43, 72, 72, PixelResolutionUnit.PixelsPerInch)]
         public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
         {
@@ -376,6 +374,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(RgbPackbitsMultistrip, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_PackBitsCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
 
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]

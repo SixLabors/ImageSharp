@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -9,10 +10,10 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     /// <summary>
-    /// On-stack worker struct to efficiently encapsulate the TPixel -> Rgb24 -> YCbCr conversion chain of 8x8 pixel blocks.
+    /// On-stack worker struct to convert TPixel -> Rgb24 of 8x8 pixel blocks.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel type to work on</typeparam>
-    internal ref struct YCbCrForwardConverter444<TPixel>
+    /// <typeparam name="TPixel">The pixel type to work on.</typeparam>
+    internal ref struct RgbForwardConverter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
@@ -26,56 +27,50 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private const int RgbSpanByteSize = PixelsPerSample * 3;
 
         /// <summary>
-        /// <see cref="Size"/> of sampling area from given frame pixel buffer
+        /// <see cref="Size"/> of sampling area from given frame pixel buffer.
         /// </summary>
         private static readonly Size SampleSize = new Size(8, 8);
 
         /// <summary>
-        /// The Y component
+        /// The Red component.
         /// </summary>
-        public Block8x8F Y;
+        public Block8x8F R;
 
         /// <summary>
-        /// The Cb component
+        /// The Green component.
         /// </summary>
-        public Block8x8F Cb;
+        public Block8x8F G;
 
         /// <summary>
-        /// The Cr component
+        /// The Blue component.
         /// </summary>
-        public Block8x8F Cr;
+        public Block8x8F B;
 
         /// <summary>
-        /// The color conversion tables
-        /// </summary>
-        private RgbToYCbCrConverterLut colorTables;
-
-        /// <summary>
-        /// Temporal 64-byte span to hold unconverted TPixel data
+        /// Temporal 64-byte span to hold unconverted TPixel data.
         /// </summary>
         private readonly Span<TPixel> pixelSpan;
 
         /// <summary>
-        /// Temporal 64-byte span to hold converted Rgb24 data
+        /// Temporal 64-byte span to hold converted Rgb24 data.
         /// </summary>
         private readonly Span<Rgb24> rgbSpan;
 
         /// <summary>
-        /// Sampled pixel buffer size
+        /// Sampled pixel buffer size.
         /// </summary>
         private readonly Size samplingAreaSize;
 
         /// <summary>
-        /// <see cref="Configuration"/> for internal operations
+        /// <see cref="Configuration"/> for internal operations.
         /// </summary>
         private readonly Configuration config;
 
-        public YCbCrForwardConverter444(ImageFrame<TPixel> frame)
+        public RgbForwardConverter(ImageFrame<TPixel> frame)
         {
-            // matrices would be filled during convert calls
-            this.Y = default;
-            this.Cb = default;
-            this.Cr = default;
+            this.R = default;
+            this.G = default;
+            this.B = default;
 
             // temporal pixel buffers
             this.pixelSpan = new TPixel[PixelsPerSample].AsSpan();
@@ -84,20 +79,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // frame data
             this.samplingAreaSize = new Size(frame.Width, frame.Height);
             this.config = frame.GetConfiguration();
-
-            // conversion vector fallback data
-            if (!RgbToYCbCrConverterVectorized.IsSupported)
-            {
-                this.colorTables = RgbToYCbCrConverterLut.Create();
-            }
-            else
-            {
-                this.colorTables = default;
-            }
         }
 
         /// <summary>
-        /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
+        /// Converts a 8x8 image area inside 'pixels' at position (x, y) to Rgb24.
         /// </summary>
         public void Convert(int x, int y, ref RowOctet<TPixel> currentRows)
         {
@@ -105,17 +90,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             PixelOperations<TPixel>.Instance.ToRgb24(this.config, this.pixelSpan, this.rgbSpan);
 
-            ref Block8x8F yBlock = ref this.Y;
-            ref Block8x8F cbBlock = ref this.Cb;
-            ref Block8x8F crBlock = ref this.Cr;
+            ref Block8x8F redBlock = ref this.R;
+            ref Block8x8F greenBlock = ref this.G;
+            ref Block8x8F blueBlock = ref this.B;
 
-            if (RgbToYCbCrConverterVectorized.IsSupported)
+            CopyToBlock(this.rgbSpan, ref redBlock, ref greenBlock, ref blueBlock);
+        }
+
+        private static void CopyToBlock(Span<Rgb24> rgbSpan, ref Block8x8F redBlock, ref Block8x8F greenBlock, ref Block8x8F blueBlock)
+        {
+            ref Rgb24 rgbStart = ref MemoryMarshal.GetReference(rgbSpan);
+
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
-                RgbToYCbCrConverterVectorized.Convert444(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
-            }
-            else
-            {
-                this.colorTables.Convert444(this.rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
+                Rgb24 c = Unsafe.Add(ref rgbStart, i);
+
+                redBlock[i] = c.R;
+                greenBlock[i] = c.G;
+                blueBlock[i] = c.B;
             }
         }
     }

@@ -190,6 +190,10 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Jpeg420Exif = "Jpg/baseline/jpeg420exif.jpg";
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
                 public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
+                public const string JpegRgb = "Jpg/baseline/jpeg-rgb.jpg";
+                public const string Jpeg410 = "Jpg/baseline/jpeg410.jpg";
+                public const string Jpeg411 = "Jpg/baseline/jpeg411.jpg";
+                public const string Jpeg422 = "Jpg/baseline/jpeg422.jpg";
                 public const string Testorig420 = "Jpg/baseline/testorig.jpg";
                 public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
                 public const string Ratio1x1 = "Jpg/baseline/ratio-1x1.jpg";
@@ -558,7 +562,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
             public const string RgbDeflatePredictor = "Tiff/rgb_deflate_predictor.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
-            public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
+            public const string RgbJpegCompressed = "Tiff/rgb_jpegcompression.tiff";
+            public const string RgbWithStripsJpegCompressed = "Tiff/rgb_jpegcompressed_stripped.tiff";
+            public const string RgbJpegCompressedNoJpegTable = "Tiff/rgb_jpegcompressed_nojpegtable.tiff";
             public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
             public const string RgbLzwNoPredictor = "Tiff/rgb_lzw_no_predictor.tiff";
             public const string RgbLzwNoPredictorMultistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";
@@ -606,6 +612,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbYCbCr888Contiguoush2v1 = "Tiff/rgb-ycbcr-contig-08_h2v1.tiff";
             public const string RgbYCbCr888Contiguoush2v2 = "Tiff/rgb-ycbcr-contig-08_h2v2.tiff";
             public const string RgbYCbCr888Contiguoush4v4 = "Tiff/rgb-ycbcr-contig-08_h4v4.tiff";
+            public const string YCbCrJpegCompressed = "Tiff/ycbcr_jpegcompressed.tiff";
             public const string FlowerRgb444Contiguous = "Tiff/flower-rgb-contig-04.tiff";
             public const string FlowerRgb444Planar = "Tiff/flower-rgb-planar-04.tiff";
             public const string FlowerRgb222Contiguous = "Tiff/flower-rgb-contig-02.tiff";

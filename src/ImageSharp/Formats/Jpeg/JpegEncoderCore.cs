@@ -265,7 +265,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteDefineHuffmanTables(int componentCount)
         {
             // Table identifiers.
-            ReadOnlySpan<byte> headers = new byte[]
+            ReadOnlySpan<byte> headers = stackalloc byte[]
             {
                 0x00,
                 0x10,

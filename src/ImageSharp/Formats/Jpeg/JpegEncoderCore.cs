@@ -167,14 +167,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="colorType">The color type.</param>
         /// <returns>true, if color type is supported.</returns>
         private static bool IsSupportedColorType(JpegColorType? colorType)
-        {
-            if (colorType == JpegColorType.YCbCrRatio444 || colorType == JpegColorType.YCbCrRatio420 || colorType == JpegColorType.Luminance || colorType == JpegColorType.Rgb)
-            {
-                return true;
-            }
-
-            return false;
-        }
+            => colorType == JpegColorType.YCbCrRatio444
+            || colorType == JpegColorType.YCbCrRatio420
+            || colorType == JpegColorType.Luminance
+            || colorType == JpegColorType.Rgb;
 
         /// <summary>
         /// Gets the component ids.

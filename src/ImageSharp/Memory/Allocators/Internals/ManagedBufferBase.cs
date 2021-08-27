@@ -24,7 +24,9 @@ namespace SixLabors.ImageSharp.Memory.Internals
             }
 
             void* ptr = (void*)this.pinHandle.AddrOfPinnedObject();
-            return new MemoryHandle(ptr, this.pinHandle, this);
+
+            // We should only pass pinnable:this, when GCHandle lifetime is managed by the MemoryManager<T> instance.
+            return new MemoryHandle(ptr, pinnable: this);
         }
 
         /// <inheritdoc />

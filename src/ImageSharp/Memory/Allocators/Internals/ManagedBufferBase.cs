@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             }
 
             void* ptr = (void*)this.pinHandle.AddrOfPinnedObject();
-            return new MemoryHandle(ptr, this.pinHandle);
+            return new MemoryHandle(ptr, this.pinHandle, this);
         }
 
         /// <inheritdoc />

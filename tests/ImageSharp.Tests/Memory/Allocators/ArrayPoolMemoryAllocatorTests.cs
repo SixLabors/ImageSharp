@@ -114,6 +114,23 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
+        [Fact]
+        public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
+        {
+            ArrayPoolMemoryAllocator allocator = this.LocalFixture.MemoryAllocator;
+            using IMemoryOwner<byte> memoryOwner = allocator.Allocate<byte>(100);
+
+            using (MemoryHandle pin = memoryOwner.Memory.Pin())
+            {
+                Assert.NotEqual(IntPtr.Zero, (IntPtr)pin.Pointer);
+            }
+
+            using (MemoryHandle pin = memoryOwner.Memory.Pin())
+            {
+                Assert.NotEqual(IntPtr.Zero, (IntPtr)pin.Pointer);
+            }
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

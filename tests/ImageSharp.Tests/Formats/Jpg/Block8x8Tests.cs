@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -120,6 +121,158 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             long d = Block8x8.TotalDifference(ref block1, ref block2);
 
             Assert.Equal(15, d);
+        }
+
+        [Fact]
+        public void GetLastNonZeroIndex_AllZero()
+        {
+            static void RunTest()
+            {
+                Block8x8 data = default;
+
+                int expected = -1;
+
+                int actual = data.GetLastNonZeroIndex();
+
+                Assert.Equal(expected, actual);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
+
+        [Fact]
+        public void GetLastNonZeroIndex_AllNonZero()
+        {
+            static void RunTest()
+            {
+                Block8x8 data = default;
+                for (int i = 0; i < Block8x8.Size; i++)
+                {
+                    data[i] = 10;
+                }
+
+                int expected = Block8x8.Size - 1;
+
+                int actual = data.GetLastNonZeroIndex();
+
+                Assert.Equal(expected, actual);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void GetLastNonZeroIndex_RandomFilledSingle(int seed)
+        {
+            static void RunTest(string seedSerialized)
+            {
+                int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
+                var rng = new Random(seed);
+
+                for (int i = 0; i < 1000; i++)
+                {
+                    Block8x8 data = default;
+
+                    int setIndex = rng.Next(1, Block8x8.Size);
+                    data[setIndex] = (short)rng.Next(-2000, 2000);
+
+                    int expected = setIndex;
+
+                    int actual = data.GetLastNonZeroIndex();
+
+                    Assert.Equal(expected, actual);
+                }
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void GetLastNonZeroIndex_RandomFilledPartially(int seed)
+        {
+            static void RunTest(string seedSerialized)
+            {
+                int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
+                var rng = new Random(seed);
+
+                for (int i = 0; i < 1000; i++)
+                {
+                    Block8x8 data = default;
+
+                    int lastIndex = rng.Next(1, Block8x8.Size);
+                    short fillValue = (short)rng.Next(-2000, 2000);
+                    for (int dataIndex = 0; dataIndex <= lastIndex; dataIndex++)
+                    {
+                        data[dataIndex] = fillValue;
+                    }
+
+                    int expected = lastIndex;
+
+                    int actual = data.GetLastNonZeroIndex();
+
+                    Assert.Equal(expected, actual);
+                }
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void GetLastNonZeroIndex_RandomFilledFragmented(int seed)
+        {
+            static void RunTest(string seedSerialized)
+            {
+                int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
+                var rng = new Random(seed);
+
+                for (int i = 0; i < 1000; i++)
+                {
+                    Block8x8 data = default;
+
+                    short fillValue = (short)rng.Next(-2000, 2000);
+
+                    // first filled chunk
+                    int lastIndex1 = rng.Next(1, Block8x8F.Size / 2);
+                    for (int dataIndex = 0; dataIndex <= lastIndex1; dataIndex++)
+                    {
+                        data[dataIndex] = fillValue;
+                    }
+
+                    // second filled chunk, there might be a spot with zero(s) between first and second chunk
+                    int lastIndex2 = rng.Next(lastIndex1 + 1, Block8x8F.Size);
+                    for (int dataIndex = 0; dataIndex <= lastIndex2; dataIndex++)
+                    {
+                        data[dataIndex] = fillValue;
+                    }
+
+                    int expected = lastIndex2;
+
+                    int actual = data.GetLastNonZeroIndex();
+
+                    Assert.Equal(expected, actual);
+                }
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
     }
 }

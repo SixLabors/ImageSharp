@@ -310,7 +310,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
 
                     // testee
-                    FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
+                    FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2);
 
                     var actualDest = new float[64];
                     destBlock.ScaledCopyTo(actualDest);

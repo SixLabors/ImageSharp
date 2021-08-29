@@ -276,26 +276,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="src">Source</param>
         /// <param name="dest">Destination</param>
         /// <param name="temp">Temporary block provided by the caller for optimization</param>
-        /// <param name="offsetSourceByNeg128">If true, a constant -128.0 offset is applied for all values before FDCT </param>
         public static void TransformFDCT(
             ref Block8x8F src,
             ref Block8x8F dest,
-            ref Block8x8F temp,
-            bool offsetSourceByNeg128 = true)
+            ref Block8x8F temp)
         {
             src.TransposeInto(ref temp);
-            if (offsetSourceByNeg128)
-            {
-                temp.AddInPlace(-128F);
-            }
-
             FDCT8x8(ref temp, ref dest);
 
             dest.TransposeInto(ref temp);
-
             FDCT8x8(ref temp, ref dest);
 
             dest.MultiplyInPlace(C_0_125);
+        }
+
+        /// <summary>
+        /// Apply floating point FDCT inplace.
+        /// </summary>
+        /// <param name="matrix">Input matrix.</param>
+        /// <param name="temp">Matrix to store temporal results.</param>
+        public static void TransformInplaceFDCT(ref Block8x8F matrix, ref Block8x8F temp)
+        {
+            matrix.TransposeInto(ref temp);
+            FDCT8x8(ref temp, ref matrix);
+
+            matrix.TransposeInto(ref temp);
+            FDCT8x8(ref temp, ref matrix);
+
+            matrix.MultiplyInPlace(C_0_125);
         }
 
         /// <summary>
@@ -509,6 +517,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             // TODO: What if we leave the blocks in a scaled-by-x8 state until final color packing?
             dest.MultiplyInPlace(C_0_125);
+        }
+
+        /// <summary>
+        /// Apply floating point IDCT inplace.
+        /// Ported from https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239.
+        /// </summary>
+        /// <param name="matrix">Input matrix.</param>
+        /// <param name="temp">Matrix to store temporal results.</param>
+        public static void TransformInplaceIDCT(ref Block8x8F block, ref Block8x8F temp)
+        {
+            block.TransposeInto(ref temp);
+
+            IDCT8x8(ref temp, ref block);
+            block.TransposeInto(ref temp);
+            IDCT8x8(ref temp, ref block);
+
+            // TODO: What if we leave the blocks in a scaled-by-x8 state until final color packing?
+            block.MultiplyInPlace(C_0_125);
         }
     }
 }

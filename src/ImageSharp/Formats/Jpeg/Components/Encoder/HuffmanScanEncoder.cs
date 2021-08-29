@@ -94,8 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private int bitCount;
 
-        private Block8x8F temporalBlock1;
-        private Block8x8F temporalBlock2;
+        private Block8x8F temporalBlock;
         private Block8x8 temporalShortBlock;
 
         /// <summary>
@@ -299,23 +298,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <param name="index">The quantization table index.</param>
         /// <param name="prevDC">The previous DC value.</param>
-        /// <param name="src">Source block</param>
-        /// <param name="quant">Quantization table</param>
-        /// <param name="unZig">The 8x8 Unzig block.</param>
+        /// <param name="block">Source block.</param>
+        /// <param name="quant">Quantization table.</param>
         /// <returns>The <see cref="int"/>.</returns>
         private int WriteBlock(
             QuantIndex index,
             int prevDC,
-            ref Block8x8F src,
+            ref Block8x8F block,
             ref Block8x8F quant)
         {
-            ref Block8x8F refTemp1 = ref this.temporalBlock1;
-            ref Block8x8F refTemp2 = ref this.temporalBlock2;
+            ref Block8x8F refTemp = ref this.temporalBlock;
             ref Block8x8 spectralBlock = ref this.temporalShortBlock;
 
-            FastFloatingPointDCT.TransformFDCT(ref src, ref refTemp1, ref refTemp2);
+            // Shifting level from 0..255 to -128..127
+            block.AddInPlace(-128f);
 
-            Block8x8F.Quantize(ref refTemp1, ref spectralBlock, ref quant);
+            // Discrete cosine transform
+            FastFloatingPointDCT.TransformInplaceFDCT(ref block, ref refTemp);
+
+            // Quantization
+            Block8x8F.Quantize(ref block, ref spectralBlock, ref quant);
 
             // Emit the DC delta.
             int dc = spectralBlock[0];

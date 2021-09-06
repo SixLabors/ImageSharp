@@ -303,8 +303,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
-            var unzig = ZigZag.CreateUnzigTable();
-
             // ReSharper disable once InconsistentNaming
             int prevDCR = 0, prevDCG = 0, prevDCB = 0;
 
@@ -327,26 +325,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCR,
                         ref pixelConverter.R,
-                        ref luminanceQuantTable,
-                        ref unzig);
+                        ref luminanceQuantTable);
 
                     prevDCG = this.WriteBlock(
                         QuantIndex.Luminance,
                         prevDCG,
                         ref pixelConverter.G,
-                        ref luminanceQuantTable,
-                        ref unzig);
+                        ref luminanceQuantTable);
 
                     prevDCB = this.WriteBlock(
                         QuantIndex.Luminance,
                         prevDCB,
                         ref pixelConverter.B,
-                        ref luminanceQuantTable,
-                        ref unzig);
+                        ref luminanceQuantTable);
+
+                    if (this.IsFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
                 }
             }
 
-            this.FlushInternalBuffer();
+            this.FlushRemainingBytes();
         }
 
         /// <summary>

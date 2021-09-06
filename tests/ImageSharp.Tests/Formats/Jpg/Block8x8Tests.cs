@@ -248,24 +248,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     short fillValue = (short)rng.Next(-2000, 2000);
 
                     // first filled chunk
-                    int lastIndex1 = rng.Next(1, Block8x8F.Size / 2);
-                    for (int dataIndex = 0; dataIndex <= lastIndex1; dataIndex++)
+                    int firstChunkStart = rng.Next(0, Block8x8.Size / 2);
+                    int firstChunkEnd = rng.Next(firstChunkStart, Block8x8.Size / 2);
+                    for (int dataIdx = firstChunkStart; dataIdx <= firstChunkEnd; dataIdx++)
                     {
-                        data[dataIndex] = fillValue;
+                        data[dataIdx] = fillValue;
                     }
 
                     // second filled chunk, there might be a spot with zero(s) between first and second chunk
-                    int lastIndex2 = rng.Next(lastIndex1 + 1, Block8x8F.Size);
-                    for (int dataIndex = 0; dataIndex <= lastIndex2; dataIndex++)
+                    int secondChunkStart = rng.Next(firstChunkEnd, Block8x8.Size);
+                    int secondChunkEnd = rng.Next(secondChunkStart, Block8x8.Size);
+                    for (int dataIdx = secondChunkStart; dataIdx <= secondChunkEnd; dataIdx++)
                     {
-                        data[dataIndex] = fillValue;
+                        data[dataIdx] = fillValue;
                     }
 
-                    int expected = lastIndex2;
+                    int expected = secondChunkEnd;
 
                     int actual = data.GetLastNonZeroIndex();
 
-                    Assert.Equal(expected, actual);
+                    Assert.True(expected == actual, $"Expected: {expected}\nActual: {actual}\nInput matrix: {data}");
                 }
             }
 

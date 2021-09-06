@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
                 ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-                return Unsafe.Add(ref selfRef, idx);
+                return Unsafe.Add(ref selfRef, (nint)(uint)idx);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
                 ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-                Unsafe.Add(ref selfRef, idx) = value;
+                Unsafe.Add(ref selfRef, (nint)(uint)idx) = value;
             }
         }
 

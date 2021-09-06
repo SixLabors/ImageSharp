@@ -11,12 +11,12 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
-    internal sealed class SpectralConverter<TPixel> : SpectralConverter, IDisposable
+    internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly Configuration configuration;
 
-        private CancellationToken cancellationToken;
+        private readonly CancellationToken cancellationToken;
 
         private JpegComponentPostProcessor[] componentProcessors;
 
@@ -59,6 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
+        /// <inheritdoc/>
         public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
@@ -85,9 +86,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
 
             // color converter from Rgba32 to TPixel
-            this.colorConverter = JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
+            this.colorConverter = this.GetColorConverter(frame, jpegData);
         }
 
+        /// <inheritdoc/>
         public override void ConvertStrideBaseline()
         {
             // Convert next pixel stride using single spectral `stride'

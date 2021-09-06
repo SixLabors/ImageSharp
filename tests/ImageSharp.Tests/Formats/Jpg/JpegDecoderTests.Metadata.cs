@@ -67,16 +67,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             string imagePath,
             int expectedPixelSize,
             bool exifProfilePresent,
-            bool iccProfilePresent)
-        {
-            TestMetadataImpl(
+            bool iccProfilePresent) => TestMetadataImpl(
                 useIdentify,
                 JpegDecoder,
                 imagePath,
                 expectedPixelSize,
                 exifProfilePresent,
                 iccProfilePresent);
-        }
 
         [Theory]
         [MemberData(nameof(RatioFiles))]
@@ -133,12 +130,47 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                var decoder = new JpegDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                using (Image<Rgba32> image = JpegDecoder.Decode<Rgba32>(Configuration.Default, stream))
                 {
                     JpegMetadata meta = image.Metadata.GetJpegMetadata();
                     Assert.Equal(quality, meta.Quality);
                 }
+            }
+        }
+
+        [Theory]
+        [InlineData(TestImages.Jpeg.Baseline.Floorplan, JpegColorType.Luminance)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegColorType.YCbCrRatio420)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegColorType.YCbCrRatio444)]
+        [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegColorType.Rgb)]
+        [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorType.Cmyk)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegColorType.YCbCrRatio410)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg422, JpegColorType.YCbCrRatio422)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegColorType.YCbCrRatio411)]
+        public void Identify_DetectsCorrectColorType(string imagePath, JpegColorType expectedColorType)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream);
+                JpegMetadata meta = image.Metadata.GetJpegMetadata();
+                Assert.Equal(expectedColorType, meta.ColorType);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32, JpegColorType.Luminance)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgba32, JpegColorType.YCbCrRatio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
+        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, JpegColorType.Rgb)]
+        [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgba32, JpegColorType.Cmyk)]
+        public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                JpegMetadata meta = image.Metadata.GetJpegMetadata();
+                Assert.Equal(expectedColorType, meta.ColorType);
             }
         }
 
@@ -161,9 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             string imagePath,
             int expectedPixelSize,
             bool exifProfilePresent,
-            bool iccProfilePresent)
-        {
-            TestImageInfo(
+            bool iccProfilePresent) => TestImageInfo(
                 imagePath,
                 decoder,
                 useIdentify,
@@ -207,7 +237,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                             Assert.Null(iccProfile);
                         }
                     });
-        }
 
         [Theory]
         [InlineData(false)]
@@ -237,9 +266,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify)
-        {
-            TestImageInfo(
+        public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify) => TestImageInfo(
                 TestImages.Jpeg.Baseline.Floorplan,
                 JpegDecoder,
                 useIdentify,
@@ -248,14 +275,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     Assert.Equal(300, imageInfo.Metadata.HorizontalResolution);
                     Assert.Equal(300, imageInfo.Metadata.VerticalResolution);
                 });
-        }
 
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify)
-        {
-            TestImageInfo(
+        public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify) => TestImageInfo(
                 TestImages.Jpeg.Baseline.Jpeg420Exif,
                 JpegDecoder,
                 useIdentify,
@@ -264,6 +288,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         Assert.Equal(72, imageInfo.Metadata.HorizontalResolution);
                         Assert.Equal(72, imageInfo.Metadata.VerticalResolution);
                     });
-        }
     }
 }

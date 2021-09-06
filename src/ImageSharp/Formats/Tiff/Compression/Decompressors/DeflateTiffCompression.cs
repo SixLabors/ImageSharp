@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <remarks>
     /// Note that the 'OldDeflate' compression type is identical to the 'Deflate' compression type.
     /// </remarks>
-    internal class DeflateTiffCompression : TiffBaseDecompressor
+    internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     {
         private readonly bool isBigEndian;
 
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
             long pos = stream.Position;
             using (var deframeStream = new ZlibInflateStream(

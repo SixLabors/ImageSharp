@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var clone = (JpegMetadata)meta.DeepClone();
 
             clone.Quality = 99;
-            clone.ColorType = JpegColorType.YCbCr;
+            clone.ColorType = JpegColorType.YCbCrRatio420;
 
             Assert.False(meta.Quality.Equals(clone.Quality));
             Assert.False(meta.ColorType.Equals(clone.ColorType));

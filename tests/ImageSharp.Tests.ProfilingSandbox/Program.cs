@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         /// </param>
         public static void Main(string[] args)
         {
-            BenchmarkEncoder("snow_main", 200, 100, JpegColorType.YCbCr, JpegSubsample.Ratio444);
+            //BenchmarkEncoder("snow_main", 200, 100, JpegColorType.YCbCr, JpegSubsample.Ratio444);
             //BenchmarkEncoder("snow_main", 200, 90, JpegColorType.YCbCr, JpegSubsample.Ratio444);
             //BenchmarkEncoder("snow_main", 200, 75, JpegColorType.YCbCr, JpegSubsample.Ratio444);
             //BenchmarkEncoder("snow_main", 200, 50, JpegColorType.YCbCr, JpegSubsample.Ratio444);
@@ -49,17 +49,17 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             //BenchmarkEncoder("snow_main", 200, 75, JpegColorType.Luminance, JpegSubsample.Ratio444);
             //BenchmarkEncoder("snow_main", 200, 50, JpegColorType.Luminance, JpegSubsample.Ratio444);
 
-            //ReEncodeImage("snow_main", 100);
-            //ReEncodeImage("snow_main", 90);
-            //ReEncodeImage("snow_main", 75);
-            //ReEncodeImage("snow_main", 50);
+            ReEncodeImage("snow_main", 100);
+            ReEncodeImage("snow_main", 90);
+            ReEncodeImage("snow_main", 75);
+            ReEncodeImage("snow_main", 50);
 
             Console.WriteLine("Done.");
         }
 
         const string pathTemplate = "C:\\Users\\pl4nu\\Downloads\\{0}.jpg";
 
-        private static void BenchmarkEncoder(string fileName, int iterations, int quality, JpegColorType color, JpegSubsample subsample)
+        private static void BenchmarkEncoder(string fileName, int iterations, int quality, JpegColorType color)
         {
             string loadPath = String.Format(pathTemplate, fileName);
 
@@ -72,8 +72,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             var encoder = new JpegEncoder()
             {
                 Quality = quality,
-                ColorType = color,
-                Subsample = subsample
+                ColorType = color
             };
 
             Stopwatch sw = new Stopwatch();
@@ -85,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
             sw.Stop();
 
-            Console.WriteLine($"// Encoding q={quality} | color={color} | sub={subsample}\n" +
+            Console.WriteLine($"// Encoding q={quality} | color={color}\n" +
                 $"// Elapsed: {sw.ElapsedMilliseconds}ms across {iterations} iterations\n" +
                 $"// Average: {(double)sw.ElapsedMilliseconds / iterations}ms");
         }
@@ -99,8 +98,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             var encoder = new JpegEncoder()
             {
                 Quality = quality,
-                ColorType = JpegColorType.YCbCr,
-                Subsample = JpegSubsample.Ratio444
+                ColorType = JpegColorType.Rgb
             };
             img.SaveAsJpeg(savePath, encoder);
         }

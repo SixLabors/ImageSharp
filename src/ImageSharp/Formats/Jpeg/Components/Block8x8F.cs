@@ -424,14 +424,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             else
 #endif
             {
-                for (int i = 0; i < Size; i++)
-                {
-                    // TODO: find a way to index block & qt matrices with natural order indices for performance?
-                    int zig = ZigZag.ZigZagOrder[i];
-                    float divRes = block[zig] / qt[zig];
-                    dest[i] = (short)(divRes + (divRes > 0 ? 0.5f : -0.5f));
-                }
+                Divide(ref block, ref qt);
+                block.RoundInto(ref dest);
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void Divide(ref Block8x8F a, ref Block8x8F b)
+        {
+            a.V0L /= b.V0L;
+            a.V0R /= b.V0R;
+            a.V1L /= b.V1L;
+            a.V1R /= b.V1R;
+            a.V2L /= b.V2L;
+            a.V2R /= b.V2R;
+            a.V3L /= b.V3L;
+            a.V3R /= b.V3R;
+            a.V4L /= b.V4L;
+            a.V4R /= b.V4R;
+            a.V5L /= b.V5L;
+            a.V5R /= b.V5R;
+            a.V6L /= b.V6L;
+            a.V6R /= b.V6R;
+            a.V7L /= b.V7L;
+            a.V7R /= b.V7R;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
+        {
+            var neg = new Vector4(-1);
+            var add = new Vector4(.5F);
+
+            // sign(dividend) = max(min(dividend, 1), -1)
+            Vector4 sign = Numerics.Clamp(dividend, neg, Vector4.One);
+
+            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
+            // TODO: This is wrong but I have no idea how to fix it without if-else operator
+            // sign here is a value in range [-1..1], it can be equal to -0.2 for example which is wrong
+            return (dividend / divisor) + (sign * add);
         }
 
         public void RoundInto(ref Block8x8 dest)

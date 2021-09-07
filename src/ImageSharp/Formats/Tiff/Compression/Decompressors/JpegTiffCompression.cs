@@ -65,22 +65,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 scanDecoder.ResetInterval = 0;
                 jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
 
-                using var image = new Image<Rgb24>(this.configuration, spectralConverter.PixelBuffer, new ImageMetadata());
-                CopyImageBytesToBuffer(buffer, image);
+                CopyImageBytesToBuffer(buffer, spectralConverter.PixelBuffer);
             }
             else
             {
                 using var image = Image.Load<Rgb24>(stream);
-                CopyImageBytesToBuffer(buffer, image);
+                CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
             }
         }
 
-        private static void CopyImageBytesToBuffer(Span<byte> buffer, Image<Rgb24> image)
+        private static void CopyImageBytesToBuffer(Span<byte> buffer, Buffer2D<Rgb24> pixelBuffer)
         {
             int offset = 0;
-            for (int y = 0; y < image.Height; y++)
+            for (int y = 0; y < pixelBuffer.Height; y++)
             {
-                Span<Rgb24> pixelRowSpan = image.GetPixelRowSpan(y);
+                Span<Rgb24> pixelRowSpan = pixelBuffer.GetRowSpan(y);
                 Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
                 rgbBytes.CopyTo(buffer.Slice(offset));
                 offset += rgbBytes.Length;

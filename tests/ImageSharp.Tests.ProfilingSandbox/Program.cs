@@ -34,25 +34,25 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         /// </param>
         public static void Main(string[] args)
         {
-            //BenchmarkEncoder("snow_main", 200, 100, JpegColorType.YCbCr, JpegSubsample.Ratio444);
-            //BenchmarkEncoder("snow_main", 200, 90, JpegColorType.YCbCr, JpegSubsample.Ratio444);
-            //BenchmarkEncoder("snow_main", 200, 75, JpegColorType.YCbCr, JpegSubsample.Ratio444);
-            //BenchmarkEncoder("snow_main", 200, 50, JpegColorType.YCbCr, JpegSubsample.Ratio444);
+            BenchmarkEncoder("snow_main", 200, 100, JpegColorType.YCbCrRatio444);
+            BenchmarkEncoder("snow_main", 200, 90, JpegColorType.YCbCrRatio444);
+            BenchmarkEncoder("snow_main", 200, 75, JpegColorType.YCbCrRatio444);
+            BenchmarkEncoder("snow_main", 200, 50, JpegColorType.YCbCrRatio444);
 
-            //BenchmarkEncoder("snow_main", 200, 100, JpegColorType.YCbCr, JpegSubsample.Ratio420);
-            //BenchmarkEncoder("snow_main", 200, 90, JpegColorType.YCbCr, JpegSubsample.Ratio420);
-            //BenchmarkEncoder("snow_main", 200, 75, JpegColorType.YCbCr, JpegSubsample.Ratio420);
-            //BenchmarkEncoder("snow_main", 200, 50, JpegColorType.YCbCr, JpegSubsample.Ratio420);
+            //BenchmarkEncoder("snow_main", 200, 100, JpegColorType.YCbCrRatio420);
+            //BenchmarkEncoder("snow_main", 200, 90, JpegColorType.YCbCrRatio420);
+            //BenchmarkEncoder("snow_main", 200, 75, JpegColorType.YCbCrRatio420);
+            //BenchmarkEncoder("snow_main", 200, 50, JpegColorType.YCbCrRatio420);
 
-            //BenchmarkEncoder("snow_main", 200, 100, JpegColorType.Luminance, JpegSubsample.Ratio444);
-            //BenchmarkEncoder("snow_main", 200, 90, JpegColorType.Luminance, JpegSubsample.Ratio444);
-            //BenchmarkEncoder("snow_main", 200, 75, JpegColorType.Luminance, JpegSubsample.Ratio444);
-            //BenchmarkEncoder("snow_main", 200, 50, JpegColorType.Luminance, JpegSubsample.Ratio444);
+            //BenchmarkEncoder("snow_main", 200, 100, JpegColorType.Luminance);
+            //BenchmarkEncoder("snow_main", 200, 90, JpegColorType.Luminance);
+            //BenchmarkEncoder("snow_main", 200, 75, JpegColorType.Luminance);
+            //BenchmarkEncoder("snow_main", 200, 50, JpegColorType.Luminance);
 
-            ReEncodeImage("snow_main", 100);
-            ReEncodeImage("snow_main", 90);
-            ReEncodeImage("snow_main", 75);
-            ReEncodeImage("snow_main", 50);
+            //ReEncodeImage("snow_main", 100);
+            //ReEncodeImage("snow_main", 90);
+            //ReEncodeImage("snow_main", 75);
+            //ReEncodeImage("snow_main", 50);
 
             Console.WriteLine("Done.");
         }
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             var encoder = new JpegEncoder()
             {
                 Quality = quality,
-                ColorType = JpegColorType.Rgb
+                ColorType = JpegColorType.YCbCrRatio444
             };
             img.SaveAsJpeg(savePath, encoder);
         }

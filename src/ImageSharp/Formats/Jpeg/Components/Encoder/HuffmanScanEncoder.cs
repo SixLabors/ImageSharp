@@ -94,8 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private int bitCount;
 
-        private Block8x8F temporalBlock;
-        private Block8x8 temporalShortBlock;
+        private Block8x8 tempBlock;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -130,6 +129,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // Calculate reciprocal quantization tables for FDCT method
+            for (int i = 0; i < 64; i++)
+            {
+                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
+                chrominanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / chrominanceQuantTable[i];
+            }
+
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
             // ReSharper disable once InconsistentNaming
@@ -190,6 +196,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // Calculate reciprocal quantization tables for FDCT method
+            for (int i = 0; i < 64; i++)
+            {
+                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
+                chrominanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / chrominanceQuantTable[i];
+            }
+
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
             // ReSharper disable once InconsistentNaming
@@ -256,6 +269,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // Calculate reciprocal quantization tables for FDCT method
+            for (int i = 0; i < 64; i++)
+            {
+                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
+            }
+
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
             // ReSharper disable once InconsistentNaming
@@ -301,6 +320,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // Calculate reciprocal quantization tables for FDCT method
+            for (int i = 0; i < 64; i++)
+            {
+                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
+            }
+
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
             // ReSharper disable once InconsistentNaming
@@ -365,14 +390,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Block8x8F block,
             ref Block8x8F quant)
         {
-            ref Block8x8F refTemp = ref this.temporalBlock;
-            ref Block8x8 spectralBlock = ref this.temporalShortBlock;
+            ref Block8x8 spectralBlock = ref this.tempBlock;
 
             // Shifting level from 0..255 to -128..127
             block.AddInPlace(-128f);
 
             // Discrete cosine transform
-            FastFloatingPointDCT.TransformInplaceFDCT(ref block, ref refTemp);
+            FastFloatingPointDCT.TransformFDCT(ref block);
 
             // Quantization
             Block8x8F.Quantize(ref block, ref spectralBlock, ref quant);

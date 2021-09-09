@@ -46,11 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         private static readonly Vector256<float> C_V_0_5411 = Vector256.Create(0.541196f);
-        private static readonly Vector256<float> C_V_1_3065 = Vector256.Create(1.306563f);
         private static readonly Vector256<float> C_V_1_1758 = Vector256.Create(1.175876f);
-        private static readonly Vector256<float> C_V_0_7856 = Vector256.Create(0.785695f);
-        private static readonly Vector256<float> C_V_1_3870 = Vector256.Create(1.387040f);
-        private static readonly Vector256<float> C_V_0_2758 = Vector256.Create(0.275899f);
 
         private static readonly Vector256<float> C_V_n1_9615 = Vector256.Create(-1.961570560f);
         private static readonly Vector256<float> C_V_n0_3901 = Vector256.Create(-0.390180644f);
@@ -62,250 +58,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static readonly Vector256<float> C_V_1_5013 = Vector256.Create(1.501321110f);
         private static readonly Vector256<float> C_V_n1_8477 = Vector256.Create(-1.847759065f);
         private static readonly Vector256<float> C_V_0_7653 = Vector256.Create(0.765366865f);
-
-        private static readonly Vector256<float> C_V_InvSqrt2 = Vector256.Create(0.707107f);
 #endif
 #pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
-        private static readonly Vector4 InvSqrt2 = new Vector4(0.707107f);
-
-        /// <summary>
-        /// Original:
-        /// <see>
-        ///     <cref>https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L15</cref>
-        /// </see>
-        /// </summary>
-        /// <param name="s">Source</param>
-        /// <param name="d">Destination</param>
-        public static void FDCT8x4_LeftPart(ref Block8x8F s, ref Block8x8F d)
-        {
-            Vector4 c0 = s.V0L;
-            Vector4 c1 = s.V7L;
-            Vector4 t0 = c0 + c1;
-            Vector4 t7 = c0 - c1;
-
-            c1 = s.V6L;
-            c0 = s.V1L;
-            Vector4 t1 = c0 + c1;
-            Vector4 t6 = c0 - c1;
-
-            c1 = s.V5L;
-            c0 = s.V2L;
-            Vector4 t2 = c0 + c1;
-            Vector4 t5 = c0 - c1;
-
-            c0 = s.V3L;
-            c1 = s.V4L;
-            Vector4 t3 = c0 + c1;
-            Vector4 t4 = c0 - c1;
-
-            c0 = t0 + t3;
-            Vector4 c3 = t0 - t3;
-            c1 = t1 + t2;
-            Vector4 c2 = t1 - t2;
-
-            d.V0L = c0 + c1;
-            d.V4L = c0 - c1;
-
-            float w0 = 0.541196f;
-            float w1 = 1.306563f;
-
-            d.V2L = (w0 * c2) + (w1 * c3);
-            d.V6L = (w0 * c3) - (w1 * c2);
-
-            w0 = 1.175876f;
-            w1 = 0.785695f;
-            c3 = (w0 * t4) + (w1 * t7);
-            c0 = (w0 * t7) - (w1 * t4);
-
-            w0 = 1.387040f;
-            w1 = 0.275899f;
-            c2 = (w0 * t5) + (w1 * t6);
-            c1 = (w0 * t6) - (w1 * t5);
-
-            d.V3L = c0 - c2;
-            d.V5L = c3 - c1;
-
-            float invsqrt2 = 0.707107f;
-            c0 = (c0 + c2) * invsqrt2;
-            c3 = (c3 + c1) * invsqrt2;
-
-            d.V1L = c0 + c3;
-            d.V7L = c0 - c3;
-        }
-
-        /// <summary>
-        /// Original:
-        /// <see>
-        ///     <cref>https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L15</cref>
-        /// </see>
-        /// </summary>
-        /// <param name="s">Source</param>
-        /// <param name="d">Destination</param>
-        public static void FDCT8x4_RightPart(ref Block8x8F s, ref Block8x8F d)
-        {
-            Vector4 c0 = s.V0R;
-            Vector4 c1 = s.V7R;
-            Vector4 t0 = c0 + c1;
-            Vector4 t7 = c0 - c1;
-
-            c1 = s.V6R;
-            c0 = s.V1R;
-            Vector4 t1 = c0 + c1;
-            Vector4 t6 = c0 - c1;
-
-            c1 = s.V5R;
-            c0 = s.V2R;
-            Vector4 t2 = c0 + c1;
-            Vector4 t5 = c0 - c1;
-
-            c0 = s.V3R;
-            c1 = s.V4R;
-            Vector4 t3 = c0 + c1;
-            Vector4 t4 = c0 - c1;
-
-            c0 = t0 + t3;
-            Vector4 c3 = t0 - t3;
-            c1 = t1 + t2;
-            Vector4 c2 = t1 - t2;
-
-            d.V0R = c0 + c1;
-            d.V4R = c0 - c1;
-
-            float w0 = 0.541196f;
-            float w1 = 1.306563f;
-
-            d.V2R = (w0 * c2) + (w1 * c3);
-            d.V6R = (w0 * c3) - (w1 * c2);
-
-            w0 = 1.175876f;
-            w1 = 0.785695f;
-            c3 = (w0 * t4) + (w1 * t7);
-            c0 = (w0 * t7) - (w1 * t4);
-
-            w0 = 1.387040f;
-            w1 = 0.275899f;
-            c2 = (w0 * t5) + (w1 * t6);
-            c1 = (w0 * t6) - (w1 * t5);
-
-            d.V3R = c0 - c2;
-            d.V5R = c3 - c1;
-
-            c0 = (c0 + c2) * InvSqrt2;
-            c3 = (c3 + c1) * InvSqrt2;
-
-            d.V1R = c0 + c3;
-            d.V7R = c0 - c3;
-        }
-
-        /// <summary>
-        /// Combined operation of <see cref="FDCT8x4_LeftPart(ref Block8x8F, ref Block8x8F)"/> and <see cref="FDCT8x4_RightPart(ref Block8x8F, ref Block8x8F)"/>
-        /// using AVX commands.
-        /// </summary>
-        /// <param name="s">Source</param>
-        /// <param name="d">Destination</param>
-        public static void FDCT8x8_Avx(ref Block8x8F s, ref Block8x8F d)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            Debug.Assert(Avx.IsSupported, "AVX is required to execute this method");
-
-            Vector256<float> t0 = Avx.Add(s.V0, s.V7);
-            Vector256<float> t7 = Avx.Subtract(s.V0, s.V7);
-            Vector256<float> t1 = Avx.Add(s.V1, s.V6);
-            Vector256<float> t6 = Avx.Subtract(s.V1, s.V6);
-            Vector256<float> t2 = Avx.Add(s.V2, s.V5);
-            Vector256<float> t5 = Avx.Subtract(s.V2, s.V5);
-            Vector256<float> t3 = Avx.Add(s.V3, s.V4);
-            Vector256<float> t4 = Avx.Subtract(s.V3, s.V4);
-
-            Vector256<float> c0 = Avx.Add(t0, t3);
-            Vector256<float> c1 = Avx.Add(t1, t2);
-
-            // 0 4
-            d.V0 = Avx.Add(c0, c1);
-            d.V4 = Avx.Subtract(c0, c1);
-
-            Vector256<float> c3 = Avx.Subtract(t0, t3);
-            Vector256<float> c2 = Avx.Subtract(t1, t2);
-
-            // 2 6
-            d.V2 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(c2, C_V_0_5411), c3, C_V_1_3065);
-            d.V6 = SimdUtils.HwIntrinsics.MultiplySubstract(Avx.Multiply(c2, C_V_1_3065), c3, C_V_0_5411);
-
-            c3 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(t4, C_V_1_1758), t7, C_V_0_7856);
-            c0 = SimdUtils.HwIntrinsics.MultiplySubstract(Avx.Multiply(t4, C_V_0_7856), t7, C_V_1_1758);
-
-            c2 = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(t5, C_V_1_3870), C_V_0_2758, t6);
-            c1 = SimdUtils.HwIntrinsics.MultiplySubstract(Avx.Multiply(C_V_0_2758, t5), t6, C_V_1_3870);
-
-            // 3 5
-            d.V3 = Avx.Subtract(c0, c2);
-            d.V5 = Avx.Subtract(c3, c1);
-
-            c0 = Avx.Multiply(Avx.Add(c0, c2), C_V_InvSqrt2);
-            c3 = Avx.Multiply(Avx.Add(c3, c1), C_V_InvSqrt2);
-
-            // 1 7
-            d.V1 = Avx.Add(c0, c3);
-            d.V7 = Avx.Subtract(c0, c3);
-#endif
-        }
-
-        /// <summary>
-        /// Performs 8x8 matrix Forward Discrete Cosine Transform
-        /// </summary>
-        /// <param name="s">Source</param>
-        /// <param name="d">Destination</param>
-        public static void FDCT8x8(ref Block8x8F s, ref Block8x8F d)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx.IsSupported)
-            {
-                FDCT8x8_Avx(ref s, ref d);
-            }
-            else
-#endif
-            {
-                FDCT8x4_LeftPart(ref s, ref d);
-                FDCT8x4_RightPart(ref s, ref d);
-            }
-        }
-
-        /// <summary>
-        /// Apply floating point FDCT from src into dest
-        /// </summary>
-        /// <param name="src">Source</param>
-        /// <param name="dest">Destination</param>
-        /// <param name="temp">Temporary block provided by the caller for optimization</param>
-        public static void TransformFDCT(
-            ref Block8x8F src,
-            ref Block8x8F dest,
-            ref Block8x8F temp)
-        {
-            src.TransposeInto(ref temp);
-            FDCT8x8(ref temp, ref dest);
-
-            dest.TransposeInto(ref temp);
-            FDCT8x8(ref temp, ref dest);
-
-            dest.MultiplyInPlace(C_0_125);
-        }
-
-        /// <summary>
-        /// Apply floating point FDCT inplace.
-        /// </summary>
-        /// <param name="matrix">Input matrix.</param>
-        /// <param name="temp">Matrix to store temporal results.</param>
-        public static void TransformInplaceFDCT(ref Block8x8F matrix, ref Block8x8F temp)
-        {
-            matrix.TransposeInto(ref temp);
-            FDCT8x8(ref temp, ref matrix);
-
-            matrix.TransposeInto(ref temp);
-            FDCT8x8(ref temp, ref matrix);
-
-            matrix.MultiplyInPlace(C_0_125);
-        }
-
         /// <summary>
         /// Performs 8x8 matrix Inverse Discrete Cosine Transform
         /// </summary>
@@ -501,40 +255,148 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization).
-        /// Ported from https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239
-        /// </summary>
-        /// <param name="src">Source</param>
-        /// <param name="dest">Destination</param>
-        /// <param name="temp">Temporary block provided by the caller</param>
-        public static void TransformIDCT(ref Block8x8F src, ref Block8x8F dest, ref Block8x8F temp)
-        {
-            src.TransposeInto(ref temp);
-
-            IDCT8x8(ref temp, ref dest);
-            dest.TransposeInto(ref temp);
-            IDCT8x8(ref temp, ref dest);
-
-            // TODO: What if we leave the blocks in a scaled-by-x8 state until final color packing?
-            dest.MultiplyInPlace(C_0_125);
-        }
-
-        /// <summary>
         /// Apply floating point IDCT inplace.
         /// Ported from https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239.
         /// </summary>
-        /// <param name="matrix">Input matrix.</param>
+        /// <param name="block">Input matrix.</param>
         /// <param name="temp">Matrix to store temporal results.</param>
-        public static void TransformInplaceIDCT(ref Block8x8F block, ref Block8x8F temp)
+        public static void TransformIDCT(ref Block8x8F block, ref Block8x8F temp)
         {
-            block.TransposeInto(ref temp);
-
-            IDCT8x8(ref temp, ref block);
-            block.TransposeInto(ref temp);
+            block.Transpose();
+            IDCT8x8(ref block, ref temp);
+            temp.Transpose();
             IDCT8x8(ref temp, ref block);
 
             // TODO: What if we leave the blocks in a scaled-by-x8 state until final color packing?
             block.MultiplyInPlace(C_0_125);
+        }
+
+        /// <summary>
+        /// Apply 2D floating point FDCT inplace using scalar operations.
+        /// </summary>
+        /// <remarks>
+        /// Ported from libjpeg-turbo https://github.com/libjpeg-turbo/libjpeg-turbo/blob/main/jfdctflt.c.
+        /// </remarks>
+        /// <param name="block">Input matrix.</param>
+        private static void ForwardTransformScalar(ref Block8x8F block)
+        {
+            const int dctSize = 8;
+
+            float tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+            float tmp10, tmp11, tmp12, tmp13;
+            float z1, z2, z3, z4, z5, z11, z13;
+
+            // First pass - process rows
+            ref float dataRef = ref Unsafe.As<Block8x8F, float>(ref block);
+            for (int ctr = 7; ctr >= 0; ctr--)
+            {
+                tmp0 = Unsafe.Add(ref dataRef, 0) + Unsafe.Add(ref dataRef, 7);
+                tmp7 = Unsafe.Add(ref dataRef, 0) - Unsafe.Add(ref dataRef, 7);
+                tmp1 = Unsafe.Add(ref dataRef, 1) + Unsafe.Add(ref dataRef, 6);
+                tmp6 = Unsafe.Add(ref dataRef, 1) - Unsafe.Add(ref dataRef, 6);
+                tmp2 = Unsafe.Add(ref dataRef, 2) + Unsafe.Add(ref dataRef, 5);
+                tmp5 = Unsafe.Add(ref dataRef, 2) - Unsafe.Add(ref dataRef, 5);
+                tmp3 = Unsafe.Add(ref dataRef, 3) + Unsafe.Add(ref dataRef, 4);
+                tmp4 = Unsafe.Add(ref dataRef, 3) - Unsafe.Add(ref dataRef, 4);
+
+                // Even part
+                tmp10 = tmp0 + tmp3;
+                tmp13 = tmp0 - tmp3;
+                tmp11 = tmp1 + tmp2;
+                tmp12 = tmp1 - tmp2;
+
+                Unsafe.Add(ref dataRef, 0) = tmp10 + tmp11;
+                Unsafe.Add(ref dataRef, 4) = tmp10 - tmp11;
+
+                z1 = (tmp12 + tmp13) * 0.707106781f;
+                Unsafe.Add(ref dataRef, 2) = tmp13 + z1;
+                Unsafe.Add(ref dataRef, 6) = tmp13 - z1;
+
+                // Odd part
+                tmp10 = tmp4 + tmp5;
+                tmp11 = tmp5 + tmp6;
+                tmp12 = tmp6 + tmp7;
+
+                z5 = (tmp10 - tmp12) * 0.382683433f;
+                z2 = (0.541196100f * tmp10) + z5;
+                z4 = (1.306562965f * tmp12) + z5;
+                z3 = tmp11 * 0.707106781f;
+
+                z11 = tmp7 + z3;
+                z13 = tmp7 - z3;
+
+                Unsafe.Add(ref dataRef, 5) = z13 + z2;
+                Unsafe.Add(ref dataRef, 3) = z13 - z2;
+                Unsafe.Add(ref dataRef, 1) = z11 + z4;
+                Unsafe.Add(ref dataRef, 7) = z11 - z4;
+
+                dataRef = ref Unsafe.Add(ref dataRef, dctSize);
+            }
+
+            // Second pass - process columns
+            dataRef = ref Unsafe.As<Block8x8F, float>(ref block);
+            for (int ctr = 7; ctr >= 0; ctr--)
+            {
+                tmp0 = Unsafe.Add(ref dataRef, dctSize * 0) + Unsafe.Add(ref dataRef, dctSize * 7);
+                tmp7 = Unsafe.Add(ref dataRef, dctSize * 0) - Unsafe.Add(ref dataRef, dctSize * 7);
+                tmp1 = Unsafe.Add(ref dataRef, dctSize * 1) + Unsafe.Add(ref dataRef, dctSize * 6);
+                tmp6 = Unsafe.Add(ref dataRef, dctSize * 1) - Unsafe.Add(ref dataRef, dctSize * 6);
+                tmp2 = Unsafe.Add(ref dataRef, dctSize * 2) + Unsafe.Add(ref dataRef, dctSize * 5);
+                tmp5 = Unsafe.Add(ref dataRef, dctSize * 2) - Unsafe.Add(ref dataRef, dctSize * 5);
+                tmp3 = Unsafe.Add(ref dataRef, dctSize * 3) + Unsafe.Add(ref dataRef, dctSize * 4);
+                tmp4 = Unsafe.Add(ref dataRef, dctSize * 3) - Unsafe.Add(ref dataRef, dctSize * 4);
+
+                // Even part
+                tmp10 = tmp0 + tmp3;
+                tmp13 = tmp0 - tmp3;
+                tmp11 = tmp1 + tmp2;
+                tmp12 = tmp1 - tmp2;
+
+                Unsafe.Add(ref dataRef, dctSize * 0) = tmp10 + tmp11;
+                Unsafe.Add(ref dataRef, dctSize * 4) = tmp10 - tmp11;
+
+                z1 = (tmp12 + tmp13) * 0.707106781f;
+                Unsafe.Add(ref dataRef, dctSize * 2) = tmp13 + z1;
+                Unsafe.Add(ref dataRef, dctSize * 6) = tmp13 - z1;
+
+                // Odd part
+                tmp10 = tmp4 + tmp5;
+                tmp11 = tmp5 + tmp6;
+                tmp12 = tmp6 + tmp7;
+
+                z5 = (tmp10 - tmp12) * 0.382683433f;
+                z2 = (0.541196100f * tmp10) + z5;
+                z4 = (1.306562965f * tmp12) + z5;
+                z3 = tmp11 * 0.707106781f;
+
+                z11 = tmp7 + z3;
+                z13 = tmp7 - z3;
+
+                Unsafe.Add(ref dataRef, dctSize * 5) = z13 + z2;
+                Unsafe.Add(ref dataRef, dctSize * 3) = z13 - z2;
+                Unsafe.Add(ref dataRef, dctSize * 1) = z11 + z4;
+                Unsafe.Add(ref dataRef, dctSize * 7) = z11 - z4;
+
+                dataRef = ref Unsafe.Add(ref dataRef, 1);
+            }
+        }
+
+        /// <summary>
+        /// Apply 2D floating point FDCT inplace.
+        /// </summary>
+        /// <param name="block">Input matrix.</param>
+        public static void TransformFDCT(ref Block8x8F block)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported || Sse.IsSupported)
+            {
+                ForwardTransformSimd(ref block);
+            }
+            else
+#endif
+            {
+                ForwardTransformScalar(ref block);
+            }
         }
     }
 }

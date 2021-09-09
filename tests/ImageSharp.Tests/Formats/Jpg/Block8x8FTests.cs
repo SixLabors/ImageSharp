@@ -164,52 +164,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TransposeInto()
+        public void Transpose()
         {
             static void RunTest()
             {
                 float[] expected = Create8x8FloatData();
                 ReferenceImplementations.Transpose8x8(expected);
 
-                var source = default(Block8x8F);
-                source.LoadFrom(Create8x8FloatData());
+                var block8x8 = default(Block8x8F);
+                block8x8.LoadFrom(Create8x8FloatData());
 
-                var dest = default(Block8x8F);
-                source.TransposeInto(ref dest);
+                block8x8.Transpose();
 
                 float[] actual = new float[64];
-                dest.ScaledCopyTo(actual);
+                block8x8.ScaledCopyTo(actual);
 
                 Assert.Equal(expected, actual);
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
-        }
-
-        private class BufferHolder
-        {
-            public Block8x8F Buffer;
-        }
-
-        [Fact]
-        public void TransposeInto_Benchmark()
-        {
-            var source = new BufferHolder();
-            source.Buffer.LoadFrom(Create8x8FloatData());
-            var dest = new BufferHolder();
-
-            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark X {Times} ...");
-            var sw = Stopwatch.StartNew();
-
-            for (int i = 0; i < Times; i++)
-            {
-                source.Buffer.TransposeInto(ref dest.Buffer);
-            }
-
-            sw.Stop();
-            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
 
         private static float[] Create8x8ColorCropTestData()
@@ -281,16 +256,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F source = CreateRandomFloatBlock(-2000, 2000, srcSeed);
             Block8x8F quant = CreateRandomFloatBlock(-2000, 2000, qtSeed);
 
+            // Reference implementation quantizes given block via division
             Block8x8 expected = default;
             ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.ZigZagOrder);
+
+            // Actual current implementation quantizes given block via multiplication
+            // With quantization table reciprocal
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                quant[i] = 1f / quant[i];
+            }
 
             Block8x8 actual = default;
             Block8x8F.Quantize(ref source, ref actual, ref quant);
 
-            for (int i = 0; i < Block8x8.Size; i++)
-            {
-                Assert.Equal(expected[i], actual[i]);
-            }
+            this.CompareBlocks(expected, actual, 1);
         }
 
         [Fact]

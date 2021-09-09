@@ -12,15 +12,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         private static readonly Block8x8F Source = Create8x8FloatData();
 
         [Benchmark]
-        public void TransposeInto()
-        {
-            var dest = default(Block8x8F);
-            Source.TransposeInto(ref dest);
-        }
+        public void TransposeInto() => Source.Transpose();
 
         private static Block8x8F Create8x8FloatData()
         {
-            var result = new float[64];
+            float[] result = new float[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)

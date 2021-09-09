@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // Dequantize:
             block.MultiplyInPlace(ref this.DequantiazationTable);
 
-            FastFloatingPointDCT.TransformInplaceIDCT(ref block, ref this.WorkspaceBlock);
+            FastFloatingPointDCT.TransformIDCT(ref block, ref this.WorkspaceBlock);
 
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.

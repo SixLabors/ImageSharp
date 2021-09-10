@@ -450,21 +450,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             a.V7R *= b.V7R;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
-        {
-            var neg = new Vector4(-1);
-            var add = new Vector4(.5F);
-
-            // sign(dividend) = max(min(dividend, 1), -1)
-            Vector4 sign = Numerics.Clamp(dividend, neg, Vector4.One);
-
-            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
-            // TODO: This is wrong but I have no idea how to fix it without if-else operator
-            // sign here is a value in range [-1..1], it can be equal to -0.2 for example which is wrong
-            return (dividend / divisor) + (sign * add);
-        }
-
         public void RoundInto(ref Block8x8 dest)
         {
             for (int i = 0; i < Size; i++)
@@ -562,6 +547,47 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Unsafe.Add(ref dRef, 7) = bottom;
         }
 
+        /// <summary>
+        /// Compares entire 8x8 block to a single scalar value.
+        /// </summary>
+        /// <param name="value">Value to compare to.</param>
+        public bool EqualsToScalar(int value)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
+
+                var targetVector = Vector256.Create(value);
+                ref Vector256<float> blockStride = ref this.V0;
+
+                for (int i = 0; i < RowCount; i++)
+                {
+                    Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
+                    if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+#endif
+            {
+                ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
+
+                for (int i = 0; i < Size; i++)
+                {
+                    if ((int)Unsafe.Add(ref scalars, i) != value)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
         /// <inheritdoc />
         public bool Equals(Block8x8F other)
             => this.V0L == other.V0L
@@ -596,15 +622,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             sb.Append(']');
             return sb.ToString();
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
-        {
-            row += off;
-            row = Vector.Max(row, Vector<float>.Zero);
-            row = Vector.Min(row, max);
-            return row.FastRound();
         }
 
         /// <summary>
@@ -650,45 +667,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
-        /// <summary>
-        /// Compares entire 8x8 block to a single scalar value.
-        /// </summary>
-        /// <param name="value">Value to compare to.</param>
-        public bool EqualsToScalar(int value)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported)
-            {
-                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
-
-                var targetVector = Vector256.Create(value);
-                ref Vector256<float> blockStride = ref this.V0;
-
-                for (int i = 0; i < RowCount; i++)
-                {
-                    Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
-                    if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-#endif
-            {
-                ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
-
-                for (int i = 0; i < Size; i++)
-                {
-                    if ((int)Unsafe.Add(ref scalars, i) != value)
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
+            row += off;
+            row = Vector.Max(row, Vector<float>.Zero);
+            row = Vector.Min(row, max);
+            return row.FastRound();
         }
     }
 }

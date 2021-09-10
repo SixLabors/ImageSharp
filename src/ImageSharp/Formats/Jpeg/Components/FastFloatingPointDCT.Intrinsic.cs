@@ -3,12 +3,11 @@
 
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {

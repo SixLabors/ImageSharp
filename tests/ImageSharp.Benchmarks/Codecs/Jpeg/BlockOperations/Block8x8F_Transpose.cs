@@ -9,25 +9,27 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
     [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
     public class Block8x8F_Transpose
     {
-        private static readonly Block8x8F Source = Create8x8FloatData();
+        private Block8x8F source = Create8x8FloatData();
 
         [Benchmark]
-        public void TransposeInto() => Source.Transpose();
+        public float TransposeInto()
+        {
+            this.source.Transpose();
+            return this.source[0];
+        }
 
         private static Block8x8F Create8x8FloatData()
         {
-            float[] result = new float[64];
+            Block8x8F block = default;
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    result[(i * 8) + j] = (i * 10) + j;
+                    block[(i * 8) + j] = (i * 10) + j;
                 }
             }
 
-            var source = default(Block8x8F);
-            source.LoadFrom(result);
-            return source;
+            return block;
         }
     }
 }

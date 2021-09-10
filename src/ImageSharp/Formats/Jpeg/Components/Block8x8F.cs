@@ -424,30 +424,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             else
 #endif
             {
-                Multiply(ref block, ref qt);
-                block.RoundInto(ref dest);
+                for (int i = 0; i < Size; i++)
+                {
+                    int idx = ZigZag.ZigZagOrder[i];
+                    float quantizedVal = block[idx] * qt[idx];
+                    quantizedVal += quantizedVal < 0 ? -0.5f : 0.5f;
+                    dest[i] = (short)quantizedVal;
+                }
             }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Multiply(ref Block8x8F a, ref Block8x8F b)
-        {
-            a.V0L *= b.V0L;
-            a.V0R *= b.V0R;
-            a.V1L *= b.V1L;
-            a.V1R *= b.V1R;
-            a.V2L *= b.V2L;
-            a.V2R *= b.V2R;
-            a.V3L *= b.V3L;
-            a.V3R *= b.V3R;
-            a.V4L *= b.V4L;
-            a.V4R *= b.V4R;
-            a.V5L *= b.V5L;
-            a.V5R *= b.V5R;
-            a.V6L *= b.V6L;
-            a.V6R *= b.V6R;
-            a.V7L *= b.V7L;
-            a.V7R *= b.V7R;
         }
 
         public void RoundInto(ref Block8x8 dest)

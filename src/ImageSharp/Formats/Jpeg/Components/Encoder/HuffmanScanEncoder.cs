@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
                 chrominanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / chrominanceQuantTable[i];
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
                 chrominanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / chrominanceQuantTable[i];
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
             }
@@ -321,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
             }

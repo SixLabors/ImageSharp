@@ -65,17 +65,17 @@ namespace SixLabors.ImageSharp.Benchmarks
                     .WithId("1. No HwIntrinsics").AsBaseline());
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-                if (Avx.IsSupported)
-                {
-                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
-                        .WithId("2. AVX"));
-                }
-
                 if (Sse.IsSupported)
                 {
                     this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
                         .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX, Off))
-                        .WithId("3. SSE"));
+                        .WithId("2. SSE"));
+                }
+
+                if (Avx.IsSupported)
+                {
+                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
+                        .WithId("3. AVX"));
                 }
 #endif
             }

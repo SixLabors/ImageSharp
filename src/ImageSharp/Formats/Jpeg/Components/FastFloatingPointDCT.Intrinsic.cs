@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -36,42 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static readonly Vector256<float> mm256_F_n1_8477 = Vector256.Create(-1.847759065f);
         private static readonly Vector256<float> mm256_F_0_7653 = Vector256.Create(0.765366865f);
 #pragma warning restore SA1310, SA1311, IDE1006
-
-        /// <summary>
-        /// Gets reciprocal coefficients for jpeg quantization tables calculation.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Current FDCT implementation expects its results to be multiplied by
-        /// a reciprocal quantization table. Values in this table must be divided
-        /// by quantization table values scaled with quality settings.
-        /// </para>
-        /// <para>
-        /// These values were calculates with this formula:
-        /// <code>
-        /// value[row * 8 + col] = scalefactor[row] * scalefactor[col] * 8;
-        /// </code>
-        /// Where:
-        /// <code>
-        /// scalefactor[0] = 1
-        /// </code>
-        /// <code>
-        /// scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
-        /// </code>
-        /// Values are also scaled by 8 so DCT code won't do unnecessary division.
-        /// </para>
-        /// </remarks>
-        public static ReadOnlySpan<float> DctReciprocalAdjustmentCoefficients => new float[]
-        {
-            0.125f, 0.09011998f, 0.09567086f, 0.10630376f, 0.125f, 0.15909483f, 0.23096988f, 0.45306373f,
-            0.09011998f, 0.064972885f, 0.068974845f, 0.07664074f, 0.09011998f, 0.11470097f, 0.16652f, 0.32664075f,
-            0.09567086f, 0.068974845f, 0.07322331f, 0.081361376f, 0.09567086f, 0.121765904f, 0.17677669f, 0.34675997f,
-            0.10630376f, 0.07664074f, 0.081361376f, 0.09040392f, 0.10630376f, 0.13529903f, 0.19642374f, 0.38529903f,
-            0.125f, 0.09011998f, 0.09567086f, 0.10630376f, 0.125f, 0.15909483f, 0.23096988f, 0.45306373f,
-            0.15909483f, 0.11470097f, 0.121765904f, 0.13529903f, 0.15909483f, 0.2024893f, 0.2939689f, 0.5766407f,
-            0.23096988f, 0.16652f, 0.17677669f, 0.19642374f, 0.23096988f, 0.2939689f, 0.4267767f, 0.8371526f,
-            0.45306373f, 0.32664075f, 0.34675997f, 0.38529903f, 0.45306373f, 0.5766407f, 0.8371526f, 1.642134f,
-        };
 
         /// <summary>
         /// Apply floating point FDCT inplace using simd operations.
@@ -215,141 +178,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             block.V3 = Avx.Subtract(z13, z2);
             block.V1 = Avx.Add(z11, z4);
             block.V7 = Avx.Subtract(z11, z4);
-        }
-
-        /// <summary>
-        /// Performs 8x8 matrix Inverse Discrete Cosine Transform
-        /// </summary>
-        /// <param name="s">Source</param>
-        /// <param name="d">Destination</param>
-        public static void IDCT8x8(ref Block8x8F s, ref Block8x8F d)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx.IsSupported)
-            {
-                IDCT8x8_Avx(ref s, ref d);
-            }
-            else
-#endif
-            {
-                IDCT8x4_LeftPart(ref s, ref d);
-                IDCT8x4_RightPart(ref s, ref d);
-            }
-        }
-
-        /// <summary>
-        /// Do IDCT internal operations on the left part of the block. Original src:
-        /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
-        /// </summary>
-        /// <param name="s">The source block</param>
-        /// <param name="d">Destination block</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void IDCT8x4_LeftPart(ref Block8x8F s, ref Block8x8F d)
-        {
-            Vector4 my1 = s.V1L;
-            Vector4 my7 = s.V7L;
-            Vector4 mz0 = my1 + my7;
-
-            Vector4 my3 = s.V3L;
-            Vector4 mz2 = my3 + my7;
-            Vector4 my5 = s.V5L;
-            Vector4 mz1 = my3 + my5;
-            Vector4 mz3 = my1 + my5;
-
-            Vector4 mz4 = (mz0 + mz1) * C_1_175876;
-
-            mz2 = (mz2 * C_1_961571) + mz4;
-            mz3 = (mz3 * C_0_390181) + mz4;
-            mz0 = mz0 * C_0_899976;
-            mz1 = mz1 * C_2_562915;
-
-            Vector4 mb3 = (my7 * C_0_298631) + mz0 + mz2;
-            Vector4 mb2 = (my5 * C_2_053120) + mz1 + mz3;
-            Vector4 mb1 = (my3 * C_3_072711) + mz1 + mz2;
-            Vector4 mb0 = (my1 * C_1_501321) + mz0 + mz3;
-
-            Vector4 my2 = s.V2L;
-            Vector4 my6 = s.V6L;
-            mz4 = (my2 + my6) * C_0_541196;
-            Vector4 my0 = s.V0L;
-            Vector4 my4 = s.V4L;
-            mz0 = my0 + my4;
-            mz1 = my0 - my4;
-
-            mz2 = mz4 + (my6 * C_1_847759);
-            mz3 = mz4 + (my2 * C_0_765367);
-
-            my0 = mz0 + mz3;
-            my3 = mz0 - mz3;
-            my1 = mz1 + mz2;
-            my2 = mz1 - mz2;
-
-            d.V0L = my0 + mb0;
-            d.V7L = my0 - mb0;
-            d.V1L = my1 + mb1;
-            d.V6L = my1 - mb1;
-            d.V2L = my2 + mb2;
-            d.V5L = my2 - mb2;
-            d.V3L = my3 + mb3;
-            d.V4L = my3 - mb3;
-        }
-
-        /// <summary>
-        /// Do IDCT internal operations on the right part of the block.
-        /// Original src:
-        /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
-        /// </summary>
-        /// <param name="s">The source block</param>
-        /// <param name="d">The destination block</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void IDCT8x4_RightPart(ref Block8x8F s, ref Block8x8F d)
-        {
-            Vector4 my1 = s.V1R;
-            Vector4 my7 = s.V7R;
-            Vector4 mz0 = my1 + my7;
-
-            Vector4 my3 = s.V3R;
-            Vector4 mz2 = my3 + my7;
-            Vector4 my5 = s.V5R;
-            Vector4 mz1 = my3 + my5;
-            Vector4 mz3 = my1 + my5;
-
-            Vector4 mz4 = (mz0 + mz1) * C_1_175876;
-
-            mz2 = (mz2 * C_1_961571) + mz4;
-            mz3 = (mz3 * C_0_390181) + mz4;
-            mz0 = mz0 * C_0_899976;
-            mz1 = mz1 * C_2_562915;
-
-            Vector4 mb3 = (my7 * C_0_298631) + mz0 + mz2;
-            Vector4 mb2 = (my5 * C_2_053120) + mz1 + mz3;
-            Vector4 mb1 = (my3 * C_3_072711) + mz1 + mz2;
-            Vector4 mb0 = (my1 * C_1_501321) + mz0 + mz3;
-
-            Vector4 my2 = s.V2R;
-            Vector4 my6 = s.V6R;
-            mz4 = (my2 + my6) * C_0_541196;
-            Vector4 my0 = s.V0R;
-            Vector4 my4 = s.V4R;
-            mz0 = my0 + my4;
-            mz1 = my0 - my4;
-
-            mz2 = mz4 + (my6 * C_1_847759);
-            mz3 = mz4 + (my2 * C_0_765367);
-
-            my0 = mz0 + mz3;
-            my3 = mz0 - mz3;
-            my1 = mz1 + mz2;
-            my2 = mz1 - mz2;
-
-            d.V0R = my0 + mb0;
-            d.V7R = my0 - mb0;
-            d.V1R = my1 + mb1;
-            d.V6R = my1 - mb1;
-            d.V2R = my2 + mb2;
-            d.V5R = my2 - mb2;
-            d.V3R = my3 + mb3;
-            d.V4R = my3 - mb3;
         }
 
         /// <summary>

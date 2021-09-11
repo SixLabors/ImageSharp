@@ -4,12 +4,9 @@
 // ReSharper disable InconsistentNaming
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 
@@ -19,20 +16,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
-    public class TiffDecoderTests
+    public class TiffDecoderTests : TiffDecoderBaseTester
     {
         public static readonly string[] MultiframeTestImages = Multiframes;
-
-        private static TiffDecoder TiffDecoder => new TiffDecoder();
-
-        private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
         [Theory]
         [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
         [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
         [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
+            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
 
         [Theory]
         [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
@@ -396,17 +389,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             image.DebugSaveMultiFrame(provider);
             image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, ReferenceDecoder);
-        }
-
-        private static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider, IImageDecoder referenceDecoder = null, bool useExactComparer = true, float compareTolerance = 0.001f)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
-            image.DebugSave(provider);
-            image.CompareToOriginal(
-                provider,
-                useExactComparer ? ImageComparer.Exact : ImageComparer.Tolerant(compareTolerance),
-                referenceDecoder ?? ReferenceDecoder);
         }
     }
 }

@@ -672,5 +672,20 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
         }
+
+        public static class BigTiff
+        {
+            public const string BasePath = "Tiff/BigTiff/";
+
+            public const string BigTIFF = BasePath + "BigTIFF.tif";
+            public const string BigTIFFLong = BasePath + "BigTIFFLong.tif";
+            public const string BigTIFFLong8 = BasePath + "BigTIFFLong8.tif";
+            public const string BigTIFFLong8Tiles = BasePath + "BigTIFFLong8Tiles.tif";
+            public const string BigTIFFMotorola = BasePath + "BigTIFFMotorola.tif";
+            public const string BigTIFFMotorolaLongStrips = BasePath + "BigTIFFMotorolaLongStrips.tif";
+
+            public const string BigTIFFSubIFD4 = BasePath + "BigTIFFSubIFD4.tif";
+            public const string BigTIFFSubIFD8 = BasePath + "BigTIFFSubIFD8.tif";
+        }
     }
 }

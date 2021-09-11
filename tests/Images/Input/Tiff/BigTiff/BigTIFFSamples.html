@@ -1,0 +1,239 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <p>
+      These images were created by <a href="http://www.awaresystems.be/">AWare Systems</a>.
+    </p>
+    <h1>Index</h1>
+    <p>
+      <a href="#classic">Classic.tif</a><br>
+      <a href="#bigtiff">BigTIFF.tif</a><br>
+      <a href="#bigtiffmotorola">BigTIFFMotorola.tif</a><br>
+      <a href="#bigtifflong">BigTIFFLong.tif</a><br>
+      <a href="#bigtifflong8">BigTIFFLong8.tif</a><br>
+      <a href="#bigtiffmotorolalongstrips">BigTIFFMotorolaLongStrips.tif</a><br>
+      <a href="#bigtifflong8tiles">BigTIFFLong8Tiles.tif</a><br>
+      <a href="#bigtiffsubifd4">BigTIFFSubIFD4.tif</a><br>
+      <a href="#bigtiffsubifd8">BigTIFFSubIFD8.tif</a><br>
+    </p>
+    <h1 id="classic">Classic.tif</h1>
+    <p>
+      Classic.tif is a basic Classic TIFF file. All files in this package have the same actual image content,
+      so this TIFF file serves as a reference.
+    </p>
+    <p>
+      Format: Classic TIFF<br>
+      Byte Order: Intel<br>
+      Ifd Offset: 12302<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 12288<br>
+    </p>
+    <h1 id="bigtiff">BigTIFF.tif</h1>
+    <p>
+      BigTIFF.tif ressembles Classic.tif as close as possible. Except that it's a BigTIFF, that is...
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Intel<br>
+      Ifd Offset: 12304<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 16<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 12288<br>
+    </p>
+    <h1 id="bigtiffmotorola">BigTIFFMotorola.tif</h1>
+    <p>
+      BigTIFFMotorola.tif reverses the byte order.
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Motorola<br>
+      Ifd Offset: 12304<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 16<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 12288<br>
+    </p>
+    <h1 id="bigtifflong">BigTIFFLong.tif</h1>
+    <p>
+      All previous TIFFs specify DataType Short for StripOffsets and StripByteCounts tags. This BigTIFF instead specifies DataType Long, for these tags.
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Intel<br>
+      Ifd Offset: 12304<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Long): 16<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Long): 12288<br>
+    </p>
+    <h1 id="bigtifflong8">BigTIFFLong8.tif</h1>
+    <p>
+      This next one specifies DataType Long8, for StripOffsets and StripByteCounts tags.
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Intel<br>
+      Ifd Offset: 12304<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Long8): 16<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Long8): 12288<br>
+    </p>
+    <h1 id="bigtiffmotorolalongstrips">BigTIFFMotorolaLongStrips.tif</h1>
+    <p>
+      This BigTIFF has Motorola byte order, plus, it's divided over two strips. StripOffsets and StripByteCounts tags have DataType Long, so their actual value fits inside the IFD.
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Motorola<br>
+      Ifd Offset: 12304<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (2  Long): 16, 6160<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (2  Long): 6144, 6144<br>
+    </p>
+    <h1 id="bigtifflong8tiles">BigTIFFLong8Tiles.tif</h1>
+    <p>
+      BigTIFFLong8Tiles.tif is a tiled BigTIFF. TileOffsets and TileByteCounts tags specify DataType Long8.
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Intel<br>
+      Ifd Offset: 12368<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;TileWidth (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;TileLength (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;TileOffsets (4  Long8): 16, 3088, 6160, 9232<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;TileByteCounts (4  Long8): 3072, 3072, 3072, 3072<br>
+    </p>
+    <h1 id="bigtiffsubifd4">BigTIFFSubIFD4.tif</h1>
+    <p>
+      This BigTIFF contains two pages, the second page showing almost the same image content as the first, except that the black square is white, and text color is black.
+      Both pages point to a downsample SubIFD, using SubIFDs DataType TIFF_IFD.
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Intel<br>
+      Ifd Offset: 15572<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 3284<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 12288<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SubIFDs (1  IFD): 3088<br>
+      SubIfd Offset: 3088<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;NewSubFileType (1  Long): 1<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 16<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 3072<br>
+      Ifd Offset: 31324<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 19036<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 12288<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SubIFDs (1  IFD): 18840<br>
+      SubIfd Offset: 18840<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;NewSubFileType (1  Long): 1<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 15768<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 3072<br>
+    </p>
+    <h1 id="bigtiffsubifd8">BigTIFFSubIFD8.tif</h1>
+    <p>
+      BigTIFFSubIFD4.tif is very much the same as BigTIFFSubIFD4.tif, except that the new DataType TIFF_IFD8 is used for the SubIFDs tag.
+    </p>
+    <p>
+      Format: BigTIFF<br>
+      Byte Order: Intel<br>
+      Ifd Offset: 15572<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 3284<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 12288<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SubIFDs (1  IFD8): 3088<br>
+      SubIfd Offset: 3088<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;NewSubFileType (1  Long): 1<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 16<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 3072<br>
+      Ifd Offset: 31324<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 19036<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 64<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 12288<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SubIFDs (1  IFD8): 18840<br>
+      SubIfd Offset: 18840<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;NewSubFileType (1  Long): 1<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageWidth (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;ImageLength (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;BitsPerSample (3  Short): 8, 8, 8<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;PhotometricInterpretation (1  Short): RGB<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripOffsets (1  Short): 15768<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;SamplesPerPixel (1  Short): 3<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;RowsPerStrip (1  Short): 32<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;StripByteCounts (1  Short): 3072<br>
+    </p>
+  </body>
+</html>

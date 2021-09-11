@@ -408,22 +408,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Emit the AC components.
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
-            int runLength = 0;
             int lastValuableIndex = spectralBlock.GetLastNonZeroIndex();
+
+            int runLength = 0;
             for (int zig = 1; zig <= lastValuableIndex; zig++)
             {
-                int ac = spectralBlock[zig];
+                const int zeroRun1 = 1 << 4;
+                const int zeroRun16 = 16 << 4;
 
+                int ac = spectralBlock[zig];
                 if (ac == 0)
                 {
-                    runLength++;
+                    runLength += zeroRun1;
                 }
                 else
                 {
-                    while (runLength > 15)
+                    while (runLength >= zeroRun16)
                     {
                         this.EmitHuff(acHuffTable, 0xf0);
-                        runLength -= 16;
+                        runLength -= zeroRun16;
                     }
 
                     this.EmitHuffRLE(acHuffTable, runLength, ac);
@@ -498,14 +501,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Emits a run of runLength copies of value encoded with the given Huffman encoder.
+        /// Emits given value via huffman rle encoding.
         /// </summary>
         /// <param name="table">Compiled Huffman spec values.</param>
-        /// <param name="runLength">The number of copies to encode.</param>
+        /// <param name="runLength">The number of preceding zeroes, preshifted by 4 to the left.</param>
         /// <param name="value">The value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuffRLE(int[] table, int runLength, int value)
         {
+            DebugGuard.IsTrue((runLength & 0xf) == 0, $"{nameof(runLength)} parameter must be shifted to the left by 4 bits");
+
             int a = value;
             int b = value;
             if (a < 0)
@@ -517,7 +522,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int valueLen = GetHuffmanEncodingLength((uint)a);
 
             // Huffman prefix code
-            int huffPackage = table[(runLength << 4) | valueLen];
+            int huffPackage = table[runLength | valueLen];
             int prefixLen = huffPackage & 0xff;
             uint prefix = (uint)huffPackage & 0xffff_0000u;
 

@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return values;
         }
 
-        protected override void RegisterExtLoader(uint offset, Action loader) => this.loaders.Add(loader);
+        protected override void RegisterExtLoader(ulong offset, Action loader) => this.loaders.Add(loader);
 
         private void GetThumbnail(uint offset)
         {
@@ -87,6 +87,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
     internal abstract class BaseExifReader
     {
         private readonly byte[] offsetBuffer = new byte[4];
+        private readonly byte[] offsetBuffer8 = new byte[8];
+        private readonly byte[] buf8 = new byte[8];
         private readonly byte[] buf4 = new byte[4];
         private readonly byte[] buf2 = new byte[2];
 
@@ -119,7 +121,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public bool IsBigEndian { get; protected set; }
 
-        protected abstract void RegisterExtLoader(uint offset, Action loader);
+        protected abstract void RegisterExtLoader(ulong offset, Action loader);
 
         /// <summary>
         /// Reads the values to the values collection.
@@ -155,6 +157,35 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
+        protected void ReadValues64(List<IExifValue> values, ulong offset)
+        {
+            if (offset > (ulong)this.data.Length)
+            {
+                return;
+            }
+
+            this.Seek(offset);
+            ulong count = this.ReadUInt64();
+
+            for (ulong i = 0; i < count; i++)
+            {
+                this.ReadValue64(values);
+            }
+        }
+
+        protected void ReadSubIfd64(List<IExifValue> values)
+        {
+            if (this.exifOffset != 0)
+            {
+                this.ReadValues64(values, this.exifOffset);
+            }
+
+            if (this.gpsOffset != 0)
+            {
+                this.ReadValues64(values, this.gpsOffset);
+            }
+        }
+
         private static TDataType[] ToArray<TDataType>(ExifDataType dataType, ReadOnlySpan<byte> data, ConverterMethod<TDataType> converter)
         {
             int dataTypeSize = (int)ExifDataTypes.GetSize(dataType);
@@ -186,7 +217,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return Encoding.UTF8.GetString(buffer);
         }
 
-        private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, uint numberOfComponents)
+        private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, ulong numberOfComponents)
         {
             if (buffer.Length == 0)
             {
@@ -269,6 +300,20 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToSingle);
+                case ExifDataType.Long8:
+                    if (numberOfComponents == 1)
+                    {
+                        return this.ConvertToUInt64(buffer);
+                    }
+
+                    return ToArray(dataType, buffer, this.ConvertToUInt64);
+                case ExifDataType.SignedLong8:
+                    if (numberOfComponents == 1)
+                    {
+                        return this.ConvertToInt64(buffer);
+                    }
+
+                    return ToArray(dataType, buffer, this.ConvertToUInt64);
                 case ExifDataType.Undefined:
                     if (numberOfComponents == 1)
                     {
@@ -349,6 +394,69 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
+        private void ReadValue64(List<IExifValue> values)
+        {
+            if ((this.data.Length - this.data.Position) < 20)
+            {
+                return;
+            }
+
+            var tag = (ExifTagValue)this.ReadUInt16();
+            ExifDataType dataType = EnumUtils.Parse(this.ReadUInt16(), ExifDataType.Unknown);
+
+            ulong numberOfComponents = this.ReadUInt64();
+
+            this.TryReadSpan(this.offsetBuffer8);
+
+            if (dataType == ExifDataType.Unknown)
+            {
+                return;
+            }
+
+            if (dataType == ExifDataType.Undefined && numberOfComponents == 0)
+            {
+                numberOfComponents = 8;
+            }
+
+            // The StripOffsets, StripByteCounts, TileOffsets, and TileByteCounts tags are allowed to have the datatype TIFF_LONG8 in BigTIFF.
+            // Old datatypes TIFF_LONG, and TIFF_SHORT where allowed in the TIFF 6.0 specification, are still valid in BigTIFF, too.
+            // https://www.awaresystems.be/imaging/tiff/bigtiff.html
+            ExifValue exifValue = exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
+
+            if (exifValue is null)
+            {
+                this.AddInvalidTag(new UnkownExifTag(tag));
+                return;
+            }
+
+            ulong size = numberOfComponents * ExifDataTypes.GetSize(dataType);
+            if (size > 8)
+            {
+                ulong newOffset = this.ConvertToUInt64(this.offsetBuffer8);
+                if (newOffset > ulong.MaxValue || (newOffset + size) > (ulong)this.data.Length)
+                {
+                    this.AddInvalidTag(new UnkownExifTag(tag));
+                    return;
+                }
+
+                this.RegisterExtLoader(newOffset, () =>
+                {
+                    byte[] dataBuffer = new byte[size];
+                    this.Seek(newOffset);
+                    if (this.TryReadSpan(dataBuffer))
+                    {
+                        object value = this.ConvertValue(dataType, dataBuffer, numberOfComponents);
+                        this.Add(values, exifValue, value);
+                    }
+                });
+            }
+            else
+            {
+                object value = this.ConvertValue(dataType, ((Span<byte>)this.offsetBuffer8).Slice(0, (int)size), numberOfComponents);
+                this.Add(values, exifValue, value);
+            }
+        }
+
         private void Add(IList<IExifValue> values, IExifValue exif, object value)
         {
             if (!exif.TrySetValue(value))
@@ -383,8 +491,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private void AddInvalidTag(ExifTag tag)
             => (this.invalidTags ??= new List<ExifTag>()).Add(tag);
 
-        private void Seek(long pos)
-            => this.data.Seek(pos, SeekOrigin.Begin);
+        private void Seek(ulong pos)
+            => this.data.Seek((long)pos, SeekOrigin.Begin);
 
         private bool TryReadSpan(Span<byte> span)
         {
@@ -398,6 +506,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return read == length;
         }
 
+        protected ulong ReadUInt64() =>
+            this.TryReadSpan(this.buf8)
+                ? this.ConvertToUInt64(this.buf8)
+                : default;
+
         // Known as Long in Exif Specification.
         protected uint ReadUInt32() =>
             this.TryReadSpan(this.buf4)
@@ -407,6 +520,30 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         protected ushort ReadUInt16() => this.TryReadSpan(this.buf2)
                 ? this.ConvertToShort(this.buf2)
                 : default;
+
+        private long ConvertToInt64(ReadOnlySpan<byte> buffer)
+        {
+            if (buffer.Length < 8)
+            {
+                return default;
+            }
+
+            return this.IsBigEndian
+                ? BinaryPrimitives.ReadInt64BigEndian(buffer)
+                : BinaryPrimitives.ReadInt64LittleEndian(buffer);
+        }
+
+        private ulong ConvertToUInt64(ReadOnlySpan<byte> buffer)
+        {
+            if (buffer.Length < 8)
+            {
+                return default;
+            }
+
+            return this.IsBigEndian
+                ? BinaryPrimitives.ReadUInt64BigEndian(buffer)
+                : BinaryPrimitives.ReadUInt64LittleEndian(buffer);
+        }
 
         private double ConvertToDouble(ReadOnlySpan<byte> buffer)
         {

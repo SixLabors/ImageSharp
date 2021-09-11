@@ -226,6 +226,38 @@ namespace SixLabors.ImageSharp
             return value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong Clamp(ulong value, ulong min, ulong max)
+        {
+            if (value > max)
+            {
+                return max;
+            }
+
+            if (value < min)
+            {
+                return min;
+            }
+
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long Clamp(long value, long min, long max)
+        {
+            if (value > max)
+            {
+                return max;
+            }
+
+            if (value < min)
+            {
+                return min;
+            }
+
+            return value;
+        }
+
         /// <summary>
         /// Returns the value clamped to the inclusive range of min and max.
         /// </summary>

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public static ExifValue Create(ExifTag tag) => (ExifValue)CreateValue((ExifTagValue)(ushort)tag);
 
-        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, uint numberOfComponents) => Create(tag, dataType, numberOfComponents != 1);
+        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, ulong numberOfComponents) => Create(tag, dataType, numberOfComponents != 1);
 
         public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, bool isArray)
         {
@@ -19,10 +19,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.DoubleFloat: return isArray ? (ExifValue)new ExifDoubleArray(tag) : new ExifDouble(tag);
                 case ExifDataType.SingleFloat: return isArray ? (ExifValue)new ExifFloatArray(tag) : new ExifFloat(tag);
                 case ExifDataType.Long: return isArray ? (ExifValue)new ExifLongArray(tag) : new ExifLong(tag);
+                case ExifDataType.Long8: return isArray ? (ExifValue)new ExifLong8Array(tag) : new ExifLong8(tag);
                 case ExifDataType.Rational: return isArray ? (ExifValue)new ExifRationalArray(tag) : new ExifRational(tag);
                 case ExifDataType.Short: return isArray ? (ExifValue)new ExifShortArray(tag) : new ExifShort(tag);
                 case ExifDataType.SignedByte: return isArray ? (ExifValue)new ExifSignedByteArray(tag) : new ExifSignedByte(tag);
                 case ExifDataType.SignedLong: return isArray ? (ExifValue)new ExifSignedLongArray(tag) : new ExifSignedLong(tag);
+                case ExifDataType.SignedLong8: return isArray ? (ExifValue)new ExifSignedLong8Array(tag) : new ExifSignedLong8(tag);
                 case ExifDataType.SignedRational: return isArray ? (ExifValue)new ExifSignedRationalArray(tag) : new ExifSignedRational(tag);
                 case ExifDataType.SignedShort: return isArray ? (ExifValue)new ExifSignedShortArray(tag) : new ExifSignedShort(tag);
                 case ExifDataType.Ascii: return new ExifString(tag);

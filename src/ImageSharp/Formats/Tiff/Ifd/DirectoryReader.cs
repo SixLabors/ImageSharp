@@ -16,11 +16,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     {
         private readonly Stream stream;
 
-        private uint nextIfdOffset;
+        private ulong nextIfdOffset;
 
         // used for sequential read big values (actual for multiframe big files)
         // todo: different tags can link to the same data (stream offset) - investigate
-        private readonly SortedList<uint, Action> lazyLoaders = new SortedList<uint, Action>(new DuplicateKeyComparer<uint>());
+        private readonly SortedList<ulong, Action> lazyLoaders = new SortedList<ulong, Action>(new DuplicateKeyComparer<ulong>());
 
         public DirectoryReader(Stream stream) => this.stream = stream;
 
@@ -36,13 +36,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public IEnumerable<ExifProfile> Read()
         {
             this.ByteOrder = ReadByteOrder(this.stream);
-            this.nextIfdOffset = new HeaderReader(this.stream, this.ByteOrder).ReadFileHeader();
-            return this.ReadIfds();
+            var headerReader = new HeaderReader(this.stream, this.ByteOrder);
+            headerReader.ReadFileHeader();
+
+            this.nextIfdOffset = headerReader.FirstIfdOffset;
+
+            return this.ReadIfds(headerReader.IsBigTiff);
         }
 
         private static ByteOrder ReadByteOrder(Stream stream)
         {
-            var headerBytes = new byte[2];
+            byte[] headerBytes = new byte[2];
             stream.Read(headerBytes, 0, 2);
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
             {
@@ -56,13 +60,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             throw TiffThrowHelper.ThrowInvalidHeader();
         }
 
-        private IEnumerable<ExifProfile> ReadIfds()
+        private IEnumerable<ExifProfile> ReadIfds(bool isBigTiff)
         {
             var readers = new List<EntryReader>();
-            while (this.nextIfdOffset != 0 && this.nextIfdOffset < this.stream.Length)
+            while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
             {
-                var reader = new EntryReader(this.stream, this.ByteOrder, this.nextIfdOffset, this.lazyLoaders);
-                reader.ReadTags();
+                var reader = new EntryReader(this.stream, this.ByteOrder, this.lazyLoaders);
+                reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
                 this.nextIfdOffset = reader.NextIfdOffset;
 
@@ -75,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 loader();
             }
 
-            var list = new List<ExifProfile>();
+            var list = new List<ExifProfile>(readers.Count);
             foreach (EntryReader reader in readers)
             {
                 var profile = new ExifProfile(reader.Values, reader.InvalidTags);

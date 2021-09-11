@@ -35,17 +35,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <param name="stripByteCount">The number of bytes to read from the input stream.</param>
         /// <param name="stripHeight">The height of the strip.</param>
         /// <param name="buffer">The output buffer for uncompressed data.</param>
-        public void Decompress(BufferedReadStream stream, uint stripOffset, uint stripByteCount, int stripHeight, Span<byte> buffer)
+        public void Decompress(BufferedReadStream stream, ulong stripOffset, ulong stripByteCount, int stripHeight, Span<byte> buffer)
         {
-            if (stripByteCount > int.MaxValue)
+            if (stripOffset > long.MaxValue || stripByteCount > long.MaxValue)
             {
-                TiffThrowHelper.ThrowImageFormatException("The StripByteCount value is too big.");
+                TiffThrowHelper.ThrowImageFormatException("The StripOffset or StripByteCount value is too big.");
             }
 
-            stream.Seek(stripOffset, SeekOrigin.Begin);
+            stream.Seek((long)stripOffset, SeekOrigin.Begin);
             this.Decompress(stream, (int)stripByteCount, stripHeight, buffer);
 
-            if (stripOffset + stripByteCount < stream.Position)
+            if ((long)stripOffset + (long)stripByteCount < stream.Position)
             {
                 TiffThrowHelper.ThrowImageFormatException("Out of range when reading a strip.");
             }

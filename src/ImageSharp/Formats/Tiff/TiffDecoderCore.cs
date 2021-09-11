@@ -432,6 +432,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageWidth");
             }
 
+            if (((ulong)width.Value) > int.MaxValue)
+            {
+                TiffThrowHelper.ThrowImageFormatException("Too big ImageWidth value");
+            }
+
             return (int)width.Value;
         }
 

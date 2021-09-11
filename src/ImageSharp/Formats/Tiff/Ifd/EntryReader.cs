@@ -12,31 +12,38 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 {
     internal class EntryReader : BaseExifReader
     {
-        private readonly uint startOffset;
+        private readonly SortedList<ulong, Action> lazyLoaders;
 
-        private readonly SortedList<uint, Action> lazyLoaders;
-
-        public EntryReader(Stream stream, ByteOrder byteOrder, uint ifdOffset, SortedList<uint, Action> lazyLoaders)
+        public EntryReader(Stream stream, ByteOrder byteOrder, SortedList<ulong, Action> lazyLoaders)
             : base(stream)
         {
             this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
-            this.startOffset = ifdOffset;
             this.lazyLoaders = lazyLoaders;
         }
 
         public List<IExifValue> Values { get; } = new List<IExifValue>();
 
-        public uint NextIfdOffset { get; private set; }
+        public ulong NextIfdOffset { get; private set; }
 
-        public void ReadTags()
+        public void ReadTags(bool isBigTiff, ulong ifdOffset)
         {
-            this.ReadValues(this.Values, this.startOffset);
-            this.NextIfdOffset = this.ReadUInt32();
+            if (!isBigTiff)
+            {
+                this.ReadValues(this.Values, (uint)ifdOffset);
+                this.NextIfdOffset = this.ReadUInt32();
 
-            this.ReadSubIfd(this.Values);
+                this.ReadSubIfd(this.Values);
+            }
+            else
+            {
+                this.ReadValues64(this.Values, ifdOffset);
+                this.NextIfdOffset = this.ReadUInt64();
+
+                this.ReadSubIfd64(this.Values);
+            }
         }
 
-        protected override void RegisterExtLoader(uint offset, Action reader) =>
+        protected override void RegisterExtLoader(ulong offset, Action reader) =>
             this.lazyLoaders.Add(offset, reader);
     }
 
@@ -46,20 +53,35 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             : base(stream) =>
             this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
 
-        public uint FirstIfdOffset { get; private set; }
+        public bool IsBigTiff { get; private set; }
 
-        public uint ReadFileHeader()
+        public ulong FirstIfdOffset { get; private set; }
+
+        public void ReadFileHeader()
         {
             ushort magic = this.ReadUInt16();
-            if (magic != TiffConstants.HeaderMagicNumber)
+            if (magic == TiffConstants.HeaderMagicNumber)
             {
-                TiffThrowHelper.ThrowInvalidHeader();
+                this.IsBigTiff = false;
+                this.FirstIfdOffset = this.ReadUInt32();
+                return;
+            }
+            else if (magic == TiffConstants.BigTiffHeaderMagicNumber)
+            {
+                this.IsBigTiff = true;
+
+                ushort bytesize = this.ReadUInt16();
+                ushort reserve = this.ReadUInt16();
+                if (bytesize == TiffConstants.BigTiffBytesize && reserve == 0)
+                {
+                    this.FirstIfdOffset = this.ReadUInt64();
+                    return;
+                }
             }
 
-            this.FirstIfdOffset = this.ReadUInt32();
-            return this.FirstIfdOffset;
+            TiffThrowHelper.ThrowInvalidHeader();
         }
 
-        protected override void RegisterExtLoader(uint offset, Action reader) => throw new NotSupportedException();
+        protected override void RegisterExtLoader(ulong offset, Action reader) => throw new NotSupportedException();
     }
 }

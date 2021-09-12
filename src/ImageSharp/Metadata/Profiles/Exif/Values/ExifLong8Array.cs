@@ -77,7 +77,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public override IExifValue DeepClone() => new ExifLong8Array(this);
 
-
         private bool SetSingle(ulong value)
         {
             this.Value = new[] { value };

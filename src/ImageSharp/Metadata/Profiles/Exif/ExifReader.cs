@@ -438,12 +438,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.TileByteCounts:
                     exifValue = new ExifLong8Array(ExifTagValue.TileByteCounts);
                     break;
-                //case ExifTagValue.SubIFDOffset:
-                //    exifValue = new ExifLong8Array(ExifTagValue.SubIFDOffset);
-                //    break;
-                //case ExifTagValue.GPSIFDOffset:
-                //    exifValue = new ExifLong8Array(ExifTagValue.GPSIFDOffset);
-                //    break;
+                ////case ExifTagValue.SubIFDOffset:
+                ////    exifValue = new ExifLong8Array(ExifTagValue.SubIFDOffset);
+                ////    break;
+                ////case ExifTagValue.GPSIFDOffset:
+                ////    exifValue = new ExifLong8Array(ExifTagValue.GPSIFDOffset);
+                ////    break;
                 default:
                     exifValue = exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
                     break;

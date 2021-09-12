@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffImageFormatDetector"/> class.
         /// </summary>
-        /// <param name="isBigTiff">if set to <c>true</c> [is big tiff].</param>
+        /// <param name="isBigTiff">if set to <c>true</c> is BigTiff.</param>
         public TiffImageFormatDetector(bool isBigTiff) => this.isBigTiff = isBigTiff;
 
         /// <inheritdoc/>
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 if (header[0] == 0x49 && header[1] == 0x49)
                 {
                     // Little-endian
-                    if (!this.isBigTiff)
+                    if (this.isBigTiff is false)
                     {
                         if (header[2] == 0x2A && header[3] == 0x00)
                         {
@@ -48,7 +48,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        if (header[2] == 0x2B && header[3] == 0x00 && header[4] == 8 && header[5] == 0 && header[6] == 0 && header[7] == 0)
+                        if (header[2] == 0x2B && header[3] == 0x00
+                            && header[4] == 8 && header[5] == 0 && header[6] == 0 && header[7] == 0)
                         {
                             return true;
                         }
@@ -57,12 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 else if (header[0] == 0x4D && header[1] == 0x4D)
                 {
                     // Big-endian
-                    if (header[2] == 0x00 && (header[3] == 0x2A || header[3] == 0x2B))
-                    {
-                        return true;
-                    }
-
-                    if (!this.isBigTiff)
+                    if (this.isBigTiff is false)
                     {
                         if (header[2] == 0 && header[3] == 0x2A)
                         {
@@ -71,7 +67,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        if (header[2] == 0 && header[3] == 0x2A && header[4] == 0 && header[5] == 8 && header[6] == 0 && header[7] == 0)
+                        if (header[2] == 0 && header[3] == 0x2B
+                            && header[4] == 0 && header[5] == 8 && header[6] == 0 && header[7] == 0)
                         {
                             return true;
                         }

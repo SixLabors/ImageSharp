@@ -14,19 +14,19 @@ namespace SixLabors.ImageSharp
     public struct Number : IEquatable<Number>, IComparable<Number>
     {
         [FieldOffset(0)]
-        private readonly long signedValue;
+        private readonly int signedValue;
 
         [FieldOffset(0)]
-        private readonly ulong unsignedValue;
+        private readonly uint unsignedValue;
 
-        [FieldOffset(8)]
+        [FieldOffset(4)]
         private readonly bool isSigned;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Number"/> struct.
         /// </summary>
         /// <param name="value">The value of the number.</param>
-        public Number(long value)
+        public Number(int value)
             : this()
         {
             this.signedValue = value;
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp
         /// Initializes a new instance of the <see cref="Number"/> struct.
         /// </summary>
         /// <param name="value">The value of the number.</param>
-        public Number(ulong value)
+        public Number(uint value)
             : this()
         {
             this.unsignedValue = value;
@@ -45,62 +45,22 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Converts the specified <see cref="long"/> to an instance of this type.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        public static implicit operator Number(long value) => new Number(value);
-
-        /// <summary>
-        /// Converts the specified <see cref="ulong"/> to an instance of this type.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        public static implicit operator Number(ulong value) => new Number(value);
-
-        /// <summary>
         /// Converts the specified <see cref="int"/> to an instance of this type.
         /// </summary>
         /// <param name="value">The value.</param>
-        public static implicit operator Number(int value) => new Number((long)value);
+        public static implicit operator Number(int value) => new Number(value);
 
         /// <summary>
         /// Converts the specified <see cref="uint"/> to an instance of this type.
         /// </summary>
         /// <param name="value">The value.</param>
-        public static implicit operator Number(uint value) => new Number((ulong)value);
-
-        /// <summary>
-        /// Converts the specified <see cref="short"/> to an instance of this type.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        public static implicit operator Number(short value) => new Number((long)value);
+        public static implicit operator Number(uint value) => new Number(value);
 
         /// <summary>
         /// Converts the specified <see cref="ushort"/> to an instance of this type.
         /// </summary>
         /// <param name="value">The value.</param>
-        public static implicit operator Number(ushort value) => new Number((ulong)value);
-
-        /// <summary>
-        /// Converts the specified <see cref="long"/> to an instance of this type.
-        /// </summary>
-        /// <param name="number">The <see cref="Number"/> to convert.</param>
-        public static explicit operator long(Number number)
-        {
-            return number.isSigned
-                ? number.signedValue
-                : (long)Numerics.Clamp(number.unsignedValue, 0, long.MaxValue);
-        }
-
-        /// <summary>
-        /// Converts the specified <see cref="ulong"/> to an instance of this type.
-        /// </summary>
-        /// <param name="number">The <see cref="Number"/> to convert.</param>
-        public static explicit operator ulong(Number number)
-        {
-            return number.isSigned
-                ? (ulong)Numerics.Clamp(number.signedValue, 0, long.MaxValue)
-                : number.unsignedValue;
-        }
+        public static implicit operator Number(ushort value) => new Number((uint)value);
 
         /// <summary>
         /// Converts the specified <see cref="Number"/> to a <see cref="int"/>.
@@ -109,8 +69,8 @@ namespace SixLabors.ImageSharp
         public static explicit operator int(Number number)
         {
             return number.isSigned
-                ? (int)Numerics.Clamp(number.signedValue, int.MinValue, int.MaxValue)
-                : (int)Numerics.Clamp(number.unsignedValue, 0, (uint)int.MaxValue);
+                ? number.signedValue
+                : (int)Numerics.Clamp(number.unsignedValue, 0, int.MaxValue);
         }
 
         /// <summary>
@@ -120,19 +80,8 @@ namespace SixLabors.ImageSharp
         public static explicit operator uint(Number number)
         {
             return number.isSigned
-                ? (uint)Numerics.Clamp(number.signedValue, uint.MinValue, uint.MaxValue)
-                : (uint)Numerics.Clamp(number.unsignedValue, uint.MinValue, uint.MaxValue);
-        }
-
-        /// <summary>
-        /// Converts the specified <see cref="Number"/> to a <see cref="short"/>.
-        /// </summary>
-        /// <param name="number">The <see cref="Number"/> to convert.</param>
-        public static explicit operator short(Number number)
-        {
-            return number.isSigned
-                ? (short)Numerics.Clamp(number.signedValue, short.MinValue, short.MaxValue)
-                : (short)Numerics.Clamp(number.unsignedValue, 0, (ushort)short.MaxValue);
+                ? (uint)Numerics.Clamp(number.signedValue, 0, int.MaxValue)
+                : number.unsignedValue;
         }
 
         /// <summary>

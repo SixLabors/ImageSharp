@@ -26,11 +26,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 for (int i = 0; i < this.Value.Length; i++)
                 {
-                    if (this.Value[i] > uint.MaxValue)
-                    {
-                        return ExifDataType.Long8;
-                    }
-
                     if (this.Value[i] > ushort.MaxValue)
                     {
                         return ExifDataType.Long;
@@ -50,10 +45,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             switch (value)
             {
-                case long val:
-                    return this.SetSingle(val);
-                case ulong val:
-                    return this.SetSingle(val);
                 case int val:
                     return this.SetSingle(val);
                 case uint val:
@@ -62,10 +53,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return this.SetSingle(val);
                 case ushort val:
                     return this.SetSingle(val);
-                case long[] array:
-                    return this.SetArray(array);
-                case ulong[] array:
-                    return this.SetArray(array);
                 case int[] array:
                     return this.SetArray(array);
                 case uint[] array:
@@ -84,30 +71,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private bool SetSingle(Number value)
         {
             this.Value = new[] { value };
-            return true;
-        }
-
-        private bool SetArray(long[] values)
-        {
-            var numbers = new Number[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = values[i];
-            }
-
-            this.Value = numbers;
-            return true;
-        }
-
-        private bool SetArray(ulong[] values)
-        {
-            var numbers = new Number[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = values[i];
-            }
-
-            this.Value = numbers;
             return true;
         }
 

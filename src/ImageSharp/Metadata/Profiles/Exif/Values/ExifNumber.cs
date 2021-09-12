@@ -21,11 +21,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         {
             get
             {
-                if (this.Value > uint.MaxValue)
-                {
-                    return ExifDataType.Long8;
-                }
-
                 if (this.Value > ushort.MaxValue)
                 {
                     return ExifDataType.Long;
@@ -46,18 +41,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             switch (value)
             {
-                case long longValue:
-                    if (longValue >= 0)
-                    {
-                        this.Value = (ulong)longValue;
-                        return true;
-                    }
-
-                    return false;
-                case ulong ulongValue:
-                    this.Value = ulongValue;
-
-                    return true;
                 case int intValue:
                     if (intValue >= uint.MinValue)
                     {

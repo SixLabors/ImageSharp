@@ -42,6 +42,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private ByteOrder byteOrder;
 
         /// <summary>
+        /// Indicating whether is BigTiff format.
+        /// </summary>
+        private bool isBigTiff;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -145,6 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             IEnumerable<ExifProfile> directories = reader.Read();
             this.byteOrder = reader.ByteOrder;
+            this.isBigTiff = reader.IsBigTiff;
 
             var frames = new List<ImageFrame<TPixel>>();
             foreach (ExifProfile ifd in directories)
@@ -211,16 +217,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var frame = new ImageFrame<TPixel>(this.Configuration, width, height, imageFrameMetaData);
 
             int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
-            ExifLong8Array stripOffsets = tags.GetValueInternal(ExifTag.StripOffsets) as ExifLong8Array;
-            ExifLong8Array stripByteCounts = tags.GetValueInternal(ExifTag.StripByteCounts) as ExifLong8Array;
 
-            if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
+            ulong[] stripOffsets;
+            ulong[] stripByteCounts;
+            if (this.isBigTiff)
             {
-                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets.Value, stripByteCounts.Value, cancellationToken);
+                stripOffsets = tags.GetValueInternal(ExifTag.StripOffsets)?.GetValue() as ulong[];
+                stripByteCounts = tags.GetValueInternal(ExifTag.StripByteCounts)?.GetValue() as ulong[];
             }
             else
             {
-                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets.Value, stripByteCounts.Value, cancellationToken);
+                stripOffsets = tags.GetValue(ExifTag.StripOffsets)?.Value.Select(s => (ulong)(uint)s).ToArray();
+                stripByteCounts = tags.GetValue(ExifTag.StripByteCounts)?.Value.Select(s => (ulong)(uint)s).ToArray();
+            }
+
+            if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
+            {
+                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
+            }
+            else
+            {
+                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
             }
 
             return frame;

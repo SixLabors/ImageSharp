@@ -561,13 +561,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// this method endianness dependent.
         /// </remarks>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void FlushToStream()
+        private void FlushToStream(int endIndex)
         {
             Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
 
             int writeIdx = 0;
             int startIndex = emitBytes.Length - 1;
-            int endIndex = this.emitWriteIndex * sizeof(uint);
 
             // Some platforms may fail to eliminate this if-else branching
             // Even if it happens - buffer is flushed in big packs,
@@ -621,28 +620,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 
             this.target.Write(this.streamWriteBuffer, 0, writeIdx);
+        }
+
+        private void FlushToStream()
+        {
+            this.FlushToStream(this.emitWriteIndex * 4);
             this.emitWriteIndex = this.emitBuffer.Length;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private void FlushRemainingBytes()
         {
-            // Flush full 4-byte blocks
-            this.FlushToStream();
-
             // Padding all 4 bytes with 1's while not corrupting initial bits stored in accumulatedBits
             // And writing only valuable count of bytes count we want to write to the output stream
             int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
             uint packedBytes = this.accumulatedBits | (uint.MaxValue >> this.bitCount);
+            this.emitBuffer[--this.emitWriteIndex] = packedBytes;
 
-            Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
-            for (int i = 0; i < valuableBytesCount; i++)
-            {
-                emitBytes[i] = (byte)((packedBytes >> ((3 - i) * 8)) & 0xff);
-            }
-
-            // Flush remaining 'tail' bytes
-            this.target.Write(emitBytes, 0, valuableBytesCount);
+            // Flush cached bytes to the output stream with padding bits
+            this.FlushToStream((this.emitWriteIndex * 4) - 4 + valuableBytesCount);
         }
     }
 }

@@ -2,9 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -121,24 +118,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             public void IDCT8x8_Avx(int seed)
             {
 #if SUPPORTS_RUNTIME_INTRINSICS
-                var skip = !Avx.IsSupported;
-#else
-                var skip = true;
-#endif
-
-                if (skip)
+                if (!Avx.IsSupported)
                 {
                     this.Output.WriteLine("No AVX present, skipping test!");
-                    return;
                 }
 
                 Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
-                var srcBlock = default(Block8x8F);
+                Block8x8F srcBlock = default;
                 srcBlock.LoadFrom(src);
 
-                var destBlock = default(Block8x8F);
+                Block8x8F destBlock = default;
 
-                var expectedDest = new float[64];
+                float[] expectedDest = new float[64];
 
                 // reference, left part
                 ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D8x4_32f(src, expectedDest);
@@ -149,10 +140,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // testee, whole 8x8
                 FastFloatingPointDCT.IDCT8x8_Avx(ref srcBlock, ref destBlock);
 
-                var actualDest = new float[64];
+                float[] actualDest = new float[64];
                 destBlock.ScaledCopyTo(actualDest);
 
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
+#endif
             }
 
             [Theory]

@@ -29,6 +29,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         public ByteOrder ByteOrder { get; private set; }
 
+        public bool IsBigTiff { get; private set; }
+
         /// <summary>
         /// Reads image file directories.
         /// </summary>
@@ -40,6 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             headerReader.ReadFileHeader();
 
             this.nextIfdOffset = headerReader.FirstIfdOffset;
+            this.IsBigTiff = headerReader.IsBigTiff;
 
             return this.ReadIfds(headerReader.IsBigTiff);
         }

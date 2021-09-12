@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 frames.Add(frame);
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.ignoreMetadata, reader.ByteOrder);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.ignoreMetadata, reader.ByteOrder, reader.IsBigTiff);
 
             // TODO: Tiff frames can have different sizes
             ImageFrame<TPixel> root = frames[0];
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ExifProfile rootFrameExifProfile = directories.First();
             var rootMetadata = TiffFrameMetadata.Parse(rootFrameExifProfile);
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(reader.ByteOrder, rootFrameExifProfile);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(reader.ByteOrder, reader.IsBigTiff, rootFrameExifProfile);
             int width = GetImageWidth(rootFrameExifProfile);
             int height = GetImageHeight(rootFrameExifProfile);
 

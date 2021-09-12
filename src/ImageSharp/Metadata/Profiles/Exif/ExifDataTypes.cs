@@ -36,6 +36,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return 4;
                 case ExifDataType.DoubleFloat:
                 case ExifDataType.Rational:
+                case ExifDataType.SignedRational:
                 case ExifDataType.Long8:
                 case ExifDataType.SignedLong8:
                 case ExifDataType.Ifd8:

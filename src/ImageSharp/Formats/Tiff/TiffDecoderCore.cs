@@ -211,16 +211,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var frame = new ImageFrame<TPixel>(this.Configuration, width, height, imageFrameMetaData);
 
             int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
-            Number[] stripOffsets = tags.GetValue(ExifTag.StripOffsets)?.Value;
-            Number[] stripByteCounts = tags.GetValue(ExifTag.StripByteCounts)?.Value;
+            ExifLong8Array stripOffsets = tags.GetValueInternal(ExifTag.StripOffsets) as ExifLong8Array;
+            ExifLong8Array stripByteCounts = tags.GetValueInternal(ExifTag.StripByteCounts) as ExifLong8Array;
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
-                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
+                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets.Value, stripByteCounts.Value, cancellationToken);
             }
             else
             {
-                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
+                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets.Value, stripByteCounts.Value, cancellationToken);
             }
 
             return frame;
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, CancellationToken cancellationToken)
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, ulong[] stripOffsets, ulong[] stripByteCounts, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Channels;
@@ -329,8 +329,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         decompressor.Decompress(
                             this.inputStream,
-                            (uint)stripOffsets[stripIndex],
-                            (uint)stripByteCounts[stripIndex],
+                            stripOffsets[stripIndex],
+                            stripByteCounts[stripIndex],
                             stripHeight,
                             stripBuffers[planeIndex].GetSpan());
                         stripIndex += stripsPerPlane;
@@ -357,7 +357,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stripOffsets">The strip offsets.</param>
         /// <param name="stripByteCounts">The strip byte counts.</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, CancellationToken cancellationToken)
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, ulong[] stripOffsets, ulong[] stripByteCounts, CancellationToken cancellationToken)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             // If the rowsPerStrip has the default value, which is effectively infinity. That is, the entire image is one strip.
@@ -413,7 +413,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
-                decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripHeight, stripBufferSpan);
+                decompressor.Decompress(this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripHeight, stripBufferSpan);
 
                 colorDecoder.Decode(stripBufferSpan, pixels, 0, top, frame.Width, stripHeight);
             }

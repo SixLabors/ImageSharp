@@ -420,8 +420,34 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             // The StripOffsets, StripByteCounts, TileOffsets, and TileByteCounts tags are allowed to have the datatype TIFF_LONG8 in BigTIFF.
             // Old datatypes TIFF_LONG, and TIFF_SHORT where allowed in the TIFF 6.0 specification, are still valid in BigTIFF, too.
+            // Likewise, tags that point to other IFDs, like e.g. the SubIFDs tag, are now allowed to have the datatype TIFF_IFD8 in BigTIFF.
+            // Again, the old datatypes TIFF_IFD, and the hardly recommendable TIFF_LONG, are still valid, too.
             // https://www.awaresystems.be/imaging/tiff/bigtiff.html
-            ExifValue exifValue = exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
+            ExifValue exifValue = null;
+            switch (tag)
+            {
+                case ExifTagValue.StripOffsets:
+                    exifValue = new ExifLong8Array(ExifTagValue.StripOffsets);
+                    break;
+                case ExifTagValue.StripByteCounts:
+                    exifValue = new ExifLong8Array(ExifTagValue.StripByteCounts);
+                    break;
+                case ExifTagValue.TileOffsets:
+                    exifValue = new ExifLong8Array(ExifTagValue.TileOffsets);
+                    break;
+                case ExifTagValue.TileByteCounts:
+                    exifValue = new ExifLong8Array(ExifTagValue.TileByteCounts);
+                    break;
+                //case ExifTagValue.SubIFDOffset:
+                //    exifValue = new ExifLong8Array(ExifTagValue.SubIFDOffset);
+                //    break;
+                //case ExifTagValue.GPSIFDOffset:
+                //    exifValue = new ExifLong8Array(ExifTagValue.GPSIFDOffset);
+                //    break;
+                default:
+                    exifValue = exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
+                    break;
+            }
 
             if (exifValue is null)
             {

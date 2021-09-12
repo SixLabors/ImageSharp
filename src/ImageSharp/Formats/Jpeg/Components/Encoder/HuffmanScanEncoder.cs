@@ -445,21 +445,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             return dc;
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void FlushRemainingBytes()
-        {
-            // Bytes count we want to write to the output stream
-            int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
-
-            // Padding all 4 bytes with 1's while not corrupting initial bits stored in accumulatedBits
-            uint packedBytes = this.accumulatedBits | (uint.MaxValue >> this.bitCount);
-
-            int writeIndex = this.emitWriteIndex;
-            this.emitBuffer[writeIndex - 1] = packedBytes;
-
-            this.FlushToStream((writeIndex * 4) - valuableBytesCount);
-        }
-
         /// <summary>
         /// Emits the least significant count of bits to the stream write buffer.
         /// The precondition is bits
@@ -568,28 +553,96 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 #endif
         }
 
+        /// <summary>
+        /// Flushes cached bytes to the ouput stream respecting stuff bytes.
+        /// </summary>
+        /// <remarks>
+        /// Bytes cached via <see cref="Emit"/> are stored in 4-bytes blocks which makes
+        /// this method endianness dependent.
+        /// </remarks>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void FlushToStream() => this.FlushToStream(this.emitWriteIndex * 4);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void FlushToStream(int endIndex)
+        private void FlushToStream()
         {
             Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
 
             int writeIdx = 0;
             int startIndex = emitBytes.Length - 1;
-            for (int i = startIndex; i >= endIndex; i--)
+            int endIndex = this.emitWriteIndex * sizeof(uint);
+
+            // Some platforms may fail to eliminate this if-else branching
+            // Even if it happens - buffer is flushed in big packs,
+            // branching overhead shouldn't be noticeable
+            if (BitConverter.IsLittleEndian)
             {
-                byte value = emitBytes[i];
-                this.streamWriteBuffer[writeIdx++] = value;
-                if (value == 0xff)
+                // For little endian case bytes are ordered and can be
+                // safely written to the stream with stuff bytes
+                // First byte is cached on the most significant index
+                // so we are going from the end of the array to its beginning:
+                // ... [  double word #1   ] [  double word #0   ]
+                // ... [idx3|idx2|idx1|idx0] [idx3|idx2|idx1|idx0]
+                for (int i = startIndex; i >= endIndex; i--)
                 {
-                    this.streamWriteBuffer[writeIdx++] = 0x00;
+                    byte value = emitBytes[i];
+                    this.streamWriteBuffer[writeIdx++] = value;
+
+                    // Inserting stuff byte
+                    if (value == 0xff)
+                    {
+                        this.streamWriteBuffer[writeIdx++] = 0x00;
+                    }
+                }
+            }
+            else
+            {
+                // For big endian case bytes are ordered in 4-byte packs
+                // which are ordered like bytes in the little endian case by in 4-byte packs:
+                // ... [  double word #1   ] [  double word #0   ]
+                // ... [idx0|idx1|idx2|idx3] [idx0|idx1|idx2|idx3]
+                // So we must write each 4-bytes in 'natural order'
+                for (int i = startIndex; i >= endIndex; i -= 4)
+                {
+                    // This loop is caused by the nature of underlying byte buffer
+                    // implementation and indeed causes performace by somewhat 5%
+                    // compared to little endian scenario
+                    // Even with this performance drop this cached buffer implementation
+                    // is faster than individually writing bytes using binary shifts and binary and(s)
+                    for (int j = i - 3; j <= i; j++)
+                    {
+                        byte value = emitBytes[j];
+                        this.streamWriteBuffer[writeIdx++] = value;
+
+                        // Inserting stuff byte
+                        if (value == 0xff)
+                        {
+                            this.streamWriteBuffer[writeIdx++] = 0x00;
+                        }
+                    }
                 }
             }
 
             this.target.Write(this.streamWriteBuffer, 0, writeIdx);
             this.emitWriteIndex = this.emitBuffer.Length;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void FlushRemainingBytes()
+        {
+            // Flush full 4-byte blocks
+            this.FlushToStream();
+
+            // Padding all 4 bytes with 1's while not corrupting initial bits stored in accumulatedBits
+            // And writing only valuable count of bytes count we want to write to the output stream
+            int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
+            uint packedBytes = this.accumulatedBits | (uint.MaxValue >> this.bitCount);
+
+            Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
+            for (int i = 0; i < valuableBytesCount; i++)
+            {
+                emitBytes[i] = (byte)((packedBytes >> ((3 - i) * 8)) & 0xff);
+            }
+
+            // Flush remaining 'tail' bytes
+            this.target.Write(emitBytes, 0, valuableBytesCount);
         }
     }
 }

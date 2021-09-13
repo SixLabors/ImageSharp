@@ -130,7 +130,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Requires Ssse3 support.
         /// </remarks>
         /// <param name="block">Input matrix.</param>
-        /// <param name="dest">Matrix to store the result. Can be a reference to input matrix.</param>
         public static unsafe void ApplyZigZagOrderingSse(ref Block8x8 block)
         {
             DebugGuard.IsTrue(Ssse3.IsSupported, "Ssse3 support is required to run this operation!");
@@ -232,7 +231,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Requires Avx2 support.
         /// </remarks>
         /// <param name="block">Input matrix.</param>
-        /// <param name="dest">Matrix to store the result. Can be a reference to input matrix.</param>
         public static unsafe void ApplyZigZagOrderingAvx(ref Block8x8 block)
         {
             DebugGuard.IsTrue(Avx2.IsSupported, "Avx2 support is required to run this operation!");

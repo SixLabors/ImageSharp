@@ -4,7 +4,9 @@
 // Uncomment this to turn unit tests into benchmarks:
 // #define BENCHMARKING
 using System;
-using System.Diagnostics;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics.X86;
+#endif
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
@@ -247,30 +249,45 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.CompareBlocks(expected, actual, 0);
         }
 
-        // TODO: intrinsic tests
         [Theory]
         [InlineData(1, 2)]
         [InlineData(2, 1)]
         public void Quantize(int srcSeed, int qtSeed)
         {
-            Block8x8F source = CreateRandomFloatBlock(-2000, 2000, srcSeed);
-            Block8x8F quant = CreateRandomFloatBlock(-2000, 2000, qtSeed);
-
-            // Reference implementation quantizes given block via division
-            Block8x8 expected = default;
-            ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.ZigZagOrder);
-
-            // Actual current implementation quantizes given block via multiplication
-            // With quantization table reciprocal
-            for (int i = 0; i < Block8x8F.Size; i++)
+            static void RunTest(string srcSeedSerialized, string qtSeedSerialized)
             {
-                quant[i] = 1f / quant[i];
+                int srcSeed = FeatureTestRunner.Deserialize<int>(srcSeedSerialized);
+                int qtSeed = FeatureTestRunner.Deserialize<int>(qtSeedSerialized);
+
+                Block8x8F source = CreateRandomFloatBlock(-2000, 2000, srcSeed);
+
+                // Quantization code is used only in jpeg where it's guaranteed that
+                // qunatization valus are greater than 1
+                // Quantize method supports negative numbers by very small numbers can cause troubles
+                Block8x8F quant = CreateRandomFloatBlock(1, 2000, qtSeed);
+
+                // Reference implementation quantizes given block via division
+                Block8x8 expected = default;
+                ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.ZigZagOrder);
+
+                // Actual current implementation quantizes given block via multiplication
+                // With quantization table reciprocal
+                for (int i = 0; i < Block8x8F.Size; i++)
+                {
+                    quant[i] = 1f / quant[i];
+                }
+
+                Block8x8 actual = default;
+                Block8x8F.Quantize(ref source, ref actual, ref quant);
+
+                Assert.True(CompareBlocks(expected, actual, 1, out int diff), $"Blocks are not equal, diff={diff}");
             }
 
-            Block8x8 actual = default;
-            Block8x8F.Quantize(ref source, ref actual, ref quant);
-
-            this.CompareBlocks(expected, actual, 1);
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                srcSeed,
+                qtSeed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
         }
 
         [Fact]

@@ -414,12 +414,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             if (Avx2.IsSupported)
             {
                 MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
-                ZigZag.ApplyZigZagOrderingAvx(ref dest, ref dest);
+                ZigZag.ApplyZigZagOrderingAvx(ref dest);
             }
             else if (Ssse3.IsSupported)
             {
                 MultiplyIntoInt16_Sse2(ref block, ref qt, ref dest);
-                ZigZag.ApplyZigZagOrderingSse(ref dest, ref dest);
+                ZigZag.ApplyZigZagOrderingSse(ref dest);
             }
             else
 #endif

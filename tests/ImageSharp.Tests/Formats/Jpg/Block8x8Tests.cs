@@ -130,9 +130,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 Block8x8 data = default;
 
-                int expected = -1;
+                nint expected = -1;
 
-                int actual = data.GetLastNonZeroIndex();
+                nint actual = data.GetLastNonZeroIndex();
 
                 Assert.Equal(expected, actual);
             }
@@ -153,9 +153,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     data[i] = 10;
                 }
 
-                int expected = Block8x8.Size - 1;
+                nint expected = Block8x8.Size - 1;
 
-                int actual = data.GetLastNonZeroIndex();
+                nint actual = data.GetLastNonZeroIndex();
 
                 Assert.Equal(expected, actual);
             }
@@ -182,9 +182,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     int setIndex = rng.Next(1, Block8x8.Size);
                     data[setIndex] = (short)rng.Next(-2000, 2000);
 
-                    int expected = setIndex;
+                    nint expected = setIndex;
 
-                    int actual = data.GetLastNonZeroIndex();
+                    nint actual = data.GetLastNonZeroIndex();
 
                     Assert.Equal(expected, actual);
                 }
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = lastIndex;
 
-                    int actual = data.GetLastNonZeroIndex();
+                    nint actual = data.GetLastNonZeroIndex();
 
                     Assert.Equal(expected, actual);
                 }
@@ -265,7 +265,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                     int expected = secondChunkEnd;
 
-                    int actual = data.GetLastNonZeroIndex();
+                    nint actual = data.GetLastNonZeroIndex();
 
                     Assert.True(expected == actual, $"Expected: {expected}\nActual: {actual}\nInput matrix: {data}");
                 }

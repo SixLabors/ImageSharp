@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 #pragma warning restore SA1309
 
         /// <summary>
-        /// Gets shuffle vectors for <see cref="ApplyZigZagOrderingSse"/>
+        /// Gets shuffle vectors for <see cref="ApplyZigZagOrderingSsse3"/>
         /// zig zag implementation.
         /// </summary>
         private static ReadOnlySpan<byte> SseShuffleMasks => new byte[]
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         };
 
         /// <summary>
-        /// Gets shuffle vectors for <see cref="ApplyZigZagOrderingAvx"/>
+        /// Gets shuffle vectors for <see cref="ApplyZigZagOrderingAvx2"/>
         /// zig zag implementation.
         /// </summary>
         private static ReadOnlySpan<byte> AvxShuffleMasks => new byte[]
@@ -126,11 +126,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Applies zig zag ordering for given 8x8 matrix using SSE cpu intrinsics.
         /// </summary>
-        /// <remarks>
-        /// Requires Ssse3 support.
-        /// </remarks>
         /// <param name="block">Input matrix.</param>
-        public static unsafe void ApplyZigZagOrderingSse(ref Block8x8 block)
+        public static unsafe void ApplyZigZagOrderingSsse3(ref Block8x8 block)
         {
             DebugGuard.IsTrue(Ssse3.IsSupported, "Ssse3 support is required to run this operation!");
 
@@ -227,11 +224,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Applies zig zag ordering for given 8x8 matrix using AVX cpu intrinsics.
         /// </summary>
-        /// <remarks>
-        /// Requires Avx2 support.
-        /// </remarks>
         /// <param name="block">Input matrix.</param>
-        public static unsafe void ApplyZigZagOrderingAvx(ref Block8x8 block)
+        public static unsafe void ApplyZigZagOrderingAvx2(ref Block8x8 block)
         {
             DebugGuard.IsTrue(Avx2.IsSupported, "Avx2 support is required to run this operation!");
 

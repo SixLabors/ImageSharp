@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             ref Vector256<short> destRef = ref dest.V01;
 
-            for (int i = 0; i < 8; i += 2)
+            for (nint i = 0; i < 8; i += 2)
             {
                 Vector256<int> row0 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 0), Unsafe.Add(ref bBase, i + 0)));
                 Vector256<int> row1 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 Vector256<short> row = Avx2.PackSignedSaturate(row0, row1);
                 row = Avx2.PermuteVar8x32(row.AsInt32(), MultiplyIntoInt16ShuffleMask).AsInt16();
 
-                Unsafe.Add(ref destRef, i / 2) = row;
+                Unsafe.Add(ref destRef, (IntPtr)((uint)i / 2)) = row;
             }
         }
 
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 Vector128<int> right = Sse2.ConvertToVector128Int32(Sse.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
 
                 Vector128<short> row = Sse2.PackSignedSaturate(left, right);
-                Unsafe.Add(ref destBase, i / 2) = row;
+                Unsafe.Add(ref destBase, (IntPtr)((uint)i / 2)) = row;
             }
         }
 

@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Values are also scaled by 8 so DCT code won't do unnecessary division.
         /// </para>
         /// </remarks>
-        public static ReadOnlySpan<float> DctReciprocalAdjustmentCoefficients => new float[]
+        public static readonly float[] DctReciprocalAdjustmentCoefficients = new float[]
         {
             0.125f, 0.09011998f, 0.09567086f, 0.10630376f, 0.125f, 0.15909483f, 0.23096988f, 0.45306373f,
             0.09011998f, 0.064972885f, 0.068974845f, 0.07664074f, 0.09011998f, 0.11470097f, 0.16652f, 0.32664075f,
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public static void TransformFDCT(ref Block8x8F block)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx.IsSupported || Sse.IsSupported)
+            if (Sse.IsSupported)
             {
                 ForwardTransformSimd(ref block);
             }

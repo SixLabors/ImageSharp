@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private bool IsFlushNeeded
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.emitWriteIndex < this.emitBuffer.Length / 2;
+            get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
         }
 
         /// <summary>
@@ -408,15 +408,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Emit the AC components.
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
-            int lastValuableIndex = spectralBlock.GetLastNonZeroIndex();
+            nint lastValuableIndex = spectralBlock.GetLastNonZeroIndex();
 
             int runLength = 0;
-            for (int zig = 1; zig <= lastValuableIndex; zig++)
+            ref short blockRef = ref Unsafe.As<Block8x8, short>(ref spectralBlock);
+            for (nint zig = 1; zig <= lastValuableIndex; zig++)
             {
                 const int zeroRun1 = 1 << 4;
                 const int zeroRun16 = 16 << 4;
 
-                int ac = spectralBlock[zig];
+                int ac = Unsafe.Add(ref blockRef, zig);
                 if (ac == 0)
                 {
                     runLength += zeroRun1;

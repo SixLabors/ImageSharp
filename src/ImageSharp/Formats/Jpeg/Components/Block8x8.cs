@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public static Block8x8 Load(Span<short> data)
         {
-            Block8x8 result = default;
+            Unsafe.SkipInit(out Block8x8 result);
             result.LoadFrom(data);
             return result;
         }
@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
             ref byte destRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<short, byte>(destination));
-            Unsafe.CopyBlock(ref destRef, ref selfRef, Size * sizeof(short));
+            Unsafe.CopyBlockUnaligned(ref destRef, ref selfRef, Size * sizeof(short));
         }
 
         /// <summary>
@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Index of the last non-zero element. Returns -1 if all elements are equal to zero.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetLastNonZeroIndex()
+        public nint GetLastNonZeroIndex()
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 ref Vector256<short> mcuStride = ref Unsafe.As<Block8x8, Vector256<short>>(ref this);
 
-                for (int i = 3; i >= 0; i--)
+                for (nint i = 3; i >= 0; i--)
                 {
                     int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Unsafe.Add(ref mcuStride, i), zero16).AsByte());
 
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             else
 #endif
             {
-                int index = Size - 1;
+                nint index = Size - 1;
                 ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
 
                 while (index >= 0 && Unsafe.Add(ref elemRef, index) == 0)

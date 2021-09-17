@@ -225,10 +225,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void LoadFrom(Span<short> source)
         {
-            ref byte s = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(source));
-            ref byte d = ref Unsafe.As<Block8x8, byte>(ref this);
+            ref byte sourceRef = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(source));
+            ref byte destRef = ref Unsafe.As<Block8x8, byte>(ref this);
 
-            Unsafe.CopyBlock(ref d, ref s, Size * sizeof(short));
+            Unsafe.CopyBlockUnaligned(ref destRef, ref sourceRef, Size * sizeof(short));
         }
 
         /// <summary>

@@ -459,7 +459,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             if (size > 8)
             {
                 ulong newOffset = this.ConvertToUInt64(this.offsetBuffer8);
-                if (newOffset > ulong.MaxValue || newOffset > (ulong)(this.data.Length - size))
+                if (newOffset > ulong.MaxValue || newOffset > ((ulong)this.data.Length - size))
                 {
                     this.AddInvalidTag(new UnkownExifTag(tag));
                     return;

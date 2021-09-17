@@ -18,10 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private ulong nextIfdOffset;
 
-        // used for sequential read big values (actual for multiframe big files)
-        // todo: different tags can link to the same data (stream offset) - investigate
-        private readonly SortedList<ulong, Action> lazyLoaders = new SortedList<ulong, Action>(new DuplicateKeyComparer<ulong>());
-
         public DirectoryReader(Stream stream) => this.stream = stream;
 
         /// <summary>
@@ -68,23 +64,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var readers = new List<EntryReader>();
             while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
             {
-                var reader = new EntryReader(this.stream, this.ByteOrder, this.lazyLoaders);
+                var reader = new EntryReader(this.stream, this.ByteOrder);
                 reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
+                if (reader.ExtTags.Count > 0)
+                {
+                    reader.ExtTags.Sort((t1, t2) => t1.offset.CompareTo(t2.offset));
+
+                    if (reader.ExtTags[0].offset < reader.NextIfdOffset)
+                    {
+                        // this means that most likely all elements are placed  before next IFD
+                        reader.ReadExtValues();
+                    }
+                }
+
                 this.nextIfdOffset = reader.NextIfdOffset;
-
                 readers.Add(reader);
-            }
-
-            // Sequential reading big values.
-            foreach (Action loader in this.lazyLoaders.Values)
-            {
-                loader();
             }
 
             var list = new List<ExifProfile>(readers.Count);
             foreach (EntryReader reader in readers)
             {
+                reader.ReadExtValues();
                 var profile = new ExifProfile(reader.Values, reader.InvalidTags);
                 list.Add(profile);
             }

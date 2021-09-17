@@ -12,13 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 {
     internal class EntryReader : BaseExifReader
     {
-        private readonly SortedList<ulong, Action> lazyLoaders;
-
-        public EntryReader(Stream stream, ByteOrder byteOrder, SortedList<ulong, Action> lazyLoaders)
+        public EntryReader(Stream stream, ByteOrder byteOrder)
             : base(stream)
         {
             this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
-            this.lazyLoaders = lazyLoaders;
         }
 
         public List<IExifValue> Values { get; } = new List<IExifValue>();
@@ -43,8 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        protected override void RegisterExtLoader(ulong offset, Action reader) =>
-            this.lazyLoaders.Add(offset, reader);
+        public void ReadExtValues() => this.ReadExtValues(this.Values);
     }
 
     internal class HeaderReader : BaseExifReader
@@ -81,7 +77,5 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             TiffThrowHelper.ThrowInvalidHeader();
         }
-
-        protected override void RegisterExtLoader(ulong offset, Action reader) => throw new NotSupportedException();
     }
 }

@@ -49,8 +49,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private static ByteOrder ReadByteOrder(Stream stream)
         {
-            byte[] headerBytes = new byte[2];
-            stream.Read(headerBytes, 0, 2);
+            Span<byte> headerBytes = stackalloc byte[2];
+            stream.Read(headerBytes);
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
             {
                 return ByteOrder.LittleEndian;

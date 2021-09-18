@@ -39,12 +39,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             uint ifdOffset = this.ReadUInt32();
             this.ReadValues(values, ifdOffset);
-            this.ReadExtValues(values);
 
             uint thumbnailOffset = this.ReadUInt32();
             this.GetThumbnail(thumbnailOffset);
 
             this.ReadSubIfd(values);
+
+            this.ReadExtValues(values);
 
             return values;
         }
@@ -78,8 +79,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
     /// </summary>
     internal abstract class BaseExifReader
     {
-        private readonly byte[] offsetBuffer = new byte[4];
-        private readonly byte[] offsetBuffer8 = new byte[8];
         private readonly byte[] buf8 = new byte[8];
         private readonly byte[] buf4 = new byte[4];
         private readonly byte[] buf2 = new byte[2];
@@ -87,9 +86,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private readonly Stream data;
         private List<ExifTag> invalidTags;
 
-        private uint exifOffset;
-
-        private uint gpsOffset;
+        private List<ulong> subIfds;
 
         protected BaseExifReader(Stream stream) =>
             this.data = stream ?? throw new ArgumentNullException(nameof(stream));
@@ -140,22 +137,23 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Seek(offset);
             int count = this.ReadUInt16();
 
+            Span<byte> offsetBuffer = new byte[4];
             for (int i = 0; i < count; i++)
             {
-                this.ReadValue(values);
+                this.ReadValue(values, offsetBuffer);
             }
         }
 
         protected void ReadSubIfd(List<IExifValue> values)
         {
-            if (this.exifOffset != 0)
+            if (this.subIfds is null)
             {
-                this.ReadValues(values, this.exifOffset);
+                return;
             }
 
-            if (this.gpsOffset != 0)
+            foreach (ulong subIfdOffset in this.subIfds)
             {
-                this.ReadValues(values, this.gpsOffset);
+                this.ReadValues(values, (uint)subIfdOffset);
             }
         }
 
@@ -169,9 +167,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Seek(offset);
             ulong count = this.ReadUInt64();
 
+            Span<byte> offsetBuffer = new byte[8];
             for (ulong i = 0; i < count; i++)
             {
-                this.ReadValue64(values);
+                this.ReadValue64(values, offsetBuffer);
             }
         }
 
@@ -182,21 +181,21 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Seek(tag.offset);
             if (this.TryReadSpan(dataBuffer))
             {
-                object value = this.ConvertValue(tag.dataType, dataBuffer, tag.numberOfComponents);
+                object value = this.ConvertValue(tag.dataType, dataBuffer, tag.numberOfComponents > 1 || tag.exif.IsArray);
                 this.Add(values, tag.exif, value);
             }
         }
 
         protected void ReadSubIfd64(List<IExifValue> values)
         {
-            if (this.exifOffset != 0)
+            if (this.subIfds is null)
             {
-                this.ReadValues64(values, this.exifOffset);
+                return;
             }
 
-            if (this.gpsOffset != 0)
+            foreach (ulong subIfdOffset in this.subIfds)
             {
-                this.ReadValues64(values, this.gpsOffset);
+                this.ReadValues64(values, subIfdOffset);
             }
         }
 
@@ -231,7 +230,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return Encoding.UTF8.GetString(buffer);
         }
 
-        private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, ulong numberOfComponents)
+        private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
         {
             if (buffer.Length == 0)
             {
@@ -245,102 +244,104 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Ascii:
                     return this.ConvertToString(buffer);
                 case ExifDataType.Byte:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToByte(buffer);
                     }
 
                     return buffer.ToArray();
                 case ExifDataType.DoubleFloat:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToDouble(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToDouble);
                 case ExifDataType.Long:
-                    if (numberOfComponents == 1)
+                case ExifDataType.Ifd:
+                    if (!isArray)
                     {
                         return this.ConvertToUInt32(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToUInt32);
                 case ExifDataType.Rational:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ToRational(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ToRational);
                 case ExifDataType.Short:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToShort(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToShort);
                 case ExifDataType.SignedByte:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToSignedByte(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToSignedByte);
                 case ExifDataType.SignedLong:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToInt32(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToInt32);
                 case ExifDataType.SignedRational:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ToSignedRational(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ToSignedRational);
                 case ExifDataType.SignedShort:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToSignedShort(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToSignedShort);
                 case ExifDataType.SingleFloat:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToSingle(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToSingle);
                 case ExifDataType.Long8:
-                    if (numberOfComponents == 1)
+                case ExifDataType.Ifd8:
+                    if (!isArray)
                     {
                         return this.ConvertToUInt64(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToUInt64);
                 case ExifDataType.SignedLong8:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToInt64(buffer);
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToUInt64);
                 case ExifDataType.Undefined:
-                    if (numberOfComponents == 1)
+                    if (!isArray)
                     {
                         return this.ConvertToByte(buffer);
                     }
 
                     return buffer.ToArray();
                 default:
-                    throw new NotSupportedException();
+                    throw new NotSupportedException($"Data type {dataType} is not supported.");
             }
         }
 
-        private void ReadValue(List<IExifValue> values)
+        private void ReadValue(List<IExifValue> values, Span<byte> offsetBuffer)
         {
             // 2   | 2    | 4     | 4
             // tag | type | count | value offset
@@ -354,7 +355,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             uint numberOfComponents = this.ReadUInt32();
 
-            this.TryReadSpan(this.offsetBuffer);
+            this.TryReadSpan(offsetBuffer);
 
             // Ensure that the data type is valid
             if (dataType == ExifDataType.Unknown)
@@ -380,7 +381,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             uint size = numberOfComponents * ExifDataTypes.GetSize(dataType);
             if (size > 4)
             {
-                uint newOffset = this.ConvertToUInt32(this.offsetBuffer);
+                uint newOffset = this.ConvertToUInt32(offsetBuffer);
 
                 // Ensure that the new index does not overrun the data.
                 if (newOffset > int.MaxValue || (newOffset + size) > this.data.Length)
@@ -393,12 +394,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(dataType, this.offsetBuffer, numberOfComponents);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }
 
-        private void ReadValue64(List<IExifValue> values)
+        private void ReadValue64(List<IExifValue> values, Span<byte> offsetBuffer)
         {
             if ((this.data.Length - this.data.Position) < 20)
             {
@@ -410,7 +411,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             ulong numberOfComponents = this.ReadUInt64();
 
-            this.TryReadSpan(this.offsetBuffer8);
+            this.TryReadSpan(offsetBuffer);
 
             if (dataType == ExifDataType.Unknown)
             {
@@ -442,12 +443,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.TileByteCounts:
                     exifValue = new ExifLong8Array(ExifTagValue.TileByteCounts);
                     break;
-                ////case ExifTagValue.SubIFDOffset:
-                ////    exifValue = new ExifLong8Array(ExifTagValue.SubIFDOffset);
-                ////    break;
-                ////case ExifTagValue.GPSIFDOffset:
-                ////    exifValue = new ExifLong8Array(ExifTagValue.GPSIFDOffset);
-                ////    break;
+                case ExifTagValue.SubIFDOffset:
+                    exifValue = new ExifLong8(ExifTagValue.SubIFDOffset);
+                    break;
+                case ExifTagValue.GPSIFDOffset:
+                    exifValue = new ExifLong8(ExifTagValue.GPSIFDOffset);
+                    break;
+                case ExifTagValue.SubIFDs:
+                    exifValue = new ExifLong8Array(ExifTagValue.SubIFDs);
+                    break;
                 default:
                     exifValue = exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
                     break;
@@ -462,7 +466,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             ulong size = numberOfComponents * ExifDataTypes.GetSize(dataType);
             if (size > 8)
             {
-                ulong newOffset = this.ConvertToUInt64(this.offsetBuffer8);
+                ulong newOffset = this.ConvertToUInt64(offsetBuffer);
                 if (newOffset > ulong.MaxValue || newOffset > ((ulong)this.data.Length - size))
                 {
                     this.AddInvalidTag(new UnkownExifTag(tag));
@@ -473,7 +477,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(dataType, ((Span<byte>)this.offsetBuffer8).Slice(0, (int)size), numberOfComponents);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }
@@ -497,11 +501,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (exif.Tag == ExifTag.SubIFDOffset)
             {
-                this.exifOffset = (uint)value;
+                this.AddSubIfd(value);
             }
             else if (exif.Tag == ExifTag.GPSIFDOffset)
             {
-                this.gpsOffset = (uint)value;
+                this.AddSubIfd(value);
+            }
+            else if (exif.Tag == ExifTag.SubIFDs)
+            {
+                foreach (object val in (Array)value)
+                {
+                    this.AddSubIfd(val);
+                }
             }
             else
             {
@@ -511,6 +522,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private void AddInvalidTag(ExifTag tag)
             => (this.invalidTags ??= new List<ExifTag>()).Add(tag);
+
+        private void AddSubIfd(object val)
+            => (this.subIfds ??= new List<ulong>()).Add(Convert.ToUInt64(val));
 
         private void Seek(ulong pos)
             => this.data.Seek((long)pos, SeekOrigin.Begin);

@@ -49,17 +49,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return this.SetSingle(val);
                 case uint val:
                     return this.SetSingle(val);
-                case short val:
-                    return this.SetSingle(val);
                 case ushort val:
                     return this.SetSingle(val);
-                case int[] array:
-                    return this.SetArray(array);
+                case short val:
+                    return this.SetSingle(val);
                 case uint[] array:
                     return this.SetArray(array);
-                case short[] array:
+                case int[] array:
                     return this.SetArray(array);
                 case ushort[] array:
+                    return this.SetArray(array);
+                case short[] array:
                     return this.SetArray(array);
             }
 

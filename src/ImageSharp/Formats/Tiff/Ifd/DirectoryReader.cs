@@ -71,9 +71,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     reader.ExtTags.Sort((t1, t2) => t1.offset.CompareTo(t2.offset));
 
+                    // this means that most likely all elements are placed  before next IFD
                     if (reader.ExtTags[0].offset < reader.NextIfdOffset)
                     {
-                        // this means that most likely all elements are placed  before next IFD
                         reader.ReadExtValues();
                     }
                 }

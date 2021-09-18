@@ -92,6 +92,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.StripRowCounts: return new ExifLongArray(ExifTag.StripRowCounts);
                 case ExifTagValue.IntergraphRegisters: return new ExifLongArray(ExifTag.IntergraphRegisters);
                 case ExifTagValue.TimeZoneOffset: return new ExifLongArray(ExifTag.TimeZoneOffset);
+                case ExifTagValue.SubIFDs: return new ExifLongArray(ExifTag.SubIFDs);
 
                 case ExifTagValue.ImageWidth: return new ExifNumber(ExifTag.ImageWidth);
                 case ExifTagValue.ImageLength: return new ExifNumber(ExifTag.ImageLength);

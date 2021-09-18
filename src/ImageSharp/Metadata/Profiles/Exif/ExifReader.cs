@@ -394,7 +394,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1);
                 this.Add(values, exifValue, value);
             }
         }
@@ -477,7 +477,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1);
                 this.Add(values, exifValue, value);
             }
         }

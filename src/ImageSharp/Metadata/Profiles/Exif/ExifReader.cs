@@ -365,9 +365,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             // Issue #132: ExifDataType == Undefined is treated like a byte array.
             // If numberOfComponents == 0 this value can only be handled as an inline value and must fallback to 4 (bytes)
-            if (dataType == ExifDataType.Undefined && numberOfComponents == 0)
+            if (numberOfComponents == 0)
             {
-                numberOfComponents = 4;
+                numberOfComponents = 4 / ExifDataTypes.GetSize(dataType);
             }
 
             ExifValue exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
@@ -418,9 +418,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return;
             }
 
-            if (dataType == ExifDataType.Undefined && numberOfComponents == 0)
+            if (numberOfComponents == 0)
             {
-                numberOfComponents = 8;
+                numberOfComponents = 8 / ExifDataTypes.GetSize(dataType);
             }
 
             // The StripOffsets, StripByteCounts, TileOffsets, and TileByteCounts tags are allowed to have the datatype TIFF_LONG8 in BigTIFF.

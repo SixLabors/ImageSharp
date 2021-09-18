@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 using static SixLabors.ImageSharp.Tests.TestImages.BigTiff;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
@@ -30,7 +31,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(BigTIFFSubIFD8, PixelTypes.Rgba32)]
         [WithFile(Indexed4_Deflate, PixelTypes.Rgba32)]
         [WithFile(Indexed8_LZW, PixelTypes.Rgba32)]
-        [WithFile(RLE, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
@@ -38,6 +38,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(BigTIFFLong8Tiles, PixelTypes.Rgba32)]
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
+
+        [Theory]
+        [WithFile(MinInWhite_RLE, PixelTypes.Rgba32)]
+        [WithFile(MinInBlack_RLE, PixelTypes.Rgba32)]
+        public void ProblemFiles<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageDifferenceIsOverThresholdException>(() => TestTiffDecoder(provider));
 
         [Theory]
         [InlineData(BigTIFF, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
@@ -49,7 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(BigTIFFSubIFD8, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Indexed4_Deflate, 4, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Indexed8_LZW, 8, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(MinInWhite_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(MinInBlack_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);

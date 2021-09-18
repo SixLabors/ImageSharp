@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(BigTIFFMotorolaLongStrips, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(BigTIFFSubIFD4, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(BigTIFFSubIFD8, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(Indexed4_Deflate, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(Indexed4_Deflate, 4, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Indexed8_LZW, 8, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
@@ -101,14 +101,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ExifProfile meta = image.Frames.RootFrame.Metadata.ExifProfile;
 
             Assert.Equal(0, meta.InvalidTags.Count);
-            Assert.Equal(15, meta.Values.Count);
+            Assert.Equal(6, meta.Values.Count);
             Assert.Equal(64, (int)meta.GetValue(ExifTag.ImageWidth).Value);
             Assert.Equal(64, (int)meta.GetValue(ExifTag.ImageLength).Value);
             Assert.Equal(64, (int)meta.GetValue(ExifTag.RowsPerStrip).Value);
 
-            Assert.Equal(2, meta.Values.Count(v => (ushort)v.Tag == (ushort)ExifTagValue.ImageWidth));
-            Assert.Equal(2, meta.Values.Count(v => (ushort)v.Tag == (ushort)ExifTagValue.StripOffsets));
-            Assert.Equal(2, meta.Values.Count(v => (ushort)v.Tag == (ushort)ExifTagValue.StripByteCounts));
+            Assert.Equal(1, meta.Values.Count(v => (ushort)v.Tag == (ushort)ExifTagValue.ImageWidth));
+            Assert.Equal(1, meta.Values.Count(v => (ushort)v.Tag == (ushort)ExifTagValue.StripOffsets));
+            Assert.Equal(1, meta.Values.Count(v => (ushort)v.Tag == (ushort)ExifTagValue.StripByteCounts));
         }
     }
 }

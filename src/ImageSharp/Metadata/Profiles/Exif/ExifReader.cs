@@ -509,10 +509,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else if (exif.Tag == ExifTag.SubIFDs)
             {
-                foreach (object val in (Array)value)
-                {
-                    this.AddSubIfd(val);
-                }
+                ////foreach (object val in (Array)value)
+                ////{
+                ////    this.AddSubIfd(val);
+                ////}
             }
             else
             {

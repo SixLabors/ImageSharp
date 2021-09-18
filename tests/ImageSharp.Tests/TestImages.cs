@@ -675,17 +675,21 @@ namespace SixLabors.ImageSharp.Tests
 
         public static class BigTiff
         {
-            public const string BasePath = "Tiff/BigTiff/";
+            public const string Base = "Tiff/BigTiff/";
 
-            public const string BigTIFF = BasePath + "BigTIFF.tif";
-            public const string BigTIFFLong = BasePath + "BigTIFFLong.tif";
-            public const string BigTIFFLong8 = BasePath + "BigTIFFLong8.tif";
-            public const string BigTIFFLong8Tiles = BasePath + "BigTIFFLong8Tiles.tif";
-            public const string BigTIFFMotorola = BasePath + "BigTIFFMotorola.tif";
-            public const string BigTIFFMotorolaLongStrips = BasePath + "BigTIFFMotorolaLongStrips.tif";
+            public const string BigTIFF = Base + "BigTIFF.tif";
+            public const string BigTIFFLong = Base + "BigTIFFLong.tif";
+            public const string BigTIFFLong8 = Base + "BigTIFFLong8.tif";
+            public const string BigTIFFLong8Tiles = Base + "BigTIFFLong8Tiles.tif";
+            public const string BigTIFFMotorola = Base + "BigTIFFMotorola.tif";
+            public const string BigTIFFMotorolaLongStrips = Base + "BigTIFFMotorolaLongStrips.tif";
 
-            public const string BigTIFFSubIFD4 = BasePath + "BigTIFFSubIFD4.tif";
-            public const string BigTIFFSubIFD8 = BasePath + "BigTIFFSubIFD8.tif";
+            public const string BigTIFFSubIFD4 = Base + "BigTIFFSubIFD4.tif";
+            public const string BigTIFFSubIFD8 = Base + "BigTIFFSubIFD8.tif";
+
+            public const string Indexed4_Deflate = Base + "BigTIFF_Indexed4_Deflate.tif";
+            public const string Indexed8_LZW = Base + "BigTIFF_Indexed8_LZW.tif";
+            public const string RLE = Base + "BigTIFF_RLE.tif";
         }
     }
 }

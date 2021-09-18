@@ -114,9 +114,22 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         protected void ReadExtValues(List<IExifValue> values)
         {
+            ulong maxSize = 0;
             foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.ExtTags)
             {
-                this.ReadExtValue(values, tag);
+                ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
+                if (size > maxSize)
+                {
+                    maxSize = size;
+                }
+            }
+
+            Span<byte> buf = new byte[maxSize];
+            foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.ExtTags)
+            {
+                ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
+
+                this.ReadExtValue(values, tag, buf.Slice(0, (int)size));
             }
 
             this.ExtTags.Clear();
@@ -174,14 +187,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
-        protected void ReadExtValue(IList<IExifValue> values, (ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag)
+        protected void ReadExtValue(IList<IExifValue> values, (ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag, Span<byte> buffer)
         {
-            ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
-            byte[] dataBuffer = new byte[size];
             this.Seek(tag.offset);
-            if (this.TryReadSpan(dataBuffer))
+            if (this.TryReadSpan(buffer))
             {
-                object value = this.ConvertValue(tag.dataType, dataBuffer, tag.numberOfComponents > 1 || tag.exif.IsArray);
+                object value = this.ConvertValue(tag.dataType, buffer, tag.numberOfComponents > 1);
                 this.Add(values, tag.exif, value);
             }
         }
@@ -453,7 +464,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     exifValue = new ExifLong8Array(ExifTagValue.SubIFDs);
                     break;
                 default:
-                    exifValue = exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
+                    exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
                     break;
             }
 

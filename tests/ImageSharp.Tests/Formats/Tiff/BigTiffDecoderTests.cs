@@ -31,7 +31,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(BigTIFFSubIFD8, PixelTypes.Rgba32)]
         [WithFile(Indexed4_Deflate, PixelTypes.Rgba32)]
         [WithFile(Indexed8_LZW, PixelTypes.Rgba32)]
-        [WithFile(MinIsBlack_Fax3, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
@@ -43,6 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(MinIsWhite_RLE, PixelTypes.Rgba32)]
         [WithFile(MinIsBlack_RLE, PixelTypes.Rgba32)]
+        [WithFile(MinIsBlack_Fax3, PixelTypes.Rgba32)]
         public void ProblemFiles<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageDifferenceIsOverThresholdException>(() => TestTiffDecoder(provider));
 

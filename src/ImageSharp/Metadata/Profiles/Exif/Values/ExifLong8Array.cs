@@ -51,25 +51,46 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (value)
             {
                 case int val:
-                    return this.SetSingle((ulong)val);
+                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, int.MaxValue));
+
                 case uint val:
                     return this.SetSingle((ulong)val);
+
                 case short val:
-                    return this.SetSingle((ulong)val);
+                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, short.MaxValue));
+
                 case ushort val:
                     return this.SetSingle((ulong)val);
+
                 case long[] array:
+                {
+                    if (value.GetType().Equals(typeof(ulong[])))
+                    {
+                        return this.SetArray((ulong[])value);
+                    }
+
                     return this.SetArray(array);
-                case ulong[] array:
-                    return this.SetArray(array);
+                }
+
                 case int[] array:
+                {
+                    if (value.GetType().Equals(typeof(uint[])))
+                    {
+                        return this.SetArray((uint[])value);
+                    }
+
                     return this.SetArray(array);
-                case uint[] array:
-                    return this.SetArray(array);
+                }
+
                 case short[] array:
+                {
+                    if (value.GetType().Equals(typeof(ushort[])))
+                    {
+                        return this.SetArray((ushort[])value);
+                    }
+
                     return this.SetArray(array);
-                case ushort[] array:
-                    return this.SetArray(array);
+                }
             }
 
             return false;

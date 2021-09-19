@@ -54,13 +54,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ushort val:
                     return this.SetSingle(val);
                 case int[] array:
+                {
+                    // workaround for inconsistent covariance of value-typed arrays
+                    if (value.GetType().Equals(typeof(uint[])))
+                    {
+                        return this.SetArray((uint[])value);
+                    }
+
                     return this.SetArray(array);
-                case uint[] array:
-                    return this.SetArray(array);
+                }
+
                 case short[] array:
+                {
+                    if (value.GetType().Equals(typeof(ushort[])))
+                    {
+                        return this.SetArray((ushort[])value);
+                    }
+
                     return this.SetArray(array);
-                case ushort[] array:
-                    return this.SetArray(array);
+                }
             }
 
             return false;

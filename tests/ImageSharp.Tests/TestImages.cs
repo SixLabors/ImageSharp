@@ -689,8 +689,9 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string Indexed4_Deflate = Base + "BigTIFF_Indexed4_Deflate.tif";
             public const string Indexed8_LZW = Base + "BigTIFF_Indexed8_LZW.tif";
-            public const string MinInWhite_RLE = Base + "BigTIFF_MinInWhite_RLE.tif";
-            public const string MinInBlack_RLE = Base + "BigTIFF_MinInBlack_RLE.tif";
+            public const string MinIsWhite_RLE = Base + "BigTIFF_MinIsWhite_RLE.tif";
+            public const string MinIsBlack_RLE = Base + "BigTIFF_MinIsBlack_RLE.tif";
+            public const string MinIsBlack_Fax3 = Base + "BigTIFF_MinIsBlack_Fax3.tif";
         }
     }
 }

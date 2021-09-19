@@ -31,6 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(BigTIFFSubIFD8, PixelTypes.Rgba32)]
         [WithFile(Indexed4_Deflate, PixelTypes.Rgba32)]
         [WithFile(Indexed8_LZW, PixelTypes.Rgba32)]
+        [WithFile(MinIsBlack_Fax3, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
@@ -40,8 +41,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
 
         [Theory]
-        [WithFile(MinInWhite_RLE, PixelTypes.Rgba32)]
-        [WithFile(MinInBlack_RLE, PixelTypes.Rgba32)]
+        [WithFile(MinIsWhite_RLE, PixelTypes.Rgba32)]
+        [WithFile(MinIsBlack_RLE, PixelTypes.Rgba32)]
         public void ProblemFiles<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageDifferenceIsOverThresholdException>(() => TestTiffDecoder(provider));
 
@@ -55,8 +56,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(BigTIFFSubIFD8, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Indexed4_Deflate, 4, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Indexed8_LZW, 8, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(MinInWhite_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(MinInBlack_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(MinIsWhite_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(MinIsBlack_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(MinIsBlack_Fax3, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);

@@ -92,21 +92,5 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             return list;
         }
-
-        /// <summary>
-        /// <see cref="DuplicateKeyComparer{TKey}"/> used for possibility add a duplicate offsets (but tags don't duplicate).
-        /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        private class DuplicateKeyComparer<TKey> : IComparer<TKey>
-            where TKey : IComparable
-        {
-            public int Compare(TKey x, TKey y)
-            {
-                int result = x.CompareTo(y);
-
-                // Handle equality as being greater.
-                return (result == 0) ? 1 : result;
-            }
-        }
     }
 }

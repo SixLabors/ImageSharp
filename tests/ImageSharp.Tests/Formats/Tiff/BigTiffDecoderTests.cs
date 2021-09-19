@@ -31,6 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(BigTIFFSubIFD8, PixelTypes.Rgba32)]
         [WithFile(Indexed4_Deflate, PixelTypes.Rgba32)]
         [WithFile(Indexed8_LZW, PixelTypes.Rgba32)]
+        [WithFile(MinIsBlack, PixelTypes.Rgba32)]
+        [WithFile(MinIsWhite, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
@@ -40,11 +42,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
 
         [Theory]
-        [WithFile(MinIsWhite_RLE, PixelTypes.Rgba32)]
-        [WithFile(MinIsBlack_RLE, PixelTypes.Rgba32)]
-        [WithFile(MinIsBlack_Fax3, PixelTypes.Rgba32)]
-        public void ProblemFiles<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageDifferenceIsOverThresholdException>(() => TestTiffDecoder(provider));
+        [WithFile(Damaged_MinIsWhite_RLE, PixelTypes.Rgba32)]
+        [WithFile(Damaged_MinIsBlack_RLE, PixelTypes.Rgba32)]
+        public void DamagedFiles<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Assert.Throws<ImageDifferenceIsOverThresholdException>(() => TestTiffDecoder(provider));
+
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            ExifProfile exif = image.Frames.RootFrame.Metadata.ExifProfile;
+
+            // PhotometricInterpretation is required tag: https://www.awaresystems.be/imaging/tiff/tifftags/photometricinterpretation.html
+            Assert.Null(exif.GetValueInternal(ExifTag.PhotometricInterpretation));
+        }
 
         [Theory]
         [InlineData(BigTIFF, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
@@ -56,9 +66,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(BigTIFFSubIFD8, 24, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Indexed4_Deflate, 4, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Indexed8_LZW, 8, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(MinIsWhite_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(MinIsBlack_RLE, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(MinIsBlack_Fax3, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(MinIsWhite, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(MinIsBlack, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);

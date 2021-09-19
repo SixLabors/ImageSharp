@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
@@ -218,18 +219,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
 
-            ulong[] stripOffsets;
-            ulong[] stripByteCounts;
-            if (this.isBigTiff)
-            {
-                stripOffsets = tags.GetValueInternal(ExifTag.StripOffsets)?.GetValue() as ulong[];
-                stripByteCounts = tags.GetValueInternal(ExifTag.StripByteCounts)?.GetValue() as ulong[];
-            }
-            else
-            {
-                stripOffsets = tags.GetValue(ExifTag.StripOffsets)?.Value.Select(s => (ulong)(uint)s).ToArray();
-                stripByteCounts = tags.GetValue(ExifTag.StripByteCounts)?.Value.Select(s => (ulong)(uint)s).ToArray();
-            }
+            var stripOffsets = (Array)tags.GetValueInternal(ExifTag.StripOffsets)?.GetValue();
+            var stripByteCounts = (Array)tags.GetValueInternal(ExifTag.StripByteCounts)?.GetValue();
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
@@ -293,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, ulong[] stripOffsets, ulong[] stripByteCounts, CancellationToken cancellationToken)
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Array stripOffsets, Array stripByteCounts, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Channels;
@@ -344,10 +335,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     int stripIndex = i;
                     for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
                     {
+                        ulong offset = stripOffsets.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
+                        ulong count = stripByteCounts.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
                         decompressor.Decompress(
                             this.inputStream,
-                            stripOffsets[stripIndex],
-                            stripByteCounts[stripIndex],
+                            offset,
+                            count,
                             stripHeight,
                             stripBuffers[planeIndex].GetSpan());
                         stripIndex += stripsPerPlane;
@@ -374,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stripOffsets">The strip offsets.</param>
         /// <param name="stripByteCounts">The strip byte counts.</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, ulong[] stripOffsets, ulong[] stripByteCounts, CancellationToken cancellationToken)
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Array stripOffsets, Array stripByteCounts, CancellationToken cancellationToken)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             // If the rowsPerStrip has the default value, which is effectively infinity. That is, the entire image is one strip.
@@ -387,7 +380,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             int bitsPerPixel = this.BitsPerPixel;
 
             using IMemoryOwner<byte> stripBuffer = this.memoryAllocator.Allocate<byte>(uncompressedStripSize, AllocationOptions.Clean);
-            System.Span<byte> stripBufferSpan = stripBuffer.GetSpan();
+            Span<byte> stripBufferSpan = stripBuffer.GetSpan();
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
             using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
@@ -430,7 +423,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
-                decompressor.Decompress(this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripHeight, stripBufferSpan);
+                ulong offset = stripOffsets.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
+                ulong count = stripByteCounts.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
+                decompressor.Decompress(
+                    this.inputStream,
+                    offset,
+                    count,
+                    stripHeight,
+                    stripBufferSpan);
 
                 colorDecoder.Decode(stripBufferSpan, pixels, 0, top, frame.Width, stripHeight);
             }

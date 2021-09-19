@@ -67,14 +67,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 var reader = new EntryReader(this.stream, this.ByteOrder);
                 reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
-                if (reader.ExtTags.Count > 0)
+                if (reader.BigValues.Count > 0)
                 {
-                    reader.ExtTags.Sort((t1, t2) => t1.offset.CompareTo(t2.offset));
+                    reader.BigValues.Sort((t1, t2) => t1.offset.CompareTo(t2.offset));
 
                     // this means that most likely all elements are placed  before next IFD
-                    if (reader.ExtTags[0].offset < reader.NextIfdOffset)
+                    if (reader.BigValues[0].offset < reader.NextIfdOffset)
                     {
-                        reader.ReadExtValues();
+                        reader.ReadBigValues();
                     }
                 }
 
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var list = new List<ExifProfile>(readers.Count);
             foreach (EntryReader reader in readers)
             {
-                reader.ReadExtValues();
+                reader.ReadBigValues();
                 var profile = new ExifProfile(reader.Values, reader.InvalidTags);
                 list.Add(profile);
             }

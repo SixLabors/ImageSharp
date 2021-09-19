@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             this.ReadSubIfd(values);
 
-            this.ReadExtValues(values);
+            this.ReadBigValues(values);
 
             return values;
         }
@@ -110,14 +110,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public bool IsBigEndian { get; protected set; }
 
-        public List<(ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif)> ExtTags { get; } = new ();
+        public List<(ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif)> BigValues { get; } = new ();
 
-        protected void ReadExtValues(List<IExifValue> values)
+        protected void ReadBigValues(List<IExifValue> values)
         {
             ulong maxSize = 0;
-            foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.ExtTags)
+            foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) in this.BigValues)
             {
-                ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
+                ulong size = numberOfComponents * ExifDataTypes.GetSize(dataType);
                 if (size > maxSize)
                 {
                     maxSize = size;
@@ -125,14 +125,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
 
             Span<byte> buf = new byte[maxSize];
-            foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.ExtTags)
+            foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.BigValues)
             {
                 ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
 
-                this.ReadExtValue(values, tag, buf.Slice(0, (int)size));
+                this.ReadBigValue(values, tag, buf.Slice(0, (int)size));
             }
 
-            this.ExtTags.Clear();
+            this.BigValues.Clear();
         }
 
         /// <summary>
@@ -187,12 +187,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
-        protected void ReadExtValue(IList<IExifValue> values, (ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag, Span<byte> buffer)
+        protected void ReadBigValue(IList<IExifValue> values, (ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag, Span<byte> buffer)
         {
             this.Seek(tag.offset);
             if (this.TryReadSpan(buffer))
             {
-                object value = this.ConvertValue(tag.dataType, buffer, tag.numberOfComponents > 1);
+                object value = this.ConvertValue(tag.dataType, buffer, tag.numberOfComponents > 1 || tag.exif.IsArray);
                 this.Add(values, tag.exif, value);
             }
         }
@@ -401,11 +401,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return;
                 }
 
-                this.ExtTags.Add((newOffset, dataType, numberOfComponents, exifValue));
+                this.BigValues.Add((newOffset, dataType, numberOfComponents, exifValue));
             }
             else
             {
-                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }
@@ -484,11 +484,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return;
                 }
 
-                this.ExtTags.Add((newOffset, dataType, numberOfComponents, exifValue));
+                this.BigValues.Add((newOffset, dataType, numberOfComponents, exifValue));
             }
             else
             {
-                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }

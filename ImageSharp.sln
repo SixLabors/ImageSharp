@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28902.138
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31710.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_root", "_root", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
@@ -403,6 +403,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{670DD4
 		tests\Images\Input\Png\issues\Issue_1127.png = tests\Images\Input\Png\issues\Issue_1127.png
 		tests\Images\Input\Png\issues\Issue_1177_1.png = tests\Images\Input\Png\issues\Issue_1177_1.png
 		tests\Images\Input\Png\issues\Issue_1177_2.png = tests\Images\Input\Png\issues\Issue_1177_2.png
+		tests\Images\Input\Png\issues\Issue_1765.png = tests\Images\Input\Png\issues\Issue_1765.png
 		tests\Images\Input\Png\issues\Issue_410.png = tests\Images\Input\Png\issues\Issue_410.png
 		tests\Images\Input\Png\issues\Issue_935.png = tests\Images\Input\Png\issues\Issue_935.png
 	EndProjectSection

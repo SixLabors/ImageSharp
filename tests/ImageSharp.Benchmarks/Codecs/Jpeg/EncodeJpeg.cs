@@ -111,24 +111,24 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 }
 
 /*
-BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=6.0.100-preview.3.21202.5
-  [Host]     : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
-  DefaultJob : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
+.NET SDK=6.0.100-preview.3.21202.5
+  [Host]     : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
 
 
 |                      Method | Quality |     Mean |    Error |   StdDev | Ratio |
 |---------------------------- |-------- |---------:|---------:|---------:|------:|
-| 'System.Drawing Jpeg 4:2:0' |      75 | 29.41 ms | 0.108 ms | 0.096 ms |  1.00 |
-|     'ImageSharp Jpeg 4:2:0' |      75 | 26.30 ms | 0.131 ms | 0.109 ms |  0.89 |
-|     'ImageSharp Jpeg 4:4:4' |      75 | 36.70 ms | 0.303 ms | 0.269 ms |  1.25 |
+| 'System.Drawing Jpeg 4:2:0' |      75 | 30.04 ms | 0.540 ms | 0.479 ms |  1.00 |
+|     'ImageSharp Jpeg 4:2:0' |      75 | 19.32 ms | 0.290 ms | 0.257 ms |  0.64 |
+|     'ImageSharp Jpeg 4:4:4' |      75 | 26.76 ms | 0.332 ms | 0.294 ms |  0.89 |
 |                             |         |          |          |          |       |
-| 'System.Drawing Jpeg 4:2:0' |      90 | 32.67 ms | 0.226 ms | 0.211 ms |  1.00 |
-|     'ImageSharp Jpeg 4:2:0' |      90 | 33.56 ms | 0.237 ms | 0.222 ms |  1.03 |
-|     'ImageSharp Jpeg 4:4:4' |      90 | 44.82 ms | 0.250 ms | 0.234 ms |  1.37 |
+| 'System.Drawing Jpeg 4:2:0' |      90 | 32.82 ms | 0.184 ms | 0.163 ms |  1.00 |
+|     'ImageSharp Jpeg 4:2:0' |      90 | 25.00 ms | 0.408 ms | 0.361 ms |  0.76 |
+|     'ImageSharp Jpeg 4:4:4' |      90 | 31.83 ms | 0.636 ms | 0.595 ms |  0.97 |
 |                             |         |          |          |          |       |
-| 'System.Drawing Jpeg 4:2:0' |     100 | 39.06 ms | 0.233 ms | 0.218 ms |  1.00 |
-|     'ImageSharp Jpeg 4:2:0' |     100 | 40.23 ms | 0.225 ms | 0.277 ms |  1.03 |
-|     'ImageSharp Jpeg 4:4:4' |     100 | 63.35 ms | 0.486 ms | 0.431 ms |  1.62 |
+| 'System.Drawing Jpeg 4:2:0' |     100 | 39.30 ms | 0.359 ms | 0.318 ms |  1.00 |
+|     'ImageSharp Jpeg 4:2:0' |     100 | 34.49 ms | 0.265 ms | 0.235 ms |  0.88 |
+|     'ImageSharp Jpeg 4:4:4' |     100 | 56.40 ms | 0.565 ms | 0.501 ms |  1.44 |
 */

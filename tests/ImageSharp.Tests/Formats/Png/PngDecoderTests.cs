@@ -370,7 +370,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         // https://github.com/SixLabors/ImageSharp/issues/1765
         [Theory]
-        [WithFile(TestImages.Png.Issue1765, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Issue1765_Net6DeflateStreamRead, PixelTypes.Rgba32)]
         public void Issue1765<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue935 = "Png/issues/Issue_935.png";
 
             // Issue 1765: https://github.com/SixLabors/ImageSharp/issues/1765
-            public const string Issue1765 = "Png/issues/Issue_1765.png";
+            public const string Issue1765_Net6DeflateStreamRead = "Png/issues/Issue_1765_Net6DeflateStreamRead.png";
 
             public static class Bad
             {

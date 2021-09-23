@@ -403,7 +403,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{670DD4
 		tests\Images\Input\Png\issues\Issue_1127.png = tests\Images\Input\Png\issues\Issue_1127.png
 		tests\Images\Input\Png\issues\Issue_1177_1.png = tests\Images\Input\Png\issues\Issue_1177_1.png
 		tests\Images\Input\Png\issues\Issue_1177_2.png = tests\Images\Input\Png\issues\Issue_1177_2.png
-		tests\Images\Input\Png\issues\Issue_1765.png = tests\Images\Input\Png\issues\Issue_1765.png
+		tests\Images\Input\Png\issues\Issue_1765_Net6DeflateStreamRead.png = tests\Images\Input\Png\issues\Issue_1765_Net6DeflateStreamRead.png
 		tests\Images\Input\Png\issues\Issue_410.png = tests\Images\Input\Png\issues\Issue_410.png
 		tests\Images\Input\Png\issues\Issue_935.png = tests\Images\Input\Png\issues\Issue_935.png
 	EndProjectSection

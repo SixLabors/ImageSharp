@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
-        private void TransposeAvx()
+        private void Transpose_Avx()
         {
             // https://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2/25627536#25627536
             Vector256<float> r0 = Avx.InsertVector128(

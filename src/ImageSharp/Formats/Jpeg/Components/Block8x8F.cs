@@ -612,25 +612,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Transpose the block inplace.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void Transpose()
+        public void TransposeInplace()
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
-                this.TransposeAvx();
+                this.Transpose_Avx();
             }
             else
 #endif
             {
-                this.TransposeScalar();
+                this.TransposeInplace_Scalar();
             }
         }
 
         /// <summary>
-        /// Scalar inplace transpose implementation for <see cref="Transpose"/>
+        /// Scalar inplace transpose implementation for <see cref="TransposeInplace"/>
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void TransposeScalar()
+        private void TransposeInplace_Scalar()
         {
             float tmp;
             int horIndex, verIndex;

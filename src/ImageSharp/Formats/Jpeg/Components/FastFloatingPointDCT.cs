@@ -88,9 +88,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="temp">Matrix to store temporal results.</param>
         public static void TransformIDCT(ref Block8x8F block, ref Block8x8F temp)
         {
-            block.Transpose();
+            block.TransposeInplace();
             IDCT8x8(ref block, ref temp);
-            temp.Transpose();
+            temp.TransposeInplace();
             IDCT8x8(ref temp, ref block);
 
             // TODO: This can be fused into quantization table step

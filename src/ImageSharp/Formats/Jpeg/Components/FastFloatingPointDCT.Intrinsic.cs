@@ -45,33 +45,33 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             DebugGuard.IsTrue(Avx.IsSupported || Sse.IsSupported, "Avx or at least Sse support is required to execute this operation.");
 
             // First pass - process rows
-            block.Transpose();
+            block.TransposeInplace();
             if (Avx.IsSupported)
             {
-                FDCT8x8_avx(ref block);
+                FDCT8x8_Avx(ref block);
             }
-            else if (Sse.IsSupported)
+            else
             {
                 // Left part
-                FDCT8x4_sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0L));
+                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0L));
 
                 // Right part
-                FDCT8x4_sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0R));
+                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0R));
             }
 
             // Second pass - process columns
-            block.Transpose();
+            block.TransposeInplace();
             if (Avx.IsSupported)
             {
-                FDCT8x8_avx(ref block);
+                FDCT8x8_Avx(ref block);
             }
-            else if (Sse.IsSupported)
+            else
             {
                 // Left part
-                FDCT8x4_sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0L));
+                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0L));
 
                 // Right part
-                FDCT8x4_sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0R));
+                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0R));
             }
         }
 
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Must be called on both 8x4 matrix parts for the full FDCT transform.
         /// </remarks>
         /// <param name="blockRef">Input reference to the first </param>
-        public static void FDCT8x4_sse(ref Vector128<float> blockRef)
+        public static void FDCT8x4_Sse(ref Vector128<float> blockRef)
         {
             DebugGuard.IsTrue(Sse.IsSupported, "Sse support is required to execute this operation.");
 
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Requires Avx support.
         /// </remarks>
         /// <param name="block">Input matrix.</param>
-        public static void FDCT8x8_avx(ref Block8x8F block)
+        public static void FDCT8x8_Avx(ref Block8x8F block)
         {
             DebugGuard.IsTrue(Avx.IsSupported, "Avx support is required to execute this operation.");
 

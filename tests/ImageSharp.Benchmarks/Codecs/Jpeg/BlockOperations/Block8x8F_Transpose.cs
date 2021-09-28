@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         private Block8x8F source = Create8x8FloatData();
 
         [Benchmark]
-        public float TransposeInto()
+        public float TransposeInplace()
         {
-            this.source.Transpose();
+            this.source.TransposeInplace();
             return this.source[0];
         }
 

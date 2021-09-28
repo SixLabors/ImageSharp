@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void Transpose()
+        public void TransposeInplace()
         {
             static void RunTest()
             {
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var block8x8 = default(Block8x8F);
                 block8x8.LoadFrom(Create8x8FloatData());
 
-                block8x8.Transpose();
+                block8x8.TransposeInplace();
 
                 float[] actual = new float[64];
                 block8x8.ScaledCopyTo(actual);

@@ -617,7 +617,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
-                this.Transpose_Avx();
+                this.TransposeInplace_Avx();
             }
             else
 #endif

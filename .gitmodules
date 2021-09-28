@@ -1,3 +1,0 @@
-[submodule "shared-infrastructure"]
-	path = shared-infrastructure
-	url = https://github.com/SixLabors/SharedInfrastructure

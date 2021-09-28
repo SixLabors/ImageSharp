@@ -87,8 +87,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             tmp12 = Avx.Add(tmp6, tmp7);
 
             Vector256<float> z5 = Avx.Multiply(Avx.Subtract(tmp10, tmp12), mm256_F_0_3826);
-            Vector256<float> z2 = Avx.Add(Avx.Multiply(mm256_F_0_5411, tmp10), z5);
-            Vector256<float> z4 = Avx.Add(Avx.Multiply(mm256_F_1_3065, tmp12), z5);
+            Vector256<float> z2 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, mm256_F_0_5411, tmp10);
+            Vector256<float> z4 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, mm256_F_1_3065, tmp12);
             Vector256<float> z3 = Avx.Multiply(tmp11, mm256_F_0_7071);
 
             Vector256<float> z11 = Avx.Add(tmp7, z3);

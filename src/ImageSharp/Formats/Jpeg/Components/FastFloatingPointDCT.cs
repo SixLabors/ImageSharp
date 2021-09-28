@@ -18,30 +18,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     {
 #pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
         private const float C_1_175876 = 1.175875602f;
-
         private const float C_1_961571 = -1.961570560f;
-
         private const float C_0_390181 = -0.390180644f;
-
         private const float C_0_899976 = -0.899976223f;
-
         private const float C_2_562915 = -2.562915447f;
-
         private const float C_0_298631 = 0.298631336f;
-
         private const float C_2_053120 = 2.053119869f;
-
         private const float C_3_072711 = 3.072711026f;
-
         private const float C_1_501321 = 1.501321110f;
-
         private const float C_0_541196 = 0.541196100f;
-
         private const float C_1_847759 = -1.847759065f;
-
         private const float C_0_765367 = 0.765366865f;
 
         private const float C_0_125 = 0.1250f;
+
+#pragma warning disable SA1311, IDE1006 // naming rules violation warnings
+        private static readonly Vector4 mm128_F_0_7071 = new Vector4(0.707106781f);
+        private static readonly Vector4 mm128_F_0_3826 = new Vector4(0.382683433f);
+        private static readonly Vector4 mm128_F_0_5411 = new Vector4(0.541196100f);
+        private static readonly Vector4 mm128_F_1_3065 = new Vector4(1.306562965f);
+#pragma warning restore SA1311, IDE1006
+
 #pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
 
         /// <summary>
@@ -81,37 +78,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         };
 
         /// <summary>
-        /// Apply floating point IDCT inplace.
-        /// Ported from https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239.
-        /// </summary>
-        /// <param name="block">Input matrix.</param>
-        /// <param name="temp">Matrix to store temporal results.</param>
-        public static void TransformIDCT(ref Block8x8F block, ref Block8x8F temp)
-        {
-            block.TransposeInplace();
-            IDCT8x8(ref block, ref temp);
-            temp.TransposeInplace();
-            IDCT8x8(ref temp, ref block);
-
-            // TODO: This can be fused into quantization table step
-            block.MultiplyInPlace(C_0_125);
-        }
-
-        /// <summary>
         /// Apply 2D floating point FDCT inplace.
         /// </summary>
         /// <param name="block">Input matrix.</param>
         public static void TransformFDCT(ref Block8x8F block)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse.IsSupported)
+            if (Avx.IsSupported)
             {
-                ForwardTransformSimd(ref block);
+                ForwardTransform_Avx(ref block);
             }
             else
 #endif
+            if (Vector.IsHardwareAccelerated)
             {
-                ForwardTransformScalar(ref block);
+                ForwardTransform_Vector4(ref block);
+            }
+            else
+            {
+                ForwardTransform_Scalar(ref block);
             }
         }
 
@@ -122,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Ported from libjpeg-turbo https://github.com/libjpeg-turbo/libjpeg-turbo/blob/main/jfdctflt.c.
         /// </remarks>
         /// <param name="block">Input matrix.</param>
-        private static void ForwardTransformScalar(ref Block8x8F block)
+        private static void ForwardTransform_Scalar(ref Block8x8F block)
         {
             const int dctSize = 8;
 
@@ -223,6 +208,99 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 dataRef = ref Unsafe.Add(ref dataRef, 1);
             }
+        }
+
+        /// <summary>
+        /// Apply floating point FDCT inplace using <see cref="Vector4"/> API.
+        /// </summary>
+        /// <remarks>
+        /// This implementation must be called only if hardware supports 4
+        /// floating point numbers vector. Otherwise explicit scalar
+        /// implementation <see cref="ForwardTransform_Scalar"/> is faster
+        /// because it does not rely on matrix transposition.
+        /// </remarks>
+        /// <param name="block">Input matrix.</param>
+        private static void ForwardTransform_Vector4(ref Block8x8F block)
+        {
+            DebugGuard.IsTrue(Vector.IsHardwareAccelerated, "Scalar implementation should be called for non-accelerated hardware.");
+
+            // First pass - process rows
+            block.TransposeInplace();
+            FDCT8x4_Vector4(ref block.V0L);
+            FDCT8x4_Vector4(ref block.V0R);
+
+            // Second pass - process columns
+            block.TransposeInplace();
+            FDCT8x4_Vector4(ref block.V0L);
+            FDCT8x4_Vector4(ref block.V0R);
+        }
+
+        /// <summary>
+        /// Apply 1D floating point FDCT inplace on 8x4 part of 8x8 matrix.
+        /// </summary>
+        /// <remarks>
+        /// Implemented using Vector4 API operations for either scalar or sse hardware implementation.
+        /// Must be called on both 8x4 matrix parts for the full FDCT transform.
+        /// </remarks>
+        /// <param name="blockRef">Input reference to the first </param>
+        private static void FDCT8x4_Vector4(ref Vector4 blockRef)
+        {
+            Vector4 tmp0 = Unsafe.Add(ref blockRef, 0) + Unsafe.Add(ref blockRef, 14);
+            Vector4 tmp7 = Unsafe.Add(ref blockRef, 0) - Unsafe.Add(ref blockRef, 14);
+            Vector4 tmp1 = Unsafe.Add(ref blockRef, 2) + Unsafe.Add(ref blockRef, 12);
+            Vector4 tmp6 = Unsafe.Add(ref blockRef, 2) - Unsafe.Add(ref blockRef, 12);
+            Vector4 tmp2 = Unsafe.Add(ref blockRef, 4) + Unsafe.Add(ref blockRef, 10);
+            Vector4 tmp5 = Unsafe.Add(ref blockRef, 4) - Unsafe.Add(ref blockRef, 10);
+            Vector4 tmp3 = Unsafe.Add(ref blockRef, 6) + Unsafe.Add(ref blockRef, 8);
+            Vector4 tmp4 = Unsafe.Add(ref blockRef, 6) - Unsafe.Add(ref blockRef, 8);
+
+            // Even part
+            Vector4 tmp10 = tmp0 + tmp3;
+            Vector4 tmp13 = tmp0 - tmp3;
+            Vector4 tmp11 = tmp1 + tmp2;
+            Vector4 tmp12 = tmp1 - tmp2;
+
+            Unsafe.Add(ref blockRef, 0) = tmp10 + tmp11;
+            Unsafe.Add(ref blockRef, 8) = tmp10 - tmp11;
+
+            Vector4 z1 = (tmp12 + tmp13) * mm128_F_0_7071;
+            Unsafe.Add(ref blockRef, 4) = tmp13 + z1;
+            Unsafe.Add(ref blockRef, 12) = tmp13 - z1;
+
+            // Odd part
+            tmp10 = tmp4 + tmp5;
+            tmp11 = tmp5 + tmp6;
+            tmp12 = tmp6 + tmp7;
+
+            Vector4 z5 = (tmp10 - tmp12) * mm128_F_0_3826;
+            Vector4 z2 = (mm128_F_0_5411 * tmp10) + z5;
+            Vector4 z4 = (mm128_F_1_3065 * tmp12) + z5;
+            Vector4 z3 = tmp11 * mm128_F_0_7071;
+
+            Vector4 z11 = tmp7 + z3;
+            Vector4 z13 = tmp7 - z3;
+
+            Unsafe.Add(ref blockRef, 10) = z13 + z2;
+            Unsafe.Add(ref blockRef, 6) = z13 - z2;
+            Unsafe.Add(ref blockRef, 2) = z11 + z4;
+            Unsafe.Add(ref blockRef, 14) = z11 - z4;
+        }
+
+        /// <summary>
+        /// Apply floating point IDCT inplace.
+        /// Ported from https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239.
+        /// </summary>
+        /// <param name="block">Input matrix.</param>
+        /// <param name="temp">Matrix to store temporal results.</param>
+        public static void TransformIDCT(ref Block8x8F block, ref Block8x8F temp)
+        {
+            block.TransposeInplace();
+            IDCT8x8(ref block, ref temp);
+            temp.TransposeInplace();
+            IDCT8x8(ref temp, ref block);
+
+            // TODO: This can be fused into quantization table step
+            block.MultiplyInPlace(C_0_125);
         }
 
         /// <summary>

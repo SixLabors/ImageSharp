@@ -18,11 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static readonly Vector256<float> mm256_F_0_5411 = Vector256.Create(0.541196100f);
         private static readonly Vector256<float> mm256_F_1_3065 = Vector256.Create(1.306562965f);
 
-        private static readonly Vector128<float> mm128_F_0_7071 = Vector128.Create(0.707106781f);
-        private static readonly Vector128<float> mm128_F_0_3826 = Vector128.Create(0.382683433f);
-        private static readonly Vector128<float> mm128_F_0_5411 = Vector128.Create(0.541196100f);
-        private static readonly Vector128<float> mm128_F_1_3065 = Vector128.Create(1.306562965f);
-
         private static readonly Vector256<float> mm256_F_1_1758 = Vector256.Create(1.175876f);
         private static readonly Vector256<float> mm256_F_n1_9615 = Vector256.Create(-1.961570560f);
         private static readonly Vector256<float> mm256_F_n0_3901 = Vector256.Create(-0.390180644f);
@@ -40,92 +35,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Apply floating point FDCT inplace using simd operations.
         /// </summary>
         /// <param name="block">Input matrix.</param>
-        private static void ForwardTransformSimd(ref Block8x8F block)
+        private static void ForwardTransform_Avx(ref Block8x8F block)
         {
-            DebugGuard.IsTrue(Avx.IsSupported || Sse.IsSupported, "Avx or at least Sse support is required to execute this operation.");
+            DebugGuard.IsTrue(Avx.IsSupported, "Avx support is required to execute this operation.");
 
             // First pass - process rows
             block.TransposeInplace();
-            if (Avx.IsSupported)
-            {
-                FDCT8x8_Avx(ref block);
-            }
-            else
-            {
-                // Left part
-                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0L));
-
-                // Right part
-                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0R));
-            }
+            FDCT8x8_Avx(ref block);
 
             // Second pass - process columns
             block.TransposeInplace();
-            if (Avx.IsSupported)
-            {
-                FDCT8x8_Avx(ref block);
-            }
-            else
-            {
-                // Left part
-                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0L));
-
-                // Right part
-                FDCT8x4_Sse(ref Unsafe.As<Vector4, Vector128<float>>(ref block.V0R));
-            }
-        }
-
-        /// <summary>
-        /// Apply 1D floating point FDCT inplace using SSE operations on 8x4 part of 8x8 matrix.
-        /// </summary>
-        /// <remarks>
-        /// Requires Sse support.
-        /// Must be called on both 8x4 matrix parts for the full FDCT transform.
-        /// </remarks>
-        /// <param name="blockRef">Input reference to the first </param>
-        public static void FDCT8x4_Sse(ref Vector128<float> blockRef)
-        {
-            DebugGuard.IsTrue(Sse.IsSupported, "Sse support is required to execute this operation.");
-
-            Vector128<float> tmp0 = Sse.Add(Unsafe.Add(ref blockRef, 0), Unsafe.Add(ref blockRef, 14));
-            Vector128<float> tmp7 = Sse.Subtract(Unsafe.Add(ref blockRef, 0), Unsafe.Add(ref blockRef, 14));
-            Vector128<float> tmp1 = Sse.Add(Unsafe.Add(ref blockRef, 2), Unsafe.Add(ref blockRef, 12));
-            Vector128<float> tmp6 = Sse.Subtract(Unsafe.Add(ref blockRef, 2), Unsafe.Add(ref blockRef, 12));
-            Vector128<float> tmp2 = Sse.Add(Unsafe.Add(ref blockRef, 4), Unsafe.Add(ref blockRef, 10));
-            Vector128<float> tmp5 = Sse.Subtract(Unsafe.Add(ref blockRef, 4), Unsafe.Add(ref blockRef, 10));
-            Vector128<float> tmp3 = Sse.Add(Unsafe.Add(ref blockRef, 6), Unsafe.Add(ref blockRef, 8));
-            Vector128<float> tmp4 = Sse.Subtract(Unsafe.Add(ref blockRef, 6), Unsafe.Add(ref blockRef, 8));
-
-            // Even part
-            Vector128<float> tmp10 = Sse.Add(tmp0, tmp3);
-            Vector128<float> tmp13 = Sse.Subtract(tmp0, tmp3);
-            Vector128<float> tmp11 = Sse.Add(tmp1, tmp2);
-            Vector128<float> tmp12 = Sse.Subtract(tmp1, tmp2);
-
-            Unsafe.Add(ref blockRef, 0) = Sse.Add(tmp10, tmp11);
-            Unsafe.Add(ref blockRef, 8) = Sse.Subtract(tmp10, tmp11);
-
-            Vector128<float> z1 = Sse.Multiply(Sse.Add(tmp12, tmp13), mm128_F_0_7071);
-            Unsafe.Add(ref blockRef, 4) = Sse.Add(tmp13, z1);
-            Unsafe.Add(ref blockRef, 12) = Sse.Subtract(tmp13, z1);
-
-            // Odd part
-            tmp10 = Sse.Add(tmp4, tmp5);
-            tmp11 = Sse.Add(tmp5, tmp6);
-            tmp12 = Sse.Add(tmp6, tmp7);
-
-            Vector128<float> z5 = Sse.Multiply(Sse.Subtract(tmp10, tmp12), mm128_F_0_3826);
-            Vector128<float> z2 = Sse.Add(Sse.Multiply(mm128_F_0_5411, tmp10), z5);
-            Vector128<float> z4 = Sse.Add(Sse.Multiply(mm128_F_1_3065, tmp12), z5);
-            Vector128<float> z3 = Sse.Multiply(tmp11, mm128_F_0_7071);
-
-            Vector128<float> z11 = Sse.Add(tmp7, z3);
-            Vector128<float> z13 = Sse.Subtract(tmp7, z3);
-
-            Unsafe.Add(ref blockRef, 10) = Sse.Add(z13, z2);
-            Unsafe.Add(ref blockRef, 6) = Sse.Subtract(z13, z2);
-            Unsafe.Add(ref blockRef, 2) = Sse.Add(z11, z4);
-            Unsafe.Add(ref blockRef, 14) = Sse.Subtract(z11, z4);
+            FDCT8x8_Avx(ref block);
         }
 
         /// <summary>

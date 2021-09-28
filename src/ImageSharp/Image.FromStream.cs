@@ -424,9 +424,9 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
-        public static async Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Stream stream)
+        public static Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
-            => await LoadWithFormatAsync<TPixel>(Configuration.Default, stream).ConfigureAwait(false);
+            => LoadWithFormatAsync<TPixel>(Configuration.Default, stream);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -680,13 +680,13 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (Image img, IImageFormat format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
+            (Image Img, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
 
-            format = data.format;
+            format = data.Format;
 
-            if (data.img != null)
+            if (data.Img != null)
             {
-                return data.img;
+                return data.Img;
             }
 
             var sb = new StringBuilder();

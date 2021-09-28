@@ -620,19 +620,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 int len = 0;
 
                 fixed (byte* huffman = this.huffmanBuffer)
-                fixed (byte* count = spec.Count)
-                fixed (byte* values = spec.Values)
                 {
-                    huffman[len++] = headers[i];
-
-                    for (int c = 0; c < spec.Count.Length; c++)
+                    fixed (byte* count = spec.Count)
                     {
-                        huffman[len++] = count[c];
-                    }
+                        fixed (byte* values = spec.Values)
+                        {
+                            huffman[len++] = headers[i];
 
-                    for (int v = 0; v < spec.Values.Length; v++)
-                    {
-                        huffman[len++] = values[v];
+                            for (int c = 0; c < spec.Count.Length; c++)
+                            {
+                                huffman[len++] = count[c];
+                            }
+
+                            for (int v = 0; v < spec.Values.Length; v++)
+                            {
+                                huffman[len++] = values[v];
+                            }
+                        }
                     }
                 }
 

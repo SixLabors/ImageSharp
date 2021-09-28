@@ -518,7 +518,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
 
                 this.currentRowBytesRead = 0;
-                Span<byte> scanlineSpan = this.scanline.GetSpan();
 
                 switch ((FilterType)scanlineSpan[0])
                 {

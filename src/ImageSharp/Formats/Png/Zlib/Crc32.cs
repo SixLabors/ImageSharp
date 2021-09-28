@@ -83,117 +83,119 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             int length = chunksize;
 
             fixed (byte* bufferPtr = buffer)
-            fixed (ulong* k05PolyPtr = K05Poly)
             {
-                byte* localBufferPtr = bufferPtr;
-                ulong* localK05PolyPtr = k05PolyPtr;
-
-                // There's at least one block of 64.
-                Vector128<ulong> x1 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x00));
-                Vector128<ulong> x2 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x10));
-                Vector128<ulong> x3 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x20));
-                Vector128<ulong> x4 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x30));
-                Vector128<ulong> x5;
-
-                x1 = Sse2.Xor(x1, Sse2.ConvertScalarToVector128UInt32(crc).AsUInt64());
-
-                // k1, k2
-                Vector128<ulong> x0 = Sse2.LoadVector128(localK05PolyPtr + 0x0);
-
-                localBufferPtr += 64;
-                length -= 64;
-
-                // Parallel fold blocks of 64, if any.
-                while (length >= 64)
+                fixed (ulong* k05PolyPtr = K05Poly)
                 {
-                    x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
-                    Vector128<ulong> x6 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x00);
-                    Vector128<ulong> x7 = Pclmulqdq.CarrylessMultiply(x3, x0, 0x00);
-                    Vector128<ulong> x8 = Pclmulqdq.CarrylessMultiply(x4, x0, 0x00);
+                    byte* localBufferPtr = bufferPtr;
+                    ulong* localK05PolyPtr = k05PolyPtr;
 
-                    x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
-                    x2 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x11);
-                    x3 = Pclmulqdq.CarrylessMultiply(x3, x0, 0x11);
-                    x4 = Pclmulqdq.CarrylessMultiply(x4, x0, 0x11);
+                    // There's at least one block of 64.
+                    Vector128<ulong> x1 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x00));
+                    Vector128<ulong> x2 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x10));
+                    Vector128<ulong> x3 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x20));
+                    Vector128<ulong> x4 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x30));
+                    Vector128<ulong> x5;
 
-                    Vector128<ulong> y5 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x00));
-                    Vector128<ulong> y6 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x10));
-                    Vector128<ulong> y7 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x20));
-                    Vector128<ulong> y8 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x30));
+                    x1 = Sse2.Xor(x1, Sse2.ConvertScalarToVector128UInt32(crc).AsUInt64());
 
-                    x1 = Sse2.Xor(x1, x5);
-                    x2 = Sse2.Xor(x2, x6);
-                    x3 = Sse2.Xor(x3, x7);
-                    x4 = Sse2.Xor(x4, x8);
-
-                    x1 = Sse2.Xor(x1, y5);
-                    x2 = Sse2.Xor(x2, y6);
-                    x3 = Sse2.Xor(x3, y7);
-                    x4 = Sse2.Xor(x4, y8);
+                    // k1, k2
+                    Vector128<ulong> x0 = Sse2.LoadVector128(localK05PolyPtr + 0x0);
 
                     localBufferPtr += 64;
                     length -= 64;
-                }
 
-                // Fold into 128-bits.
-                // k3, k4
-                x0 = Sse2.LoadVector128(k05PolyPtr + 0x2);
+                    // Parallel fold blocks of 64, if any.
+                    while (length >= 64)
+                    {
+                        x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
+                        Vector128<ulong> x6 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x00);
+                        Vector128<ulong> x7 = Pclmulqdq.CarrylessMultiply(x3, x0, 0x00);
+                        Vector128<ulong> x8 = Pclmulqdq.CarrylessMultiply(x4, x0, 0x00);
 
-                x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
-                x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
-                x1 = Sse2.Xor(x1, x2);
-                x1 = Sse2.Xor(x1, x5);
+                        x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
+                        x2 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x11);
+                        x3 = Pclmulqdq.CarrylessMultiply(x3, x0, 0x11);
+                        x4 = Pclmulqdq.CarrylessMultiply(x4, x0, 0x11);
 
-                x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
-                x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
-                x1 = Sse2.Xor(x1, x3);
-                x1 = Sse2.Xor(x1, x5);
+                        Vector128<ulong> y5 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x00));
+                        Vector128<ulong> y6 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x10));
+                        Vector128<ulong> y7 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x20));
+                        Vector128<ulong> y8 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x30));
 
-                x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
-                x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
-                x1 = Sse2.Xor(x1, x4);
-                x1 = Sse2.Xor(x1, x5);
+                        x1 = Sse2.Xor(x1, x5);
+                        x2 = Sse2.Xor(x2, x6);
+                        x3 = Sse2.Xor(x3, x7);
+                        x4 = Sse2.Xor(x4, x8);
 
-                // Single fold blocks of 16, if any.
-                while (length >= 16)
-                {
-                    x2 = Sse2.LoadVector128((ulong*)localBufferPtr);
+                        x1 = Sse2.Xor(x1, y5);
+                        x2 = Sse2.Xor(x2, y6);
+                        x3 = Sse2.Xor(x3, y7);
+                        x4 = Sse2.Xor(x4, y8);
+
+                        localBufferPtr += 64;
+                        length -= 64;
+                    }
+
+                    // Fold into 128-bits.
+                    // k3, k4
+                    x0 = Sse2.LoadVector128(k05PolyPtr + 0x2);
 
                     x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
                     x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
                     x1 = Sse2.Xor(x1, x2);
                     x1 = Sse2.Xor(x1, x5);
 
-                    localBufferPtr += 16;
-                    length -= 16;
+                    x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
+                    x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
+                    x1 = Sse2.Xor(x1, x3);
+                    x1 = Sse2.Xor(x1, x5);
+
+                    x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
+                    x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
+                    x1 = Sse2.Xor(x1, x4);
+                    x1 = Sse2.Xor(x1, x5);
+
+                    // Single fold blocks of 16, if any.
+                    while (length >= 16)
+                    {
+                        x2 = Sse2.LoadVector128((ulong*)localBufferPtr);
+
+                        x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
+                        x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
+                        x1 = Sse2.Xor(x1, x2);
+                        x1 = Sse2.Xor(x1, x5);
+
+                        localBufferPtr += 16;
+                        length -= 16;
+                    }
+
+                    // Fold 128 - bits to 64 - bits.
+                    x2 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x10);
+                    x3 = Vector128.Create(~0, 0, ~0, 0).AsUInt64(); // _mm_setr_epi32 on x86
+                    x1 = Sse2.ShiftRightLogical128BitLane(x1, 8);
+                    x1 = Sse2.Xor(x1, x2);
+
+                    // k5, k0
+                    x0 = Sse2.LoadScalarVector128(localK05PolyPtr + 0x4);
+
+                    x2 = Sse2.ShiftRightLogical128BitLane(x1, 4);
+                    x1 = Sse2.And(x1, x3);
+                    x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
+                    x1 = Sse2.Xor(x1, x2);
+
+                    // Barret reduce to 32-bits.
+                    // polynomial
+                    x0 = Sse2.LoadVector128(localK05PolyPtr + 0x6);
+
+                    x2 = Sse2.And(x1, x3);
+                    x2 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x10);
+                    x2 = Sse2.And(x2, x3);
+                    x2 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x00);
+                    x1 = Sse2.Xor(x1, x2);
+
+                    crc = (uint)Sse41.Extract(x1.AsInt32(), 1);
+                    return buffer.Length - chunksize == 0 ? crc : CalculateScalar(crc, buffer.Slice(chunksize));
                 }
-
-                // Fold 128 - bits to 64 - bits.
-                x2 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x10);
-                x3 = Vector128.Create(~0, 0, ~0, 0).AsUInt64(); // _mm_setr_epi32 on x86
-                x1 = Sse2.ShiftRightLogical128BitLane(x1, 8);
-                x1 = Sse2.Xor(x1, x2);
-
-                // k5, k0
-                x0 = Sse2.LoadScalarVector128(localK05PolyPtr + 0x4);
-
-                x2 = Sse2.ShiftRightLogical128BitLane(x1, 4);
-                x1 = Sse2.And(x1, x3);
-                x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
-                x1 = Sse2.Xor(x1, x2);
-
-                // Barret reduce to 32-bits.
-                // polynomial
-                x0 = Sse2.LoadVector128(localK05PolyPtr + 0x6);
-
-                x2 = Sse2.And(x1, x3);
-                x2 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x10);
-                x2 = Sse2.And(x2, x3);
-                x2 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x00);
-                x1 = Sse2.Xor(x1, x2);
-
-                crc = (uint)Sse41.Extract(x1.AsInt32(), 1);
-                return buffer.Length - chunksize == 0 ? crc : CalculateScalar(crc, buffer.Slice(chunksize));
             }
         }
 #endif

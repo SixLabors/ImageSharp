@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         /// <param name="s">Source</param>
         /// <param name="d">Destination</param>
-        public static void IDCT8x8(ref Block8x8F s, ref Block8x8F d)
+        private static void IDCT8x8(ref Block8x8F s, ref Block8x8F d)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)

@@ -188,7 +188,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="d">Destination</param>
         public static void IDCT8x8_Avx(ref Block8x8F s, ref Block8x8F d)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             Debug.Assert(Avx.IsSupported, "AVX is required to execute this method");
 
             Vector256<float> my1 = s.V1;
@@ -236,7 +235,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             d.V5 = Avx.Subtract(my2, mb2);
             d.V3 = Avx.Add(my3, mb3);
             d.V4 = Avx.Subtract(my3, mb3);
-#endif
         }
     }
 }

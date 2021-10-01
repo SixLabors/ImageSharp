@@ -66,6 +66,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private HuffmanLut[] huffmanTables;
 
         /// <summary>
+        /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
+        /// </summary>
+        private uint accumulatedBits;
+
+        /// <summary>
         /// Buffer for temporal storage of huffman rle encoding bit data.
         /// </summary>
         /// <remarks>
@@ -82,17 +87,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </remarks>
         private readonly byte[] streamWriteBuffer;
 
-        private int emitWriteIndex;
-
-        /// <summary>
-        /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
-        /// </summary>
-        private uint accumulatedBits;
-
         /// <summary>
         /// Number of jagged bits stored in <see cref="accumulatedBits"/>
         /// </summary>
         private int bitCount;
+
+        private int emitWriteIndex;
 
         private Block8x8 tempBlock;
 
@@ -101,9 +101,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         private readonly Stream target;
 
-        public HuffmanScanEncoder(int componentCount, Stream outputStream)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HuffmanScanEncoder"/> class.
+        /// </summary>
+        /// <param name="blocksPerCodingUnit">Amount of encoded 8x8 blocks per single jpeg macroblock.</param>
+        /// <param name="outputStream">Output stream for saving encoded data.</param>
+        public HuffmanScanEncoder(int blocksPerCodingUnit, Stream outputStream)
         {
-            int emitBufferByteLength = MaxBytesPerBlock * componentCount;
+            int emitBufferByteLength = MaxBytesPerBlock * blocksPerCodingUnit;
             this.emitBuffer = new uint[emitBufferByteLength / sizeof(uint)];
             this.emitWriteIndex = this.emitBuffer.Length;
 
@@ -112,7 +117,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.target = outputStream;
         }
 
-        private bool IsFlushNeeded
+        /// <summary>
+        /// Gets a value indicating whether <see cref="emitBuffer"/> is full
+        /// and must be flushed using <see cref="FlushToStream()"/>
+        /// before encoding next 8x8 coding block.
+        /// </summary>
+        private bool IsStreamFlushNeeded
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
@@ -174,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.Cr,
                         ref chrominanceQuantTable);
 
-                    if (this.IsFlushNeeded)
+                    if (this.IsStreamFlushNeeded)
                     {
                         this.FlushToStream();
                     }
@@ -249,7 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.Cr,
                         ref chrominanceQuantTable);
 
-                    if (this.IsFlushNeeded)
+                    if (this.IsStreamFlushNeeded)
                     {
                         this.FlushToStream();
                     }
@@ -300,7 +310,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.Y,
                         ref luminanceQuantTable);
 
-                    if (this.IsFlushNeeded)
+                    if (this.IsStreamFlushNeeded)
                     {
                         this.FlushToStream();
                     }
@@ -364,7 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         ref pixelConverter.B,
                         ref luminanceQuantTable);
 
-                    if (this.IsFlushNeeded)
+                    if (this.IsStreamFlushNeeded)
                     {
                         this.FlushToStream();
                     }
@@ -447,15 +457,48 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Emits the least significant count of bits to the stream write buffer.
-        /// The precondition is bits
-        /// <example>
-        /// &lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16
-        /// </example>
-        /// .
+        /// Emits the most significant count of bits to the buffer.
         /// </summary>
-        /// <param name="bits">The packed bits.</param>
-        /// <param name="count">The number of bits</param>
+        /// <remarks>
+        /// <para>
+        /// Supports up to 32 count of bits but, generally speaking, jpeg
+        /// standard assures that there won't be more than 16 bits per single
+        /// value.
+        /// </para>
+        /// <para>
+        /// Emitting algorithm uses 3 intermediate buffers for caching before
+        /// writing to the stream:
+        /// <list type="number">
+        /// <item>
+        /// <term>uint32</term>
+        /// <description>
+        /// Bit buffer. Encoded spectral values can occupy up to 16 bits, bits
+        /// are assembled to whole bytes via this intermediate buffer.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <term>uint32[]</term>
+        /// <description>
+        /// Assembled bytes from uint32 buffer are saved into this buffer.
+        /// uint32 buffer values are saved using indices from the last to the first.
+        /// As bytes are saved to the memory as 4-byte packages endianness matters:
+        /// Jpeg stream is big-endian, indexing buffer bytes from the last index to the
+        /// first eliminates all operations to extract separate bytes. This only works for
+        /// little-endian machines (there are no known examples of big-endian users atm).
+        /// For big-endians this approach is slower due to the separate byte extraction.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <term>byte[]</term>
+        /// <description>
+        /// Byte buffer used only during <see cref="FlushToStream(int)"/> method.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </remarks>
+        /// <param name="bits">Bits to emit, must be shifted to the left.</param>
+        /// <param name="count">Bits count stored in the bits parameter.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void Emit(uint bits, int count)
         {
@@ -475,10 +518,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Emits the given value with the given Huffman encoder.
+        /// Emits the given value with the given Huffman table.
         /// </summary>
-        /// <param name="table">Compiled Huffman spec values.</param>
-        /// <param name="value">The value to encode.</param>
+        /// <param name="table">Huffman table.</param>
+        /// <param name="value">Value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuff(int[] table, int value)
         {
@@ -489,9 +532,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Emits given value via huffman rle encoding.
         /// </summary>
-        /// <param name="table">Compiled Huffman spec values.</param>
+        /// <param name="table">Huffman table.</param>
         /// <param name="runLength">The number of preceding zeroes, preshifted by 4 to the left.</param>
-        /// <param name="value">The value to encode.</param>
+        /// <param name="value">Value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuffRLE(int[] table, int runLength, int value)
         {
@@ -555,11 +598,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Flushes cached bytes to the ouput stream respecting stuff bytes.
+        /// General method for flushing cached spectral data bytes to
+        /// the ouput stream respecting stuff bytes.
         /// </summary>
         /// <remarks>
-        /// Bytes cached via <see cref="Emit"/> are stored in 4-bytes blocks which makes
-        /// this method endianness dependent.
+        /// Bytes cached via <see cref="Emit"/> are stored in 4-bytes blocks
+        /// which makes this method endianness dependent.
         /// </remarks>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void FlushToStream(int endIndex)
@@ -623,12 +667,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.target.Write(this.streamWriteBuffer, 0, writeIdx);
         }
 
+        /// <summary>
+        /// Flushes spectral data bytes after encoding all channel blocks
+        /// in a single jpeg macroblock using <see cref="WriteBlock"/>.
+        /// </summary>
+        /// <remarks>
+        /// This must be called only if <see cref="IsStreamFlushNeeded"/> is true
+        /// only during the macroblocks encoding routine.
+        /// </remarks>
         private void FlushToStream()
         {
             this.FlushToStream(this.emitWriteIndex * 4);
             this.emitWriteIndex = this.emitBuffer.Length;
         }
 
+        /// <summary>
+        /// Flushes final cached bits to the stream padding 1's to
+        /// complement full bytes.
+        /// </summary>
+        /// <remarks>
+        /// This must be called only once at the end of the encoding routine.
+        /// <see cref="IsStreamFlushNeeded"/> check is not needed.
+        /// </remarks>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void FlushRemainingBytes()
         {

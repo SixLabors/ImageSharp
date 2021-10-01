@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -65,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Values are also scaled by 8 so DCT code won't do extra division/multiplication.
         /// </para>
         /// </remarks>
-        private static readonly float[] DctReciprocalAdjustmentCoefficients = new float[]
+        internal static readonly float[] DctReciprocalAdjustmentCoefficients = new float[]
         {
             0.125f, 0.09011998f, 0.09567086f, 0.10630376f, 0.125f, 0.15909483f, 0.23096988f, 0.45306373f,
             0.09011998f, 0.064972885f, 0.068974845f, 0.07664074f, 0.09011998f, 0.11470097f, 0.16652f, 0.32664075f,

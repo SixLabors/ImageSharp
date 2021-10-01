@@ -139,12 +139,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
-                chrominanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / chrominanceQuantTable[i];
-            }
+            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            FastFloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -206,12 +202,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
-                chrominanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / chrominanceQuantTable[i];
-            }
+            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            FastFloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -279,11 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
-            }
+            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -325,16 +313,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
+        /// <param name="quantTable">Quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
+        public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F quantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // Calculate reciprocal quantization tables for FDCT method
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                luminanceQuantTable[i] = FastFloatingPointDCT.DctReciprocalAdjustmentCoefficients[i] / luminanceQuantTable[i];
-            }
+            FastFloatingPointDCT.AdjustToFDCT(ref quantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -360,19 +344,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCR,
                         ref pixelConverter.R,
-                        ref luminanceQuantTable);
+                        ref quantTable);
 
                     prevDCG = this.WriteBlock(
                         QuantIndex.Luminance,
                         prevDCG,
                         ref pixelConverter.G,
-                        ref luminanceQuantTable);
+                        ref quantTable);
 
                     prevDCB = this.WriteBlock(
                         QuantIndex.Luminance,
                         prevDCB,
                         ref pixelConverter.B,
-                        ref luminanceQuantTable);
+                        ref quantTable);
 
                     if (this.IsStreamFlushNeeded)
                     {

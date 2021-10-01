@@ -62,10 +62,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <code>
         /// scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
         /// </code>
-        /// Values are also scaled by 8 so DCT code won't do unnecessary division.
+        /// Values are also scaled by 8 so DCT code won't do extra division/multiplication.
         /// </para>
         /// </remarks>
-        public static readonly float[] DctReciprocalAdjustmentCoefficients = new float[]
+        private static readonly float[] DctReciprocalAdjustmentCoefficients = new float[]
         {
             0.125f, 0.09011998f, 0.09567086f, 0.10630376f, 0.125f, 0.15909483f, 0.23096988f, 0.45306373f,
             0.09011998f, 0.064972885f, 0.068974845f, 0.07664074f, 0.09011998f, 0.11470097f, 0.16652f, 0.32664075f,
@@ -76,6 +76,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             0.23096988f, 0.16652f, 0.17677669f, 0.19642374f, 0.23096988f, 0.2939689f, 0.4267767f, 0.8371526f,
             0.45306373f, 0.32664075f, 0.34675997f, 0.38529903f, 0.45306373f, 0.5766407f, 0.8371526f, 1.642134f,
         };
+
+        /// <summary>
+        /// Adjusts given quantization table to be complient with FDCT implementation.
+        /// </summary>
+        /// <remarks>
+        /// See <see cref="DctReciprocalAdjustmentCoefficients"/> docs for explanation.
+        /// </remarks>
+        /// <param name="quantizationtable">Quantization table to adjust.</param>
+        public static void AdjustToFDCT(ref Block8x8F quantizationtable)
+        {
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                quantizationtable[i] = DctReciprocalAdjustmentCoefficients[i] / quantizationtable[i];
+            }
+        }
 
         /// <summary>
         /// Apply 2D floating point FDCT inplace.

@@ -394,6 +394,32 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             Assert.Equal(expected, typed.Value);
         }
 
+        [Fact]
+        public void NumberTests()
+        {
+            Number value1 = ushort.MaxValue;
+            Number value2 = ushort.MaxValue;
+            Assert.True(value1 == value2);
+
+            value2 = short.MaxValue;
+            Assert.True(value1 != value2);
+
+            value2 = -2;
+            Assert.True(value1 > value2);
+
+            value1 = -6;
+            Assert.True(value1 <= value2);
+
+            value2 = -2;
+            Assert.True(value1 >= value2);
+
+            Assert.True(value1.Equals(value2));
+            Assert.True(value1.GetHashCode() == value2.GetHashCode());
+
+            value1 = 1;
+            Assert.False(value1.Equals(value2));
+        }
+
         [Theory]
         [MemberData(nameof(NumberTags))]
         public void ExifNumberTests(ExifTag tag)
@@ -422,6 +448,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
 
             var typed = (ExifNumberArray)value;
             Assert.Equal(expected, typed.Value);
+
+            Assert.True(value.TrySetValue(int.MaxValue));
+            Assert.Equal(new[] { int.MaxValue }, value.GetValue());
+
+            Assert.True(value.TrySetValue(new[] { 1u, 2u, 5u }));
+            Assert.Equal(new[] { 1u, 2u, 5u }, value.GetValue());
+
+            Assert.True(value.TrySetValue(new[] { (short)1, (short)2, (short)5 }));
+            Assert.Equal(new[] { (short)1, (short)2, (short)5 }, value.GetValue());
         }
 
         [Theory]

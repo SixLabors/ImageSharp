@@ -3,22 +3,19 @@
 
 // ReSharper disable InconsistentNaming
 using System;
-using System.Linq;
 using System.IO;
+using System.Linq;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
-
-using Xunit;
-
-using static SixLabors.ImageSharp.Tests.TestImages.BigTiff;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using Xunit;
+using static SixLabors.ImageSharp.Tests.TestImages.BigTiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
-    [Trait("Format", "BigTiff")]
     public class BigTiffDecoderTests : TiffDecoderBaseTester
     {
         [Theory]

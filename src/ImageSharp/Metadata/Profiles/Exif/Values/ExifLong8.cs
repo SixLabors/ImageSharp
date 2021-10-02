@@ -35,6 +35,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             switch (value)
             {
+                case int intValue:
+                    if (intValue >= uint.MinValue)
+                    {
+                        this.Value = (uint)intValue;
+                        return true;
+                    }
+
+                    return false;
+                case uint uintValue:
+                    this.Value = uintValue;
+
+                    return true;
                 case long intValue:
                     if (intValue >= 0)
                     {
@@ -44,6 +56,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                     return false;
                 default:
+
                     return false;
             }
         }

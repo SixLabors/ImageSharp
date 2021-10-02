@@ -64,6 +64,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ushort val:
                     return this.SetSingle((ulong)val);
 
+                case long val:
+                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, long.MaxValue));
+
                 case long[] array:
                 {
                     if (value.GetType() == typeof(ulong[]))

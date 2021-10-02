@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using SixLabors.ImageSharp.Formats.WebP.Lossy;
+using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp

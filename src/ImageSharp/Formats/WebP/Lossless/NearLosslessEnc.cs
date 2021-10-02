@@ -4,7 +4,7 @@
 using System;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
     /// Near-lossless image preprocessing adjusts pixel values to help compressibility with a guarantee

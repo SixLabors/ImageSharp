@@ -131,28 +131,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfScan(componentCount, componentIds);
 
             // Write the scan compressed data.
-            var scanEncoder = new HuffmanScanEncoder(stream);
-            if (this.colorType == JpegColorType.Luminance)
+            switch (this.colorType)
             {
-                // luminance quantization table only.
-                scanEncoder.EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
-            }
-            else
-            {
-                // luminance and chrominance quantization tables.
-                switch (this.colorType)
-                {
-                    case JpegColorType.YCbCrRatio444:
-                    case JpegColorType.Luminance:
-                        scanEncoder.Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
-                        break;
-                    case JpegColorType.YCbCrRatio420:
-                        scanEncoder.Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
-                        break;
-                    case JpegColorType.Rgb:
-                        scanEncoder.EncodeRgb(image, ref luminanceQuantTable, cancellationToken);
-                        break;
-                }
+                case JpegColorType.YCbCrRatio444:
+                    new HuffmanScanEncoder(3, stream).Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                    break;
+                case JpegColorType.YCbCrRatio420:
+                    new HuffmanScanEncoder(6, stream).Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                    break;
+                case JpegColorType.Luminance:
+                    new HuffmanScanEncoder(1, stream).EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
+                    break;
+                case JpegColorType.Rgb:
+                    new HuffmanScanEncoder(3, stream).EncodeRgb(image, ref luminanceQuantTable, cancellationToken);
+                    break;
+                default:
+                    // all other non-supported color types are checked at the start of this method
+                    break;
             }
 
             // Write the End Of Image marker.
@@ -193,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             dqt[offset++] = (byte)i;
             for (int j = 0; j < Block8x8F.Size; j++)
             {
-                dqt[offset++] = (byte)quant[j];
+                dqt[offset++] = (byte)quant[ZigZag.ZigZagOrder[j]];
             }
         }
 
@@ -735,11 +730,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Initializes quantization tables.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// Zig-zag ordering is NOT applied to the resulting tables.
+        /// </para>
+        /// <para>
         /// We take quality values in a hierarchical order:
         /// 1. Check if encoder has set quality
-        /// 2. Check if metadata has special table for encoding
-        /// 3. Check if metadata has set quality
-        /// 4. Take default quality value - 75
+        /// 2. Check if metadata has set quality
+        /// 3. Take default quality value - 75
+        /// </para>
         /// </remarks>
         /// <param name="componentCount">Color components count.</param>
         /// <param name="metadata">Jpeg metadata instance.</param>

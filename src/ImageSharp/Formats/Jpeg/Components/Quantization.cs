@@ -39,53 +39,59 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public const int QualityEstimationConfidenceUpperThreshold = 98;
 
         /// <summary>
-        /// Gets the unscaled luminance quantization table in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from ITU section K.1 after converting from natural to
-        /// zig-zag order.
+        /// Gets unscaled luminance quantization table.
         /// </summary>
+        /// <remarks>
+        /// The values are derived from ITU section K.1.
+        /// </remarks>
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
         // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        public static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
+        public static ReadOnlySpan<byte> LuminanceTable => new byte[]
         {
-            16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
-            40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
-            57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
-            109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
-            100, 120, 92, 101, 103, 99,
+            16, 11, 10, 16,  24,  40,  51,  61,
+            12, 12, 14, 19,  26,  58,  60,  55,
+            14, 13, 16, 24,  40,  57,  69,  56,
+            14, 17, 22, 29,  51,  87,  80,  62,
+            18, 22, 37, 56,  68, 109, 103,  77,
+            24, 35, 55, 64,  81, 104, 113,  92,
+            49, 64, 78, 87, 103, 121, 120, 101,
+            72, 92, 95, 98, 112, 100, 103,  99,
         };
 
         /// <summary>
-        /// Gets the unscaled chrominance quantization table in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from ITU section K.1 after converting from natural to
-        /// zig-zag order.
+        /// Gets unscaled chrominance quantization table.
         /// </summary>
+        /// <remarks>
+        /// The values are derived from ITU section K.1.
+        /// </remarks>
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
         // More details can be found: https://github.com/dotnet/roslyn/pull/24621
-        public static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
+        public static ReadOnlySpan<byte> ChrominanceTable => new byte[]
         {
-            17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
-            99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-            99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-            99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+            17, 18, 24, 47, 99, 99, 99, 99,
+            18, 21, 26, 66, 99, 99, 99, 99,
+            24, 26, 56, 99, 99, 99, 99, 99,
+            47, 66, 99, 99, 99, 99, 99, 99,
+            99, 99, 99, 99, 99, 99, 99, 99,
+            99, 99, 99, 99, 99, 99, 99, 99,
+            99, 99, 99, 99, 99, 99, 99, 99,
             99, 99, 99, 99, 99, 99, 99, 99,
         };
 
         /// Ported from JPEGsnoop:
         /// https://github.com/ImpulseAdventure/JPEGsnoop/blob/9732ee0961f100eb69bbff4a0c47438d5997abee/source/JfifDecode.cpp#L4570-L4694
         /// <summary>
-        /// Estimates jpeg quality based on quantization table in zig-zag order.
+        /// Estimates jpeg quality based on standard quantization table.
         /// </summary>
         /// <remarks>
-        /// This technically can be used with any given table but internal decoder code uses ITU spec tables:
-        /// <see cref="UnscaledQuant_Luminance"/> and <see cref="UnscaledQuant_Chrominance"/>.
+        /// Technically, this can be used with any given table but internal decoder code uses ITU spec tables:
+        /// <see cref="LuminanceTable"/> and <see cref="ChrominanceTable"/>.
         /// </remarks>
         /// <param name="table">Input quantization table.</param>
-        /// <param name="target">Quantization to estimate against.</param>
-        /// <returns>Estimated quality</returns>
+        /// <param name="target">Natural order quantization table to estimate against.</param>
+        /// <returns>Estimated quality.</returns>
         public static int EstimateQuality(ref Block8x8F table, ReadOnlySpan<byte> target)
         {
             // This method can be SIMD'ified if standard table is injected as Block8x8F.
@@ -106,11 +112,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             int quality;
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                float coeff = table[i];
-                int coeffInteger = (int)coeff;
+                int coeff = (int)table[i];
 
                 // Coefficients are actually int16 casted to float numbers so there's no truncating error.
-                if (coeffInteger != 0)
+                if (coeff != 0)
                 {
                     comparePercent = 100.0 * (table[i] / target[i]);
                 }
@@ -152,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <returns>Estimated quality</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int EstimateLuminanceQuality(ref Block8x8F luminanceTable)
-            => EstimateQuality(ref luminanceTable, UnscaledQuant_Luminance);
+            => EstimateQuality(ref luminanceTable, LuminanceTable);
 
         /// <summary>
         /// Estimates jpeg quality based on quantization table in zig-zag order.
@@ -161,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <returns>Estimated quality</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int EstimateChrominanceQuality(ref Block8x8F chrominanceTable)
-            => EstimateQuality(ref chrominanceTable, UnscaledQuant_Chrominance);
+            => EstimateQuality(ref chrominanceTable, ChrominanceTable);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int QualityToScale(int quality)
@@ -185,10 +190,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Block8x8F ScaleLuminanceTable(int quality)
-            => ScaleQuantizationTable(scale: QualityToScale(quality), UnscaledQuant_Luminance);
+            => ScaleQuantizationTable(scale: QualityToScale(quality), LuminanceTable);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Block8x8F ScaleChrominanceTable(int quality)
-            => ScaleQuantizationTable(scale: QualityToScale(quality), UnscaledQuant_Chrominance);
+            => ScaleQuantizationTable(scale: QualityToScale(quality), ChrominanceTable);
     }
 }

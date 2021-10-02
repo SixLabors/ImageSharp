@@ -537,6 +537,24 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests.ProfilingSandbox", "tests\ImageSharp.Tests.ProfilingSandbox\ImageSharp.Tests.ProfilingSandbox.csproj", "{FC527290-2F22-432C-B77B-6E815726B02C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{FCB65777-1D97-42DD-9ECC-96732D495D5C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{670DD46C-82E9-499A-B2D2-00A802ED0141}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Png\issues\Issue_1014_1.png = tests\Images\Input\Png\issues\Issue_1014_1.png
+		tests\Images\Input\Png\issues\Issue_1014_2.png = tests\Images\Input\Png\issues\Issue_1014_2.png
+		tests\Images\Input\Png\issues\Issue_1014_3.png = tests\Images\Input\Png\issues\Issue_1014_3.png
+		tests\Images\Input\Png\issues\Issue_1014_4.png = tests\Images\Input\Png\issues\Issue_1014_4.png
+		tests\Images\Input\Png\issues\Issue_1014_5.png = tests\Images\Input\Png\issues\Issue_1014_5.png
+		tests\Images\Input\Png\issues\Issue_1014_6.png = tests\Images\Input\Png\issues\Issue_1014_6.png
+		tests\Images\Input\Png\issues\Issue_1047.png = tests\Images\Input\Png\issues\Issue_1047.png
+		tests\Images\Input\Png\issues\Issue_1127.png = tests\Images\Input\Png\issues\Issue_1127.png
+		tests\Images\Input\Png\issues\Issue_1177_1.png = tests\Images\Input\Png\issues\Issue_1177_1.png
+		tests\Images\Input\Png\issues\Issue_1177_2.png = tests\Images\Input\Png\issues\Issue_1177_2.png
+		tests\Images\Input\Png\issues\Issue_1765_Net6DeflateStreamRead.png = tests\Images\Input\Png\issues\Issue_1765_Net6DeflateStreamRead.png
+		tests\Images\Input\Png\issues\Issue_410.png = tests\Images\Input\Png\issues\Issue_410.png
+		tests\Images\Input\Png\issues\Issue_935.png = tests\Images\Input\Png\issues\Issue_935.png
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{5DFC394F-136F-4B76-9BCA-3BA786515EFC}"
 	ProjectSection(SolutionItems) = preProject
 		tests\Images\Input\Tga\16bit_noalphabits.tga = tests\Images\Input\Tga\16bit_noalphabits.tga
 		tests\Images\Input\Tga\16bit_rle_noalphabits.tga = tests\Images\Input\Tga\16bit_rle_noalphabits.tga

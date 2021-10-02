@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -18,6 +19,48 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
                 ConvertCore(values, result, this.MaximumValue);
+            }
+
+            public override void ConvertToRgbInplace(in ComponentValues values)
+            {
+                ConvertCoreInplace(values, this.MaximumValue);
+            }
+
+            internal static void ConvertCoreInplace(ComponentValues values, float maxValue)
+            {
+                // TODO: Optimize this
+                ConvertComponent(values.Component0, maxValue);
+                ConvertComponent(values.Component1, maxValue);
+                ConvertComponent(values.Component2, maxValue);
+
+                static void ConvertComponent(Span<float> values, float maxValue)
+                {
+                    Span<Vector4> vecValues = MemoryMarshal.Cast<float, Vector4>(values);
+
+                    var scaleVector = new Vector4(1 / maxValue);
+
+                    for (int i = 0; i < vecValues.Length; i++)
+                    {
+                        vecValues[i] *= scaleVector;
+                    }
+
+                    values = values.Slice(vecValues.Length * 4);
+                    if (values.Length > 0)
+                    {
+                        float scaleValue = 1f / maxValue;
+                        values[0] *= scaleValue;
+
+                        if (values.Length > 1)
+                        {
+                            values[1] *= scaleValue;
+
+                            if (values.Length > 2)
+                            {
+                                values[2] *= scaleValue;
+                            }
+                        }
+                    }
+                }
             }
 
             internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue)

@@ -82,6 +82,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <param name="result">The destination buffer of <see cref="Vector4"/> values</param>
         public abstract void ConvertToRgba(in ComponentValues values, Span<Vector4> result);
 
+        public virtual void ConvertToRgbInplace(in ComponentValues values) => throw new NotImplementedException();
+
         /// <summary>
         /// Returns the <see cref="JpegColorConverter"/>s for all supported colorspaces and precisions.
         /// </summary>
@@ -181,22 +183,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <summary>
             /// The component 0 (eg. Y)
             /// </summary>
-            public readonly ReadOnlySpan<float> Component0;
+            public readonly Span<float> Component0;
 
             /// <summary>
             /// The component 1 (eg. Cb)
             /// </summary>
-            public readonly ReadOnlySpan<float> Component1;
+            public readonly Span<float> Component1;
 
             /// <summary>
             /// The component 2 (eg. Cr)
             /// </summary>
-            public readonly ReadOnlySpan<float> Component2;
+            public readonly Span<float> Component2;
 
             /// <summary>
             /// The component 4
             /// </summary>
-            public readonly ReadOnlySpan<float> Component3;
+            public readonly Span<float> Component3;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
@@ -226,12 +228,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
-            private ComponentValues(
+            internal ComponentValues(
                 int componentCount,
-                ReadOnlySpan<float> c0,
-                ReadOnlySpan<float> c1,
-                ReadOnlySpan<float> c2,
-                ReadOnlySpan<float> c3)
+                Span<float> c0,
+                Span<float> c1,
+                Span<float> c2,
+                Span<float> c3)
             {
                 this.ComponentCount = componentCount;
                 this.Component0 = c0;
@@ -242,10 +244,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             public ComponentValues Slice(int start, int length)
             {
-                ReadOnlySpan<float> c0 = this.Component0.Slice(start, length);
-                ReadOnlySpan<float> c1 = this.ComponentCount > 1 ? this.Component1.Slice(start, length) : ReadOnlySpan<float>.Empty;
-                ReadOnlySpan<float> c2 = this.ComponentCount > 2 ? this.Component2.Slice(start, length) : ReadOnlySpan<float>.Empty;
-                ReadOnlySpan<float> c3 = this.ComponentCount > 3 ? this.Component3.Slice(start, length) : ReadOnlySpan<float>.Empty;
+                Span<float> c0 = this.Component0.Slice(start, length);
+                Span<float> c1 = this.ComponentCount > 1 ? this.Component1.Slice(start, length) : Span<float>.Empty;
+                Span<float> c2 = this.ComponentCount > 2 ? this.Component2.Slice(start, length) : Span<float>.Empty;
+                Span<float> c3 = this.ComponentCount > 3 ? this.Component3.Slice(start, length) : Span<float>.Empty;
 
                 return new ComponentValues(this.ComponentCount, c0, c1, c2, c3);
             }

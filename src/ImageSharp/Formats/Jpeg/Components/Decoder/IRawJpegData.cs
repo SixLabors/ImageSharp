@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         IJpegComponent[] Components { get; }
 
         /// <summary>
-        /// Gets the quantization tables, in zigzag order.
+        /// Gets the quantization tables, in natural order.
         /// </summary>
         Block8x8F[] QuantizationTables { get; }
     }

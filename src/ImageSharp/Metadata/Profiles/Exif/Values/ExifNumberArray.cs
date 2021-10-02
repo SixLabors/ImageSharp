@@ -19,16 +19,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         {
             get
             {
-                if (this.Value is null)
+                if (this.Value is not null)
                 {
-                    return ExifDataType.Short;
-                }
-
-                foreach (Number value in this.Value)
-                {
-                    if (value > ushort.MaxValue)
+                    foreach (Number value in this.Value)
                     {
-                        return ExifDataType.Long;
+                        if (value > ushort.MaxValue)
+                        {
+                            return ExifDataType.Long;
+                        }
                     }
                 }
 

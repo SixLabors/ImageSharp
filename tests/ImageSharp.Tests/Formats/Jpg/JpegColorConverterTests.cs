@@ -375,6 +375,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float maxVal = 255f)
         {
             var rnd = new Random(seed);
+
             var buffers = new Buffer2D<float>[componentCount];
             for (int i = 0; i < componentCount; i++)
             {
@@ -429,9 +430,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             static JpegColorConverter.ComponentValues Copy(JpegColorConverter.ComponentValues values)
             {
                 Span<float> c0 = values.Component0.ToArray();
-                Span<float> c1 = values.ComponentCount > 1 ? values.Component1.ToArray().AsSpan() : default;
-                Span<float> c2 = values.ComponentCount > 2 ? values.Component2.ToArray().AsSpan() : default;
-                Span<float> c3 = values.ComponentCount > 3 ? values.Component3.ToArray().AsSpan() : default;
+                Span<float> c1 = values.ComponentCount > 1 ? values.Component1.ToArray().AsSpan() : c0;
+                Span<float> c2 = values.ComponentCount > 2 ? values.Component2.ToArray().AsSpan() : c0;
+                Span<float> c3 = values.ComponentCount > 3 ? values.Component3.ToArray().AsSpan() : Span<float>.Empty;
                 return new JpegColorConverter.ComponentValues(values.ComponentCount, c0, c1, c2, c3);
             }
         }

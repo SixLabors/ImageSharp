@@ -186,12 +186,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             public readonly Span<float> Component0;
 
             /// <summary>
-            /// The component 1 (eg. Cb)
+            /// The component 1 (eg. Cb). In case of grayscale, it points to <see cref="Component0"/>.
             /// </summary>
             public readonly Span<float> Component1;
 
             /// <summary>
-            /// The component 2 (eg. Cr)
+            /// The component 2 (eg. Cr). In case of grayscale, it points to <see cref="Component0"/>.
             /// </summary>
             public readonly Span<float> Component2;
 
@@ -210,22 +210,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.ComponentCount = componentBuffers.Count;
 
                 this.Component0 = componentBuffers[0].GetRowSpan(row);
-                this.Component1 = Span<float>.Empty;
-                this.Component2 = Span<float>.Empty;
-                this.Component3 = Span<float>.Empty;
 
-                if (this.ComponentCount > 1)
-                {
-                    this.Component1 = componentBuffers[1].GetRowSpan(row);
-                    if (this.ComponentCount > 2)
-                    {
-                        this.Component2 = componentBuffers[2].GetRowSpan(row);
-                        if (this.ComponentCount > 3)
-                        {
-                            this.Component3 = componentBuffers[3].GetRowSpan(row);
-                        }
-                    }
-                }
+                // In case of grayscale, Component1 and Component2 point to Component0 memory area
+                this.Component1 = this.ComponentCount > 1 ? componentBuffers[1].GetRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? componentBuffers[2].GetRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? componentBuffers[3].GetRowSpan(row) : Span<float>.Empty;
             }
 
             internal ComponentValues(

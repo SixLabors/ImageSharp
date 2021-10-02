@@ -20,6 +20,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 ConvertCore(values, result, this.MaximumValue);
             }
 
+            public override void ConvertToRgbInplace(in ComponentValues values) =>
+                ConvertCoreInplace(values, this.MaximumValue);
+
             internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue)
             {
                 ReadOnlySpan<float> cVals = values.Component0;
@@ -47,6 +50,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     v *= scale;
 
                     result[i] = v;
+                }
+            }
+
+            internal static void ConvertCoreInplace(in ComponentValues values, float maxValue)
+            {
+                Span<float> c0 = values.Component0;
+                Span<float> c1 = values.Component1;
+                Span<float> c2 = values.Component2;
+                Span<float> c3 = values.Component3;
+
+                float scale = 1 / maxValue;
+                for (int i = 0; i < c0.Length; i++)
+                {
+                    float c = c0[i];
+                    float m = c1[i];
+                    float y = c2[i];
+                    float k = c3[i] / maxValue;
+
+                    c0[i] = c * k * scale;
+                    c1[i] = m * k * scale;
+                    c2[i] = y * k * scale;
                 }
             }
         }

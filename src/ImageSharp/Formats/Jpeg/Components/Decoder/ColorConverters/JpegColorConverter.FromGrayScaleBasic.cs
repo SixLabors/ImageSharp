@@ -22,6 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 ConvertCore(values, result, this.MaximumValue);
             }
 
+            public override void ConvertToRgbInplace(in ComponentValues values) =>
+                ScaleValues(values.Component0, this.MaximumValue);
+
             internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue)
             {
                 var maximum = 1 / maxValue;
@@ -36,6 +39,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     v.W = 1f;
                     v *= scale;
                     Unsafe.Add(ref dBase, i) = v;
+                }
+            }
+
+            internal static void ScaleValues(Span<float> values, float maxValue)
+            {
+                // TODO: Optimize this
+                Span<Vector4> vecValues = MemoryMarshal.Cast<float, Vector4>(values);
+
+                var scaleVector = new Vector4(1 / maxValue);
+
+                for (int i = 0; i < vecValues.Length; i++)
+                {
+                    vecValues[i] *= scaleVector;
+                }
+
+                values = values.Slice(vecValues.Length * 4);
+                if (values.Length > 0)
+                {
+                    float scaleValue = 1f / maxValue;
+                    values[0] *= scaleValue;
+
+                    if (values.Length > 1)
+                    {
+                        values[1] *= scaleValue;
+
+                        if (values.Length > 2)
+                        {
+                            values[2] *= scaleValue;
+                        }
+                    }
                 }
             }
         }

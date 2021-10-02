@@ -28,39 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             internal static void ConvertCoreInplace(ComponentValues values, float maxValue)
             {
-                // TODO: Optimize this
-                ConvertComponent(values.Component0, maxValue);
-                ConvertComponent(values.Component1, maxValue);
-                ConvertComponent(values.Component2, maxValue);
-
-                static void ConvertComponent(Span<float> values, float maxValue)
-                {
-                    Span<Vector4> vecValues = MemoryMarshal.Cast<float, Vector4>(values);
-
-                    var scaleVector = new Vector4(1 / maxValue);
-
-                    for (int i = 0; i < vecValues.Length; i++)
-                    {
-                        vecValues[i] *= scaleVector;
-                    }
-
-                    values = values.Slice(vecValues.Length * 4);
-                    if (values.Length > 0)
-                    {
-                        float scaleValue = 1f / maxValue;
-                        values[0] *= scaleValue;
-
-                        if (values.Length > 1)
-                        {
-                            values[1] *= scaleValue;
-
-                            if (values.Length > 2)
-                            {
-                                values[2] *= scaleValue;
-                            }
-                        }
-                    }
-                }
+                FromGrayscaleBasic.ScaleValues(values.Component0, maxValue);
+                FromGrayscaleBasic.ScaleValues(values.Component1, maxValue);
+                FromGrayscaleBasic.ScaleValues(values.Component2, maxValue);
             }
 
             internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue)

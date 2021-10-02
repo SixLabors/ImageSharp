@@ -64,8 +64,39 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
+            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            {
+                ref Vector<float> cBase =
+                                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
+                ref Vector<float> mBase =
+                                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
+                ref Vector<float> yBase =
+                                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
+                ref Vector<float> kBase =
+                                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component3));
+
+                var scale = new Vector<float>(1 / this.MaximumValue);
+
+                // Walking 8 elements at one step:
+                int n = values.Component0.Length / 8;
+                for (int i = 0; i < n; i++)
+                {
+                    ref Vector<float> c = ref Unsafe.Add(ref cBase, i);
+                    ref Vector<float> m = ref Unsafe.Add(ref mBase, i);
+                    ref Vector<float> y = ref Unsafe.Add(ref yBase, i);
+                    Vector<float> k = Unsafe.Add(ref kBase, i) * scale;
+
+                    c = (c * k) * scale;
+                    m = (m * k) * scale;
+                    y = (y * k) * scale;
+                }
+            }
+
             protected override void ConvertCore(in ComponentValues values, Span<Vector4> result) =>
                 FromCmykBasic.ConvertCore(values, result, this.MaximumValue);
+
+            protected override void ConvertCoreInplace(in ComponentValues values) =>
+                FromCmykBasic.ConvertCoreInplace(values, this.MaximumValue);
         }
     }
 }

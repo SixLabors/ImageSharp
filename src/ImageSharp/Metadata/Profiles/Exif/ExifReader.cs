@@ -114,6 +114,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         protected void ReadBigValues(List<IExifValue> values)
         {
+            if (this.BigValues.Count == 0)
+            {
+                return;
+            }
+
             ulong maxSize = 0;
             foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) in this.BigValues)
             {
@@ -159,14 +164,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         protected void ReadSubIfd(List<IExifValue> values)
         {
-            if (this.subIfds is null)
+            if (this.subIfds is not null)
             {
-                return;
-            }
-
-            foreach (ulong subIfdOffset in this.subIfds)
-            {
-                this.ReadValues(values, (uint)subIfdOffset);
+                foreach (ulong subIfdOffset in this.subIfds)
+                {
+                    this.ReadValues(values, (uint)subIfdOffset);
+                }
             }
         }
 
@@ -196,14 +199,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         protected void ReadSubIfd64(List<IExifValue> values)
         {
-            if (this.subIfds is null)
+            if (this.subIfds is not null)
             {
-                return;
-            }
-
-            foreach (ulong subIfdOffset in this.subIfds)
-            {
-                this.ReadValues64(values, subIfdOffset);
+                foreach (ulong subIfdOffset in this.subIfds)
+                {
+                    this.ReadValues64(values, subIfdOffset);
+                }
             }
         }
 
@@ -517,6 +518,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else if (exif.Tag == ExifTag.SubIFDs)
             {
+                //// didn't find any useful data in SubIFDs
                 ////foreach (object val in (Array)value)
                 ////{
                 ////    this.AddSubIfd(val);

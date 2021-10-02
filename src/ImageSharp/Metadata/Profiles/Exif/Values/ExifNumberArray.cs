@@ -24,9 +24,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return ExifDataType.Short;
                 }
 
-                for (int i = 0; i < this.Value.Length; i++)
+                foreach (Number value in this.Value)
                 {
-                    if (this.Value[i] > ushort.MaxValue)
+                    if (value > ushort.MaxValue)
                     {
                         return ExifDataType.Long;
                     }

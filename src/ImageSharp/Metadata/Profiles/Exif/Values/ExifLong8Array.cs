@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal sealed class ExifLong8Array : ExifArrayValue<ulong>
@@ -29,9 +31,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return ExifDataType.Long;
                 }
 
-                for (int i = 0; i < this.Value.Length; i++)
+                foreach (ulong  value in this.Value)
                 {
-                    if (this.Value[i] > uint.MaxValue)
+                    if (value > uint.MaxValue)
                     {
                         return ExifDataType.Long8;
                     }
@@ -64,7 +66,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 case long[] array:
                 {
-                    if (value.GetType().Equals(typeof(ulong[])))
+                    if (value.GetType() == typeof(ulong[]))
                     {
                         return this.SetArray((ulong[])value);
                     }
@@ -74,7 +76,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 case int[] array:
                 {
-                    if (value.GetType().Equals(typeof(uint[])))
+                    if (value.GetType() == typeof(uint[]))
                     {
                         return this.SetArray((uint[])value);
                     }
@@ -84,7 +86,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 case short[] array:
                 {
-                    if (value.GetType().Equals(typeof(ushort[])))
+                    if (value.GetType() == typeof(ushort[]))
                     {
                         return this.SetArray((ushort[])value);
                     }
@@ -106,10 +108,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private bool SetArray(long[] values)
         {
-            var numbers = new ulong[values.Length];
             this.Value = Unsafe.As<long[], ulong[]>(ref values);
-
-            this.Value = numbers;
             return true;
         }
 

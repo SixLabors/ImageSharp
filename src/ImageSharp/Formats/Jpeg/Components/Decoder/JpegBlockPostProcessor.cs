@@ -19,14 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public Block8x8F SourceBlock;
 
         /// <summary>
-        /// Temporal block 1 to store intermediate and/or final computation results.
+        /// Temporal block to store intermediate computation results.
         /// </summary>
-        public Block8x8F WorkspaceBlock1;
-
-        /// <summary>
-        /// Temporal block 2 to store intermediate and/or final computation results.
-        /// </summary>
-        public Block8x8F WorkspaceBlock2;
+        public Block8x8F WorkspaceBlock;
 
         /// <summary>
         /// The quantization table as <see cref="Block8x8F"/>.
@@ -46,12 +41,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public JpegBlockPostProcessor(IRawJpegData decoder, IJpegComponent component)
         {
             int qtIndex = component.QuantizationTableIndex;
-            this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
+            this.DequantiazationTable = decoder.QuantizationTables[qtIndex];
             this.subSamplingDivisors = component.SubSamplingDivisors;
 
             this.SourceBlock = default;
-            this.WorkspaceBlock1 = default;
-            this.WorkspaceBlock2 = default;
+            this.WorkspaceBlock = default;
         }
 
         /// <summary>
@@ -71,20 +65,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int destAreaStride,
             float maximumValue)
         {
-            ref Block8x8F b = ref this.SourceBlock;
-            b.LoadFrom(ref sourceBlock);
+            ref Block8x8F block = ref this.SourceBlock;
+            block.LoadFrom(ref sourceBlock);
 
             // Dequantize:
-            b.MultiplyInPlace(ref this.DequantiazationTable);
+            block.MultiplyInPlace(ref this.DequantiazationTable);
 
-            FastFloatingPointDCT.TransformIDCT(ref b, ref this.WorkspaceBlock1, ref this.WorkspaceBlock2);
+            FastFloatingPointDCT.TransformIDCT(ref block, ref this.WorkspaceBlock);
 
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
             // To be "more accurate", we need to emulate this by rounding!
-            this.WorkspaceBlock1.NormalizeColorsAndRoundInPlace(maximumValue);
+            block.NormalizeColorsAndRoundInPlace(maximumValue);
 
-            this.WorkspaceBlock1.ScaledCopyTo(
+            block.ScaledCopyTo(
                 ref destAreaOrigin,
                 destAreaStride,
                 this.subSamplingDivisors.Width,

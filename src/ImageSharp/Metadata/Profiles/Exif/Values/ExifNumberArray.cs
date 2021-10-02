@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 case short[] array:
                 {
-                    if (value.GetType().Equals(typeof(ushort[])))
+                    if (value.GetType() == typeof(ushort[]))
                     {
                         return this.SetArray((ushort[])value);
                     }

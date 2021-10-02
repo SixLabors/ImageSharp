@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public partial class JpegDecoderTests
     {
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32, true)]
-        [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgba32, true)]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgb24, false)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, true)]
+        [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgb24, true)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
                 {
-                    provider.LimitAllocatorBufferCapacity().InPixels(1000 * 8);
+                    provider.LimitAllocatorBufferCapacity().InPixels(16_000);
                 }
 
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);

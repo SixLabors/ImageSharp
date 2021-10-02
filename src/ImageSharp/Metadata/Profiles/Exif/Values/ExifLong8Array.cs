@@ -107,10 +107,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private bool SetArray(long[] values)
         {
             var numbers = new ulong[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = (ulong)values[i];
-            }
+            this.Value = Unsafe.As<long[], ulong[]>(ref values);
 
             this.Value = numbers;
             return true;

@@ -61,6 +61,35 @@ namespace SixLabors.ImageSharp.Memory
             return memory.Slice(bufferStart, length);
         }
 
+        /// <summary>
+        /// Returns the slice of the buffer starting at global index <paramref name="start"/> that goes until the end of the buffer.
+        /// </summary>
+        internal static Memory<T> GetRemainingSliceOfBuffer<T>(this IMemoryGroup<T> group, long start)
+            where T : struct
+        {
+            Guard.NotNull(group, nameof(group));
+            Guard.IsTrue(group.IsValid, nameof(group), "Group must be valid!");
+            Guard.MustBeLessThan(start, group.TotalLength, nameof(start));
+
+            int bufferIdx = (int)(start / group.BufferLength);
+
+            if (bufferIdx < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(start));
+            }
+
+            if (bufferIdx >= group.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(start));
+            }
+
+            int bufferStart = (int)(start % group.BufferLength);
+
+            Memory<T> memory = group[bufferIdx];
+
+            return memory.Slice(bufferStart);
+        }
+
         internal static void CopyTo<T>(this IMemoryGroup<T> source, Span<T> target)
             where T : struct
         {

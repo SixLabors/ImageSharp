@@ -234,9 +234,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             public ComponentValues Slice(int start, int length)
             {
                 Span<float> c0 = this.Component0.Slice(start, length);
-                Span<float> c1 = this.ComponentCount > 1 ? this.Component1.Slice(start, length) : Span<float>.Empty;
-                Span<float> c2 = this.ComponentCount > 2 ? this.Component2.Slice(start, length) : Span<float>.Empty;
-                Span<float> c3 = this.ComponentCount > 3 ? this.Component3.Slice(start, length) : Span<float>.Empty;
+                Span<float> c1 = this.Component1.Length > 0 ? this.Component1.Slice(start, length) : Span<float>.Empty;
+                Span<float> c2 = this.Component2.Length > 0 ? this.Component2.Slice(start, length) : Span<float>.Empty;
+                Span<float> c3 = this.Component3.Length > 0 ? this.Component3.Slice(start, length) : Span<float>.Empty;
 
                 return new ComponentValues(this.ComponentCount, c0, c1, c2, c3);
             }

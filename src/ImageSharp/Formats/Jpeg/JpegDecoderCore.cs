@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
 
-            return new Image<TPixel>(this.Configuration, spectralConverter.PixelBuffer, this.Metadata);
+            return new Image<TPixel>(this.Configuration, spectralConverter.GetPixelBuffer(), this.Metadata);
         }
 
         /// <inheritdoc/>

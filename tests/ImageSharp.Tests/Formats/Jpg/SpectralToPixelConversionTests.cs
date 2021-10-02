@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             provider.Utility.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
             // Comparison
-            using (Image<TPixel> image = new Image<TPixel>(Configuration.Default, converter.PixelBuffer, new ImageMetadata()))
+            using (Image<TPixel> image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(), new ImageMetadata()))
             using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
             {
                 ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);

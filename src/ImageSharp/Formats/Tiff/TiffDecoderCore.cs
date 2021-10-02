@@ -335,8 +335,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     int stripIndex = i;
                     for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
                     {
-                        ulong offset = stripOffsets.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
-                        ulong count = stripByteCounts.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
+                        ulong offset = stripOffsets.GetValue(stripIndex) switch
+                        {
+                            ulong val => val,
+                            Number val => (uint)val,
+                            _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
+                        };
+
+                        ulong count = stripByteCounts.GetValue(stripIndex) switch
+                        {
+                            ulong val => val,
+                            Number val => (uint)val,
+                            _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
+                        };
+
                         decompressor.Decompress(
                             this.inputStream,
                             offset,
@@ -423,8 +435,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
-                ulong offset = stripOffsets.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
-                ulong count = stripByteCounts.GetValue(stripIndex) switch { ulong val => val, Number val => (uint)val };
+                ulong offset = stripOffsets.GetValue(stripIndex) switch
+                {
+                    ulong val => val,
+                    Number val => (uint)val,
+                    _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
+                };
+
+                ulong count = stripByteCounts.GetValue(stripIndex) switch
+                {
+                    ulong val => val,
+                    Number val => (uint)val,
+                    _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
+                };
+
                 decompressor.Decompress(
                     this.inputStream,
                     offset,

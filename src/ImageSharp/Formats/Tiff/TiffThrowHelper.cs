@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void ThrowImageFormatException(string errorMessage) => throw new ImageFormatException(errorMessage);
+        public static Exception ThrowImageFormatException(string errorMessage) => throw new ImageFormatException(errorMessage);
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static Exception NotSupportedDecompressor(string compressionType) => throw new NotSupportedException($"Not supported decoder compression method: {compressionType}");

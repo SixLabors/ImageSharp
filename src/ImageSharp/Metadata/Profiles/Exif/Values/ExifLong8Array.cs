@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return ExifDataType.Long;
                 }
 
-                foreach (ulong  value in this.Value)
+                foreach (ulong value in this.Value)
                 {
                     if (value > uint.MaxValue)
                     {

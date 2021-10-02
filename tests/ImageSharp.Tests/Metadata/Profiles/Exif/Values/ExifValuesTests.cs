@@ -404,13 +404,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             value2 = short.MaxValue;
             Assert.True(value1 != value2);
 
+            value1 = -1;
             value2 = -2;
             Assert.True(value1 > value2);
 
             value1 = -6;
             Assert.True(value1 <= value2);
 
-            value2 = -2;
+            value1 = 10;
+            value2 = 10;
             Assert.True(value1 >= value2);
 
             Assert.True(value1.Equals(value2));
@@ -450,13 +452,13 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             Assert.Equal(expected, typed.Value);
 
             Assert.True(value.TrySetValue(int.MaxValue));
-            Assert.Equal(new[] { int.MaxValue }, value.GetValue());
+            Assert.Equal(new[] { (Number)int.MaxValue }, value.GetValue());
 
             Assert.True(value.TrySetValue(new[] { 1u, 2u, 5u }));
-            Assert.Equal(new[] { 1u, 2u, 5u }, value.GetValue());
+            Assert.Equal(new[] { (Number)1u, (Number)2u, (Number)5u }, value.GetValue());
 
             Assert.True(value.TrySetValue(new[] { (short)1, (short)2, (short)5 }));
-            Assert.Equal(new[] { (short)1, (short)2, (short)5 }, value.GetValue());
+            Assert.Equal(new[] { (Number)(short)1, (Number)(short)2, (Number)(short)5 }, value.GetValue());
         }
 
         [Theory]

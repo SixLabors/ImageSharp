@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case int[] array:
                 {
                     // workaround for inconsistent covariance of value-typed arrays
-                    if (value.GetType().Equals(typeof(uint[])))
+                    if (value.GetType() == typeof(uint[]))
                     {
                         return this.SetArray((uint[])value);
                     }
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 case short[] array:
                 {
-                    if (value.GetType().Equals(typeof(ushort[])))
+                    if (value.GetType() == typeof(ushort[]))
                     {
                         return this.SetArray((ushort[])value);
                     }

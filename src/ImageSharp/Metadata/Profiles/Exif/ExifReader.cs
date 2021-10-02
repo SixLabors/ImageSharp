@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Seek(offset);
             int count = this.ReadUInt16();
 
-            Span<byte> offsetBuffer = new byte[4];
+            Span<byte> offsetBuffer = stackalloc byte[4];
             for (int i = 0; i < count; i++)
             {
                 this.ReadValue(values, offsetBuffer);
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Seek(offset);
             ulong count = this.ReadUInt64();
 
-            Span<byte> offsetBuffer = new byte[8];
+            Span<byte> offsetBuffer = stackalloc byte[8];
             for (ulong i = 0; i < count; i++)
             {
                 this.ReadValue64(values, offsetBuffer);

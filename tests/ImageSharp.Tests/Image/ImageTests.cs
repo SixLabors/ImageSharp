@@ -99,7 +99,8 @@ namespace SixLabors.ImageSharp.Tests
 
             private void LimitBufferCapacity(int bufferCapacityInBytes)
             {
-                var allocator = (ArrayPoolMemoryAllocator)this.configuration.MemoryAllocator;
+                var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+                this.configuration.MemoryAllocator = allocator;
                 allocator.BufferCapacityInBytes = bufferCapacityInBytes;
             }
 

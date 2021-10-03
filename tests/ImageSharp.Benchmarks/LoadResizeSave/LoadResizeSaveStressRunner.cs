@@ -31,7 +31,6 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
     public class LoadResizeSaveStressRunner
     {
-        private const int ThumbnailSize = 150;
         private const int Quality = 75;
         private const string ImageSharp = nameof(ImageSharp);
         private const string SystemDrawing = nameof(SystemDrawing);
@@ -57,6 +56,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public int MaxDegreeOfParallelism { get; set; } = -1;
 
         public JpegKind Filter { get; set; }
+
+        public int ThumbnailSize { get; set; } = 150;
 
         private static readonly string[] ProgressiveFiles =
         {

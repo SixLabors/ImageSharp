@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
             {
-                #if SUPPORTS_RUNTIME_INTRINSICS
+#if SUPPORTS_RUNTIME_INTRINSICS
                 ref Vector256<float> c0Base =
                                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
                 ref Vector256<float> c1Base =

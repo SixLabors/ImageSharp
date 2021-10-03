@@ -341,32 +341,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
-        // Benchmark, for local execution only
-        // [Theory]
-        // [InlineData(false)]
-        // [InlineData(true)]
-        public void BenchmarkYCbCr(bool simd)
-        {
-            int count = 2053;
-            int times = 50000;
-
-            JpegColorConverter.ComponentValues values = CreateRandomValues(3, count, 1);
-            var result = new Vector4[count];
-
-            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrVector4(8) : new JpegColorConverter.FromYCbCrBasic(8);
-
-            // Warm up:
-            converter.ConvertToRgba(values, result);
-
-            using (new MeasureGuard(this.Output, $"{converter.GetType().Name} x {times}"))
-            {
-                for (int i = 0; i < times; i++)
-                {
-                    converter.ConvertToRgba(values, result);
-                }
-            }
-        }
-
         private static JpegColorConverter.ComponentValues CreateRandomValues(
             int componentCount,
             int inputBufferLength,

@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
 
                 values = values.Slice(vecValues.Length * 4);
-                if (values.Length > 0)
+                if (!values.IsEmpty)
                 {
                     float scaleValue = 1f / maxValue;
                     values[0] *= scaleValue;

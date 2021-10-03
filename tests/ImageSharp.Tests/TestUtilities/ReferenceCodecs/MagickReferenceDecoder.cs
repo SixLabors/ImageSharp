@@ -32,15 +32,15 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
+            Span<Rgba32> sourcePixels = MemoryMarshal.Cast<byte, Rgba32>(rgbaBytes);
             foreach (Memory<TPixel> m in destinationGroup)
             {
                 Span<TPixel> destBuffer = m.Span;
-                PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                PixelOperations<TPixel>.Instance.FromRgba32(
                     configuration,
-                    rgbaBytes,
-                    destBuffer,
-                    destBuffer.Length);
-                rgbaBytes = rgbaBytes.Slice(destBuffer.Length * 4);
+                    sourcePixels.Slice(0, destBuffer.Length),
+                    destBuffer);
+                sourcePixels = sourcePixels.Slice(destBuffer.Length);
             }
         }
 

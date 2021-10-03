@@ -34,8 +34,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 // Walking 8 elements at one step:
                 nint n = values.Component0.Length / 8;
 
-                var scale = new Vector<float>(1 / (this.MaximumValue * this.MaximumValue));
                 var max = new Vector<float>(this.MaximumValue);
+                var scale = new Vector<float>(1f) / (max * max);
 
                 for (nint i = 0; i < n; i++)
                 {

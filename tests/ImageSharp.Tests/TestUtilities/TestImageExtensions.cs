@@ -663,7 +663,8 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var allocator = (ArrayPoolMemoryAllocator)provider.Configuration.MemoryAllocator;
+            var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+            provider.Configuration.MemoryAllocator = allocator;
             return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
         }
 

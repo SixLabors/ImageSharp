@@ -76,13 +76,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         }
 
         /// <summary>
-        /// He implementation of the conversion.
+        /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space inplace.
         /// </summary>
-        /// <param name="values">The input as a stack-only <see cref="ComponentValues"/> struct</param>
-        /// <param name="result">The destination buffer of <see cref="Vector4"/> values</param>
-        public abstract void ConvertToRgba(in ComponentValues values, Span<Vector4> result);
-
-        public virtual void ConvertToRgbInplace(in ComponentValues values) => throw new NotImplementedException();
+        /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
+        public abstract void ConvertToRgbInplace(in ComponentValues values);
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverter"/>s for all supported colorspaces and precisions.

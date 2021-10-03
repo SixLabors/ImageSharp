@@ -17,11 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
-            {
-                ConvertCore(values, result, this.MaximumValue);
-            }
-
             public override void ConvertToRgbInplace(in ComponentValues values) =>
                 ScaleValues(values.Component0, this.MaximumValue);
 

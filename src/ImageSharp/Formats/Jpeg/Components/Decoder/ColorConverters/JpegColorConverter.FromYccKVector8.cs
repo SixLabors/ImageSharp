@@ -32,12 +32,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var chromaOffset = new Vector<float>(-this.HalfValue);
 
                 // Walking 8 elements at one step:
-                int n = values.Component0.Length / 8;
+                nint n = values.Component0.Length / 8;
 
                 var scale = new Vector<float>(1 / (this.MaximumValue * this.MaximumValue));
                 var max = new Vector<float>(this.MaximumValue);
 
-                for (int i = 0; i < n; i++)
+                for (nint i = 0; i < n; i++)
                 {
                     // y = yVals[i];
                     // cb = cbVals[i] - 128F;

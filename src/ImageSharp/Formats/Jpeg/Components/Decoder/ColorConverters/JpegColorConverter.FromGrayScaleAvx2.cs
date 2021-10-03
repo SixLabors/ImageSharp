@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 // Used for the color conversion
                 var scale = Vector256.Create(1 / this.MaximumValue);
 
-                int n = values.Component0.Length / 8;
-                for (int i = 0; i < n; i++)
+                nint n = values.Component0.Length / 8;
+                for (nint i = 0; i < n; i++)
                 {
                     ref Vector256<float> c0 = ref Unsafe.Add(ref c0Base, i);
                     c0 = Avx.Multiply(c0, scale);

@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var bCbMult = Vector256.Create(1.772F);
 
                 // Walking 8 elements at one step:
-                int n = values.Component0.Length / 8;
-                for (int i = 0; i < n; i++)
+                nint n = values.Component0.Length / 8;
+                for (nint i = 0; i < n; i++)
                 {
                     // y = yVals[i];
                     // cb = cbVals[i] - 128F;

@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var maxValue = this.MaximumValue;
 
                 // Walking 8 elements at one step:
-                int n = values.Component0.Length / 8;
+                nint n = values.Component0.Length / 8;
 
-                for (int i = 0; i < n; i++)
+                for (nint i = 0; i < n; i++)
                 {
                     // y = yVals[i];
                     ref Vector4Pair c0 = ref Unsafe.Add(ref c0Base, i);

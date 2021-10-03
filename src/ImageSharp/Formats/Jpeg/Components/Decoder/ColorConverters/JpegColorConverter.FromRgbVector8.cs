@@ -30,8 +30,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var scale = new Vector<float>(1 / this.MaximumValue);
 
                 // Walking 8 elements at one step:
-                int n = values.Component0.Length / 8;
-                for (int i = 0; i < n; i++)
+                nint n = values.Component0.Length / 8;
+                for (nint i = 0; i < n; i++)
                 {
                     ref Vector<float> r = ref Unsafe.Add(ref rBase, i);
                     ref Vector<float> g = ref Unsafe.Add(ref gBase, i);

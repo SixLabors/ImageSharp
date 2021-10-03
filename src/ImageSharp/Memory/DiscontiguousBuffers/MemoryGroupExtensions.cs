@@ -39,12 +39,8 @@ namespace SixLabors.ImageSharp.Memory
 
             int bufferIdx = (int)(start / group.BufferLength);
 
-            if (bufferIdx < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(start));
-            }
-
-            if (bufferIdx >= group.Count)
+            // if (bufferIdx < 0 || bufferIdx >= group.Count)
+            if ((uint)bufferIdx >= group.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
@@ -73,12 +69,8 @@ namespace SixLabors.ImageSharp.Memory
 
             int bufferIdx = (int)(start / group.BufferLength);
 
-            if (bufferIdx < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(start));
-            }
-
-            if (bufferIdx >= group.Count)
+            // if (bufferIdx < 0 || bufferIdx >= group.Count)
+            if ((uint)bufferIdx >= group.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }

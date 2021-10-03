@@ -93,8 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             uint sum = 0;
             for (int i = 0; i < length + 1; ++i)
             {
-                bool valuesShouldBeCollapsedToStrideAverage = ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit);
-                if (i == length || goodForRle[i] || (i != 0 && goodForRle[i - 1]) || !valuesShouldBeCollapsedToStrideAverage)
+                if (i == length || goodForRle[i] || (i != 0 && goodForRle[i - 1]) || !ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit))
                 {
                     if (stride >= 4 || (stride >= 3 && sum == 0))
                     {

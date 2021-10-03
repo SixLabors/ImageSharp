@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (!this.Converted)
             {
-                int steps = (int) Math.Ceiling(this.pixelBuffer.Height / (float) this.pixelRowsPerStep);
+                int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.pixelRowsPerStep);
 
                 for (int step = 0; step < steps; step++)
                 {

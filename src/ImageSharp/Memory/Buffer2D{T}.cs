@@ -232,7 +232,6 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(InliningOptions.ColdPath)]
         private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
 
-
         [MethodImpl(InliningOptions.ColdPath)]
         private Memory<T> DangerousGetSingleMemorySlow() => this.FastMemoryGroup.Single();
 

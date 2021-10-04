@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
@@ -26,9 +24,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             MemoryAllocator memoryAllocator = config.MemoryAllocator;
             int pixels = image.Width * image.Height;
             int uvWidth = (image.Width + 1) >> 1;
-            using System.Buffers.IMemoryOwner<byte> yBuffer = memoryAllocator.Allocate<byte>(pixels);
-            using System.Buffers.IMemoryOwner<byte> uBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height);
-            using System.Buffers.IMemoryOwner<byte> vBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height);
+            using System.Buffers.IMemoryOwner<byte> yBuffer = memoryAllocator.Allocate<byte>(pixels, AllocationOptions.Clean);
+            using System.Buffers.IMemoryOwner<byte> uBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height, AllocationOptions.Clean);
+            using System.Buffers.IMemoryOwner<byte> vBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height, AllocationOptions.Clean);
             Span<byte> y = yBuffer.GetSpan();
             Span<byte> u = uBuffer.GetSpan();
             Span<byte> v = vBuffer.GetSpan();
@@ -142,9 +140,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             MemoryAllocator memoryAllocator = config.MemoryAllocator;
             int pixels = image.Width * image.Height;
             int uvWidth = (image.Width + 1) >> 1;
-            using System.Buffers.IMemoryOwner<byte> yBuffer = memoryAllocator.Allocate<byte>(pixels);
-            using System.Buffers.IMemoryOwner<byte> uBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height);
-            using System.Buffers.IMemoryOwner<byte> vBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height);
+            using System.Buffers.IMemoryOwner<byte> yBuffer = memoryAllocator.Allocate<byte>(pixels, AllocationOptions.Clean);
+            using System.Buffers.IMemoryOwner<byte> uBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height, AllocationOptions.Clean);
+            using System.Buffers.IMemoryOwner<byte> vBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height, AllocationOptions.Clean);
 
             Span<byte> y = yBuffer.GetSpan();
             Span<byte> u = uBuffer.GetSpan();
@@ -209,14 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                 149, 105, 139, 146, 110, 91, 91, 91, 91, 91, 91, 91, 107, 164, 117, 149, 127, 128, 166, 107, 129,
                 159, 159, 159, 159, 159, 159, 159, 161, 112, 113, 138, 87, 143, 112, 88, 161, 240, 240, 240, 240,
                 240, 240, 240, 137, 110, 162, 110, 140, 158, 104, 159, 137, 240, 240, 240, 240, 240, 240, 240, 109,
-                150, 108, 140, 161, 80, 157, 162, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                150, 108, 140, 161, 80, 157, 162, 128
             };
             byte[] expectedV =
             {
@@ -232,14 +223,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                 81, 81, 143, 104, 148, 150, 111, 138, 128, 116, 141, 81, 81, 81, 81, 81, 81, 81, 63, 147, 133, 119,
                 141, 165, 126, 147, 173, 101, 101, 101, 101, 101, 101, 101, 135, 109, 129, 122, 124, 107, 108, 128,
                 138, 110, 110, 110, 110, 110, 110, 110, 117, 137, 151, 127, 114, 131, 139, 142, 120, 110, 110, 110,
-                110, 110, 110, 110, 142, 156, 119, 137, 167, 141, 151, 66, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                110, 110, 110, 110, 142, 156, 119, 137, 167, 141, 151, 66, 85
             };
 
             // act

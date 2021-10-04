@@ -59,6 +59,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string PngWithMetadata = "Png/PngWithMetaData.png";
             public const string InvalidTextData = "Png/InvalidTextData.png";
             public const string David = "Png/david.png";
+            public const string TestPattern31x31 = "Png/testpattern31x31.png";
+            public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";

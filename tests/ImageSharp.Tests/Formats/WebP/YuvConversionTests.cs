@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithTestPatternImages(31, 31, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.TestPattern31x31HalfTransparent, PixelTypes.Rgba32)]
         public void ConvertRgbToYuv_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -145,16 +145,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using System.Buffers.IMemoryOwner<byte> yBuffer = memoryAllocator.Allocate<byte>(pixels);
             using System.Buffers.IMemoryOwner<byte> uBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height);
             using System.Buffers.IMemoryOwner<byte> vBuffer = memoryAllocator.Allocate<byte>(uvWidth * image.Height);
-
-            // Make half of the the image transparent.
-            image.Mutate(c => c.ProcessPixelRowsAsVector4(row =>
-            {
-                int halfWidth = row.Length / 2;
-                for (int x = 0; x < halfWidth; x++)
-                {
-                    row[x] = new Vector4(row[x].X, row[x].Y, row[x].Z, 0.0f);
-                }
-            }));
 
             Span<byte> y = yBuffer.GetSpan();
             Span<byte> u = uBuffer.GetSpan();

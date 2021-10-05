@@ -37,11 +37,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     float scaleValue = 1f / maxValue;
                     values[0] *= scaleValue;
 
-                    if (values.Length > 1)
+                    if ((uint)values.Length > 1)
                     {
                         values[1] *= scaleValue;
 
-                        if (values.Length > 2)
+                        if ((uint)values.Length > 2)
                         {
                             values[2] *= scaleValue;
                         }

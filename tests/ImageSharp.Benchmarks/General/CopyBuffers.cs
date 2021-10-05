@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.General

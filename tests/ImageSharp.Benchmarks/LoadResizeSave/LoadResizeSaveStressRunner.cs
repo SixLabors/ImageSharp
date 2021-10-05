@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         private const string SkiaSharpBitmap = nameof(SkiaSharpBitmap);
 
         // Set the quality for ImagSharp
-        private readonly JpegEncoder imageSharpJpegEncoder = new () { Quality = Quality };
+        private readonly JpegEncoder imageSharpJpegEncoder = new() { Quality = Quality };
         private readonly ImageCodecInfo systemDrawingJpegCodec =
             ImageCodecInfo.GetImageEncoders().First(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
 
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
                 this.outputDirectory,
                 Path.GetFileNameWithoutExtension(inputPath) + "-" + postfix + Path.GetExtension(inputPath));
 
-        private (int width, int height) ScaledSize(int inWidth, int inHeight, int outSize)
+        private (int Width, int Height) ScaledSize(int inWidth, int inHeight, int outSize)
         {
             int width, height;
             if (inWidth > inHeight)
@@ -159,8 +159,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using var image = SystemDrawingImage.FromFile(input, true);
             this.IncreaseTotalMegapixels(image.Width, image.Height);
 
-            (int width, int height) scaled = this.ScaledSize(image.Width, image.Height, ThumbnailSize);
-            var resized = new Bitmap(scaled.width, scaled.height);
+            (int Width, int Height) scaled = this.ScaledSize(image.Width, image.Height, ThumbnailSize);
+            var resized = new Bitmap(scaled.Width, scaled.Height);
             using var graphics = Graphics.FromImage(resized);
             using var attributes = new ImageAttributes();
             attributes.SetWrapMode(WrapMode.TileFlipXY);
@@ -237,11 +237,11 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         {
             using var original = SKBitmap.Decode(input);
             this.IncreaseTotalMegapixels(original.Width, original.Height);
-            (int width, int height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
-            using var surface = SKSurface.Create(new SKImageInfo(scaled.width, scaled.height, original.ColorType, original.AlphaType));
+            (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
+            using var surface = SKSurface.Create(new SKImageInfo(scaled.Width, scaled.Height, original.ColorType, original.AlphaType));
             using var paint = new SKPaint() { FilterQuality = SKFilterQuality.High };
             SKCanvas canvas = surface.Canvas;
-            canvas.Scale((float)scaled.width / original.Width);
+            canvas.Scale((float)scaled.Width / original.Width);
             canvas.DrawBitmap(original, 0, 0, paint);
             canvas.Flush();
 
@@ -255,8 +255,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         {
             using var original = SKBitmap.Decode(input);
             this.IncreaseTotalMegapixels(original.Width, original.Height);
-            (int width, int height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
-            using var resized = original.Resize(new SKImageInfo(scaled.width, scaled.height), SKFilterQuality.High);
+            (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
+            using var resized = original.Resize(new SKImageInfo(scaled.Width, scaled.Height), SKFilterQuality.High);
             if (resized == null)
             {
                 return;

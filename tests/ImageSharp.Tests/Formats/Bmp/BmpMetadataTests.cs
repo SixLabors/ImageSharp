@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Bmp;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming

@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;

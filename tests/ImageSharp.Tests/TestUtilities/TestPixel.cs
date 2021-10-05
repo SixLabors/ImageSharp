@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.PixelFormats;
-
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities

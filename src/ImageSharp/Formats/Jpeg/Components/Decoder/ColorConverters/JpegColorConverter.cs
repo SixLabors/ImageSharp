@@ -76,11 +76,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         }
 
         /// <summary>
-        /// He implementation of the conversion.
+        /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space inplace.
         /// </summary>
-        /// <param name="values">The input as a stack-only <see cref="ComponentValues"/> struct</param>
-        /// <param name="result">The destination buffer of <see cref="Vector4"/> values</param>
-        public abstract void ConvertToRgba(in ComponentValues values, Span<Vector4> result);
+        /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
+        public abstract void ConvertToRgbInplace(in ComponentValues values);
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverter"/>s for all supported colorspaces and precisions.
@@ -181,22 +180,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <summary>
             /// The component 0 (eg. Y)
             /// </summary>
-            public readonly ReadOnlySpan<float> Component0;
+            public readonly Span<float> Component0;
 
             /// <summary>
-            /// The component 1 (eg. Cb)
+            /// The component 1 (eg. Cb). In case of grayscale, it points to <see cref="Component0"/>.
             /// </summary>
-            public readonly ReadOnlySpan<float> Component1;
+            public readonly Span<float> Component1;
 
             /// <summary>
-            /// The component 2 (eg. Cr)
+            /// The component 2 (eg. Cr). In case of grayscale, it points to <see cref="Component0"/>.
             /// </summary>
-            public readonly ReadOnlySpan<float> Component2;
+            public readonly Span<float> Component2;
 
             /// <summary>
             /// The component 4
             /// </summary>
-            public readonly ReadOnlySpan<float> Component3;
+            public readonly Span<float> Component3;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
@@ -208,30 +207,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.ComponentCount = componentBuffers.Count;
 
                 this.Component0 = componentBuffers[0].GetRowSpan(row);
-                this.Component1 = Span<float>.Empty;
-                this.Component2 = Span<float>.Empty;
-                this.Component3 = Span<float>.Empty;
 
-                if (this.ComponentCount > 1)
-                {
-                    this.Component1 = componentBuffers[1].GetRowSpan(row);
-                    if (this.ComponentCount > 2)
-                    {
-                        this.Component2 = componentBuffers[2].GetRowSpan(row);
-                        if (this.ComponentCount > 3)
-                        {
-                            this.Component3 = componentBuffers[3].GetRowSpan(row);
-                        }
-                    }
-                }
+                // In case of grayscale, Component1 and Component2 point to Component0 memory area
+                this.Component1 = this.ComponentCount > 1 ? componentBuffers[1].GetRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? componentBuffers[2].GetRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? componentBuffers[3].GetRowSpan(row) : Span<float>.Empty;
             }
 
-            private ComponentValues(
+            internal ComponentValues(
                 int componentCount,
-                ReadOnlySpan<float> c0,
-                ReadOnlySpan<float> c1,
-                ReadOnlySpan<float> c2,
-                ReadOnlySpan<float> c3)
+                Span<float> c0,
+                Span<float> c1,
+                Span<float> c2,
+                Span<float> c3)
             {
                 this.ComponentCount = componentCount;
                 this.Component0 = c0;
@@ -242,110 +230,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             public ComponentValues Slice(int start, int length)
             {
-                ReadOnlySpan<float> c0 = this.Component0.Slice(start, length);
-                ReadOnlySpan<float> c1 = this.ComponentCount > 1 ? this.Component1.Slice(start, length) : ReadOnlySpan<float>.Empty;
-                ReadOnlySpan<float> c2 = this.ComponentCount > 2 ? this.Component2.Slice(start, length) : ReadOnlySpan<float>.Empty;
-                ReadOnlySpan<float> c3 = this.ComponentCount > 3 ? this.Component3.Slice(start, length) : ReadOnlySpan<float>.Empty;
+                Span<float> c0 = this.Component0.Slice(start, length);
+                Span<float> c1 = this.Component1.Length > 0 ? this.Component1.Slice(start, length) : Span<float>.Empty;
+                Span<float> c2 = this.Component2.Length > 0 ? this.Component2.Slice(start, length) : Span<float>.Empty;
+                Span<float> c3 = this.Component3.Length > 0 ? this.Component3.Slice(start, length) : Span<float>.Empty;
 
                 return new ComponentValues(this.ComponentCount, c0, c1, c2, c3);
-            }
-        }
-
-        internal struct Vector4Octet
-        {
-#pragma warning disable SA1132 // Do not combine fields
-            public Vector4 V0, V1, V2, V3, V4, V5, V6, V7;
-
-            /// <summary>
-            /// Pack (r0,r1...r7) (g0,g1...g7) (b0,b1...b7) vector values as (r0,g0,b0,1), (r1,g1,b1,1) ...
-            /// </summary>
-            public void Pack(ref Vector4Pair r, ref Vector4Pair g, ref Vector4Pair b)
-            {
-                this.V0.X = r.A.X;
-                this.V0.Y = g.A.X;
-                this.V0.Z = b.A.X;
-                this.V0.W = 1f;
-
-                this.V1.X = r.A.Y;
-                this.V1.Y = g.A.Y;
-                this.V1.Z = b.A.Y;
-                this.V1.W = 1f;
-
-                this.V2.X = r.A.Z;
-                this.V2.Y = g.A.Z;
-                this.V2.Z = b.A.Z;
-                this.V2.W = 1f;
-
-                this.V3.X = r.A.W;
-                this.V3.Y = g.A.W;
-                this.V3.Z = b.A.W;
-                this.V3.W = 1f;
-
-                this.V4.X = r.B.X;
-                this.V4.Y = g.B.X;
-                this.V4.Z = b.B.X;
-                this.V4.W = 1f;
-
-                this.V5.X = r.B.Y;
-                this.V5.Y = g.B.Y;
-                this.V5.Z = b.B.Y;
-                this.V5.W = 1f;
-
-                this.V6.X = r.B.Z;
-                this.V6.Y = g.B.Z;
-                this.V6.Z = b.B.Z;
-                this.V6.W = 1f;
-
-                this.V7.X = r.B.W;
-                this.V7.Y = g.B.W;
-                this.V7.Z = b.B.W;
-                this.V7.W = 1f;
-            }
-
-            /// <summary>
-            /// Pack (g0,g1...g7) vector values as (g0,g0,g0,1), (g1,g1,g1,1) ...
-            /// </summary>
-            public void Pack(ref Vector4Pair g)
-            {
-                this.V0.X = g.A.X;
-                this.V0.Y = g.A.X;
-                this.V0.Z = g.A.X;
-                this.V0.W = 1f;
-
-                this.V1.X = g.A.Y;
-                this.V1.Y = g.A.Y;
-                this.V1.Z = g.A.Y;
-                this.V1.W = 1f;
-
-                this.V2.X = g.A.Z;
-                this.V2.Y = g.A.Z;
-                this.V2.Z = g.A.Z;
-                this.V2.W = 1f;
-
-                this.V3.X = g.A.W;
-                this.V3.Y = g.A.W;
-                this.V3.Z = g.A.W;
-                this.V3.W = 1f;
-
-                this.V4.X = g.B.X;
-                this.V4.Y = g.B.X;
-                this.V4.Z = g.B.X;
-                this.V4.W = 1f;
-
-                this.V5.X = g.B.Y;
-                this.V5.Y = g.B.Y;
-                this.V5.Z = g.B.Y;
-                this.V5.W = 1f;
-
-                this.V6.X = g.B.Z;
-                this.V6.Y = g.B.Z;
-                this.V6.Z = g.B.Z;
-                this.V6.W = 1f;
-
-                this.V7.X = g.B.W;
-                this.V7.Y = g.B.W;
-                this.V7.Z = g.B.W;
-                this.V7.W = 1f;
             }
         }
     }

@@ -15,38 +15,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgbInplace(in ComponentValues values) =>
+                ConvertCoreInplace(values, this.MaximumValue);
+
+            internal static void ConvertCoreInplace(in ComponentValues values, float maxValue)
             {
-                ConvertCore(values, result, this.MaximumValue);
-            }
+                Span<float> c0 = values.Component0;
+                Span<float> c1 = values.Component1;
+                Span<float> c2 = values.Component2;
+                Span<float> c3 = values.Component3;
 
-            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue)
-            {
-                ReadOnlySpan<float> cVals = values.Component0;
-                ReadOnlySpan<float> mVals = values.Component1;
-                ReadOnlySpan<float> yVals = values.Component2;
-                ReadOnlySpan<float> kVals = values.Component3;
-
-                var v = new Vector4(0, 0, 0, 1F);
-
-                var maximum = 1 / maxValue;
-                var scale = new Vector4(maximum, maximum, maximum, 1F);
-
-                for (int i = 0; i < result.Length; i++)
+                float scale = 1 / maxValue;
+                for (int i = 0; i < c0.Length; i++)
                 {
-                    float c = cVals[i];
-                    float m = mVals[i];
-                    float y = yVals[i];
-                    float k = kVals[i] / maxValue;
+                    float c = c0[i];
+                    float m = c1[i];
+                    float y = c2[i];
+                    float k = c3[i] / maxValue;
 
-                    v.X = c * k;
-                    v.Y = m * k;
-                    v.Z = y * k;
-                    v.W = 1F;
-
-                    v *= scale;
-
-                    result[i] = v;
+                    c0[i] = c * k * scale;
+                    c1[i] = m * k * scale;
+                    c2[i] = y * k * scale;
                 }
             }
         }

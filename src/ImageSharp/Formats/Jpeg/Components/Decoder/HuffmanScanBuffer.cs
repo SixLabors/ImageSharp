@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(InliningOptions.AlwaysInline)]
         public void FillBuffer()
         {
             // Attempt to load at least the minimum number of required bits into the buffer.
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         [MethodImpl(InliningOptions.ShortMethod)]
         public int PeekBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits - nbits, nbits);
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(InliningOptions.AlwaysInline)]
         private static ulong ExtractBits(ulong value, int offset, int size) => (value >> offset) & (ulong)((1 << size) - 1);
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(InliningOptions.AlwaysInline)]
         private int ReadStream()
         {
             int value = this.badData ? 0 : this.stream.ReadByte();

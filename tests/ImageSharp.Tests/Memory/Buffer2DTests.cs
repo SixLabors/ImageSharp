@@ -117,6 +117,32 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
+        [Theory]
+        [InlineData(10, 0, 0, 0)]
+        [InlineData(10, 0, 2, 0)]
+        [InlineData(10, 1, 2, 0)]
+        [InlineData(10, 1, 3, 0)]
+        [InlineData(10, 1, 5, -1)]
+        [InlineData(10, 2, 2, -1)]
+        [InlineData(10, 3, 2, 1)]
+        [InlineData(10, 4, 2, -1)]
+        [InlineData(30, 3, 2, 0)]
+        [InlineData(30, 4, 1, -1)]
+        public void TryGetPaddedRowSpanY(int bufferCapacity, int y, int padding, int expectedBufferIndex)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
+            using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(3, 5);
+
+            bool expectSuccess = expectedBufferIndex >= 0;
+            bool success = buffer.TryGetPaddedRowSpan(y, padding, out Span<byte> paddedSpan);
+            Xunit.Assert.Equal(expectSuccess, success);
+            if (success)
+            {
+                int expectedSubBufferOffset = (3 * y) - (expectedBufferIndex * buffer.FastMemoryGroup.BufferLength);
+                Assert.SpanPointsTo(paddedSpan, buffer.FastMemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
+            }
+        }
+
         public static TheoryData<int, int, int, int> GetRowSpanY_OutOfRange_Data = new TheoryData<int, int, int, int>()
         {
             { Big, 10, 8, -1 },

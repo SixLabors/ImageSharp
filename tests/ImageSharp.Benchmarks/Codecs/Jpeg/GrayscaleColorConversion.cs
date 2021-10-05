@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromGrayscaleBasic(8).ConvertToRgba(values, this.Output);
+            new JpegColorConverter.FromGrayscaleBasic(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromGrayscaleAvx2(8).ConvertToRgba(values, this.Output);
+            new JpegColorConverter.FromGrayscaleAvx2(8).ConvertToRgbInplace(values);
         }
     }
 }

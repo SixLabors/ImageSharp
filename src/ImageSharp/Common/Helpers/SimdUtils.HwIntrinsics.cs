@@ -537,7 +537,7 @@ namespace SixLabors.ImageSharp
             /// <param name="vm0">The first vector to multiply.</param>
             /// <param name="vm1">The second vector to multiply.</param>
             /// <returns>The <see cref="Vector256{T}"/>.</returns>
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(InliningOptions.AlwaysInline)]
             public static Vector256<float> MultiplyAdd(
                 in Vector256<float> va,
                 in Vector256<float> vm0,

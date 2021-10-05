@@ -19,11 +19,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public Block8x8F SourceBlock;
 
         /// <summary>
-        /// Temporal block to store intermediate computation results.
-        /// </summary>
-        public Block8x8F WorkspaceBlock;
-
-        /// <summary>
         /// The quantization table as <see cref="Block8x8F"/>.
         /// </summary>
         public Block8x8F DequantiazationTable;
@@ -45,7 +40,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.subSamplingDivisors = component.SubSamplingDivisors;
 
             this.SourceBlock = default;
-            this.WorkspaceBlock = default;
         }
 
         /// <summary>
@@ -68,16 +62,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref Block8x8F block = ref this.SourceBlock;
             block.LoadFrom(ref sourceBlock);
 
-            // Dequantize:
+            // Dequantize
             block.MultiplyInPlace(ref this.DequantiazationTable);
 
-            FastFloatingPointDCT.TransformIDCT(ref block, ref this.WorkspaceBlock);
+            // Convert from spectral to color
+            FastFloatingPointDCT.TransformIDCT(ref block);
 
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
             // To be "more accurate", we need to emulate this by rounding!
             block.NormalizeColorsAndRoundInPlace(maximumValue);
 
+            // Write to color buffer acording to sampling factors
             block.ScaledCopyTo(
                 ref destAreaOrigin,
                 destAreaStride,

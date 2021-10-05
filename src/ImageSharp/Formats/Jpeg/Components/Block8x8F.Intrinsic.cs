@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         private static readonly Vector256<int> MultiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
 
-        private static unsafe void MultiplyIntoInt16_Avx2(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
+        private static void MultiplyIntoInt16_Avx2(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
         {
             DebugGuard.IsTrue(Avx2.IsSupported, "Avx2 support is required to run this operation!");
 

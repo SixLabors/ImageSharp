@@ -188,8 +188,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             bool compand,
             bool premultiplyAlpha)
         {
-            bool pixelHasNoAlpha = PixelOperations<TPixel>.Instance.GetPixelTypeInfo()?.AlphaRepresentation == PixelAlphaRepresentation.None;
-            premultiplyAlpha &= !pixelHasNoAlpha;
+            PixelAlphaRepresentation? alphaRepresentation = PixelOperations<TPixel>.Instance.GetPixelTypeInfo()?.PixelAlphaRepresentation;
+
+            // Premultiply only if alpha representation is unknown or Unassociated:
+            bool needsPremultiplication = alphaRepresentation == null || alphaRepresentation.Value == PixelAlphaRepresentation.Unassociated;
+            premultiplyAlpha &= needsPremultiplication;
             PixelConversionModifiers conversionModifiers = GetModifiers(compand, premultiplyAlpha);
 
             Buffer2DRegion<TPixel> sourceRegion = source.PixelBuffer.GetRegion(sourceRectangle);

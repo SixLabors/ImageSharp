@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using var image = SystemDrawingImage.FromFile(input, true);
             this.IncreaseTotalMegapixels(image.Width, image.Height);
 
-            (int Width, int Height) scaled = this.ScaledSize(image.Width, image.Height, ThumbnailSize);
+            (int Width, int Height) scaled = this.ScaledSize(image.Width, image.Height, this.ThumbnailSize);
             var resized = new Bitmap(scaled.Width, scaled.Height);
             using var graphics = Graphics.FromImage(resized);
             using var attributes = new ImageAttributes();
@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
             image.Mutate(i => i.Resize(new ResizeOptions
             {
-                Size = new ImageSharpSize(ThumbnailSize, ThumbnailSize),
+                Size = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize),
                 Mode = ResizeMode.Max
             }));
 
@@ -205,7 +205,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             this.IncreaseTotalMegapixels(image.Width, image.Height);
 
             // Resize it to fit a 150x150 square
-            image.Resize(ThumbnailSize, ThumbnailSize);
+            image.Resize(this.ThumbnailSize, this.ThumbnailSize);
 
             // Reduce the size of the file
             image.Strip();
@@ -221,8 +221,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         {
             var settings = new ProcessImageSettings()
             {
-                Width = ThumbnailSize,
-                Height = ThumbnailSize,
+                Width = this.ThumbnailSize,
+                Height = this.ThumbnailSize,
                 ResizeMode = CropScaleMode.Max,
                 SaveFormat = FileFormat.Jpeg,
                 JpegQuality = Quality,
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         {
             using var original = SKBitmap.Decode(input);
             this.IncreaseTotalMegapixels(original.Width, original.Height);
-            (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
+            (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
             using var surface = SKSurface.Create(new SKImageInfo(scaled.Width, scaled.Height, original.ColorType, original.AlphaType));
             using var paint = new SKPaint() { FilterQuality = SKFilterQuality.High };
             SKCanvas canvas = surface.Canvas;
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         {
             using var original = SKBitmap.Decode(input);
             this.IncreaseTotalMegapixels(original.Width, original.Height);
-            (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, ThumbnailSize);
+            (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
             using var resized = original.Resize(new SKImageInfo(scaled.Width, scaled.Height), SKFilterQuality.High);
             if (resized == null)
             {
@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void NetVipsResize(string input)
         {
             // Thumbnail to fit a 150x150 square
-            using var thumb = NetVipsImage.Thumbnail(input, ThumbnailSize, ThumbnailSize);
+            using var thumb = NetVipsImage.Thumbnail(input, this.ThumbnailSize, this.ThumbnailSize);
 
             // Save the results
             thumb.Jpegsave(this.OutputPath(input, NetVips), q: Quality, strip: true);

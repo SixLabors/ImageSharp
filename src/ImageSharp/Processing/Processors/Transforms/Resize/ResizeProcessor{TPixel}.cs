@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             bool compand,
             bool premultiplyAlpha)
         {
-            PixelAlphaRepresentation? alphaRepresentation = PixelOperations<TPixel>.Instance.GetPixelTypeInfo()?.PixelAlphaRepresentation;
+            PixelAlphaRepresentation? alphaRepresentation = PixelOperations<TPixel>.Instance.GetPixelTypeInfo()?.AlphaRepresentation;
 
             // Premultiply only if alpha representation is unknown or Unassociated:
             bool needsPremultiplication = alphaRepresentation == null || alphaRepresentation.Value == PixelAlphaRepresentation.Unassociated;

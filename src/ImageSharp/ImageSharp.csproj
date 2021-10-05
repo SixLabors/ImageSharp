@@ -15,6 +15,11 @@
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!--Bump to V2 prior to tagged release.-->
+    <MinVerMinimumMajorMinor>2.0</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>

@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-
 using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.General

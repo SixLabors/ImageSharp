@@ -22,7 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private JpegColorConverter colorConverter;
 
-        // private IMemoryOwner<Vector4> rgbaBuffer;
         private IMemoryOwner<byte> rgbBuffer;
 
         private IMemoryOwner<TPixel> paddedProxyPixelRow;
@@ -84,7 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            // this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
             this.rgbBuffer = allocator.Allocate<byte>(frame.PixelWidth * 3);
 
             // color converter from Rgba32 to TPixel

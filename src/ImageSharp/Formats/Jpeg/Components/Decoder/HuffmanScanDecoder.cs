@@ -166,18 +166,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcusPerLine = this.frame.McusPerLine;
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
-            // Pre-derive the huffman table to avoid in-loop checks.
-            for (int i = 0; i < this.componentsCount; i++)
-            {
-                int order = this.frame.ComponentOrder[i];
-                JpegComponent component = this.components[order];
-
-                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-                dcHuffmanTable.Configure();
-                acHuffmanTable.Configure();
-            }
-
             for (int j = 0; j < mcusPerColumn; j++)
             {
                 this.cancellationToken.ThrowIfCancellationRequested();
@@ -247,8 +235,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
             ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-            dcHuffmanTable.Configure();
-            acHuffmanTable.Configure();
 
             for (int j = 0; j < h; j++)
             {
@@ -346,15 +332,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcusPerLine = this.frame.McusPerLine;
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
-            // Pre-derive the huffman table to avoid in-loop checks.
-            for (int k = 0; k < this.componentsCount; k++)
-            {
-                int order = this.frame.ComponentOrder[k];
-                JpegComponent component = this.components[order];
-                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                dcHuffmanTable.Configure();
-            }
-
             for (int j = 0; j < mcusPerColumn; j++)
             {
                 for (int i = 0; i < mcusPerLine; i++)
@@ -415,7 +392,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             if (this.SpectralStart == 0)
             {
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                dcHuffmanTable.Configure();
 
                 for (int j = 0; j < h; j++)
                 {
@@ -443,7 +419,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-                acHuffmanTable.Configure();
 
                 for (int j = 0; j < h; j++)
                 {

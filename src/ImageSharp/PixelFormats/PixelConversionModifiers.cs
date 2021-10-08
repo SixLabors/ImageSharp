@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats

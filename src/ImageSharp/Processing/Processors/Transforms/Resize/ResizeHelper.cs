@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>
         /// The tuple representing the location and the bounds
         /// </returns>
-        public static (Size, Rectangle) CalculateTargetLocationAndBounds(Size sourceSize, ResizeOptions options)
+        public static (Size Size, Rectangle Rectangle) CalculateTargetLocationAndBounds(Size sourceSize, ResizeOptions options)
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        private static (Size, Rectangle) CalculateBoxPadRectangle(
+        private static (Size Size, Rectangle Rectangle) CalculateBoxPadRectangle(
             Size source,
             ResizeOptions options,
             int width,
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return CalculatePadRectangle(source, options, width, height);
         }
 
-        private static (Size, Rectangle) CalculateCropRectangle(
+        private static (Size Size, Rectangle Rectangle) CalculateCropRectangle(
             Size source,
             ResizeOptions options,
             int width,
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
-        private static (Size, Rectangle) CalculateMaxRectangle(
+        private static (Size Size, Rectangle Rectangle) CalculateMaxRectangle(
             Size source,
             int width,
             int height)
@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return (new Size(Sanitize(targetWidth), Sanitize(targetHeight)), new Rectangle(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
-        private static (Size, Rectangle) CalculateMinRectangle(
+        private static (Size Size, Rectangle Rectangle) CalculateMinRectangle(
             Size source,
             int width,
             int height)
@@ -333,7 +333,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return (new Size(Sanitize(targetWidth), Sanitize(targetHeight)), new Rectangle(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
-        private static (Size, Rectangle) CalculatePadRectangle(
+        private static (Size Size, Rectangle Rectangle) CalculatePadRectangle(
             Size sourceSize,
             ResizeOptions options,
             int width,
@@ -401,7 +401,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
-        private static (Size, Rectangle) CalculateManualRectangle(
+        private static (Size Size, Rectangle Rectangle) CalculateManualRectangle(
             ResizeOptions options,
             int width,
             int height)

@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-
 using ImageMagick;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;

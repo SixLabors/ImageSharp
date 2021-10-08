@@ -50,16 +50,22 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         public void Rgb24_Scalar_PerElement_Pinned()
         {
             fixed (byte* r = &this.rBuf[0])
-            fixed (byte* g = &this.gBuf[0])
-            fixed (byte* b = &this.bBuf[0])
-            fixed (Rgb24* rgb = &this.rgbBuf[0])
             {
-                for (int i = 0; i < this.Count; i++)
+                fixed (byte* g = &this.gBuf[0])
                 {
-                    Rgb24* d = rgb + i;
-                    d->R = r[i];
-                    d->G = g[i];
-                    d->B = b[i];
+                    fixed (byte* b = &this.bBuf[0])
+                    {
+                        fixed (Rgb24* rgb = &this.rgbBuf[0])
+                        {
+                            for (int i = 0; i < this.Count; i++)
+                            {
+                                Rgb24* d = rgb + i;
+                                d->R = r[i];
+                                d->G = g[i];
+                                d->B = b[i];
+                            }
+                        }
+                    }
                 }
             }
         }

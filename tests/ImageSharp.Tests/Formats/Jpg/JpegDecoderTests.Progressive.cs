@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public const string DecodeProgressiveJpegOutputName = "DecodeProgressiveJpeg";
 
         [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgb24)]
         public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -30,17 +30,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32)]
-        public void DecodeProgressiveJpeg_WithLimitedAllocatorBufferCapacity(TestImageProvider<Rgba32> provider)
+        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgb24)]
+        public void DecodeProgressiveJpeg_WithLimitedAllocatorBufferCapacity(TestImageProvider<Rgb24> provider)
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<Rgba32> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
+                TestImageProvider<Rgb24> provider =
+                    BasicSerializer.Deserialize<TestImageProvider<Rgb24>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
 
-                using Image<Rgba32> image = provider.GetImage(JpegDecoder);
+                using Image<Rgb24> image = provider.GetImage(JpegDecoder);
                 image.DebugSave(provider, nonContiguousBuffersStr);
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;

@@ -19,9 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     public class ResizeTests
     {
         private const PixelTypes CommonNonDefaultPixelTypes =
-            PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
-
-        private const PixelTypes DefaultPixelType = PixelTypes.Rgba32;
+            PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;
 
         public static readonly string[] AllResamplerNames = TestUtils.GetAllResamplerNames();
 
@@ -188,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, DefaultPixelType)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void Resize_Compand<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -202,8 +200,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, false)]
-        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, true)]
+        [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32, true)]
         public void Resize_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider, bool compand)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -217,8 +215,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, false)]
-        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, true)]
+        [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32, true)]
         public void Resize_PremultiplyAlpha<TPixel>(TestImageProvider<TPixel> provider, bool premultiplyAlpha)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -243,7 +241,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void Resize_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -265,7 +263,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Resize_ThrowsForWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -283,10 +281,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 1)]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 4)]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 8)]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, -1)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24, 1)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24, 4)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24, 8)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24, -1)]
         public void Resize_WorksWithAllParallelismLevels<TPixel>(
             TestImageProvider<TPixel> provider,
             int maxDegreeOfParallelism)
@@ -305,27 +303,27 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), DefaultPixelType, 0.5f, null, null)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), PixelTypes.Rgba32 | PixelTypes.Rgb24, 0.5f, null, null)]
         [WithFileCollection(
             nameof(CommonTestImages),
             nameof(SmokeTestResamplerNames),
-            DefaultPixelType,
+            PixelTypes.Rgba32 | PixelTypes.Rgb24,
             0.3f,
             null,
             null)]
         [WithFileCollection(
             nameof(CommonTestImages),
             nameof(SmokeTestResamplerNames),
-            DefaultPixelType,
+            PixelTypes.Rgba32 | PixelTypes.Rgb24,
             1.8f,
             null,
             null)]
-        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 0.5f, null, null)]
-        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 1f, null, null)]
-        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 50, 50, DefaultPixelType, 8f, null, null)]
-        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 201, 199, DefaultPixelType, null, 100, 99)]
-        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 301, 1180, DefaultPixelType, null, 300, 480)]
-        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 49, 80, DefaultPixelType, null, 301, 100)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, PixelTypes.Rgba32, 0.5f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, PixelTypes.Rgba32, 1f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 50, 50, PixelTypes.Rgba32, 8f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 201, 199, PixelTypes.Rgba32, null, 100, 99)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 301, 1180, PixelTypes.Rgba32, null, 300, 480)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 49, 80, PixelTypes.Rgba32, null, 301, 100)]
         public void Resize_WorksWithAllResamplers<TPixel>(
             TestImageProvider<TPixel> provider,
             string samplerName,
@@ -382,7 +380,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -405,12 +403,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                         false));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -419,12 +417,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(0, image.Height / 3, false));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithTestPatternImages(10, 100, DefaultPixelType)]
+        [WithTestPatternImages(10, 100, PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeHeightCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -437,7 +435,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -446,12 +444,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(image.Width / 3, 0, false));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithTestPatternImages(100, 10, DefaultPixelType)]
+        [WithTestPatternImages(100, 10, PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWidthCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -464,7 +462,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -479,12 +477,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -495,12 +493,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -511,12 +509,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Issues.IncorrectResize1006, DefaultPixelType)]
+        [WithFile(TestImages.Jpeg.Issues.IncorrectResize1006, PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void CanResizeLargeImageWithCropMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -531,12 +529,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -547,12 +545,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -560,21 +558,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 var options = new ResizeOptions
                 {
-                    Size = new Size(
-                                          (int)Math.Round(image.Width * .75F),
-                                          (int)Math.Round(image.Height * .95F)),
+                    Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * .95F)),
                     Mode = ResizeMode.Min
                 };
 
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -589,12 +585,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32 | PixelTypes.Rgb24)]
         public void ResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -609,14 +605,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Issues.ExifDecodeOutOfRange694, DefaultPixelType)]
-        [WithFile(TestImages.Jpeg.Issues.ExifGetString750Transform, DefaultPixelType)]
-        [WithFile(TestImages.Jpeg.Issues.ExifResize1049, DefaultPixelType)]
+        [WithFile(TestImages.Jpeg.Issues.ExifDecodeOutOfRange694, PixelTypes.Rgb24)]
+        [WithFile(TestImages.Jpeg.Issues.ExifGetString750Transform, PixelTypes.Rgb24)]
+        [WithFile(TestImages.Jpeg.Issues.ExifResize1049, PixelTypes.Rgb24)]
         public void CanResizeExifIssueImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

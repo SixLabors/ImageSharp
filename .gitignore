@@ -223,3 +223,7 @@ artifacts/
 **/Images/ReferenceOutput
 **/Images/Input/MemoryStress
 .DS_Store
+
+#lfs
+hooks/**
+lfs/**

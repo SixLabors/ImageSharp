@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;

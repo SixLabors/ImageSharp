@@ -3,7 +3,6 @@
 
 using System.Drawing.Imaging;
 using System.IO;
-
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Tiff;

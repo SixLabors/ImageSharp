@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Xunit;
 

@@ -17,25 +17,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgbInplace(in ComponentValues values) =>
+                ScaleValues(values.Component0, this.MaximumValue);
+
+            internal static void ScaleValues(Span<float> values, float maxValue)
             {
-                ConvertCore(values, result, this.MaximumValue);
-            }
+                Span<Vector4> vecValues = MemoryMarshal.Cast<float, Vector4>(values);
 
-            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue)
-            {
-                var maximum = 1 / maxValue;
-                var scale = new Vector4(maximum, maximum, maximum, 1F);
+                var scaleVector = new Vector4(1 / maxValue);
 
-                ref float sBase = ref MemoryMarshal.GetReference(values.Component0);
-                ref Vector4 dBase = ref MemoryMarshal.GetReference(result);
-
-                for (int i = 0; i < result.Length; i++)
+                for (int i = 0; i < vecValues.Length; i++)
                 {
-                    var v = new Vector4(Unsafe.Add(ref sBase, i));
-                    v.W = 1f;
-                    v *= scale;
-                    Unsafe.Add(ref dBase, i) = v;
+                    vecValues[i] *= scaleVector;
+                }
+
+                values = values.Slice(vecValues.Length * 4);
+                if (!values.IsEmpty)
+                {
+                    float scaleValue = 1f / maxValue;
+                    values[0] *= scaleValue;
+
+                    if ((uint)values.Length > 1)
+                    {
+                        values[1] *= scaleValue;
+
+                        if ((uint)values.Length > 2)
+                        {
+                            values[2] *= scaleValue;
+                        }
+                    }
                 }
             }
         }

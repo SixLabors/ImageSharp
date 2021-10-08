@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(original, rotated);
         }
 
-        private static (Size original, Size rotated) Rotate(int angle)
+        private static (Size Original, Size Rotated) Rotate(int angle)
         {
             var file = TestFile.Create(TestImages.Bmp.Car);
             using (var image = Image.Load<Rgba32>(file.FullPath))

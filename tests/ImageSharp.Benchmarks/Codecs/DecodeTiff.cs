@@ -6,11 +6,9 @@
 //// #define BIG_TESTS
 
 using System.IO;
-
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
-
 using SDImage = System.Drawing.Image;
 using SDSize = System.Drawing.Size;
 

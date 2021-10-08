@@ -22,7 +22,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private JpegColorConverter colorConverter;
 
-        private IMemoryOwner<Vector4> rgbaBuffer;
+        // private IMemoryOwner<Vector4> rgbaBuffer;
+        private IMemoryOwner<byte> rgbBuffer;
+
+        private IMemoryOwner<TPixel> paddedProxyPixelRow;
 
         private Buffer2D<TPixel> pixelBuffer;
 
@@ -40,23 +43,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private bool Converted => this.pixelRowCounter >= this.pixelBuffer.Height;
 
-        public Buffer2D<TPixel> PixelBuffer
+        public Buffer2D<TPixel> GetPixelBuffer()
         {
-            get
+            if (!this.Converted)
             {
-                if (!this.Converted)
+                int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.pixelRowsPerStep);
+
+                for (int step = 0; step < steps; step++)
                 {
-                    int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.pixelRowsPerStep);
-
-                    for (int step = 0; step < steps; step++)
-                    {
-                        this.cancellationToken.ThrowIfCancellationRequested();
-                        this.ConvertNextStride(step);
-                    }
+                    this.cancellationToken.ThrowIfCancellationRequested();
+                    this.ConvertNextStride(step);
                 }
-
-                return this.pixelBuffer;
             }
+
+            return this.pixelBuffer;
         }
 
         /// <inheritdoc/>
@@ -72,7 +72,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.pixelRowsPerStep = this.blockRowsPerStep * blockPixelHeight;
 
             // pixel buffer for resulting image
-            this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight, AllocationOptions.Clean);
+            this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight);
+            this.paddedProxyPixelRow = allocator.Allocate<TPixel>(frame.PixelWidth + 3);
 
             // component processors from spectral to Rgba32
             var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.pixelRowsPerStep);
@@ -83,7 +84,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
+            // this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
+            this.rgbBuffer = allocator.Allocate<byte>(frame.PixelWidth * 3);
 
             // color converter from Rgba32 to TPixel
             this.colorConverter = this.GetColorConverter(frame, jpegData);
@@ -115,7 +117,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            this.rgbaBuffer?.Dispose();
+            this.rgbBuffer?.Dispose();
+            this.paddedProxyPixelRow?.Dispose();
         }
 
         private void ConvertNextStride(int spectralStep)
@@ -129,17 +132,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 buffers[i] = this.componentProcessors[i].ColorBuffer;
             }
 
+            int width = this.pixelBuffer.Width;
+
             for (int yy = this.pixelRowCounter; yy < maxY; yy++)
             {
                 int y = yy - this.pixelRowCounter;
 
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
-                this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.GetSpan());
 
-                Span<TPixel> destRow = this.pixelBuffer.GetRowSpan(yy);
+                this.colorConverter.ConvertToRgbInplace(values);
+                values = values.Slice(0, width); // slice away Jpeg padding
 
-                // TODO: Investigate if slicing is actually necessary
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
+                Span<byte> r = this.rgbBuffer.Slice(0, width);
+                Span<byte> g = this.rgbBuffer.Slice(width, width);
+                Span<byte> b = this.rgbBuffer.Slice(width * 2, width);
+
+                SimdUtils.NormalizedFloatToByteSaturate(values.Component0, r);
+                SimdUtils.NormalizedFloatToByteSaturate(values.Component1, g);
+                SimdUtils.NormalizedFloatToByteSaturate(values.Component2, b);
+
+                // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
+                // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,
+                // pack pixels to a temporary, padded proxy buffer, then copy the relevant values to the destination row.
+                if (this.pixelBuffer.TryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
+                {
+                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, destRow);
+                }
+                else
+                {
+                    Span<TPixel> proxyRow = this.paddedProxyPixelRow.GetSpan();
+                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, proxyRow);
+                    proxyRow.Slice(0, width).CopyTo(this.pixelBuffer.GetRowSpan(yy));
+                }
             }
 
             this.pixelRowCounter += this.pixelRowsPerStep;

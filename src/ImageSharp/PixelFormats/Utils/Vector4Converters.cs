@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats.Utils
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
         /// <summary>
         /// Apply modifiers used requested by ToVector4() conversion.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal static void ApplyForwardConversionModifiers(Span<Vector4> vectors, PixelConversionModifiers modifiers)
         {
             if (modifiers.IsDefined(PixelConversionModifiers.SRgbCompand))
@@ -31,7 +30,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
         /// <summary>
         /// Apply modifiers used requested by FromVector4() conversion.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal static void ApplyBackwardConversionModifiers(Span<Vector4> vectors, PixelConversionModifiers modifiers)
         {
             if (modifiers.IsDefined(PixelConversionModifiers.Premultiply))

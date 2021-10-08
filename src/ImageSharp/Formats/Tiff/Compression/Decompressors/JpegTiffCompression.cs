@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 scanDecoder.ResetInterval = 0;
                 jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
 
-                CopyImageBytesToBuffer(buffer, spectralConverter.PixelBuffer);
+                CopyImageBytesToBuffer(buffer, spectralConverter.GetPixelBuffer());
             }
             else
             {

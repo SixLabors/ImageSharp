@@ -341,6 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
+#pragma warning disable SA1503 // Braces should not be omitted
                 fixed (uint* currentRow = currentRowSpan)
                 fixed (uint* upperRow = upperRowSpan)
                 {
@@ -454,6 +455,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
         }
+#pragma warning restore SA1503 // Braces should not be omitted
 
         /// <summary>
         /// Quantize every component of the difference between the actual pixel value and
@@ -478,7 +480,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 quantization >>= 1;
             }
 
-            if (value >> 24 == 0 || value >> 24 == 0xff)
+            if (value >> 24 is 0 or 0xff)
             {
                 // Preserve transparency of fully transparent or fully opaque pixels.
                 a = NearLosslessDiff((byte)((value >> 24) & 0xff), (byte)((predict >> 24) & 0xff));
@@ -649,6 +651,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> upperSpan,
             Span<uint> outputSpan)
         {
+#pragma warning disable SA1503 // Braces should not be omitted
             fixed (uint* current = currentSpan)
             fixed (uint* upper = upperSpan)
             fixed (uint* outputFixed = outputSpan)
@@ -727,6 +730,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
         }
+#pragma warning restore SA1503 // Braces should not be omitted
 
         private static void MaxDiffsForRow(int width, int stride, Span<uint> argb, int offset, Span<byte> maxDiffs, bool usedSubtractGreen)
         {
@@ -990,6 +994,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 for (int y = 0; y < tileHeight; ++y)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
+#pragma warning disable SA1503 // Braces should not be omitted
                     fixed (uint* src = srcSpan)
                     fixed (ushort* dst = values)
                     {
@@ -1016,6 +1021,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         }
                     }
                 }
+#pragma warning restore SA1503 // Braces should not be omitted
 
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)
@@ -1063,6 +1069,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 for (int y = 0; y < tileHeight; ++y)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
+#pragma warning disable SA1503 // Braces should not be omitted
                     fixed (uint* src = srcSpan)
                     fixed (ushort* dst = values)
                     {
@@ -1092,6 +1099,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         }
                     }
                 }
+#pragma warning restore SA1503 // Braces should not be omitted
 
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)

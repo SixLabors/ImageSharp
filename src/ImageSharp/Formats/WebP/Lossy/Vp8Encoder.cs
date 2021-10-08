@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;

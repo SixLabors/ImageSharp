@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -147,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 // Note: According to webpinfo color cache bits of 11 are valid, even though 10 is defined in the source code as maximum.
                 // That is why 11 bits is also considered valid here.
-                bool colorCacheBitsIsValid = colorCacheBits >= 1 && colorCacheBits <= WebpConstants.MaxColorCacheBits + 1;
+                bool colorCacheBitsIsValid = colorCacheBits is >= 1 and <= WebpConstants.MaxColorCacheBits + 1;
                 if (!colorCacheBitsIsValid)
                 {
                     WebpThrowHelper.ThrowImageFormatException("Invalid color cache bits found");

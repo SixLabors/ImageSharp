@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
-
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -67,30 +66,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             if (distance < PrefixLookupIdxMax)
             {
-                (int code, int extraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
-                extraBits = prefixCode.extraBits;
-                return prefixCode.code;
+                (int Code, int ExtraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
+                extraBits = prefixCode.ExtraBits;
+                return prefixCode.Code;
             }
-            else
-            {
-                return PrefixEncodeBitsNoLut(distance, ref extraBits);
-            }
+
+            return PrefixEncodeBitsNoLut(distance, ref extraBits);
         }
 
         public static int PrefixEncode(int distance, ref int extraBits, ref int extraBitsValue)
         {
             if (distance < PrefixLookupIdxMax)
             {
-                (int code, int extraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
-                extraBits = prefixCode.extraBits;
+                (int Code, int ExtraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
+                extraBits = prefixCode.ExtraBits;
                 extraBitsValue = WebpLookupTables.PrefixEncodeExtraBitsValue[distance];
 
-                return prefixCode.code;
+                return prefixCode.Code;
             }
-            else
-            {
-                return PrefixEncodeNoLut(distance, ref extraBits, ref extraBitsValue);
-            }
+
+            return PrefixEncodeNoLut(distance, ref extraBits, ref extraBitsValue);
         }
 
         /// <summary>
@@ -402,9 +397,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 var maskalphagreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
                 var maskredblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
                 byte shufflemask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
-                int idx;
                 fixed (uint* src = data)
                 {
+                    int idx;
                     for (idx = 0; idx + 4 <= numPixels; idx += 4)
                     {
                         uint* pos = src + idx;
@@ -535,104 +530,106 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> outputSpan)
         {
             fixed (uint* inputFixed = pixelData)
-            fixed (uint* outputFixed = outputSpan)
             {
-                uint* input = inputFixed;
-                uint* output = outputFixed;
-
-                int width = transform.XSize;
-                Span<uint> transformData = transform.Data.GetSpan();
-
-                // First Row follows the L (mode=1) mode.
-                PredictorAdd0(input, 1, output);
-                PredictorAdd1(input + 1, width - 1, output + 1);
-                input += width;
-                output += width;
-
-                int y = 1;
-                int yEnd = transform.YSize;
-                int tileWidth = 1 << transform.Bits;
-                int mask = tileWidth - 1;
-                int tilesPerRow = SubSampleSize(width, transform.Bits);
-                int predictorModeIdxBase = (y >> transform.Bits) * tilesPerRow;
-                while (y < yEnd)
+                fixed (uint* outputFixed = outputSpan)
                 {
-                    int predictorModeIdx = predictorModeIdxBase;
-                    int x = 1;
+                    uint* input = inputFixed;
+                    uint* output = outputFixed;
 
-                    // First pixel follows the T (mode=2) mode.
-                    PredictorAdd2(input, output - width, 1, output);
+                    int width = transform.XSize;
+                    Span<uint> transformData = transform.Data.GetSpan();
 
-                    // .. the rest:
-                    while (x < width)
-                    {
-                        uint predictorMode = (transformData[predictorModeIdx++] >> 8) & 0xf;
-                        int xEnd = (x & ~mask) + tileWidth;
-                        if (xEnd > width)
-                        {
-                            xEnd = width;
-                        }
-
-                        // There are 14 different prediction modes.
-                        // In each prediction mode, the current pixel value is predicted from one
-                        // or more neighboring pixels whose values are already known.
-                        switch (predictorMode)
-                        {
-                            case 0:
-                                PredictorAdd0(input + x, xEnd - x, output + x);
-                                break;
-                            case 1:
-                                PredictorAdd1(input + x, xEnd - x, output + x);
-                                break;
-                            case 2:
-                                PredictorAdd2(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 3:
-                                PredictorAdd3(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 4:
-                                PredictorAdd4(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 5:
-                                PredictorAdd5(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 6:
-                                PredictorAdd6(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 7:
-                                PredictorAdd7(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 8:
-                                PredictorAdd8(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 9:
-                                PredictorAdd9(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 10:
-                                PredictorAdd10(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 11:
-                                PredictorAdd11(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 12:
-                                PredictorAdd12(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                            case 13:
-                                PredictorAdd13(input + x, output + x - width, xEnd - x, output + x);
-                                break;
-                        }
-
-                        x = xEnd;
-                    }
-
+                    // First Row follows the L (mode=1) mode.
+                    PredictorAdd0(input, 1, output);
+                    PredictorAdd1(input + 1, width - 1, output + 1);
                     input += width;
                     output += width;
-                    ++y;
 
-                    if ((y & mask) == 0)
+                    int y = 1;
+                    int yEnd = transform.YSize;
+                    int tileWidth = 1 << transform.Bits;
+                    int mask = tileWidth - 1;
+                    int tilesPerRow = SubSampleSize(width, transform.Bits);
+                    int predictorModeIdxBase = (y >> transform.Bits) * tilesPerRow;
+                    while (y < yEnd)
                     {
-                        // Use the same mask, since tiles are squares.
-                        predictorModeIdxBase += tilesPerRow;
+                        int predictorModeIdx = predictorModeIdxBase;
+                        int x = 1;
+
+                        // First pixel follows the T (mode=2) mode.
+                        PredictorAdd2(input, output - width, 1, output);
+
+                        // .. the rest:
+                        while (x < width)
+                        {
+                            uint predictorMode = (transformData[predictorModeIdx++] >> 8) & 0xf;
+                            int xEnd = (x & ~mask) + tileWidth;
+                            if (xEnd > width)
+                            {
+                                xEnd = width;
+                            }
+
+                            // There are 14 different prediction modes.
+                            // In each prediction mode, the current pixel value is predicted from one
+                            // or more neighboring pixels whose values are already known.
+                            switch (predictorMode)
+                            {
+                                case 0:
+                                    PredictorAdd0(input + x, xEnd - x, output + x);
+                                    break;
+                                case 1:
+                                    PredictorAdd1(input + x, xEnd - x, output + x);
+                                    break;
+                                case 2:
+                                    PredictorAdd2(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 3:
+                                    PredictorAdd3(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 4:
+                                    PredictorAdd4(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 5:
+                                    PredictorAdd5(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 6:
+                                    PredictorAdd6(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 7:
+                                    PredictorAdd7(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 8:
+                                    PredictorAdd8(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 9:
+                                    PredictorAdd9(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 10:
+                                    PredictorAdd10(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 11:
+                                    PredictorAdd11(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 12:
+                                    PredictorAdd12(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                                case 13:
+                                    PredictorAdd13(input + x, output + x - width, xEnd - x, output + x);
+                                    break;
+                            }
+
+                            x = xEnd;
+                        }
+
+                        input += width;
+                        output += width;
+                        ++y;
+
+                        if ((y & mask) == 0)
+                        {
+                            // Use the same mask, since tiles are squares.
+                            predictorModeIdxBase += tilesPerRow;
+                        }
                     }
                 }
             }
@@ -839,10 +836,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 return (float)log2;
             }
-            else
-            {
-                return (float)(Log2Reciprocal * Math.Log(v));
-            }
+
+            return (float)(Log2Reciprocal * Math.Log(v));
         }
 
         /// <summary>

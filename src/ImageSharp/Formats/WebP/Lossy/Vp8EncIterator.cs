@@ -400,7 +400,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             byte[] modes = new byte[16];
             int maxMode = MaxIntra4Mode;
-            int i4Alpha;
             var totalHisto = new Vp8Histogram();
             int curHisto = 0;
             this.StartI4();
@@ -433,7 +432,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
             while (this.RotateI4(this.YuvIn.AsSpan(YOffEnc))); // Note: we reuse the original samples for predictors.
 
-            i4Alpha = totalHisto.GetAlpha();
+            var i4Alpha = totalHisto.GetAlpha();
             if (i4Alpha > bestAlpha)
             {
                 this.SetIntra4Mode(modes);

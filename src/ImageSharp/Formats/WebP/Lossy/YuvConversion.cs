@@ -140,17 +140,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     GammaToLinear(bgra0.R) +
                             GammaToLinear(bgra1.R) +
                             GammaToLinear(bgra2.R) +
-                            GammaToLinear(bgra3.R), 0);
+                            GammaToLinear(bgra3.R),
+                    0);
                 dst[dstIdx + 1] = (ushort)LinearToGamma(
                     GammaToLinear(bgra0.G) +
                             GammaToLinear(bgra1.G) +
                             GammaToLinear(bgra2.G) +
-                            GammaToLinear(bgra3.G), 0);
+                            GammaToLinear(bgra3.G),
+                    0);
                 dst[dstIdx + 2] = (ushort)LinearToGamma(
                     GammaToLinear(bgra0.B) +
                             GammaToLinear(bgra1.B) +
                             GammaToLinear(bgra2.B) +
-                            GammaToLinear(bgra3.B), 0);
+                            GammaToLinear(bgra3.B),
+                    0);
             }
 
             if ((width & 1) != 0)
@@ -178,23 +181,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Bgra32 bgra3 = nextRowSpan[j + 1];
                 uint a = (uint)(bgra0.A + bgra1.A + bgra2.A + bgra3.A);
                 int r, g, b;
-                if (a == 4 * 0xff || a == 0)
+                if (a is 4 * 0xff or 0)
                 {
                     r = (ushort)LinearToGamma(
                         GammaToLinear(bgra0.R) +
                         GammaToLinear(bgra1.R) +
                         GammaToLinear(bgra2.R) +
-                        GammaToLinear(bgra3.R), 0);
+                        GammaToLinear(bgra3.R),
+                        0);
                     g = (ushort)LinearToGamma(
                         GammaToLinear(bgra0.G) +
                         GammaToLinear(bgra1.G) +
                         GammaToLinear(bgra2.G) +
-                        GammaToLinear(bgra3.G), 0);
+                        GammaToLinear(bgra3.G),
+                        0);
                     b = (ushort)LinearToGamma(
                         GammaToLinear(bgra0.B) +
                         GammaToLinear(bgra1.B) +
                         GammaToLinear(bgra2.B) +
-                        GammaToLinear(bgra3.B), 0);
+                        GammaToLinear(bgra3.B),
+                        0);
                 }
                 else
                 {
@@ -215,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 bgra1 = nextRowSpan[j];
                 uint a = (uint)(2u * (bgra0.A + bgra1.A));
                 int r, g, b;
-                if (a == 4 * 0xff || a == 0)
+                if (a is 4 * 0xff or 0)
                 {
                     r = (ushort)LinearToGamma(GammaToLinear(bgra0.R) + GammaToLinear(bgra1.R), 1);
                     g = (ushort)LinearToGamma(GammaToLinear(bgra0.G) + GammaToLinear(bgra1.G), 1);

@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         // Adjusts pixel values of image with given maximum error.
         private static void NearLossless(int xSize, int ySize, Span<uint> argbSrc, int stride, int limitBits, Span<uint> copyBuffer, Span<uint> argbDst)
         {
-            int x, y;
+            int y;
             int limit = 1 << limitBits;
             Span<uint> prevRow = copyBuffer;
             Span<uint> currRow = copyBuffer.Slice(xSize, xSize);
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     argbSrc.Slice(srcOffset + stride, xSize).CopyTo(nextRow);
                     argbDst[dstOffset] = argbSrc[srcOffset];
                     argbDst[dstOffset + xSize - 1] = argbSrc[srcOffset + xSize - 1];
-                    for (x = 1; x < xSize - 1; ++x)
+                    for (int x = 1; x < xSize - 1; ++x)
                     {
                         if (IsSmooth(prevRow, currRow, nextRow, x, limit))
                         {

@@ -2,13 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.WebP;
 
 // ReSharper disable InconsistentNaming
@@ -18,9 +15,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class WebpDecoderTests
     {
-        private static WebpDecoder WebpDecoder => new WebpDecoder();
+        private static WebpDecoder WebpDecoder => new();
 
-        private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
+        private static MagickReferenceDecoder ReferenceDecoder => new();
 
         [Theory]
         [InlineData(Lossless.GreenTransform1, 1000, 307, 32)]

@@ -639,7 +639,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     // Figure out if we should use the offset/length from the previous pixel
                     // as an initial guess and therefore only inspect the offsets in windowOffsetsNew[].
-                    bool usePrev = bestLengthPrev > 1 && bestLengthPrev < MaxLength;
+                    bool usePrev = bestLengthPrev is > 1 and < MaxLength;
                     int numInd = usePrev ? windowOffsetsNewSize : windowOffsetsSize;
                     bestLength = usePrev ? bestLengthPrev - 1 : 0;
                     bestOffset = usePrev ? bestOffsetPrev : 0;

@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
 
         [MethodImpl(InliningOptions.AlwaysInline)]
-        public void FillBuffer()
+        private void FillBuffer()
         {
             // Attempt to load at least the minimum number of required bits into the buffer.
             // We fail to do so only if we hit a marker or reach the end of the input stream.
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public int GetBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits -= nbits, nbits);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int PeekBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits - nbits, nbits);
+        private int PeekBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits - nbits, nbits);
 
         [MethodImpl(InliningOptions.AlwaysInline)]
         private static ulong ExtractBits(ulong value, int offset, int size) => (value >> offset) & (ulong)((1 << size) - 1);

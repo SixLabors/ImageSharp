@@ -48,6 +48,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private int eobrun;
 
+        // The spectral selection start.
+        private int spectralStart;
+
+        // The spectral selection end.
+        private int spectralEnd;
+
+        // The successive approximation high bit end.
+        private int successiveHigh;
+
+        // The successive approximation low bit end.
+        private int successiveLow;
+
         /// <summary>
         /// The DC Huffman tables.
         /// </summary>
@@ -97,22 +109,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        // The spectral selection start.
-        public int SpectralStart { get; set; }
+        /// <summary>
+        /// Build huffman table using code lengths and code values.
+        /// </summary>
+        /// <param name="type">Table type.</param>
+        /// <param name="index">Table index.</param>
+        /// <param name="codeLengths">Code lengths.</param>
+        /// <param name="values">Code values.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        {
+            HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
+            tables[index] = new HuffmanTable(codeLengths, values);
+        }
 
-        // The spectral selection end.
-        public int SpectralEnd { get; set; }
+        public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+        {
+            this.frame = frame;
+            this.components = frame.Components;
 
-        // The successive approximation high bit end.
-        public int SuccessiveHigh { get; set; }
-
-        // The successive approximation low bit end.
-        public int SuccessiveLow { get; set; }
+            this.spectralConverter.InjectFrameData(frame, jpegData);
+        }
 
         /// <summary>
         /// Decodes the entropy coded data.
         /// </summary>
-        public void ParseEntropyCodedData(int componentCount)
+        /// <param name="componentCount">Number of components in the current scan.</param>
+        /// <param name="progressiveData">
+        /// Progressive scan data. Will only be used if compression is progressive.
+        /// must contain 3 bytes if used.
+        /// </param>
+        public void ParseEntropyCodedData(int componentCount, Span<byte> progressiveData)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
 
@@ -125,11 +152,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             if (!this.frame.Progressive)
             {
-                this.ParseBaselineData();
+                this.ParseBaselineScan();
             }
             else
             {
-                this.ParseProgressiveData();
+                this.ParseProgressiveData(progressiveData);
+                this.ParseProgressiveScan();
             }
 
             if (this.scanBuffer.HasBadMarker())
@@ -138,15 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
-        {
-            this.frame = frame;
-            this.components = frame.Components;
-
-            this.spectralConverter.InjectFrameData(frame, jpegData);
-        }
-
-        private void ParseBaselineData()
+        private void ParseBaselineScan()
         {
             if (this.componentsCount == this.frame.ComponentCount)
             {
@@ -260,15 +280,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private void CheckProgressiveData()
+        private void ParseProgressiveData(Span<byte> progressiveData)
         {
+            this.spectralStart = progressiveData[0];
+            this.spectralEnd = progressiveData[1];
+
+            int successiveApproximation = progressiveData[2];
+            this.successiveHigh = successiveApproximation >> 4;
+            this.successiveLow = successiveApproximation & 15;
+
             // Validate successive scan parameters.
             // Logic has been adapted from libjpeg.
             // See Table B.3 – Scan header parameter size and values. itu-t81.pdf
             bool invalid = false;
-            if (this.SpectralStart == 0)
+            if (this.spectralStart == 0)
             {
-                if (this.SpectralEnd != 0)
+                if (this.spectralEnd != 0)
                 {
                     invalid = true;
                 }
@@ -276,7 +303,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 // Need not check Ss/Se < 0 since they came from unsigned bytes.
-                if (this.SpectralEnd < this.SpectralStart || this.SpectralEnd >= Block8x8.Size)
+                if (this.spectralEnd < this.spectralStart || this.spectralEnd >= Block8x8.Size)
                 {
                     invalid = true;
                 }
@@ -288,10 +315,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            if (this.SuccessiveHigh != 0)
+            if (this.successiveHigh != 0)
             {
                 // Successive approximation refinement scan: must have Al = Ah-1.
-                if (this.SuccessiveHigh - 1 != this.SuccessiveLow)
+                if (this.successiveHigh - 1 != this.successiveLow)
                 {
                     invalid = true;
                 }
@@ -299,21 +326,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             // TODO: How does this affect 12bit jpegs.
             // According to libjpeg the range covers 8bit only?
-            if (this.SuccessiveLow > 13)
+            if (this.successiveLow > 13)
             {
                 invalid = true;
             }
 
             if (invalid)
             {
-                JpegThrowHelper.ThrowBadProgressiveScan(this.SpectralStart, this.SpectralEnd, this.SuccessiveHigh, this.SuccessiveLow);
+                JpegThrowHelper.ThrowBadProgressiveScan(this.spectralStart, this.spectralEnd, this.successiveHigh, this.successiveLow);
             }
         }
 
-        private void ParseProgressiveData()
+        private void ParseProgressiveScan()
         {
-            this.CheckProgressiveData();
-
             if (this.componentsCount == 1)
             {
                 this.ParseProgressiveDataNonInterleaved();
@@ -389,7 +414,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
 
-            if (this.SpectralStart == 0)
+            if (this.spectralStart == 0)
             {
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
 
@@ -495,7 +520,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
-            if (this.SuccessiveHigh == 0)
+            if (this.successiveHigh == 0)
             {
                 // First scan for DC coefficient, must be first
                 int s = buffer.DecodeHuffman(ref dcTable);
@@ -506,20 +531,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 s += component.DcPredictor;
                 component.DcPredictor = s;
-                blockDataRef = (short)(s << this.SuccessiveLow);
+                blockDataRef = (short)(s << this.successiveLow);
             }
             else
             {
                 // Refinement scan for DC coefficient
                 buffer.CheckBits();
-                blockDataRef |= (short)(buffer.GetBits(1) << this.SuccessiveLow);
+                blockDataRef |= (short)(buffer.GetBits(1) << this.successiveLow);
             }
         }
 
         private void DecodeBlockProgressiveAC(ref Block8x8 block, ref HuffmanTable acTable)
         {
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
-            if (this.SuccessiveHigh == 0)
+            if (this.successiveHigh == 0)
             {
                 // MCU decoding for AC initial scan (either spectral selection,
                 // or first pass of successive approximation).
@@ -530,9 +555,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-                int start = this.SpectralStart;
-                int end = this.SpectralEnd;
-                int low = this.SuccessiveLow;
+                int start = this.spectralStart;
+                int end = this.spectralEnd;
+                int low = this.successiveLow;
 
                 for (int i = start; i <= end; ++i)
                 {
@@ -575,11 +600,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             // Refinement scan for these AC coefficients
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-            int start = this.SpectralStart;
-            int end = this.SpectralEnd;
+            int start = this.spectralStart;
+            int end = this.spectralEnd;
 
-            int p1 = 1 << this.SuccessiveLow;
-            int m1 = (-1) << this.SuccessiveLow;
+            int p1 = 1 << this.successiveLow;
+            int m1 = (-1) << this.successiveLow;
 
             int k = start;
 
@@ -717,20 +742,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Build huffman table using code lengths and code values.
-        /// </summary>
-        /// <param name="type">Table type.</param>
-        /// <param name="index">Table index.</param>
-        /// <param name="codeLengths">Code lengths.</param>
-        /// <param name="values">Code values.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-        {
-            HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
-            tables[index] = new HuffmanTable(codeLengths, values);
         }
     }
 }

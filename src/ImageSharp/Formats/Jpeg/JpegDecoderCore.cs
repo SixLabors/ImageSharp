@@ -1215,18 +1215,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // 3 bytes: Progressive scan decoding data
             stream.Read(this.temp, 0, 3);
-
-            int spectralStart = this.temp[0];
-            this.scanDecoder.SpectralStart = spectralStart;
-
-            int spectralEnd = this.temp[1];
-            this.scanDecoder.SpectralEnd = spectralEnd;
-
-            int successiveApproximation = this.temp[2];
-            this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
-            this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
-
-            this.scanDecoder.ParseEntropyCodedData(selectorsCount);
+            this.scanDecoder.ParseEntropyCodedData(selectorsCount, this.temp.AsSpan());
         }
 
         /// <summary>

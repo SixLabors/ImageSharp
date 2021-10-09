@@ -34,6 +34,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private const int MaxValueBitLength = 10;
 
         /// <summary>
+        /// Maximum number of bit per encoded spectral entry in huffman coding.
+        /// </summary>
+        private const int MaxSpectralEntryBitLength = MaxHuffmanCodeBitLength + MaxValueBitLength;
+
+        /// <summary>
         /// Amount of spectral value per single JPEG macroblock.
         /// </summary>
         /// <remarks>
@@ -45,27 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// Maximum amount of bits a single spectral block can occupy after
         /// compression.
         /// </summary>
-        private const int MaxBitsPerBlock = (MaxHuffmanCodeBitLength + MaxValueBitLength) * ElementsPerBlock;
-
-        /// <summary>
-        /// Multiplier used within cache buffers size calculation.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Theoretically, <see cref="MaxBytesPerBlock"/> bytes buffer can fit
-        /// exactly one minimal coding unit. In reality, coding blocks occupy much
-        /// less space than the theoretical maximum - this can be exploited.
-        /// If temporal buffer size is multiplied by at least 2, second half of
-        /// the resulting buffer will be used as an overflow 'guard' if next
-        /// block would occupy maximum number of bytes. While first half may fit
-        /// many blocks before needing to flush.
-        /// </para>
-        /// <para>
-        /// This is subject to change. This can be equal to 1 but recomended
-        /// value is 2 or even greater - futher benchmarking needed.
-        /// </para>
-        /// </remarks>
-        private const int MaxBytesPerBlockMultiplier = 2;
+        private const int MaxBitsPerBlock = MaxSpectralEntryBitLength * ElementsPerBlock;
 
         /// <summary>
         /// Maximum amount of bits a single spectral block can occupy after
@@ -80,6 +65,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private const int MaxBytesPerBlock = MaxBitsPerBlock / 8;
 
         /// <summary>
+        /// Multiplied number of maximum amount of bytes per block.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Theoretically, <see cref="MaxBytesPerBlock"/> bytes buffer can fit
+        /// exactly one minimal coding unit. In reality, coding blocks occupy much
+        /// less space than the theoretical maximum - this can be exploited.
+        /// If temporal buffer size is multiplied by at least 2, second half of
+        /// the resulting buffer will be used as an overflow 'guard' if next
+        /// block would occupy maximum number of bytes. While first half may fit
+        /// many blocks before needing to flush.
+        /// </para>
+        /// <para>
+        /// Multiplier is subject to change. It can be equal to 1 but recomended
+        /// value is 2 or even greater - futher benchmarking needed.
+        /// </para>
+        /// </remarks>
+        public const int EffectiveMaxBytesPerBlock = MaxBytesPerBlock * 2;
+
+        /// <summary>
         /// <see cref="streamWriteBuffer"/> size multiplier.
         /// </summary>
         /// <remarks>
@@ -88,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// While it's highly unlikely (if not impossible) to get such
         /// combination, it's theoretically possible so buffer size must be guarded.
         /// </remarks>
-        private const int OutputBufferLengthMultiplier = 2;
+        public const int OutputBufferLengthMultiplier = 2;
 
         /// <summary>
         /// Compiled huffman tree to encode given values.
@@ -136,10 +141,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// Initializes a new instance of the <see cref="HuffmanScanEncoder"/> class.
         /// </summary>
         /// <param name="blocksPerCodingUnit">Amount of encoded 8x8 blocks per single jpeg macroblock.</param>
-        /// <param name="outputStream">Output stream for saving encoded data.</param>
+        /// <param name="outputStream">Output stream.</param>
         public HuffmanScanEncoder(int blocksPerCodingUnit, Stream outputStream)
         {
-            int emitBufferByteLength = blocksPerCodingUnit * MaxBytesPerBlock * MaxBytesPerBlockMultiplier;
+            int emitBufferByteLength = blocksPerCodingUnit * EffectiveMaxBytesPerBlock;
             this.emitBuffer = new uint[emitBufferByteLength / sizeof(uint)];
             this.emitWriteIndex = this.emitBuffer.Length;
 
@@ -517,16 +522,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         [MethodImpl(InliningOptions.ShortMethod)]
         private void Emit(uint bits, int count)
         {
+            const int registerBitLength = sizeof(uint) * 8;
+
             this.accumulatedBits |= bits >> this.bitCount;
 
             count += this.bitCount;
 
-            if (count >= 32)
+            if (count >= registerBitLength)
             {
                 this.emitBuffer[--this.emitWriteIndex] = this.accumulatedBits;
-                this.accumulatedBits = bits << (32 - this.bitCount);
+                this.accumulatedBits = bits << (registerBitLength - this.bitCount);
 
-                count -= 32;
+                count -= registerBitLength;
             }
 
             this.bitCount = count;

@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 // Need not check Ss/Se < 0 since they came from unsigned bytes.
-                if (this.SpectralEnd < this.SpectralStart || this.SpectralEnd > 63)
+                if (this.SpectralEnd < this.SpectralStart || this.SpectralEnd >= Block8x8.Size)
                 {
                     invalid = true;
                 }
@@ -465,7 +465,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             blockDataRef = (short)t;
 
             // AC
-            for (int i = 1; i < 64;)
+            for (int i = 1; i < Block8x8.Size;)
             {
                 int s = buffer.DecodeHuffman(ref acTable);
 
@@ -720,7 +720,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Build the huffman table using code lengths and code values.
+        /// Build huffman table using code lengths and code values.
         /// </summary>
         /// <param name="type">Table type.</param>
         /// <param name="index">Table index.</param>

@@ -116,6 +116,36 @@ namespace SixLabors.ImageSharp.Memory
                 : this.GetRowMemorySlow(y).Span;
         }
 
+        internal bool TryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
+        {
+            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
+            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+
+            int stride = this.Width + padding;
+            if (this.cachedMemory.Length > 0)
+            {
+                paddedSpan = this.cachedMemory.Span.Slice(y * this.Width);
+                if (paddedSpan.Length < stride)
+                {
+                    return false;
+                }
+
+                paddedSpan = paddedSpan.Slice(0, stride);
+                return true;
+            }
+
+            Memory<T> memory = this.FastMemoryGroup.GetRemainingSliceOfBuffer(y * (long)this.Width);
+
+            if (memory.Length < stride)
+            {
+                paddedSpan = default;
+                return false;
+            }
+
+            paddedSpan = memory.Span.Slice(0, stride);
+            return true;
+        }
+
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ref T GetElementUnsafe(int x, int y)
         {

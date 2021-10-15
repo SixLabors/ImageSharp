@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;

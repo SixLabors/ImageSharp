@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using Xunit;
-
 using JpegQuantization = SixLabors.ImageSharp.Formats.Jpeg.Components.Quantization;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg

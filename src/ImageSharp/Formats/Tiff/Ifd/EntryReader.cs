@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;

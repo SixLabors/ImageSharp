@@ -19,13 +19,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         protected Buffer2D<float>[] Input { get; private set; }
 
-        protected Vector4[] Output { get; private set; }
-
         [GlobalSetup]
         public void Setup()
         {
             this.Input = CreateRandomValues(this.componentCount, Count);
-            this.Output = new Vector4[Count];
         }
 
         [GlobalCleanup]

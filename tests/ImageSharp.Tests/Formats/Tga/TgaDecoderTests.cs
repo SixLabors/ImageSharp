@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 
 // ReSharper disable InconsistentNaming

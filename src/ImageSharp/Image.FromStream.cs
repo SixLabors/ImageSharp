@@ -679,13 +679,13 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (Image img, IImageFormat format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
+            (Image Img, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
 
-            format = data.format;
+            format = data.Format;
 
-            if (data.img != null)
+            if (data.Img != null)
             {
-                return data.img;
+                return data.Img;
             }
 
             var sb = new StringBuilder();

@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             else
             {
                 // embedded exif
-                Span<byte> buf = maxSize <= 256 ? stackalloc byte[maxSize] : new byte[maxSize];
+                Span<byte> buf = maxSize <= 256 ? stackalloc byte[256] : new byte[maxSize];
                 foreach ((ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag in this.BigValues)
                 {
                     ulong size = tag.NumberOfComponents * ExifDataTypes.GetSize(tag.DataType);

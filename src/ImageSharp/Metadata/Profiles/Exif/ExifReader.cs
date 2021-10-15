@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public bool IsBigEndian { get; protected set; }
 
-        public List<(ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif)> BigValues { get; } = new();
+        public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } = new();
 
         protected void ReadBigValues(List<IExifValue> values)
         {
@@ -150,9 +150,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 // tiff, bigTiff
                 using IMemoryOwner<byte> memory = this.allocator.Allocate<byte>(maxSize);
                 Span<byte> buf = memory.GetSpan();
-                foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.BigValues)
+                foreach ((ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag in this.BigValues)
                 {
-                    ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
+                    ulong size = tag.NumberOfComponents * ExifDataTypes.GetSize(tag.DataType);
                     this.ReadBigValue(values, tag, buf.Slice(0, (int)size));
                 }
             }
@@ -160,9 +160,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             {
                 // embedded exif
                 Span<byte> buf = maxSize <= 256 ? stackalloc byte[maxSize] : new byte[maxSize];
-                foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.BigValues)
+                foreach ((ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag in this.BigValues)
                 {
-                    ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
+                    ulong size = tag.NumberOfComponents * ExifDataTypes.GetSize(tag.DataType);
                     this.ReadBigValue(values, tag, buf.Slice(0, (int)size));
                 }
             }
@@ -217,13 +217,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
-        protected void ReadBigValue(IList<IExifValue> values, (ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag, Span<byte> buffer)
+        protected void ReadBigValue(IList<IExifValue> values, (ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag, Span<byte> buffer)
         {
-            this.Seek(tag.offset);
+            this.Seek(tag.Offset);
             if (this.TryReadSpan(buffer))
             {
-                object value = this.ConvertValue(tag.dataType, buffer, tag.numberOfComponents > 1 || tag.exif.IsArray);
-                this.Add(values, tag.exif, value);
+                object value = this.ConvertValue(tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
+                this.Add(values, tag.Exif, value);
             }
         }
 

@@ -76,10 +76,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 if (reader.BigValues.Count > 0)
                 {
-                    reader.BigValues.Sort((t1, t2) => t1.offset.CompareTo(t2.offset));
+                    reader.BigValues.Sort((t1, t2) => t1.Offset.CompareTo(t2.Offset));
 
                     // this means that most likely all elements are placed  before next IFD
-                    if (reader.BigValues[0].offset < reader.NextIfdOffset)
+                    if (reader.BigValues[0].Offset < reader.NextIfdOffset)
                     {
                         reader.ReadBigValues();
                     }

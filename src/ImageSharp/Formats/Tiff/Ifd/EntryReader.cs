@@ -5,17 +5,16 @@ using System.Collections.Generic;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     internal class EntryReader : BaseExifReader
     {
-        public EntryReader(Stream stream, ByteOrder byteOrder)
-            : base(stream)
-        {
+        public EntryReader(Stream stream, ByteOrder byteOrder, MemoryAllocator allocator)
+            : base(stream, allocator) =>
             this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
-        }
 
         public List<IExifValue> Values { get; } = new List<IExifValue>();
 
@@ -45,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     internal class HeaderReader : BaseExifReader
     {
         public HeaderReader(Stream stream, ByteOrder byteOrder)
-            : base(stream) =>
+            : base(stream, null) =>
             this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
 
         public bool IsBigTiff { get; private set; }

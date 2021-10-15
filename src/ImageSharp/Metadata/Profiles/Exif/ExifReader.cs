@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,13 +10,19 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal class ExifReader : BaseExifReader
     {
         public ExifReader(byte[] exifData)
-            : base(new MemoryStream(exifData ?? throw new ArgumentNullException(nameof(exifData))))
+            : this(exifData, null)
+        {
+        }
+
+        public ExifReader(byte[] exifData, MemoryAllocator allocator)
+            : base(new MemoryStream(exifData ?? throw new ArgumentNullException(nameof(exifData))), allocator)
         {
         }
 
@@ -83,13 +90,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private readonly byte[] buf4 = new byte[4];
         private readonly byte[] buf2 = new byte[2];
 
+        private readonly MemoryAllocator allocator;
         private readonly Stream data;
         private List<ExifTag> invalidTags;
 
         private List<ulong> subIfds;
 
-        protected BaseExifReader(Stream stream) =>
+        protected BaseExifReader(Stream stream, MemoryAllocator allocator)
+        {
             this.data = stream ?? throw new ArgumentNullException(nameof(stream));
+            this.allocator = allocator;
+        }
 
         private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
 
@@ -110,7 +121,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public bool IsBigEndian { get; protected set; }
 
-        public List<(ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif)> BigValues { get; } = new ();
+        public List<(ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif)> BigValues { get; } = new();
 
         protected void ReadBigValues(List<IExifValue> values)
         {
@@ -119,22 +130,41 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return;
             }
 
-            ulong maxSize = 0;
+            int maxSize = 0;
             foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) in this.BigValues)
             {
                 ulong size = numberOfComponents * ExifDataTypes.GetSize(dataType);
-                if (size > maxSize)
+                if (size > int.MaxValue)
                 {
-                    maxSize = size;
+                    ThrowHelper.ThrowArgumentOutOfRangeExceptionForMustBeLessThanOrEqualTo<ulong>(size, int.MaxValue, nameof(size));
+                }
+
+                if ((int)size > maxSize)
+                {
+                    maxSize = (int)size;
                 }
             }
 
-            Span<byte> buf = new byte[maxSize];
-            foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.BigValues)
+            if (this.allocator != null)
             {
-                ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
-
-                this.ReadBigValue(values, tag, buf.Slice(0, (int)size));
+                // tiff, bigTiff
+                using IMemoryOwner<byte> memory = this.allocator.Allocate<byte>(maxSize);
+                Span<byte> buf = memory.GetSpan();
+                foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.BigValues)
+                {
+                    ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
+                    this.ReadBigValue(values, tag, buf.Slice(0, (int)size));
+                }
+            }
+            else
+            {
+                // embedded exif
+                Span<byte> buf = maxSize <= 256 ? stackalloc byte[maxSize] : new byte[maxSize];
+                foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) tag in this.BigValues)
+                {
+                    ulong size = tag.numberOfComponents * ExifDataTypes.GetSize(tag.dataType);
+                    this.ReadBigValue(values, tag, buf.Slice(0, (int)size));
+                }
             }
 
             this.BigValues.Clear();

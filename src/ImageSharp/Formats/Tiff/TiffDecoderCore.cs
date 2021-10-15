@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.inputStream = stream;
-            var reader = new DirectoryReader(stream);
+            var reader = new DirectoryReader(stream, this.Configuration.MemoryAllocator);
 
             IEnumerable<ExifProfile> directories = reader.Read();
             this.byteOrder = reader.ByteOrder;
@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.inputStream = stream;
-            var reader = new DirectoryReader(stream);
+            var reader = new DirectoryReader(stream, this.Configuration.MemoryAllocator);
             IEnumerable<ExifProfile> directories = reader.Read();
 
             ExifProfile rootFrameExifProfile = directories.First();

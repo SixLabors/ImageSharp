@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -16,9 +17,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     {
         private readonly Stream stream;
 
+        private readonly MemoryAllocator allocator;
+
         private ulong nextIfdOffset;
 
-        public DirectoryReader(Stream stream) => this.stream = stream;
+        public DirectoryReader(Stream stream, MemoryAllocator allocator)
+        {
+            this.stream = stream;
+            this.allocator = allocator;
+        }
 
         /// <summary>
         /// Gets the byte order.
@@ -64,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var readers = new List<EntryReader>();
             while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
             {
-                var reader = new EntryReader(this.stream, this.ByteOrder);
+                var reader = new EntryReader(this.stream, this.ByteOrder, this.allocator);
                 reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
                 if (reader.BigValues.Count > 0)

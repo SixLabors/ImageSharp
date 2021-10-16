@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -257,7 +256,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         [MethodImpl(InliningOptions.ShortMethod)]
         private void AddPixelsToHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
         {
-            for (int idx = 0; idx < length; idx++)
+            for (nint idx = 0; idx < length; idx++)
             {
                 int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
                 Unsafe.Add(ref histogramBase, luminance)++;

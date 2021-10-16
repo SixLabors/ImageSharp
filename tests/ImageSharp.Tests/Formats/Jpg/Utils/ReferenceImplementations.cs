@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 // ReSharper disable InconsistentNaming
@@ -15,18 +14,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     /// </summary>
     internal static partial class ReferenceImplementations
     {
-        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
+        public static void DequantizeBlock(ref Block8x8F block, ref Block8x8F qt, ReadOnlySpan<byte> zigzag)
         {
-            float* b = (float*)blockPtr;
-            float* qtp = (float*)qtPtr;
-            for (int qtIndex = 0; qtIndex < Block8x8F.Size; qtIndex++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
-                byte i = unzigPtr[qtIndex];
-                float* unzigPos = b + i;
-
-                float val = *unzigPos;
-                val *= qtp[qtIndex];
-                *unzigPos = val;
+                int zig = zigzag[i];
+                block[zig] *= qt[i];
             }
         }
 
@@ -101,42 +94,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
         /// <summary>
         /// Reference implementation to test <see cref="Block8x8F.Quantize"/>.
-        /// Rounding is done used an integer-based algorithm defined in <see cref="RationalRound(int,int)"/>.
         /// </summary>
-        /// <param name="src">The input block</param>
-        /// <param name="dest">The destination block of integers</param>
-        /// <param name="qt">The quantization table</param>
-        /// <param name="unzigPtr">Pointer to <see cref="ZigZag.Data"/> </param>
-        public static unsafe void QuantizeRational(Block8x8F* src, int* dest, Block8x8F* qt, byte* unzigPtr)
+        /// <param name="src">The input block.</param>
+        /// <param name="dest">The destination block of 16bit integers.</param>
+        /// <param name="qt">The quantization table.</param>
+        /// <param name="zigzag">Zig-Zag index sequence span.</param>
+        public static void Quantize(ref Block8x8F src, ref Block8x8 dest, ref Block8x8F qt, ReadOnlySpan<byte> zigzag)
         {
-            float* s = (float*)src;
-            float* q = (float*)qt;
-
-            for (int zig = 0; zig < Block8x8F.Size; zig++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
-                int a = (int)s[unzigPtr[zig]];
-                int b = (int)q[zig];
-
-                int val = RationalRound(a, b);
-                dest[zig] = val;
+                int zig = zigzag[i];
+                dest[i] = (short)Math.Round(src[zig] / qt[zig], MidpointRounding.AwayFromZero);
             }
-        }
-
-        /// <summary>
-        /// Rounds a rational number defined as dividend/divisor into an integer.
-        /// </summary>
-        /// <param name="dividend">The dividend.</param>
-        /// <param name="divisor">The divisor.</param>
-        /// <returns>The rounded value.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int RationalRound(int dividend, int divisor)
-        {
-            if (dividend >= 0)
-            {
-                return (dividend + (divisor >> 1)) / divisor;
-            }
-
-            return -((-dividend + (divisor >> 1)) / divisor);
         }
     }
 }

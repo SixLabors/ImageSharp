@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -49,7 +48,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                             float avg = (v4.X + v4.Y + v4.Z) / 3f;
                             span[i] = new Vector4(avg);
                         }
-                    }, rect));
+                    },
+                    rect));
         }
 
         [Theory]
@@ -108,7 +108,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 
                             span[i] = Vector4.Clamp(gray, Vector4.Zero, Vector4.One);
                         }
-                    }, rect));
+                    },
+                    rect));
         }
     }
 }

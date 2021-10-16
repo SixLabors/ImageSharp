@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             }
         }
 
-        [Benchmark(Baseline = true, Description = "Decode Jpeg - System.Drawing")]
-        public SDSize JpegSystemDrawing()
+        [Benchmark(Baseline = true)]
+        public SDSize SystemDrawing()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
@@ -56,12 +56,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             }
         }
 
-        [Benchmark(Description = "Decode Jpeg - ImageSharp")]
-        public Size JpegImageSharp()
+        [Benchmark]
+        public Size ImageSharp()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder { IgnoreMetadata = true }))
+                using (var image = Image.Load(memoryStream, new JpegDecoder { IgnoreMetadata = true }))
                 {
                     return new Size(image.Width, image.Height);
                 }

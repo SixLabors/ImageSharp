@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
@@ -70,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                         img.Dispose();
                     },
 #pragma warning disable SA1515 // Single-line comment should be preceded by blank line
-                              // ReSharper disable once ExplicitCallerInfoArgument
+                // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");
 #pragma warning restore SA1515 // Single-line comment should be preceded by blank line
         }
@@ -92,11 +91,11 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 
         // Benchmark, enable manually!
         [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
-        [InlineData(1, 75, JpegSubsample.Ratio420)]
-        [InlineData(30, 75, JpegSubsample.Ratio420)]
-        [InlineData(30, 75, JpegSubsample.Ratio444)]
-        [InlineData(30, 100, JpegSubsample.Ratio444)]
-        public void EncodeJpeg(int executionCount, int quality, JpegSubsample subsample)
+        [InlineData(1, 75, JpegColorType.YCbCrRatio420)]
+        [InlineData(30, 75, JpegColorType.YCbCrRatio420)]
+        [InlineData(30, 75, JpegColorType.YCbCrRatio444)]
+        [InlineData(30, 100, JpegColorType.YCbCrRatio444)]
+        public void EncodeJpeg(int executionCount, int quality, JpegColorType colorType)
         {
             // do not run this on CI even by accident
             if (TestEnvironment.RunsOnCI)
@@ -118,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                         {
                             foreach (Image<Rgba32> img in testImages)
                             {
-                                var options = new JpegEncoder { Quality = quality, Subsample = subsample };
+                                var options = new JpegEncoder { Quality = quality, ColorType = colorType };
                                 img.Save(ms, options);
                                 ms.Seek(0, SeekOrigin.Begin);
                             }

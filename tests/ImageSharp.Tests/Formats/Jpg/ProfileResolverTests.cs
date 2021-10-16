@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Text;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 using Xunit;

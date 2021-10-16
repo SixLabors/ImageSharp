@@ -9,12 +9,16 @@
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
-    <LangVersion>9</LangVersion>
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
     <!--<SignAssembly>false</SignAssembly>-->
   </PropertyGroup>
 
   <Choose>
+    <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
+      <PropertyGroup>
+        <TargetFrameworks>net6.0;net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+      </PropertyGroup>
+    </When>
     <When Condition="$(Configuration.EndsWith('InnerLoop')) == true">
       <PropertyGroup>
         <TargetFrameworks>netcoreapp3.1</TargetFrameworks>

@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
@@ -53,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 this.MinVal = Math.Min(this.MinVal, data.Min());
                 this.MaxVal = Math.Max(this.MaxVal, data.Max());
-                this.SpectralBlocks[x, y] = new Block8x8(data);
+                this.SpectralBlocks[x, y] = Block8x8.Load(data);
             }
 
             public void LoadSpectralStride(Buffer2D<Block8x8> data, int strideIndex)

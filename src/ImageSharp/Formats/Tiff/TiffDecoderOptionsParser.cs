@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             TiffFillOrder fillOrder = (TiffFillOrder?)exifProfile.GetValue(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
-            if (fillOrder != TiffFillOrder.MostSignificantBitFirst)
+            if (fillOrder == TiffFillOrder.LeastSignificantBitFirst && frameMetadata.BitsPerPixel != TiffBitsPerPixel.Bit1)
             {
-                TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
+                TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is only supported in combination with 1bit per pixel bicolor tiff's.");
             }
 
             if (frameMetadata.Predictor == TiffPredictor.FloatingPoint)
@@ -45,16 +45,29 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowNotSupported("TIFF images with FloatingPoint horizontal predictor are not supported.");
             }
 
-            TiffSampleFormat[] sampleFormat = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
-            if (sampleFormat != null)
+            TiffSampleFormat[] sampleFormats = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
+            TiffSampleFormat? sampleFormat = null;
+            if (sampleFormats != null)
             {
-                foreach (TiffSampleFormat format in sampleFormat)
+                sampleFormat = sampleFormats[0];
+                foreach (TiffSampleFormat format in sampleFormats)
                 {
-                    if (format != TiffSampleFormat.UnsignedInteger)
+                    if (format != TiffSampleFormat.UnsignedInteger && format != TiffSampleFormat.Float)
                     {
-                        TiffThrowHelper.ThrowNotSupported("ImageSharp only supports the UnsignedInteger SampleFormat.");
+                        TiffThrowHelper.ThrowNotSupported("ImageSharp only supports the UnsignedInteger and Float SampleFormat.");
                     }
                 }
+            }
+
+            ushort[] ycbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
+            if (ycbcrSubSampling != null && ycbcrSubSampling.Length != 2)
+            {
+                TiffThrowHelper.ThrowImageFormatException("Invalid YCbCrSubsampling, expected 2 values.");
+            }
+
+            if (ycbcrSubSampling != null && ycbcrSubSampling[1] > ycbcrSubSampling[0])
+            {
+                TiffThrowHelper.ThrowImageFormatException("ChromaSubsampleVert shall always be less than or equal to ChromaSubsampleHoriz.");
             }
 
             if (exifProfile.GetValue(ExifTag.StripRowCounts)?.Value != null)
@@ -67,8 +80,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
             options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
             options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
+            options.SampleFormat = sampleFormat ?? TiffSampleFormat.UnsignedInteger;
             options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
             options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
+            options.ReferenceBlackAndWhite = exifProfile.GetValue(ExifTag.ReferenceBlackWhite)?.Value;
+            options.YcbcrCoefficients = exifProfile.GetValue(ExifTag.YCbCrCoefficients)?.Value;
+            options.YcbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
+            options.FillOrder = fillOrder;
+            options.JpegTables = exifProfile.GetValue(ExifTag.JPEGTables)?.Value;
 
             options.ParseColorType(exifProfile);
             options.ParseCompression(frameMetadata.Compression, exifProfile);
@@ -113,6 +132,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         case 32:
                         {
+                            if (options.SampleFormat == TiffSampleFormat.Float)
+                            {
+                                options.ColorType = TiffColorType.WhiteIsZero32Float;
+                                return;
+                            }
+
                             options.ColorType = TiffColorType.WhiteIsZero32;
                             break;
                         }
@@ -174,6 +199,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         case 32:
                         {
+                            if (options.SampleFormat == TiffSampleFormat.Float)
+                            {
+                                options.ColorType = TiffColorType.BlackIsZero32Float;
+                                return;
+                            }
+
                             options.ColorType = TiffColorType.BlackIsZero32;
                             break;
                         }
@@ -237,6 +268,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         switch (bitsPerChannel)
                         {
                             case 32:
+                                if (options.SampleFormat == TiffSampleFormat.Float)
+                                {
+                                    options.ColorType = TiffColorType.RgbFloat323232;
+                                    return;
+                                }
+
                                 options.ColorType = TiffColorType.Rgb323232;
                                 break;
 
@@ -317,6 +354,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
+                case TiffPhotometricInterpretation.YCbCr:
+                {
+                    options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
+                    if (options.BitsPerSample.Channels != 3)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                    if (bitsPerChannel != 8)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for YCbCr images.");
+                    }
+
+                    options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.YCbCr : TiffColorType.YCbCrPlanar;
+
+                    break;
+                }
+
                 default:
                 {
                     TiffThrowHelper.ThrowNotSupported($"The specified TIFF photometric interpretation is not supported: {options.PhotometricInterpretation}");
@@ -363,9 +419,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
+                case TiffCompression.CcittGroup4Fax:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.T6;
+                    options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
+
+                    break;
+                }
+
                 case TiffCompression.Ccitt1D:
                 {
                     options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
+                    break;
+                }
+
+                case TiffCompression.Jpeg:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.Jpeg;
                     break;
                 }
 

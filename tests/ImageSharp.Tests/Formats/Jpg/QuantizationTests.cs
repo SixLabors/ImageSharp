@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using Xunit;
-
 using JpegQuantization = SixLabors.ImageSharp.Formats.Jpeg.Components.Quantization;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
@@ -21,7 +20,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8F table = JpegQuantization.ScaleLuminanceTable(quality);
                 int estimatedQuality = JpegQuantization.EstimateLuminanceQuality(ref table);
 
-                Assert.True(quality.Equals(estimatedQuality), $"Failed to estimate luminance quality for standard table at quality level {quality}");
+                Assert.True(
+                    quality.Equals(estimatedQuality),
+                    $"Failed to estimate luminance quality for standard table at quality level {quality}");
             }
         }
 
@@ -35,7 +36,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8F table = JpegQuantization.ScaleChrominanceTable(quality);
                 int estimatedQuality = JpegQuantization.EstimateChrominanceQuality(ref table);
 
-                Assert.True(quality.Equals(estimatedQuality), $"Failed to estimate chrominance quality for standard table at quality level {quality}");
+                Assert.True(
+                    quality.Equals(estimatedQuality),
+                    $"Failed to estimate chrominance quality for standard table at quality level {quality}");
             }
         }
     }

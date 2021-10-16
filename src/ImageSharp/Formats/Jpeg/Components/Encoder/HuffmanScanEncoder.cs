@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-#endif
+using System.Runtime.InteropServices;
 using System.Threading;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -16,51 +15,117 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     internal class HuffmanScanEncoder
     {
         /// <summary>
+        /// Maximum number of bytes encoded jpeg 8x8 block can occupy.
+        /// It's highly unlikely for block to occupy this much space - it's a theoretical limit.
+        /// </summary>
+        /// <remarks>
+        /// Where 16 is maximum huffman code binary length according to itu
+        /// specs. 10 is maximum value binary length, value comes from discrete
+        /// cosine tranform with value range: [-1024..1023]. Block stores
+        /// 8x8 = 64 values thus multiplication by 64. Then divided by 8 to get
+        /// the number of bytes. This value is then multiplied by
+        /// <see cref="MaxBytesPerBlockMultiplier"/> for performance reasons.
+        /// </remarks>
+        private const int MaxBytesPerBlock = (16 + 10) * 64 / 8 * MaxBytesPerBlockMultiplier;
+
+        /// <summary>
+        /// Multiplier used within cache buffers size calculation.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Theoretically, <see cref="MaxBytesPerBlock"/> bytes buffer can fit
+        /// exactly one minimal coding unit. In reality, coding blocks occupy much
+        /// less space than the theoretical maximum - this can be exploited.
+        /// If temporal buffer size is multiplied by at least 2, second half of
+        /// the resulting buffer will be used as an overflow 'guard' if next
+        /// block would occupy maximum number of bytes. While first half may fit
+        /// many blocks before needing to flush.
+        /// </para>
+        /// <para>
+        /// This is subject to change. This can be equal to 1 but recomended
+        /// value is 2 or even greater - futher benchmarking needed.
+        /// </para>
+        /// </remarks>
+        private const int MaxBytesPerBlockMultiplier = 2;
+
+        /// <summary>
+        /// <see cref="streamWriteBuffer"/> size multiplier.
+        /// </summary>
+        /// <remarks>
+        /// Jpeg specification requiers to insert 'stuff' bytes after each
+        /// 0xff byte value. Worst case scenarion is when all bytes are 0xff.
+        /// While it's highly unlikely (if not impossible) to get such
+        /// combination, it's theoretically possible so buffer size must be guarded.
+        /// </remarks>
+        private const int OutputBufferLengthMultiplier = 2;
+
+        /// <summary>
         /// Compiled huffman tree to encode given values.
         /// </summary>
         /// <remarks>Yields codewords by index consisting of [run length | bitsize].</remarks>
         private HuffmanLut[] huffmanTables;
 
         /// <summary>
-        /// Number of bytes cached before being written to target stream via Stream.Write(byte[], offest, count).
+        /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
+        /// </summary>
+        private uint accumulatedBits;
+
+        /// <summary>
+        /// Buffer for temporal storage of huffman rle encoding bit data.
         /// </summary>
         /// <remarks>
-        /// This is subject to change, 1024 seems to be the best value in terms of performance.
-        /// <see cref="Emit(int, int)"/> expects it to be at least 8 (see comments in method body).
+        /// Encoding bits are assembled to 4 byte unsigned integers and then copied to this buffer.
+        /// This process does NOT include inserting stuff bytes.
         /// </remarks>
-        private const int EmitBufferSizeInBytes = 1024;
+        private readonly uint[] emitBuffer;
 
         /// <summary>
-        /// A buffer for reducing the number of stream writes when emitting Huffman tables.
+        /// Buffer for temporal storage which is then written to the output stream.
         /// </summary>
-        private readonly byte[] emitBuffer = new byte[EmitBufferSizeInBytes];
-
-        /// <summary>
-        /// Number of filled bytes in <see cref="emitBuffer"/> buffer
-        /// </summary>
-        private int emitLen = 0;
-
-        /// <summary>
-        /// Emmited bits 'micro buffer' before being transfered to the <see cref="emitBuffer"/>.
-        /// </summary>
-        private int accumulatedBits;
+        /// <remarks>
+        /// Encoding bits from <see cref="emitBuffer"/> are copied to this byte buffer including stuff bytes.
+        /// </remarks>
+        private readonly byte[] streamWriteBuffer;
 
         /// <summary>
         /// Number of jagged bits stored in <see cref="accumulatedBits"/>
         /// </summary>
         private int bitCount;
 
-        private Block8x8F temporalBlock1;
-        private Block8x8F temporalBlock2;
+        private int emitWriteIndex;
+
+        private Block8x8 tempBlock;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
         private readonly Stream target;
 
-        public HuffmanScanEncoder(Stream outputStream)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HuffmanScanEncoder"/> class.
+        /// </summary>
+        /// <param name="blocksPerCodingUnit">Amount of encoded 8x8 blocks per single jpeg macroblock.</param>
+        /// <param name="outputStream">Output stream for saving encoded data.</param>
+        public HuffmanScanEncoder(int blocksPerCodingUnit, Stream outputStream)
         {
+            int emitBufferByteLength = MaxBytesPerBlock * blocksPerCodingUnit;
+            this.emitBuffer = new uint[emitBufferByteLength / sizeof(uint)];
+            this.emitWriteIndex = this.emitBuffer.Length;
+
+            this.streamWriteBuffer = new byte[emitBufferByteLength * OutputBufferLengthMultiplier];
+
             this.target = outputStream;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether <see cref="emitBuffer"/> is full
+        /// and must be flushed using <see cref="FlushToStream()"/>
+        /// before encoding next 8x8 coding block.
+        /// </summary>
+        private bool IsStreamFlushNeeded
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
         }
 
         /// <summary>
@@ -68,15 +133,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
-        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
+        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            FastFloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
 
-            var unzig = ZigZag.CreateUnzigTable();
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
@@ -100,26 +166,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref luminanceQuantTable,
-                        ref unzig);
+                        ref luminanceQuantTable);
 
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref pixelConverter.Cb,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
 
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref pixelConverter.Cr,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
+
+                    if (this.IsStreamFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
                 }
             }
 
-            this.FlushInternalBuffer();
+            this.FlushRemainingBytes();
         }
 
         /// <summary>
@@ -128,15 +196,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
-        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
+        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            FastFloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
 
-            var unzig = ZigZag.CreateUnzigTable();
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
@@ -161,34 +230,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             QuantIndex.Luminance,
                             prevDCY,
                             ref pixelConverter.YLeft,
-                            ref luminanceQuantTable,
-                            ref unzig);
+                            ref luminanceQuantTable);
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
                             ref pixelConverter.YRight,
-                            ref luminanceQuantTable,
-                            ref unzig);
+                            ref luminanceQuantTable);
                     }
 
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
                         ref pixelConverter.Cb,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
 
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
                         ref pixelConverter.Cr,
-                        ref chrominanceQuantTable,
-                        ref unzig);
+                        ref chrominanceQuantTable);
+
+                    if (this.IsStreamFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
                 }
             }
 
-            this.FlushInternalBuffer();
+            this.FlushRemainingBytes();
         }
 
         /// <summary>
@@ -196,14 +266,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee</param>
+        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
 
-            var unzig = ZigZag.CreateUnzigTable();
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0;
@@ -226,12 +296,76 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         QuantIndex.Luminance,
                         prevDCY,
                         ref pixelConverter.Y,
-                        ref luminanceQuantTable,
-                        ref unzig);
+                        ref luminanceQuantTable);
+
+                    if (this.IsStreamFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
                 }
             }
 
-            this.FlushInternalBuffer();
+            this.FlushRemainingBytes();
+        }
+
+        /// <summary>
+        /// Encodes the image with no subsampling and keeps the pixel data as Rgb24.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
+        /// <param name="quantTable">Quantization table provided by the callee.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F quantTable, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            FastFloatingPointDCT.AdjustToFDCT(ref quantTable);
+
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+
+            // ReSharper disable once InconsistentNaming
+            int prevDCR = 0, prevDCG = 0, prevDCB = 0;
+
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
+            RowOctet<TPixel> currentRows = default;
+
+            var pixelConverter = new RgbForwardConverter<TPixel>(frame);
+
+            for (int y = 0; y < pixels.Height; y += 8)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                currentRows.Update(pixelBuffer, y);
+
+                for (int x = 0; x < pixels.Width; x += 8)
+                {
+                    pixelConverter.Convert(x, y, ref currentRows);
+
+                    prevDCR = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCR,
+                        ref pixelConverter.R,
+                        ref quantTable);
+
+                    prevDCG = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCG,
+                        ref pixelConverter.G,
+                        ref quantTable);
+
+                    prevDCB = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCB,
+                        ref pixelConverter.B,
+                        ref quantTable);
+
+                    if (this.IsStreamFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
+                }
+            }
+
+            this.FlushRemainingBytes();
         }
 
         /// <summary>
@@ -241,47 +375,53 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         /// <param name="index">The quantization table index.</param>
         /// <param name="prevDC">The previous DC value.</param>
-        /// <param name="src">Source block</param>
-        /// <param name="quant">Quantization table</param>
-        /// <param name="unZig">The 8x8 Unzig block.</param>
+        /// <param name="block">Source block.</param>
+        /// <param name="quant">Quantization table.</param>
         /// <returns>The <see cref="int"/>.</returns>
         private int WriteBlock(
             QuantIndex index,
             int prevDC,
-            ref Block8x8F src,
-            ref Block8x8F quant,
-            ref ZigZag unZig)
+            ref Block8x8F block,
+            ref Block8x8F quant)
         {
-            ref Block8x8F refTemp1 = ref this.temporalBlock1;
-            ref Block8x8F refTemp2 = ref this.temporalBlock2;
+            ref Block8x8 spectralBlock = ref this.tempBlock;
 
-            FastFloatingPointDCT.TransformFDCT(ref src, ref refTemp1, ref refTemp2);
+            // Shifting level from 0..255 to -128..127
+            block.AddInPlace(-128f);
 
-            Block8x8F.Quantize(ref refTemp1, ref refTemp2, ref quant, ref unZig);
+            // Discrete cosine transform
+            FastFloatingPointDCT.TransformFDCT(ref block);
+
+            // Quantization
+            Block8x8F.Quantize(ref block, ref spectralBlock, ref quant);
 
             // Emit the DC delta.
-            int dc = (int)refTemp2[0];
-            this.EmitDirectCurrentTerm(this.huffmanTables[2 * (int)index].Values, dc - prevDC);
+            int dc = spectralBlock[0];
+            this.EmitHuffRLE(this.huffmanTables[2 * (int)index].Values, 0, dc - prevDC);
 
             // Emit the AC components.
             int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
 
-            int runLength = 0;
-            int lastValuableIndex = GetLastValuableElementIndex(ref refTemp2);
-            for (int zig = 1; zig <= lastValuableIndex; zig++)
-            {
-                int ac = (int)refTemp2[zig];
+            nint lastValuableIndex = spectralBlock.GetLastNonZeroIndex();
 
+            int runLength = 0;
+            ref short blockRef = ref Unsafe.As<Block8x8, short>(ref spectralBlock);
+            for (nint zig = 1; zig <= lastValuableIndex; zig++)
+            {
+                const int zeroRun1 = 1 << 4;
+                const int zeroRun16 = 16 << 4;
+
+                int ac = Unsafe.Add(ref blockRef, zig);
                 if (ac == 0)
                 {
-                    runLength++;
+                    runLength += zeroRun1;
                 }
                 else
                 {
-                    while (runLength > 15)
+                    while (runLength >= zeroRun16)
                     {
                         this.EmitHuff(acHuffTable, 0xf0);
-                        runLength -= 16;
+                        runLength -= zeroRun16;
                     }
 
                     this.EmitHuffRLE(acHuffTable, runLength, ac);
@@ -301,100 +441,89 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Emits the least significant count of bits to the stream write buffer.
-        /// The precondition is bits
-        /// <example>
-        /// &lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16
-        /// </example>
-        /// .
+        /// Emits the most significant count of bits to the buffer.
         /// </summary>
-        /// <param name="bits">The packed bits.</param>
-        /// <param name="count">The number of bits</param>
+        /// <remarks>
+        /// <para>
+        /// Supports up to 32 count of bits but, generally speaking, jpeg
+        /// standard assures that there won't be more than 16 bits per single
+        /// value.
+        /// </para>
+        /// <para>
+        /// Emitting algorithm uses 3 intermediate buffers for caching before
+        /// writing to the stream:
+        /// <list type="number">
+        /// <item>
+        /// <term>uint32</term>
+        /// <description>
+        /// Bit buffer. Encoded spectral values can occupy up to 16 bits, bits
+        /// are assembled to whole bytes via this intermediate buffer.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <term>uint32[]</term>
+        /// <description>
+        /// Assembled bytes from uint32 buffer are saved into this buffer.
+        /// uint32 buffer values are saved using indices from the last to the first.
+        /// As bytes are saved to the memory as 4-byte packages endianness matters:
+        /// Jpeg stream is big-endian, indexing buffer bytes from the last index to the
+        /// first eliminates all operations to extract separate bytes. This only works for
+        /// little-endian machines (there are no known examples of big-endian users atm).
+        /// For big-endians this approach is slower due to the separate byte extraction.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <term>byte[]</term>
+        /// <description>
+        /// Byte buffer used only during <see cref="FlushToStream(int)"/> method.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </remarks>
+        /// <param name="bits">Bits to emit, must be shifted to the left.</param>
+        /// <param name="count">Bits count stored in the bits parameter.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void Emit(int bits, int count)
+        private void Emit(uint bits, int count)
         {
+            this.accumulatedBits |= bits >> this.bitCount;
+
             count += this.bitCount;
-            bits <<= 32 - count;
-            bits |= this.accumulatedBits;
 
-            // Only write if more than 8 bits.
-            if (count >= 8)
+            if (count >= 32)
             {
-                // Track length
-                while (count >= 8)
-                {
-                    byte b = (byte)(bits >> 24);
-                    this.emitBuffer[this.emitLen++] = b;
+                this.emitBuffer[--this.emitWriteIndex] = this.accumulatedBits;
+                this.accumulatedBits = bits << (32 - this.bitCount);
 
-                    // Adding stuff byte
-                    // This is because by JPEG standard scan data can contain JPEG markers (indicated by the 0xFF byte, followed by a non-zero byte)
-                    // Considering this every 0xFF byte must be followed by 0x00 padding byte to signal that this is not a marker
-                    if (b == byte.MaxValue)
-                    {
-                        this.emitBuffer[this.emitLen++] = byte.MinValue;
-                    }
-
-                    bits <<= 8;
-                    count -= 8;
-                }
-
-                // This can emit 4 times of:
-                // 1 byte guaranteed
-                // 1 extra byte.MinValue byte if previous one was byte.MaxValue
-                // Thus writing (1 + 1) * 4 = 8 bytes max
-                // So we must check if emit buffer has extra 8 bytes, if not - call stream.Write
-                if (this.emitLen > EmitBufferSizeInBytes - 8)
-                {
-                    this.target.Write(this.emitBuffer, 0, this.emitLen);
-                    this.emitLen = 0;
-                }
+                count -= 32;
             }
 
-            this.accumulatedBits = bits;
             this.bitCount = count;
         }
 
         /// <summary>
-        /// Emits the given value with the given Huffman encoder.
+        /// Emits the given value with the given Huffman table.
         /// </summary>
-        /// <param name="table">Compiled Huffman spec values.</param>
-        /// <param name="value">The value to encode.</param>
+        /// <param name="table">Huffman table.</param>
+        /// <param name="value">Value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuff(int[] table, int value)
         {
             int x = table[value];
-            this.Emit(x >> 8, x & 0xff);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void EmitDirectCurrentTerm(int[] table, int value)
-        {
-            int a = value;
-            int b = value;
-            if (a < 0)
-            {
-                a = -value;
-                b = value - 1;
-            }
-
-            int bt = GetHuffmanEncodingLength((uint)a);
-
-            this.EmitHuff(table, bt);
-            if (bt > 0)
-            {
-                this.Emit(b & ((1 << bt) - 1), bt);
-            }
+            this.Emit((uint)x & 0xffff_ff00u, x & 0xff);
         }
 
         /// <summary>
-        /// Emits a run of runLength copies of value encoded with the given Huffman encoder.
+        /// Emits given value via huffman rle encoding.
         /// </summary>
-        /// <param name="table">Compiled Huffman spec values.</param>
-        /// <param name="runLength">The number of copies to encode.</param>
-        /// <param name="value">The value to encode.</param>
+        /// <param name="table">Huffman table.</param>
+        /// <param name="runLength">The number of preceding zeroes, preshifted by 4 to the left.</param>
+        /// <param name="value">Value to encode.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuffRLE(int[] table, int runLength, int value)
         {
+            DebugGuard.IsTrue((runLength & 0xf) == 0, $"{nameof(runLength)} parameter must be shifted to the left by 4 bits");
+
             int a = value;
             int b = value;
             if (a < 0)
@@ -403,25 +532,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 b = value - 1;
             }
 
-            int bt = GetHuffmanEncodingLength((uint)a);
+            int valueLen = GetHuffmanEncodingLength((uint)a);
 
-            this.EmitHuff(table, (runLength << 4) | bt);
-            this.Emit(b & ((1 << bt) - 1), bt);
-        }
+            // Huffman prefix code
+            int huffPackage = table[runLength | valueLen];
+            int prefixLen = huffPackage & 0xff;
+            uint prefix = (uint)huffPackage & 0xffff_0000u;
 
-        /// <summary>
-        /// Writes remaining bytes from internal buffer to the target stream.
-        /// </summary>
-        /// <remarks>Pads last byte with 1's if necessary</remarks>
-        private void FlushInternalBuffer()
-        {
-            // pad last byte with 1's
-            int padBitsCount = 8 - (this.bitCount % 8);
-            if (padBitsCount != 0)
-            {
-                this.Emit((1 << padBitsCount) - 1, padBitsCount);
-                this.target.Write(this.emitBuffer, 0, this.emitLen);
-            }
+            // Actual encoded value
+            uint encodedValue = (uint)b << (32 - valueLen);
+
+            // Doing two binary shifts to get rid of leading 1's in negative value case
+            this.Emit(prefix | (encodedValue >> prefixLen), prefixLen + valueLen);
         }
 
         /// <summary>
@@ -437,19 +559,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             DebugGuard.IsTrue(value <= (1 << 16), "Huffman encoder is supposed to encode a value of 16bit size max");
 #if SUPPORTS_BITOPERATIONS
             // This should have been implemented as (BitOperations.Log2(value) + 1) as in non-intrinsic implementation
-            // But internal log2 is implementated like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
+            // But internal log2 is implemented like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
 
             // BitOperations.Log2 implementation also checks if input value is zero for the convention 0->0
             // Lzcnt would return 32 for input value of 0 - no need to check that with branching
             // Fallback code if Lzcnt is not supported still use if-check
             // But most modern CPUs support this instruction so this should not be a problem
-            return 32 - System.Numerics.BitOperations.LeadingZeroCount(value);
+            return 32 - BitOperations.LeadingZeroCount(value);
 #else
             // Ideally:
             // if 0 - return 0 in this case
             // else - return log2(value) + 1
             //
-            // Hack based on input value constaint:
+            // Hack based on input value constraint:
             // We know that input values are guaranteed to be maximum 16 bit large for huffman encoding
             // We can safely shift input value for one bit -> log2(value << 1)
             // Because of the 16 bit value constraint it won't overflow
@@ -460,65 +582,108 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Returns index of the last non-zero element in given mcu block.
-        /// If all values of the mcu block are zero, this method might return different results depending on the runtime and hardware support.
-        /// This is jpeg mcu specific code, mcu[0] stores a dc value which will be encoded outside of the loop.
-        /// This method is guaranteed to return either -1 or 0 if all elements are zero.
+        /// General method for flushing cached spectral data bytes to
+        /// the ouput stream respecting stuff bytes.
         /// </summary>
         /// <remarks>
-        /// This is an internal operation supposed to be used only in <see cref="HuffmanScanEncoder"/> class for jpeg encoding.
+        /// Bytes cached via <see cref="Emit"/> are stored in 4-bytes blocks
+        /// which makes this method endianness dependent.
         /// </remarks>
-        /// <param name="mcu">Mcu block.</param>
-        /// <returns>Index of the last non-zero element.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static int GetLastValuableElementIndex(ref Block8x8F mcu)
+        private void FlushToStream(int endIndex)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported)
+            Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
+
+            int writeIdx = 0;
+            int startIndex = emitBytes.Length - 1;
+
+            // Some platforms may fail to eliminate this if-else branching
+            // Even if it happens - buffer is flushed in big packs,
+            // branching overhead shouldn't be noticeable
+            if (BitConverter.IsLittleEndian)
             {
-                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
-
-                Vector256<int> zero8 = Vector256<int>.Zero;
-
-                ref Vector256<float> mcuStride = ref mcu.V0;
-
-                for (int i = 7; i >= 0; i--)
+                // For little endian case bytes are ordered and can be
+                // safely written to the stream with stuff bytes
+                // First byte is cached on the most significant index
+                // so we are going from the end of the array to its beginning:
+                // ... [  double word #1   ] [  double word #0   ]
+                // ... [idx3|idx2|idx1|idx0] [idx3|idx2|idx1|idx0]
+                for (int i = startIndex; i >= endIndex; i--)
                 {
-                    int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Avx.ConvertToVector256Int32(Unsafe.Add(ref mcuStride, i)), zero8).AsByte());
+                    byte value = emitBytes[i];
+                    this.streamWriteBuffer[writeIdx++] = value;
 
-                    // we do not know for sure if this stride contain all non-zero elements or if it has some trailing zeros
-                    if (areEqual != equalityMask)
+                    // Inserting stuff byte
+                    if (value == 0xff)
                     {
-                        // last index in the stride, we go from the end to the start of the stride
-                        int startIndex = i * 8;
-                        int index = startIndex + 7;
-                        ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
-                        while (index >= startIndex && (int)Unsafe.Add(ref elemRef, index) == 0)
-                        {
-                            index--;
-                        }
-
-                        // this implementation will return -1 if all ac components are zero and dc are zero
-                        return index;
+                        this.streamWriteBuffer[writeIdx++] = 0x00;
                     }
                 }
-
-                return -1;
             }
             else
-#endif
             {
-                int index = Block8x8F.Size - 1;
-                ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref mcu);
-
-                while (index > 0 && (int)Unsafe.Add(ref elemRef, index) == 0)
+                // For big endian case bytes are ordered in 4-byte packs
+                // which are ordered like bytes in the little endian case by in 4-byte packs:
+                // ... [  double word #1   ] [  double word #0   ]
+                // ... [idx0|idx1|idx2|idx3] [idx0|idx1|idx2|idx3]
+                // So we must write each 4-bytes in 'natural order'
+                for (int i = startIndex; i >= endIndex; i -= 4)
                 {
-                    index--;
-                }
+                    // This loop is caused by the nature of underlying byte buffer
+                    // implementation and indeed causes performace by somewhat 5%
+                    // compared to little endian scenario
+                    // Even with this performance drop this cached buffer implementation
+                    // is faster than individually writing bytes using binary shifts and binary and(s)
+                    for (int j = i - 3; j <= i; j++)
+                    {
+                        byte value = emitBytes[j];
+                        this.streamWriteBuffer[writeIdx++] = value;
 
-                // this implementation will return 0 if all ac components and dc are zero
-                return index;
+                        // Inserting stuff byte
+                        if (value == 0xff)
+                        {
+                            this.streamWriteBuffer[writeIdx++] = 0x00;
+                        }
+                    }
+                }
             }
+
+            this.target.Write(this.streamWriteBuffer, 0, writeIdx);
+        }
+
+        /// <summary>
+        /// Flushes spectral data bytes after encoding all channel blocks
+        /// in a single jpeg macroblock using <see cref="WriteBlock"/>.
+        /// </summary>
+        /// <remarks>
+        /// This must be called only if <see cref="IsStreamFlushNeeded"/> is true
+        /// only during the macroblocks encoding routine.
+        /// </remarks>
+        private void FlushToStream()
+        {
+            this.FlushToStream(this.emitWriteIndex * 4);
+            this.emitWriteIndex = this.emitBuffer.Length;
+        }
+
+        /// <summary>
+        /// Flushes final cached bits to the stream padding 1's to
+        /// complement full bytes.
+        /// </summary>
+        /// <remarks>
+        /// This must be called only once at the end of the encoding routine.
+        /// <see cref="IsStreamFlushNeeded"/> check is not needed.
+        /// </remarks>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void FlushRemainingBytes()
+        {
+            // Padding all 4 bytes with 1's while not corrupting initial bits stored in accumulatedBits
+            // And writing only valuable count of bytes count we want to write to the output stream
+            int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
+            uint packedBytes = this.accumulatedBits | (uint.MaxValue >> this.bitCount);
+            this.emitBuffer[--this.emitWriteIndex] = packedBytes;
+
+            // Flush cached bytes to the output stream with padding bits
+            this.FlushToStream((this.emitWriteIndex * 4) - 4 + valuableBytesCount);
         }
     }
 }

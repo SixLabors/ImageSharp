@@ -17,10 +17,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         [InlineData(new byte[] { 10, 15, 20, 25, 30, 35, 40, 45 }, 5, new byte[] { 10, 15, 20, 25, 30 })]
         public void Decompress_ReadsData(byte[] inputData, uint byteCount, byte[] expectedResult)
         {
-            var stream = new BufferedReadStream(Configuration.Default, new MemoryStream(inputData));
-            var buffer = new byte[expectedResult.Length];
+            using var memoryStream = new MemoryStream(inputData);
+            using var stream = new BufferedReadStream(Configuration.Default, memoryStream);
+            byte[] buffer = new byte[expectedResult.Length];
 
-            new NoneTiffCompression(default, default, default).Decompress(stream, 0, byteCount, buffer);
+            using var decompressor = new NoneTiffCompression(default, default, default);
+            decompressor.Decompress(stream, 0, byteCount, 1, buffer);
 
             Assert.Equal(expectedResult, buffer);
         }

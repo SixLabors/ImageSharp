@@ -215,4 +215,35 @@ namespace SixLabors.ImageSharp.Benchmarks
         //                             SystemDrawing | Core |    Core |       3032 |      400 | 118.3 ms |  6.899 ms | 0.3781 ms |  1.00 |    0.00 |           - |           - |           - |                96 B |
         //  'ImageSharp, MaxDegreeOfParallelism = 1' | Core |    Core |       3032 |      400 | 122.4 ms | 15.069 ms | 0.8260 ms |  1.03 |    0.01 |           - |           - |           - |             15712 B |
     }
+
+    public class Resize_Bicubic_Compare_Rgba32_Rgb24
+    {
+        private Resize_Bicubic_Rgb24 rgb24;
+        private Resize_Bicubic_Rgba32 rgba32;
+
+        [GlobalSetup]
+        public void Setup()
+        {
+            this.rgb24 = new Resize_Bicubic_Rgb24();
+            this.rgb24.Setup();
+            this.rgba32 = new Resize_Bicubic_Rgba32();
+            this.rgba32.Setup();
+        }
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            this.rgb24.Cleanup();
+            this.rgba32.Cleanup();
+        }
+
+        [Benchmark]
+        public void SystemDrawing() => this.rgba32.SystemDrawing();
+
+        [Benchmark(Baseline = true)]
+        public void Rgba32() => this.rgba32.ImageSharp_P1();
+
+        [Benchmark]
+        public void Rgb24() => this.rgb24.ImageSharp_P1();
+    }
 }

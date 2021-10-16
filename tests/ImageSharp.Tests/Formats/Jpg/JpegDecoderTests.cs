@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
-        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
+        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;
 
         private const float BaselineTolerance = 0.001F / 100;
 
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using var ms = new MemoryStream(bytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
             // I don't know why these numbers are different. All I know is that the decoder works
@@ -84,6 +84,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
+
+        [Fact]
+        public void Decode_NonGeneric_CreatesRgb24Image()
+        {
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var image = Image.Load(file);
+            Assert.IsType<Image<Rgb24>>(image);
+        }
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes)]
@@ -172,6 +180,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             config.FileSystem = new SingleStreamFileSystem(pausedStream);
 
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(config, "someFakeFile", cts.Token));
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCoding, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingProgressive, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Baseline.Lossless, PixelTypes.Rgba32)]
+        public void ThrowsNotSupported_WithUnsupportedJpegs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            });
+        }
+
+        // https://github.com/SixLabors/ImageSharp/pull/1732
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.WrongColorSpace, PixelTypes.Rgba32)]
+        public void Issue1732_DecodesWithRgbColorSpace<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
         }
 
         // DEBUG ONLY!

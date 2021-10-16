@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -11,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// <summary>
     /// Class to handle cases where TIFF image data is not compressed.
     /// </summary>
-    internal class NoneTiffCompression : TiffBaseDecompressor
+    internal sealed class NoneTiffCompression : TiffBaseDecompressor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="NoneTiffCompression" /> class.
@@ -25,7 +24,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer) => _ = stream.Read(buffer, 0, Math.Min(buffer.Length, byteCount));
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
+            => _ = stream.Read(buffer, 0, Math.Min(buffer.Length, byteCount));
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)

@@ -12,6 +12,10 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal static class InliningOptions
     {
+        /// <summary>
+        /// <see cref="MethodImplOptions.AggressiveInlining"/> regardless of the build conditions.
+        /// </summary>
+        public const MethodImplOptions AlwaysInline = MethodImplOptions.AggressiveInlining;
 #if PROFILING
         public const MethodImplOptions HotPath = MethodImplOptions.NoInlining;
         public const MethodImplOptions ShortMethod = MethodImplOptions.NoInlining;

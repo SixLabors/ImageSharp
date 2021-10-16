@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
@@ -114,10 +113,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Ccitt1D, TiffBitsPerPixel.Bit1, TiffCompression.Ccitt1D)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.ItuTRecT43, TiffBitsPerPixel.Bit24, TiffCompression.None)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.ItuTRecT82, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Jpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Jpeg, TiffBitsPerPixel.Bit24, TiffCompression.Jpeg)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.OldDeflate, TiffBitsPerPixel.Bit24, TiffCompression.None)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.OldJpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        public void EncoderOptions_SetPhotometricInterpretationAndCompression_Works(TiffPhotometricInterpretation? photometricInterpretation, TiffCompression compression, TiffBitsPerPixel expectedBitsPerPixel, TiffCompression expectedCompression)
+        public void EncoderOptions_SetPhotometricInterpretationAndCompression_Works(
+            TiffPhotometricInterpretation? photometricInterpretation,
+            TiffCompression compression,
+            TiffBitsPerPixel expectedBitsPerPixel,
+            TiffCompression expectedCompression)
         {
             // arrange
             var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation, Compression = compression };
@@ -283,6 +286,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, TiffCompression.PackBits);
+
+        [Theory]
+        [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeRgb_WithJpegCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, TiffCompression.Jpeg, useExactComparer: false, compareTolerance: 0.012f);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]

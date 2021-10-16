@@ -21,10 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public class SpectralJpegTests
     {
-        public SpectralJpegTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public SpectralJpegTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 

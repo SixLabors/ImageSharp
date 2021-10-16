@@ -4,8 +4,9 @@
 // Uncomment this to turn unit tests into benchmarks:
 // #define BENCHMARKING
 using System;
-using System.Diagnostics;
-
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics.X86;
+#endif
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -164,52 +165,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TransposeInto()
+        public void TransposeInplace()
         {
             static void RunTest()
             {
                 float[] expected = Create8x8FloatData();
                 ReferenceImplementations.Transpose8x8(expected);
 
-                var source = default(Block8x8F);
-                source.LoadFrom(Create8x8FloatData());
+                var block8x8 = default(Block8x8F);
+                block8x8.LoadFrom(Create8x8FloatData());
 
-                var dest = default(Block8x8F);
-                source.TransposeInto(ref dest);
+                block8x8.TransposeInplace();
 
                 float[] actual = new float[64];
-                dest.ScaledCopyTo(actual);
+                block8x8.ScaledCopyTo(actual);
 
                 Assert.Equal(expected, actual);
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
-        }
-
-        private class BufferHolder
-        {
-            public Block8x8F Buffer;
-        }
-
-        [Fact]
-        public void TransposeInto_Benchmark()
-        {
-            var source = new BufferHolder();
-            source.Buffer.LoadFrom(Create8x8FloatData());
-            var dest = new BufferHolder();
-
-            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark X {Times} ...");
-            var sw = Stopwatch.StartNew();
-
-            for (int i = 0; i < Times; i++)
-            {
-                source.Buffer.TransposeInto(ref dest.Buffer);
-            }
-
-            sw.Stop();
-            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
 
         private static float[] Create8x8ColorCropTestData()
@@ -273,32 +249,44 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        public unsafe void Quantize(int seed)
+        [InlineData(1, 2)]
+        [InlineData(2, 1)]
+        public void Quantize(int srcSeed, int qtSeed)
         {
-            var block = default(Block8x8F);
-            block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
-
-            var qt = default(Block8x8F);
-            qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
-
-            var unzig = ZigZag.CreateUnzigTable();
-
-            int* expectedResults = stackalloc int[Block8x8F.Size];
-            ReferenceImplementations.QuantizeRational(&block, expectedResults, &qt, unzig.Data);
-
-            var actualResults = default(Block8x8F);
-
-            Block8x8F.Quantize(ref block, ref actualResults, ref qt, ref unzig);
-
-            for (int i = 0; i < Block8x8F.Size; i++)
+            static void RunTest(string srcSeedSerialized, string qtSeedSerialized)
             {
-                int expected = expectedResults[i];
-                int actual = (int)actualResults[i];
+                int srcSeed = FeatureTestRunner.Deserialize<int>(srcSeedSerialized);
+                int qtSeed = FeatureTestRunner.Deserialize<int>(qtSeedSerialized);
 
-                Assert.Equal(expected, actual);
+                Block8x8F source = CreateRandomFloatBlock(-2000, 2000, srcSeed);
+
+                // Quantization code is used only in jpeg where it's guaranteed that
+                // qunatization valus are greater than 1
+                // Quantize method supports negative numbers by very small numbers can cause troubles
+                Block8x8F quant = CreateRandomFloatBlock(1, 2000, qtSeed);
+
+                // Reference implementation quantizes given block via division
+                Block8x8 expected = default;
+                ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.ZigZagOrder);
+
+                // Actual current implementation quantizes given block via multiplication
+                // With quantization table reciprocal
+                for (int i = 0; i < Block8x8F.Size; i++)
+                {
+                    quant[i] = 1f / quant[i];
+                }
+
+                Block8x8 actual = default;
+                Block8x8F.Quantize(ref source, ref actual, ref quant);
+
+                Assert.True(CompareBlocks(expected, actual, 1, out int diff), $"Blocks are not equal, diff={diff}");
             }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                srcSeed,
+                qtSeed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
         }
 
         [Fact]
@@ -368,48 +356,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
         }
 
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(3)]
-        public unsafe void DequantizeBlock(int seed)
-        {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
-            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
-
-            var unzig = ZigZag.CreateUnzigTable();
-
-            Block8x8F expected = original;
-            Block8x8F actual = original;
-
-            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
-            Block8x8F.DequantizeBlock(&actual, &qt, unzig.Data);
-
-            this.CompareBlocks(expected, actual, 0);
-        }
-
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(3)]
-        public unsafe void ZigZag_CreateDequantizationTable_MultiplicationShouldQuantize(int seed)
-        {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
-            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
-
-            var unzig = ZigZag.CreateUnzigTable();
-            Block8x8F zigQt = ZigZag.CreateDequantizationTable(ref qt);
-
-            Block8x8F expected = original;
-            Block8x8F actual = original;
-
-            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
-
-            actual.MultiplyInPlace(ref zigQt);
-
-            this.CompareBlocks(expected, actual, 0);
-        }
-
         [Fact]
         public void AddToAllInPlace()
         {
@@ -462,7 +408,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             short[] data = Create8x8ShortData();
 
-            var source = new Block8x8(data);
+            var source = Block8x8.Load(data);
 
             Block8x8F dest = default;
             dest.LoadFromInt16Scalar(ref source);
@@ -483,7 +429,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             short[] data = Create8x8ShortData();
 
-            var source = new Block8x8(data);
+            var source = Block8x8.Load(data);
 
             Block8x8F dest = default;
             dest.LoadFromInt16ExtendedAvx2(ref source);

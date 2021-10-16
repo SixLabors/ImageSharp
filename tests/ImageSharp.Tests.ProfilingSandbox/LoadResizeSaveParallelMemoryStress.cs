@@ -133,7 +133,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                     lrs.SystemDrawingBenchmarkParallel();
                     break;
                 case ConsoleKey.D2:
-                        Console.WriteLine($"Images: {lrs.benchmarks.Images.Length}");
                     lrs.ImageSharpBenchmarkParallel();
                     break;
                 case ConsoleKey.D3:

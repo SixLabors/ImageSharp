@@ -109,17 +109,6 @@ namespace SixLabors.ImageSharp.Memory
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
             int stride = this.Width + padding;
-            if (this.cachedMemory.Length > 0)
-            {
-                paddedSpan = this.cachedMemory.Span.Slice(y * this.Width);
-                if (paddedSpan.Length < stride)
-                {
-                    return false;
-                }
-
-                paddedSpan = paddedSpan.Slice(0, stride);
-                return true;
-            }
 
             Memory<T> memory = this.FastMemoryGroup.GetRemainingSliceOfBuffer(y * (long)this.Width);
 

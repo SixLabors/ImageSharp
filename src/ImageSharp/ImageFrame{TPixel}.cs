@@ -12,8 +12,6 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
-
-
     /// <summary>
     /// Represents a pixel-specific image frame containing all pixel data and <see cref="ImageFrameMetadata"/>.
     /// In case of animated formats like gif, it contains the single frame in a animation.

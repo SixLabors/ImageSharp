@@ -27,9 +27,6 @@ namespace SixLabors.ImageSharp.Tests
             this.Configuration.MemoryAllocator = Configuration.Default.MemoryAllocator;
         }
 
-            return configuration;
-        }
-
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();
 
         public virtual string SourceFileOrDescription => string.Empty;

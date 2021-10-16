@@ -108,13 +108,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
-                ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
+                // Unsafe optimizations undone temporarily.
+                // Sporadic local AccessViolationException indicates possible indexing bug.
+                // ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+                // ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
+                Span<TPixel> sourceSpan = source.GetPixelRowSpan(y);
+                Span<byte> destSpan = destination.GetWritablePixelRowSpanUnsafe(y - offsetY);
 
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, x);
-                    Unsafe.Add(ref destinationRowRef, x - offsetX) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
+                    // TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, x);
+                    // Unsafe.Add(ref destinationRowRef, x - offsetX) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
+                    TPixel sourcePixel = sourceSpan[x];
+                    destSpan[x - offsetX] = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 }
             }

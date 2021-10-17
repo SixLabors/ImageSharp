@@ -69,6 +69,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 quantTable[i] = quantTable[i] * AdjustmentCoefficients[i] * 0.125f;
             }
+
+            // Spectral macroblocks are transposed before quantization
+            // so we must transpose quantization table
+            quantTable.TransposeInplace();
         }
 
         /// <summary>
@@ -100,13 +104,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
             else
 #endif
-            if (Vector.IsHardwareAccelerated)
             {
                 IDCT_Vector4(ref block);
-            }
-            else
-            {
-                IDCT_Scalar(ref block);
             }
         }
 
@@ -138,159 +137,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Apply 2D floating point IDCT inplace using scalar operations.
-        /// </summary>
-        /// <remarks>
-        /// Ported from libjpeg-turbo https://github.com/libjpeg-turbo/libjpeg-turbo/blob/main/jidctflt.c.
-        /// </remarks>
-        /// <param name="block">Input block.</param>
-        private static void IDCT_Scalar(ref Block8x8F block)
-        {
-            const int dctSize = 8;
-
-            float tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
-            float tmp10, tmp11, tmp12, tmp13;
-            float z5, z10, z11, z12, z13;
-            int ctr;
-
-            ref float blockRef = ref Unsafe.As<Block8x8F, float>(ref block);
-
-            // Pass 1: process columns from input, store into work array
-            for (ctr = 0; ctr < dctSize; ctr++)
-            {
-                // Even part
-                tmp0 = Unsafe.Add(ref blockRef, dctSize * 0);
-                tmp1 = Unsafe.Add(ref blockRef, dctSize * 2);
-                tmp2 = Unsafe.Add(ref blockRef, dctSize * 4);
-                tmp3 = Unsafe.Add(ref blockRef, dctSize * 6);
-
-                tmp10 = tmp0 + tmp2;
-                tmp11 = tmp0 - tmp2;
-
-                tmp13 = tmp1 + tmp3;
-                tmp12 = ((tmp1 - tmp3) * 1.414213562F) - tmp13;
-
-                tmp0 = tmp10 + tmp13;
-                tmp3 = tmp10 - tmp13;
-                tmp1 = tmp11 + tmp12;
-                tmp2 = tmp11 - tmp12;
-
-                // Odd part
-                tmp4 = Unsafe.Add(ref blockRef, dctSize * 1);
-                tmp5 = Unsafe.Add(ref blockRef, dctSize * 3);
-                tmp6 = Unsafe.Add(ref blockRef, dctSize * 5);
-                tmp7 = Unsafe.Add(ref blockRef, dctSize * 7);
-
-                z13 = tmp6 + tmp5;
-                z10 = tmp6 - tmp5;
-                z11 = tmp4 + tmp7;
-                z12 = tmp4 - tmp7;
-
-                tmp7 = z11 + z13;
-                tmp11 = (z11 - z13) * 1.414213562F;
-
-                z5 = (z10 + z12) * 1.847759065F;
-                tmp10 = z5 - (z12 * 1.082392200F);
-                tmp12 = z5 - (z10 * 2.613125930F);
-
-                tmp6 = tmp12 - tmp7;
-                tmp5 = tmp11 - tmp6;
-                tmp4 = tmp10 - tmp5;
-
-                Unsafe.Add(ref blockRef, dctSize * 0) = tmp0 + tmp7;
-                Unsafe.Add(ref blockRef, dctSize * 7) = tmp0 - tmp7;
-                Unsafe.Add(ref blockRef, dctSize * 1) = tmp1 + tmp6;
-                Unsafe.Add(ref blockRef, dctSize * 6) = tmp1 - tmp6;
-                Unsafe.Add(ref blockRef, dctSize * 2) = tmp2 + tmp5;
-                Unsafe.Add(ref blockRef, dctSize * 5) = tmp2 - tmp5;
-                Unsafe.Add(ref blockRef, dctSize * 3) = tmp3 + tmp4;
-                Unsafe.Add(ref blockRef, dctSize * 4) = tmp3 - tmp4;
-
-                // advance pointers to next column
-                blockRef = ref Unsafe.Add(ref blockRef, 1);
-            }
-
-            // Pass 2: process rows from work array, store into output array
-            blockRef = ref Unsafe.As<Block8x8F, float>(ref block);
-            for (ctr = 0; ctr < dctSize; ctr++)
-            {
-                // Even part
-                tmp0 = Unsafe.Add(ref blockRef, 0);
-                tmp1 = Unsafe.Add(ref blockRef, 2);
-                tmp2 = Unsafe.Add(ref blockRef, 4);
-                tmp3 = Unsafe.Add(ref blockRef, 6);
-
-                z5 = tmp0;
-                tmp10 = z5 + tmp2;
-                tmp11 = z5 - tmp2;
-
-                tmp13 = tmp1 + tmp3;
-                tmp12 = ((tmp1 - tmp3) * 1.414213562F) - tmp13;
-
-                tmp0 = tmp10 + tmp13;
-                tmp3 = tmp10 - tmp13;
-                tmp1 = tmp11 + tmp12;
-                tmp2 = tmp11 - tmp12;
-
-                // Odd part
-                tmp4 = Unsafe.Add(ref blockRef, 1);
-                tmp5 = Unsafe.Add(ref blockRef, 3);
-                tmp6 = Unsafe.Add(ref blockRef, 5);
-                tmp7 = Unsafe.Add(ref blockRef, 7);
-
-                z13 = tmp6 + tmp5;
-                z10 = tmp6 - tmp5;
-                z11 = tmp4 + tmp7;
-                z12 = tmp4 - tmp7;
-
-                tmp7 = z11 + z13;
-                tmp11 = (z11 - z13) * 1.414213562F;
-
-                z5 = (z10 + z12) * 1.847759065F;
-                tmp10 = z5 - (z12 * 1.082392200F);
-                tmp12 = z5 - (z10 * 2.613125930F);
-
-                tmp6 = tmp12 - tmp7;
-                tmp5 = tmp11 - tmp6;
-                tmp4 = tmp10 - tmp5;
-
-                Unsafe.Add(ref blockRef, 0) = tmp0 + tmp7;
-                Unsafe.Add(ref blockRef, 7) = tmp0 - tmp7;
-                Unsafe.Add(ref blockRef, 1) = tmp1 + tmp6;
-                Unsafe.Add(ref blockRef, 6) = tmp1 - tmp6;
-                Unsafe.Add(ref blockRef, 2) = tmp2 + tmp5;
-                Unsafe.Add(ref blockRef, 5) = tmp2 - tmp5;
-                Unsafe.Add(ref blockRef, 3) = tmp3 + tmp4;
-                Unsafe.Add(ref blockRef, 4) = tmp3 - tmp4;
-
-                // advance pointers to next row
-                blockRef = ref Unsafe.Add(ref blockRef, dctSize);
-            }
-        }
-
-        /// <summary>
         /// Apply floating point IDCT inplace using <see cref="Vector4"/> API.
         /// </summary>
-        /// <remarks>
-        /// This implementation must be called only if hardware supports 4
-        /// floating point numbers vector. Otherwise explicit scalar
-        /// implementation <see cref="IDCT_Scalar"/> is faster
-        /// because it does not rely on block transposition.
-        /// </remarks>
-        /// <param name="block">Input block.</param>
-        private static void IDCT_Vector4(ref Block8x8F block)
+        /// <param name="transposedBlock">Input block.</param>
+        private static void IDCT_Vector4(ref Block8x8F transposedBlock)
         {
             DebugGuard.IsTrue(Vector.IsHardwareAccelerated, "Scalar implementation should be called for non-accelerated hardware.");
 
-            // First pass - process rows
-            IDCT8x4_Vector4(ref block.V0L);
-            IDCT8x4_Vector4(ref block.V0R);
-            block.TransposeInplace();
+            // First pass - process columns
+            IDCT8x4_Vector4(ref transposedBlock.V0L);
+            IDCT8x4_Vector4(ref transposedBlock.V0R);
 
-            // Second pass - process columns
-            IDCT8x4_Vector4(ref block.V0L);
-            IDCT8x4_Vector4(ref block.V0R);
-            block.TransposeInplace();
+            // Second pass - process rows
+            transposedBlock.TransposeInplace();
+            IDCT8x4_Vector4(ref transposedBlock.V0L);
+            IDCT8x4_Vector4(ref transposedBlock.V0R);
 
             // Applies 1D floating point IDCT inplace on 8x4 part of 8x8 block
             static void IDCT8x4_Vector4(ref Vector4 vecRef)

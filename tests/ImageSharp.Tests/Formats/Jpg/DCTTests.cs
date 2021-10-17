@@ -17,8 +17,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public static class DCTTests
     {
-        private const int MaxAllowedValue = 1023;
-        private const int MinAllowedValue = -1024;
+        private const int MaxAllowedValue = short.MaxValue;
+        private const int MinAllowedValue = short.MinValue;
+
+        internal static Block8x8F CreateBlockFromScalar(float value)
+        {
+            Block8x8F result = default;
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                result[i] = value;
+            }
+
+            return result;
+        }
 
         public class FastFloatingPoint : JpegFixture
         {
@@ -44,13 +55,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // Part of the IDCT calculations is fused into the quantization step
                 // We must multiply input block with adjusted no-quantization matrix
                 // before applying IDCT
-                var dequantMatrix = Block8x8F.FromValue(1);
+                Block8x8F dequantMatrix = CreateBlockFromScalar(1);
 
                 // Dequantization using unit matrix - no values are upscaled
                 // as quant matrix is all 1's
                 // This step is needed to apply adjusting multipliers to the input block
                 FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
                 srcBlock.MultiplyInPlace(ref dequantMatrix);
+
+                // IDCT implementation tranforms blocks after transposition
+                srcBlock.TransposeInplace();
 
                 // IDCT calculation
                 FastFloatingPointDCT.TransformIDCT(ref srcBlock);
@@ -75,13 +89,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // Part of the IDCT calculations is fused into the quantization step
                 // We must multiply input block with adjusted no-quantization matrix
                 // before applying IDCT
-                var dequantMatrix = Block8x8F.FromValue(1);
+                Block8x8F dequantMatrix = CreateBlockFromScalar(1);
 
                 // Dequantization using unit matrix - no values are upscaled
                 // as quant matrix is all 1's
                 // This step is needed to apply adjusting multipliers to the input block
                 FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
                 srcBlock.MultiplyInPlace(ref dequantMatrix);
+
+                // IDCT implementation tranforms blocks after transposition
+                srcBlock.TransposeInplace();
 
                 // IDCT calculation
                 FastFloatingPointDCT.TransformIDCT(ref srcBlock);
@@ -115,13 +132,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     // Part of the IDCT calculations is fused into the quantization step
                     // We must multiply input block with adjusted no-quantization matrix
                     // before applying IDCT
-                    var dequantMatrix = Block8x8F.FromValue(1);
+                    Block8x8F dequantMatrix = CreateBlockFromScalar(1);
 
                     // Dequantization using unit matrix - no values are upscaled
                     // as quant matrix is all 1's
                     // This step is needed to apply adjusting multipliers to the input block
                     FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
                     srcBlock.MultiplyInPlace(ref dequantMatrix);
+
+                    // IDCT implementation tranforms blocks after transposition
+                    srcBlock.TransposeInplace();
 
                     // IDCT calculation
                     FastFloatingPointDCT.TransformIDCT(ref srcBlock);
@@ -170,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     // Part of the IDCT calculations is fused into the quantization step
                     // We must multiply input block with adjusted no-quantization matrix
                     // after applying FDCT
-                    var quantMatrix = Block8x8F.FromValue(1);
+                    Block8x8F quantMatrix = CreateBlockFromScalar(1);
                     FastFloatingPointDCT.AdjustToFDCT(ref quantMatrix);
                     block.MultiplyInPlace(ref quantMatrix);
 

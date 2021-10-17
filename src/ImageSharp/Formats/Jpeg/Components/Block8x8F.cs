@@ -692,23 +692,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             row = Vector.Min(row, max);
             return row.FastRound();
         }
-
-        // TODO: @br3aker tests or move it to the test project maybe?
-        /// <summary>
-        /// Creates <see cref="Block8x8F"/> instance with all elements set to
-        /// given value.
-        /// </summary>
-        /// <param name="value">Value to assign to all block elements.</param>
-        /// <returns>Initialized <see cref="Block8x8F"/> instance.</returns>
-        public static Block8x8F FromValue(float value)
-        {
-            Block8x8F result = default;
-            for (int i = 0; i < Size; i++)
-            {
-                result[i] = value;
-            }
-
-            return result;
-        }
     }
 }

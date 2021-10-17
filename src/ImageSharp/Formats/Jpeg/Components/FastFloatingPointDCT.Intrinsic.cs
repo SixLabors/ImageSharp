@@ -85,18 +85,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Apply floating point IDCT inplace using simd operations.
         /// </summary>
-        /// <param name="block">Input block.</param>
-        private static void IDCT8x8_Avx(ref Block8x8F block)
+        /// <param name="transposedBlock">Transposed input block.</param>
+        private static void IDCT8x8_Avx(ref Block8x8F transposedBlock)
         {
             DebugGuard.IsTrue(Avx.IsSupported, "Avx support is required to execute this operation.");
 
-            // First pass - process rows
-            IDCT8x8_1D_Avx(ref block);
-            block.TransposeInplace();
+            // First pass - process columns
+            IDCT8x8_1D_Avx(ref transposedBlock);
 
-            // Second pass - process columns
-            IDCT8x8_1D_Avx(ref block);
-            block.TransposeInplace();
+            // Second pass - process rows
+            transposedBlock.TransposeInplace();
+            IDCT8x8_1D_Avx(ref transposedBlock);
 
             // Applies 1D floating point FDCT inplace
             static void IDCT8x8_1D_Avx(ref Block8x8F block)

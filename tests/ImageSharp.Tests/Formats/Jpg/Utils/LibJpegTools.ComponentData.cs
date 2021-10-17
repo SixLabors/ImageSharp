@@ -67,11 +67,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     Span<Block8x8> blockRow = data.GetRowSpan(y - startIndex);
                     for (int x = 0; x < this.WidthInBlocks; x++)
                     {
-                        short[] block = blockRow[x].ToArray();
+                        ref Block8x8 block = ref blockRow[x];
+                        block.TransposeInplace();
 
                         // x coordinate stays the same - we load entire stride
                         // y coordinate is tricky as we load single stride to full buffer - offset is needed
-                        this.MakeBlock(block, y, x);
+                        this.MakeBlock(block.ToArray(), y, x);
                     }
                 }
             }
@@ -81,12 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 Buffer2D<Block8x8> data = c.SpectralBlocks;
                 for (int y = 0; y < this.HeightInBlocks; y++)
                 {
-                    Span<Block8x8> blockRow = data.GetRowSpan(y);
-                    for (int x = 0; x < this.WidthInBlocks; x++)
-                    {
-                        short[] block = blockRow[x].ToArray();
-                        this.MakeBlock(block, y, x);
-                    }
+                    this.LoadSpectralStride(data, y);
                 }
             }
 

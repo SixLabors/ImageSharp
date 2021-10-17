@@ -88,6 +88,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 int yBlock = yBlockStart + y;
 
+                // TODO: this is a very strange check - research call paths
+                // Normally this should not be called with invalid parameters/state
+                // leading to this check being true
                 if (yBlock >= spectralBuffer.Height)
                 {
                     break;
@@ -97,11 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);
                 Span<Block8x8> blockRow = spectralBuffer.GetRowSpan(yBlock);
-
-                // see: https://github.com/SixLabors/ImageSharp/issues/824
-                int widthInBlocks = Math.Min(spectralBuffer.Width, this.SizeInBlocks.Width);
-
-                for (int xBlock = 0; xBlock < widthInBlocks; xBlock++)
+                for (int xBlock = 0; xBlock < blockRow.Length; xBlock++)
                 {
                     ref Block8x8 block = ref blockRow[xBlock];
                     int xBuffer = xBlock * this.blockAreaSize.Width;

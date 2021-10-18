@@ -7,6 +7,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ImageMagick;
@@ -32,13 +33,6 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
     public class LoadResizeSaveStressRunner
     {
         private const int Quality = 75;
-        private const string ImageSharp = nameof(ImageSharp);
-        private const string SystemDrawing = nameof(SystemDrawing);
-        private const string MagickNET = nameof(MagickNET);
-        private const string NetVips = nameof(NetVips);
-        private const string MagicScaler = nameof(MagicScaler);
-        private const string SkiaSharpCanvas = nameof(SkiaSharpCanvas);
-        private const string SkiaSharpBitmap = nameof(SkiaSharpBitmap);
 
         // Set the quality for ImagSharp
         private readonly JpegEncoder imageSharpJpegEncoder = new() { Quality = Quality };
@@ -133,7 +127,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             this.TotalProcessedMegapixels += pixels / 1_000_000.0;
         }
 
-        private string OutputPath(string inputPath, string postfix) =>
+        private string OutputPath(string inputPath, [CallerMemberName]string postfix = null) =>
             Path.Combine(
                 this.outputDirectory,
                 Path.GetFileNameWithoutExtension(inputPath) + "-" + postfix + Path.GetExtension(inputPath));
@@ -175,12 +169,12 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using var encoderParams = new EncoderParameters(1);
             using var qualityParam = new EncoderParameter(Encoder.Quality, (long)Quality);
             encoderParams.Param[0] = qualityParam;
-            resized.Save(this.OutputPath(input, SystemDrawing), this.systemDrawingJpegCodec, encoderParams);
+            resized.Save(this.OutputPath(input), this.systemDrawingJpegCodec, encoderParams);
         }
 
         public void ImageSharpResize(string input)
         {
-            using FileStream output = File.Open(this.OutputPath(input, ImageSharp), FileMode.Create);
+            using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
 
             // Resize it to fit a 150x150 square
             using var image = ImageSharpImage.Load(input);
@@ -214,7 +208,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             image.Quality = Quality;
 
             // Save the results
-            image.Write(this.OutputPath(input, MagickNET));
+            image.Write(this.OutputPath(input));
         }
 
         public void MagicScalerResize(string input)
@@ -230,7 +224,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             };
 
             // TODO: Is there a way to capture input dimensions for IncreaseTotalMegapixels?
-            using var output = new FileStream(this.OutputPath(input, MagicScaler), FileMode.Create);
+            using var output = new FileStream(this.OutputPath(input), FileMode.Create);
             MagicImageProcessor.ProcessImage(input, output, settings);
         }
 
@@ -246,7 +240,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             canvas.DrawBitmap(original, 0, 0, paint);
             canvas.Flush();
 
-            using FileStream output = File.OpenWrite(this.OutputPath(input, SkiaSharpCanvas));
+            using FileStream output = File.OpenWrite(this.OutputPath(input));
             surface.Snapshot()
                 .Encode(SKEncodedImageFormat.Jpeg, Quality)
                 .SaveTo(output);
@@ -264,7 +258,30 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             }
 
             using var image = SKImage.FromBitmap(resized);
-            using FileStream output = File.OpenWrite(this.OutputPath(input, SkiaSharpBitmap));
+            using FileStream output = File.OpenWrite(this.OutputPath(input));
+            image.Encode(SKEncodedImageFormat.Jpeg, Quality)
+                .SaveTo(output);
+        }
+
+        public void SkiaBitmapDecodeToTargetSize(string input)
+        {
+            using var codec = SKCodec.Create(input);
+
+            SKImageInfo info = codec.Info;
+            this.IncreaseTotalMegapixels(info.Width, info.Height);
+            (int Width, int Height) scaled = this.ScaledSize(info.Width, info.Height, this.ThumbnailSize);
+            SKSizeI supportedScale = codec.GetScaledDimensions((float)scaled.Width / info.Width);
+
+            using var original = SKBitmap.Decode(codec, new SKImageInfo(supportedScale.Width, supportedScale.Height));
+            using SKBitmap resized = original.Resize(new SKImageInfo(scaled.Width, scaled.Height), SKFilterQuality.High);
+            if (resized == null)
+            {
+                return;
+            }
+
+            using var image = SKImage.FromBitmap(resized);
+
+            using FileStream output = File.OpenWrite(this.OutputPath(input, nameof(this.SkiaBitmapDecodeToTargetSize)));
             image.Encode(SKEncodedImageFormat.Jpeg, Quality)
                 .SaveTo(output);
         }
@@ -275,7 +292,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using var thumb = NetVipsImage.Thumbnail(input, this.ThumbnailSize, this.ThumbnailSize);
 
             // Save the results
-            thumb.Jpegsave(this.OutputPath(input, NetVips), q: Quality, strip: true);
+            thumb.Jpegsave(this.OutputPath(input), q: Quality, strip: true);
         }
     }
 }

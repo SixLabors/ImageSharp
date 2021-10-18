@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             { TestImages.Jpeg.Progressive.Fb, 75 },
             { TestImages.Jpeg.Issues.IncorrectQuality845, 98 },
             { TestImages.Jpeg.Baseline.ForestBridgeDifferentComponentsQuality, 89 },
-            { TestImages.Jpeg.Progressive.Winter, 80 }
+            { TestImages.Jpeg.Progressive.Winter420_NonInterleaved, 80 }
         };
 
         [Theory]

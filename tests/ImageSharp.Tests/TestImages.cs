@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Fb = "Jpg/progressive/fb.jpg";
                 public const string Progress = "Jpg/progressive/progress.jpg";
                 public const string Festzug = "Jpg/progressive/Festzug.jpg";
-                public const string Winter = "Jpg/progressive/winter.jpg";
+                public const string Winter420_NonInterleaved = "Jpg/progressive/winter420_noninterleaved.jpg";
 
                 public static class Bad
                 {
@@ -210,6 +210,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ArithmeticCoding = "Jpg/baseline/arithmetic_coding.jpg";
                 public const string ArithmeticCodingProgressive = "Jpg/progressive/arithmetic_progressive.jpg";
                 public const string Lossless = "Jpg/baseline/lossless.jpg";
+                public const string Winter444_Interleaved = "Jpg/baseline/winter444_interleaved.jpg";
 
                 public static readonly string[] All =
                 {

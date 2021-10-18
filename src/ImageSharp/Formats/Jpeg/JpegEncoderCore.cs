@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // If the color type was not specified by the user, preserve the color type of the input image.
             if (!this.colorType.HasValue)
             {
-                this.colorType = SetFallbackColorType(image);
+                this.colorType = GetFallbackColorType(image);
             }
 
             // Compute number of components based on color type in options.
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// returns <see langword="null"/> defering the field assignment
         /// to <see cref="InitQuantizationTables(int, JpegMetadata, out Block8x8F, out Block8x8F)"/>.
         /// </summary>
-        private static JpegColorType? SetFallbackColorType<TPixel>(Image<TPixel> image)
+        private static JpegColorType? GetFallbackColorType<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // First inspect the image metadata.
@@ -170,23 +170,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             JpegMetadata metadata = image.Metadata.GetJpegMetadata();
             if (IsSupportedColorType(metadata.ColorType))
             {
-                colorType = metadata.ColorType;
+                return metadata.ColorType;
             }
 
             // Secondly, inspect the pixel type.
             // TODO: PixelTypeInfo should contain a component count!
-            if (colorType is null)
-            {
-                bool isGrayscale =
-                    typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
-                    typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
+            bool isGrayscale =
+                typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
+                typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
 
-                // We don't set multi-component color types here since we can set it based upon
-                // the quality in InitQuantizationTables.
-                if (isGrayscale)
-                {
-                    colorType = JpegColorType.Luminance;
-                }
+            // We don't set multi-component color types here since we can set it based upon
+            // the quality in InitQuantizationTables.
+            if (isGrayscale)
+            {
+                colorType = JpegColorType.Luminance;
             }
 
             return colorType;

@@ -181,17 +181,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // We should compute the contribution of the (distance, length)
                     // histograms but those are the same independently from the cache size.
                     // As those constant contributions are in the end added to the other
-                    // histogram contributions, we can safely ignore them.
+                    // histogram contributions, we can ignore them, except for the length
+                    // prefix that is part of the literal_ histogram.
                     int len = v.Len;
                     uint bgraPrev = bgra[pos] ^ 0xffffffffu;
 
-                    // TODO: Original has this loop?
-                    // int extraBits = 0, extraBitsValue = 0;
-                    // int code = LosslessUtils.PrefixEncode(len, ref extraBits, ref extraBitsValue);
-                    // for (int i = 0; i <= cacheBitsMax; ++i)
-                    // {
-                    //     ++histos[i].Literal[WebPConstants.NumLiteralCodes + code];
-                    // }
+                    int extraBits = 0, extraBitsValue = 0;
+                    int code = LosslessUtils.PrefixEncode(len, ref extraBits, ref extraBitsValue);
+                    for (int i = 0; i <= cacheBitsMax; ++i)
+                    {
+                        ++histos[i].Literal[WebpConstants.NumLiteralCodes + code];
+                    }
 
                     // Update the color caches.
                     do

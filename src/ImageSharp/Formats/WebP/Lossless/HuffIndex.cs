@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// <summary>
     /// Five Huffman codes are used at each meta code.
     /// </summary>
-    public static class HuffIndex
+    internal static class HuffIndex
     {
         /// <summary>
         /// Green + length prefix codes + color cache codes.

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// that can reduce the remaining symbolic entropy by modeling spatial and color correlations.
     /// Transformations can make the final compression more dense.
     /// </summary>
-    public enum Vp8LTransformType : uint
+    internal enum Vp8LTransformType : uint
     {
         /// <summary>
         /// The predictor transform can be used to reduce entropy by exploiting the fact that neighboring pixels are often correlated.
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         PredictorTransform = 0,
 
         /// <summary>
-        /// The goal of the color transform is to decorrelate the R, G and B values of each pixel.
+        /// The goal of the color transform is to de-correlate the R, G and B values of each pixel.
         /// Color transform keeps the green (G) value as it is, transforms red (R) based on green and transforms blue (B) based on green and then based on red.
         /// </summary>
         CrossColorTransform = 1,

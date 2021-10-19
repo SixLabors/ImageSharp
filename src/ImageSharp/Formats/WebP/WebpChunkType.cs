@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// Contains a list of different webp chunk types.
     /// </summary>
     /// <remarks>See WebP Container Specification for more details: https://developers.google.com/speed/webp/docs/riff_container </remarks>
-    public enum WebpChunkType : uint
+    internal enum WebpChunkType : uint
     {
         /// <summary>
         /// Header signaling the use of the VP8 format.

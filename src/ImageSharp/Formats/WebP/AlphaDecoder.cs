@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <summary>
-        /// Gets the the width of the image.
+        /// Gets the width of the image.
         /// </summary>
         public int Width { get; }
 
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
                 Span<byte> deltas = dataSpan;
                 Span<byte> dst = alphaSpan;
-                Span<byte> prev = null;
+                Span<byte> prev = default;
                 for (int y = 0; y < this.Height; ++y)
                 {
                     switch (this.AlphaFilterType)

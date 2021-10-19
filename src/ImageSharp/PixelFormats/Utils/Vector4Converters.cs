@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats.Utils

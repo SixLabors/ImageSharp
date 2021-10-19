@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
 using BenchmarkDotNet.Attributes;
 
 namespace ImageSharp.Benchmarks.General.Vectorization

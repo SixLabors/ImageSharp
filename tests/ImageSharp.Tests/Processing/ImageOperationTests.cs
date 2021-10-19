@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-
 using Moq;
 
 using SixLabors.ImageSharp.PixelFormats;

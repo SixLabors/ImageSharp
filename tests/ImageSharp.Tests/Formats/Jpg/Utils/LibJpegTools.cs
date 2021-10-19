@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     /// </summary>
     internal static partial class LibJpegTools
     {
-        public static (double total, double average) CalculateDifference(ComponentData expected, ComponentData actual)
+        public static (double Total, double Average) CalculateDifference(ComponentData expected, ComponentData actual)
         {
             BigInteger totalDiff = 0;
             if (actual.WidthInBlocks < expected.WidthInBlocks)

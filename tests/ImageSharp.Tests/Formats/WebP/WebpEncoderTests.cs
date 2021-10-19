@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             {
                 Lossy = false,
                 Quality = 100,
-                Method = 6
+                Method = WebpEncodingMethod.BestQuality
             };
 
             using Image<TPixel> image = provider.GetImage();
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 100)]
-        public void Encode_Lossless_WithDifferentMethodAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int method, int quality)
+        public void Encode_Lossless_WithDifferentMethodAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoder()
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
         [WithFile(Lossy.Alpha1, PixelTypes.Rgba32, 4)]
-        public void Encode_Lossless_WithExactFlag_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
+        public void Encode_Lossless_WithExactFlag_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoder()
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5, 100)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6, 100)]
-        public void Encode_Lossy_WithDifferentMethodsAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int method, int quality)
+        public void Encode_Lossy_WithDifferentMethodsAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoder()

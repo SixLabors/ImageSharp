@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Quality/speed trade-off (0=fast, 6=slower-better).
         /// </summary>
-        private readonly int method;
+        private readonly WebpEncodingMethod method;
 
         /// <summary>
         /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
@@ -88,7 +88,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="exact">Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible RGB information for better compression.</param>
         /// <param name="nearLossless">Indicating whether near lossless mode should be used.</param>
         /// <param name="nearLosslessQuality">The near lossless quality. The range is 0 (maximum preprocessing) to 100 (no preprocessing, the default).</param>
-        public Vp8LEncoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, bool exact, bool nearLossless, int nearLosslessQuality)
+        public Vp8LEncoder(
+            MemoryAllocator memoryAllocator,
+            Configuration configuration,
+            int width,
+            int height,
+            int quality,
+            WebpEncodingMethod method,
+            bool exact,
+            bool nearLossless,
+            int nearLosslessQuality)
         {
             int pixelCount = width * height;
             int initialSize = pixelCount * 2;
@@ -96,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
             this.quality = Numerics.Clamp(quality, 0, 100);
-            this.method = Numerics.Clamp(method, 0, 6);
+            this.method = (WebpEncodingMethod)Numerics.Clamp((int)method, 0, 6);
             this.exact = exact;
             this.nearLossless = nearLossless;
             this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
@@ -424,7 +433,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             bool doNotCache = false;
             var crunchConfigs = new List<CrunchConfig>();
 
-            if (this.method == 6 && this.quality == 100)
+            if (this.method == WebpEncodingMethod.BestQuality && this.quality == 100)
             {
                 doNotCache = true;
 
@@ -442,7 +451,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 // Only choose the guessed best transform.
                 crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIdx });
-                if (this.quality >= 75 && this.method == 5)
+                if (this.quality >= 75 && this.method == WebpEncodingMethod.Level5)
                 {
                     // Test with and without color cache.
                     doNotCache = true;
@@ -1615,10 +1624,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Calculates the huffman image bits.
         /// </summary>
-        private static int GetHistoBits(int method, bool usePalette, int width, int height)
+        private static int GetHistoBits(WebpEncodingMethod method, bool usePalette, int width, int height)
         {
             // Make tile size a function of encoding method (Range: 0 to 6).
-            int histoBits = (usePalette ? 9 : 7) - method;
+            int histoBits = (usePalette ? 9 : 7) - (int)method;
             while (true)
             {
                 int huffImageSize = LosslessUtils.SubSampleSize(width, histoBits) * LosslessUtils.SubSampleSize(height, histoBits);
@@ -1678,9 +1687,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Calculates the bits used for the transformation.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetTransformBits(int method, int histoBits)
+        private static int GetTransformBits(WebpEncodingMethod method, int histoBits)
         {
-            int maxTransformBits = method < 4 ? 6 : method > 4 ? 4 : 5;
+            int maxTransformBits = (int)method < 4 ? 6 : (int)method > 4 ? 4 : 5;
             int res = histoBits > maxTransformBits ? maxTransformBits : histoBits;
             return res;
         }

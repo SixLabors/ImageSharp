@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Quality/speed trade-off (0=fast, 6=slower-better).
         /// </summary>
-        private readonly int method;
+        private readonly WebpEncodingMethod method;
 
         /// <summary>
         /// The number of entropy-analysis passes (in [1..10]).

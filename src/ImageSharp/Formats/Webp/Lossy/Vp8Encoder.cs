@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Quality/speed trade-off (0=fast, 6=slower-better).
         /// </summary>
-        private readonly int method;
+        private readonly WebpEncodingMethod method;
 
         /// <summary>
         /// Number of entropy-analysis passes (in [1..10]).
@@ -99,20 +99,29 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
         /// <param name="filterStrength">The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).</param>
         /// <param name="spatialNoiseShaping">The spatial noise shaping. 0=off, 100=maximum.</param>
-        public Vp8Encoder(MemoryAllocator memoryAllocator, Configuration configuration, int width, int height, int quality, int method, int entropyPasses, int filterStrength, int spatialNoiseShaping)
+        public Vp8Encoder(
+            MemoryAllocator memoryAllocator,
+            Configuration configuration,
+            int width,
+            int height,
+            int quality,
+            WebpEncodingMethod method,
+            int entropyPasses,
+            int filterStrength,
+            int spatialNoiseShaping)
         {
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
             this.Width = width;
             this.Height = height;
             this.quality = Numerics.Clamp(quality, 0, 100);
-            this.method = Numerics.Clamp(method, 0, 6);
+            this.method = (WebpEncodingMethod)Numerics.Clamp((int)method, 0, 6);
             this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
             this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
             this.spatialNoiseShaping = Numerics.Clamp(spatialNoiseShaping, 0, 100);
-            this.rdOptLevel = method >= 6 ? Vp8RdLevel.RdOptTrellisAll
-                : method >= 5 ? Vp8RdLevel.RdOptTrellis
-                : method >= 3 ? Vp8RdLevel.RdOptBasic
+            this.rdOptLevel = method is WebpEncodingMethod.BestQuality ? Vp8RdLevel.RdOptTrellisAll
+                : (int)method >= 5 ? Vp8RdLevel.RdOptTrellis
+                : (int)method >= 3 ? Vp8RdLevel.RdOptBasic
                 : Vp8RdLevel.RdOptNone;
 
             int pixelCount = width * height;
@@ -360,9 +369,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int targetSize = 0; // TODO: target size is hardcoded.
             float targetPsnr = 0.0f; // TODO: targetPsnr is hardcoded.
             bool doSearch = targetSize > 0 || targetPsnr > 0;
-            bool fastProbe = (this.method == 0 || this.method == 3) && !doSearch;
+            bool fastProbe = (this.method == 0 || this.method == WebpEncodingMethod.Level3) && !doSearch;
             int numPassLeft = this.entropyPasses;
-            Vp8RdLevel rdOpt = this.method >= 3 || doSearch ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
+            Vp8RdLevel rdOpt = (int)this.method >= 3 || doSearch ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
             int nbMbs = this.Mbw * this.Mbh;
 
             var stats = new PassStats(targetSize, targetPsnr, QMin, QMax, this.quality);
@@ -371,7 +380,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Fast mode: quick analysis pass over few mbs. Better than nothing.
             if (fastProbe)
             {
-                if (this.method == 3)
+                if (this.method == WebpEncodingMethod.Level3)
                 {
                     // We need more stats for method 3 to be reliable.
                     nbMbs = nbMbs > 200 ? nbMbs >> 1 : 100;
@@ -790,7 +799,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private void SetupMatrices(Vp8SegmentInfo[] dqm)
         {
-            int tlambdaScale = (this.method >= 4) ? this.spatialNoiseShaping : 0;
+            int tlambdaScale = (int)this.method >= 4 ? this.spatialNoiseShaping : 0;
             for (int i = 0; i < dqm.Length; i++)
             {
                 Vp8SegmentInfo m = dqm[i];
@@ -861,14 +870,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             it.SetSegment(0);        // default segment, spec-wise.
 
             int bestAlpha;
-            if (this.method <= 1)
+            if ((int)this.method <= 1)
             {
                 bestAlpha = it.FastMbAnalyze(this.quality);
             }
             else
             {
                 bestAlpha = it.MbAnalyzeBestIntra16Mode();
-                if (this.method >= 5)
+                if ((int)this.method >= 5)
                 {
                     // We go and make a fast decision for intra4/intra16.
                     // It's usually not a good and definitive pick, but helps seeding the stats about level bit-cost.
@@ -899,7 +908,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (rdOpt > Vp8RdLevel.RdOptNone)
             {
                 QuantEnc.PickBestIntra16(it, ref rd, this.SegmentInfos, this.Proba);
-                if (this.method >= 2)
+                if ((int)this.method >= 2)
                 {
                     QuantEnc.PickBestIntra4(it, ref rd, this.SegmentInfos, this.Proba, this.maxI4HeaderBits);
                 }
@@ -912,7 +921,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
                 // For method <= 1, we don't re-examine the decision but just go ahead with
                 // quantization/reconstruction.
-                QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, this.method >= 2, this.method >= 1, this.MbHeaderLimit);
+                QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, (int)this.method >= 2, (int)this.method >= 1, this.MbHeaderLimit);
             }
 
             bool isSkipped = rd.Nz == 0;

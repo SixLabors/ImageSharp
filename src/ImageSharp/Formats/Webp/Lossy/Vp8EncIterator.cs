@@ -432,7 +432,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
             while (this.RotateI4(this.YuvIn.AsSpan(YOffEnc))); // Note: we reuse the original samples for predictors.
 
-            var i4Alpha = totalHisto.GetAlpha();
+            int i4Alpha = totalHisto.GetAlpha();
             if (i4Alpha > bestAlpha)
             {
                 this.SetIntra4Mode(modes);

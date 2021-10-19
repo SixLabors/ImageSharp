@@ -37,13 +37,13 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.LastRow = 0;
             int totalPixels = width * height;
 
-            var compression = (AlphaCompressionMethod)(alphaChunkHeader & 0x03);
-            if (compression != AlphaCompressionMethod.NoCompression && compression != AlphaCompressionMethod.WebPLosslessCompression)
+            var compression = (WebpAlphaCompressionMethod)(alphaChunkHeader & 0x03);
+            if (compression != WebpAlphaCompressionMethod.NoCompression && compression != WebpAlphaCompressionMethod.WebpLosslessCompression)
             {
                 WebpThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
             }
 
-            this.Compressed = compression == AlphaCompressionMethod.WebPLosslessCompression;
+            this.Compressed = compression == WebpAlphaCompressionMethod.WebpLosslessCompression;
 
             // The filtering method used. Only values between 0 and 3 are valid.
             int filter = (alphaChunkHeader >> 2) & 0x03;
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         public void Decode()
         {
-            if (this.Compressed == false)
+            if (!this.Compressed)
             {
                 Span<byte> dataSpan = this.Data.Memory.Span;
                 int pixelCount = this.Width * this.Height;
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             // For vertical and gradient filtering, we need to decode the part above the
             // cropTop row, in order to have the correct spatial predictors.
-            int topRow = this.AlphaFilterType == WebpAlphaFilterType.None || this.AlphaFilterType == WebpAlphaFilterType.Horizontal ? 0 : this.LastRow;
+            int topRow = this.AlphaFilterType is WebpAlphaFilterType.None or WebpAlphaFilterType.Horizontal ? 0 : this.LastRow;
             int firstRow = this.LastRow < topRow ? topRow : this.LastRow;
             if (lastRow > firstRow)
             {

@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public WebpEncoderCore(IWebPEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
-            this.alphaCompression = options.AlphaCompression;
+            this.alphaCompression = options.UseAlphaCompression;
             this.lossy = options.Lossy;
             this.quality = options.Quality;
             this.method = options.Method;

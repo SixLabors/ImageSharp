@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public int Method { get; set; } = 4;
 
         /// <inheritdoc/>
-        public bool AlphaCompression { get; set; }
+        public bool UseAlphaCompression { get; set; }
 
         /// <inheritdoc/>
         public int EntropyPasses { get; set; }

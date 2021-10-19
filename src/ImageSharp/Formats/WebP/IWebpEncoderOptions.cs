@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Gets a value indicating whether the alpha plane should be compressed with WebP lossless format.
         /// </summary>
-        bool AlphaCompression { get; }
+        bool UseAlphaCompression { get; }
 
         /// <summary>
         /// Gets the number of entropy-analysis passes (in [1..10]).

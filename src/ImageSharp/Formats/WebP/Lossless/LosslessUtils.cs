@@ -296,10 +296,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 uint[] decodedPixelData = new uint[width * height];
                 int pixelDataPos = 0;
-                for (int y = 0; y < height; ++y)
+                for (int y = 0; y < height; y++)
                 {
                     uint packedPixels = 0;
-                    for (int x = 0; x < width; ++x)
+                    for (int x = 0; x < width; x++)
                     {
                         // We need to load fresh 'packed_pixels' once every
                         // 'pixelsPerByte' increments of x. Fortunately, pixelsPerByte
@@ -319,9 +319,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                for (int y = 0; y < height; ++y)
+                for (int y = 0; y < height; y++)
                 {
-                    for (int x = 0; x < width; ++x)
+                    for (int x = 0; x < width; x++)
                     {
                         uint colorMapIndex = GetArgbIndex(pixelData[decodedPixels]);
                         pixelData[decodedPixels] = colorMap[(int)colorMapIndex];
@@ -373,7 +373,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     pixelPos += remainingWidth;
                 }
 
-                ++y;
+                y++;
                 if ((y & mask) == 0)
                 {
                     predRowIdxStart += tilesPerRow;
@@ -623,7 +623,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                         input += width;
                         output += width;
-                        ++y;
+                        y++;
 
                         if ((y & mask) == 0)
                         {
@@ -867,7 +867,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd0(uint* input, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 output[x] = AddPixels(input[x], WebpConstants.ArgbBlack);
             }
@@ -877,7 +877,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void PredictorAdd1(uint* input, int numberOfPixels, uint* output)
         {
             uint left = output[-1];
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 output[x] = left = AddPixels(input[x], left);
             }
@@ -886,7 +886,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd2(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor2(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -896,7 +896,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd3(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor3(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -906,7 +906,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd4(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor4(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -916,7 +916,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd5(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor5(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -926,7 +926,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd6(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor6(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -936,7 +936,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd7(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor7(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -946,7 +946,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd8(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor8(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -956,7 +956,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd9(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor9(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -966,7 +966,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd10(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor10(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -976,7 +976,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd11(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor11(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -986,7 +986,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd12(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor12(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -996,7 +996,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void PredictorAdd13(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = 0; x < numberOfPixels; x++)
             {
                 uint pred = Predictor13(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
@@ -1042,7 +1042,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub0(uint* input, int numPixels, uint* output)
         {
-            for (int i = 0; i < numPixels; ++i)
+            for (int i = 0; i < numPixels; i++)
             {
                 output[i] = SubPixels(input[i], WebpConstants.ArgbBlack);
             }
@@ -1051,7 +1051,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub1(uint* input, int numPixels, uint* output)
         {
-            for (int i = 0; i < numPixels; ++i)
+            for (int i = 0; i < numPixels; i++)
             {
                 output[i] = SubPixels(input[i], input[i - 1]);
             }
@@ -1060,7 +1060,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub2(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor2(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1070,7 +1070,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub3(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor3(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1080,7 +1080,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub4(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor4(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1090,7 +1090,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub5(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor5(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1100,7 +1100,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub6(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor6(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1110,7 +1110,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub7(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor7(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1120,7 +1120,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub8(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor8(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1130,7 +1130,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub9(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor9(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1140,7 +1140,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub10(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor10(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1150,7 +1150,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub11(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor11(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1160,7 +1160,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub12(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor12(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);
@@ -1170,7 +1170,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub13(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; ++x)
+            for (int x = 0; x < numPixels; x++)
             {
                 uint pred = Predictor13(input[x - 1], upper + x);
                 output[x] = SubPixels(input[x], pred);

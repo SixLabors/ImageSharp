@@ -597,10 +597,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                 else
                 {
                     Span<byte> topPred = it.Preds.AsSpan(predIdx - predsWidth);
-                    for (int y = 0; y < 4; ++y)
+                    for (int y = 0; y < 4; y++)
                     {
                         int left = it.Preds[predIdx - 1];
-                        for (int x = 0; x < 4; ++x)
+                        for (int x = 0; x < 4; x++)
                         {
                             byte[] probas = WebpLookupTables.ModesProba[topPred[x], left];
                             left = bitWriter.PutI4Mode(it.Preds[predIdx + x], probas);

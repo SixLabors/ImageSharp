@@ -384,7 +384,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 decoder.Metadata.HuffmanSubSampleBits = huffmanPrecision;
 
                 // TODO: Isn't huffmanPixels the length of the span?
-                for (int i = 0; i < huffmanPixels; ++i)
+                for (int i = 0; i < huffmanPixels; i++)
                 {
                     // The huffman data is stored in red and green bytes.
                     uint group = (huffmanImageSpan[i] >> 8) & 0xffff;
@@ -983,7 +983,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 Span<byte> dst = data.Slice(pos);
                 Span<byte> src = data.Slice(pos - dist);
-                for (int i = 0; i < length; ++i)
+                for (int i = 0; i < length; i++)
                 {
                     dst[i] = src[i];
                 }

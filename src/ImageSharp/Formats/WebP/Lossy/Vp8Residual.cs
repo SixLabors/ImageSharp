@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     int bits = WebpLookupTables.Vp8LevelCodes[v - 1][1];
                     int pattern = WebpLookupTables.Vp8LevelCodes[v - 1][0];
                     int i;
-                    for (i = 0; (pattern >>= 1) != 0; ++i)
+                    for (i = 0; (pattern >>= 1) != 0; i++)
                     {
                         int mask = 2 << i;
                         if ((pattern & 1) != 0)

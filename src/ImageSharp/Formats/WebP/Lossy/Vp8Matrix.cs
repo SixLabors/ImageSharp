@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int sum;
             int i;
-            for (i = 0; i < 2; ++i)
+            for (i = 0; i < 2; i++)
             {
                 int isAcCoeff = i > 0 ? 1 : 0;
                 int bias = BiasMatrices[type][isAcCoeff];
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 this.ZThresh[i] = ((1 << WebpConstants.QFix) - 1 - this.Bias[i]) / this.IQ[i];
             }
 
-            for (i = 2; i < 16; ++i)
+            for (i = 2; i < 16; i++)
             {
                 this.Q[i] = this.Q[1];
                 this.IQ[i] = this.IQ[1];
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 this.ZThresh[i] = this.ZThresh[1];
             }
 
-            for (sum = 0, i = 0; i < 16; ++i)
+            for (sum = 0, i = 0; i < 16; i++)
             {
                 if (type == 0)
                 {

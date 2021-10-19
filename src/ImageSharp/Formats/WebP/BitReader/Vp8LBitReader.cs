@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
 
             ulong currentValue = 0;
             System.Span<byte> dataSpan = this.Data.Memory.Span;
-            for (int i = 0; i < 8; ++i)
+            for (int i = 0; i < 8; i++)
             {
                 currentValue |= (ulong)dataSpan[i] << (8 * i);
             }
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
 
             ulong currentValue = 0;
             System.Span<byte> dataSpan = this.Data.Memory.Span;
-            for (int i = 0; i < length; ++i)
+            for (int i = 0; i < length; i++)
             {
                 currentValue |= (ulong)dataSpan[i] << (8 * i);
             }

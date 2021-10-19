@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             this.Init();
 
-            for (i = 1; i < length; ++i)
+            for (i = 1; i < length; i++)
             {
                 uint xi = x[i];
                 if (xi != xPrev)

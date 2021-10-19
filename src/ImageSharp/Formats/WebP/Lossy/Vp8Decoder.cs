@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     baseLevel = hdr.FilterLevel;
                 }
 
-                for (int i4x4 = 0; i4x4 <= 1; ++i4x4)
+                for (int i4x4 = 0; i4x4 <= 1; i4x4++)
                 {
                     Vp8FilterInfo info = this.FilterStrength[s, i4x4];
                     int level = baseLevel;

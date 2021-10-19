@@ -216,10 +216,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             else
             {
                 Span<byte> modes = block.Modes.AsSpan();
-                for (int y = 0; y < 4; ++y)
+                for (int y = 0; y < 4; y++)
                 {
                     int yMode = left[y];
-                    for (int x = 0; x < 4; ++x)
+                    for (int x = 0; x < 4; x++)
                     {
                         byte[] prob = WebpLookupTables.ModesProba[top[x], yMode];
                         int i = WebpConstants.YModesIntra4[this.bitReader.GetBit(prob[0])];
@@ -299,26 +299,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // We only need to do this init once at block (0,0).
                 // Afterward, it remains valid for the whole topmost row.
                 Span<byte> tmp = yuv.Slice(yOff - WebpConstants.Bps - 1, 16 + 4 + 1);
-                for (int i = 0; i < tmp.Length; ++i)
+                for (int i = 0; i < tmp.Length; i++)
                 {
                     tmp[i] = 127;
                 }
 
                 tmp = yuv.Slice(uOff - WebpConstants.Bps - 1, 8 + 1);
-                for (int i = 0; i < tmp.Length; ++i)
+                for (int i = 0; i < tmp.Length; i++)
                 {
                     tmp[i] = 127;
                 }
 
                 tmp = yuv.Slice(vOff - WebpConstants.Bps - 1, 8 + 1);
-                for (int i = 0; i < tmp.Length; ++i)
+                for (int i = 0; i < tmp.Length; i++)
                 {
                     tmp[i] = 127;
                 }
             }
 
             // Reconstruct one row.
-            for (int mbx = 0; mbx < dec.MbWidth; ++mbx)
+            for (int mbx = 0; mbx < dec.MbWidth; mbx++)
             {
                 Vp8MacroBlockData block = dec.MacroBlockData[mbx];
 
@@ -326,14 +326,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // pixels at a time for alignment reason, and because of in-loop filter.
                 if (mbx > 0)
                 {
-                    for (int i = -1; i < 16; ++i)
+                    for (int i = -1; i < 16; i++)
                     {
                         int srcIdx = (i * WebpConstants.Bps) + 12 + yOff;
                         int dstIdx = (i * WebpConstants.Bps) - 4 + yOff;
                         yuv.Slice(srcIdx, 4).CopyTo(yuv.Slice(dstIdx));
                     }
 
-                    for (int i = -1; i < 8; ++i)
+                    for (int i = -1; i < 8; i++)
                     {
                         int srcIdx = (i * WebpConstants.Bps) + 4 + uOff;
                         int dstIdx = (i * WebpConstants.Bps) - 4 + uOff;
@@ -511,12 +511,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Span<byte> yOut = dec.CacheY.Memory.Span.Slice(dec.CacheYOffset + (mbx * 16));
                 Span<byte> uOut = dec.CacheU.Memory.Span.Slice(dec.CacheUvOffset + (mbx * 8));
                 Span<byte> vOut = dec.CacheV.Memory.Span.Slice(dec.CacheUvOffset + (mbx * 8));
-                for (int j = 0; j < 16; ++j)
+                for (int j = 0; j < 16; j++)
                 {
                     yDst.Slice(j * WebpConstants.Bps, Math.Min(16, yOut.Length)).CopyTo(yOut.Slice(j * dec.CacheYStride));
                 }
 
-                for (int j = 0; j < 8; ++j)
+                for (int j = 0; j < 8; j++)
                 {
                     int jUvStride = j * dec.CacheUvStride;
                     uDst.Slice(j * WebpConstants.Bps, Math.Min(8, uOut.Length)).CopyTo(uOut.Slice(jUvStride));
@@ -748,7 +748,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 LossyUtils.YuvToBgr(bottomY[0], (int)uv0 & 0xff, (int)(uv0 >> 16), bottomDst);
             }
 
-            for (int x = 1; x <= lastPixelPair; ++x)
+            for (int x = 1; x <= lastPixelPair; x++)
             {
                 uint tuv = LossyUtils.LoadUv(topU[x], topV[x]); // top sample
                 uint uv = LossyUtils.LoadUv(curU[x], curV[x]); // sample
@@ -903,11 +903,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             byte tnz = (byte)(mb.NoneZeroAcDcCoeffs & 0x0f);
             byte lnz = (byte)(leftMb.NoneZeroAcDcCoeffs & 0x0f);
 
-            for (int y = 0; y < 4; ++y)
+            for (int y = 0; y < 4; y++)
             {
                 int l = lnz & 1;
                 uint nzCoeffs = 0;
-                for (int x = 0; x < 4; ++x)
+                for (int x = 0; x < 4; x++)
                 {
                     int ctx = l + (tnz & 1);
                     int nz = this.GetCoeffs(br, acProba, ctx, q.Y1Mat, first, dst.AsSpan(dstOffset));
@@ -931,10 +931,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 int chPlus4 = 4 + ch;
                 tnz = (byte)(mb.NoneZeroAcDcCoeffs >> chPlus4);
                 lnz = (byte)(leftMb.NoneZeroAcDcCoeffs >> chPlus4);
-                for (int y = 0; y < 2; ++y)
+                for (int y = 0; y < 2; y++)
                 {
                     int l = lnz & 1;
-                    for (int x = 0; x < 2; ++x)
+                    for (int x = 0; x < 2; x++)
                     {
                         int ctx = l + (tnz & 1);
                         int nz = this.GetCoeffs(br, bands[2], ctx, q.UvMat, 0, dst.AsSpan(dstOffset));
@@ -1204,7 +1204,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int dquvDc = hasValue ? this.bitReader.ReadSignedValue(4) : 0;
             hasValue = this.bitReader.ReadBool();
             int dquvAc = hasValue ? this.bitReader.ReadSignedValue(4) : 0;
-            for (int i = 0; i < WebpConstants.NumMbSegments; ++i)
+            for (int i = 0; i < WebpConstants.NumMbSegments; i++)
             {
                 int q;
                 if (vp8SegmentHeader.UseSegment)

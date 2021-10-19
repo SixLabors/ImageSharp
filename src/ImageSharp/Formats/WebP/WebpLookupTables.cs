@@ -1234,25 +1234,25 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
 
             Abs0 = new Dictionary<int, byte>();
-            for (int i = -255; i <= 255; ++i)
+            for (int i = -255; i <= 255; i++)
             {
                 Abs0[i] = (byte)((i < 0) ? -i : i);
             }
 
             Clip1 = new Dictionary<int, byte>();
-            for (int i = -255; i <= 255 + 255; ++i)
+            for (int i = -255; i <= 255 + 255; i++)
             {
                 Clip1[i] = (byte)(i < 0 ? 0 : i > 255 ? 255 : i);
             }
 
             Sclip1 = new Dictionary<int, sbyte>();
-            for (int i = -1020; i <= 1020; ++i)
+            for (int i = -1020; i <= 1020; i++)
             {
                 Sclip1[i] = (sbyte)(i < -128 ? -128 : i > 127 ? 127 : i);
             }
 
             Sclip2 = new Dictionary<int, sbyte>();
-            for (int i = -112; i <= 112; ++i)
+            for (int i = -112; i <= 112; i++)
             {
                 Sclip2[i] = (sbyte)(i < -16 ? -16 : i > 15 ? 15 : i);
             }

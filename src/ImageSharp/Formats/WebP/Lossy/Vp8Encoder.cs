@@ -515,12 +515,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             Span<byte> top = this.Preds.AsSpan(); // original source top starts at: enc->preds_ - enc->preds_w_
             Span<byte> left = this.Preds.AsSpan(this.PredsWidth - 1);
-            for (int i = 0; i < 4 * this.Mbw; ++i)
+            for (int i = 0; i < 4 * this.Mbw; i++)
             {
                 top[i] = (int)IntraPredictionMode.DcPrediction;
             }
 
-            for (int i = 0; i < 4 * this.Mbh; ++i)
+            for (int i = 0; i < 4 * this.Mbh; i++)
             {
                 left[i * this.PredsWidth] = (int)IntraPredictionMode.DcPrediction;
             }
@@ -671,7 +671,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vp8SegmentInfo[] dqm = this.SegmentInfos;
             double amp = WebpConstants.SnsToDq * this.spatialNoiseShaping / 100.0d / 128.0d;
             double cBase = QualityToCompression(quality / 100.0d);
-            for (int i = 0; i < nb; ++i)
+            for (int i = 0; i < nb; i++)
             {
                 // We modulate the base coefficient to accommodate for the quantization
                 // susceptibility and allow denser segments to be quantized more.
@@ -717,7 +717,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // level0 is in [0..500]. Using '-f 50' as filter_strength is mid-filtering.
             int level0 = 5 * this.filterStrength;
-            for (int i = 0; i < WebpConstants.NumMbSegments; ++i)
+            for (int i = 0; i < WebpConstants.NumMbSegments; i++)
             {
                 Vp8SegmentInfo m = this.SegmentInfos[i];
 
@@ -791,7 +791,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private void SetupMatrices(Vp8SegmentInfo[] dqm)
         {
             int tlambdaScale = (this.method >= 4) ? this.spatialNoiseShaping : 0;
-            for (int i = 0; i < dqm.Length; ++i)
+            for (int i = 0; i < dqm.Length; i++)
             {
                 Vp8SegmentInfo m = dqm[i];
                 int q = m.Quant;
@@ -945,9 +945,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
 
             // luma-AC
-            for (y = 0; y < 4; ++y)
+            for (y = 0; y < 4; y++)
             {
-                for (x = 0; x < 4; ++x)
+                for (x = 0; x < 4; x++)
                 {
                     int ctx = it.TopNz[x] + it.LeftNz[y];
                     Span<short> coeffs = rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16);
@@ -963,9 +963,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             residual.Init(0, 2, this.Proba);
             for (ch = 0; ch <= 2; ch += 2)
             {
-                for (y = 0; y < 2; ++y)
+                for (y = 0; y < 2; y++)
                 {
-                    for (x = 0; x < 2; ++x)
+                    for (x = 0; x < 2; x++)
                     {
                         int ctx = it.TopNz[4 + ch + x] + it.LeftNz[4 + ch + y];
                         residual.SetCoeffs(rd.UvLevels.AsSpan(16 * ((ch * 2) + x + (y * 2)), 16));
@@ -1011,9 +1011,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
 
             // luma-AC
-            for (y = 0; y < 4; ++y)
+            for (y = 0; y < 4; y++)
             {
-                for (x = 0; x < 4; ++x)
+                for (x = 0; x < 4; x++)
                 {
                     int ctx = it.TopNz[x] + it.LeftNz[y];
                     Span<short> coeffs = rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16);
@@ -1028,9 +1028,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             residual.Init(0, 2, this.Proba);
             for (ch = 0; ch <= 2; ch += 2)
             {
-                for (y = 0; y < 2; ++y)
+                for (y = 0; y < 2; y++)
                 {
-                    for (x = 0; x < 2; ++x)
+                    for (x = 0; x < 2; x++)
                     {
                         int ctx = it.TopNz[4 + ch + x] + it.LeftNz[4 + ch + y];
                         residual.SetCoeffs(rd.UvLevels.AsSpan(16 * ((ch * 2) + x + (y * 2)), 16));

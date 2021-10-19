@@ -60,16 +60,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             if (lowEffort)
             {
-                for (int i = 0; i < tilesPerRow * tilesPerCol; ++i)
+                for (int i = 0; i < tilesPerRow * tilesPerCol; i++)
                 {
                     image[i] = WebpConstants.ArgbBlack | (PredLowEffort << 8);
                 }
             }
             else
             {
-                for (int tileY = 0; tileY < tilesPerCol; ++tileY)
+                for (int tileY = 0; tileY < tilesPerCol; tileY++)
                 {
-                    for (int tileX = 0; tileX < tilesPerRow; ++tileX)
+                    for (int tileX = 0; tileX < tilesPerRow; tileX++)
                     {
                         int pred = GetBestPredictorForTile(
                             width,
@@ -345,7 +345,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 fixed (uint* currentRow = currentRowSpan)
                 fixed (uint* upperRow = upperRowSpan)
                 {
-                    for (int x = xStart; x < xEnd; ++x)
+                    for (int x = xStart; x < xEnd; x++)
                     {
                         uint predict = 0;
                         uint residual;
@@ -583,7 +583,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
 
             Span<byte> lowerMaxDiffs = currentMaxDiffs.Slice(width);
-            for (int y = 0; y < height; ++y)
+            for (int y = 0; y < height; y++)
             {
                 Span<uint> tmp32 = upperRow;
                 upperRow = currentRow;
@@ -747,7 +747,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 right = AddGreenToBlueAndRed(right);
             }
 
-            for (int x = 1; x < width - 1; ++x)
+            for (int x = 1; x < width - 1; x++)
             {
                 uint up = argb[offset - stride + x];
                 uint down = argb[offset + stride + x];
@@ -991,7 +991,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 const int span = 8;
                 Span<ushort> values = stackalloc ushort[span];
-                for (int y = 0; y < tileHeight; ++y)
+                for (int y = 0; y < tileHeight; y++)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
 #pragma warning disable SA1503 // Braces should not be omitted
@@ -1014,7 +1014,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             Vector128<byte> c = Sse2.Subtract(a.AsByte(), b.AsByte()); // x r'
                             Vector128<byte> d = Sse2.And(c, mask.AsByte()); // 0 r'
                             Sse2.Store(dst, d.AsUInt16());
-                            for (int i = 0; i < span; ++i)
+                            for (int i = 0; i < span; i++)
                             {
                                 ++histo[values[i]];
                             }
@@ -1066,7 +1066,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 var shufflerLow = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
                 var shufflerHigh = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
 
-                for (int y = 0; y < tileHeight; ++y)
+                for (int y = 0; y < tileHeight; y++)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
 #pragma warning disable SA1503 // Braces should not be omitted
@@ -1092,7 +1092,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             Vector128<byte> d = Sse2.Subtract(c, a.AsByte());
                             Vector128<byte> e = Sse2.And(d, maskblue);
                             Sse2.Store(dst, e.AsUInt16());
-                            for (int i = 0; i < span; ++i)
+                            for (int i = 0; i < span; i++)
                             {
                                 ++histo[values[i]];
                             }
@@ -1132,7 +1132,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static float PredictionCostSpatialHistogram(int[][] accumulated, int[][] tile)
         {
             double retVal = 0.0d;
-            for (int i = 0; i < 4; ++i)
+            for (int i = 0; i < 4; i++)
             {
                 double kExpValue = 0.94;
                 retVal += PredictionCostSpatial(tile[i], 1, kExpValue);

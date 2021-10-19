@@ -238,14 +238,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.I4BoundaryIdx = this.vp8TopLeftI4[0];
 
             // Import the boundary samples.
-            for (i = 0; i < 17; ++i)
+            for (i = 0; i < 17; i++)
             {
                 // left
                 this.I4Boundary[i] = this.YLeft[15 - i + 1];
             }
 
             Span<byte> yTop = this.YTop.AsSpan(this.yTopIdx);
-            for (i = 0; i < 16; ++i)
+            for (i = 0; i < 16; i++)
             {
                 // top
                 this.I4Boundary[17 + i] = yTop[i];
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // top-right samples have a special case on the far right of the picture.
             if (this.X < this.mbw - 1)
             {
-                for (i = 16; i < 16 + 4; ++i)
+                for (i = 16; i < 16 + 4; i++)
                 {
                     this.I4Boundary[17 + i] = yTop[i];
                 }
@@ -262,7 +262,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             else
             {
                 // else, replicate the last valid pixel four times
-                for (i = 16; i < 16 + 4; ++i)
+                for (i = 16; i < 16 + 4; i++)
                 {
                     this.I4Boundary[17 + i] = this.I4Boundary[17 + 15];
                 }
@@ -476,7 +476,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public void SetIntra16Mode(int mode)
         {
             Span<byte> preds = this.Preds.AsSpan(this.predIdx);
-            for (int y = 0; y < 4; ++y)
+            for (int y = 0; y < 4; y++)
             {
                 preds.Slice(0, 4).Fill((byte)mode);
                 preds = preds.Slice(this.predsWidth);
@@ -489,7 +489,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int modesIdx = 0;
             int predIdx = this.predIdx;
-            for (int y = 4; y > 0; --y)
+            for (int y = 4; y > 0; y--)
             {
                 modes.AsSpan(modesIdx, 4).CopyTo(this.Preds.AsSpan(predIdx));
                 predIdx += this.predsWidth;
@@ -514,9 +514,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // AC
             res.Init(1, 0, proba);
-            for (int y = 0; y < 4; ++y)
+            for (int y = 0; y < 4; y++)
             {
-                for (int x = 0; x < 4; ++x)
+                for (int x = 0; x < 4; x++)
                 {
                     int ctx = this.TopNz[x] + this.LeftNz[y];
                     res.SetCoeffs(rd.YAcLevels.AsSpan((x + (y * 4)) * 16, 16));
@@ -564,9 +564,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             res.Init(0, 2, proba);
             for (int ch = 0; ch <= 2; ch += 2)
             {
-                for (int y = 0; y < 2; ++y)
+                for (int y = 0; y < 2; y++)
                 {
-                    for (int x = 0; x < 2; ++x)
+                    for (int x = 0; x < 2; x++)
                     {
                         int ctx = this.TopNz[4 + ch + x] + this.LeftNz[4 + ch + y];
                         res.SetCoeffs(rd.UvLevels.AsSpan(((ch * 2) + x + (y * 2)) * 16, 16));
@@ -643,12 +643,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (x < this.mbw - 1)
             {
                 // left
-                for (int i = 0; i < 16; ++i)
+                for (int i = 0; i < 16; i++)
                 {
                     this.YLeft[i + 1] = ySrc[15 + (i * WebpConstants.Bps)];
                 }
 
-                for (int i = 0; i < 8; ++i)
+                for (int i = 0; i < 8; i++)
                 {
                     this.UvLeft[i + 1] = uvSrc[7 + (i * WebpConstants.Bps)];
                     this.UvLeft[i + 16 + 1] = uvSrc[15 + (i * WebpConstants.Bps)];
@@ -676,7 +676,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int i;
 
             // Update the cache with 7 fresh samples.
-            for (i = 0; i <= 3; ++i)
+            for (i = 0; i <= 3; i++)
             {
                 top[topOffset - 4 + i] = blk[i + (3 * WebpConstants.Bps)];   // Store future top samples.
             }
@@ -684,7 +684,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if ((this.I4 & 3) != 3)
             {
                 // if not on the right sub-blocks #3, #7, #11, #15
-                for (i = 0; i <= 2; ++i)
+                for (i = 0; i <= 2; i++)
                 {
                     // store future left samples
                     top[topOffset + i] = blk[3 + ((2 - i) * WebpConstants.Bps)];
@@ -693,7 +693,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             else
             {
                 // else replicate top-right samples, as says the specs.
-                for (i = 0; i <= 3; ++i)
+                for (i = 0; i <= 3; i++)
                 {
                     top[topOffset + i] = top[topOffset + i + 4];
                 }
@@ -816,12 +816,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private void Mean16x4(Span<byte> input, Span<uint> dc)
         {
-            for (int k = 0; k < 4; ++k)
+            for (int k = 0; k < 4; k++)
             {
                 uint avg = 0;
-                for (int y = 0; y < 4; ++y)
+                for (int y = 0; y < 4; y++)
                 {
-                    for (int x = 0; x < 4; ++x)
+                    for (int x = 0; x < 4; x++)
                     {
                         avg += input[x + (y * WebpConstants.Bps)];
                     }
@@ -836,7 +836,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int dstIdx = 0;
             int srcIdx = 0;
-            for (int i = 0; i < h; ++i)
+            for (int i = 0; i < h; i++)
             {
                 // memcpy(dst, src, w);
                 src.Slice(srcIdx, w).CopyTo(dst.Slice(dstIdx));
@@ -850,7 +850,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 srcIdx += srcStride;
             }
 
-            for (int i = h; i < size; ++i)
+            for (int i = h; i < size; i++)
             {
                 // memcpy(dst, dst - BPS, size);
                 dst.Slice(dstIdx - WebpConstants.Bps, size).CopyTo(dst.Slice(dstIdx));
@@ -862,13 +862,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int i;
             int srcIdx = 0;
-            for (i = 0; i < len; ++i)
+            for (i = 0; i < len; i++)
             {
                 dst[i] = src[srcIdx];
                 srcIdx += srcStride;
             }
 
-            for (; i < totalLen; ++i)
+            for (; i < totalLen; i++)
             {
                 dst[i] = dst[len - 1];
             }

@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             if (len < skipDistance)
             {
-                for (int j = position; j < position + len; ++j)
+                for (int j = position; j < position + len; j++)
                 {
                     int k = j - position;
                     float costTmp = (float)(distanceCost + this.CostCache[k]);
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             CostInterval interval = this.head;
-            for (int i = 0; i < this.CacheIntervalsSize && this.CacheIntervals[i].Start < len; ++i)
+            for (int i = 0; i < this.CacheIntervalsSize && this.CacheIntervals[i].Start < len; i++)
             {
                 // Define the intersection of the ith interval with the new one.
                 int start = position + this.CacheIntervals[i].Start;

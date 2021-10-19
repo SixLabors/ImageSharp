@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // We round the block size up, so we're guaranteed to have at most MaxRefsBlockPerImage blocks used:
             int refsBlockSize = ((pixelCount - 1) / MaxRefsBlockPerImage) + 1;
-            for (int i = 0; i < this.Refs.Length; ++i)
+            for (int i = 0; i < this.Refs.Length; i++)
             {
                 this.Refs[i] = new Vp8LBackwardRefs
                 {
@@ -458,7 +458,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Fill in the different LZ77s.
             foreach (CrunchConfig crunchConfig in crunchConfigs)
             {
-                for (int j = 0; j < nlz77s; ++j)
+                for (int j = 0; j < nlz77s; j++)
                 {
                     crunchConfig.SubConfigs.Add(new CrunchSubConfig
                     {
@@ -559,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     using IMemoryOwner<uint> histogramBgraBuffer = this.memoryAllocator.Allocate<uint>(histogramImageXySize);
                     Span<uint> histogramBgra = histogramBgraBuffer.GetSpan();
                     int maxIndex = 0;
-                    for (int i = 0; i < histogramImageXySize; ++i)
+                    for (int i = 0; i < histogramImageXySize; i++)
                     {
                         int symbolIndex = histogramSymbols[i] & 0xffff;
                         histogramBgra[i] = (uint)(symbolIndex << 8);
@@ -584,7 +584,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 // Store Huffman codes.
                 // Find maximum number of symbols for the huffman tree-set.
                 int maxTokens = 0;
-                for (int i = 0; i < 5 * histogramImage.Count; ++i)
+                for (int i = 0; i < 5 * histogramImage.Count; i++)
                 {
                     HuffmanTreeCode codes = huffmanCodes[i];
                     if (maxTokens < codes.NumSymbols)
@@ -599,7 +599,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     tokens[i] = new HuffmanTreeToken();
                 }
 
-                for (int i = 0; i < 5 * histogramImage.Count; ++i)
+                for (int i = 0; i < 5 * histogramImage.Count; i++)
                 {
                     HuffmanTreeCode codes = huffmanCodes[i];
                     this.StoreHuffmanCode(huffTree, tokens, codes);
@@ -743,7 +743,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Find maximum number of symbols for the huffman tree-set.
             int maxTokens = 0;
-            for (int i = 0; i < 5; ++i)
+            for (int i = 0; i < 5; i++)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 if (maxTokens < codes.NumSymbols)
@@ -753,13 +753,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             var tokens = new HuffmanTreeToken[maxTokens];
-            for (int i = 0; i < tokens.Length; ++i)
+            for (int i = 0; i < tokens.Length; i++)
             {
                 tokens[i] = new HuffmanTreeToken();
             }
 
             // Store Huffman codes.
-            for (int i = 0; i < 5; ++i)
+            for (int i = 0; i < 5; i++)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 this.StoreHuffmanCode(huffTree, tokens, codes);
@@ -778,7 +778,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int maxSymbol = 1 << maxBits;
 
             // Check whether it's a small tree.
-            for (int i = 0; i < huffmanCode.NumSymbols && count < 3; ++i)
+            for (int i = 0; i < huffmanCode.NumSymbols && count < 3; i++)
             {
                 if (huffmanCode.CodeLengths[i] != 0)
                 {
@@ -1085,7 +1085,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             histo[(int)HistoIx.HistoBluePred * 256]++;
             histo[(int)HistoIx.HistoAlphaPred * 256]++;
 
-            for (int j = 0; j < (int)HistoIx.HistoTotal; ++j)
+            for (int j = 0; j < (int)HistoIx.HistoTotal; j++)
             {
                 var bitEntropy = new Vp8LBitEntropy();
                 Span<uint> curHisto = histo.Slice(j * 256, 256);
@@ -1486,7 +1486,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             uint predict = 0x000000;
             byte signFound = 0x00;
-            for (int i = 0; i < numColors; ++i)
+            for (int i = 0; i < numColors; i++)
             {
                 uint diff = LosslessUtils.SubPixels(palette[i], predict);
                 byte rd = (byte)((diff >> 16) & 0xff);
@@ -1520,11 +1520,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void GreedyMinimizeDeltas(Span<uint> palette, int numColors)
         {
             uint predict = 0x00000000;
-            for (int i = 0; i < numColors; ++i)
+            for (int i = 0; i < numColors; i++)
             {
                 int bestIdx = i;
                 uint bestScore = ~0U;
-                for (int k = i; k < numColors; ++k)
+                for (int k = i; k < numColors; k++)
                 {
                     uint curScore = PaletteColorDistance(palette[k], predict);
                     if (bestScore > curScore)
@@ -1645,7 +1645,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int bitDepth = 1 << (3 - xBits);
                 int mask = (1 << xBits) - 1;
                 uint code = 0xff000000;
-                for (x = 0; x < width; ++x)
+                for (x = 0; x < width; x++)
                 {
                     int xSub = x & mask;
                     if (xSub == 0)
@@ -1659,7 +1659,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                for (x = 0; x < width; ++x)
+                for (x = 0; x < width; x++)
                 {
                     dst[x] = (uint)(0xff000000 | (row[x] << 8));
                 }

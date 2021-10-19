@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         static Vp8Encoding()
         {
-            for (int i = -255; i <= 255 + 255; ++i)
+            for (int i = -255; i <= 255 + 255; i++)
             {
                 Clip1[255 + i] = Clip8b(i);
             }
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int[] C = new int[4 * 4];
 #pragma warning restore SA1312 // Variable names should begin with lower-case letter
             Span<int> tmp = C.AsSpan();
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 // vertical pass.
                 int a = input[0] + input[8];
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
 
             tmp = C.AsSpan();
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 // horizontal pass.
                 int dc = tmp[0] + 4;
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int[] tmp = new int[16];
             int srcIdx = 0;
             int refIdx = 0;
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 int d0 = src[srcIdx] - reference[refIdx];   // 9bit dynamic range ([-255,255])
                 int d1 = src[srcIdx + 1] - reference[refIdx + 1];
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 refIdx += WebpConstants.Bps;
             }
 
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 int a0 = tmp[0 + i] + tmp[12 + i];  // 15b
                 int a1 = tmp[4 + i] + tmp[8 + i];
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int[] tmp = new int[16];
             int i;
             int inputIdx = 0;
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 int a0 = input[inputIdx + (0 * 16)] + input[inputIdx + (2 * 16)];  // 13b
                 int a1 = input[inputIdx + (1 * 16)] + input[inputIdx + (3 * 16)];
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 inputIdx += 64;
             }
 
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 int a0 = tmp[0 + i] + tmp[8 + i];  // 15b
                 int a1 = tmp[4 + i] + tmp[12 + i];
@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             if (top != null)
             {
-                for (int j = 0; j < size; ++j)
+                for (int j = 0; j < size; j++)
                 {
                     top.Slice(0, size).CopyTo(dst.Slice(j * WebpConstants.Bps));
                 }
@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (left != null)
             {
                 left = left.Slice(1); // in the reference implementation, left starts at - 1.
-                for (int j = 0; j < size; ++j)
+                for (int j = 0; j < size; j++)
                 {
                     dst.Slice(j * WebpConstants.Bps, size).Fill(left[j]);
                 }
@@ -286,10 +286,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 if (top != null)
                 {
                     Span<byte> clip = Clip1.AsSpan(255 - left[0]); // left [0] instead of left[-1], original left starts at -1
-                    for (int y = 0; y < size; ++y)
+                    for (int y = 0; y < size; y++)
                     {
                         Span<byte> clipTable = clip.Slice(left[y + 1]); // left[y]
-                        for (int x = 0; x < size; ++x)
+                        for (int x = 0; x < size; x++)
                         {
                             dst[x] = clipTable[top[x]];
                         }
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int j;
             if (top != null)
             {
-                for (j = 0; j < size; ++j)
+                for (j = 0; j < size; j++)
                 {
                     dc += top[j];
                 }
@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 {
                     // top and left present.
                     left = left.Slice(1); // in the reference implementation, left starts at -1.
-                    for (j = 0; j < size; ++j)
+                    for (j = 0; j < size; j++)
                     {
                         dc += left[j];
                     }
@@ -351,7 +351,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 // left but no top.
                 left = left.Slice(1); // in the reference implementation, left starts at -1.
-                for (j = 0; j < size; ++j)
+                for (j = 0; j < size; j++)
                 {
                     dc += left[j];
                 }
@@ -372,7 +372,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             uint dc = 4;
             int i;
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 dc += (uint)(top[topOffset + i] + top[topOffset - 5 + i]);
             }
@@ -383,10 +383,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static void Tm4(Span<byte> dst, Span<byte> top, int topOffset)
         {
             Span<byte> clip = Clip1.AsSpan(255 - top[topOffset - 1]);
-            for (int y = 0; y < 4; ++y)
+            for (int y = 0; y < 4; y++)
             {
                 Span<byte> clipTable = clip.Slice(top[topOffset - 2 - y]);
-                for (int x = 0; x < 4; ++x)
+                for (int x = 0; x < 4; x++)
                 {
                     dst[x] = clipTable[top[topOffset + x]];
                 }
@@ -406,7 +406,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 LossyUtils.Avg3(top[topOffset + 2], top[topOffset + 3], top[topOffset + 4])
             };
 
-            for (int i = 0; i < 4; ++i)
+            for (int i = 0; i < 4; i++)
             {
                 vals.AsSpan().CopyTo(dst.Slice(i * WebpConstants.Bps));
             }
@@ -637,7 +637,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Fill(Span<byte> dst, int value, int size)
         {
-            for (int j = 0; j < size; ++j)
+            for (int j = 0; j < size; j++)
             {
                 dst.Slice(j * WebpConstants.Bps, size).Fill((byte)value);
             }

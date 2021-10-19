@@ -496,7 +496,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static double ExtraCost(Span<uint> population, int length)
         {
             double cost = 0.0d;
-            for (int i = 2; i < length - 2; ++i)
+            for (int i = 2; i < length - 2; i++)
             {
                 cost += (i >> 1) * population[i + 2];
             }

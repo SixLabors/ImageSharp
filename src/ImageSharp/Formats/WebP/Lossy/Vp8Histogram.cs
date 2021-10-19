@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int j;
             int[] distribution = new int[MaxCoeffThresh + 1];
-            for (j = startBlock; j < endBlock; ++j)
+            for (j = startBlock; j < endBlock; j++)
             {
                 short[] output = new short[16];
 
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int i;
             int[] tmp = new int[16];
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 int d0 = src[0] - reference[0];   // 9bit dynamic range ([-255,255])
                 int d1 = src[1] - reference[1];
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
 
-            for (i = 0; i < 4; ++i)
+            for (i = 0; i < 4; i++)
             {
                 int a0 = tmp[0 + i] + tmp[12 + i];  // 15b
                 int a1 = tmp[4 + i] + tmp[8 + i];

@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 Span<byte> deltas = dataSpan;
                 Span<byte> dst = alphaSpan;
                 Span<byte> prev = default;
-                for (int y = 0; y < this.Height; ++y)
+                for (int y = 0; y < this.Height; y++)
                 {
                     switch (this.AlphaFilterType)
                     {
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             Span<byte> alphaSpan = this.Alpha.Memory.Span;
             Span<byte> prev = this.PrevRow == 0 ? null : alphaSpan.Slice(this.Width * this.PrevRow);
-            for (int y = firstRow; y < lastRow; ++y)
+            for (int y = firstRow; y < lastRow; y++)
             {
                 switch (this.AlphaFilterType)
                 {
@@ -282,10 +282,10 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 int pixelsPerByte = 1 << transform.Bits;
                 int countMask = pixelsPerByte - 1;
                 int bitMask = (1 << bitsPerPixel) - 1;
-                for (int y = yStart; y < yEnd; ++y)
+                for (int y = yStart; y < yEnd; y++)
                 {
                     int packedPixels = 0;
-                    for (int x = 0; x < width; ++x)
+                    for (int x = 0; x < width; x++)
                     {
                         if ((x & countMask) == 0)
                         {
@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             byte pred = (byte)(prev == null ? 0 : prev[0]);
 
-            for (int i = 0; i < width; ++i)
+            for (int i = 0; i < width; i++)
             {
                 byte val = (byte)(pred + input[i]);
                 pred = val;
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
             else
             {
-                for (int i = 0; i < width; ++i)
+                for (int i = 0; i < width; i++)
                 {
                     dst[i] = (byte)(prev[i] + input[i]);
                 }
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 byte prev0 = prev[0];
                 byte topLeft = prev0;
                 byte left = prev0;
-                for (int i = 0; i < width; ++i)
+                for (int i = 0; i < width; i++)
                 {
                     byte top = prev[i];
                     left = (byte)(input[i] + GradientPredictor(left, top, topLeft));
@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 return false;
             }
 
-            for (int i = 0; i < hdr.NumHTreeGroups; ++i)
+            for (int i = 0; i < hdr.NumHTreeGroups; i++)
             {
                 List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
                 if (htrees[HuffIndex.Red][0].BitsUsed > 0)
@@ -391,9 +391,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private static void MapAlpha(Span<byte> src, Span<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
         {
             int offset = 0;
-            for (int y = yStart; y < yEnd; ++y)
+            for (int y = yStart; y < yEnd; y++)
             {
-                for (int x = 0; x < width; ++x)
+                for (int x = 0; x < width; x++)
                 {
                     dst[offset] = GetAlphaValue((int)colorMap[src[offset]]);
                     offset++;
@@ -414,7 +414,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void ExtractGreen(Span<uint> argb, Span<byte> alpha, int size)
         {
-            for (int i = 0; i < size; ++i)
+            for (int i = 0; i < size; i++)
             {
                 alpha[i] = (byte)(argb[i] >> 8);
             }

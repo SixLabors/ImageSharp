@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                     int extraBits = 0, extraBitsValue = 0;
                     int code = LosslessUtils.PrefixEncode(len, ref extraBits, ref extraBitsValue);
-                    for (int i = 0; i <= cacheBitsMax; ++i)
+                    for (int i = 0; i <= cacheBitsMax; i++)
                     {
                         ++histos[i].Literal[WebpConstants.NumLiteralCodes + code];
                     }
@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
 
-            for (int i = 0; i <= cacheBitsMax; ++i)
+            for (int i = 0; i <= cacheBitsMax; i++)
             {
                 double entropy = histos[i].EstimateBits();
                 if (i == 0 || entropy < entropyMin)
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Add first pixel as literal.
             AddSingleLiteralWithCostModel(bgra, colorCache, costModel, 0, useColorCache, 0.0f, costManager.Costs, distArray);
 
-            for (int i = 1; i < pixCount; ++i)
+            for (int i = 1; i < pixCount; i++)
             {
                 float prevCost = costManager.Costs[i - 1];
                 int offset = hashChain.FindOffset(i);
@@ -315,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         {
                             int lenJ = 0;
                             int j;
-                            for (j = i; j <= reach; ++j)
+                            for (j = i; j <= reach; j++)
                             {
                                 int offsetJ = hashChain.FindOffset(j + 1);
                                 lenJ = hashChain.FindLength(j + 1);
@@ -484,7 +484,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // [i,i+len) + [i+len, length of best match at i+len)
                     // while we check if we can use:
                     // [i,j) (where j<=i+len) + [j, length of best match at j)
-                    for (j = iLastCheck + 1; j <= jMax; ++j)
+                    for (j = iLastCheck + 1; j <= jMax; j++)
                     {
                         int lenJ = hashChain.FindLength(j);
                         int reach = j + (lenJ >= MinLength ? lenJ : 1); // 1 for single literal.
@@ -514,7 +514,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     refs.Add(PixOrCopy.CreateCopy((uint)offset, (ushort)len));
                     if (useColorCache)
                     {
-                        for (j = i; j < i + len; ++j)
+                        for (j = i; j < i + len; j++)
                         {
                             colorCache.Insert(bgra[j]);
                         }
@@ -563,9 +563,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Figure out the window offsets around a pixel. They are stored in a
             // spiraling order around the pixel as defined by DistanceToPlaneCode.
-            for (int y = 0; y <= 6; ++y)
+            for (int y = 0; y <= 6; y++)
             {
-                for (int x = -6; x <= 6; ++x)
+                for (int x = -6; x <= 6; x++)
                 {
                     int offset = (y * xSize) + x;
 
@@ -586,7 +586,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // For narrow images, not all plane codes are reached, so remove those.
-            for (i = 0; i < WindowOffsetsSizeMax; ++i)
+            for (i = 0; i < WindowOffsetsSizeMax; i++)
             {
                 if (windowOffsets[i] == 0)
                 {
@@ -598,10 +598,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Given a pixel P, find the offsets that reach pixels unreachable from P-1
             // with any of the offsets in windowOffsets[].
-            for (i = 0; i < windowOffsetsSize; ++i)
+            for (i = 0; i < windowOffsetsSize; i++)
             {
                 bool isReachable = false;
-                for (int j = 0; j < windowOffsetsSize && !isReachable; ++j)
+                for (int j = 0; j < windowOffsetsSize && !isReachable; j++)
                 {
                     isReachable |= windowOffsets[i] == windowOffsets[j] + 1;
                 }
@@ -614,7 +614,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             hashChain.OffsetLength[0] = 0;
-            for (i = 1; i < pixelCount; ++i)
+            for (i = 1; i < pixelCount; i++)
             {
                 int ind;
                 int bestLength = hashChainBest.FindLength(i);
@@ -625,7 +625,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     // Do not recompute the best match if we already have a maximal one in the window.
                     bestOffset = hashChainBest.FindOffset(i);
-                    for (ind = 0; ind < windowOffsetsSize; ++ind)
+                    for (ind = 0; ind < windowOffsetsSize; ind++)
                     {
                         if (bestOffset == windowOffsets[ind])
                         {
@@ -645,7 +645,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     bestOffset = usePrev ? bestOffsetPrev : 0;
 
                     // Find the longest match in a window around the pixel.
-                    for (ind = 0; ind < numInd; ++ind)
+                    for (ind = 0; ind < numInd; ind++)
                     {
                         int currLength = 0;
                         int j = i;

@@ -63,13 +63,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Mark any seq of non-0's that is longer as 7 as a goodForRle.
             uint symbol = counts[0];
             int stride = 0;
-            for (int i = 0; i < length + 1; ++i)
+            for (int i = 0; i < length + 1; i++)
             {
                 if (i == length || counts[i] != symbol)
                 {
                     if ((symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7))
                     {
-                        for (int k = 0; k < stride; ++k)
+                        for (int k = 0; k < stride; k++)
                         {
                             goodForRle[i - k - 1] = true;
                         }
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             stride = 0;
             uint limit = counts[0];
             uint sum = 0;
-            for (int i = 0; i < length + 1; ++i)
+            for (int i = 0; i < length + 1; i++)
             {
                 if (i == length || goodForRle[i] || (i != 0 && goodForRle[i - 1]) || !ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit))
                 {
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             count = 0;
                         }
 
-                        for (k = 0; k < stride; ++k)
+                        for (k = 0; k < stride; k++)
                         {
                             // We don't want to change value at counts[i],
                             // that is already belonging to the next stride. Thus - 1.
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             uint countMin;
             int treeSizeOrig = 0;
 
-            for (int i = 0; i < histogramSize; ++i)
+            for (int i = 0; i < histogramSize; i++)
             {
                 if (histogram[i] != 0)
                 {
@@ -505,7 +505,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 if (repetitions < 3)
                 {
                     int i;
-                    for (i = 0; i < repetitions; ++i)
+                    for (i = 0; i < repetitions; i++)
                     {
                         tokens[pos].Code = (byte)value;
                         tokens[pos].ExtraBits = 0;

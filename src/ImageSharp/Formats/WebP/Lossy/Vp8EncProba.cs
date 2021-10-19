@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int pattern = WebpLookupTables.Vp8LevelCodes[level - 1][0];
             int bits = WebpLookupTables.Vp8LevelCodes[level - 1][1];
             int cost = 0;
-            for (int i = 2; pattern != 0; ++i)
+            for (int i = 2; pattern != 0; i++)
             {
                 if ((pattern & 1) != 0)
                 {

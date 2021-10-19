@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // For small icon images, don't attempt to apply near-lossless compression.
             if ((xSize < MinDimForNearLossless && ySize < MinDimForNearLossless) || ySize < 3)
             {
-                for (int i = 0; i < ySize; ++i)
+                for (int i = 0; i < ySize; i++)
                 {
                     argbSrc.Slice(i * stride, xSize).CopyTo(argbDst.Slice(i * xSize, xSize));
                 }
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             NearLossless(xSize, ySize, argbSrc, stride, limitBits, copyBuffer, argbDst);
-            for (int i = limitBits - 1; i != 0; --i)
+            for (int i = limitBits - 1; i != 0; i--)
             {
                 NearLossless(xSize, ySize, argbDst, xSize, i, copyBuffer, argbDst);
             }
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             int srcOffset = 0;
             int dstOffset = 0;
-            for (y = 0; y < ySize; ++y)
+            for (y = 0; y < ySize; y++)
             {
                 if (y == 0 || y == ySize - 1)
                 {
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     argbSrc.Slice(srcOffset + stride, xSize).CopyTo(nextRow);
                     argbDst[dstOffset] = argbSrc[srcOffset];
                     argbDst[dstOffset + xSize - 1] = argbSrc[srcOffset + xSize - 1];
-                    for (int x = 1; x < xSize - 1; ++x)
+                    for (int x = 1; x < xSize - 1; x++)
                     {
                         if (IsSmooth(prevRow, currRow, nextRow, x, limit))
                         {

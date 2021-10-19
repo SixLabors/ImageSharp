@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static int HistogramCopyAndAnalyze(List<Vp8LHistogram> origHistograms, List<Vp8LHistogram> histograms, ushort[] histogramSymbols)
         {
-            for (int clusterId = 0, i = 0; i < origHistograms.Count; ++i)
+            for (int clusterId = 0, i = 0; i < origHistograms.Count; i++)
             {
                 Vp8LHistogram origHistogram = origHistograms[i];
                 origHistogram.UpdateHistogramCost();

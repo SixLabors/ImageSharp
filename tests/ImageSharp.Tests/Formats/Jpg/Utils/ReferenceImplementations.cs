@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 // ReSharper disable InconsistentNaming

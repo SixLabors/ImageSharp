@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;

@@ -4,7 +4,6 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;

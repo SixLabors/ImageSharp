@@ -5,14 +5,11 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
-
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 // ReSharper disable InconsistentNaming
@@ -319,26 +316,28 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         {
             int stride = Width;
             fixed (float* d = this.unpinnedBuffer)
-            fixed (Block8x8F* ss = &this.block)
             {
-                var s = (float*)ss;
-                Vector256<float> v0 = Avx.LoadVector256(s);
-                Vector256<float> v1 = Avx.LoadVector256(s + 8);
-                Vector256<float> v2 = Avx.LoadVector256(s + (8 * 2));
-                Vector256<float> v3 = Avx.LoadVector256(s + (8 * 3));
-                Avx.Store(d, v0);
-                Avx.Store(d + stride, v1);
-                Avx.Store(d + (stride * 2), v2);
-                Avx.Store(d + (stride * 3), v3);
+                fixed (Block8x8F* ss = &this.block)
+                {
+                    var s = (float*)ss;
+                    Vector256<float> v0 = Avx.LoadVector256(s);
+                    Vector256<float> v1 = Avx.LoadVector256(s + 8);
+                    Vector256<float> v2 = Avx.LoadVector256(s + (8 * 2));
+                    Vector256<float> v3 = Avx.LoadVector256(s + (8 * 3));
+                    Avx.Store(d, v0);
+                    Avx.Store(d + stride, v1);
+                    Avx.Store(d + (stride * 2), v2);
+                    Avx.Store(d + (stride * 3), v3);
 
-                v0 = Avx.LoadVector256(s + (8 * 4));
-                v1 = Avx.LoadVector256(s + (8 * 5));
-                v2 = Avx.LoadVector256(s + (8 * 6));
-                v3 = Avx.LoadVector256(s + (8 * 7));
-                Avx.Store(d + (stride * 4), v0);
-                Avx.Store(d + (stride * 5), v1);
-                Avx.Store(d + (stride * 6), v2);
-                Avx.Store(d + (stride * 7), v3);
+                    v0 = Avx.LoadVector256(s + (8 * 4));
+                    v1 = Avx.LoadVector256(s + (8 * 5));
+                    v2 = Avx.LoadVector256(s + (8 * 6));
+                    v3 = Avx.LoadVector256(s + (8 * 7));
+                    Avx.Store(d + (stride * 4), v0);
+                    Avx.Store(d + (stride * 5), v1);
+                    Avx.Store(d + (stride * 6), v2);
+                    Avx.Store(d + (stride * 7), v3);
+                }
             }
         }
 

@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
         /// <returns>The decoder and the image format or null if none found.</returns>
-        private static async Task<(IImageDecoder decoder, IImageFormat format)> DiscoverDecoderAsync(Stream stream, Configuration config)
+        private static async Task<(IImageDecoder Decoder, IImageFormat Format)> DiscoverDecoderAsync(Stream stream, Configuration config)
         {
             IImageFormat format = await InternalDetectFormatAsync(stream, config).ConfigureAwait(false);
 

@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Memory;

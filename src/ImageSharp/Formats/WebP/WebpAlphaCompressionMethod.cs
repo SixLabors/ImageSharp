@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Webp
 {
-    internal enum AlphaCompressionMethod
+    internal enum WebpAlphaCompressionMethod
     {
         /// <summary>
         /// No compression.
@@ -13,6 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Compressed using the WebP lossless format.
         /// </summary>
-        WebPLosslessCompression = 1
+        WebpLosslessCompression = 1
     }
 }

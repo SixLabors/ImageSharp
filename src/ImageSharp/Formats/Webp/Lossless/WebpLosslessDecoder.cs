@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// The lossless specification can be found here:
     /// https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
     /// </remarks>
-    internal sealed class WebPLosslessDecoder
+    internal sealed class WebpLosslessDecoder
     {
         /// <summary>
         /// A bit reader for reading lossless webp streams.
@@ -75,12 +75,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebPLosslessDecoder"/> class.
+        /// Initializes a new instance of the <see cref="WebpLosslessDecoder"/> class.
         /// </summary>
         /// <param name="bitReader">Bitreader to read from the stream.</param>
         /// <param name="memoryAllocator">Used for allocating memory during processing operations.</param>
         /// <param name="configuration">The configuration.</param>
-        public WebPLosslessDecoder(Vp8LBitReader bitReader, MemoryAllocator memoryAllocator, Configuration configuration)
+        public WebpLosslessDecoder(Vp8LBitReader bitReader, MemoryAllocator memoryAllocator, Configuration configuration)
         {
             this.bitReader = bitReader;
             this.memoryAllocator = memoryAllocator;
@@ -675,7 +675,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         /// <summary>
-        /// A WebP lossless image can go through four different types of transformation before being entropy encoded.
+        /// A Webp lossless image can go through four different types of transformation before being entropy encoded.
         /// This will reverse the transformations, if any are present.
         /// </summary>
         /// <param name="decoder">The decoder holding the transformation infos.</param>

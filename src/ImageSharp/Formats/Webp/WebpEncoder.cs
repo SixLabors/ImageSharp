@@ -10,9 +10,9 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// Image encoder for writing an image to a stream in the WebP format.
+    /// Image encoder for writing an image to a stream in the Webp format.
     /// </summary>
-    public sealed class WebpEncoder : IImageEncoder, IWebPEncoderOptions
+    public sealed class WebpEncoder : IImageEncoder, IWebpEncoderOptions
     {
         /// <inheritdoc/>
         public bool Lossy { get; set; }

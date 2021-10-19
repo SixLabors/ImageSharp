@@ -97,12 +97,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)
                 {
-                    var losslessDecoder = new WebPLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
+                    var losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
                     losslessDecoder.Decode(pixels, image.Width, image.Height);
                 }
                 else
                 {
-                    var lossyDecoder = new WebPLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
+                    var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
                     lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo);
                 }
 
@@ -502,7 +502,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 return chunkType;
             }
 
-            throw new ImageFormatException("Invalid WebP data.");
+            throw new ImageFormatException("Invalid Webp data.");
         }
 
         /// <summary>
@@ -518,7 +518,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
             }
 
-            throw new ImageFormatException("Invalid WebP data.");
+            throw new ImageFormatException("Invalid Webp data.");
         }
 
         /// <summary>

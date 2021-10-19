@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Configuration options for use during webp encoding.
     /// </summary>
-    internal interface IWebPEncoderOptions
+    internal interface IWebpEncoderOptions
     {
         /// <summary>
         /// Gets a value indicating whether lossy compression should be used.
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         int Method { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the alpha plane should be compressed with WebP lossless format.
+        /// Gets a value indicating whether the alpha plane should be compressed with Webp lossless format.
         /// </summary>
         bool UseAlphaCompression { get; }
 

@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// Image encoder for writing an image to a stream in the WebP format.
+    /// Image encoder for writing an image to a stream in the Webp format.
     /// </summary>
     internal sealed class WebpEncoderCore : IImageEncoderInternals
     {
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         /// <summary>
         /// TODO: not used at the moment.
-        /// Indicating whether the alpha plane should be compressed with WebP lossless format.
+        /// Indicating whether the alpha plane should be compressed with Webp lossless format.
         /// </summary>
         private readonly bool alphaCompression;
 
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         /// <param name="options">The encoder options.</param>
         /// <param name="memoryAllocator">The memory manager.</param>
-        public WebpEncoderCore(IWebPEncoderOptions options, MemoryAllocator memoryAllocator)
+        public WebpEncoderCore(IWebpEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
             this.alphaCompression = options.UseAlphaCompression;

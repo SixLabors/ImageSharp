@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             stream.Write(WebpConstants.RiffFourCc);
             BinaryPrimitives.WriteUInt32LittleEndian(buf, riffSize);
             stream.Write(buf);
-            stream.Write(WebpConstants.WebPHeader);
+            stream.Write(WebpConstants.WebpHeader);
         }
 
         /// <summary>

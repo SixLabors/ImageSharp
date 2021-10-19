@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         private static WebpDecoder WebpDecoder => new WebpDecoder() { IgnoreMetadata = false };
 
         [Theory]
-        [WithFile(TestImages.WebP.Lossy.WithExif, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.WebP.Lossy.WithExif, PixelTypes.Rgba32, true)]
-        [WithFile(TestImages.WebP.Lossless.WithExif, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.WebP.Lossless.WithExif, PixelTypes.Rgba32, true)]
+        [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32, true)]
+        [WithFile(TestImages.Webp.Lossless.WithExif, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Webp.Lossless.WithExif, PixelTypes.Rgba32, true)]
         public void IgnoreMetadata_ControlsWhetherExifIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -42,10 +42,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(TestImages.WebP.Lossy.WithIccp, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.WebP.Lossy.WithIccp, PixelTypes.Rgba32, true)]
-        [WithFile(TestImages.WebP.Lossless.WithIccp, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.WebP.Lossless.WithIccp, PixelTypes.Rgba32, true)]
+        [WithFile(TestImages.Webp.Lossy.WithIccp, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Webp.Lossy.WithIccp, PixelTypes.Rgba32, true)]
+        [WithFile(TestImages.Webp.Lossless.WithIccp, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Webp.Lossless.WithIccp, PixelTypes.Rgba32, true)]
         public void IgnoreMetadata_ControlsWhetherIccpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(TestImages.WebP.Lossy.WithExif, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32)]
         public void EncodeLossyWebp_PreservesExif<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(TestImages.WebP.Lossless.WithExif, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Webp.Lossless.WithExif, PixelTypes.Rgba32)]
         public void EncodeLosslessWebp_PreservesExif<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

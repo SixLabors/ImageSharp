@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public static WebpFormat Instance { get; } = new WebpFormat();
 
         /// <inheritdoc/>
-        public string Name => "WebP";
+        public string Name => "Webp";
 
         /// <inheritdoc/>
         public string DefaultMimeType => "image/webp";

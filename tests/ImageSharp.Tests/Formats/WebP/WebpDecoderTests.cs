@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
-using static SixLabors.ImageSharp.Tests.TestImages.WebP;
+using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Webp

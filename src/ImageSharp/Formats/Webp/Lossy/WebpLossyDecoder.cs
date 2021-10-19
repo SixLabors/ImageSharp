@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     /// <remarks>
     /// The lossy specification can be found here: https://tools.ietf.org/html/rfc6386
     /// </remarks>
-    internal sealed class WebPLossyDecoder
+    internal sealed class WebpLossyDecoder
     {
         /// <summary>
         /// A bit reader for reading lossy webp streams.
@@ -35,12 +35,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private readonly Configuration configuration;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebPLossyDecoder"/> class.
+        /// Initializes a new instance of the <see cref="WebpLossyDecoder"/> class.
         /// </summary>
         /// <param name="bitReader">Bitreader to read from the stream.</param>
         /// <param name="memoryAllocator">Used for allocating memory during processing operations.</param>
         /// <param name="configuration">The configuration.</param>
-        public WebPLossyDecoder(Vp8BitReader bitReader, MemoryAllocator memoryAllocator, Configuration configuration)
+        public WebpLossyDecoder(Vp8BitReader bitReader, MemoryAllocator memoryAllocator, Configuration configuration)
         {
             this.bitReader = bitReader;
             this.memoryAllocator = memoryAllocator;

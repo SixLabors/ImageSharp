@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             // Convert image pixels to bgra array.
-            byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Peak));
+            byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.Webp.Peak));
             using var image = Image.Load<Rgba32>(imgBytes);
             uint[] bgra = ToBgra(image);
 
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             // Convert image pixels to bgra array.
-            byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Lossless.BikeSmall));
+            byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.Webp.Lossless.BikeSmall));
             using var image = Image.Load<Rgba32>(imgBytes, new WebpDecoder());
             uint[] bgra = ToBgra(image);
 

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         NoCompression = 0,
 
         /// <summary>
-        /// Compressed using the WebP lossless format.
+        /// Compressed using the Webp lossless format.
         /// </summary>
         WebpLosslessCompression = 1
     }

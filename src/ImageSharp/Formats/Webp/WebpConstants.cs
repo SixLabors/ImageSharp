@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     internal static class WebpConstants
     {
         /// <summary>
-        /// The list of file extensions that equate to WebP.
+        /// The list of file extensions that equate to Webp.
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "webp" };
 
@@ -80,9 +80,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         };
 
         /// <summary>
-        /// The header bytes identifying a WebP.
+        /// The header bytes identifying a Webp.
         /// </summary>
-        public static readonly byte[] WebPHeader =
+        public static readonly byte[] WebpHeader =
         {
             0x57, // W
             0x45, // E

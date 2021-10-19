@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     public class YuvConversionTests
     {
         [Theory]
-        [WithFile(TestImages.WebP.Yuv, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Webp.Yuv, PixelTypes.Rgba32)]
         public void ConvertRgbToYuv_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

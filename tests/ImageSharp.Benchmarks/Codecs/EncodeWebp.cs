@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void MagickWebpLossy()
         {
             using var memoryStream = new MemoryStream();
-            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "lossless", false);
-            this.webpMagick.Write(memoryStream, MagickFormat.WebP);
+            this.webpMagick.Settings.SetDefine(MagickFormat.Webp, "lossless", false);
+            this.webpMagick.Write(memoryStream, MagickFormat.Webp);
         }
 
         [Benchmark(Description = "ImageSharp Webp Lossy")]
@@ -62,8 +62,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void MagickWebpLossless()
         {
             using var memoryStream = new MemoryStream();
-            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "lossless", true);
-            this.webpMagick.Write(memoryStream, MagickFormat.WebP);
+            this.webpMagick.Settings.SetDefine(MagickFormat.Webp, "lossless", true);
+            this.webpMagick.Write(memoryStream, MagickFormat.Webp);
         }
 
         [Benchmark(Description = "ImageSharp Webp Lossless")]

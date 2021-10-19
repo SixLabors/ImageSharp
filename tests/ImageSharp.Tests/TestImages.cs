@@ -517,7 +517,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string NoAlphaBits32BitRle = "Tga/32bit_rle_no_alphabits.tga";
         }
 
-        public static class WebP
+        public static class Webp
         {
             // Reference image as png
             public const string Peak = "Webp/peak.png";

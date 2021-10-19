@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// Provides WebP specific metadata information for the image.
+    /// Provides Webp specific metadata information for the image.
     /// </summary>
     public class WebpMetadata : IDeepCloneable
     {

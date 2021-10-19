@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             if (this.Compressed)
             {
                 var bitReader = new Vp8LBitReader(data);
-                this.LosslessDecoder = new WebPLosslessDecoder(bitReader, memoryAllocator, configuration);
+                this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
                 this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
                 this.Use8BDecode = this.Vp8LDec.Transforms.Count > 0 && Is8BOptimizable(this.Vp8LDec.Metadata);
             }
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Gets the Vp8L decoder which is used to de compress the alpha channel, if needed.
         /// </summary>
-        private WebPLosslessDecoder LosslessDecoder { get; }
+        private WebpLosslessDecoder LosslessDecoder { get; }
 
         /// <summary>
         /// Gets a value indicating whether the decoding needs 1 byte per pixel for decoding.
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             // Extract alpha (which is stored in the green plane).
             int pixelCount = width * numRowsToProcess;
-            WebPLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
+            WebpLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
             ExtractGreen(input, output, pixelCount);
             this.AlphaApplyFilter(0, numRowsToProcess, output, width);
         }

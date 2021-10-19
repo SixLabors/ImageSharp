@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Contains a list of different webp chunk types.
     /// </summary>
-    /// <remarks>See WebP Container Specification for more details: https://developers.google.com/speed/webp/docs/riff_container </remarks>
+    /// <remarks>See Webp Container Specification for more details: https://developers.google.com/speed/webp/docs/riff_container </remarks>
     internal enum WebpChunkType : uint
     {
         /// <summary>

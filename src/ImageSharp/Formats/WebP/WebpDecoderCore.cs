@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
-        public Size Dimensions => new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
+        public Size Dimensions => new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
 
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -441,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     break;
 
                 case WebpChunkType.Animation:
-                    this.webpMetadata.Animated = true;
+                    // TODO: Decoding animation is not implemented yet.
                     break;
 
                 case WebpChunkType.Alpha:
@@ -499,7 +499,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
             if (this.currentStream.Read(this.buffer, 0, 4) == 4)
             {
                 var chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
-                this.webpMetadata.ChunkTypes.Enqueue(chunkType);
                 return chunkType;
             }
 

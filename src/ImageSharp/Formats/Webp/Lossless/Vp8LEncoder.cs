@@ -289,12 +289,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 bgra.CopyTo(encodedData);
                 bool useCache = true;
-                this.UsePalette = crunchConfig.EntropyIdx == EntropyIx.Palette ||
-                                  crunchConfig.EntropyIdx == EntropyIx.PaletteAndSpatial;
-                this.UseSubtractGreenTransform = crunchConfig.EntropyIdx == EntropyIx.SubGreen ||
-                                                 crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen;
-                this.UsePredictorTransform = crunchConfig.EntropyIdx == EntropyIx.Spatial ||
-                                             crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen;
+                this.UsePalette = crunchConfig.EntropyIdx is EntropyIx.Palette or EntropyIx.PaletteAndSpatial;
+                this.UseSubtractGreenTransform = crunchConfig.EntropyIdx is EntropyIx.SubGreen or EntropyIx.SpatialSubGreen;
+                this.UsePredictorTransform = crunchConfig.EntropyIdx is EntropyIx.Spatial or EntropyIx.SpatialSubGreen;
                 if (lowEffort)
                 {
                     this.UseCrossColorTransform = false;
@@ -427,7 +424,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.TransformBits = GetTransformBits(this.method, this.HistoBits);
 
             // Try out multiple LZ77 on images with few colors.
-            int nlz77s = this.PaletteSize > 0 && this.PaletteSize <= 16 ? 2 : 1;
+            int nlz77s = this.PaletteSize is > 0 and <= 16 ? 2 : 1;
             EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
             bool doNotCache = false;
@@ -863,7 +860,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             while (i-- > 0)
             {
                 int ix = tokens[i].Code;
-                if (ix == 0 || ix == 17 || ix == 18)
+                if (ix is 0 or 17 or 18)
                 {
                     trimmedLength--;   // Discount trailing zeros.
                     trailingZeroBits += codeLengthBitDepth[ix];
@@ -1345,7 +1342,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
                 }
 
-                if (i == 0 || i == 1 || i == 2)
+                if (i is 0 or 1 or 2)
                 {
                     ApplyPaletteFor(width, height, palette, i, src, srcStride, dst, dstStride, tmpRow, buffer, xBits);
                 }

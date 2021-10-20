@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             int totalPixels = width * height;
 
             var compression = (WebpAlphaCompressionMethod)(alphaChunkHeader & 0x03);
-            if (compression != WebpAlphaCompressionMethod.NoCompression && compression != WebpAlphaCompressionMethod.WebpLosslessCompression)
+            if (compression is not WebpAlphaCompressionMethod.NoCompression and not WebpAlphaCompressionMethod.WebpLosslessCompression)
             {
                 WebpThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
             }
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             // The filtering method used. Only values between 0 and 3 are valid.
             int filter = (alphaChunkHeader >> 2) & 0x03;
-            if (filter < (int)WebpAlphaFilterType.None || filter > (int)WebpAlphaFilterType.Gradient)
+            if (filter is < (int)WebpAlphaFilterType.None or > (int)WebpAlphaFilterType.Gradient)
             {
                 WebpThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
             }

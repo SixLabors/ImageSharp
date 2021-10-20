@@ -221,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 
         public void PutI16Mode(int mode)
         {
-            if (this.PutBit(mode == TM_PRED || mode == H_PRED, 156))
+            if (this.PutBit(mode is TM_PRED or H_PRED, 156))
             {
                 this.PutBit(mode == TM_PRED, 128);    // TM or HE
             }

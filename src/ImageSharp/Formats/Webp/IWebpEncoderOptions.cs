@@ -59,9 +59,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Gets a value indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
         /// RGB information for better compression.
-        /// The default value is false.
+        /// The default value is Clear.
         /// </summary>
-        bool Exact { get; }
+        WebpTransparentColorMode TransparentColorMode { get; }
 
         /// <summary>
         /// Gets a value indicating whether near lossless mode should be used.

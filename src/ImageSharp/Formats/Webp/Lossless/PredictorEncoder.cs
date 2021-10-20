@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> image,
             bool nearLossless,
             int nearLosslessQuality,
-            bool exact,
+            WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool lowEffort)
         {
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             bgraScratch,
                             bgra,
                             maxQuantization,
-                            exact,
+                            transparentColorMode,
                             usedSubtractGreen,
                             nearLossless,
                             image);
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 bgraScratch,
                 bgra,
                 maxQuantization,
-                exact,
+                transparentColorMode,
                 usedSubtractGreen,
                 nearLossless,
                 lowEffort);
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> argbScratch,
             Span<uint> argb,
             int maxQuantization,
-            bool exact,
+            WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool nearLossless,
             Span<uint> modes)
@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         }
                     }
 
-                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, exact, usedSubtractGreen, nearLossless, residuals);
+                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, transparentColorMode, usedSubtractGreen, nearLossless, residuals);
                     for (int relativeX = 0; relativeX < maxX; ++relativeX)
                     {
                         UpdateHisto(histoArgb, residuals[relativeX]);
@@ -330,12 +330,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int xEnd,
             int y,
             int maxQuantization,
-            bool exact,
+            WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool nearLossless,
             Span<uint> output)
         {
-            if (exact)
+            if (transparentColorMode == WebpTransparentColorMode.Preserve)
             {
                 PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output);
             }
@@ -568,7 +568,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> argbScratch,
             Span<uint> argb,
             int maxQuantization,
-            bool exact,
+            WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool nearLossless,
             bool lowEffort)
@@ -631,7 +631,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             xEnd,
                             y,
                             maxQuantization,
-                            exact,
+                            transparentColorMode,
                             usedSubtractGreen,
                             nearLossless,
                             argb.Slice((y * width) + x));

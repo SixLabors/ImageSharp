@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public int FilterStrength { get; set; } = 60;
 
         /// <inheritdoc/>
-        public bool Exact { get; set; }
+        public WebpTransparentColorMode TransparentColorMode { get; set; } = WebpTransparentColorMode.Clear;
 
         /// <inheritdoc/>
         public bool NearLossless { get; set; }

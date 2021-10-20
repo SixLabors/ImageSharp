@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
         /// RGB information for better compression.
         /// </summary>
-        private readonly bool exact;
+        private readonly WebpTransparentColorMode transparentColorMode;
 
         /// <summary>
         /// Indicating whether near lossless mode should be used.
@@ -85,7 +85,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="height">The height of the input image.</param>
         /// <param name="quality">The encoding quality.</param>
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
-        /// <param name="exact">Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible RGB information for better compression.</param>
+        /// <param name="transparentColorMode">Flag indicating whether to preserve the exact RGB values under transparent area.
+        /// Otherwise, discard this invisible RGB information for better compression.</param>
         /// <param name="nearLossless">Indicating whether near lossless mode should be used.</param>
         /// <param name="nearLosslessQuality">The near lossless quality. The range is 0 (maximum preprocessing) to 100 (no preprocessing, the default).</param>
         public Vp8LEncoder(
@@ -95,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int height,
             int quality,
             WebpEncodingMethod method,
-            bool exact,
+            WebpTransparentColorMode transparentColorMode,
             bool nearLossless,
             int nearLosslessQuality)
         {
@@ -106,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.configuration = configuration;
             this.quality = Numerics.Clamp(quality, 0, 100);
             this.method = method;
-            this.exact = exact;
+            this.transparentColorMode = transparentColorMode;
             this.nearLossless = nearLossless;
             this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
             this.bitWriter = new Vp8LBitWriter(initialSize);
@@ -676,7 +677,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 this.TransformData.GetSpan(),
                 this.nearLossless,
                 nearLosslessStrength,
-                this.exact,
+                this.transparentColorMode,
                 this.UseSubtractGreenTransform,
                 lowEffort);
 

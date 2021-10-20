@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
         /// RGB information for better compression.
         /// </summary>
-        private readonly bool exact;
+        private readonly WebpTransparentColorMode transparentColorMode;
 
         /// <summary>
         /// Indicating whether near lossless mode should be used.
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.entropyPasses = options.EntropyPasses;
             this.spatialNoiseShaping = options.SpatialNoiseShaping;
             this.filterStrength = options.FilterStrength;
-            this.exact = options.Exact;
+            this.transparentColorMode = options.TransparentColorMode;
             this.nearLossless = options.NearLossless;
             this.nearLosslessQuality = options.NearLosslessQuality;
         }
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     image.Height,
                     this.quality,
                     this.method,
-                    this.exact,
+                    this.transparentColorMode,
                     this.nearLossless,
                     this.nearLosslessQuality);
                 enc.Encode(image, stream);

@@ -111,14 +111,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
         [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
         [WithFile(Lossy.Alpha1, PixelTypes.Rgba32, 4)]
-        public void Encode_Lossless_WithExactFlag_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method)
+        public void Encode_Lossless_WithPreserveTransparentColor_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoder()
             {
                 Lossy = false,
                 Method = method,
-                Exact = true
+                TransparentColorMode = WebpTransparentColorMode.Preserve
             };
 
             using Image<TPixel> image = provider.GetImage();

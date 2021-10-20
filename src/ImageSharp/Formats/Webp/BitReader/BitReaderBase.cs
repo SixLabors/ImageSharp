@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
     /// </summary>
     internal abstract class BitReaderBase : IDisposable
     {
+        private bool isDisposed;
+
         /// <summary>
         /// Gets or sets the raw encoded image data.
         /// </summary>
@@ -31,7 +33,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
             input.Read(dataSpan.Slice(0, bytesToRead), 0, bytesToRead);
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this.Data?.Dispose();
+            }
+
+            this.isDisposed = true;
+        }
+
         /// <inheritdoc/>
-        public void Dispose() => this.Data?.Dispose();
+        public void Dispose()
+        {
+            this.Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

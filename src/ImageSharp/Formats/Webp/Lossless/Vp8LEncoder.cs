@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
             this.quality = Numerics.Clamp(quality, 0, 100);
-            this.method = (WebpEncodingMethod)Numerics.Clamp((int)method, 0, 6);
+            this.method = method;
             this.exact = exact;
             this.nearLossless = nearLossless;
             this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
@@ -1689,7 +1689,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetTransformBits(WebpEncodingMethod method, int histoBits)
         {
-            int maxTransformBits = (int)method < 4 ? 6 : (int)method > 4 ? 4 : 5;
+            int maxTransformBits = (int)method < 4 ? 6 : method > WebpEncodingMethod.Level4 ? 4 : 5;
             int res = histoBits > maxTransformBits ? maxTransformBits : histoBits;
             return res;
         }

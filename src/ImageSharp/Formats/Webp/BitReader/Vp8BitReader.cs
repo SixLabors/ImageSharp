@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
                 range = split + 1;
             }
 
-            int shift = 7 ^ WebpCommonUtils.BitsLog2Floor(range);
+            int shift = 7 ^ Numerics.Log2(range);
             range <<= shift;
             this.bits -= shift;
 

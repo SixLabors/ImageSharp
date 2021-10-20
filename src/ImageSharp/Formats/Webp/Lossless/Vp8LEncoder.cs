@@ -330,7 +330,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // If using a color cache, do not have it bigger than the number of colors.
                     if (useCache && this.PaletteSize < 1 << WebpConstants.MaxColorCacheBits)
                     {
-                        this.CacheBits = WebpCommonUtils.BitsLog2Floor((uint)this.PaletteSize) + 1;
+                        this.CacheBits = Numerics.Log2((uint)this.PaletteSize) + 1;
                     }
                 }
 
@@ -893,7 +893,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
                 else
                 {
-                    int nBits = WebpCommonUtils.BitsLog2Floor((uint)trimmedLength - 2);
+                    int nBits = Numerics.Log2((uint)trimmedLength - 2);
                     int nBitPairs = (nBits / 2) + 1;
                     this.bitWriter.PutBits((uint)nBitPairs - 1, 3);
                     this.bitWriter.PutBits((uint)trimmedLength - 2, nBitPairs * 2);

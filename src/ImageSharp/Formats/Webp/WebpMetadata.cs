@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Gets or sets the webp format used. Either lossless or lossy.
         /// </summary>
-        public WebpFormatType Format { get; set; }
+        public WebpFormatType? Format { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new WebpMetadata(this);

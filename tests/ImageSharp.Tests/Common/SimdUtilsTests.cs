@@ -211,6 +211,11 @@ namespace SixLabors.ImageSharp.Tests.Common
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
         {
+            if (!Sse2.IsSupported)
+            {
+                return;
+            }
+
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertByteToNormalizedFloat(
@@ -304,6 +309,11 @@ namespace SixLabors.ImageSharp.Tests.Common
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
+            if (!Sse2.IsSupported)
+            {
+                return;
+            }
+
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(

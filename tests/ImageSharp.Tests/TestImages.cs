@@ -603,8 +603,6 @@ namespace SixLabors.ImageSharp.Tests
                 // substract_green, predictor, cross_color
                 public const string BikeThreeTransforms = "Webp/bike_lossless.webp";
 
-                public const string BikeSmall = "Webp/bike_lossless_small.webp";
-
                 // Invalid / corrupted images
                 // Below images have errors according to webpinfo. The error message webpinfo gives is "Truncated data detected when parsing RIFF payload."
                 public const string LossLessCorruptImage1 = "Webp/lossless_big_random_alpha.webp"; // substract_green, predictor, cross_color.
@@ -621,6 +619,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Earth = "Webp/earth_lossy.webp";
                 public const string WithExif = "Webp/exif_lossy.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
+                public const string BikeSmall = "Webp/bike_lossless_small.webp";
 
                 // Lossy images without macroblock filtering.
                 public const string Bike = "Webp/bike_lossy.webp";

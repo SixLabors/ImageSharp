@@ -4,9 +4,11 @@
 using System.IO;
 using System.Threading;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp
@@ -26,11 +28,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Indicating whether the alpha plane should be compressed with Webp lossless format.
         /// </summary>
         private readonly bool alphaCompression;
-
-        /// <summary>
-        /// Indicating whether lossy compression should be used. If false, lossless compression will be used.
-        /// </summary>
-        private readonly bool lossy;
 
         /// <summary>
         /// Compression quality. Between 0 and 100.
@@ -74,6 +71,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly int nearLosslessQuality;
 
         /// <summary>
+        /// Indicating whether lossy compression should be used. If false, lossless compression will be used.
+        /// </summary>
+        private bool? lossy;
+
+        /// <summary>
         /// The global configuration.
         /// </summary>
         private Configuration configuration;
@@ -112,8 +114,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
+            ImageMetadata metadata = image.Metadata;
+            WebpMetadata webpMetadata = metadata.GetWebpMetadata();
+            this.lossy ??= webpMetadata.Format == WebpFormatType.Lossy;
 
-            if (this.lossy)
+            if (this.lossy.GetValueOrDefault())
             {
                 using var enc = new Vp8Encoder(
                     this.memoryAllocator,

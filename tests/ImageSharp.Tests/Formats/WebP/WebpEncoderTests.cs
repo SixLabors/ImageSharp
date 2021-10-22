@@ -3,6 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
@@ -14,6 +15,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class WebpEncoderTests
     {
+        [Theory]
+        [WithFile(Flag, PixelTypes.Rgba32, WebpFormatType.Lossless)] // if its not a webp input image, it should default to lossless.
+        [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFormatType.Lossless)]
+        [WithFile(Lossy.Bike, PixelTypes.Rgba32, WebpFormatType.Lossy)]
+        public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFormatType expectedFormat)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var options = new WebpEncoder();
+            using Image<TPixel> input = provider.GetImage();
+            using var memoryStream = new MemoryStream();
+            input.Save(memoryStream, options);
+
+            memoryStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memoryStream);
+
+            ImageMetadata meta = output.Metadata;
+            WebpMetadata webpMetaData = meta.GetWebpMetadata();
+            Assert.Equal(expectedFormat, webpMetaData.Format);
+        }
+
         [Theory]
         [WithFile(Flag, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.PalettedTwoColor, PixelTypes.Rgba32)]

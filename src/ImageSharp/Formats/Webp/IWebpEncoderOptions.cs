@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Gets a value indicating whether lossy compression should be used.
         /// If false, lossless compression will be used.
         /// </summary>
-        bool Lossy { get; }
+        bool? Lossy { get; }
 
         /// <summary>
         /// Gets the compression quality. Between 0 and 100.

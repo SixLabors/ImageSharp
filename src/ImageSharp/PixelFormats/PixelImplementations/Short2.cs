@@ -181,8 +181,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static uint Pack(Vector2 vector)
         {
             vector = Vector2.Clamp(vector, Min, Max);
-            uint word2 = (uint)Math.Round(vector.X) & 0xFFFF;
-            uint word1 = ((uint)Math.Round(vector.Y) & 0xFFFF) << 0x10;
+            uint word2 = (uint)Convert.ToInt32(Math.Round(vector.X)) & 0xFFFF;
+            uint word1 = ((uint)Convert.ToInt32(Math.Round(vector.Y)) & 0xFFFF) << 0x10;
 
             return word2 | word1;
         }

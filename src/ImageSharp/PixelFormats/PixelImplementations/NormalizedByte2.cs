@@ -15,7 +15,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<ushort>
     {
-        private static readonly Vector2 Half = new Vector2(127);
+        private const float MaxPos = 127F;
+
+        private static readonly Vector2 Half = new Vector2(MaxPos);
         private static readonly Vector2 MinusOne = new Vector2(-1F);
 
         /// <summary>
@@ -154,8 +156,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public readonly Vector2 ToVector2()
         {
             return new Vector2(
-                (sbyte)((this.PackedValue >> 0) & 0xFF) / 127F,
-                (sbyte)((this.PackedValue >> 8) & 0xFF) / 127F);
+                (sbyte)((this.PackedValue >> 0) & 0xFF) / MaxPos,
+                (sbyte)((this.PackedValue >> 8) & 0xFF) / MaxPos);
         }
 
         /// <inheritdoc />
@@ -181,8 +183,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector = Vector2.Clamp(vector, MinusOne, Vector2.One) * Half;
 
-            int byte2 = ((ushort)Math.Round(vector.X) & 0xFF) << 0;
-            int byte1 = ((ushort)Math.Round(vector.Y) & 0xFF) << 8;
+            int byte2 = ((ushort)Convert.ToInt16(Math.Round(vector.X)) & 0xFF) << 0;
+            int byte1 = ((ushort)Convert.ToInt16(Math.Round(vector.Y)) & 0xFF) << 8;
 
             return (ushort)(byte2 | byte1);
         }

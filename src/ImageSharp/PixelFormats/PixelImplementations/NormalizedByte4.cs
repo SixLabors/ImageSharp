@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     {
         private const float MaxPos = 127F;
 
-        private static readonly Vector4 Half = new Vector4(MaxPos);
-        private static readonly Vector4 MinusOne = new Vector4(-1F);
+        private static readonly Vector4 Half = new(MaxPos);
+        private static readonly Vector4 MinusOne = new(-1F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NormalizedByte4"/> struct.
@@ -91,14 +91,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
-        {
-            return new Vector4(
+        public readonly Vector4 ToVector4() => new(
                 (sbyte)((this.PackedValue >> 0) & 0xFF) / MaxPos,
                 (sbyte)((this.PackedValue >> 8) & 0xFF) / MaxPos,
                 (sbyte)((this.PackedValue >> 16) & 0xFF) / MaxPos,
                 (sbyte)((this.PackedValue >> 24) & 0xFF) / MaxPos);
-        }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -142,10 +139,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

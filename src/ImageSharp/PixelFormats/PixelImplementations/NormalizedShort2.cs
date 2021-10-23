@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         // Largest two byte positive number 0xFFFF >> 1;
         private const float MaxPos = 0x7FFF;
 
-        private static readonly Vector2 Max = new Vector2(MaxPos);
+        private static readonly Vector2 Max = new(MaxPos);
         private static readonly Vector2 Min = Vector2.Negate(Max);
 
         /// <summary>
@@ -138,10 +138,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -157,12 +154,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector2"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector2 ToVector2()
-        {
-            return new Vector2(
+        public readonly Vector2 ToVector2() => new(
                 (short)(this.PackedValue & 0xFFFF) / MaxPos,
                 (short)(this.PackedValue >> 0x10) / MaxPos);
-        }
 
         /// <inheritdoc />
         public override readonly bool Equals(object obj) => obj is NormalizedShort2 other && this.Equals(other);

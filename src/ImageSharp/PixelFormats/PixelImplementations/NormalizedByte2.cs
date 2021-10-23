@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     {
         private const float MaxPos = 127F;
 
-        private static readonly Vector2 Half = new Vector2(MaxPos);
-        private static readonly Vector2 MinusOne = new Vector2(-1F);
+        private static readonly Vector2 Half = new(MaxPos);
+        private static readonly Vector2 MinusOne = new(-1F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct.
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.ToVector2(), 0F, 1F);
+        public readonly Vector4 ToVector4() => new(this.ToVector2(), 0F, 1F);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -153,12 +153,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector2"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector2 ToVector2()
-        {
-            return new Vector2(
+        public readonly Vector2 ToVector2() => new(
                 (sbyte)((this.PackedValue >> 0) & 0xFF) / MaxPos,
                 (sbyte)((this.PackedValue >> 8) & 0xFF) / MaxPos);
-        }
 
         /// <inheritdoc />
         public override readonly bool Equals(object obj) => obj is NormalizedByte2 other && this.Equals(other);

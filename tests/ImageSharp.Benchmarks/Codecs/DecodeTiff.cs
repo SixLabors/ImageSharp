@@ -7,7 +7,6 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 using SDImage = System.Drawing.Image;
@@ -23,8 +22,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         private string prevImage;
 
         private byte[] data;
-
-        private Configuration configuration;
 
 #if BIG_TESTS
         private static readonly int BufferSize = 1024 * 68;
@@ -59,16 +56,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public string TestImage { get; set; }
 #endif
 
-        [GlobalSetup]
-        public void Config()
-        {
-            if (this.configuration == null)
-            {
-                this.configuration = new Configuration();
-                this.configuration.StreamProcessingBufferSize = BufferSize;
-            }
-        }
-
         [IterationSetup]
         public void ReadImages()
         {
@@ -93,7 +80,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public Size TiffCore()
         {
             using (var ms = new MemoryStream(this.data))
-            using (var image = Image.Load<Rgba32>(this.configuration, ms))
+            using (var image = Image.Load<Rgba32>(ms))
             {
                 return image.Size();
             }

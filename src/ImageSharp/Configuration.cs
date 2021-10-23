@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
@@ -159,20 +160,17 @@ namespace SixLabors.ImageSharp
         /// Creates a shallow copy of the <see cref="Configuration"/>.
         /// </summary>
         /// <returns>A new configuration instance.</returns>
-        public Configuration Clone()
+        public Configuration Clone() => new Configuration
         {
-            return new Configuration
-            {
-                MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
-                StreamProcessingBufferSize = this.StreamProcessingBufferSize,
-                ImageFormatsManager = this.ImageFormatsManager,
-                MemoryAllocator = this.MemoryAllocator,
-                ImageOperationsProvider = this.ImageOperationsProvider,
-                ReadOrigin = this.ReadOrigin,
-                FileSystem = this.FileSystem,
-                WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInBytes,
-            };
-        }
+            MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
+            StreamProcessingBufferSize = this.StreamProcessingBufferSize,
+            ImageFormatsManager = this.ImageFormatsManager,
+            MemoryAllocator = this.MemoryAllocator,
+            ImageOperationsProvider = this.ImageOperationsProvider,
+            ReadOrigin = this.ReadOrigin,
+            FileSystem = this.FileSystem,
+            WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInBytes,
+        };
 
         /// <summary>
         /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
@@ -182,17 +180,16 @@ namespace SixLabors.ImageSharp
         /// <see cref="BmpConfigurationModule"/>.
         /// <see cref="TgaConfigurationModule"/>.
         /// <see cref="TiffConfigurationModule"/>.
+        /// <see cref="WebpConfigurationModule"/>.
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
-        internal static Configuration CreateDefaultInstance()
-        {
-            return new Configuration(
+        internal static Configuration CreateDefaultInstance() => new Configuration(
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new BmpConfigurationModule(),
                 new TgaConfigurationModule(),
-                new TiffConfigurationModule());
-        }
+                new TiffConfigurationModule(),
+                new WebpConfigurationModule());
     }
 }

@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using var memoryStream = new MemoryStream();
             this.webp.Save(memoryStream, new WebpEncoder()
             {
-                Lossy = true
+                FileFormat = WebpFileFormatType.Lossy
             });
         }
 
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using var memoryStream = new MemoryStream();
             this.webp.Save(memoryStream, new WebpEncoder()
             {
-                Lossy = false
+                FileFormat = WebpFileFormatType.Lossless
             });
         }
 

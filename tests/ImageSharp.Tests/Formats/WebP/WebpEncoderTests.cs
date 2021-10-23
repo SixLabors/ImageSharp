@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     public class WebpEncoderTests
     {
         [Theory]
-        [WithFile(Flag, PixelTypes.Rgba32, WebpFormatType.Lossless)] // if its not a webp input image, it should default to lossless.
-        [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFormatType.Lossless)]
-        [WithFile(Lossy.Bike, PixelTypes.Rgba32, WebpFormatType.Lossy)]
-        public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFormatType expectedFormat)
+        [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossless)] // if its not a webp input image, it should default to lossless.
+        [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
+        [WithFile(Lossy.Bike, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
+        public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var options = new WebpEncoder();
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             ImageMetadata meta = output.Metadata;
             WebpMetadata webpMetaData = meta.GetWebpMetadata();
-            Assert.Equal(expectedFormat, webpMetaData.Format);
+            Assert.Equal(expectedFormat, webpMetaData.FileFormat);
         }
 
         [Theory]
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = false,
+                FileFormat = WebpFileFormatType.Lossless,
                 Quality = 100,
                 Method = WebpEncodingMethod.BestQuality
             };
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = false,
+                FileFormat = WebpFileFormatType.Lossless,
                 Quality = quality
             };
 
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = false,
+                FileFormat = WebpFileFormatType.Lossless,
                 Method = method,
                 Quality = quality
             };
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = false,
+                FileFormat = WebpFileFormatType.Lossless,
                 NearLossless = true,
                 NearLosslessQuality = nearLosslessQuality
             };
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = false,
+                FileFormat = WebpFileFormatType.Lossless,
                 Method = method,
                 TransparentColorMode = WebpTransparentColorMode.Preserve
             };
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using Image<TPixel> image = provider.GetImage();
 
-            var encoder = new WebpEncoder() { Lossy = false };
+            var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless };
             image.VerifyEncoder(provider, "webp", string.Empty, encoder);
         }
 
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             // Just make sure, encoding 1 pixel by 1 pixel does not throw an exception.
             using var image = new Image<Rgba32>(1, 1);
-            var encoder = new WebpEncoder() { Lossy = false };
+            var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless };
             using (var memStream = new MemoryStream())
             {
                 image.SaveAsWebp(memStream, encoder);
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = true,
+                FileFormat = WebpFileFormatType.Lossy,
                 Quality = quality
             };
 
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = true,
+                FileFormat = WebpFileFormatType.Lossy,
                 FilterStrength = filterStrength
             };
 
@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = true,
+                FileFormat = WebpFileFormatType.Lossy,
                 SpatialNoiseShaping = snsStrength
             };
 
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             var encoder = new WebpEncoder()
             {
-                Lossy = true,
+                FileFormat = WebpFileFormatType.Lossy,
                 Method = method,
                 Quality = quality
             };
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using Image<TPixel> image = provider.GetImage();
 
-            var encoder = new WebpEncoder() { Lossy = true };
+            var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy };
             image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
         }
 

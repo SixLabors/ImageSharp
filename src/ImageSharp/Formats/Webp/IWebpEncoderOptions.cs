@@ -9,10 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
     internal interface IWebpEncoderOptions
     {
         /// <summary>
-        /// Gets a value indicating whether lossy compression should be used.
-        /// If false, lossless compression will be used.
+        /// Gets the webp file format used. Either lossless or lossy.
         /// </summary>
-        bool? Lossy { get; }
+        WebpFileFormatType? FileFormat { get; }
 
         /// <summary>
         /// Gets the compression quality. Between 0 and 100.

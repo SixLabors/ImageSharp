@@ -506,9 +506,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
                 case TestImageWriteFormat.Png:
                     return WriteAndReadPng(image);
                 case TestImageWriteFormat.WebpLossless:
-                    return WriteAndReadWebp(image, lossy: false);
+                    return WriteAndReadWebp(image, WebpFileFormatType.Lossless);
                 case TestImageWriteFormat.WebpLossy:
-                    return WriteAndReadWebp(image, lossy: true);
+                    return WriteAndReadWebp(image, WebpFileFormatType.Lossy);
                 default:
                     throw new ArgumentException("Unexpected test image format, only Jpeg and Png are allowed");
             }
@@ -538,11 +538,11 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             }
         }
 
-        private static Image<Rgba32> WriteAndReadWebp(Image<Rgba32> image, bool lossy)
+        private static Image<Rgba32> WriteAndReadWebp(Image<Rgba32> image, WebpFileFormatType fileFormat)
         {
             using (var memStream = new MemoryStream())
             {
-                image.SaveAsWebp(memStream, new WebpEncoder() { Lossy = lossy });
+                image.SaveAsWebp(memStream, new WebpEncoder() { FileFormat = fileFormat });
                 image.Dispose();
 
                 memStream.Position = 0;

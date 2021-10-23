@@ -71,9 +71,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly int nearLosslessQuality;
 
         /// <summary>
-        /// Indicating whether lossy compression should be used. If false, lossless compression will be used.
+        /// Indicating what file format compression should be used.
         /// </summary>
-        private bool? lossy;
+        private readonly WebpFileFormatType? fileFormat;
 
         /// <summary>
         /// The global configuration.
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             this.memoryAllocator = memoryAllocator;
             this.alphaCompression = options.UseAlphaCompression;
-            this.lossy = options.Lossy;
+            this.fileFormat = options.FileFormat;
             this.quality = options.Quality;
             this.method = options.Method;
             this.entropyPasses = options.EntropyPasses;
@@ -114,11 +114,18 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
-            ImageMetadata metadata = image.Metadata;
-            WebpMetadata webpMetadata = metadata.GetWebpMetadata();
-            this.lossy ??= webpMetadata.Format == WebpFormatType.Lossy;
+            bool lossy;
+            if (this.fileFormat is not null)
+            {
+                lossy = this.fileFormat == WebpFileFormatType.Lossy;
+            }
+            else
+            {
+                WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
+                lossy = webpMetadata.FileFormat == WebpFileFormatType.Lossy;
+            }
 
-            if (this.lossy.GetValueOrDefault())
+            if (lossy)
             {
                 using var enc = new Vp8Encoder(
                     this.memoryAllocator,

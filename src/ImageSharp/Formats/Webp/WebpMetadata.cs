@@ -19,12 +19,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Initializes a new instance of the <see cref="WebpMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private WebpMetadata(WebpMetadata other) => this.Format = other.Format;
+        private WebpMetadata(WebpMetadata other) => this.FileFormat = other.FileFormat;
 
         /// <summary>
-        /// Gets or sets the webp format used. Either lossless or lossy.
+        /// Gets or sets the webp file format used. Either lossless or lossy.
         /// </summary>
-        public WebpFormatType? Format { get; set; }
+        public WebpFileFormatType? FileFormat { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new WebpMetadata(this);

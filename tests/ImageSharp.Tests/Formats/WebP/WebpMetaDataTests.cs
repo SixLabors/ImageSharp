@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class WebpMetaDataTests
     {
-        private static WebpDecoder WebpDecoder => new WebpDecoder() { IgnoreMetadata = false };
+        private static WebpDecoder WebpDecoder => new() { IgnoreMetadata = false };
 
         [Theory]
         [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32, false)]
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             ExifProfile expectedExif = input.Metadata.ExifProfile;
 
             // act
-            input.Save(memoryStream, new WebpEncoder() { Lossy = true });
+            input.Save(memoryStream, new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy });
             memoryStream.Position = 0;
 
             // assert
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             ExifProfile expectedExif = input.Metadata.ExifProfile;
 
             // act
-            input.Save(memoryStream, new WebpEncoder() { Lossy = false });
+            input.Save(memoryStream, new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless });
             memoryStream.Position = 0;
 
             // assert

@@ -4,9 +4,9 @@
 namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// Info about the webp format used.
+    /// Info about the webp file format used.
     /// </summary>
-    public enum WebpFormatType
+    public enum WebpFileFormatType
     {
         /// <summary>
         /// The lossless webp format.

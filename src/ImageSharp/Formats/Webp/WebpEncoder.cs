@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     public sealed class WebpEncoder : IImageEncoder, IWebpEncoderOptions
     {
         /// <inheritdoc/>
-        public bool? Lossy { get; set; }
+        public WebpFileFormatType? FileFormat { get; set; }
 
         /// <inheritdoc/>
         public int Quality { get; set; } = 75;

@@ -262,7 +262,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <returns>Information about this webp image.</returns>
         private WebpImageInfo ReadVp8Header(WebpFeatures features = null)
         {
-            this.webpMetadata.Format = WebpFormatType.Lossy;
+            this.webpMetadata.FileFormat = WebpFileFormatType.Lossy;
 
             // VP8 data size (not including this 4 bytes).
             this.currentStream.Read(this.buffer, 0, 4);
@@ -367,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <returns>Information about this image.</returns>
         private WebpImageInfo ReadVp8LHeader(WebpFeatures features = null)
         {
-            this.webpMetadata.Format = WebpFormatType.Lossless;
+            this.webpMetadata.FileFormat = WebpFileFormatType.Lossless;
 
             // VP8 data size.
             uint imageDataSize = this.ReadChunkSize();

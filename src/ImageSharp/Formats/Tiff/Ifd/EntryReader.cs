@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.ReadValues64(this.Values, ifdOffset);
                 this.NextIfdOffset = this.ReadUInt64();
 
-                this.ReadSubIfd64(this.Values);
+                //// this.ReadSubIfd64(this.Values);
             }
         }
 

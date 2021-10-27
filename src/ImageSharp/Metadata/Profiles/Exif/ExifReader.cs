@@ -227,16 +227,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
-        protected void ReadSubIfd64(List<IExifValue> values)
-        {
-            if (this.subIfds is not null)
-            {
-                foreach (ulong subIfdOffset in this.subIfds)
-                {
-                    this.ReadValues64(values, subIfdOffset);
-                }
-            }
-        }
+        ////protected void ReadSubIfd64(List<IExifValue> values)
+        ////{
+        ////    if (this.subIfds is not null)
+        ////    {
+        ////        foreach (ulong subIfdOffset in this.subIfds)
+        ////        {
+        ////            this.ReadValues64(values, subIfdOffset);
+        ////        }
+        ////    }
+        ////}
 
         private static TDataType[] ToArray<TDataType>(ExifDataType dataType, ReadOnlySpan<byte> data, ConverterMethod<TDataType> converter)
         {
@@ -482,15 +482,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.TileByteCounts:
                     exifValue = new ExifLong8Array(ExifTagValue.TileByteCounts);
                     break;
-                case ExifTagValue.SubIFDOffset:
-                    exifValue = new ExifLong8(ExifTagValue.SubIFDOffset);
-                    break;
-                case ExifTagValue.GPSIFDOffset:
-                    exifValue = new ExifLong8(ExifTagValue.GPSIFDOffset);
-                    break;
-                case ExifTagValue.SubIFDs:
-                    exifValue = new ExifLong8Array(ExifTagValue.SubIFDs);
-                    break;
+                ////case ExifTagValue.SubIFDOffset:
+                ////    exifValue = new ExifLong8(ExifTagValue.SubIFDOffset);
+                ////    break;
+                ////case ExifTagValue.GPSIFDOffset:
+                ////    exifValue = new ExifLong8(ExifTagValue.GPSIFDOffset);
+                ////    break;
+                ////case ExifTagValue.SubIFDs:
+                ////    exifValue = new ExifLong8Array(ExifTagValue.SubIFDs);
+                ////    break;
                 default:
                     exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
                     break;

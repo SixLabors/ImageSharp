@@ -134,10 +134,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             foreach ((ulong offset, ExifDataType dataType, ulong numberOfComponents, ExifValue exif) in this.BigValues)
             {
                 ulong size = numberOfComponents * ExifDataTypes.GetSize(dataType);
-                if (size > int.MaxValue)
-                {
-                    ThrowHelper.ThrowArgumentOutOfRangeExceptionForMustBeLessThanOrEqualTo<ulong>(size, int.MaxValue, nameof(size));
-                }
+                DebugGuard.MustBeLessThanOrEqualTo<ulong>(size, int.MaxValue, nameof(size));
 
                 if ((int)size > maxSize)
                 {
@@ -361,13 +358,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToUInt64);
-                case ExifDataType.SignedLong8:
-                    if (!isArray)
-                    {
-                        return this.ConvertToInt64(buffer);
-                    }
+                ////case ExifDataType.SignedLong8:
+                ////    if (!isArray)
+                ////    {
+                ////        return this.ConvertToInt64(buffer);
+                ////    }
 
-                    return ToArray(dataType, buffer, this.ConvertToUInt64);
+                ////    return ToArray(dataType, buffer, this.ConvertToUInt64);
                 case ExifDataType.Undefined:
                     if (!isArray)
                     {
@@ -596,17 +593,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 ? this.ConvertToShort(this.buf2)
                 : default;
 
-        private long ConvertToInt64(ReadOnlySpan<byte> buffer)
-        {
-            if (buffer.Length < 8)
-            {
-                return default;
-            }
+        ////private long ConvertToInt64(ReadOnlySpan<byte> buffer)
+        ////{
+        ////    if (buffer.Length < 8)
+        ////    {
+        ////        return default;
+        ////    }
 
-            return this.IsBigEndian
-                ? BinaryPrimitives.ReadInt64BigEndian(buffer)
-                : BinaryPrimitives.ReadInt64LittleEndian(buffer);
-        }
+        ////    return this.IsBigEndian
+        ////        ? BinaryPrimitives.ReadInt64BigEndian(buffer)
+        ////        : BinaryPrimitives.ReadInt64LittleEndian(buffer);
+        ////}
 
         private ulong ConvertToUInt64(ReadOnlySpan<byte> buffer)
         {

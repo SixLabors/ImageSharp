@@ -219,19 +219,55 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
 
-            var stripOffsets = (Array)tags.GetValueInternal(ExifTag.StripOffsets)?.GetValue();
-            var stripByteCounts = (Array)tags.GetValueInternal(ExifTag.StripByteCounts)?.GetValue();
+            var stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
+            var stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts).GetValue();
+
+            IMemoryOwner<ulong> stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
+            IMemoryOwner<ulong> stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
-                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
+                this.DecodeStripsPlanar(
+                    frame,
+                    rowsPerStrip,
+                    stripOffsets,
+                    stripByteCounts,
+                    cancellationToken);
             }
             else
             {
-                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, cancellationToken);
+                this.DecodeStripsChunky(
+                    frame,
+                    rowsPerStrip,
+                    stripOffsets,
+                    stripByteCounts,
+                    cancellationToken);
             }
 
+            stripOffsetsMemory?.Dispose();
+            stripByteCountsMemory?.Dispose();
             return frame;
+        }
+
+        private IMemoryOwner<ulong> ConvertNumbers(Array array, out Span<ulong> span)
+        {
+            if (array is Number[] numbers)
+            {
+                IMemoryOwner<ulong> memory = this.memoryAllocator.Allocate<ulong>(numbers.Length);
+                span = memory.GetSpan();
+                for (int i = 0; i < numbers.Length; i++)
+                {
+                    span[i] = (uint)numbers[i];
+                }
+
+                return memory;
+            }
+            else
+            {
+                DebugGuard.IsTrue(array is ulong[], $"Expected {nameof(UInt64)} array.");
+                span = (ulong[])array;
+                return null;
+            }
         }
 
         /// <summary>
@@ -284,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Array stripOffsets, Array stripByteCounts, CancellationToken cancellationToken)
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Span<ulong> stripOffsets, Span<ulong> stripByteCounts, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Channels;
@@ -335,26 +371,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     int stripIndex = i;
                     for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
                     {
-                        ulong offset = stripOffsets.GetValue(stripIndex) switch
-                        {
-                            ulong val => val,
-                            Number val => (uint)val,
-                            _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
-                        };
-
-                        ulong count = stripByteCounts.GetValue(stripIndex) switch
-                        {
-                            ulong val => val,
-                            Number val => (uint)val,
-                            _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
-                        };
-
                         decompressor.Decompress(
                             this.inputStream,
-                            offset,
-                            count,
+                            stripOffsets[stripIndex],
+                            stripByteCounts[stripIndex],
                             stripHeight,
                             stripBuffers[planeIndex].GetSpan());
+
                         stripIndex += stripsPerPlane;
                     }
 
@@ -379,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stripOffsets">The strip offsets.</param>
         /// <param name="stripByteCounts">The strip byte counts.</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Array stripOffsets, Array stripByteCounts, CancellationToken cancellationToken)
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Span<ulong> stripOffsets, Span<ulong> stripByteCounts, CancellationToken cancellationToken)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             // If the rowsPerStrip has the default value, which is effectively infinity. That is, the entire image is one strip.
@@ -435,24 +458,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
-                ulong offset = stripOffsets.GetValue(stripIndex) switch
-                {
-                    ulong val => val,
-                    Number val => (uint)val,
-                    _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
-                };
-
-                ulong count = stripByteCounts.GetValue(stripIndex) switch
-                {
-                    ulong val => val,
-                    Number val => (uint)val,
-                    _ => throw TiffThrowHelper.ThrowImageFormatException("Expected Number or Long8 array")
-                };
-
                 decompressor.Decompress(
                     this.inputStream,
-                    offset,
-                    count,
+                    stripOffsets[stripIndex],
+                    stripByteCounts[stripIndex],
                     stripHeight,
                     stripBufferSpan);
 

@@ -1,9 +1,5 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -16,16 +12,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRgbInplace(in ComponentValues values)
-            {
+            public override void ConvertToRgbInplace(in ComponentValues values) =>
                 ConvertCoreInplace(values, this.MaximumValue);
-            }
 
             internal static void ConvertCoreInplace(ComponentValues values, float maxValue)
             {
-                FromGrayscaleBasic.ScaleValues(values.Component0, maxValue);
-                FromGrayscaleBasic.ScaleValues(values.Component1, maxValue);
-                FromGrayscaleBasic.ScaleValues(values.Component2, maxValue);
+                FromGrayscaleScalar.ScaleValues(values.Component0, maxValue);
+                FromGrayscaleScalar.ScaleValues(values.Component1, maxValue);
+                FromGrayscaleScalar.ScaleValues(values.Component2, maxValue);
             }
         }
     }

@@ -1,8 +1,6 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -38,10 +36,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var chromaOffset = Vector256.Create(-this.HalfValue);
                 var scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
                 var max = Vector256.Create(this.MaximumValue);
-                var rCrMult = Vector256.Create(1.402F);
-                var gCbMult = Vector256.Create(-0.344136F);
-                var gCrMult = Vector256.Create(-0.714136F);
-                var bCbMult = Vector256.Create(1.772F);
+                var rCrMult = Vector256.Create(FromYCbCrScalar.RCrMult);
+                var gCbMult = Vector256.Create(-FromYCbCrScalar.GCbMult);
+                var gCrMult = Vector256.Create(-FromYCbCrScalar.GCrMult);
+                var bCbMult = Vector256.Create(FromYCbCrScalar.BCbMult);
 
                 // Walking 8 elements at one step:
                 nint n = values.Component0.Length / 8;
@@ -62,7 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     // r = y + (1.402F * cr);
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
                     // b = y + (1.772F * cb);
-                    // Adding & multiplying 8 elements at one time:
                     Vector256<float> r = HwIntrinsics.MultiplyAdd(y, cr, rCrMult);
                     Vector256<float> g =
                         HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(y, cb, gCbMult), cr, gCrMult);
@@ -84,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromYccKBasic.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+                FromYccKScalar.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
         }
     }
 }

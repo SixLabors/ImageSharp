@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -115,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #endif
             yield return new FromYCbCrVector8(precision);
             yield return new FromYCbCrVector4(precision);
-            yield return new FromYCbCrBasic(precision);
+            yield return new FromYCbCrScalar(precision);
         }
 
         /// <summary>
@@ -127,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             yield return new FromYccKAvx2(precision);
 #endif
             yield return new FromYccKVector8(precision);
-            yield return new FromYccKBasic(precision);
+            yield return new FromYccKScalar(precision);
         }
 
         /// <summary>
@@ -139,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             yield return new FromCmykAvx2(precision);
 #endif
             yield return new FromCmykVector8(precision);
-            yield return new FromCmykBasic(precision);
+            yield return new FromCmykScalar(precision);
         }
 
         /// <summary>
@@ -150,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromGrayscaleAvx2(precision);
 #endif
-            yield return new FromGrayscaleBasic(precision);
+            yield return new FromGrayscaleScalar(precision);
         }
 
         /// <summary>
@@ -200,10 +199,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <summary>
             /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
             /// </summary>
-            /// <param name="componentBuffers">The 1-4 sized list of component buffers.</param>
-            /// <param name="row">The row to convert</param>
+            /// <param name="componentBuffers">List of component buffers.</param>
+            /// <param name="row">Row to convert</param>
+            [Obsolete("This ctor exists only in favour of tests and benchmarks")]
             public ComponentValues(IReadOnlyList<Buffer2D<float>> componentBuffers, int row)
             {
+                DebugGuard.MustBeGreaterThan(componentBuffers.Count, 0, nameof(componentBuffers));
+
                 this.ComponentCount = componentBuffers.Count;
 
                 this.Component0 = componentBuffers[0].GetRowSpan(row);
@@ -212,6 +214,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.Component1 = this.ComponentCount > 1 ? componentBuffers[1].GetRowSpan(row) : this.Component0;
                 this.Component2 = this.ComponentCount > 2 ? componentBuffers[2].GetRowSpan(row) : this.Component0;
                 this.Component3 = this.ComponentCount > 3 ? componentBuffers[3].GetRowSpan(row) : Span<float>.Empty;
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
+            /// </summary>
+            /// <param name="processors">List of component color processors.</param>
+            /// <param name="row">Row to convert</param>
+            public ComponentValues(IReadOnlyList<JpegComponentPostProcessor> processors, int row)
+            {
+                DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
+
+                this.ComponentCount = processors.Count;
+
+                this.Component0 = processors[0].ColorBuffer.GetRowSpan(row);
+
+                // In case of grayscale, Component1 and Component2 point to Component0 memory area
+                this.Component1 = this.ComponentCount > 1 ? processors[1].ColorBuffer.GetRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? processors[2].ColorBuffer.GetRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? processors[3].ColorBuffer.GetRowSpan(row) : Span<float>.Empty;
             }
 
             internal ComponentValues(

@@ -1,11 +1,9 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -30,13 +28,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
                 var chromaOffset = new Vector<float>(-this.HalfValue);
-
-                // Walking 8 elements at one step:
-                nint n = values.Component0.Length / 8;
-
+                var scale = new Vector<float>(1 / (this.MaximumValue * this.MaximumValue));
                 var max = new Vector<float>(this.MaximumValue);
-                var scale = new Vector<float>(1f) / (max * max);
+                var rCrMult = new Vector<float>(FromYCbCrScalar.RCrMult);
+                var gCbMult = new Vector<float>(-FromYCbCrScalar.GCbMult);
+                var gCrMult = new Vector<float>(-FromYCbCrScalar.GCrMult);
+                var bCbMult = new Vector<float>(FromYCbCrScalar.BCbMult);
 
+                nint n = values.Component0.Length / 8;
                 for (nint i = 0; i < n; i++)
                 {
                     // y = yVals[i];
@@ -55,10 +54,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     // r = y + (1.402F * cr);
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
                     // b = y + (1.772F * cb);
-                    // Adding & multiplying 8 elements at one time:
-                    Vector<float> r = y + (cr * new Vector<float>(1.402F));
-                    Vector<float> g = y - (cb * new Vector<float>(0.344136F)) - (cr * new Vector<float>(0.714136F));
-                    Vector<float> b = y + (cb * new Vector<float>(1.772F));
+                    Vector<float> r = y + (cr * rCrMult);
+                    Vector<float> g = y - (cb * gCbMult) - (cr * gCrMult);
+                    Vector<float> b = y + (cb * bCbMult);
 
                     r = (max - r.FastRound()) * scaledK;
                     g = (max - g.FastRound()) * scaledK;
@@ -71,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromYccKBasic.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+                FromYccKScalar.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
         }
     }
 }

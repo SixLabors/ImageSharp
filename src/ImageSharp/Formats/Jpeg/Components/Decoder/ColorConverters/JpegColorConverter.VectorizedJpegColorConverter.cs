@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -13,10 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             private readonly int vectorSize;
 
             protected VectorizedJpegColorConverter(JpegColorSpace colorSpace, int precision, int vectorSize)
-                : base(colorSpace, precision)
-            {
+                : base(colorSpace, precision) =>
                 this.vectorSize = vectorSize;
-            }
 
             public override void ConvertToRgbInplace(in ComponentValues values)
             {

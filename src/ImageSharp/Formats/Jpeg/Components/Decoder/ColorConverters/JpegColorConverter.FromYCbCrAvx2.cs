@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -36,15 +34,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 // Used for the color conversion
                 var chromaOffset = Vector256.Create(-this.HalfValue);
                 var scale = Vector256.Create(1 / this.MaximumValue);
-                var rCrMult = Vector256.Create(1.402F);
-                var gCbMult = Vector256.Create(-0.344136F);
-                var gCrMult = Vector256.Create(-0.714136F);
-                var bCbMult = Vector256.Create(1.772F);
-
-                // Used for packing.
-                var va = Vector256.Create(1F);
-                ref byte control = ref MemoryMarshal.GetReference(HwIntrinsics.PermuteMaskEvenOdd8x32);
-                Vector256<int> vcontrol = Unsafe.As<byte, Vector256<int>>(ref control);
+                var rCrMult = Vector256.Create(FromYCbCrScalar.RCrMult);
+                var gCbMult = Vector256.Create(-FromYCbCrScalar.GCbMult);
+                var gCrMult = Vector256.Create(-FromYCbCrScalar.GCrMult);
+                var bCbMult = Vector256.Create(FromYCbCrScalar.BCbMult);
 
                 // Walking 8 elements at one step:
                 nint n = values.Component0.Length / 8;
@@ -64,7 +57,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     // r = y + (1.402F * cr);
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
                     // b = y + (1.772F * cb);
-                    // Adding & multiplying 8 elements at one time:
                     Vector256<float> r = HwIntrinsics.MultiplyAdd(y, cr, rCrMult);
                     Vector256<float> g = HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(y, cb, gCbMult), cr, gCrMult);
                     Vector256<float> b = HwIntrinsics.MultiplyAdd(y, cb, bCbMult);
@@ -81,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromYCbCrBasic.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+                FromYCbCrScalar.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
         }
     }
 }

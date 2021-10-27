@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     ref Unsafe.As<float, Vector4Pair>(ref MemoryMarshal.GetReference(values.Component2));
 
                 var chromaOffset = new Vector4(-this.HalfValue);
-                var maxValue = this.MaximumValue;
+                float maxValue = this.MaximumValue;
 
                 // Walking 8 elements at one step:
                 nint n = values.Component0.Length / 8;
@@ -82,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             protected override void ConvertCoreInplace(in ComponentValues values)
-                => FromYCbCrBasic.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+                => FromYCbCrScalar.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
         }
     }
 }

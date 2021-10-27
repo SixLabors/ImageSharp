@@ -36,10 +36,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <param name="buffer">The output buffer for uncompressed data.</param>
         public void Decompress(BufferedReadStream stream, ulong stripOffset, ulong stripByteCount, int stripHeight, Span<byte> buffer)
         {
-            if (stripOffset > long.MaxValue || stripByteCount > long.MaxValue)
-            {
-                TiffThrowHelper.ThrowImageFormatException("The StripOffset or StripByteCount value is too big.");
-            }
+            DebugGuard.MustBeLessThanOrEqualTo(stripOffset, (ulong)long.MaxValue, nameof(stripOffset));
+            DebugGuard.MustBeLessThanOrEqualTo(stripByteCount, (ulong)long.MaxValue, nameof(stripByteCount));
 
             stream.Seek((long)stripOffset, SeekOrigin.Begin);
             this.Decompress(stream, (int)stripByteCount, stripHeight, buffer);

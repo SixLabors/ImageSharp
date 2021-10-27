@@ -43,9 +43,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             Assert.True(long8.TrySetValue(-100L));
             Assert.Equal(-100L, long8.GetValue());
+            Assert.Equal(ExifDataType.SignedLong8, long8.DataType);
 
-            Assert.True(long8.TrySetValue(100L));
-            Assert.Equal(100L, long8.GetValue());
+            Assert.True(long8.TrySetValue(long.MaxValue));
+            Assert.Equal(long.MaxValue, long8.GetValue());
+            Assert.Equal(ExifDataType.SignedLong8, long8.DataType);
         }
 
         [Fact]
@@ -65,14 +67,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.True(long8.TrySetValue(123));
             Assert.Equal(new[] { 123UL }, long8.GetValue());
 
+            Assert.True(long8.TrySetValue(123u));
+            Assert.Equal(new[] { 123UL }, long8.GetValue());
+
             Assert.True(long8.TrySetValue(123L));
             Assert.Equal(new[] { 123UL }, long8.GetValue());
 
             Assert.True(long8.TrySetValue(123UL));
             Assert.Equal(new[] { 123UL }, long8.GetValue());
 
+            Assert.True(long8.TrySetValue(new short[] { -1, 2, -3, 4 }));
+            Assert.Equal(new ulong[] { 0, 2UL, 0, 4UL }, long8.GetValue());
+
             Assert.True(long8.TrySetValue(new[] { 1, 2, 3, 4 }));
             Assert.Equal(new[] { 1UL, 2UL, 3UL, 4UL }, long8.GetValue());
+            Assert.Equal(ExifDataType.Long, long8.DataType);
+
+            Assert.True(long8.TrySetValue(new[] { 1, 2, 3, 4, long.MaxValue }));
+            Assert.Equal(new[] { 1UL, 2UL, 3UL, 4UL, (ulong)long.MaxValue }, long8.GetValue());
+            Assert.Equal(ExifDataType.Long8, long8.DataType);
         }
 
         [Fact]
@@ -82,9 +95,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             Assert.True(long8.TrySetValue(new[] { 0L }));
             Assert.Equal(new[] { 0L }, long8.GetValue());
+            Assert.Equal(ExifDataType.SignedLong8, long8.DataType);
 
-            Assert.True(long8.TrySetValue(new[] { -1L, 2L, -3L, 4L }));
-            Assert.Equal(new[] { -1L, 2L, -3L, 4L }, long8.GetValue());
+            Assert.True(long8.TrySetValue(new[] { -1L, 2L, long.MinValue, 4L }));
+            Assert.Equal(new[] { -1L, 2L, long.MinValue, 4L }, long8.GetValue());
+            Assert.Equal(ExifDataType.SignedLong8, long8.DataType);
         }
     }
 }

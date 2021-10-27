@@ -7,11 +7,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal sealed class ExifLong8Array : ExifArrayValue<ulong>
     {
-        public ExifLong8Array(ExifTag<ulong[]> tag)
-            : base(tag)
-        {
-        }
-
         public ExifLong8Array(ExifTagValue tag)
             : base(tag)
         {
@@ -109,7 +104,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private bool SetArray(long[] values)
         {
-            this.Value = Unsafe.As<long[], ulong[]>(ref values);
+            var numbers = new ulong[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = (ulong)(values[i] < 0 ? 0 : values[i]);
+            }
+
+            this.Value = numbers;
             return true;
         }
 
@@ -124,7 +125,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             var numbers = new ulong[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                numbers[i] = (ulong)values[i];
+                numbers[i] = (ulong)Numerics.Clamp(values[i], 0, int.MaxValue);
             }
 
             this.Value = numbers;
@@ -148,7 +149,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             var numbers = new ulong[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                numbers[i] = (ulong)values[i];
+                numbers[i] = (ulong)Numerics.Clamp(values[i], 0, short.MaxValue);
             }
 
             this.Value = numbers;

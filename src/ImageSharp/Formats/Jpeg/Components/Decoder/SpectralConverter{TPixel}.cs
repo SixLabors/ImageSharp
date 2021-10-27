@@ -121,11 +121,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
-            var buffers = new Buffer2D<float>[this.componentProcessors.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
                 this.componentProcessors[i].CopyBlocksToColorBuffer(spectralStep);
-                buffers[i] = this.componentProcessors[i].ColorBuffer;
             }
 
             int width = this.pixelBuffer.Width;
@@ -134,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 int y = yy - this.pixelRowCounter;
 
-                var values = new JpegColorConverter.ComponentValues(buffers, y);
+                var values = new JpegColorConverter.ComponentValues(this.componentProcessors, y);
 
                 this.colorConverter.ConvertToRgbInplace(values);
                 values = values.Slice(0, width); // slice away Jpeg padding

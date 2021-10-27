@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
          https://exiftool.org/TagNames/EXIF.html */
         [InlineData(TestImageWriteFormat.Jpeg, 18)]
         [InlineData(TestImageWriteFormat.Png, 18)]
-        [InlineData(TestImageWriteFormat.WebpLossless, 16)]
+        [InlineData(TestImageWriteFormat.WebpLossless, 18)]
         public void SetValue(TestImageWriteFormat imageFormat, int expectedProfileValueCount)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();

@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Initializes a new instance of the <see cref="La32"/> struct.
         /// </summary>
         /// <param name="l">The luminance component.</param>
-        /// <param name="a">The alpha componant.</param>
+        /// <param name="a">The alpha component.</param>
         public La32(ushort l, ushort a)
         {
             this.L = l;

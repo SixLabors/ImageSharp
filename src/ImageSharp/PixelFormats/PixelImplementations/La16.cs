@@ -16,8 +16,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     [StructLayout(LayoutKind.Explicit)]
     public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     {
-        private static readonly Vector4 MaxBytes = new Vector4(255F);
-        private static readonly Vector4 Half = new Vector4(0.5F);
+        private static readonly Vector4 MaxBytes = new(255F);
+        private static readonly Vector4 Half = new(0.5F);
 
         /// <summary>
         /// Gets or sets the luminance component.
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Initializes a new instance of the <see cref="La16"/> struct.
         /// </summary>
         /// <param name="l">The luminance component.</param>
-        /// <param name="a">The alpha componant.</param>
+        /// <param name="a">The alpha component.</param>
         public La16(byte l, byte a)
         {
             this.L = l;

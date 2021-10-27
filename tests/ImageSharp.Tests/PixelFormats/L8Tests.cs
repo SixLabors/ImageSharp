@@ -12,29 +12,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     public class L8Tests
     {
         public static readonly TheoryData<byte> LuminanceData
-            = new TheoryData<byte>
-            {
-                0,
-                1,
-                2,
-                3,
-                5,
-                13,
-                31,
-                71,
-                73,
-                79,
-                83,
-                109,
-                127,
-                128,
-                131,
-                199,
-                250,
-                251,
-                254,
-                255
-            };
+            = new() { 0, 1, 2, 3, 5, 13, 31, 71, 73, 79, 83, 109, 127, 128, 131, 199, 250, 251, 254, 255 };
 
         [Theory]
         [InlineData(0)]

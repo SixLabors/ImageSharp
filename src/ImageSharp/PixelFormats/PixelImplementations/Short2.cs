@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         // Two's complement
         private const float MinNeg = ~(int)MaxPos;
 
-        private static readonly Vector2 Max = new Vector2(MaxPos);
-        private static readonly Vector2 Min = new Vector2(MinNeg);
+        private static readonly Vector2 Max = new(MaxPos);
+        private static readonly Vector2 Min = new(MinNeg);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Short2"/> struct.
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10), 0, 1);
+        public readonly Vector4 ToVector4() => new((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10), 0, 1);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector2"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector2 ToVector2() => new Vector2((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10));
+        public readonly Vector2 ToVector2() => new((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10));
 
         /// <inheritdoc />
         public override readonly bool Equals(object obj) => obj is Short2 other && this.Equals(other);
@@ -181,8 +181,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static uint Pack(Vector2 vector)
         {
             vector = Vector2.Clamp(vector, Min, Max);
-            uint word2 = (uint)Math.Round(vector.X) & 0xFFFF;
-            uint word1 = ((uint)Math.Round(vector.Y) & 0xFFFF) << 0x10;
+            uint word2 = (uint)Convert.ToInt32(Math.Round(vector.X)) & 0xFFFF;
+            uint word1 = ((uint)Convert.ToInt32(Math.Round(vector.Y)) & 0xFFFF) << 0x10;
 
             return word2 | word1;
         }

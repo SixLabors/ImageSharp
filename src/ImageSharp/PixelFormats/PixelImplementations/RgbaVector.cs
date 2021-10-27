@@ -43,8 +43,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public float A;
 
         private const float MaxBytes = byte.MaxValue;
-        private static readonly Vector4 Max = new Vector4(MaxBytes);
-        private static readonly Vector4 Half = new Vector4(0.5F);
+        private static readonly Vector4 Max = new(MaxBytes);
+        private static readonly Vector4 Half = new(0.5F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A);
+        public readonly Vector4 ToVector4() => new(this.R, this.G, this.B, this.A);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             // Hex is RRGGBBAA
             Vector4 vector = this.ToVector4() * Max;
             vector += Half;
-            uint hexOrder = (uint)((byte)vector.W | (byte)vector.Z << 8 | (byte)vector.Y << 16 | (byte)vector.X << 24);
+            uint hexOrder = (uint)((byte)vector.W | ((byte)vector.Z << 8) | ((byte)vector.Y << 16) | ((byte)vector.X << 24));
             return hexOrder.ToString("X8");
         }
 
@@ -199,10 +199,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             && this.A.Equals(other.A);
 
         /// <inheritdoc/>
-        public override readonly string ToString()
-        {
-            return FormattableString.Invariant($"RgbaVector({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##}, {this.A:#0.##})");
-        }
+        public override readonly string ToString() => FormattableString.Invariant($"RgbaVector({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##}, {this.A:#0.##})");
 
         /// <inheritdoc/>
         public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);

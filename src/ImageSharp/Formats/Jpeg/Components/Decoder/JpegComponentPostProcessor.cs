@@ -70,19 +70,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void Dispose() => this.ColorBuffer.Dispose();
 
         /// <summary>
-        /// Invoke <see cref="JpegBlockPostProcessor"/> for <see cref="BlockRowsPerStep"/> block rows, copy the result into <see cref="ColorBuffer"/>.
+        /// Convert next MCU row of raw spectral data to color data.
         /// </summary>
-        public void CopyBlocksToColorBuffer(int step)
+        public void CopyBlocksToColorBuffer()
+        {
+            this.CopyBlocksToColorBuffer(this.currentComponentRowInBlocks);
+            this.currentComponentRowInBlocks += this.BlockRowsPerStep;
+        }
+
+        /// <summary>
+        /// Convert raw spectral data to color data for a specified MCU row.
+        /// </summary>
+        /// <param name="mcuRow">MCU row to convert.</param>
+        public void CopyBlocksToColorBuffer(int mcuRow)
         {
             Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
-
-            var blockPp = new JpegBlockPostProcessor(this.RawJpeg, this.Component);
 
             float maximumValue = this.frame.MaxColorChannelValue;
 
             int destAreaStride = this.ColorBuffer.Width;
 
-            int yBlockStart = step * this.BlockRowsPerStep;
+            int yBlockStart = mcuRow * this.BlockRowsPerStep;
+
+            Size subSamplingDivisors = this.Component.SubSamplingDivisors;
+
+            Block8x8F dequantTable = this.RawJpeg.QuantizationTables[this.Component.QuantizationTableIndex];
+            Block8x8F workspaceBlock = default;
 
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
@@ -102,15 +115,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 Span<Block8x8> blockRow = spectralBuffer.GetRowSpan(yBlock);
                 for (int xBlock = 0; xBlock < blockRow.Length; xBlock++)
                 {
-                    ref Block8x8 block = ref blockRow[xBlock];
                     int xBuffer = xBlock * this.blockAreaSize.Width;
                     ref float destAreaOrigin = ref colorBufferRow[xBuffer];
 
-                    blockPp.ProcessBlockColorsInto(ref block, ref destAreaOrigin, destAreaStride, maximumValue);
+                    workspaceBlock.LoadFrom(ref blockRow[xBlock]);
+
+                    // Dequantize
+                    workspaceBlock.MultiplyInPlace(ref dequantTable);
+
+                    // Convert from spectral to color
+                    FastFloatingPointDCT.TransformIDCT(ref workspaceBlock);
+
+                    // To conform better to libjpeg we actually NEED TO loose precision here.
+                    // This is because they store blocks as Int16 between all the operations.
+                    // To be "more accurate", we need to emulate this by rounding!
+                    workspaceBlock.NormalizeColorsAndRoundInPlace(maximumValue);
+
+                    // Write to color buffer acording to sampling factors
+                    workspaceBlock.ScaledCopyTo(
+                        ref destAreaOrigin,
+                        destAreaStride,
+                        subSamplingDivisors.Width,
+                        subSamplingDivisors.Height);
                 }
             }
         }
 
+        /// <summary>
+        /// Clear spectral buffer for further reuse.
+        /// </summary>
+        /// <remarks>
+        /// Baseline decoder reuse same spectral buffers for each MCU row.
+        /// Decoder may not refill all values of the spectral data. Because of
+        /// that spectral buffers may have some old data from previous MCU rows.
+        /// </remarks>
         public void ClearSpectralBuffers()
         {
             Buffer2D<Block8x8> spectralBlocks = this.Component.SpectralBlocks;
@@ -118,12 +156,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 spectralBlocks.GetRowSpan(i).Clear();
             }
-        }
-
-        public void CopyBlocksToColorBuffer()
-        {
-            this.CopyBlocksToColorBuffer(this.currentComponentRowInBlocks);
-            this.currentComponentRowInBlocks += this.BlockRowsPerStep;
         }
     }
 }

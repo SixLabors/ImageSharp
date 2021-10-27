@@ -15,7 +15,10 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector<ulong>
     {
-        private static readonly Vector4 Max = new Vector4(0x7FFF);
+        // Largest two byte positive number 0xFFFF >> 1;
+        private const float MaxPos = 0x7FFF;
+
+        private static readonly Vector4 Max = new(MaxPos);
         private static readonly Vector4 Min = Vector4.Negate(Max);
 
         /// <summary>
@@ -89,16 +92,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
-        {
-            const float MaxVal = 0x7FFF;
-
-            return new Vector4(
-                         (short)((this.PackedValue >> 0x00) & 0xFFFF) / MaxVal,
-                         (short)((this.PackedValue >> 0x10) & 0xFFFF) / MaxVal,
-                         (short)((this.PackedValue >> 0x20) & 0xFFFF) / MaxVal,
-                         (short)((this.PackedValue >> 0x30) & 0xFFFF) / MaxVal);
-        }
+        public readonly Vector4 ToVector4() => new(
+                         (short)((this.PackedValue >> 0x00) & 0xFFFF) / MaxPos,
+                         (short)((this.PackedValue >> 0x10) & 0xFFFF) / MaxPos,
+                         (short)((this.PackedValue >> 0x20) & 0xFFFF) / MaxPos,
+                         (short)((this.PackedValue >> 0x30) & 0xFFFF) / MaxPos);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -142,10 +140,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -180,10 +175,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             vector = Numerics.Clamp(vector, Min, Max);
 
             // Round rather than truncate.
-            ulong word4 = ((ulong)MathF.Round(vector.X) & 0xFFFF) << 0x00;
-            ulong word3 = ((ulong)MathF.Round(vector.Y) & 0xFFFF) << 0x10;
-            ulong word2 = ((ulong)MathF.Round(vector.Z) & 0xFFFF) << 0x20;
-            ulong word1 = ((ulong)MathF.Round(vector.W) & 0xFFFF) << 0x30;
+            ulong word4 = ((ulong)Convert.ToInt32(MathF.Round(vector.X)) & 0xFFFF) << 0x00;
+            ulong word3 = ((ulong)Convert.ToInt32(MathF.Round(vector.Y)) & 0xFFFF) << 0x10;
+            ulong word2 = ((ulong)Convert.ToInt32(MathF.Round(vector.Z)) & 0xFFFF) << 0x20;
+            ulong word1 = ((ulong)Convert.ToInt32(MathF.Round(vector.W)) & 0xFFFF) << 0x30;
 
             return word4 | word3 | word2 | word1;
         }

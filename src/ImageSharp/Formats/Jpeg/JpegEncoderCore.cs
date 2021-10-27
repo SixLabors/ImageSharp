@@ -86,10 +86,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
 
-            // If the color type was not specified by the user, preserve the color type of the input image, if it's a supported color type.
-            if (!this.colorType.HasValue && IsSupportedColorType(jpegMetadata.ColorType))
+            // If the color type was not specified by the user, preserve the color type of the input image.
+            if (!this.colorType.HasValue)
             {
-                this.colorType = jpegMetadata.ColorType;
+                this.colorType = GetFallbackColorType(image);
             }
 
             // Compute number of components based on color type in options.
@@ -154,6 +154,39 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteEndOfImageMarker();
 
             stream.Flush();
+        }
+
+        /// <summary>
+        /// If color type was not set, set it based on the given image.
+        /// Note, if there is no metadata and the image has multiple components this method
+        /// returns <see langword="null"/> defering the field assignment
+        /// to <see cref="InitQuantizationTables(int, JpegMetadata, out Block8x8F, out Block8x8F)"/>.
+        /// </summary>
+        private static JpegColorType? GetFallbackColorType<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // First inspect the image metadata.
+            JpegColorType? colorType = null;
+            JpegMetadata metadata = image.Metadata.GetJpegMetadata();
+            if (IsSupportedColorType(metadata.ColorType))
+            {
+                return metadata.ColorType;
+            }
+
+            // Secondly, inspect the pixel type.
+            // TODO: PixelTypeInfo should contain a component count!
+            bool isGrayscale =
+                typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
+                typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
+
+            // We don't set multi-component color types here since we can set it based upon
+            // the quality in InitQuantizationTables.
+            if (isGrayscale)
+            {
+                colorType = JpegColorType.Luminance;
+            }
+
+            return colorType;
         }
 
         /// <summary>

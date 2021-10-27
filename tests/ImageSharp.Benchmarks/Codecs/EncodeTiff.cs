@@ -72,12 +72,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             TiffPhotometricInterpretation photometricInterpretation = TiffPhotometricInterpretation.Rgb;
 
-            // Workaround for 1-bit bug
-            if (this.Compression == TiffCompression.CcittGroup3Fax || this.Compression == TiffCompression.Ccitt1D)
-            {
-                photometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
-            }
-
             var encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
             using var memoryStream = new MemoryStream();
             this.core.SaveAsTiff(memoryStream, encoder);

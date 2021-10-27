@@ -7,7 +7,6 @@ using System.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 

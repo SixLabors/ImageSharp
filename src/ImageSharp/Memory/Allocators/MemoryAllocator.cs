@@ -22,15 +22,15 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <returns>The <see cref="MemoryAllocator"/>.</returns>
         public static MemoryAllocator CreateDefault() =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(null, null);
+            new UniformUnmanagedMemoryPoolMemoryAllocator(null);
 
         /// <summary>
         /// Creates the default <see cref="MemoryAllocator"/> using the provided options.
         /// </summary>
-        /// <param name="options">The <see cref="MemoryAllocatorOptions"/>.</param>
+        /// <param name="settings">The <see cref="MemoryAllocatorSettings"/>.</param>
         /// <returns>The <see cref="MemoryAllocator"/>.</returns>
-        public static MemoryAllocator CreateDefault(MemoryAllocatorOptions options) =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(options.MaximumPoolSizeMegabytes, options.MinimumContiguousBlockSizeBytes);
+        public static MemoryAllocator CreateDefault(MemoryAllocatorSettings settings) =>
+            new UniformUnmanagedMemoryPoolMemoryAllocator(settings.MaximumPoolSizeMegabytes);
 
         /// <summary>
         /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.

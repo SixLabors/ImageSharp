@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp
         /// <para />
         /// To ensure the memory is contiguous, <see cref="Configuration.MemoryAllocator"/> should be initialized
         /// with a <see cref="MemoryAllocator"/> that enforces larger contiguous buffers.
-        /// See <see cref="MemoryAllocatorOptions.MinimumContiguousBlockSizeBytes"/>.
+        /// See <see cref="MemoryAllocatorSettings.MinimumContiguousBlockSizeBytes"/>.
         /// <para />
         /// WARNING: Disposing or leaking the underlying image while still working with it's <see cref="Span{T}"/>
         /// might lead to memory corruption.

@@ -25,11 +25,11 @@ namespace SixLabors.ImageSharp.Memory
         private UniformUnmanagedMemoryPool pool;
         private readonly UnmanagedMemoryAllocator nonPoolAllocator;
 
-        public UniformUnmanagedMemoryPoolMemoryAllocator(int? maxPoolSizeMegabytes, int? minimumContiguousBlockBytes)
+        public UniformUnmanagedMemoryPoolMemoryAllocator(int? maxPoolSizeMegabytes)
             : this(
-                minimumContiguousBlockBytes.HasValue ? minimumContiguousBlockBytes.Value : DefaultContiguousPoolBlockSizeBytes,
+                DefaultContiguousPoolBlockSizeBytes,
                 maxPoolSizeMegabytes.HasValue ? (long)maxPoolSizeMegabytes.Value * OneMegabyte : GetDefaultMaxPoolSizeBytes(),
-                minimumContiguousBlockBytes.HasValue ? Math.Max(minimumContiguousBlockBytes.Value, DefaultNonPoolBlockSizeBytes) : DefaultNonPoolBlockSizeBytes)
+                DefaultNonPoolBlockSizeBytes)
         {
         }
 

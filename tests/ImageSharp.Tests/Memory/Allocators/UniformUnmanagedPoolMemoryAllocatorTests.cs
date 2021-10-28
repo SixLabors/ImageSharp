@@ -146,28 +146,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void MemoryAllocator_CreateDefault_WithOptions_CanForceContiguousAllocation(bool poolAllocation)
-        {
-            RemoteExecutor.Invoke(RunTest, poolAllocation.ToString()).Dispose();
-
-            static void RunTest(string poolAllocationStr)
-            {
-                int fortyEightMegabytes = 48 * (1 << 20);
-                var allocator = MemoryAllocator.CreateDefault(new MemoryAllocatorOptions()
-                {
-                    MaximumPoolSizeMegabytes = bool.Parse(poolAllocationStr) ? 64 : 0,
-                    MinimumContiguousBlockSizeBytes = fortyEightMegabytes
-                });
-
-                MemoryGroup<byte> g = allocator.AllocateGroup<byte>(fortyEightMegabytes, 1024);
-                Assert.Equal(1, g.Count);
-                Assert.Equal(fortyEightMegabytes, g.TotalLength);
-            }
-        }
-
-        [Theory]
         [InlineData(true)]
         [InlineData(false)]
         public void BufferDisposal_ReturnsToPool(bool shared)

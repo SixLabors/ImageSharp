@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
@@ -130,19 +131,51 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
-        public void MemoryAllocator_CreateDefault_WithoutOptions_AllocatesDiscontiguousMemory()
+        public void MemoryAllocator_Create_WithoutSettings_AllocatesDiscontiguousMemory()
         {
             RemoteExecutor.Invoke(RunTest).Dispose();
 
             static void RunTest()
             {
-                var allocator = MemoryAllocator.CreateDefault();
+                var allocator = MemoryAllocator.Create();
                 long sixteenMegabytes = 16 * (1 << 20);
 
                 // Should allocate 4 times 4MB discontiguos blocks:
                 MemoryGroup<byte> g = allocator.AllocateGroup<byte>(sixteenMegabytes, 1024);
                 Assert.Equal(4, g.Count);
             }
+        }
+
+        [Fact]
+        public void MemoryAllocator_Create_LimitPoolSize()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                var allocator = MemoryAllocator.Create(new MemoryAllocatorSettings()
+                {
+                    MaximumPoolSizeMegabytes = 8
+                });
+
+                MemoryGroup<byte> g0 = allocator.AllocateGroup<byte>(B(8), 1024);
+                MemoryGroup<byte> g1 = allocator.AllocateGroup<byte>(B(8), 1024);
+                ref byte r0 = ref MemoryMarshal.GetReference(g0[0].Span);
+                ref byte r1 = ref MemoryMarshal.GetReference(g1[0].Span);
+
+                g0.Dispose();
+                g1.Dispose();
+
+                MemoryGroup<byte> g2 = allocator.AllocateGroup<byte>(B(8), 1024);
+                MemoryGroup<byte> g3 = allocator.AllocateGroup<byte>(B(8), 1024);
+                ref byte r2 = ref MemoryMarshal.GetReference(g2[0].Span);
+                ref byte r3 = ref MemoryMarshal.GetReference(g3[0].Span);
+
+                Assert.True(Unsafe.AreSame(ref r0, ref r2));
+                Assert.False(Unsafe.AreSame(ref r1, ref r3));
+            }
+
+            static long B(int value) => value << 20;
         }
 
         [Theory]

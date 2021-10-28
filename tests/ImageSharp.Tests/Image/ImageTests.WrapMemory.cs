@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests
                 public override unsafe MemoryHandle Pin(int elementIndex = 0)
                 {
                     void* ptr = (void*)this.bmpData.Scan0;
-                    return new MemoryHandle(ptr);
+                    return new MemoryHandle(ptr, pinnable: this);
                 }
 
                 public override void Unpin()

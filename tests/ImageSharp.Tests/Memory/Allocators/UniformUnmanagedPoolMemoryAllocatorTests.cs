@@ -131,6 +131,23 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
+        public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
+        {
+            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null);
+            using IMemoryOwner<byte> memoryOwner = allocator.Allocate<byte>(100);
+
+            using (MemoryHandle pin = memoryOwner.Memory.Pin())
+            {
+                Assert.NotEqual(IntPtr.Zero, (IntPtr)pin.Pointer);
+            }
+
+            using (MemoryHandle pin = memoryOwner.Memory.Pin())
+            {
+                Assert.NotEqual(IntPtr.Zero, (IntPtr)pin.Pointer);
+            }
+        }
+
+        [Fact]
         public void MemoryAllocator_Create_WithoutSettings_AllocatesDiscontiguousMemory()
         {
             RemoteExecutor.Invoke(RunTest).Dispose();

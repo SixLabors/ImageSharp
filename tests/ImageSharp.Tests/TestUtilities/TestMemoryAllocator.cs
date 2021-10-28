@@ -146,12 +146,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 }
 
                 void* ptr = (void*)this.pinHandle.AddrOfPinnedObject();
-                return new MemoryHandle(ptr, this.pinHandle);
+                return new MemoryHandle(ptr, pinnable: this);
             }
 
             public override void Unpin()
             {
-                throw new NotImplementedException();
+                this.pinHandle.Free();
             }
 
             /// <inheritdoc />

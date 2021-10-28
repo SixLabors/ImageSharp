@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 this.BufferHandle.DangerousAddRef(ref unused);
 
                 void* pbData = Unsafe.Add<T>(this.Pointer, elementIndex);
-                return new MemoryHandle(pbData);
+                return new MemoryHandle(pbData, pinnable: this);
             }
 
             /// <inheritdoc />

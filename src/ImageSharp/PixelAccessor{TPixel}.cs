@@ -46,6 +46,11 @@ namespace SixLabors.ImageSharp
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
+        /// Gets the width of the backing <see cref="Image{TPixel}"/>.
+        /// </summary>
+        public int Width { get; }
+
+        /// <summary>
         /// Gets the height of the backing <see cref="Image{TPixel}"/>.
         /// </summary>
         public int Height { get; }

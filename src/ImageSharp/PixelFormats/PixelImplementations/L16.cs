@@ -72,33 +72,24 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromArgb32(Argb32 source)
-        {
-            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+        public void FromArgb32(Argb32 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromBgr24(Bgr24 source)
-        {
-            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+        public void FromBgr24(Bgr24 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromBgra32(Bgra32 source)
-        {
-            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+        public void FromBgra32(Bgra32 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -122,23 +113,17 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromRgb24(Rgb24 source)
-        {
-            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+        public void FromRgb24(Rgb24 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-        }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromRgba32(Rgba32 source)
-        {
-            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+        public void FromRgba32(Rgba32 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-        }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             ColorCache colorCache = decoder.Metadata.ColorCache;
             int colorCacheLimit = lenCodeLimit + colorCacheSize;
             int mask = decoder.Metadata.HuffmanMask;
-            HTreeGroup[] hTreeGroup = GetHTreeGroupForPos(decoder.Metadata, col, row);
+            Span<HTreeGroup> hTreeGroup = GetHTreeGroupForPos(decoder.Metadata, col, row);
 
             int totalPixels = width * height;
             int decodedPixels = 0;
@@ -731,7 +731,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int lastRow = height;
             const int lenCodeLimit = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes;
             int mask = hdr.HuffmanMask;
-            HTreeGroup[] htreeGroup = pos < last ? GetHTreeGroupForPos(hdr, col, row) : null;
+            Span<HTreeGroup> htreeGroup = pos < last ? GetHTreeGroupForPos(hdr, col, row) : null;
             while (!this.bitReader.Eos && pos < last)
             {
                 // Only update when changing tile.
@@ -815,7 +815,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             decoder.Metadata.HuffmanMask = numBits == 0 ? ~0 : (1 << numBits) - 1;
         }
 
-        private uint ReadPackedSymbols(HTreeGroup[] group, Span<uint> pixelData, int decodedPixels)
+        private uint ReadPackedSymbols(Span<HTreeGroup> group, Span<uint> pixelData, int decodedPixels)
         {
             uint val = (uint)(this.bitReader.PrefetchBits() & (HuffmanUtils.HuffmanPackedTableSize - 1));
             HuffmanCode code = group[0].PackedTable[val];
@@ -895,10 +895,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
+        private static Span<HTreeGroup> GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
         {
             uint metaIndex = GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
-            return metadata.HTreeGroups.AsSpan((int)metaIndex).ToArray();
+            return metadata.HTreeGroups.AsSpan((int)metaIndex);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

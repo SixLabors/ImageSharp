@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The <see cref="Bgr24"/>.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Color(Bgr24 source) => new Color(source);
+        public static implicit operator Color(Bgr24 source) => new(source);
 
         /// <summary>
         /// Converts a <see cref="Color"/> to <see cref="Bgr24"/>.
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override readonly bool Equals(object obj) => obj is Bgr24 other && this.Equals(other);
 
         /// <inheritdoc />
-        public override readonly string ToString() => $"Bgra({this.B}, {this.G}, {this.R})";
+        public override readonly string ToString() => $"Bgr24({this.B}, {this.G}, {this.R})";
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

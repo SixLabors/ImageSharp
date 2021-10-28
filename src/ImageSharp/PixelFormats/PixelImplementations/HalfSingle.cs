@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.ToSingle(), 0, 0, 1F);
+        public readonly Vector4 ToVector4() => new(this.ToSingle(), 0, 0, 1F);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -118,10 +118,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

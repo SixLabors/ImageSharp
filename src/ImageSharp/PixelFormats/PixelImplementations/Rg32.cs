@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     {
-        private static readonly Vector2 Max = new Vector2(ushort.MaxValue);
+        private static readonly Vector2 Max = new(ushort.MaxValue);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rg32"/> struct.
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.ToVector2(), 0F, 1F);
+        public readonly Vector4 ToVector4() => new(this.ToVector2(), 0F, 1F);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -123,10 +123,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

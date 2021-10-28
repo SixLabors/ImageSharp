@@ -15,8 +15,10 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<ushort>
     {
-        private static readonly Vector2 Half = new Vector2(127);
-        private static readonly Vector2 MinusOne = new Vector2(-1F);
+        private const float MaxPos = 127F;
+
+        private static readonly Vector2 Half = new(MaxPos);
+        private static readonly Vector2 MinusOne = new(-1F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct.
@@ -91,7 +93,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.ToVector2(), 0F, 1F);
+        public readonly Vector4 ToVector4() => new(this.ToVector2(), 0F, 1F);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -151,12 +153,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector2"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector2 ToVector2()
-        {
-            return new Vector2(
-                (sbyte)((this.PackedValue >> 0) & 0xFF) / 127F,
-                (sbyte)((this.PackedValue >> 8) & 0xFF) / 127F);
-        }
+        public readonly Vector2 ToVector2() => new(
+                (sbyte)((this.PackedValue >> 0) & 0xFF) / MaxPos,
+                (sbyte)((this.PackedValue >> 8) & 0xFF) / MaxPos);
 
         /// <inheritdoc />
         public override readonly bool Equals(object obj) => obj is NormalizedByte2 other && this.Equals(other);
@@ -181,8 +180,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector = Vector2.Clamp(vector, MinusOne, Vector2.One) * Half;
 
-            int byte2 = ((ushort)Math.Round(vector.X) & 0xFF) << 0;
-            int byte1 = ((ushort)Math.Round(vector.Y) & 0xFF) << 8;
+            int byte2 = ((ushort)Convert.ToInt16(Math.Round(vector.X)) & 0xFF) << 0;
+            int byte1 = ((ushort)Convert.ToInt16(Math.Round(vector.Y)) & 0xFF) << 8;
 
             return (ushort)(byte2 | byte1);
         }

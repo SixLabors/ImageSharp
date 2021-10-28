@@ -3,10 +3,12 @@
 
 using System;
 using System.Linq;
+using Microsoft.DotNet.RemoteExecutor;
 using Moq;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.IO;
-
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Memory;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -145,6 +147,34 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Throws<ArgumentOutOfRangeException>(
                     () => config.StreamProcessingBufferSize = 0);
+        }
+
+        [Fact]
+        public void InheritsDefaultMemoryAllocatorInstance()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                MemoryAllocator allocator = new TestMemoryAllocator();
+                MemoryAllocator.Default = allocator;
+
+                var c1 = new Configuration();
+                var c2 = new Configuration(new MockConfigurationModule());
+                var c3 = Configuration.CreateDefaultInstance();
+
+                Assert.Same(allocator, Configuration.Default.MemoryAllocator);
+                Assert.Same(allocator, c1.MemoryAllocator);
+                Assert.Same(allocator, c2.MemoryAllocator);
+                Assert.Same(allocator, c3.MemoryAllocator);
+            }
+        }
+
+        private class MockConfigurationModule : IConfigurationModule
+        {
+            public void Configure(Configuration configuration)
+            {
+            }
         }
     }
 }

@@ -11,6 +11,27 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     public abstract class MemoryAllocator
     {
+        private static MemoryAllocator defaultMemoryAllocator = Create();
+
+        /// <summary>
+        /// Gets or sets the default global <see cref="MemoryAllocator"/> instance for the current process.
+        /// </summary>
+        /// <remarks>
+        /// Since <see cref="Configuration.Default"/> is lazy-initialized, setting the value of <see cref="Default"/>
+        /// will only override <see cref="Configuration.Default"/>'s <see cref="Configuration.MemoryAllocator"/>
+        /// before the first read of the <see cref="Configuration.Default"/> property.
+        /// After that, a manual assigment of <see cref="Configuration.Default"/> is necessary.
+        /// </remarks>
+        public static MemoryAllocator Default
+        {
+            get => defaultMemoryAllocator;
+            set
+            {
+                Guard.NotNull(value, nameof(Default));
+                defaultMemoryAllocator = value;
+            }
+        }
+
         /// <summary>
         /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
         /// </summary>

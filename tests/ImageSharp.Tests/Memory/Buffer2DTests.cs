@@ -69,6 +69,25 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Construct_PreferContiguousImageBuffers_AllocatesContiguousRegardlessOfCapacity(bool useSizeOverload)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = 10_000;
+
+            using Buffer2D<byte> buffer = useSizeOverload ?
+                this.MemoryAllocator.Allocate2D<byte>(
+                    new Size(200, 200),
+                    preferContiguosImageBuffers: true) :
+                this.MemoryAllocator.Allocate2D<byte>(
+                200,
+                200,
+                preferContiguosImageBuffers: true);
+            Assert.Equal(1, buffer.FastMemoryGroup.Count);
+            Assert.Equal(200 * 200, buffer.FastMemoryGroup.TotalLength);
+        }
+
+        [Theory]
         [InlineData(50, 10, 20, 4)]
         public void Allocate2DOveraligned(int bufferCapacity, int width, int height, int alignmentMultiplier)
         {

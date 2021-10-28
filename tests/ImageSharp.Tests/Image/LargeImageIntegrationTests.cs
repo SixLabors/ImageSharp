@@ -22,17 +22,17 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public unsafe void Set_MaximumPoolSizeMegabytes_CreateImage_MaximumPoolSizeMegabytes()
+        public void PreferContiguousImageBuffers_CreateImage_MaximumPoolSizeMegabytes()
         {
+            // Run remotely to avoid large allocation in the test process:
             RemoteExecutor.Invoke(RunTest).Dispose();
 
             static void RunTest()
             {
-                Configuration.Default.MemoryAllocator = MemoryAllocator.CreateDefault(new MemoryAllocatorOptions()
-                {
-                    MinimumContiguousBlockSizeBytes = sizeof(Rgba32) * 8192 * 4096
-                });
-                using Image<Rgba32> image = new Image<Rgba32>(8192, 4096);
+                Configuration configuration = Configuration.Default.Clone();
+                configuration.PreferContiguousImageBuffers = true;
+
+                using var image = new Image<Rgba32>(configuration, 8192, 4096);
                 Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> span));
                 Assert.Equal(8192 * 4096, span.Length);
             }

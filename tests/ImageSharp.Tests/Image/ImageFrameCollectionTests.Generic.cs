@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-
+using SixLabors.ImageSharp.Tests.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -337,6 +338,26 @@ namespace SixLabors.ImageSharp.Tests
 
                 using var frame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                 Assert.False(this.Image.Frames.Contains(frame));
+            }
+
+            [Fact]
+            public void PreferContiguousImageBuffers_True_AppliedToAllFrames()
+            {
+                Configuration configuration = Configuration.Default.Clone();
+                configuration.MemoryAllocator = new TestMemoryAllocator { BufferCapacityInBytes = 1000 };
+                configuration.PreferContiguousImageBuffers = true;
+
+                using var image = new Image<Rgba32>(configuration, 100, 100);
+                image.Frames.CreateFrame();
+                image.Frames.InsertFrame(0, image.Frames[0]);
+                image.Frames.CreateFrame(Color.Red);
+
+                Assert.Equal(4, image.Frames.Count);
+                IEnumerable<ImageFrame<Rgba32>> frames = image.Frames;
+                foreach (ImageFrame<Rgba32> frame in frames)
+                {
+                    Assert.True(frame.TryGetSinglePixelSpan(out Span<Rgba32> span));
+                }
             }
 
             [Fact]

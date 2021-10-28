@@ -95,6 +95,14 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to force image buffers to be contiguous whenever possible.
+        /// </summary>
+        /// <remarks>
+        /// Contiguous allocations are not possible, if the image needs a buffer larger than <see cref="int.MaxValue"/>.
+        /// </remarks>
+        public bool PreferContiguousImageBuffers { get; set; }
+
+        /// <summary>
         /// Gets a set of properties for the Configuration.
         /// </summary>
         /// <remarks>This can be used for storing global settings and defaults to be accessible to processors.</remarks>

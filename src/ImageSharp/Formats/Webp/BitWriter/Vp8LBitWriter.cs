@@ -130,16 +130,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <inheritdoc/>
         public override void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height)
         {
-            Span<byte> buffer = stackalloc byte[4];
             bool isVp8X = false;
             byte[] exifBytes = null;
             uint riffSize = 0;
             if (exifProfile != null)
             {
                 isVp8X = true;
-                riffSize += WebpConstants.ChunkHeaderSize + WebpConstants.Vp8XChunkSize;
+                riffSize += ExtendedFileChunkSize;
                 exifBytes = exifProfile.ToByteArray();
-                riffSize += WebpConstants.ChunkHeaderSize + (uint)exifBytes.Length;
+                riffSize += this.ExifChunkSize(exifBytes);
             }
 
             this.Finish();
@@ -161,8 +160,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             stream.Write(WebpConstants.Vp8LMagicBytes);
 
             // Write Vp8 Header.
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, size);
-            stream.Write(buffer);
+            BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer, size);
+            stream.Write(this.scratchBuffer.AsSpan(0, 4));
             stream.WriteByte(WebpConstants.Vp8LHeaderMagicByte);
 
             // Write the encoded bytes of the image to the stream.

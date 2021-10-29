@@ -408,9 +408,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             if (exifProfile != null)
             {
                 isVp8X = true;
-                riffSize += WebpConstants.ChunkHeaderSize + WebpConstants.Vp8XChunkSize;
+                riffSize += ExtendedFileChunkSize;
                 exifBytes = exifProfile.ToByteArray();
-                riffSize += WebpConstants.ChunkHeaderSize + (uint)exifBytes.Length;
+                riffSize += this.ExifChunkSize(exifBytes);
             }
 
             this.Finish();

@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
                     // b = y + (1.772F * cb);
                     Vector<float> r = y + (cr * rCrMult);
-                    Vector<float> g = y - (cb * gCbMult) - (cr * gCrMult);
+                    Vector<float> g = y + (cb * gCbMult) + (cr * gCrMult);
                     Vector<float> b = y + (cb * bCbMult);
 
                     r = r.FastRound();

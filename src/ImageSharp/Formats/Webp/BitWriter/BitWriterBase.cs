@@ -63,15 +63,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         public abstract void Finish();
 
-        /// <summary>
-        /// Writes the encoded image to the stream.
-        /// </summary>
-        /// <param name="stream">The stream to write to.</param>
-        /// <param name="exifProfile">The exif profile.</param>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        public abstract void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height);
-
         protected void ResizeBuffer(int maxBytes, int sizeRequired)
         {
             int newSize = (3 * maxBytes) >> 1;
@@ -142,7 +133,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
-        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, uint width, uint height)
+        /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
+        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, uint width, uint height, bool hasAlpha)
         {
             if (width > MaxDimension || height > MaxDimension)
             {
@@ -160,6 +152,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             {
                 // Set exif bit.
                 flags |= 8;
+            }
+
+            if (hasAlpha)
+            {
+                // Set alpha bit.
+                flags |= 16;
             }
 
             Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);

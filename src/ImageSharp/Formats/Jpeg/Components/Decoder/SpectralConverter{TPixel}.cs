@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Numerics;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Memory;
@@ -95,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // Convert next pixel stride using single spectral `stride'
             // Note that zero passing eliminates the need of virtual call
             // from JpegComponentPostProcessor
-            this.ConvertNextStride(spectralStep: 0);
+            this.ConvertNextStride(mcuRow: 0);
 
             foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
             {
@@ -103,34 +102,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        public void Dispose()
+        private void ConvertNextStride(int mcuRow)
         {
-            if (this.componentProcessors != null)
-            {
-                foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
-                {
-                    cpp.Dispose();
-                }
-            }
-
-            this.rgbBuffer?.Dispose();
-            this.paddedProxyPixelRow?.Dispose();
-        }
-
-        private void ConvertNextStride(int spectralStep)
-        {
-            int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
-
+            // Convert spectral data to color data for each component
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
-                this.componentProcessors[i].CopyBlocksToColorBuffer(spectralStep);
+                this.componentProcessors[i].CopyBlocksToColorBuffer(mcuRow);
             }
 
             int width = this.pixelBuffer.Width;
 
-            for (int yy = this.pixelRowCounter; yy < maxY; yy++)
+            // This method converts pixel rows in MCU batches which height
+            // is divisible by 8
+            // Resulting image may not have height divisible by 8 which
+            // can lead to index out of bounds exception
+            // To prevent it we must take minimum of expected last index
+            // and actual pixel buffer height
+            int startY = this.pixelRowCounter;
+            int endY = Math.Min(startY + this.pixelRowsPerStep, this.pixelBuffer.Height);
+            for (int yy = startY; yy < endY; yy++)
             {
-                int y = yy - this.pixelRowCounter;
+                int y = yy - startY;
 
                 var values = new JpegColorConverter.ComponentValues(this.componentProcessors, y);
 
@@ -161,6 +153,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             this.pixelRowCounter += this.pixelRowsPerStep;
+        }
+
+        public void Dispose()
+        {
+            if (this.componentProcessors != null)
+            {
+                foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+                {
+                    cpp.Dispose();
+                }
+            }
+
+            this.rgbBuffer?.Dispose();
+            this.paddedProxyPixelRow?.Dispose();
         }
     }
 }

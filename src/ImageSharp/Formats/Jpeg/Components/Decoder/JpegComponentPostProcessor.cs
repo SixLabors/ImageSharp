@@ -100,15 +100,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
                 int yBlock = yBlockStart + y;
-
-                // TODO: this is a very strange check - research call paths
-                // Normally this should not be called with invalid parameters/state
-                // leading to this check being true
-                if (yBlock >= spectralBuffer.Height)
-                {
-                    break;
-                }
-
                 int yBuffer = y * this.blockAreaSize.Height;
 
                 Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);

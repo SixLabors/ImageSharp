@@ -20,26 +20,22 @@ namespace SixLabors.ImageSharp
     /// </remarks>
     public readonly partial struct Color : IEquatable<Color>
     {
-        private readonly Rgba64 data;
+        private readonly RgbaVector data;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private Color(byte r, byte g, byte b, byte a)
         {
-            this.data = new Rgba64(
-                ColorNumerics.UpscaleFrom8BitTo16Bit(r),
-                ColorNumerics.UpscaleFrom8BitTo16Bit(g),
-                ColorNumerics.UpscaleFrom8BitTo16Bit(b),
-                ColorNumerics.UpscaleFrom8BitTo16Bit(a));
+            RgbaVector vector = default;
+            vector.FromRgba32(new(r, g, b, a));
+            this.data = vector;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private Color(byte r, byte g, byte b)
         {
-            this.data = new Rgba64(
-                ColorNumerics.UpscaleFrom8BitTo16Bit(r),
-                ColorNumerics.UpscaleFrom8BitTo16Bit(g),
-                ColorNumerics.UpscaleFrom8BitTo16Bit(b),
-                ushort.MaxValue);
+            RgbaVector vector = default;
+            vector.FromRgba32(new(r, g, b));
+            this.data = vector;
         }
 
         /// <summary>
@@ -52,10 +48,7 @@ namespace SixLabors.ImageSharp
         /// otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(Color left, Color right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(Color left, Color right) => left.Equals(right);
 
         /// <summary>
         /// Checks whether two <see cref="Color"/> structures are equal.
@@ -67,10 +60,7 @@ namespace SixLabors.ImageSharp
         /// otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(Color left, Color right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(Color left, Color right) => !left.Equals(right);
 
         /// <summary>
         /// Creates a <see cref="Color"/> from RGBA bytes.
@@ -81,7 +71,7 @@ namespace SixLabors.ImageSharp
         /// <param name="a">The alpha component (0-255).</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(r, g, b, a);
+        public static Color FromRgba(byte r, byte g, byte b, byte a) => new(r, g, b, a);
 
         /// <summary>
         /// Creates a <see cref="Color"/> from RGB bytes.
@@ -91,7 +81,17 @@ namespace SixLabors.ImageSharp
         /// <param name="b">The blue component (0-255).</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Color FromRgb(byte r, byte g, byte b) => new Color(r, g, b);
+        public static Color FromRgb(byte r, byte g, byte b) => new(r, g, b);
+
+        /// <summary>
+        /// Creates a <see cref="Color"/> from the given <typeparamref name="TPixel"/>.
+        /// </summary>
+        /// <param name="pixel">The pixel to convert from.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Color FromPixel<TPixel>(TPixel pixel)
+            where TPixel : unmanaged, IPixel<TPixel> => new(pixel.ToScaledVector4());
 
         /// <summary>
         /// Creates a new instance of the <see cref="Color"/> struct
@@ -207,13 +207,18 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <returns>A hexadecimal string representation of the value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public string ToHex() => this.data.ToRgba32().ToHex();
+        public string ToHex()
+        {
+            Rgba32 rgba = default;
+            this.data.ToRgba32(ref rgba);
+            return rgba.ToHex();
+        }
 
         /// <inheritdoc />
         public override string ToString() => this.ToHex();
 
         /// <summary>
-        /// Converts the color instance to a specified <see cref="IPixel{TSelf}"/> type.
+        /// Converts the color instance to a specified <typeparamref name="TPixel"/> type.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
         /// <returns>The pixel value.</returns>
@@ -222,12 +227,12 @@ namespace SixLabors.ImageSharp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
-            pixel.FromRgba64(this.data);
+            pixel.FromScaledVector4(this.data.ToScaledVector4());
             return pixel;
         }
 
         /// <summary>
-        /// Bulk converts a span of <see cref="Color"/> to a span of a specified <see cref="IPixel{TSelf}"/> type.
+        /// Bulk converts a span of <see cref="Color"/> to a span of a specified <typeparamref name="TPixel"/> type.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
         /// <param name="configuration">The configuration.</param>
@@ -240,28 +245,19 @@ namespace SixLabors.ImageSharp
             Span<TPixel> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
-            PixelOperations<TPixel>.Instance.FromRgba64(configuration, rgba64Span, destination);
+            ReadOnlySpan<RgbaVector> rgbaSpan = MemoryMarshal.Cast<Color, RgbaVector>(source);
+            PixelOperations<TPixel>.Instance.From(configuration, rgbaSpan, destination);
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Color other)
-        {
-            return this.data.PackedValue == other.data.PackedValue;
-        }
+        public bool Equals(Color other) => this.data.Equals(other.data);
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is Color other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is Color other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode()
-        {
-            return this.data.PackedValue.GetHashCode();
-        }
+        public override int GetHashCode() => this.data.GetHashCode();
     }
 }

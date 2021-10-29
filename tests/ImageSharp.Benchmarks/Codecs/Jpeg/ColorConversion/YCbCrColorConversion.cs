@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYCbCrBasic(8).ConvertToRgbInplace(values);
+            new JpegColorConverter.FromYCbCrScalar(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark(Baseline = true)]

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromYCbCrBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromYCbCrBasic(8),
+                new JpegColorConverter.FromYCbCrScalar(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromCmykBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromCmykBasic(8),
+                new JpegColorConverter.FromCmykScalar(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromGrayscaleBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromGrayscaleBasic(8),
+                new JpegColorConverter.FromGrayscaleScalar(8),
                 1,
                 inputBufferLength,
                 resultBufferLength,
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromRgbBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromRgbBasic(8),
+                new JpegColorConverter.FromRgbScalar(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromYccKBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromYccKBasic(8),
+                new JpegColorConverter.FromYccKScalar(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -352,7 +352,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, count, 1);
             var result = new Vector4[count];
 
-            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrVector4(8) : new JpegColorConverter.FromYCbCrBasic(8);
+            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrVector4(8) : new JpegColorConverter.FromYCbCrScalar(8);
 
             // Warm up:
             converter.ConvertToRgbInplace(values);

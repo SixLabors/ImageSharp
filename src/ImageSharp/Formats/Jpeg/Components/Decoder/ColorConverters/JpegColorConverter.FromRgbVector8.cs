@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromRgbBasic.ConvertCoreInplace(values, this.MaximumValue);
+                FromRgbScalar.ConvertCoreInplace(values, this.MaximumValue);
         }
     }
 }

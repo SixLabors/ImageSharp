@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             yield return new FromRgbAvx2(precision);
 #endif
             yield return new FromRgbVector8(precision);
-            yield return new FromRgbBasic(precision);
+            yield return new FromRgbScalar(precision);
         }
 
         /// <summary>

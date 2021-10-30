@@ -64,6 +64,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
+        [InlineData(WebpFileFormatType.Lossy)]
+        [InlineData(WebpFileFormatType.Lossless)]
+        public void Encode_WritesExifWithPadding(WebpFileFormatType fileFormatType)
+        {
+            // arrange
+            using var input = new Image<Rgba32>(25, 25);
+            using var memoryStream = new MemoryStream();
+            var expectedExif = new ExifProfile();
+            string expectedSoftware = "ImageSharp";
+            expectedExif.SetValue(ExifTag.Software, expectedSoftware);
+            input.Metadata.ExifProfile = expectedExif;
+
+            // act
+            input.Save(memoryStream, new WebpEncoder() { FileFormat = fileFormatType });
+            memoryStream.Position = 0;
+
+            // assert
+            using var image = Image.Load<Rgba32>(memoryStream);
+            ExifProfile actualExif = image.Metadata.ExifProfile;
+            Assert.NotNull(actualExif);
+            Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);
+            Assert.Equal(expectedSoftware, actualExif.GetValue(ExifTag.Software).Value);
+        }
+
+        [Theory]
         [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32)]
         public void EncodeLossyWebp_PreservesExif<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

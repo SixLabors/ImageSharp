@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             int idx = 0;
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> rowSpan = image.DangerousGetRowSpan(y);
                 for (int x = 0; x < rowSpan.Length; x++)
                 {
                     bgra[idx++] = ToBgra32(rowSpan[x]).PackedValue;

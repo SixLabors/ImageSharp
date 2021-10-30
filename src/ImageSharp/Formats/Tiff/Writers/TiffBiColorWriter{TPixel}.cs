@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                 int grayRowIdx = 0;
                 for (int row = y; row < lastRow; row++)
                 {
-                    Span<TPixel> pixelsBlackWhiteRow = this.imageBlackWhite.GetPixelRowSpan(row);
+                    Span<TPixel> pixelsBlackWhiteRow = this.imageBlackWhite.DangerousGetRowSpan(row);
                     Span<byte> pixelAsGrayRow = pixelAsGraySpan.Slice(grayRowIdx * width, width);
                     PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixelsBlackWhiteRow, pixelAsGrayRow, width);
                     grayRowIdx++;
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                     int bitIndex = 0;
                     int byteIndex = 0;
                     Span<byte> outputRow = rows.Slice(outputRowIdx * this.BytesPerRow);
-                    Span<TPixel> pixelsBlackWhiteRow = this.imageBlackWhite.GetPixelRowSpan(row);
+                    Span<TPixel> pixelsBlackWhiteRow = this.imageBlackWhite.DangerousGetRowSpan(row);
                     PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixelsBlackWhiteRow, pixelAsGraySpan, width);
                     for (int x = 0; x < this.Image.Width; x++)
                     {

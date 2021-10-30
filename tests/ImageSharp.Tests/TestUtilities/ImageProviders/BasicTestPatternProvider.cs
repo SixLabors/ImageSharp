@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 for (int y = 0; y < midY; y++)
                 {
-                    Span<TPixel> row = result.GetPixelRowSpan(y);
+                    Span<TPixel> row = result.DangerousGetRowSpan(y);
 
                     row.Slice(0, midX).Fill(TopLeftColor);
                     row.Slice(midX, this.Width - midX).Fill(TopRightColor);
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 for (int y = midY; y < this.Height; y++)
                 {
-                    Span<TPixel> row = result.GetPixelRowSpan(y);
+                    Span<TPixel> row = result.DangerousGetRowSpan(y);
 
                     row.Slice(0, midX).Fill(BottomLeftColor);
                     row.Slice(midX, this.Width - midX).Fill(BottomRightColor);

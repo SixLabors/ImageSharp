@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         [WithBlankImages(1, 1, PixelTypes.Rgba32)]
         [WithBlankImages(100, 111, PixelTypes.Rgba32)]
         [WithBlankImages(400, 600, PixelTypes.Rgba32)]
-        public void GetPixelRowSpan_ShouldReferenceSpanOfMemory<TPixel>(TestImageProvider<TPixel> provider)
+        public void DangerousGetRowSpan_ShouldReferenceSpanOfMemory<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             using Image<TPixel> image = provider.GetImage();
 
             Memory<TPixel> memory = image.DangerousGetPixelRowMemory(image.Height - 1);
-            Span<TPixel> span = image.GetPixelRowSpan(image.Height - 1);
+            Span<TPixel> span = image.DangerousGetRowSpan(image.Height - 1);
 
             Assert.True(span == memory.Span);
         }

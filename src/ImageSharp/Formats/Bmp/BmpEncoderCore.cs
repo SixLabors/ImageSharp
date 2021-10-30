@@ -379,7 +379,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             for (int y = image.Height - 1; y >= 0; y--)
             {
-                ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
+                ReadOnlySpan<byte> pixelSpan = quantized.DangerousGetRowSpan(y);
                 stream.Write(pixelSpan);
 
                 for (int i = 0; i < this.padding; i++)
@@ -413,10 +413,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             stream.Write(colorPalette);
-
+            Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
             for (int y = image.Height - 1; y >= 0; y--)
             {
-                ReadOnlySpan<TPixel> inputPixelRow = image.GetPixelRowSpan(y);
+                ReadOnlySpan<TPixel> inputPixelRow = imageBuffer.DangerousGetRowSpan(y);
                 ReadOnlySpan<byte> outputPixelRow = MemoryMarshal.AsBytes(inputPixelRow);
                 stream.Write(outputPixelRow);
 
@@ -447,11 +447,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
             this.WriteColorPalette(stream, quantizedColorPalette, colorPalette);
 
-            ReadOnlySpan<byte> pixelRowSpan = quantized.GetPixelRowSpan(0);
+            ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
             int rowPadding = pixelRowSpan.Length % 2 != 0 ? this.padding - 1 : this.padding;
             for (int y = image.Height - 1; y >= 0; y--)
             {
-                pixelRowSpan = quantized.GetPixelRowSpan(y);
+                pixelRowSpan = quantized.DangerousGetRowSpan(y);
 
                 int endIdx = pixelRowSpan.Length % 2 == 0 ? pixelRowSpan.Length : pixelRowSpan.Length - 1;
                 for (int i = 0; i < endIdx; i += 2)
@@ -491,11 +491,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
             this.WriteColorPalette(stream, quantizedColorPalette, colorPalette);
 
-            ReadOnlySpan<byte> quantizedPixelRow = quantized.GetPixelRowSpan(0);
+            ReadOnlySpan<byte> quantizedPixelRow = quantized.DangerousGetRowSpan(0);
             int rowPadding = quantizedPixelRow.Length % 8 != 0 ? this.padding - 1 : this.padding;
             for (int y = image.Height - 1; y >= 0; y--)
             {
-                quantizedPixelRow = quantized.GetPixelRowSpan(y);
+                quantizedPixelRow = quantized.DangerousGetRowSpan(y);
 
                 int endIdx = quantizedPixelRow.Length % 8 == 0 ? quantizedPixelRow.Length : quantizedPixelRow.Length - 8;
                 for (int i = 0; i < endIdx; i += 8)

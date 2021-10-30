@@ -738,7 +738,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rectangle sourceRectangle = this.SourceRectangle;
                 Configuration configuration = this.Configuration;
 
-                var operation = new RowOperation(configuration, sourceRectangle, source);
+                var operation = new RowOperation(configuration, sourceRectangle, source.PixelBuffer);
 
                 ParallelRowIterator.IterateRowIntervals<RowOperation, Vector4>(
                     configuration,
@@ -750,9 +750,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 private readonly Configuration configuration;
                 private readonly Rectangle bounds;
-                private readonly ImageFrame<TPixel> source;
+                private readonly Buffer2D<TPixel> source;
 
-                public RowOperation(Configuration configuration, Rectangle bounds, ImageFrame<TPixel> source)
+                public RowOperation(Configuration configuration, Rectangle bounds, Buffer2D<TPixel> source)
                 {
                     this.configuration = configuration;
                     this.bounds = bounds;
@@ -763,7 +763,7 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     for (int y = rows.Min; y < rows.Max; y++)
                     {
-                        Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
+                        Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
                         PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
                         for (int i = 0; i < span.Length; i++)
                         {

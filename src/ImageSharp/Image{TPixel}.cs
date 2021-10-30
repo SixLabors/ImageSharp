@@ -310,7 +310,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
-        public Span<TPixel> GetPixelRowSpan(int rowIndex)
+        public Span<TPixel> DangerousGetRowSpan(int rowIndex)
         {
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));

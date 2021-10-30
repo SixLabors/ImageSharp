@@ -413,7 +413,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Rgba32 rgba32 = Color.Blue;
             for (int y = 0; y < image.Height; y++)
             {
-                System.Span<Rgba32> rowSpan = image.GetPixelRowSpan(y);
+                System.Span<Rgba32> rowSpan = image.DangerousGetRowSpan(y);
 
                 // Half of the test image should be transparent.
                 if (y > 25)
@@ -443,7 +443,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             for (int y = 0; y < actual.Height; y++)
             {
-                System.Span<Rgba32> rowSpan = actual.GetPixelRowSpan(y);
+                System.Span<Rgba32> rowSpan = actual.DangerousGetRowSpan(y);
 
                 if (y > 25)
                 {

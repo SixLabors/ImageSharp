@@ -111,10 +111,16 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
         /// <returns>The <see cref="Size{T}"/> of the buffer</returns>
         internal static Size Size<T>(this Buffer2D<T> buffer)
-            where T : struct
-        {
-            return new Size(buffer.Width, buffer.Height);
-        }
+            where T : struct =>
+            new(buffer.Width, buffer.Height);
+
+        /// <summary>
+        /// Gets the bounds of the buffer.
+        /// </summary>
+        /// <returns>The <see cref="Rectangle"/></returns>
+        internal static Rectangle Bounds<T>(this Buffer2D<T> buffer)
+            where T : struct =>
+            new(0, 0, buffer.Width, buffer.Height);
 
         [Conditional("DEBUG")]
         private static void CheckColumnRegionsDoNotOverlap<T>(

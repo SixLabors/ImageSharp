@@ -481,7 +481,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     writeY = y;
                 }
 
-                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
 
                 if (!transFlag)
                 {

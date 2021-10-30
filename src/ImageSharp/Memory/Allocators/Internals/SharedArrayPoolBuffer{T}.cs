@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         // The worst thing that could happen is that a VERY poorly written user code holding a Span<TPixel> on the stack,
         // while loosing the reference to Image<TPixel> (or disposing it) may write to an unrelated ArrayPool array.
-        // This is an unlikely scenario we mitigate by a warning in GetPixelRowSpan(i) APIs.
+        // This is an unlikely scenario we mitigate by a warning in DangerousGetRowSpan(i) APIs.
 #pragma warning disable CA2015 // Adding a finalizer to a type derived from MemoryManager<T> may permit memory to be freed while it is still in use by a Span<T>
         ~SharedArrayPoolBuffer() => this.Dispose(false);
 #pragma warning restore

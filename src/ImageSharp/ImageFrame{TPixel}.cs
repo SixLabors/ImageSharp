@@ -178,24 +178,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
-        /// <para />
-        /// WARNING: Disposing or leaking the underlying image while still working with it's <see cref="Span{T}"/>
-        /// might lead to memory corruption.
-        /// </summary>
-        /// <param name="rowIndex">The row.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
-        public Span<TPixel> GetPixelRowSpan(int rowIndex)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
-            Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));
-
-            return this.PixelBuffer.DangerousGetRowSpan(rowIndex);
-        }
-
-        /// <summary>
         /// Execute <paramref name="processPixels"/> to process image pixels in a safe and efficient manner.
         /// </summary>
         /// <param name="processPixels">The <see cref="PixelAccessorAction{TPixel}"/> defining the pixel operations.</param>
@@ -418,7 +400,7 @@ namespace SixLabors.ImageSharp
             }
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
-            var operation = new RowIntervalOperation<TPixel2>(this, target, configuration);
+            var operation = new RowIntervalOperation<TPixel2>(this.PixelBuffer, target.PixelBuffer, configuration);
 
             ParallelRowIterator.IterateRowIntervals(
                 configuration,
@@ -472,14 +454,14 @@ namespace SixLabors.ImageSharp
         private readonly struct RowIntervalOperation<TPixel2> : IRowIntervalOperation
             where TPixel2 : unmanaged, IPixel<TPixel2>
         {
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel2> target;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel2> target;
             private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel2> target,
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel2> target,
                 Configuration configuration)
             {
                 this.source = source;
@@ -493,8 +475,8 @@ namespace SixLabors.ImageSharp
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                    Span<TPixel2> targetRow = this.target.GetPixelRowSpan(y);
+                    Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
+                    Span<TPixel2> targetRow = this.target.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.To(this.configuration, sourceRow, targetRow);
                 }
             }

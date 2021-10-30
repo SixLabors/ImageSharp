@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests
                             image.GetPixelMemoryGroup().Fill(bg);
                             for (var i = 10; i < 20; i++)
                             {
-                                image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                                image.DangerousGetRowSpan(i).Slice(10, 10).Fill(fg);
                             }
                         }
 
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Tests
                         image.GetPixelMemoryGroup().Fill(bg);
                         for (var i = 10; i < 20; i++)
                         {
-                            image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                            image.DangerousGetRowSpan(i).Slice(10, 10).Fill(fg);
                         }
                     }
 
@@ -265,7 +265,7 @@ namespace SixLabors.ImageSharp.Tests
                             image.GetPixelMemoryGroup().Fill(bg);
                             for (var i = 10; i < 20; i++)
                             {
-                                image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                                image.DangerousGetRowSpan(i).Slice(10, 10).Fill(fg);
                             }
                         }
 
@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Tests
                                 image.GetPixelMemoryGroup().Fill(bg);
                                 for (var i = 10; i < 20; i++)
                                 {
-                                    image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                                    image.DangerousGetRowSpan(i).Slice(10, 10).Fill(fg);
                                 }
                             }
 
@@ -417,7 +417,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         var arrayIndex = width * i;
 
-                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
+                        Span<Rgba32> rowSpan = img.DangerousGetRowSpan(i);
                         ref Rgba32 r0 = ref rowSpan[0];
                         ref Rgba32 r1 = ref array[arrayIndex];
 
@@ -461,7 +461,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         var arrayIndex = pixelSize * width * i;
 
-                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
+                        Span<Rgba32> rowSpan = img.DangerousGetRowSpan(i);
                         ref Rgba32 r0 = ref rowSpan[0];
                         ref Rgba32 r1 = ref Unsafe.As<byte, Rgba32>(ref array[arrayIndex]);
 

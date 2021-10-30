@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Tests
                 // Image<TPixel>
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.Clone(this.configuration); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.CloneAs<Rgba32>(this.configuration); });
-                Assert.Throws<ObjectDisposedException>(() => { var res = image.GetPixelRowSpan(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = image.DangerousGetRowSpan(default); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _); });
 
                 // Image

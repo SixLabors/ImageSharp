@@ -47,14 +47,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 long destRowByteCount = w * sizeof(Bgra32);
 
                 Configuration configuration = image.GetConfiguration();
-
-                using (IMemoryOwner<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w))
+                image.ProcessPixelRows(accessor =>
                 {
+                    using IMemoryOwner<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w);
                     fixed (Bgra32* destPtr = &workBuffer.GetReference())
                     {
                         for (int y = 0; y < h; y++)
                         {
-                            Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                            Span<TPixel> row = accessor.GetRowSpan(y);
 
                             byte* sourcePtr = sourcePtrBase + (data.Stride * y);
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                                 row);
                         }
                     }
-                }
+                });
             }
             finally
             {
@@ -106,6 +106,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 long destRowByteCount = w * sizeof(Bgr24);
 
                 Configuration configuration = image.GetConfiguration();
+                Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
 
                 using (IMemoryOwner<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
                 {
@@ -113,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                     {
                         for (int y = 0; y < h; y++)
                         {
-                            Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                            Span<TPixel> row = imageBuffer.DangerousGetRowSpan(y);
 
                             byte* sourcePtr = sourcePtrBase + (data.Stride * y);
 
@@ -144,24 +145,23 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             try
             {
                 byte* destPtrBase = (byte*)data.Scan0;
-
                 long destRowByteCount = data.Stride;
                 long sourceRowByteCount = w * sizeof(Bgra32);
-
-                using (IMemoryOwner<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w))
+                image.ProcessPixelRows(accessor =>
                 {
+                    using IMemoryOwner<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w);
                     fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
                     {
                         for (int y = 0; y < h; y++)
                         {
-                            Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                            Span<TPixel> row = accessor.GetRowSpan(y);
                             PixelOperations<TPixel>.Instance.ToBgra32(configuration, row, workBuffer.GetSpan());
                             byte* destPtr = destPtrBase + (data.Stride * y);
 
                             Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
                         }
                     }
-                }
+                });
             }
             finally
             {

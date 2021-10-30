@@ -395,7 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int widthBytes = width * 4;
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> rowSpan = image.DangerousGetRowSpan(y);
                 Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
                 PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, width);
                 if (!nonOpaque)

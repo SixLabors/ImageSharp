@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             source.CopyTo(targetPixels);
 
-            var operation = new RowIntervalOperation(this.SourceRectangle, targetPixels, source, this.Configuration, brushSize >> 1, this.definition.Levels);
+            var operation = new RowIntervalOperation(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, this.definition.Levels);
             ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 this.SourceRectangle,
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
             private readonly Configuration configuration;
             private readonly int radius;
             private readonly int levels;
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             public RowIntervalOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
-                ImageFrame<TPixel> source,
+                Buffer2D<TPixel> source,
                 Configuration configuration,
                 int radius,
                 int levels)
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> sourceRowPixelSpan = this.source.GetPixelRowSpan(y);
+                    Span<TPixel> sourceRowPixelSpan = this.source.DangerousGetRowSpan(y);
                     Span<TPixel> sourceRowAreaPixelSpan = sourceRowPixelSpan.Slice(this.bounds.X, this.bounds.Width);
 
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span);
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                             int offsetY = y + fyr;
                             offsetY = Numerics.Clamp(offsetY, 0, maxY);
 
-                            Span<TPixel> sourceOffsetRow = this.source.GetPixelRowSpan(offsetY);
+                            Span<TPixel> sourceOffsetRow = this.source.DangerousGetRowSpan(offsetY);
 
                             for (int fx = 0; fx <= this.radius; fx++)
                             {

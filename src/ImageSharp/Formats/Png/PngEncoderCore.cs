@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Rgba32 rgba32 = default;
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> span = image.GetPixelRowSpan(y);
+                Span<TPixel> span = image.DangerousGetRowSpan(y);
                 for (int x = 0; x < image.Width; x++)
                 {
                     span[x].ToRgba32(ref rgba32);
@@ -391,11 +391,11 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     if (this.bitDepth < 8)
                     {
-                        PngEncoderHelpers.ScaleDownFrom8BitArray(quantized.GetPixelRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
+                        PngEncoderHelpers.ScaleDownFrom8BitArray(quantized.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
                     }
                     else
                     {
-                        quantized.GetPixelRowSpan(row).CopyTo(this.currentScanline.GetSpan());
+                        quantized.DangerousGetRowSpan(row).CopyTo(this.currentScanline.GetSpan());
                     }
 
                     break;
@@ -918,7 +918,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<byte> attempt = attemptBuffer.GetSpan();
             for (int y = 0; y < this.height; y++)
             {
-                this.CollectAndFilterPixelRow(pixels.GetPixelRowSpan(y), ref filter, ref attempt, quantized, y);
+                this.CollectAndFilterPixelRow(pixels.DangerousGetRowSpan(y), ref filter, ref attempt, quantized, y);
                 deflateStream.Write(filter);
                 this.SwapScanlineBuffers();
             }
@@ -959,7 +959,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 for (int row = startRow; row < height; row += Adam7.RowIncrement[pass])
                 {
                     // Collect pixel data
-                    Span<TPixel> srcRow = pixels.GetPixelRowSpan(row);
+                    Span<TPixel> srcRow = pixels.DangerousGetRowSpan(row);
                     for (int col = startCol, i = 0; col < width; col += Adam7.ColumnIncrement[pass])
                     {
                         block[i++] = srcRow[col];
@@ -1014,7 +1014,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     row += Adam7.RowIncrement[pass])
                 {
                     // Collect data
-                    ReadOnlySpan<byte> srcRow = quantized.GetPixelRowSpan(row);
+                    ReadOnlySpan<byte> srcRow = quantized.DangerousGetRowSpan(row);
                     for (int col = startCol, i = 0;
                         col < width;
                         col += Adam7.ColumnIncrement[pass])

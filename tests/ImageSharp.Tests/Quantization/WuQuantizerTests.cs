@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Assert.Equal(1, result.Height);
 
             Assert.Equal(Color.Black, (Color)result.Palette.Span[0]);
-            Assert.Equal(0, result.GetPixelRowSpan(0)[0]);
+            Assert.Equal(0, result.DangerousGetRowSpan(0)[0]);
         }
 
         [Fact]
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Assert.Equal(1, result.Height);
 
             Assert.Equal(default, result.Palette.Span[0]);
-            Assert.Equal(0, result.GetPixelRowSpan(0)[0]);
+            Assert.Equal(0, result.DangerousGetRowSpan(0)[0]);
         }
 
         [Fact]
@@ -99,8 +99,8 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             int paletteCount = paletteSpan.Length - 1;
             for (int y = 0; y < actualImage.Height; y++)
             {
-                Span<Rgba32> row = actualImage.GetPixelRowSpan(y);
-                ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelRowSpan(y);
+                Span<Rgba32> row = actualImage.DangerousGetRowSpan(y);
+                ReadOnlySpan<byte> quantizedPixelSpan = result.DangerousGetRowSpan(y);
 
                 for (int x = 0; x < actualImage.Width; x++)
                 {
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
 
             for (int y = 0; y < image.Height; y++)
             {
-                Assert.True(image.GetPixelRowSpan(y).SequenceEqual(actualImage.GetPixelRowSpan(y)));
+                Assert.True(image.DangerousGetRowSpan(y).SequenceEqual(actualImage.DangerousGetRowSpan(y)));
             }
         }
 
@@ -166,8 +166,8 @@ namespace SixLabors.ImageSharp.Tests.Quantization
                     int paletteCount = paletteSpan.Length - 1;
                     for (int y = 0; y < actualImage.Height; y++)
                     {
-                        Span<Rgba32> row = actualImage.GetPixelRowSpan(y);
-                        ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelRowSpan(y);
+                        Span<Rgba32> row = actualImage.DangerousGetRowSpan(y);
+                        ReadOnlySpan<byte> quantizedPixelSpan = result.DangerousGetRowSpan(y);
 
                         for (int x = 0; x < actualImage.Width; x++)
                         {
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
 
                 for (int y = 0; y < expectedImage.Height; y++)
                 {
-                    Assert.True(expectedImage.GetPixelRowSpan(y).SequenceEqual(actualImage.GetPixelRowSpan(y)));
+                    Assert.True(expectedImage.DangerousGetRowSpan(y).SequenceEqual(actualImage.DangerousGetRowSpan(y)));
                 }
             }
         }

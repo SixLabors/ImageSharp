@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowIndex">The row index in the pixel buffer.</param>
         /// <returns>The pixel row as a <see cref="ReadOnlySpan{T}"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlySpan<byte> GetPixelRowSpan(int rowIndex)
+        public ReadOnlySpan<byte> DangerousGetRowSpan(int rowIndex)
             => this.GetWritablePixelRowSpanUnsafe(rowIndex);
 
         /// <summary>

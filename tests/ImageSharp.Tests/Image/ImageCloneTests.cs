@@ -37,8 +37,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 for (int y = 0; y < image.Height; y++)
                 {
-                    Span<Rgba32> row = image.GetPixelRowSpan(y);
-                    Span<Bgra32> rowClone = clone.GetPixelRowSpan(y);
+                    Span<Rgba32> row = image.DangerousGetRowSpan(y);
+                    Span<Bgra32> rowClone = clone.DangerousGetRowSpan(y);
 
                     for (int x = 0; x < image.Width; x++)
                     {
@@ -63,8 +63,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 for (int y = 0; y < image.Height; y++)
                 {
-                    Span<Rgba32> row = image.GetPixelRowSpan(y);
-                    Span<Bgr24> rowClone = clone.GetPixelRowSpan(y);
+                    Span<Rgba32> row = image.DangerousGetRowSpan(y);
+                    Span<Bgr24> rowClone = clone.DangerousGetRowSpan(y);
 
                     for (int x = 0; x < image.Width; x++)
                     {
@@ -88,8 +88,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 for (int y = 0; y < image.Height; y++)
                 {
-                    Span<Rgba32> row = image.GetPixelRowSpan(y);
-                    Span<Argb32> rowClone = clone.GetPixelRowSpan(y);
+                    Span<Rgba32> row = image.DangerousGetRowSpan(y);
+                    Span<Argb32> rowClone = clone.DangerousGetRowSpan(y);
 
                     for (int x = 0; x < image.Width; x++)
                     {
@@ -114,8 +114,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 for (int y = 0; y < image.Height; y++)
                 {
-                    Span<Rgba32> row = image.GetPixelRowSpan(y);
-                    Span<Rgb24> rowClone = clone.GetPixelRowSpan(y);
+                    Span<Rgba32> row = image.DangerousGetRowSpan(y);
+                    Span<Rgb24> rowClone = clone.DangerousGetRowSpan(y);
 
                     for (int x = 0; x < image.Width; x++)
                     {

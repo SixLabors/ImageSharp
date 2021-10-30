@@ -155,8 +155,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 interest,
                 widthFactor,
                 heightFactor,
-                source,
-                destination);
+                source.PixelBuffer,
+                destination.PixelBuffer);
 
             ParallelRowIterator.IterateRows(
                 configuration,
@@ -223,8 +223,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly Rectangle interest;
             private readonly float widthFactor;
             private readonly float heightFactor;
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public NNRowOperation(
@@ -233,8 +233,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Rectangle interest,
                 float widthFactor,
                 float heightFactor,
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel> destination)
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel> destination)
             {
                 this.sourceBounds = sourceBounds;
                 this.destinationBounds = destinationBounds;
@@ -256,8 +256,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int destRight = this.interest.Right;
 
                 // Y coordinates of source points
-                Span<TPixel> sourceRow = this.source.GetPixelRowSpan((int)(((y - destOriginY) * this.heightFactor) + sourceY));
-                Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y);
+                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan((int)(((y - destOriginY) * this.heightFactor) + sourceY));
+                Span<TPixel> targetRow = this.destination.DangerousGetRowSpan(y);
 
                 for (int x = destLeft; x < destRight; x++)
                 {

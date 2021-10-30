@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (int y = 0; y < height; y++)
             {
                 Span<byte> row = pixelData.Slice(y * widthMul3, widthMul3);
-                Span<TPixel> decodedPixelRow = decodedPixels.GetRowSpan(y);
+                Span<TPixel> decodedPixelRow = decodedPixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromBgr24Bytes(
                     this.configuration,
                     row,
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (int y = 0; y < height; y++)
             {
                 int yMulWidth = y * width;
-                Span<TPixel> decodedPixelRow = decodedPixels.GetRowSpan(y);
+                Span<TPixel> decodedPixelRow = decodedPixels.DangerousGetRowSpan(y);
                 for (int x = 0; x < width; x++)
                 {
                     int offset = yMulWidth + x;

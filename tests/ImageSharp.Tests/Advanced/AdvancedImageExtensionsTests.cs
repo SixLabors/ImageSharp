@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                 using Image<TPixel> image0 = provider.GetImage();
                 var targetBuffer = new TPixel[image0.Width * image0.Height];
 
-                Assert.True(image0.TryGetSinglePixelSpan(out Span<TPixel> sourceBuffer));
+                Assert.True(image0.DangerousTryGetSinglePixelMemory(out Memory<TPixel> sourceBuffer));
 
                 sourceBuffer.CopyTo(targetBuffer);
 

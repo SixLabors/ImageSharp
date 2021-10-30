@@ -269,8 +269,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             using (Image<TPixel> image0 = provider.GetImage())
             {
-                Assert.True(image0.TryGetSinglePixelSpan(out Span<TPixel> imageSpan));
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageSpan);
+                Assert.True(image0.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imageMem));
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageMem.Span);
 
                 using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
                 {

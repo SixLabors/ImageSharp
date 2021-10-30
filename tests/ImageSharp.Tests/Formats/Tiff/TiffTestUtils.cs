@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
             var testFile = TestFile.Create(encodedImagePath);
-            Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(Configuration.Default, new FileInfo(testFile.FullPath));
+            Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(new FileInfo(testFile.FullPath));
             if (useExactComparer)
             {
                 ImageComparer.Exact.VerifySimilarity(magickImage, image);
@@ -34,14 +34,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
         }
 
-        public static Image<TPixel> DecodeWithMagick<TPixel>(Configuration configuration, FileInfo fileInfo)
+        public static Image<TPixel> DecodeWithMagick<TPixel>(FileInfo fileInfo)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
+            Configuration configuration = Configuration.Default.Clone();
+            configuration.PreferContiguousImageBuffers = true;
             using var magickImage = new MagickImage(fileInfo);
             magickImage.AutoOrient();
             var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
 
-            Assert.True(result.TryGetSinglePixelSpan(out Span<TPixel> resultPixels));
+            Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
 
             using IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe();
             byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
@@ -49,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             PixelOperations<TPixel>.Instance.FromRgba32Bytes(
                 configuration,
                 data,
-                resultPixels,
+                resultPixels.Span,
                 resultPixels.Length);
 
             return result;

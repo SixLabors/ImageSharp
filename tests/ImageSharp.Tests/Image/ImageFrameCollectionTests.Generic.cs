@@ -211,9 +211,9 @@ namespace SixLabors.ImageSharp.Tests
                     using (Image<TPixel> cloned = img.Frames.CloneFrame(0))
                     {
                         Assert.Equal(2, img.Frames.Count);
-                        Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
+                        Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
 
-                        cloned.ComparePixelBufferTo(imgSpan);
+                        cloned.ComparePixelBufferTo(imgMem);
                     }
                 }
             }
@@ -225,15 +225,15 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
-                    Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
-                    TPixel[] sourcePixelData = imgSpan.ToArray();
+                    Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMemory));
+                    TPixel[] sourcePixelData = imgMemory.ToArray();
 
                     using var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                     using ImageFrame addedFrame = img.Frames.AddFrame(imageFrame);
                     using (Image<TPixel> cloned = img.Frames.ExportFrame(0))
                     {
                         Assert.Equal(1, img.Frames.Count);
-                        cloned.ComparePixelBufferTo(sourcePixelData);
+                        cloned.ComparePixelBufferTo(sourcePixelData.AsSpan());
                     }
                 }
             }
@@ -261,8 +261,8 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void AddFrameFromPixelData()
             {
-                Assert.True(this.Image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> imgSpan));
-                Rgba32[] pixelData = imgSpan.ToArray();
+                Assert.True(this.Image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imgMem));
+                Rgba32[] pixelData = imgMem.ToArray();
                 using ImageFrame<Rgba32> addedFrame = this.Image.Frames.AddFrame(pixelData);
                 Assert.Equal(2, this.Image.Frames.Count);
             }
@@ -273,8 +273,8 @@ namespace SixLabors.ImageSharp.Tests
                 using var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                 using ImageFrame<Rgba32> addedFrame = this.Image.Frames.AddFrame(otherFrame);
 
-                Assert.True(otherFrame.TryGetSinglePixelSpan(out Span<Rgba32> otherFrameSpan));
-                addedFrame.ComparePixelBufferTo(otherFrameSpan);
+                Assert.True(otherFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> otherFrameMem));
+                addedFrame.ComparePixelBufferTo(otherFrameMem.Span);
                 Assert.NotEqual(otherFrame, addedFrame);
             }
 
@@ -284,8 +284,8 @@ namespace SixLabors.ImageSharp.Tests
                 using var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                 using ImageFrame<Rgba32> addedFrame = this.Image.Frames.InsertFrame(0, otherFrame);
 
-                Assert.True(otherFrame.TryGetSinglePixelSpan(out Span<Rgba32> otherFrameSpan));
-                addedFrame.ComparePixelBufferTo(otherFrameSpan);
+                Assert.True(otherFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> otherFrameMem));
+                addedFrame.ComparePixelBufferTo(otherFrameMem.Span);
                 Assert.NotEqual(otherFrame, addedFrame);
             }
 
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Tests
                 IEnumerable<ImageFrame<Rgba32>> frames = image.Frames;
                 foreach (ImageFrame<Rgba32> frame in frames)
                 {
-                    Assert.True(frame.TryGetSinglePixelSpan(out Span<Rgba32> span));
+                    Assert.True(frame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _));
                 }
             }
 

@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    Assert.Equal(11 * 23, imageSpan.Length);
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    Assert.Equal(11 * 23, imageMem.Length);
                     image.ComparePixelBufferTo(default(Rgba32));
 
                     Assert.Equal(Configuration.Default, image.GetConfiguration());
@@ -46,8 +46,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    Assert.Equal(11 * 23, imageSpan.Length);
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    Assert.Equal(11 * 23, imageMem.Length);
                     image.ComparePixelBufferTo(default(Rgba32));
 
                     Assert.Equal(configuration, image.GetConfiguration());
@@ -64,8 +64,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    Assert.Equal(11 * 23, imageSpan.Length);
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    Assert.Equal(11 * 23, imageMem.Length);
                     image.ComparePixelBufferTo(color);
 
                     Assert.Equal(configuration, image.GetConfiguration());
@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.Clone(this.configuration); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.CloneAs<Rgba32>(this.configuration); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.GetPixelRowSpan(default); });
-                Assert.Throws<ObjectDisposedException>(() => { var res = image.TryGetSinglePixelSpan(out var _); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _); });
 
                 // Image
                 Assert.Throws<ObjectDisposedException>(() => { var res = genericImage.CloneAs<Rgba32>(this.configuration); });

@@ -33,19 +33,19 @@ namespace SixLabors.ImageSharp.Tests
                 configuration.PreferContiguousImageBuffers = true;
 
                 using var image = new Image<Rgba32>(configuration, 8192, 4096);
-                Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> span));
-                Assert.Equal(8192 * 4096, span.Length);
+                Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
+                Assert.Equal(8192 * 4096, mem.Length);
             }
         }
 
         [Theory]
         [WithBasicTestPatternImages(width: 10, height: 10, PixelTypes.Rgba32)]
-        public void TryGetSinglePixelSpan_WhenImageTooLarge_ReturnsFalse(TestImageProvider<Rgba32> provider)
+        public void DangerousTryGetSinglePixelMemory_WhenImageTooLarge_ReturnsFalse(TestImageProvider<Rgba32> provider)
         {
             provider.LimitAllocatorBufferCapacity().InPixels(10);
             using Image<Rgba32> image = provider.GetImage();
-            Assert.False(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-            Assert.False(image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> imageFrameSpan));
+            Assert.False(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
+            Assert.False(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _));
         }
     }
 }

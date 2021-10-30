@@ -285,28 +285,27 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
+        /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
         /// stored in row major order, if the backing buffer is contiguous.
         /// <para />
-        /// To ensure the memory is contiguous, <see cref="Configuration.MemoryAllocator"/> should be initialized
-        /// with a <see cref="MemoryAllocator"/> that enforces larger contiguous buffers.
-        /// See <see cref="MemoryAllocatorSettings.MinimumContiguousBlockSizeBytes"/>.
+        /// To ensure the memory is contiguous, <see cref="Configuration.PreferContiguousImageBuffers"/> should be set
+        /// to true, preferably on a non-global configuration instance (not <see cref="Configuration.Default"/>).
         /// <para />
-        /// WARNING: Disposing or leaking the underlying image while still working with it's <see cref="Span{T}"/>
+        /// WARNING: Disposing or leaking the underlying image while still working with the <paramref name="memory"/>'s <see cref="Span{T}"/>
         /// might lead to memory corruption.
         /// </summary>
-        /// <param name="span">The <see cref="Span{T}"/>.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public bool TryGetSinglePixelSpan(out Span<TPixel> span)
+        /// <param name="memory">The <see cref="Memory{T}"/> referencing the image buffer.</param>
+        /// <returns>The <see cref="bool"/> indicating the success.</returns>
+        public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory)
         {
             IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
             if (mg.Count > 1)
             {
-                span = default;
+                memory = default;
                 return false;
             }
 
-            span = mg.Single().Span;
+            memory = mg.Single();
             return true;
         }
 

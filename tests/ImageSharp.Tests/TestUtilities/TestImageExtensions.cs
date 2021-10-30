@@ -396,11 +396,17 @@ namespace SixLabors.ImageSharp.Tests
             Span<TPixel> expectedPixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.True(image.TryGetSinglePixelSpan(out Span<TPixel> actualPixels));
-            CompareBuffers(expectedPixels, actualPixels);
+            Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<TPixel> actualPixels));
+            CompareBuffers(expectedPixels, actualPixels.Span);
 
             return image;
         }
+
+        public static Image<TPixel> ComparePixelBufferTo<TPixel>(
+            this Image<TPixel> image,
+            Memory<TPixel> expectedPixels)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            ComparePixelBufferTo(image, expectedPixels.Span);
 
         public static void CompareBuffers<T>(Span<T> expected, Span<T> actual)
             where T : struct, IEquatable<T>
@@ -477,7 +483,8 @@ namespace SixLabors.ImageSharp.Tests
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(this ImageFrame<TPixel> imageFrame, TPixel expectedPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.True(imageFrame.TryGetSinglePixelSpan(out Span<TPixel> actualPixels));
+            Assert.True(imageFrame.DangerousTryGetSinglePixelMemory(out Memory<TPixel> actualPixelMem));
+            Span<TPixel> actualPixels = actualPixelMem.Span;
 
             for (int i = 0; i < actualPixels.Length; i++)
             {
@@ -492,7 +499,8 @@ namespace SixLabors.ImageSharp.Tests
                     Span<TPixel> expectedPixels)
                     where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.True(image.TryGetSinglePixelSpan(out Span<TPixel> actual));
+            Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<TPixel> actualMem));
+            Span<TPixel> actual = actualMem.Span;
             Assert.True(expectedPixels.Length == actual.Length, "Buffer sizes are not equal!");
 
             for (int i = 0; i < expectedPixels.Length; i++)
@@ -696,7 +704,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             var image = new Image<Rgba32>(buffer.Width, buffer.Height);
 
-            Assert.True(image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> pixels));
+            Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> pixelMem));
+            Span<Rgba32> pixels = pixelMem.Span;
             Span<float> bufferSpan = buffer.DangerousGetSingleSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)

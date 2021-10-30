@@ -321,25 +321,29 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
+        /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
         /// stored in row major order, if the backing buffer is contiguous.
+        /// <para />
+        /// To ensure the memory is contiguous, <see cref="Configuration.PreferContiguousImageBuffers"/> should be set
+        /// to true, preferably on a non-global configuration instance (not <see cref="Configuration.Default"/>).
+        /// <para />
+        /// WARNING: Disposing or leaking the underlying image while still working with the <paramref name="memory"/>'s <see cref="Span{T}"/>
+        /// might lead to memory corruption.
         /// </summary>
-        /// <param name="span">The <see cref="Span{T}"/>.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public bool TryGetSinglePixelSpan(out Span<TPixel> span)
+        /// <param name="memory">The <see cref="Memory{T}"/> referencing the image buffer.</param>
+        /// <returns>The <see cref="bool"/> indicating the success.</returns>
+        public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory)
         {
             IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
-            if (mg.Count == 1)
+            if (mg.Count > 1)
             {
-                span = mg[0].Span;
-                return true;
+                memory = default;
+                return false;
             }
 
-            span = default;
-            return false;
+            memory = mg.Single();
+            return true;
         }
-
-        public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory) => throw new NotImplementedException();
 
         /// <summary>
         /// Clones the current image

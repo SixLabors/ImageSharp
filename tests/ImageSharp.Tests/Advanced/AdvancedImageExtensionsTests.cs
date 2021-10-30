@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             for (int y = 0; y < image.Height; y++)
             {
                 // Act:
-                Memory<TPixel> rowMemory = image.GetPixelRowMemory(y);
+                Memory<TPixel> rowMemory = image.DangerousGetPixelRowMemory(y);
                 Span<TPixel> span = rowMemory.Span;
 
                 // Assert:
@@ -134,8 +134,8 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         {
             using Image<TPixel> image = provider.GetImage();
 
-            Memory<TPixel> memory3 = image.GetPixelRowMemory(3);
-            Memory<TPixel> memory10 = image.GetPixelRowMemory(10);
+            Memory<TPixel> memory3 = image.DangerousGetPixelRowMemory(3);
+            Memory<TPixel> memory10 = image.DangerousGetPixelRowMemory(10);
 
             image.Mutate(c => c.Resize(8, 8));
 
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
             using Image<TPixel> image = provider.GetImage();
 
-            Memory<TPixel> memory = image.GetPixelRowMemory(image.Height - 1);
+            Memory<TPixel> memory = image.DangerousGetPixelRowMemory(image.Height - 1);
             Span<TPixel> span = image.GetPixelRowSpan(image.Height - 1);
 
             Assert.True(span == memory.Span);

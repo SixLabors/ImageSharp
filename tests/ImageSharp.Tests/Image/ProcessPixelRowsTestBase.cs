@@ -171,13 +171,16 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(nonDisposed, nonDisposed, disposed, (_, _, _) => { }));
         }
 
-        [Fact]
-        public void RetainsUnmangedBuffers1()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RetainsUnmangedBuffers1(bool throwException)
         {
-            RemoteExecutor.Invoke(RunTest, this.GetType().FullName).Dispose();
+            RemoteExecutor.Invoke(RunTest, this.GetType().FullName, throwException.ToString()).Dispose();
 
-            static void RunTest(string testTypeName)
+            static void RunTest(string testTypeName, string throwExceptionStr)
             {
+                bool throwExceptionInner = bool.Parse(throwExceptionStr);
                 var buffer = new UnmanagedBuffer<L8>(100);
                 var allocator = new MockUnmanagedMemoryAllocator<L8>(buffer);
                 Configuration.Default.MemoryAllocator = allocator;
@@ -185,22 +188,36 @@ namespace SixLabors.ImageSharp.Tests
                 var image = new Image<L8>(10, 10);
 
                 Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                GetTest(testTypeName).ProcessPixelRowsImpl(image, _ =>
+                try
                 {
-                    buffer.BufferHandle.Dispose();
-                    Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                });
+                    GetTest(testTypeName).ProcessPixelRowsImpl(image, _ =>
+                    {
+                        buffer.BufferHandle.Dispose();
+                        Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                        if (throwExceptionInner)
+                        {
+                            throw new NonFatalException();
+                        }
+                    });
+                }
+                catch (NonFatalException)
+                {
+                }
+
                 Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
             }
         }
 
-        [Fact]
-        public void RetainsUnmangedBuffers2()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RetainsUnmangedBuffers2(bool throwException)
         {
-            RemoteExecutor.Invoke(RunTest, this.GetType().FullName).Dispose();
+            RemoteExecutor.Invoke(RunTest, this.GetType().FullName, throwException.ToString()).Dispose();
 
-            static void RunTest(string testTypeName)
+            static void RunTest(string testTypeName, string throwExceptionStr)
             {
+                bool throwExceptionInner = bool.Parse(throwExceptionStr);
                 var buffer1 = new UnmanagedBuffer<L8>(100);
                 var buffer2 = new UnmanagedBuffer<L8>(100);
                 var allocator = new MockUnmanagedMemoryAllocator<L8>(buffer1, buffer2);
@@ -210,23 +227,37 @@ namespace SixLabors.ImageSharp.Tests
                 var image2 = new Image<L8>(10, 10);
 
                 Assert.Equal(2, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                GetTest(testTypeName).ProcessPixelRowsImpl(image1, image2, (_, _) =>
+                try
                 {
-                    buffer1.BufferHandle.Dispose();
-                    buffer2.BufferHandle.Dispose();
-                    Assert.Equal(2, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                });
+                    GetTest(testTypeName).ProcessPixelRowsImpl(image1, image2, (_, _) =>
+                    {
+                        buffer1.BufferHandle.Dispose();
+                        buffer2.BufferHandle.Dispose();
+                        Assert.Equal(2, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                        if (throwExceptionInner)
+                        {
+                            throw new NonFatalException();
+                        }
+                    });
+                }
+                catch (NonFatalException)
+                {
+                }
+
                 Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
             }
         }
 
-        [Fact]
-        public void RetainsUnmangedBuffers3()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RetainsUnmangedBuffers3(bool throwException)
         {
-            RemoteExecutor.Invoke(RunTest, this.GetType().FullName).Dispose();
+            RemoteExecutor.Invoke(RunTest, this.GetType().FullName, throwException.ToString()).Dispose();
 
-            static void RunTest(string testTypeName)
+            static void RunTest(string testTypeName, string throwExceptionStr)
             {
+                bool throwExceptionInner = bool.Parse(throwExceptionStr);
                 var buffer1 = new UnmanagedBuffer<L8>(100);
                 var buffer2 = new UnmanagedBuffer<L8>(100);
                 var buffer3 = new UnmanagedBuffer<L8>(100);
@@ -238,13 +269,24 @@ namespace SixLabors.ImageSharp.Tests
                 var image3 = new Image<L8>(10, 10);
 
                 Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                GetTest(testTypeName).ProcessPixelRowsImpl(image1, image2, image3, (_, _, _) =>
+                try
                 {
-                    buffer1.BufferHandle.Dispose();
-                    buffer2.BufferHandle.Dispose();
-                    buffer3.BufferHandle.Dispose();
-                    Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                });
+                    GetTest(testTypeName).ProcessPixelRowsImpl(image1, image2, image3, (_, _, _) =>
+                    {
+                        buffer1.BufferHandle.Dispose();
+                        buffer2.BufferHandle.Dispose();
+                        buffer3.BufferHandle.Dispose();
+                        Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                        if (throwExceptionInner)
+                        {
+                            throw new NonFatalException();
+                        }
+                    });
+                }
+                catch (NonFatalException)
+                {
+                }
+
                 Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
             }
         }
@@ -253,6 +295,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             Type type = typeof(ProcessPixelRowsTestBase).Assembly.GetType(testTypeName);
             return (ProcessPixelRowsTestBase)Activator.CreateInstance(type);
+        }
+
+        private class NonFatalException : Exception
+        {
         }
 
         private class MockUnmanagedMemoryAllocator<T1> : MemoryAllocator

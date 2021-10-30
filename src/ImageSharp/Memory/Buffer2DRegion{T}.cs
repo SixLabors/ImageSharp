@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Memory
             int xx = this.Rectangle.X;
             int width = this.Rectangle.Width;
 
-            return this.Buffer.GetRowSpan(yy).Slice(xx, width);
+            return this.Buffer.DangerousGetRowSpan(yy).Slice(xx, width);
         }
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             int y = this.Rectangle.Y;
             int x = this.Rectangle.X;
-            return ref this.Buffer.GetRowSpan(y)[x];
+            return ref this.Buffer.DangerousGetRowSpan(y)[x];
         }
 
         internal void Clear()

@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests
             Buffer2D<L16> buffer = image.Frames.RootFrame.PixelBuffer;
             for (int y = 0; y < 256; y++)
             {
-                Span<L16> row = buffer.GetRowSpan(y);
+                Span<L16> row = buffer.DangerousGetRowSpan(y);
                 for (int x = 0; x < 256; x++)
                 {
                     int actual = row[x].PackedValue;
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
             Buffer2D<L16> buffer = img1.Frames.RootFrame.PixelBuffer;
             for (int y = 0; y < 256; y++)
             {
-                Span<L16> row = buffer.GetRowSpan(y);
+                Span<L16> row = buffer.DangerousGetRowSpan(y);
                 for (int x = 0; x < 256; x++)
                 {
                     row[x] = new L16((ushort)(x * y));
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
             buffer = img2.Frames.RootFrame.PixelBuffer;
             for (int y = 0; y < 256; y++)
             {
-                Span<L16> row = buffer.GetRowSpan(y);
+                Span<L16> row = buffer.DangerousGetRowSpan(y);
                 for (int x = 0; x < 256; x++)
                 {
                     int actual = row[x].PackedValue;
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests
             Buffer2D<L16> buffer2 = img1.Frames.RootFrame.PixelBuffer;
             for (int y = 0; y < 256; y++)
             {
-                Span<L16> row = buffer2.GetRowSpan(y);
+                Span<L16> row = buffer2.DangerousGetRowSpan(y);
                 for (int x = 0; x < 256; x++)
                 {
                     row[x] = new L16((ushort)(x * y));
@@ -142,8 +142,8 @@ namespace SixLabors.ImageSharp.Tests
             Buffer2D<L16> buffer3 = img3.Frames.RootFrame.PixelBuffer;
             for (int y = 0; y < 256; y++)
             {
-                Span<L16> row2 = buffer2.GetRowSpan(y);
-                Span<L16> row3 = buffer3.GetRowSpan(y);
+                Span<L16> row2 = buffer2.DangerousGetRowSpan(y);
+                Span<L16> row3 = buffer3.DangerousGetRowSpan(y);
                 for (int x = 0; x < 256; x++)
                 {
                     int actual2 = row2[x].PackedValue;

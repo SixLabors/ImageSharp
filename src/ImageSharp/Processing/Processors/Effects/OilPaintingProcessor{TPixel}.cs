@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                         }
                     }
 
-                    Span<TPixel> targetRowAreaPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+                    Span<TPixel> targetRowAreaPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan);
                 }

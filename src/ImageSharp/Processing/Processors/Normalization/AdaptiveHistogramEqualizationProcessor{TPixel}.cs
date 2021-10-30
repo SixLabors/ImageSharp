@@ -525,7 +525,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Span<int> GetCdfLutSpan(int tileX, int tileY) => this.cdfLutBuffer2D.GetRowSpan(tileY).Slice(tileX * this.luminanceLevels, this.luminanceLevels);
+            public Span<int> GetCdfLutSpan(int tileX, int tileY) => this.cdfLutBuffer2D.DangerousGetRowSpan(tileY).Slice(tileX * this.luminanceLevels, this.luminanceLevels);
 
             /// <summary>
             /// Remaps the grey value with the cdf.
@@ -599,7 +599,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         int cdfY = this.tileYStartPositions[index].CdfY;
                         int y = this.tileYStartPositions[index].Y;
                         int endY = Math.Min(y + this.tileHeight, this.sourceHeight);
-                        Span<int> cdfMinSpan = this.cdfMinBuffer2D.GetRowSpan(cdfY);
+                        Span<int> cdfMinSpan = this.cdfMinBuffer2D.DangerousGetRowSpan(cdfY);
                         cdfMinSpan.Clear();
 
                         using IMemoryOwner<int> histogramBuffer = this.allocator.Allocate<int>(this.luminanceLevels);
@@ -609,7 +609,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         for (int x = 0; x < this.sourceWidth; x += this.tileWidth)
                         {
                             histogram.Clear();
-                            Span<int> cdfLutSpan = this.cdfLutBuffer2D.GetRowSpan(index).Slice(cdfX * this.luminanceLevels, this.luminanceLevels);
+                            Span<int> cdfLutSpan = this.cdfLutBuffer2D.DangerousGetRowSpan(index).Slice(cdfX * this.luminanceLevels, this.luminanceLevels);
                             ref int cdfBase = ref MemoryMarshal.GetReference(cdfLutSpan);
 
                             int xlimit = Math.Min(x + this.tileWidth, this.sourceWidth);

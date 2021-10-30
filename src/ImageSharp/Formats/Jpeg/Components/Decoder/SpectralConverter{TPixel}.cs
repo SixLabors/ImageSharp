@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     Span<TPixel> proxyRow = this.paddedProxyPixelRow.GetSpan();
                     PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, proxyRow);
-                    proxyRow.Slice(0, width).CopyTo(this.pixelBuffer.GetRowSpan(yy));
+                    proxyRow.Slice(0, width).CopyTo(this.pixelBuffer.DangerousGetRowSpan(yy));
                 }
             }
 

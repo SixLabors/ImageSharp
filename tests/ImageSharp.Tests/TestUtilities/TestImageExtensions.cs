@@ -429,8 +429,8 @@ namespace SixLabors.ImageSharp.Tests
 
             for (int y = 0; y < expected.Height; y++)
             {
-                Span<T> expectedRow = expected.GetRowSpan(y);
-                Span<T> actualRow = actual.GetRowSpan(y);
+                Span<T> expectedRow = expected.DangerousGetRowSpan(y);
+                Span<T> actualRow = actual.DangerousGetRowSpan(y);
                 for (int x = 0; x < expectedRow.Length; x++)
                 {
                     T expectedVal = expectedRow[x];

@@ -317,7 +317,7 @@ namespace SixLabors.ImageSharp
 
             this.EnsureNotDisposed();
 
-            return this.PixelSourceUnsafe.PixelBuffer.GetRowSpan(rowIndex);
+            return this.PixelSourceUnsafe.PixelBuffer.DangerousGetRowSpan(rowIndex);
         }
 
         /// <summary>

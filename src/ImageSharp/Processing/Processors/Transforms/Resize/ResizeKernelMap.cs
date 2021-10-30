@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int length = right - left + 1;
             this.ValidateSizesForCreateKernel(length, dataRowIndex, left, right);
 
-            Span<float> rowSpan = this.data.GetRowSpan(dataRowIndex);
+            Span<float> rowSpan = this.data.DangerousGetRowSpan(dataRowIndex);
 
             ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
             float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);

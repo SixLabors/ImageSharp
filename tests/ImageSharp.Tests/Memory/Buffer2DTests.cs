@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
+                Span<TestStructs.Foo> span = buffer.DangerousGetRowSpan(y);
 
                 Assert.Equal(width, span.Length);
 
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
             using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(width, height);
 
-            Exception ex = Assert.ThrowsAny<Exception>(() => buffer.GetRowSpan(y));
+            Exception ex = Assert.ThrowsAny<Exception>(() => buffer.DangerousGetRowSpan(y));
             Assert.True(ex is ArgumentOutOfRangeException || ex is IndexOutOfRangeException);
         }
 
@@ -268,8 +268,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Buffer2D<int>.SwapOrCopyContent(dest, source);
             }
 
-            int actual1 = dest.GetRowSpan(0)[0];
-            int actual2 = dest.GetRowSpan(0)[0];
+            int actual1 = dest.DangerousGetRowSpan(0)[0];
+            int actual2 = dest.DangerousGetRowSpan(0)[0];
             int actual3 = dest.GetSafeRowMemory(0).Span[0];
             int actual5 = dest[0, 0];
 
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpan(y);
+                    Span<float> row = b.DangerousGetRowSpan(y);
 
                     Span<float> s = row.Slice(startIndex, columnCount);
                     Span<float> d = row.Slice(destIndex, columnCount);
@@ -320,7 +320,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpan(y);
+                    Span<float> row = b.DangerousGetRowSpan(y);
 
                     Span<float> s = row.Slice(0, 22);
                     Span<float> d = row.Slice(50, 22);

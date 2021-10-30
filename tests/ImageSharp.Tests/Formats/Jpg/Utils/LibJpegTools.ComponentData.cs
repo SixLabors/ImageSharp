@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 for (int y = startIndex; y < endIndex; y++)
                 {
-                    Span<Block8x8> blockRow = data.GetRowSpan(y - startIndex);
+                    Span<Block8x8> blockRow = data.DangerousGetRowSpan(y - startIndex);
                     for (int x = 0; x < this.WidthInBlocks; x++)
                     {
                         short[] block = blockRow[x].ToArray();
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 Buffer2D<Block8x8> data = c.SpectralBlocks;
                 for (int y = 0; y < this.HeightInBlocks; y++)
                 {
-                    Span<Block8x8> blockRow = data.GetRowSpan(y);
+                    Span<Block8x8> blockRow = data.DangerousGetRowSpan(y);
                     for (int x = 0; x < this.WidthInBlocks; x++)
                     {
                         short[] block = blockRow[x].ToArray();

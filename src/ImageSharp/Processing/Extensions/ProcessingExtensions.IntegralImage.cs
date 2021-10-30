@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing
             {
                 Span<L8> tempSpan = tempRow.GetSpan();
                 Span<TPixel> sourceRow = source.GetPixelRowSpan(0);
-                Span<ulong> destRow = intImage.GetRowSpan(0);
+                Span<ulong> destRow = intImage.DangerousGetRowSpan(0);
 
                 PixelOperations<TPixel>.Instance.ToL8(configuration, sourceRow, tempSpan);
 
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing
                 for (int y = 1; y < endY; y++)
                 {
                     sourceRow = source.GetPixelRowSpan(y);
-                    destRow = intImage.GetRowSpan(y);
+                    destRow = intImage.DangerousGetRowSpan(y);
 
                     PixelOperations<TPixel>.Instance.ToL8(configuration, sourceRow, tempSpan);
 

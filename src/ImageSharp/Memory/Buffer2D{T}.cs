@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Memory
                 DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
-                return ref this.GetRowSpan(y)[x];
+                return ref this.DangerousGetRowSpan(y)[x];
             }
         }
 
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The <see cref="Span{T}"/> of the pixels in the row.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<T> GetRowSpan(int y)
+        public Span<T> DangerousGetRowSpan(int y)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));

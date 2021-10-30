@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             int stripPixelsRowIdx = 0;
             for (int row = y; row < lastRow; row++)
             {
-                Span<TPixel> stripPixelsRow = this.Image.PixelBuffer.GetRowSpan(row);
+                Span<TPixel> stripPixelsRow = this.Image.PixelBuffer.DangerousGetRowSpan(row);
                 stripPixelsRow.CopyTo(stripPixels.Slice(stripPixelsRowIdx * width, width));
                 stripPixelsRowIdx++;
             }

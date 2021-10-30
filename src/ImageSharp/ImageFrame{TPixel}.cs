@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));
 
-            return this.PixelBuffer.GetRowSpan(rowIndex);
+            return this.PixelBuffer.DangerousGetRowSpan(rowIndex);
         }
 
         /// <summary>

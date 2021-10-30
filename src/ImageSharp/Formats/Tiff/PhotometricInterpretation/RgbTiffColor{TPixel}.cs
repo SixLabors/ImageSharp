@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             for (int y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     float r = bitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;

@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     Buffer2D<Block8x8> spectralBlocks = component.SpectralBlocks;
                     for (int i = 0; i < spectralBlocks.Height; i++)
                     {
-                        spectralBlocks.GetRowSpan(i).Clear();
+                        spectralBlocks.DangerousGetRowSpan(i).Clear();
                     }
                 }
             }

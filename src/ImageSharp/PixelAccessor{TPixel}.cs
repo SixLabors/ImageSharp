@@ -67,6 +67,6 @@ namespace SixLabors.ImageSharp
         /// <param name="rowIndex">The row index.</param>
         /// <returns>The <see cref="Span{TPixel}"/>.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
-        public Span<TPixel> GetRowSpan(int rowIndex) => this.buffer.GetRowSpan(rowIndex);
+        public Span<TPixel> GetRowSpan(int rowIndex) => this.buffer.DangerousGetRowSpan(rowIndex);
     }
 }

@@ -306,7 +306,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int newY = Invert(y, height, inverted);
                     int rowStartIdx = y * width;
                     Span<byte> bufferRow = bufferSpan.Slice(rowStartIdx, width);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
                     bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
                     if (rowHasUndefinedPixels)
@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
                     bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
                     if (rowHasUndefinedPixels)
                     {
@@ -826,7 +826,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 int newY = Invert(y, height, inverted);
                 this.stream.Read(rowSpan);
                 int offset = 0;
-                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
                 for (int x = 0; x < arrayWidth; x++)
                 {
@@ -878,7 +878,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.stream.Read(bufferSpan);
                 int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
                 int offset = 0;
                 for (int x = 0; x < width; x++)
@@ -933,7 +933,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.stream.Read(rowSpan);
                 int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 PixelOperations<TPixel>.Instance.FromBgr24Bytes(
                     this.Configuration,
                     rowSpan,
@@ -961,7 +961,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.stream.Read(rowSpan);
                 int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                     this.Configuration,
                     rowSpan,
@@ -1031,7 +1031,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.stream.Read(rowSpan);
 
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                    Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
 
                     PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                         this.Configuration,
@@ -1054,7 +1054,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     width);
 
                 int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
 
                 for (int x = 0; x < width; x++)
                 {
@@ -1109,7 +1109,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.stream.Read(bufferSpan);
                 int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
                 int offset = 0;
                 for (int x = 0; x < width; x++)

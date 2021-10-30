@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             int offset = 0;
             for (int y = 0; y < pixelBuffer.Height; y++)
             {
-                Span<Rgb24> pixelRowSpan = pixelBuffer.GetRowSpan(y);
+                Span<Rgb24> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
                 Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
                 rgbBytes.CopyTo(buffer.Slice(offset));
                 offset += rgbBytes.Length;

@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The pixel row as a <see cref="Span{T}"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<byte> GetWritablePixelRowSpanUnsafe(int rowIndex)
-            => this.pixelBuffer.GetRowSpan(rowIndex);
+            => this.pixelBuffer.DangerousGetRowSpan(rowIndex);
 
         /// <inheritdoc/>
         public void Dispose()

@@ -204,21 +204,101 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        public void ProcessPixelRows(PixelAccessorAction<TPixel> processPixels) => throw new NotImplementedException();
+        /// <summary>
+        /// Execute <paramref name="processPixels"/> to process image pixels in a safe and efficient manner.
+        /// </summary>
+        /// <param name="processPixels">The <see cref="PixelAccessorAction{TPixel}"/> defining the pixel operations.</param>
+        public void ProcessPixelRows(PixelAccessorAction<TPixel> processPixels)
+        {
+            Guard.NotNull(processPixels, nameof(processPixels));
+            Buffer2D<TPixel> buffer = this.Frames.RootFrame.PixelBuffer;
+            buffer.FastMemoryGroup.IncreaseRefCounts();
 
+            try
+            {
+                var accessor = new PixelAccessor<TPixel>(buffer);
+                processPixels(accessor);
+            }
+            finally
+            {
+                buffer.FastMemoryGroup.DecreaseRefCounts();
+            }
+        }
+
+        /// <summary>
+        /// Execute <paramref name="processPixels"/> to process pixels of multiple images in a safe and efficient manner.
+        /// </summary>
+        /// <param name="image2">The second image.</param>
+        /// <param name="processPixels">The <see cref="PixelAccessorAction{TPixel, TPixel2}"/> defining the pixel operations.</param>
+        /// <typeparam name="TPixel2">The pixel type of the second image.</typeparam>
         public void ProcessPixelRows<TPixel2>(
             Image<TPixel2> image2,
             PixelAccessorAction<TPixel, TPixel2> processPixels)
             where TPixel2 : unmanaged, IPixel<TPixel2>
-            => throw new NotImplementedException();
+        {
+            Guard.NotNull(image2, nameof(image2));
+            Guard.NotNull(processPixels, nameof(processPixels));
 
+            Buffer2D<TPixel> buffer1 = this.Frames.RootFrame.PixelBuffer;
+            Buffer2D<TPixel2> buffer2 = image2.Frames.RootFrame.PixelBuffer;
+
+            buffer1.FastMemoryGroup.IncreaseRefCounts();
+            buffer2.FastMemoryGroup.IncreaseRefCounts();
+
+            try
+            {
+                var accessor1 = new PixelAccessor<TPixel>(buffer1);
+                var accessor2 = new PixelAccessor<TPixel2>(buffer2);
+                processPixels(accessor1, accessor2);
+            }
+            finally
+            {
+                buffer2.FastMemoryGroup.DecreaseRefCounts();
+                buffer1.FastMemoryGroup.DecreaseRefCounts();
+            }
+        }
+
+        /// <summary>
+        /// Execute <paramref name="processPixels"/> to process pixels of multiple images in a safe and efficient manner.
+        /// </summary>
+        /// <param name="image2">The second image.</param>
+        /// <param name="image3">The third image.</param>
+        /// <param name="processPixels">The <see cref="PixelAccessorAction{TPixel, TPixel2, TPixel3}"/> defining the pixel operations.</param>
+        /// <typeparam name="TPixel2">The pixel type of the second image.</typeparam>
+        /// <typeparam name="TPixel3">The pixel type of the third image.</typeparam>
         public void ProcessPixelRows<TPixel2, TPixel3>(
             Image<TPixel2> image2,
             Image<TPixel3> image3,
             PixelAccessorAction<TPixel, TPixel2, TPixel3> processPixels)
             where TPixel2 : unmanaged, IPixel<TPixel2>
             where TPixel3 : unmanaged, IPixel<TPixel3>
-            => throw new NotImplementedException();
+        {
+            Guard.NotNull(image2, nameof(image2));
+            Guard.NotNull(image3, nameof(image3));
+            Guard.NotNull(processPixels, nameof(processPixels));
+
+            Buffer2D<TPixel> buffer1 = this.Frames.RootFrame.PixelBuffer;
+            Buffer2D<TPixel2> buffer2 = image2.Frames.RootFrame.PixelBuffer;
+            Buffer2D<TPixel3> buffer3 = image3.Frames.RootFrame.PixelBuffer;
+
+            buffer1.FastMemoryGroup.IncreaseRefCounts();
+            buffer2.FastMemoryGroup.IncreaseRefCounts();
+            buffer3.FastMemoryGroup.IncreaseRefCounts();
+
+            try
+            {
+                var accessor1 = new PixelAccessor<TPixel>(buffer1);
+                var accessor2 = new PixelAccessor<TPixel2>(buffer2);
+                var accessor3 = new PixelAccessor<TPixel3>(buffer3);
+                processPixels(accessor1, accessor2, accessor3);
+            }
+            finally
+            {
+                buffer3.FastMemoryGroup.DecreaseRefCounts();
+                buffer2.FastMemoryGroup.DecreaseRefCounts();
+                buffer1.FastMemoryGroup.DecreaseRefCounts();
+            }
+        }
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory

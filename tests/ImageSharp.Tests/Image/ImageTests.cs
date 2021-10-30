@@ -176,84 +176,39 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-
-        public class ProcessPixelRows
+        public class ProcessPixelRows : ProcessPixelRowsTestBase
         {
-            [Fact]
-            public void PixelAccessorDimensionsAreCorrect()
-            {
-                using var image = new Image<Rgb24>(123, 456);
-                image.ProcessPixelRows(accessor =>
-                {
-                    Assert.Equal(123, accessor.Width);
-                    Assert.Equal(456, accessor.Height);
-                });
-            }
+            protected override void ProcessPixelRowsImpl<TPixel>(
+                Image<TPixel> image,
+                PixelAccessorAction<TPixel> processPixels) =>
+                image.ProcessPixelRows(processPixels);
+
+            protected override void ProcessPixelRowsImpl<TPixel>(
+                Image<TPixel> image1,
+                Image<TPixel> image2,
+                PixelAccessorAction<TPixel, TPixel> processPixels) =>
+                image1.ProcessPixelRows(image2, processPixels);
+
+            protected override void ProcessPixelRowsImpl<TPixel>(
+                Image<TPixel> image1,
+                Image<TPixel> image2,
+                Image<TPixel> image3,
+                PixelAccessorAction<TPixel, TPixel, TPixel> processPixels) =>
+                image1.ProcessPixelRows(image2, image3, processPixels);
 
             [Fact]
-            public void WritesImagePixels()
+            public void NullReference_Throws()
             {
-                using var image = new Image<L16>(256, 256);
-                image.ProcessPixelRows(accessor =>
-                {
-                    for (int y = 0; y < accessor.Height; y++)
-                    {
-                        Span<L16> row = accessor.GetRowSpan(y);
-                        for (int x = 0; x < row.Length; x++)
-                        {
-                            row[x] = new L16((ushort)(x * y));
-                        }
-                    }
-                });
+                using var img = new Image<Rgb24>(1, 1);
 
-                Buffer2D<L16> buffer = image.Frames.RootFrame.PixelBuffer;
-                for (int y = 0; y < 256; y++)
-                {
-                    Span<L16> row = buffer.GetRowSpan(y);
-                    for (int x = 0; x < 256; x++)
-                    {
-                        int actual = row[x].PackedValue;
-                        Assert.Equal(x * y, actual);
-                    }
-                }
-            }
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(null));
 
-            [Fact]
-            public void CopyImagePixels()
-            {
-                using var img1 = new Image<L16>(256, 256);
-                Buffer2D<L16> buffer = img1.Frames.RootFrame.PixelBuffer;
-                for (int y = 0; y < 256; y++)
-                {
-                    Span<L16> row = buffer.GetRowSpan(y);
-                    for (int x = 0; x < 256; x++)
-                    {
-                        row[x] = new L16((ushort)(x * y));
-                    }
-                }
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows((Image<Rgb24>)null, (_, _) => { }));
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(img, img, null));
 
-                using var img2 = new Image<L16>(256, 256);
-
-                img1.ProcessPixelRows(img2, (accessor1, accessor2) =>
-                {
-                    for (int y = 0; y < accessor1.Height; y++)
-                    {
-                        Span<L16> row1 = accessor1.GetRowSpan(y);
-                        Span<L16> row2 = accessor2.GetRowSpan(accessor2.Height - y - 1);
-                        row1.CopyTo(row2);
-                    }
-                });
-
-                buffer = img2.Frames.RootFrame.PixelBuffer;
-                for (int y = 0; y < 256; y++)
-                {
-                    Span<L16> row = buffer.GetRowSpan(y);
-                    for (int x = 0; x < 256; x++)
-                    {
-                        int actual = row[x].PackedValue;
-                        Assert.Equal(x * (256 - y - 1), actual);
-                    }
-                }
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows((Image<Rgb24>)null, img, (_, _, _) => { }));
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(img, (Image<Rgb24>)null, (_, _, _) => { }));
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(img, img, null));
             }
         }
 

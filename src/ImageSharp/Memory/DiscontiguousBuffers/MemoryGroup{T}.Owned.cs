@@ -86,6 +86,31 @@ namespace SixLabors.ImageSharp.Memory
                 return new MemoryGroupEnumerator<T>(this);
             }
 
+            public override void IncreaseRefCounts()
+            {
+                this.EnsureNotDisposed();
+                bool dummy = default;
+                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                {
+                    if (memoryOwner is UnmanagedBuffer<T> unmanagedBuffer)
+                    {
+                        unmanagedBuffer.BufferHandle?.DangerousAddRef(ref dummy);
+                    }
+                }
+            }
+
+            public override void DecreaseRefCounts()
+            {
+                this.EnsureNotDisposed();
+                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                {
+                    if (memoryOwner is UnmanagedBuffer<T> unmanagedBuffer)
+                    {
+                        unmanagedBuffer.BufferHandle?.DangerousRelease();
+                    }
+                }
+            }
+
             /// <inheritdoc/>
             IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
             {

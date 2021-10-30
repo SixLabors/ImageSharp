@@ -9,38 +9,14 @@ namespace SixLabors.ImageSharp.Memory.Internals
 {
     internal partial class UniformUnmanagedMemoryPool
     {
-        public unsafe class Buffer<T> : MemoryManager<T>
+        public class Buffer<T> : UnmanagedBuffer<T>
             where T : struct
         {
             private UniformUnmanagedMemoryPool pool;
-            private readonly int length;
 
             public Buffer(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle bufferHandle, int length)
-            {
+                : base(bufferHandle, length) =>
                 this.pool = pool;
-                this.BufferHandle = bufferHandle;
-                this.length = length;
-            }
-
-            private void* Pointer => (void*)this.BufferHandle.DangerousGetHandle();
-
-            protected UnmanagedMemoryHandle BufferHandle { get; private set; }
-
-            public override Span<T> GetSpan() => new Span<T>(this.Pointer, this.length);
-
-            /// <inheritdoc />
-            public override MemoryHandle Pin(int elementIndex = 0)
-            {
-                // Will be released in Unpin
-                bool unused = false;
-                this.BufferHandle.DangerousAddRef(ref unused);
-
-                void* pbData = Unsafe.Add<T>(this.Pointer, elementIndex);
-                return new MemoryHandle(pbData, pinnable: this);
-            }
-
-            /// <inheritdoc />
-            public override void Unpin() => this.BufferHandle.DangerousRelease();
 
             /// <inheritdoc />
             protected override void Dispose(bool disposing)
@@ -62,7 +38,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             }
         }
 
-        public class FinalizableBuffer<T> : Buffer<T>
+        public sealed class FinalizableBuffer<T> : Buffer<T>
             where T : struct
         {
             public FinalizableBuffer(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle bufferHandle, int length)

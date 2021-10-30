@@ -270,5 +270,13 @@ namespace SixLabors.ImageSharp.Memory
                 return false;
             }
         }
+
+        public virtual void IncreaseRefCounts()
+        {
+        }
+
+        public virtual void DecreaseRefCounts()
+        {
+        }
     }
 }

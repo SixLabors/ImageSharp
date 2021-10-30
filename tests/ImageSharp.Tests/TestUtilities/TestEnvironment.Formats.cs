@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests
@@ -57,6 +58,7 @@ namespace SixLabors.ImageSharp.Tests
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new TgaConfigurationModule(),
+                new WebpConfigurationModule(),
                 new TiffConfigurationModule());
 
             IImageEncoder pngEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public Configuration DefaultConfiguration { get; }
 
-        private readonly int expectedDefaultConfigurationCount = 6;
+        private readonly int expectedDefaultConfigurationCount = 7;
 
         public ConfigurationTests()
         {

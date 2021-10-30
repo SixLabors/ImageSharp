@@ -34,6 +34,18 @@ namespace SixLabors.ImageSharp.Formats.Png
             // a sensible default based upon the pixel format.
             options.ColorType ??= pngMetadata.ColorType ?? SuggestColorType<TPixel>();
             options.BitDepth ??= pngMetadata.BitDepth ?? SuggestBitDepth<TPixel>();
+            if (!options.FilterMethod.HasValue)
+            {
+                // Specification recommends default filter method None for paletted images and Paeth for others.
+                if (options.ColorType == PngColorType.Palette)
+                {
+                    options.FilterMethod = PngFilterMethod.None;
+                }
+                else
+                {
+                    options.FilterMethod = PngFilterMethod.Paeth;
+                }
+            }
 
             // Ensure bit depth and color type are a supported combination.
             // Bit8 is the only bit depth supported by all color types.

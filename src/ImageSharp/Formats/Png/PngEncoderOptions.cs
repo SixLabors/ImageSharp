@@ -18,11 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.BitDepth = source.BitDepth;
             this.ColorType = source.ColorType;
-
-            // Specification recommends default filter method None for paletted images and Paeth for others.
-            this.FilterMethod = source.FilterMethod ?? (source.ColorType == PngColorType.Palette
-                ? PngFilterMethod.None
-                : PngFilterMethod.Paeth);
+            this.FilterMethod = source.FilterMethod;
             this.CompressionLevel = source.CompressionLevel;
             this.TextCompressionThreshold = source.TextCompressionThreshold;
             this.Gamma = source.Gamma;
@@ -41,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngColorType? ColorType { get; set; }
 
         /// <inheritdoc/>
-        public PngFilterMethod? FilterMethod { get; }
+        public PngFilterMethod? FilterMethod { get; set; }
 
         /// <inheritdoc/>
         public PngCompressionLevel CompressionLevel { get; } = PngCompressionLevel.DefaultCompression;

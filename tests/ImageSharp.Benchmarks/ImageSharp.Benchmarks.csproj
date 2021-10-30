@@ -6,6 +6,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <GenerateProgramFile>false</GenerateProgramFile>
+    <DebugType>portable</DebugType>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>

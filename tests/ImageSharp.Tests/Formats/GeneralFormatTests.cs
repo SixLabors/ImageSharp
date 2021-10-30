@@ -16,6 +16,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats
 {
+    [Collection("RunSerial")]
     public class GeneralFormatTests
     {
         /// <summary>
@@ -150,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
 
                     using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tiff")))
                     {
-                        image.SaveAsTga(output);
+                        image.SaveAsTiff(output);
                     }
                 }
             }

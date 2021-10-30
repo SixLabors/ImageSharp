@@ -121,6 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 if (!Avx.IsSupported)
                 {
                     this.Output.WriteLine("No AVX present, skipping test!");
+                    return;
                 }
 
                 Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);

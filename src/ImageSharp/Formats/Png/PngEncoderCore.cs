@@ -165,20 +165,24 @@ namespace SixLabors.ImageSharp.Formats.Png
         private static void ClearTransparentPixels<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Rgba32 rgba32 = default;
-            for (int y = 0; y < image.Height; y++)
+            image.ProcessPixelRows(accessor =>
             {
-                Span<TPixel> span = image.DangerousGetRowSpan(y);
-                for (int x = 0; x < image.Width; x++)
+                Rgba32 rgba32 = default;
+                for (int y = 0; y < accessor.Height; y++)
                 {
-                    span[x].ToRgba32(ref rgba32);
-
-                    if (rgba32.A == 0)
+                    Span<TPixel> span = accessor.GetRowSpan(y);
+                    for (int x = 0; x < accessor.Width; x++)
                     {
-                        span[x].FromRgba32(Color.Transparent);
+                        span[x].ToRgba32(ref rgba32);
+
+                        if (rgba32.A == 0)
+                        {
+                            span[x].FromRgba32(Color.Transparent);
+                        }
                     }
                 }
-            }
+            });
+
         }
 
         /// <summary>
@@ -914,27 +918,31 @@ namespace SixLabors.ImageSharp.Formats.Png
             using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
             using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
 
-            Span<byte> filter = filterBuffer.GetSpan();
-            Span<byte> attempt = attemptBuffer.GetSpan();
-            for (int y = 0; y < this.height; y++)
+            pixels.ProcessPixelRows(accessor =>
             {
-                this.CollectAndFilterPixelRow(pixels.DangerousGetRowSpan(y), ref filter, ref attempt, quantized, y);
-                deflateStream.Write(filter);
-                this.SwapScanlineBuffers();
-            }
+                Span<byte> filter = filterBuffer.GetSpan();
+                Span<byte> attempt = attemptBuffer.GetSpan();
+                for (int y = 0; y < this.height; y++)
+                {
+                    this.CollectAndFilterPixelRow(accessor.GetRowSpan(y), ref filter, ref attempt, quantized, y);
+                    deflateStream.Write(filter);
+                    this.SwapScanlineBuffers();
+                }
+            });
         }
 
         /// <summary>
         /// Interlaced encoding the pixels.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="pixels">The pixels.</param>
+        /// <param name="image">The image.</param>
         /// <param name="deflateStream">The deflate stream.</param>
-        private void EncodeAdam7Pixels<TPixel>(Image<TPixel> pixels, ZlibDeflateStream deflateStream)
+        private void EncodeAdam7Pixels<TPixel>(Image<TPixel> image, ZlibDeflateStream deflateStream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = pixels.Width;
-            int height = pixels.Height;
+            int width = image.Width;
+            int height = image.Height;
+            Buffer2D<TPixel> pixelBuffer = image.Frames.RootFrame.PixelBuffer;
             for (int pass = 0; pass < 7; pass++)
             {
                 int startRow = Adam7.FirstRow[pass];
@@ -959,7 +967,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 for (int row = startRow; row < height; row += Adam7.RowIncrement[pass])
                 {
                     // Collect pixel data
-                    Span<TPixel> srcRow = pixels.DangerousGetRowSpan(row);
+                    Span<TPixel> srcRow = pixelBuffer.DangerousGetRowSpan(row);
                     for (int col = startCol, i = 0; col < width; col += Adam7.ColumnIncrement[pass])
                     {
                         block[i++] = srcRow[col];

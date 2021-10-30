@@ -148,22 +148,5 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memory3.Span);
             Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memory10.Span);
         }
-
-        [Theory]
-        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
-        [WithBlankImages(100, 111, PixelTypes.Rgba32)]
-        [WithBlankImages(400, 600, PixelTypes.Rgba32)]
-        public void DangerousGetRowSpan_ShouldReferenceSpanOfMemory<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
-
-            using Image<TPixel> image = provider.GetImage();
-
-            Memory<TPixel> memory = image.DangerousGetPixelRowMemory(image.Height - 1);
-            Span<TPixel> span = image.DangerousGetRowSpan(image.Height - 1);
-
-            Assert.True(span == memory.Span);
-        }
     }
 }

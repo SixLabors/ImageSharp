@@ -155,6 +155,23 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
+        public void Disposed_ThrowsObjectDisposedException()
+        {
+            using var nonDisposed = new Image<L16>(1, 1);
+            var disposed = new Image<L16>(1, 1);
+            disposed.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(disposed, _ => { }));
+
+            Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(disposed, nonDisposed, (_, _) => { }));
+            Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(nonDisposed, disposed, (_, _) => { }));
+
+            Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(disposed, nonDisposed, nonDisposed, (_, _, _) => { }));
+            Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(nonDisposed, disposed, nonDisposed, (_, _, _) => { }));
+            Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(nonDisposed, nonDisposed, disposed, (_, _, _) => { }));
+        }
+
+        [Fact]
         public void RetainsUnmangedBuffers1()
         {
             RemoteExecutor.Invoke(RunTest, this.GetType().FullName).Dispose();

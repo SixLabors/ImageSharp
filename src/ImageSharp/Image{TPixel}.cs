@@ -301,26 +301,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
-        /// <para />
-        /// WARNING: Disposing or leaking the underlying image while still working with it's <see cref="Span{T}"/>
-        /// might lead to memory corruption.
-        /// </summary>
-        /// <param name="rowIndex">The row.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
-        public Span<TPixel> DangerousGetRowSpan(int rowIndex)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
-            Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));
-
-            this.EnsureNotDisposed();
-
-            return this.PixelSourceUnsafe.PixelBuffer.DangerousGetRowSpan(rowIndex);
-        }
-
-        /// <summary>
         /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
         /// stored in row major order, if the backing buffer is contiguous.
         /// <para />

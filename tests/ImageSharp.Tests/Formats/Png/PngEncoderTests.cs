@@ -411,21 +411,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 ColorType = colorType
             };
             Rgba32 rgba32 = Color.Blue;
-            for (int y = 0; y < image.Height; y++)
+            image.ProcessPixelRows(accessor =>
             {
-                System.Span<Rgba32> rowSpan = image.DangerousGetRowSpan(y);
-
-                // Half of the test image should be transparent.
-                if (y > 25)
+                for (int y = 0; y < image.Height; y++)
                 {
-                    rgba32.A = 0;
-                }
+                    System.Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
 
-                for (int x = 0; x < image.Width; x++)
-                {
-                    rowSpan[x].FromRgba32(rgba32);
+                    // Half of the test image should be transparent.
+                    if (y > 25)
+                    {
+                        rgba32.A = 0;
+                    }
+
+                    for (int x = 0; x < image.Width; x++)
+                    {
+                        rowSpan[x].FromRgba32(rgba32);
+                    }
                 }
-            }
+            });
 
             // act
             using var memStream = new MemoryStream();
@@ -441,20 +444,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 expectedColor = new Rgba32(luminance, luminance, luminance);
             }
 
-            for (int y = 0; y < actual.Height; y++)
+            actual.ProcessPixelRows(accessor =>
             {
-                System.Span<Rgba32> rowSpan = actual.DangerousGetRowSpan(y);
-
-                if (y > 25)
+                for (int y = 0; y < accessor.Height; y++)
                 {
-                    expectedColor = Color.Transparent;
-                }
+                    System.Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
 
-                for (int x = 0; x < actual.Width; x++)
-                {
-                    Assert.Equal(expectedColor, rowSpan[x]);
+                    if (y > 25)
+                    {
+                        expectedColor = Color.Transparent;
+                    }
+
+                    for (int x = 0; x < accessor.Width; x++)
+                    {
+                        Assert.Equal(expectedColor, rowSpan[x]);
+                    }
                 }
-            }
+            });
         }
 
         [Theory]

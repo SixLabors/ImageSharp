@@ -93,25 +93,31 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Assert.Equal(1, result.Width);
             Assert.Equal(256, result.Height);
 
-            var actualImage = new Image<Rgba32>(1, 256);
+            using var actualImage = new Image<Rgba32>(1, 256);
 
-            ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
-            int paletteCount = paletteSpan.Length - 1;
-            for (int y = 0; y < actualImage.Height; y++)
+            actualImage.ProcessPixelRows(accessor =>
             {
-                Span<Rgba32> row = actualImage.DangerousGetRowSpan(y);
-                ReadOnlySpan<byte> quantizedPixelSpan = result.DangerousGetRowSpan(y);
-
-                for (int x = 0; x < actualImage.Width; x++)
+                ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
+                int paletteCount = paletteSpan.Length - 1;
+                for (int y = 0; y < accessor.Height; y++)
                 {
-                    row[x] = paletteSpan[Math.Min(paletteCount, quantizedPixelSpan[x])];
-                }
-            }
+                    Span<Rgba32> row = accessor.GetRowSpan(y);
+                    ReadOnlySpan<byte> quantizedPixelSpan = result.DangerousGetRowSpan(y);
 
-            for (int y = 0; y < image.Height; y++)
+                    for (int x = 0; x < accessor.Width; x++)
+                    {
+                        row[x] = paletteSpan[Math.Min(paletteCount, quantizedPixelSpan[x])];
+                    }
+                }
+            });
+
+            image.ProcessPixelRows(actualImage, static (imageAccessor, actualImageAccessor) =>
             {
-                Assert.True(image.DangerousGetRowSpan(y).SequenceEqual(actualImage.DangerousGetRowSpan(y)));
-            }
+                for (int y = 0; y < imageAccessor.Height; y++)
+                {
+                    Assert.True(imageAccessor.GetRowSpan(y).SequenceEqual(actualImageAccessor.GetRowSpan(y)));
+                }
+            });
         }
 
         [Theory]
@@ -162,24 +168,30 @@ namespace SixLabors.ImageSharp.Tests.Quantization
                     Assert.Equal(1, result.Width);
                     Assert.Equal(256, result.Height);
 
-                    ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
-                    int paletteCount = paletteSpan.Length - 1;
-                    for (int y = 0; y < actualImage.Height; y++)
+                    actualImage.ProcessPixelRows(accessor =>
                     {
-                        Span<Rgba32> row = actualImage.DangerousGetRowSpan(y);
-                        ReadOnlySpan<byte> quantizedPixelSpan = result.DangerousGetRowSpan(y);
-
-                        for (int x = 0; x < actualImage.Width; x++)
+                        ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
+                        int paletteCount = paletteSpan.Length - 1;
+                        for (int y = 0; y < accessor.Height; y++)
                         {
-                            row[x] = paletteSpan[Math.Min(paletteCount, quantizedPixelSpan[x])];
+                            Span<Rgba32> row = accessor.GetRowSpan(y);
+                            ReadOnlySpan<byte> quantizedPixelSpan = result.DangerousGetRowSpan(y);
+
+                            for (int x = 0; x < accessor.Width; x++)
+                            {
+                                row[x] = paletteSpan[Math.Min(paletteCount, quantizedPixelSpan[x])];
+                            }
                         }
-                    }
+                    });
                 }
 
-                for (int y = 0; y < expectedImage.Height; y++)
+                expectedImage.ProcessPixelRows(actualImage, static (expectedAccessor, actualAccessor) =>
                 {
-                    Assert.True(expectedImage.DangerousGetRowSpan(y).SequenceEqual(actualImage.DangerousGetRowSpan(y)));
-                }
+                    for (int y = 0; y < expectedAccessor.Height; y++)
+                    {
+                        Assert.True(expectedAccessor.GetRowSpan(y).SequenceEqual(actualAccessor.GetRowSpan(y)));
+                    }
+                });
             }
         }
     }

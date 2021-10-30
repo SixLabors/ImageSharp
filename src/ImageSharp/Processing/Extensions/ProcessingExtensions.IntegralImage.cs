@@ -30,11 +30,12 @@ namespace SixLabors.ImageSharp.Processing
 
             Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(source.Width, source.Height);
             ulong sumX0 = 0;
+            Buffer2D<TPixel> sourceBuffer = source.Frames.RootFrame.PixelBuffer;
 
             using (IMemoryOwner<L8> tempRow = configuration.MemoryAllocator.Allocate<L8>(source.Width))
             {
                 Span<L8> tempSpan = tempRow.GetSpan();
-                Span<TPixel> sourceRow = source.DangerousGetRowSpan(0);
+                Span<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(0);
                 Span<ulong> destRow = intImage.DangerousGetRowSpan(0);
 
                 PixelOperations<TPixel>.Instance.ToL8(configuration, sourceRow, tempSpan);
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing
                 // All other rows
                 for (int y = 1; y < endY; y++)
                 {
-                    sourceRow = source.DangerousGetRowSpan(y);
+                    sourceRow = sourceBuffer.DangerousGetRowSpan(y);
                     destRow = intImage.DangerousGetRowSpan(y);
 
                     PixelOperations<TPixel>.Instance.ToL8(configuration, sourceRow, tempSpan);

@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -106,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         [WithBasicTestPatternImages(1, 1, PixelTypes.Rgba32)]
         [WithBasicTestPatternImages(131, 127, PixelTypes.Rgba32)]
         [WithBasicTestPatternImages(333, 555, PixelTypes.Bgr24)]
-        public void GetPixelRowMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
+        public void DangerousGetPixelRowMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
@@ -116,13 +117,18 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             for (int y = 0; y < image.Height; y++)
             {
                 // Act:
-                Memory<TPixel> rowMemory = image.DangerousGetPixelRowMemory(y);
-                Span<TPixel> span = rowMemory.Span;
+                Memory<TPixel> rowMemoryFromImage = image.DangerousGetPixelRowMemory(y);
+                Memory<TPixel> rowMemoryFromFrame = image.Frames.RootFrame.DangerousGetPixelRowMemory(y);
+                Span<TPixel> spanFromImage = rowMemoryFromImage.Span;
+                Span<TPixel> spanFromFrame = rowMemoryFromFrame.Span;
+
+                Assert.Equal(spanFromFrame.Length, spanFromImage.Length);
+                Assert.True(Unsafe.AreSame(ref spanFromFrame[0], ref spanFromImage[0]));
 
                 // Assert:
                 for (int x = 0; x < image.Width; x++)
                 {
-                    Assert.Equal(provider.GetExpectedBasicTestPatternPixelAt(x, y), span[x]);
+                    Assert.Equal(provider.GetExpectedBasicTestPatternPixelAt(x, y), spanFromImage[x]);
                 }
             }
         }

@@ -113,7 +113,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             yield return new FromYCbCrAvx2(precision);
 #endif
             yield return new FromYCbCrVector8(precision);
-            yield return new FromYCbCrVector4(precision);
             yield return new FromYCbCrScalar(precision);
         }
 

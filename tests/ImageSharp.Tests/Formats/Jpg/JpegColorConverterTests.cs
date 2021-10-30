@@ -54,24 +54,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCrVector4(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            if (!SimdUtils.HasVector4)
-            {
-                this.Output.WriteLine("No SSE present, skipping test!");
-                return;
-            }
-
-            ValidateConversion(
-                new JpegColorConverter.FromYCbCrVector4(8),
-                3,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrVector8(int inputBufferLength, int resultBufferLength, int seed)
         {
             if (!SimdUtils.HasVector8)

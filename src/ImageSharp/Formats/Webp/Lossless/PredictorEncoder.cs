@@ -36,6 +36,22 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private const int PredLowEffort = 11;
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector128<byte> CollectColorRedTransformsGreenMask = Vector128.Create(0x00ff00).AsByte();
+
+        private static readonly Vector128<byte> CollectColorRedTransformsAndMask = Vector128.Create((short)0xff).AsByte();
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
+#endif
+
         /// <summary>
         /// Finds the best predictor for each tile, and converts the image to residuals
         /// with respect to predictions. If nearLosslessQuality &lt; 100, applies
@@ -1039,9 +1055,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (Sse41.IsSupported)
             {
                 var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
-                var maskgreen = Vector128.Create(0x00ff00);
-                var mask = Vector128.Create((short)0xff);
-
                 const int span = 8;
                 Span<ushort> values = stackalloc ushort[span];
                 for (int y = 0; y < tileHeight; y++)
@@ -1057,15 +1070,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             uint* input1Idx = src + x + (span / 2);
                             Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
                             Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> g0 = Sse2.And(input0, maskgreen.AsByte()); // 0 0  | g 0
-                            Vector128<byte> g1 = Sse2.And(input1, maskgreen.AsByte());
+                            Vector128<byte> g0 = Sse2.And(input0, CollectColorRedTransformsGreenMask); // 0 0  | g 0
+                            Vector128<byte> g1 = Sse2.And(input1, CollectColorRedTransformsGreenMask);
                             Vector128<ushort> g = Sse41.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
                             Vector128<int> a0 = Sse2.ShiftRightLogical(input0.AsInt32(), 16); // 0 0  | x r
                             Vector128<int> a1 = Sse2.ShiftRightLogical(input1.AsInt32(), 16);
                             Vector128<ushort> a = Sse41.PackUnsignedSaturate(a0, a1); // x r
                             Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg); // x dr
                             Vector128<byte> c = Sse2.Subtract(a.AsByte(), b.AsByte()); // x r'
-                            Vector128<byte> d = Sse2.And(c, mask.AsByte()); // 0 r'
+                            Vector128<byte> d = Sse2.And(c, CollectColorRedTransformsAndMask); // 0 r'
                             Sse2.Store(dst, d.AsUInt16());
                             for (int i = 0; i < span; i++)
                             {
@@ -1113,12 +1126,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Span<ushort> values = stackalloc ushort[span];
                 var multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
                 var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
-                var maskgreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-                var maskgreenblue = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-                var maskblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-                var shufflerLow = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
-                var shufflerHigh = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
-
                 for (int y = 0; y < tileHeight; y++)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
@@ -1132,18 +1139,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             uint* input1Idx = src + x + (span / 2);
                             Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
                             Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> r0 = Ssse3.Shuffle(input0, shufflerLow);
-                            Vector128<byte> r1 = Ssse3.Shuffle(input1, shufflerHigh);
+                            Vector128<byte> r0 = Ssse3.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask);
+                            Vector128<byte> r1 = Ssse3.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask);
                             Vector128<byte> r = Sse2.Or(r0, r1);
-                            Vector128<byte> gb0 = Sse2.And(input0, maskgreenblue);
-                            Vector128<byte> gb1 = Sse2.And(input1, maskgreenblue);
+                            Vector128<byte> gb0 = Sse2.And(input0, CollectColorBlueTransformsGreenBlueMask);
+                            Vector128<byte> gb1 = Sse2.And(input1, CollectColorBlueTransformsGreenBlueMask);
                             Vector128<ushort> gb = Sse41.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
-                            Vector128<byte> g = Sse2.And(gb.AsByte(), maskgreen);
+                            Vector128<byte> g = Sse2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask);
                             Vector128<short> a = Sse2.MultiplyHigh(r.AsInt16(), multsr);
                             Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg);
                             Vector128<byte> c = Sse2.Subtract(gb.AsByte(), b.AsByte());
                             Vector128<byte> d = Sse2.Subtract(c, a.AsByte());
-                            Vector128<byte> e = Sse2.And(d, maskblue);
+                            Vector128<byte> e = Sse2.And(d, CollectColorBlueTransformsBlueMask);
                             Sse2.Store(dst, e.AsUInt16());
                             for (int i = 0; i < span; i++)
                             {

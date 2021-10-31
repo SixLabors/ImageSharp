@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -151,6 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return cost;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int LevelCost(Span<ushort> table, int level)
             => WebpLookupTables.Vp8LevelFixedCosts[level] + table[level > WebpConstants.MaxVariableLevel ? WebpConstants.MaxVariableLevel : level];
 

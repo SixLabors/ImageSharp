@@ -1204,9 +1204,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return false;
             }
 
+#if NET5_0_OR_GREATER
+            var paletteSlice = palette.Slice(0, this.PaletteSize);
+            paletteSlice.Sort();
+#else
             uint[] paletteArray = palette.Slice(0, this.PaletteSize).ToArray();
             Array.Sort(paletteArray);
             paletteArray.CopyTo(palette);
+#endif
 
             if (PaletteHasNonMonotonousDeltas(palette, this.PaletteSize))
             {

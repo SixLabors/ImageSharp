@@ -202,9 +202,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
 
                 // Build the Huffman tree.
+#if NET5_0_OR_GREATER
+                Span<HuffmanTree> treeSlice = tree.AsSpan().Slice(0, treeSize);
+                treeSlice.Sort(HuffmanTree.Compare);
+#else
                 HuffmanTree[] treeCopy = tree.AsSpan().Slice(0, treeSize).ToArray();
                 Array.Sort(treeCopy, HuffmanTree.Compare);
                 treeCopy.AsSpan().CopyTo(tree);
+#endif
 
                 if (treeSize > 1)
                 {

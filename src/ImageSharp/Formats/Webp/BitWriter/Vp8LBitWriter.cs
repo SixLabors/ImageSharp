@@ -127,19 +127,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             this.used = 0;
         }
 
-        /// <inheritdoc/>
-        public override void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height)
+        /// <summary>
+        /// Writes the encoded image to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="exifProfile">The exif profile.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
+        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height, bool hasAlpha)
         {
-            Span<byte> buffer = stackalloc byte[4];
             bool isVp8X = false;
             byte[] exifBytes = null;
             uint riffSize = 0;
             if (exifProfile != null)
             {
                 isVp8X = true;
-                riffSize += WebpConstants.ChunkHeaderSize + WebpConstants.Vp8XChunkSize;
+                riffSize += ExtendedFileChunkSize;
                 exifBytes = exifProfile.ToByteArray();
-                riffSize += WebpConstants.ChunkHeaderSize + (uint)exifBytes.Length;
+                riffSize += this.ExifChunkSize(exifBytes);
             }
 
             this.Finish();
@@ -154,15 +160,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             // Write VP8X, header if necessary.
             if (isVp8X)
             {
-                this.WriteVp8XHeader(stream, exifProfile, width, height);
+                this.WriteVp8XHeader(stream, exifProfile, width, height, hasAlpha);
             }
 
             // Write magic bytes indicating its a lossless webp.
             stream.Write(WebpConstants.Vp8LMagicBytes);
 
             // Write Vp8 Header.
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, size);
-            stream.Write(buffer);
+            BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer, size);
+            stream.Write(this.scratchBuffer.AsSpan(0, 4));
             stream.WriteByte(WebpConstants.Vp8LHeaderMagicByte);
 
             // Write the encoded bytes of the image to the stream.

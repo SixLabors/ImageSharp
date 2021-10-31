@@ -10,10 +10,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 {
     internal abstract class BitWriterBase
     {
+        private const uint MaxDimension = 16777215;
+
+        private const ulong MaxCanvasPixels = 4294967295ul;
+
+        protected const uint ExtendedFileChunkSize = WebpConstants.ChunkHeaderSize + WebpConstants.Vp8XChunkSize;
+
         /// <summary>
         /// Buffer to write to.
         /// </summary>
         private byte[] buffer;
+
+        /// <summary>
+        /// A scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] scratchBuffer = new byte[4];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BitWriterBase"/> class.
@@ -52,15 +63,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         public abstract void Finish();
 
-        /// <summary>
-        /// Writes the encoded image to the stream.
-        /// </summary>
-        /// <param name="stream">The stream to write to.</param>
-        /// <param name="exifProfile">The exif profile.</param>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        public abstract void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height);
-
         protected void ResizeBuffer(int maxBytes, int sizeRequired)
         {
             int newSize = (3 * maxBytes) >> 1;
@@ -81,11 +83,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="riffSize">The block length.</param>
         protected void WriteRiffHeader(Stream stream, uint riffSize)
         {
-            Span<byte> buf = stackalloc byte[4];
             stream.Write(WebpConstants.RiffFourCc);
-            BinaryPrimitives.WriteUInt32LittleEndian(buf, riffSize);
-            stream.Write(buf);
+            BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer, riffSize);
+            stream.Write(this.scratchBuffer.AsSpan(0, 4));
             stream.Write(WebpConstants.WebpHeader);
+        }
+
+        /// <summary>
+        /// Calculates the exif chunk size.
+        /// </summary>
+        /// <param name="exifBytes">The exif profile bytes.</param>
+        /// <returns>The exif chunk size in bytes.</returns>
+        protected uint ExifChunkSize(byte[] exifBytes)
+        {
+            uint exifSize = (uint)exifBytes.Length;
+            uint exifChunkSize = WebpConstants.ChunkHeaderSize + exifSize + (exifSize & 1);
+
+            return exifChunkSize;
         }
 
         /// <summary>
@@ -97,12 +111,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         {
             DebugGuard.NotNull(exifBytes, nameof(exifBytes));
 
-            Span<byte> buf = stackalloc byte[4];
+            uint size = (uint)exifBytes.Length;
+            Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
             BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Exif);
             stream.Write(buf);
-            BinaryPrimitives.WriteUInt32LittleEndian(buf, (uint)exifBytes.Length);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
             stream.Write(buf);
             stream.Write(exifBytes);
+
+            // Add padding byte if needed.
+            if ((size & 1) == 1)
+            {
+                stream.WriteByte(0);
+            }
         }
 
         /// <summary>
@@ -112,16 +133,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
-        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, uint width, uint height)
+        /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
+        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, uint width, uint height, bool hasAlpha)
         {
-            int maxDimension = 16777215;
-            if (width > maxDimension || height > maxDimension)
+            if (width > MaxDimension || height > MaxDimension)
             {
-                WebpThrowHelper.ThrowInvalidImageDimensions($"Image width or height exceeds maximum allowed dimension of {maxDimension}");
+                WebpThrowHelper.ThrowInvalidImageDimensions($"Image width or height exceeds maximum allowed dimension of {MaxDimension}");
             }
 
             // The spec states that the product of Canvas Width and Canvas Height MUST be at most 2^32 - 1.
-            if (width * height > 4294967295ul)
+            if (width * height > MaxCanvasPixels)
             {
                 WebpThrowHelper.ThrowInvalidImageDimensions("The product of image width and height MUST be at most 2^32 - 1");
             }
@@ -133,7 +154,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                 flags |= 8;
             }
 
-            Span<byte> buf = stackalloc byte[4];
+            if (hasAlpha)
+            {
+                // Set alpha bit.
+                flags |= 16;
+            }
+
+            Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
             stream.Write(WebpConstants.Vp8XMagicBytes);
             BinaryPrimitives.WriteUInt32LittleEndian(buf, WebpConstants.Vp8XChunkSize);
             stream.Write(buf);

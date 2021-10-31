@@ -4,11 +4,9 @@
 using System.IO;
 using System.Threading;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp

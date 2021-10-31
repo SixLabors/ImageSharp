@@ -322,6 +322,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
             // TODO: EncodeAlpha();
+            bool hasAlpha = false;
+
             // Stats-collection loop.
             this.StatLoop(width, height, yStride, uvStride);
             it.Init();
@@ -354,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // Write bytes from the bitwriter buffer to the stream.
             image.Metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height);
+            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height, hasAlpha);
         }
 
         /// <inheritdoc/>

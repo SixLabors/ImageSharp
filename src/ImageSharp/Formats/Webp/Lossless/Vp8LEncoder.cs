@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.EncodeStream(image);
 
             // Write bytes from the bitwriter buffer to the stream.
-            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height);
+            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height, hasAlpha);
         }
 
         /// <summary>

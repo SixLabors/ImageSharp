@@ -81,6 +81,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.I4Boundary = new byte[37];
             this.BitCount = new long[4, 3];
             this.Scratch = new byte[WebpConstants.Bps * 16];
+            this.Scratch2 = new short[17 * 16];
+            this.Scratch3 = new int[16];
 
             // To match the C initial values of the reference implementation, initialize all with 204.
             byte defaultInitVal = 204;
@@ -216,9 +218,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public int CountDown { get; set; }
 
         /// <summary>
-        /// Gets the scratch buffer.
+        /// Gets the byte scratch buffer.
         /// </summary>
         public byte[] Scratch { get; }
+
+        /// <summary>
+        /// Gets the short scratch buffer.
+        /// </summary>
+        public short[] Scratch2 { get; }
+
+        /// <summary>
+        /// Gets the int scratch buffer.
+        /// </summary>
+        public int[] Scratch3 { get; }
 
         public Vp8MacroBlockInfo CurrentMacroBlockInfo => this.Mb[this.currentMbIdx];
 
@@ -380,7 +392,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int bestMode = 0;
 
             this.MakeLuma16Preds();
-            for (mode = 0; mode < maxMode; ++mode)
+            for (mode = 0; mode < maxMode; mode++)
             {
                 var histo = new Vp8Histogram();
                 histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]), 0, 16);
@@ -499,9 +511,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.CurrentMacroBlockInfo.MacroBlockType = Vp8MacroBlockType.I4X4;
         }
 
-        public int GetCostLuma16(Vp8ModeScore rd, Vp8EncProba proba)
+        public int GetCostLuma16(Vp8ModeScore rd, Vp8EncProba proba, Vp8Residual res)
         {
-            var res = new Vp8Residual();
             int r = 0;
 
             // re-import the non-zero context.
@@ -539,11 +550,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return WebpLookupTables.Vp8FixedCostsI4[top, left];
         }
 
-        public int GetCostLuma4(short[] levels, Vp8EncProba proba)
+        public int GetCostLuma4(Span<short> levels, Vp8EncProba proba, Vp8Residual res)
         {
             int x = this.I4 & 3;
             int y = this.I4 >> 2;
-            var res = new Vp8Residual();
             int r = 0;
 
             res.Init(0, 3, proba);
@@ -553,9 +563,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return r;
         }
 
-        public int GetCostUv(Vp8ModeScore rd, Vp8EncProba proba)
+        public int GetCostUv(Vp8ModeScore rd, Vp8EncProba proba, Vp8Residual res)
         {
-            var res = new Vp8Residual();
             int r = 0;
 
             // re-import the non-zero context.
@@ -741,7 +750,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vp8Encoding.EncPredChroma8(this.YuvP, left, top);
         }
 
-        public void MakeIntra4Preds() => Vp8Encoding.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx);
+        public void MakeIntra4Preds() => Vp8Encoding.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx, this.Scratch.AsSpan(0, 4));
 
         public void SwapOut()
         {

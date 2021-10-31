@@ -704,7 +704,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Compute the combined Shanon's entropy for distribution {X} and {X+Y}.
         /// </summary>
         /// <returns>Shanon entropy.</returns>
-        public static float CombinedShannonEntropy(int[] x, int[] y)
+        public static float CombinedShannonEntropy(Span<int> x, Span<int> y)
         {
             double retVal = 0.0d;
             uint sumX = 0, sumXY = 0;

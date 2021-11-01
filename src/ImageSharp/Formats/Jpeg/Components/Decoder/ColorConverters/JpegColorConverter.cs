@@ -148,6 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromGrayscaleAvx2(precision);
 #endif
+            yield return new FromGrayScaleVector8(precision);
             yield return new FromGrayscaleScalar(precision);
         }
 

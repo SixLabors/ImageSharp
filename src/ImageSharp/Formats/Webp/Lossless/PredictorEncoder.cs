@@ -17,9 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// </summary>
     internal static unsafe class PredictorEncoder
     {
-        // This uses C#'s compiler optimization to refer to assembly's static data directly.
-        private static ReadOnlySpan<sbyte> DeltaLut => new sbyte[] { 16, 16, 8, 4, 2, 2, 2 };
-
         private static readonly sbyte[][] Offset =
         {
             new sbyte[] { 0, -1 }, new sbyte[] { 0, 1 }, new sbyte[] { -1, 0 }, new sbyte[] { 1, 0 }, new sbyte[] { -1, -1 }, new sbyte[] { -1, 1 }, new sbyte[] { 1, -1 }, new sbyte[] { 1, 1 }
@@ -52,6 +49,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static readonly Vector128<byte> CollectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
 #endif
+
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<sbyte> DeltaLut => new sbyte[] { 16, 16, 8, 4, 2, 2, 2 };
 
         /// <summary>
         /// Finds the best predictor for each tile, and converts the image to residuals

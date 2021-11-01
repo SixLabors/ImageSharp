@@ -27,10 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private const double Log2Reciprocal = 1.44269504088896338700465094007086;
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector128<byte> Zero = Vector128.Create(0).AsByte();
-#endif
-
         /// <summary>
         /// Returns the exact index where array1 and array2 are different. For an index
         /// inferior or equal to bestLenMatch, the return value just has to be strictly
@@ -1262,8 +1258,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     Vector128<byte> cb0 = Sse2.SubtractSaturate(c0, b0);
                     Vector128<byte> ac = Sse2.Or(ac0, ca0);
                     Vector128<byte> bc = Sse2.Or(bc0, cb0);
-                    Vector128<byte> pa = Sse2.UnpackLow(ac, Zero); // |a - c|
-                    Vector128<byte> pb = Sse2.UnpackLow(bc, Zero); // |b - c|
+                    Vector128<byte> pa = Sse2.UnpackLow(ac, Vector128<byte>.Zero); // |a - c|
+                    Vector128<byte> pb = Sse2.UnpackLow(bc, Vector128<byte>.Zero); // |b - c|
                     Vector128<ushort> diff = Sse2.Subtract(pb.AsUInt16(), pa.AsUInt16());
                     Sse2.Store((ushort*)p, diff);
                 }

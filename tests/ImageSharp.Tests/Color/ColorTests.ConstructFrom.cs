@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Rgb24()
             {
-                var source = new Rgb24(1, 22, 231);
+                var source = new Rgb24(1, 22,  231);
 
                 // Act:
                 var color = new Color(source);
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Bgr24()
             {
-                var source = new Bgr24(1, 22, 231);
+                var source = new Bgr24(1, 22,  231);
 
                 // Act:
                 var color = new Color(source);

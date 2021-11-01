@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Rgb24()
             {
-                var source = new Rgb24(1, 22, 231);
+                var source = new Rgb24(1, 22,  231);
 
                 // Act:
                 Color color = source;
@@ -79,26 +79,13 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Bgr24()
             {
-                var source = new Bgr24(1, 22, 231);
+                var source = new Bgr24(1, 22,  231);
 
                 // Act:
                 Color color = source;
 
                 // Assert:
                 Bgr24 data = color.ToPixel<Bgr24>();
-                Assert.Equal(source, data);
-            }
-
-            [Fact]
-            public void TPixel()
-            {
-                var source = new RgbaVector(1, .1F, .133F, .864F);
-
-                // Act:
-                var color = Color.FromPixel(source);
-
-                // Assert:
-                RgbaVector data = color.ToPixel<RgbaVector>();
                 Assert.Equal(source, data);
             }
         }

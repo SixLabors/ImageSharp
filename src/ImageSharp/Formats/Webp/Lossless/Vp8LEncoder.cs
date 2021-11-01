@@ -24,9 +24,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private readonly int[] scratch = new int[256];
 
-        private int[][] histoArgb = { new int[256], new int[256], new int[256], new int[256] };
+        private readonly int[][] histoArgb = { new int[256], new int[256], new int[256], new int[256] };
 
-        private int[][] bestHisto = { new int[256], new int[256], new int[256], new int[256] };
+        private readonly int[][] bestHisto = { new int[256], new int[256], new int[256], new int[256] };
 
         /// <summary>
         /// The <see cref="MemoryAllocator"/> to use for buffer allocations.

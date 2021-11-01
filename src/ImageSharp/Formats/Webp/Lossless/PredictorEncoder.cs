@@ -17,7 +17,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// </summary>
     internal static unsafe class PredictorEncoder
     {
-        private static readonly sbyte[] DeltaLut = { 16, 16, 8, 4, 2, 2, 2 };
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<sbyte> DeltaLut => new sbyte[] { 16, 16, 8, 4, 2, 2, 2 };
 
         private static readonly sbyte[][] Offset =
         {

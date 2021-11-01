@@ -85,7 +85,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private const int PaletteInvSize = 1 << PaletteInvSizeBits;
 
-        private static readonly byte[] Order = { 1, 2, 0, 3 };
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> Order => new byte[] { 1, 2, 0, 3 };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LEncoder"/> class.

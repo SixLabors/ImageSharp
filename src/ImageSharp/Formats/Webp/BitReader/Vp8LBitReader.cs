@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         /// </summary>
         private const int Wbits = 32;
 
-        private readonly uint[] bitMask =
+        private static readonly uint[] BitMask =
         {
             0,
             0x000001, 0x000003, 0x000007, 0x00000f,
@@ -125,13 +125,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         /// </summary>
         /// <param name="nBits">The number of bits to read (should not exceed 16).</param>
         /// <returns>A ushort value.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public uint ReadValue(int nBits)
         {
-            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+            DebugGuard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
             if (!this.Eos && nBits <= Vp8LMaxNumBitRead)
             {
-                ulong val = this.PrefetchBits() & this.bitMask[nBits];
+                ulong val = this.PrefetchBits() & BitMask[nBits];
                 this.bitPos += nBits;
                 this.ShiftBytes();
                 return (uint)val;
@@ -169,6 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         /// <summary>
         /// Advances the read buffer by 4 bytes to make room for reading next 32 bits.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FillBitWindow()
         {
             if (this.bitPos >= Wbits)
@@ -181,7 +183,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         /// Returns true if there was an attempt at reading bit past the end of the buffer.
         /// </summary>
         /// <returns>True, if end of buffer was reached.</returns>
-        public bool IsEndOfStream() => this.Eos || ((this.pos == this.len) && (this.bitPos > Lbits));
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public bool IsEndOfStream() => this.Eos || (this.pos == this.len && this.bitPos > Lbits);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private void DoFillBitWindow() => this.ShiftBytes();
@@ -189,6 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         /// <summary>
         /// If not at EOS, reload up to Vp8LLbits byte-by-byte.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void ShiftBytes()
         {
             System.Span<byte> dataSpan = this.Data.Memory.Span;

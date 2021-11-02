@@ -12,16 +12,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromRgbAvx2 : Avx2JpegColorConverter
+        internal sealed class FromRgbAvx : AvxColorConverter
         {
-            public FromRgbAvx2(int precision)
+            public FromRgbAvx(int precision)
                 : base(JpegColorSpace.RGB, precision)
             {
             }
 
-            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            public override void ConvertToRgbInplace(in ComponentValues values)
             {
-#if SUPPORTS_RUNTIME_INTRINSICS
                 ref Vector256<float> rBase =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
                 ref Vector256<float> gBase =
@@ -41,11 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     g = Avx.Multiply(g, scale);
                     b = Avx.Multiply(b, scale);
                 }
-#endif
             }
-
-            protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromRgbScalar.ConvertCoreInplace(values, this.MaximumValue);
         }
     }
 }

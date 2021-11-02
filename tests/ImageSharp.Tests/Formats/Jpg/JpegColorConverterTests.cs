@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromYCbCrAvx2(8),
+                new JpegColorConverter.FromYCbCrAvx(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromCmykAvx2(8),
+                new JpegColorConverter.FromCmykAvx(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromGrayscaleAvx2(8),
+                new JpegColorConverter.FromGrayscaleAvx(8),
                 1,
                 inputBufferLength,
                 resultBufferLength,
@@ -243,7 +243,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromRgbAvx2(8),
+                new JpegColorConverter.FromRgbAvx(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -303,7 +303,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromYccKAvx2(8),
+                new JpegColorConverter.FromYccKAvx(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,

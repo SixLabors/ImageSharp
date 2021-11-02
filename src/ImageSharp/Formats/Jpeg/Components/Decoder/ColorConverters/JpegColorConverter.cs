@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private static IEnumerable<JpegColorConverter> GetYCbCrConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromYCbCrAvx2(precision);
+            yield return new FromYCbCrAvx(precision);
 #endif
             yield return new FromYCbCrVector8(precision);
             yield return new FromYCbCrScalar(precision);
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private static IEnumerable<JpegColorConverter> GetYccKConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromYccKAvx2(precision);
+            yield return new FromYccKAvx(precision);
 #endif
             yield return new FromYccKVector8(precision);
             yield return new FromYccKScalar(precision);
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private static IEnumerable<JpegColorConverter> GetCmykConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromCmykAvx2(precision);
+            yield return new FromCmykAvx(precision);
 #endif
             yield return new FromCmykVector8(precision);
             yield return new FromCmykScalar(precision);
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private static IEnumerable<JpegColorConverter> GetGrayScaleConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromGrayscaleAvx2(precision);
+            yield return new FromGrayscaleAvx(precision);
 #endif
             yield return new FromGrayScaleVector8(precision);
             yield return new FromGrayscaleScalar(precision);
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private static IEnumerable<JpegColorConverter> GetRgbConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromRgbAvx2(precision);
+            yield return new FromRgbAvx(precision);
 #endif
             yield return new FromRgbVector8(precision);
             yield return new FromRgbScalar(precision);

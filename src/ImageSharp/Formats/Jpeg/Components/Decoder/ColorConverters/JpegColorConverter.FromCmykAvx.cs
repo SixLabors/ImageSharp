@@ -12,16 +12,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromCmykAvx2 : Avx2JpegColorConverter
+        internal sealed class FromCmykAvx : AvxColorConverter
         {
-            public FromCmykAvx2(int precision)
+            public FromCmykAvx(int precision)
                 : base(JpegColorSpace.Cmyk, precision)
             {
             }
 
-            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            public override void ConvertToRgbInplace(in ComponentValues values)
             {
-#if SUPPORTS_RUNTIME_INTRINSICS
                 ref Vector256<float> c0Base =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
                 ref Vector256<float> c1Base =
@@ -47,11 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     m = Avx.Multiply(Avx.Multiply(m, k), scale);
                     y = Avx.Multiply(Avx.Multiply(y, k), scale);
                 }
-#endif
             }
-
-            protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromCmykScalar.ConvertCoreInplace(values, this.MaximumValue);
         }
     }
 }

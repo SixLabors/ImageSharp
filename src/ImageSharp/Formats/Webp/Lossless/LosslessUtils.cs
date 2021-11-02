@@ -1207,10 +1207,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
                 Vector128<byte> c1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c1).AsByte(), Vector128<byte>.Zero);
                 Vector128<byte> c2Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c2).AsByte(), Vector128<byte>.Zero);
-                Vector128<byte> v1 = Sse2.Add(c0Vec, c1Vec);
-                Vector128<byte> v2 = Sse2.Subtract(v1, c2Vec);
+                Vector128<short> v1 = Sse2.Add(c0Vec.AsInt16(), c1Vec.AsInt16());
+                Vector128<short> v2 = Sse2.Subtract(v1, c2Vec.AsInt16());
                 Vector128<byte> b = Sse2.PackUnsignedSaturate(v2.AsInt16(), v2.AsInt16());
                 uint output = Sse2.ConvertToUInt32(b.AsUInt32());
+                return output;
             }
 #endif
             {

@@ -132,6 +132,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.Equal(expectedOutput, pixelData);
         }
 
+        private static void RunPredictor11Test()
+        {
+            // arrange
+            uint[] topData = { 4278258949, 4278258949 };
+            uint left = 4294839812;
+            short[] scratch = new short[8];
+            uint expectedResult = 4294839812;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[1])
+                {
+                    uint actual = LosslessUtils.Predictor11(left, top, scratch);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
+        [Fact]
+        public void Predictor11_Works() => RunPredictor11Test();
+
         [Fact]
         public void SubtractGreen_Works() => RunSubtractGreenTest();
 
@@ -145,6 +169,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void TransformColorInverse_Works() => RunTransformColorInverseTest();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void Predictor11_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor11Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor11_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor11Test, HwIntrinsics.DisableSSE2);
+
         [Fact]
         public void SubtractGreen_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.AllowAll);
 

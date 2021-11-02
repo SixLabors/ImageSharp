@@ -9,16 +9,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal abstract class VectorizedJpegColorConverter : JpegColorConverter
         {
-            private readonly int vectorSize;
+            protected VectorizedJpegColorConverter(JpegColorSpace colorSpace, int precision)
+                : base(colorSpace, precision)
+            {
+            }
 
-            protected VectorizedJpegColorConverter(JpegColorSpace colorSpace, int precision, int vectorSize)
-                : base(colorSpace, precision) =>
-                this.vectorSize = vectorSize;
+            protected sealed override bool IsAvailable => SimdUtils.HasVector8;
 
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
                 int length = values.Component0.Length;
-                int remainder = values.Component0.Length % this.vectorSize;
+                int remainder = values.Component0.Length % 8;
                 int simdCount = length - remainder;
                 if (simdCount > 0)
                 {

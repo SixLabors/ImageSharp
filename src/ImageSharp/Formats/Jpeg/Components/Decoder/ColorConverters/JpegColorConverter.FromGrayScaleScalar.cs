@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
@@ -21,30 +21,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             internal static void ScaleValues(Span<float> values, float maxValue)
             {
-                Span<Vector4> vecValues = MemoryMarshal.Cast<float, Vector4>(values);
+                ref float valuesRef = ref MemoryMarshal.GetReference(values);
+                float scale = 1 / maxValue;
 
-                var scaleVector = new Vector4(1 / maxValue);
-
-                for (int i = 0; i < vecValues.Length; i++)
+                for (nint i = 0; i < values.Length; i++)
                 {
-                    vecValues[i] *= scaleVector;
-                }
-
-                values = values.Slice(vecValues.Length * 4);
-                if (!values.IsEmpty)
-                {
-                    float scaleValue = 1f / maxValue;
-                    values[0] *= scaleValue;
-
-                    if ((uint)values.Length > 1)
-                    {
-                        values[1] *= scaleValue;
-
-                        if ((uint)values.Length > 2)
-                        {
-                            values[2] *= scaleValue;
-                        }
-                    }
+                    Unsafe.Add(ref valuesRef, i) *= scale;
                 }
             }
         }

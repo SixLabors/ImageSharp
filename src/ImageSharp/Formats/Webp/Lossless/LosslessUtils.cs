@@ -1201,20 +1201,34 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
         {
-            int a = AddSubtractComponentFull(
-                (int)(c0 >> 24),
-                (int)(c1 >> 24),
-                (int)(c2 >> 24));
-            int r = AddSubtractComponentFull(
-                (int)((c0 >> 16) & 0xff),
-                (int)((c1 >> 16) & 0xff),
-                (int)((c2 >> 16) & 0xff));
-            int g = AddSubtractComponentFull(
-                (int)((c0 >> 8) & 0xff),
-                (int)((c1 >> 8) & 0xff),
-                (int)((c2 >> 8) & 0xff));
-            int b = AddSubtractComponentFull((int)(c0 & 0xff), (int)(c1 & 0xff), (int)(c2 & 0xff));
-            return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> c1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c1).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> c2Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c2).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> v1 = Sse2.Add(c0Vec, c1Vec);
+                Vector128<byte> v2 = Sse2.Subtract(v1, c2Vec);
+                Vector128<byte> b = Sse2.PackUnsignedSaturate(v2.AsInt16(), v2.AsInt16());
+                uint output = Sse2.ConvertToUInt32(b.AsUInt32());
+            }
+#endif
+            {
+                int a = AddSubtractComponentFull(
+                    (int)(c0 >> 24),
+                    (int)(c1 >> 24),
+                    (int)(c2 >> 24));
+                int r = AddSubtractComponentFull(
+                    (int)((c0 >> 16) & 0xff),
+                    (int)((c1 >> 16) & 0xff),
+                    (int)((c2 >> 16) & 0xff));
+                int g = AddSubtractComponentFull(
+                    (int)((c0 >> 8) & 0xff),
+                    (int)((c1 >> 8) & 0xff),
+                    (int)((c2 >> 8) & 0xff));
+                int b = AddSubtractComponentFull((int)(c0 & 0xff), (int)(c1 & 0xff), (int)(c2 & 0xff));
+                return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+            }
         }
 
         private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)

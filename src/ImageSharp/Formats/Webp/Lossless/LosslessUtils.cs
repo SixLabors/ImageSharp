@@ -1262,11 +1262,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     Vector128<byte> pb = Sse2.UnpackLow(bc, Vector128<byte>.Zero); // |b - c|
                     Vector128<ushort> diff = Sse2.Subtract(pb.AsUInt16(), pa.AsUInt16());
                     Sse2.Store((ushort*)p, diff);
+                    int paMinusPb = output[3] + output[2] + output[1] + output[0];
+                    return (paMinusPb <= 0) ? a : b;
                 }
-
-                int paMinusPb = output[0] + output[1] + output[2] + output[3];
-
-                return (paMinusPb <= 0) ? a : b;
             }
             else
 #endif

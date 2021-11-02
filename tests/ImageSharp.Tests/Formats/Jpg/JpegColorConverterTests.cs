@@ -26,9 +26,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly TheoryData<int, int, int> CommonConversionData =
             new TheoryData<int, int, int>
                 {
+                    { 8, 8, 1 },
                     { 40, 40, 1 },
-                    { 42, 40, 2 },
-                    { 42, 39, 3 }
+                    { 256, 256, 2 },
+                    { 512, 512, 3 }
                 };
 
         private static readonly ColorSpaceConverter ColorSpaceConverter = new ColorSpaceConverter();
@@ -72,9 +73,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCrAvx2(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYCbCrAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            if (!SimdUtils.HasAvx)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;
@@ -132,9 +133,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromCmykAvx2(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromCmykAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            if (!SimdUtils.HasAvx)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;
@@ -192,9 +193,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromGrayscaleAvx2(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromGrayscaleAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            if (!SimdUtils.HasAvx)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;
@@ -252,9 +253,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromRgbAvx2(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromRgbAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            if (!SimdUtils.HasAvx)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;
@@ -312,9 +313,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYccKAvx2(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYccKAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            if (!SimdUtils.HasAvx)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;

@@ -8,9 +8,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     internal abstract partial class JpegColorConverter
     {
         /// <summary>
-        /// <see cref="JpegColorConverter"/> abstract base for
-        /// <see cref="System.Numerics.Vector"/> implementations.
+        /// <see cref="JpegColorConverter"/> abstract base for implementations
+        /// based on <see cref="System.Numerics.Vector"/> API.
         /// </summary>
+        /// <remarks>
+        /// Converters of this family can work with data of any size.
+        /// Even though real life data is guaranteed to be of size
+        /// divisible by 8 newer SIMD instructions like AVX512 won't work with
+        /// such data out of the box. These converters have fallback code
+        /// for 'remainder' data.
+        /// </remarks>
         internal abstract class VectorizedJpegColorConverter : JpegColorConverter
         {
             protected VectorizedJpegColorConverter(JpegColorSpace colorSpace, int precision)

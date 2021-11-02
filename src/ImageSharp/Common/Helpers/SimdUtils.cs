@@ -33,12 +33,12 @@ namespace SixLabors.ImageSharp
         public static bool HasVector4 { get; } =
             Vector.IsHardwareAccelerated && Vector<float>.Count == 4;
 
-        public static bool HasAvx2
+        public static bool HasAvx
         {
             get
             {
 #if SUPPORTS_RUNTIME_INTRINSICS
-                return Avx2.IsSupported;
+                return Avx.IsSupported;
 #else
                 return false;
 #endif

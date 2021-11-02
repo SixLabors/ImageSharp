@@ -7,6 +7,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
+        /// <summary>
+        /// <see cref="JpegColorConverter"/> abstract base for <see cref="Avx"/>
+        /// implementations.
+        /// </summary>
         internal abstract class AvxColorConverter : JpegColorConverter
         {
             protected AvxColorConverter(JpegColorSpace colorSpace, int precision)

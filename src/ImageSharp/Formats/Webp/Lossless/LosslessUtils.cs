@@ -752,6 +752,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Fast calculation of log2(v) for integer input.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float FastLog2(uint v) => v < LogLookupIdxMax ? WebpLookupTables.Log2Table[v] : FastLog2Slow(v);
 
         /// <summary>

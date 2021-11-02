@@ -22,14 +22,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             new JpegColorConverter.FromYCbCrScalar(8).ConvertToRgbInplace(values);
         }
 
-        [Benchmark(Baseline = true)]
-        public void SimdVector()
-        {
-            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
-
-            new JpegColorConverter.FromYCbCrVector4(8).ConvertToRgbInplace(values);
-        }
-
         [Benchmark]
         public void SimdVector8()
         {
@@ -43,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYCbCrAvx2(8).ConvertToRgbInplace(values);
+            new JpegColorConverter.FromYCbCrAvx(8).ConvertToRgbInplace(values);
         }
     }
 }

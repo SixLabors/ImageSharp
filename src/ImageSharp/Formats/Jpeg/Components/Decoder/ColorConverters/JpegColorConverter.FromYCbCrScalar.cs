@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromYCbCrScalar : BasicJpegColorConverter
+        internal sealed class FromYCbCrScalar : ScalarJpegColorConverter
         {
             // TODO: comments, derived from ITU-T Rec. T.871
             internal const float RCrMult = 1.402f;

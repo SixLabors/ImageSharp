@@ -780,7 +780,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static float FastSLog2Slow(uint v)
         {
-            Guard.MustBeGreaterThanOrEqualTo(v, LogLookupIdxMax, nameof(v));
+            DebugGuard.MustBeGreaterThanOrEqualTo<uint>(v, LogLookupIdxMax, nameof(v));
             if (v < ApproxLogWithCorrectionMax)
             {
                 int logCnt = 0;

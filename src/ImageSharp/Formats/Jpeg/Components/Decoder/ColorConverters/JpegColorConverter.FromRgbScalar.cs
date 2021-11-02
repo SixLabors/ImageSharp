@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             internal static void ConvertCoreInplace(ComponentValues values, float maxValue)
             {
-                FromGrayscaleScalar.ScaleValues(values.Component0, maxValue);
-                FromGrayscaleScalar.ScaleValues(values.Component1, maxValue);
-                FromGrayscaleScalar.ScaleValues(values.Component2, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplace(values.Component0, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplace(values.Component1, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplace(values.Component2, maxValue);
             }
         }
     }

@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromCmykScalar.ConvertCoreInplace(values, this.MaximumValue);
+                FromGrayscaleScalar.ConvertCoreInplace(values.Component0, this.MaximumValue);
         }
     }
 }

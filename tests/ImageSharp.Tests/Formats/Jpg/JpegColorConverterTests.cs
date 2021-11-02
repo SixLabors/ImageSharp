@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCrBasic(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYCbCrScalar(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
                 new JpegColorConverter.FromYCbCrScalar(8),
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromCmykBasic(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromCmykScalar(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
                 new JpegColorConverter.FromCmykScalar(8),
@@ -162,10 +162,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromGrayscaleBasic(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromGrayscaleScalar(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
                 new JpegColorConverter.FromGrayscaleScalar(8),
+                1,
+                inputBufferLength,
+                resultBufferLength,
+                seed);
+        }
+
+        [Theory]
+        [MemberData(nameof(CommonConversionData))]
+        public void FromGrayscaleVector8(int inputBufferLength, int resultBufferLength, int seed)
+        {
+            if (!SimdUtils.HasVector8)
+            {
+                this.Output.WriteLine("No AVX2 present, skipping test!");
+                return;
+            }
+
+            ValidateConversion(
+                new JpegColorConverter.FromGrayScaleVector8(8),
                 1,
                 inputBufferLength,
                 resultBufferLength,
@@ -204,7 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromRgbBasic(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromRgbScalar(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
                 new JpegColorConverter.FromRgbScalar(8),
@@ -264,7 +282,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYccKBasic(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYccKScalar(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
                 new JpegColorConverter.FromYccKScalar(8),

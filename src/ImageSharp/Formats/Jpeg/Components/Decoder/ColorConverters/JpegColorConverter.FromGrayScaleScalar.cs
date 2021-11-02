@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             public override void ConvertToRgbInplace(in ComponentValues values) =>
-                ScaleValues(values.Component0, this.MaximumValue);
+                ConvertCoreInplace(values.Component0, this.MaximumValue);
 
-            internal static void ScaleValues(Span<float> values, float maxValue)
+            internal static void ConvertCoreInplace(Span<float> values, float maxValue)
             {
                 ref float valuesRef = ref MemoryMarshal.GetReference(values);
                 float scale = 1 / maxValue;

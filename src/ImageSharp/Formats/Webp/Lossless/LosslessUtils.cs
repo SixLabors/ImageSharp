@@ -564,6 +564,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     int mask = tileWidth - 1;
                     int tilesPerRow = SubSampleSize(width, transform.Bits);
                     int predictorModeIdxBase = (y >> transform.Bits) * tilesPerRow;
+                    Span<short> scratch = stackalloc short[8];
                     while (y < yEnd)
                     {
                         int predictorModeIdx = predictorModeIdxBase;
@@ -621,7 +622,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                                     PredictorAdd10(input + x, output + x - width, xEnd - x, output + x);
                                     break;
                                 case 11:
-                                    PredictorAdd11(input + x, output + x - width, xEnd - x, output + x);
+                                    PredictorAdd11(input + x, output + x - width, xEnd - x, output + x, scratch);
                                     break;
                                 case 12:
                                     PredictorAdd12(input + x, output + x - width, xEnd - x, output + x);
@@ -987,11 +988,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void PredictorAdd11(uint* input, uint* upper, int numberOfPixels, uint* output)
+        private static void PredictorAdd11(uint* input, uint* upper, int numberOfPixels, uint* output, Span<short> scratch)
         {
             for (int x = 0; x < numberOfPixels; x++)
             {
-                uint pred = Predictor11(output[x - 1], upper + x);
+                uint pred = Predictor11(output[x - 1], upper + x, scratch);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -1044,7 +1045,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static uint Predictor10(uint left, uint* top) => Average4(left, top[-1], top[0], top[1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor11(uint left, uint* top) => Select(top[0], left, top[-1]);
+        public static uint Predictor11(uint left, uint* top, Span<short> scratch) => Select(top[0], left, top[-1], scratch);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static uint Predictor12(uint left, uint* top) => ClampedAddSubtractFull(left, top[0], top[-1]);
@@ -1161,11 +1162,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub11(uint* input, uint* upper, int numPixels, uint* output)
+        public static void PredictorSub11(uint* input, uint* upper, int numPixels, uint* output, Span<short> scratch)
         {
             for (int x = 0; x < numPixels; x++)
             {
-                uint pred = Predictor11(input[x - 1], upper + x);
+                uint pred = Predictor11(input[x - 1], upper + x, scratch);
                 output[x] = SubPixels(input[x], pred);
             }
         }
@@ -1253,14 +1254,43 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static Vector128<int> MkCst16(int hi, int lo) => Vector128.Create((hi << 16) | (lo & 0xffff));
 #endif
 
-        private static uint Select(uint a, uint b, uint c)
+        private static uint Select(uint a, uint b, uint c, Span<short> scratch)
         {
-            int paMinusPb =
-                Sub3((int)(a >> 24), (int)(b >> 24), (int)(c >> 24)) +
-                Sub3((int)((a >> 16) & 0xff), (int)((b >> 16) & 0xff), (int)((c >> 16) & 0xff)) +
-                Sub3((int)((a >> 8) & 0xff), (int)((b >> 8) & 0xff), (int)((c >> 8) & 0xff)) +
-                Sub3((int)(a & 0xff), (int)(b & 0xff), (int)(c & 0xff));
-            return paMinusPb <= 0 ? a : b;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Span<short> output = scratch;
+                fixed (short* p = output)
+                {
+                    Vector128<byte> a0 = Sse2.ConvertScalarToVector128UInt32(a).AsByte();
+                    Vector128<byte> b0 = Sse2.ConvertScalarToVector128UInt32(b).AsByte();
+                    Vector128<byte> c0 = Sse2.ConvertScalarToVector128UInt32(c).AsByte();
+                    Vector128<byte> ac0 = Sse2.SubtractSaturate(a0, c0);
+                    Vector128<byte> ca0 = Sse2.SubtractSaturate(c0, a0);
+                    Vector128<byte> bc0 = Sse2.SubtractSaturate(b0, c0);
+                    Vector128<byte> cb0 = Sse2.SubtractSaturate(c0, b0);
+                    Vector128<byte> ac = Sse2.Or(ac0, ca0);
+                    Vector128<byte> bc = Sse2.Or(bc0, cb0);
+                    Vector128<byte> pa = Sse2.UnpackLow(ac, Vector128<byte>.Zero); // |a - c|
+                    Vector128<byte> pb = Sse2.UnpackLow(bc, Vector128<byte>.Zero); // |b - c|
+                    Vector128<ushort> diff = Sse2.Subtract(pb.AsUInt16(), pa.AsUInt16());
+                    Sse2.Store((ushort*)p, diff);
+                }
+
+                int paMinusPb = output[0] + output[1] + output[2] + output[3];
+
+                return (paMinusPb <= 0) ? a : b;
+            }
+            else
+#endif
+            {
+                int paMinusPb =
+                    Sub3((int)(a >> 24), (int)(b >> 24), (int)(c >> 24)) +
+                    Sub3((int)((a >> 16) & 0xff), (int)((b >> 16) & 0xff), (int)((c >> 16) & 0xff)) +
+                    Sub3((int)((a >> 8) & 0xff), (int)((b >> 8) & 0xff), (int)((c >> 8) & 0xff)) +
+                    Sub3((int)(a & 0xff), (int)(b & 0xff), (int)(c & 0xff));
+                return paMinusPb <= 0 ? a : b;
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

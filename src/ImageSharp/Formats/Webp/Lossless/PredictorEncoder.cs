@@ -76,6 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
             int tilesPerCol = LosslessUtils.SubSampleSize(height, bits);
             int maxQuantization = 1 << LosslessUtils.NearLosslessBits(nearLosslessQuality);
+            Span<short> scratch = stackalloc short[8];
 
             // TODO: Can we optimize this?
             int[][] histo = new int[4][];
@@ -112,7 +113,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             transparentColorMode,
                             usedSubtractGreen,
                             nearLossless,
-                            image);
+                            image,
+                            scratch);
 
                         image[(tileY * tilesPerRow) + tileX] = (uint)(WebpConstants.ArgbBlack | (pred << 8));
                     }
@@ -223,7 +225,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool nearLossless,
-            Span<uint> modes)
+            Span<uint> modes,
+            Span<short> scratch)
         {
             const int numPredModes = 14;
             int startX = tileX << bits;
@@ -296,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         }
                     }
 
-                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, transparentColorMode, usedSubtractGreen, nearLossless, residuals);
+                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, transparentColorMode, usedSubtractGreen, nearLossless, residuals, scratch);
                     for (int relativeX = 0; relativeX < maxX; ++relativeX)
                     {
                         UpdateHisto(histoArgb, residuals[relativeX]);
@@ -362,11 +365,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool nearLossless,
-            Span<uint> output)
+            Span<uint> output,
+            Span<short> scratch)
         {
             if (transparentColorMode == WebpTransparentColorMode.Preserve)
             {
-                PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output);
+                PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output, scratch);
             }
             else
             {
@@ -424,7 +428,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                                     predict = LosslessUtils.Predictor10(currentRow[x - 1], upperRow + x);
                                     break;
                                 case 11:
-                                    predict = LosslessUtils.Predictor11(currentRow[x - 1], upperRow + x);
+                                    predict = LosslessUtils.Predictor11(currentRow[x - 1], upperRow + x, scratch);
                                     break;
                                 case 12:
                                     predict = LosslessUtils.Predictor12(currentRow[x - 1], upperRow + x);
@@ -612,6 +616,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
 
             Span<byte> lowerMaxDiffs = currentMaxDiffs.Slice(width);
+            Span<short> scratch = stackalloc short[8];
             for (int y = 0; y < height; y++)
             {
                 Span<uint> tmp32 = upperRow;
@@ -622,7 +627,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (lowEffort)
                 {
-                    PredictBatch(PredLowEffort, 0, y, width, currentRow, upperRow, argb.Slice(y * width));
+                    PredictBatch(PredLowEffort, 0, y, width, currentRow, upperRow, argb.Slice(y * width), scratch);
                 }
                 else
                 {
@@ -663,7 +668,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             transparentColorMode,
                             usedSubtractGreen,
                             nearLossless,
-                            argb.Slice((y * width) + x));
+                            argb.Slice((y * width) + x),
+                            scratch);
 
                         x = xEnd;
                     }
@@ -678,7 +684,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int numPixels,
             Span<uint> currentSpan,
             Span<uint> upperSpan,
-            Span<uint> outputSpan)
+            Span<uint> outputSpan,
+            Span<short> scratch)
         {
 #pragma warning disable SA1503 // Braces should not be omitted
             fixed (uint* current = currentSpan)
@@ -747,7 +754,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             LosslessUtils.PredictorSub10(current + xStart, upper + xStart, numPixels, output);
                             break;
                         case 11:
-                            LosslessUtils.PredictorSub11(current + xStart, upper + xStart, numPixels, output);
+                            LosslessUtils.PredictorSub11(current + xStart, upper + xStart, numPixels, output, scratch);
                             break;
                         case 12:
                             LosslessUtils.PredictorSub12(current + xStart, upper + xStart, numPixels, output);

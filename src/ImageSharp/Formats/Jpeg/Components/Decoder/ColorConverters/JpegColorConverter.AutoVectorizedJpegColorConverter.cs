@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
@@ -32,9 +31,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.ConvertCoreInplace(values.Slice(simdCount, remainder));
             }
 
-            protected virtual void ConvertCoreVectorizedInplace(in ComponentValues values) => throw new NotImplementedException();
+            protected abstract void ConvertCoreVectorizedInplace(in ComponentValues values);
 
-            protected virtual void ConvertCoreInplace(in ComponentValues values) => throw new NotImplementedException();
+            protected abstract void ConvertCoreInplace(in ComponentValues values);
         }
     }
 }

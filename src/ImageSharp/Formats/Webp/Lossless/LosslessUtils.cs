@@ -1219,12 +1219,32 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
         {
-            uint ave = Average2(c0, c1);
-            int a = AddSubtractComponentHalf((int)(ave >> 24), (int)(c2 >> 24));
-            int r = AddSubtractComponentHalf((int)((ave >> 16) & 0xff), (int)((c2 >> 16) & 0xff));
-            int g = AddSubtractComponentHalf((int)((ave >> 8) & 0xff), (int)((c2 >> 8) & 0xff));
-            int b = AddSubtractComponentHalf((int)(ave & 0xff), (int)(c2 & 0xff));
-            return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> c1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c1).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> b0 = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c2).AsByte(), Vector128<byte>.Zero);
+                Vector128<short> avg = Sse2.Add(c1Vec.AsInt16(), c0Vec.AsInt16());
+                Vector128<short> a0 = Sse2.ShiftRightLogical(avg, 1);
+                Vector128<short> a1 = Sse2.Subtract(a0, b0.AsInt16());
+                Vector128<short> bgta = Sse2.CompareGreaterThan(b0.AsInt16(), a0.AsInt16());
+                Vector128<short> a2 = Sse2.Subtract(a1, bgta);
+                Vector128<short> a3 = Sse2.ShiftRightArithmetic(a2.AsInt16(), 1);
+                Vector128<short> a4 = Sse2.Add(a0.AsInt16(), a3).AsInt16();
+                Vector128<byte> a5 = Sse2.PackUnsignedSaturate(a4, a4);
+                uint output = Sse2.ConvertToUInt32(a5.AsUInt32());
+                return output;
+            }
+#endif
+            {
+                uint ave = Average2(c0, c1);
+                int a = AddSubtractComponentHalf((int)(ave >> 24), (int)(c2 >> 24));
+                int r = AddSubtractComponentHalf((int)((ave >> 16) & 0xff), (int)((c2 >> 16) & 0xff));
+                int g = AddSubtractComponentHalf((int)((ave >> 8) & 0xff), (int)((c2 >> 8) & 0xff));
+                int b = AddSubtractComponentHalf((int)(ave & 0xff), (int)(c2 & 0xff));
+                return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

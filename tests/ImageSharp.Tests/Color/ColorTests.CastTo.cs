@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void TPixel()
             {
-                var source = new RgbaVector(1, .1F, .133F, .864F);
+                var source = new RgbaVector(float.Epsilon, 2 * float.Epsilon, float.MaxValue, float.MinValue);
 
                 // Act:
                 var color = Color.FromPixel(source);

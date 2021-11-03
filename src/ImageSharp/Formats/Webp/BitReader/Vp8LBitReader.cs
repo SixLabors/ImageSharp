@@ -138,7 +138,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
                 return (uint)val;
             }
 
-            this.SetEndOfStream();
             return 0;
         }
 
@@ -203,17 +202,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
                 ++this.pos;
                 this.bitPos -= 8;
             }
-
-            if (this.IsEndOfStream())
-            {
-                this.SetEndOfStream();
-            }
-        }
-
-        private void SetEndOfStream()
-        {
-            this.Eos = true;
-            this.bitPos = 0; // To avoid undefined behaviour with shifts.
         }
     }
 }

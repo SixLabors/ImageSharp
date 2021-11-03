@@ -118,29 +118,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // can lead to index out of bounds exception
             // To prevent it we must take minimum of expected last index
             // and actual pixel buffer height
-            int startY = this.pixelRowCounter;
-            int endY = Math.Min(startY + this.pixelRowsPerStep, this.pixelBuffer.Height);
-            for (int yy = startY; yy < endY; yy++)
+            int start = this.pixelRowCounter;
+            int end = Math.Min(start + this.pixelRowsPerStep, this.pixelBuffer.Height);
+            for (int imageRowIndex = start; imageRowIndex < end; imageRowIndex++)
             {
-                int y = yy - startY;
-
-                var values = new JpegColorConverter.ComponentValues(this.componentProcessors, y);
-
+                // Convert from jpeg color space to rgb colorspace
+                int colorBufferRowIndex = imageRowIndex - start;
+                var values = new JpegColorConverter.ComponentValues(this.componentProcessors, colorBufferRowIndex);
                 this.colorConverter.ConvertToRgbInplace(values);
-                values = values.Slice(0, width); // slice away Jpeg padding
 
                 Span<byte> r = this.rgbBuffer.Slice(0, width);
                 Span<byte> g = this.rgbBuffer.Slice(width, width);
                 Span<byte> b = this.rgbBuffer.Slice(width * 2, width);
 
                 SimdUtils.NormalizedFloatToByteSaturate(values.Component0, r);
+                r = r.Slice(0, width);
                 SimdUtils.NormalizedFloatToByteSaturate(values.Component1, g);
+                g = g.Slice(0, width);
                 SimdUtils.NormalizedFloatToByteSaturate(values.Component2, b);
+                b = b.Slice(0, width);
 
                 // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
                 // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,
                 // pack pixels to a temporary, padded proxy buffer, then copy the relevant values to the destination row.
-                if (this.pixelBuffer.TryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
+                if (this.pixelBuffer.TryGetPaddedRowSpan(imageRowIndex, 3, out Span<TPixel> destRow))
                 {
                     PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, destRow);
                 }
@@ -148,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     Span<TPixel> proxyRow = this.paddedProxyPixelRow.GetSpan();
                     PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, proxyRow);
-                    proxyRow.Slice(0, width).CopyTo(this.pixelBuffer.GetRowSpan(yy));
+                    proxyRow.Slice(0, width).CopyTo(this.pixelBuffer.GetRowSpan(imageRowIndex));
                 }
             }
 

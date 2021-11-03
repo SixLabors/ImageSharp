@@ -253,7 +253,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             0
         };
 
-        public static readonly byte[] NewRange =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        public static ReadOnlySpan<byte> NewRange => new byte[]
         {
             // range = ((range + 1) << kVP8Log2Range[range]) - 1
             127, 127, 191, 127, 159, 191, 223, 127, 143, 159, 175, 191, 207, 223, 239,
@@ -571,7 +572,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
         };
 
         // Paragraph 14.1
-        public static readonly byte[] DcTable =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        public static ReadOnlySpan<byte> DcTable => new byte[]
         {
             4,     5,   6,   7,   8,   9,  10,  10,
             11,   12,  13,  14,  15,  16,  17,  17,
@@ -1046,7 +1048,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7),
         };
 
-        public static readonly byte[] PrefixEncodeExtraBitsValue =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        public static ReadOnlySpan<byte> PrefixEncodeExtraBitsValue => new byte[]
         {
            0,  0,  0,  0,  0,  0,  1,  0,  1,  0,  1,  2,  3,  0,  1,  2,  3,
            0,  1,  2,  3,  4,  5,  6,  7,  0,  1,  2,  3,  4,  5,  6,  7,
@@ -1241,7 +1244,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             InitializeFixedCostsI4();
         }
 
-        private static readonly byte[] Abs0Table =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> Abs0Table => new byte[]
         {
             0xff, 0xfe, 0xfd, 0xfc, 0xfb, 0xfa, 0xf9, 0xf8, 0xf7, 0xf6, 0xf5, 0xf4, 0xf3, 0xf2, 0xf1, 0xf0, 0xef,
             0xee, 0xed, 0xec, 0xeb, 0xea, 0xe9, 0xe8, 0xe7, 0xe6, 0xe5, 0xe4, 0xe3, 0xe2, 0xe1, 0xe0, 0xdf, 0xde,
@@ -1276,7 +1280,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             0xff
         };
 
-        private static readonly byte[] Clip1Table =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> Clip1Table => new byte[]
         {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1326,7 +1331,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             0xff
         };
 
-        private static readonly sbyte[] Sclip1Table =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<sbyte> Sclip1Table => new sbyte[]
         {
             -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
             -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
@@ -1437,7 +1443,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             127, 127, 127, 127, 127, 127, 127, 127, 127
         };
 
-        private static readonly sbyte[] Sclip2Table =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<sbyte> Sclip2Table => new sbyte[]
         {
             -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16,
             -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16,

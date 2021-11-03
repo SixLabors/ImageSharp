@@ -277,7 +277,7 @@ namespace SixLabors.ImageSharp
                 return this.data.PackedValue == other.data.PackedValue;
             }
 
-            return this.ToVector4().Equals(other.ToVector4());
+            return this.boxedHighPrecisionPixel?.Equals(other.boxedHighPrecisionPixel) == true;
         }
 
         /// <inheritdoc />

@@ -4,6 +4,7 @@
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using ImageMagick;
+using ImageMagick.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
@@ -44,8 +45,22 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void MagickWebpLossy()
         {
             using var memoryStream = new MemoryStream();
-            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "lossless", false);
-            this.webpMagick.Write(memoryStream, MagickFormat.WebP);
+
+            var defines = new WebPWriteDefines
+            {
+                Lossless = false,
+                Method = 4,
+                AlphaCompression = WebPAlphaCompression.None,
+                FilterStrength = 60,
+                SnsStrength = 50,
+                Pass = 1,
+
+                // 100 means off.
+                NearLossless = 100
+            };
+
+            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "quality", 75);
+            this.webpMagick.Write(memoryStream, defines);
         }
 
         [Benchmark(Description = "ImageSharp Webp Lossy")]
@@ -54,7 +69,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using var memoryStream = new MemoryStream();
             this.webp.Save(memoryStream, new WebpEncoder()
             {
-                FileFormat = WebpFileFormatType.Lossy
+                FileFormat = WebpFileFormatType.Lossy,
+                Method = WebpEncodingMethod.Level4,
+                UseAlphaCompression = false,
+                FilterStrength = 60,
+                SpatialNoiseShaping = 50,
+                EntropyPasses = 1
             });
         }
 
@@ -62,8 +82,18 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void MagickWebpLossless()
         {
             using var memoryStream = new MemoryStream();
-            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "lossless", true);
-            this.webpMagick.Write(memoryStream, MagickFormat.WebP);
+            var defines = new WebPWriteDefines
+            {
+                Lossless = true,
+                Method = 4,
+
+                // 100 means off.
+                NearLossless = 100
+            };
+
+            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "exact", false);
+            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "quality", 75);
+            this.webpMagick.Write(memoryStream, defines);
         }
 
         [Benchmark(Description = "ImageSharp Webp Lossless")]
@@ -72,7 +102,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using var memoryStream = new MemoryStream();
             this.webp.Save(memoryStream, new WebpEncoder()
             {
-                FileFormat = WebpFileFormatType.Lossless
+                FileFormat = WebpFileFormatType.Lossless,
+                Method = WebpEncodingMethod.Level4,
+                NearLossless = false,
+                TransparentColorMode = WebpTransparentColorMode.Clear
             });
         }
 

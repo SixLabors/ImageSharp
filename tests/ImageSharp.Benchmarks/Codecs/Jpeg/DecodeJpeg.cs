@@ -73,4 +73,10 @@ AAN IDCT + Fused zigzag/transpose
 |------------------------------------ |---------:|---------:|---------:|
 |        'Baseline Interleaved 4:4:4' | 11.49 ms | 0.105 ms | 0.093 ms |
 | 'Progressive Non-Interleaved 4:2:0' | 13.46 ms | 0.060 ms | 0.050 ms |
+
+Color conversion code cleanup - no extra virtual calls and if-checks for explicit avx converters
+|                              Method |     Mean |    Error |   StdDev |
+|------------------------------------ |---------:|---------:|---------:|
+|        'Baseline Interleaved 4:4:4' | 10.87 ms | 0.039 ms | 0.030 ms |
+| 'Progressive Non-Interleaved 4:2:0' | 13.02 ms | 0.030 ms | 0.027 ms |
 */

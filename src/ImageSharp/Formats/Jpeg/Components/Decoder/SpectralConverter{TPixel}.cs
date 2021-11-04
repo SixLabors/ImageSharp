@@ -104,17 +104,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int colorBufferRowIndex = imageRowIndex - start;
                 var values = new JpegColorConverter.ComponentValues(this.componentProcessors, colorBufferRowIndex);
                 this.colorConverter.ConvertToRgbInplace(values);
+                values = values.Slice(0, width);
 
                 Span<byte> r = this.rgbBuffer.Slice(0, width);
                 Span<byte> g = this.rgbBuffer.Slice(width, width);
                 Span<byte> b = this.rgbBuffer.Slice(width * 2, width);
 
                 SimdUtils.NormalizedFloatToByteSaturate(values.Component0, r);
-                r = r.Slice(0, width);
                 SimdUtils.NormalizedFloatToByteSaturate(values.Component1, g);
-                g = g.Slice(0, width);
                 SimdUtils.NormalizedFloatToByteSaturate(values.Component2, b);
-                b = b.Slice(0, width);
 
                 // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
                 // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,

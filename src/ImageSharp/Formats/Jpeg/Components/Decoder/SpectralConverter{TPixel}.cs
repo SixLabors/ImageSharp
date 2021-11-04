@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
+    /// <inheritdoc/>
+    /// <typeparam name="TPixel">Target pixel type.</typeparam>
     internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -39,8 +41,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.cancellationToken = cancellationToken;
         }
 
+        /// <summary>
+        /// Gets a value indicating whether this converter has converted spectral
+        /// data of the current image or not.
+        /// </summary>
         private bool Converted => this.pixelRowCounter >= this.pixelBuffer.Height;
 
+        /// <summary>
+        /// Returns converted pixel buffer of target pixel type.
+        /// </summary>
+        /// <returns>2D pixel buffer.</returns>
+        /// <remarks>
+        /// This buffer may be wrapped by
+        /// <see cref="Image{TPixel}.Image(Configuration, Buffer2D{TPixel}, Metadata.ImageMetadata)"/>
+        /// constructor to create resulting image.
+        /// </remarks>
         public Buffer2D<TPixel> GetPixelBuffer()
         {
             if (!this.Converted)
@@ -50,59 +65,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 for (int step = 0; step < steps; step++)
                 {
                     this.cancellationToken.ThrowIfCancellationRequested();
-                    this.ConvertNextStride(step);
+                    this.ConvertStride(step);
                 }
             }
 
             return this.pixelBuffer;
         }
 
-        /// <inheritdoc/>
-        public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
-        {
-            MemoryAllocator allocator = this.configuration.MemoryAllocator;
-
-            // iteration data
-            IJpegComponent c0 = frame.Components[0];
-
-            const int blockPixelHeight = 8;
-            this.blockRowsPerStep = c0.SamplingFactors.Height;
-            this.pixelRowsPerStep = this.blockRowsPerStep * blockPixelHeight;
-
-            // pixel buffer for resulting image
-            this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight);
-            this.paddedProxyPixelRow = allocator.Allocate<TPixel>(frame.PixelWidth + 3);
-
-            // component processors from spectral to Rgba32
-            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.pixelRowsPerStep);
-            this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
-            for (int i = 0; i < this.componentProcessors.Length; i++)
-            {
-                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
-            }
-
-            // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            this.rgbBuffer = allocator.Allocate<byte>(frame.PixelWidth * 3);
-
-            // color converter from Rgba32 to TPixel
-            this.colorConverter = this.GetColorConverter(frame, jpegData);
-        }
-
-        /// <inheritdoc/>
-        public override void ConvertStrideBaseline()
-        {
-            // Convert next pixel stride using single spectral `stride'
-            // Note that zero passing eliminates the need of virtual call
-            // from JpegComponentPostProcessor
-            this.ConvertNextStride(mcuRow: 0);
-
-            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
-            {
-                cpp.ClearSpectralBuffers();
-            }
-        }
-
-        private void ConvertNextStride(int mcuRow)
+        /// <summary>
+        /// Converts MCU row from spectral data to color channels.
+        /// </summary>
+        /// <param name="mcuRow">MCU row index to convert.</param>
+        /// <remarks>
+        /// For YCbCr color space 'stride' may be higher than default 8 pixels
+        /// used in 4:4:4 chroma coding.
+        /// </remarks>
+        private void ConvertStride(int mcuRow)
         {
             // Convert spectral data to color data for each component
             for (int i = 0; i < this.componentProcessors.Length; i++)
@@ -156,6 +134,52 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.pixelRowCounter += this.pixelRowsPerStep;
         }
 
+        /// <inheritdoc/>
+        public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+        {
+            MemoryAllocator allocator = this.configuration.MemoryAllocator;
+
+            // iteration data
+            IJpegComponent c0 = frame.Components[0];
+
+            const int blockPixelHeight = 8;
+            this.blockRowsPerStep = c0.SamplingFactors.Height;
+            this.pixelRowsPerStep = this.blockRowsPerStep * blockPixelHeight;
+
+            // pixel buffer for resulting image
+            this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight);
+            this.paddedProxyPixelRow = allocator.Allocate<TPixel>(frame.PixelWidth + 3);
+
+            // component processors from spectral to Rgba32
+            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.pixelRowsPerStep);
+            this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
+            for (int i = 0; i < this.componentProcessors.Length; i++)
+            {
+                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
+            }
+
+            // single 'stride' rgba32 buffer for conversion between spectral and TPixel
+            this.rgbBuffer = allocator.Allocate<byte>(frame.PixelWidth * 3);
+
+            // color converter from Rgba32 to TPixel
+            this.colorConverter = this.GetColorConverter(frame, jpegData);
+        }
+
+        /// <inheritdoc/>
+        public override void ConvertStrideBaseline()
+        {
+            // Convert next pixel stride using single spectral `stride'
+            // Note that zero passing eliminates the need of virtual call
+            // from JpegComponentPostProcessor
+            this.ConvertStride(mcuRow: 0);
+
+            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            {
+                cpp.ClearSpectralBuffers();
+            }
+        }
+
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (this.componentProcessors != null)

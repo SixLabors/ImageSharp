@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                 NearLossless = 100
             };
 
-            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "quality", 75);
+            this.webpMagick.Quality = 75;
             this.webpMagick.Write(memoryStream, defines);
         }
 
@@ -91,8 +91,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                 NearLossless = 100
             };
 
-            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "exact", false);
-            this.webpMagick.Settings.SetDefine(MagickFormat.WebP, "quality", 75);
+            this.webpMagick.Quality = 75;
             this.webpMagick.Write(memoryStream, defines);
         }
 
@@ -105,6 +104,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                 FileFormat = WebpFileFormatType.Lossless,
                 Method = WebpEncodingMethod.Level4,
                 NearLossless = false,
+
+                // This is equal to exact = false in libwebp, which is the default.
                 TransparentColorMode = WebpTransparentColorMode.Clear
             });
         }

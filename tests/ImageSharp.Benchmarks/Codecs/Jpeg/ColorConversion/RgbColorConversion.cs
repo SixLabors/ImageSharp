@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using BenchmarkDotNet.Attributes;
@@ -30,12 +30,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             new JpegColorConverter.FromRgbVector8(8).ConvertToRgbInplace(values);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
-        public void SimdVectorAvx2()
+        public void SimdVectorAvx()
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
             new JpegColorConverter.FromRgbAvx(8).ConvertToRgbInplace(values);
         }
+#endif
     }
 }

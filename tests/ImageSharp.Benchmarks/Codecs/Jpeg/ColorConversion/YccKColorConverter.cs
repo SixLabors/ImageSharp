@@ -30,12 +30,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             new JpegColorConverter.FromYccKVector8(8).ConvertToRgbInplace(values);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
-        public void SimdVectorAvx2()
+        public void SimdVectorAvx()
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
             new JpegColorConverter.FromYccKAvx(8).ConvertToRgbInplace(values);
         }
+#endif
     }
 }

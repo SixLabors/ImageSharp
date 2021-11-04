@@ -75,9 +75,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (!System.Runtime.Intrinsics.X86.Avx.IsSupported)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine("No AVX present, skipping test!");
                 return;
             }
 
@@ -87,6 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 inputBufferLength,
                 resultBufferLength,
                 seed);
+#endif
         }
 
         [Theory]
@@ -135,9 +137,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromCmykAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (!System.Runtime.Intrinsics.X86.Avx.IsSupported)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine("No AVX present, skipping test!");
                 return;
             }
 
@@ -147,6 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 inputBufferLength,
                 resultBufferLength,
                 seed);
+#endif
         }
 
         [Theory]
@@ -195,9 +199,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromGrayscaleAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (!System.Runtime.Intrinsics.X86.Avx.IsSupported)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine("No AVX present, skipping test!");
                 return;
             }
 
@@ -207,6 +212,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 inputBufferLength,
                 resultBufferLength,
                 seed);
+#endif
         }
 
         [Theory]
@@ -255,7 +261,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromRgbAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (!System.Runtime.Intrinsics.X86.Avx.IsSupported)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;
@@ -267,6 +274,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 inputBufferLength,
                 resultBufferLength,
                 seed);
+#endif
         }
 
         [Theory]
@@ -315,7 +323,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYccKAvx(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (!System.Runtime.Intrinsics.X86.Avx.IsSupported)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;
@@ -327,6 +336,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 inputBufferLength,
                 resultBufferLength,
                 seed);
+#endif
         }
 
         [Theory]

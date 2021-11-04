@@ -23,11 +23,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public void SimdVectorAvx2()
+        public void SimdVector8()
+        {
+            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
+
+            new JpegColorConverter.FromGrayScaleVector8(8).ConvertToRgbInplace(values);
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Benchmark]
+        public void SimdVectorAvx()
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
             new JpegColorConverter.FromGrayscaleAvx(8).ConvertToRgbInplace(values);
         }
+#endif
     }
 }

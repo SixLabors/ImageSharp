@@ -1246,8 +1246,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<short> a1 = Sse2.Subtract(a0, b0.AsInt16());
                 Vector128<short> bgta = Sse2.CompareGreaterThan(b0.AsInt16(), a0.AsInt16());
                 Vector128<short> a2 = Sse2.Subtract(a1, bgta);
-                Vector128<short> a3 = Sse2.ShiftRightArithmetic(a2.AsInt16(), 1);
-                Vector128<short> a4 = Sse2.Add(a0.AsInt16(), a3).AsInt16();
+                Vector128<short> a3 = Sse2.ShiftRightArithmetic(a2, 1);
+                Vector128<short> a4 = Sse2.Add(a0, a3).AsInt16();
                 Vector128<byte> a5 = Sse2.PackUnsignedSaturate(a4, a4);
                 uint output = Sse2.ConvertToUInt32(a5.AsUInt32());
                 return output;

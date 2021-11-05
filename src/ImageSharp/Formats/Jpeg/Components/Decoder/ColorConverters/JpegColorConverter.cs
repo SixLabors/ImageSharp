@@ -200,7 +200,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// </summary>
             /// <param name="componentBuffers">List of component buffers.</param>
             /// <param name="row">Row to convert</param>
-            [Obsolete("This ctor exists only in favour of tests and benchmarks")]
             public ComponentValues(IReadOnlyList<Buffer2D<float>> componentBuffers, int row)
             {
                 DebugGuard.MustBeGreaterThan(componentBuffers.Count, 0, nameof(componentBuffers));

@@ -20,6 +20,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     internal class Vp8LEncoder : IDisposable
     {
         /// <summary>
+        /// Scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly int[] scratch = new int[256];
+
+        private readonly int[][] histoArgb = { new int[256], new int[256], new int[256], new int[256] };
+
+        private readonly int[][] bestHisto = { new int[256], new int[256], new int[256], new int[256] };
+
+        /// <summary>
         /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
@@ -127,6 +136,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 };
             }
         }
+
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> Order => new byte[] { 1, 2, 0, 3 };
 
         /// <summary>
         /// Gets the memory for the image data as packed bgra values.
@@ -675,6 +687,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 this.EncodedData.GetSpan(),
                 this.BgraScratch.GetSpan(),
                 this.TransformData.GetSpan(),
+                this.histoArgb,
+                this.bestHisto,
                 this.nearLossless,
                 nearLosslessStrength,
                 this.transparentColorMode,
@@ -694,7 +708,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-            PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan());
+            PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch);
 
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
@@ -736,7 +750,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             var histogramImage = new List<Vp8LHistogram>()
             {
-                new Vp8LHistogram(cacheBits)
+                new(cacheBits)
             };
 
             // Build histogram image and symbols from backward references.
@@ -780,7 +794,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private void StoreHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
         {
             int count = 0;
-            int[] symbols = { 0, 0 };
+            Span<int> symbols = this.scratch.AsSpan(0, 2);
+            symbols.Clear();
             int maxBits = 8;
             int maxSymbol = 1 << maxBits;
 
@@ -973,10 +988,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (v.IsLiteral())
                 {
-                    byte[] order = { 1, 2, 0, 3 };
                     for (int k = 0; k < 4; k++)
                     {
-                        int code = (int)v.Literal(order[k]);
+                        int code = (int)v.Literal(Order[k]);
                         this.bitWriter.WriteHuffmanCode(codes[k], code);
                     }
                 }
@@ -1092,9 +1106,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             histo[(int)HistoIx.HistoBluePred * 256]++;
             histo[(int)HistoIx.HistoAlphaPred * 256]++;
 
+            var bitEntropy = new Vp8LBitEntropy();
             for (int j = 0; j < (int)HistoIx.HistoTotal; j++)
             {
-                var bitEntropy = new Vp8LBitEntropy();
+                bitEntropy.Init();
                 Span<uint> curHisto = histo.Slice(j * 256, 256);
                 bitEntropy.BitsEntropyUnrefined(curHisto, 256);
                 entropyComp[j] = bitEntropy.BitsEntropyRefine();
@@ -1190,9 +1205,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return false;
             }
 
+#if NET5_0_OR_GREATER
+            var paletteSlice = palette.Slice(0, this.PaletteSize);
+            paletteSlice.Sort();
+#else
             uint[] paletteArray = palette.Slice(0, this.PaletteSize).ToArray();
             Array.Sort(paletteArray);
             paletteArray.CopyTo(palette);
+#endif
 
             if (PaletteHasNonMonotonousDeltas(palette, this.PaletteSize))
             {
@@ -1447,7 +1467,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     return mid;
                 }
-                else if (sorted[mid] < color)
+
+                if (sorted[mid] < color)
                 {
                     low = mid;
                 }

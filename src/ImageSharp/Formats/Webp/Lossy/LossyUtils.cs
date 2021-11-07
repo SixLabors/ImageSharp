@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     internal static unsafe class LossyUtils
     {
 #if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create(0x00ff).AsByte();
+        private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
 #endif
 
         [MethodImpl(InliningOptions.ShortMethod)]

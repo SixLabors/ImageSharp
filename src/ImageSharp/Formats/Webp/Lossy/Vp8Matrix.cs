@@ -34,6 +34,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Sharpen = new short[16];
         }
 
+        public Vp8Matrix(ushort[] q, ushort[] iq, uint[] bias, uint[] zThresh, short[] sharpen)
+        {
+            this.Q = q;
+            this.IQ = iq;
+            this.Bias = bias;
+            this.ZThresh = zThresh;
+            this.Sharpen = sharpen;
+        }
+
         /// <summary>
         /// Gets the quantizer steps.
         /// </summary>

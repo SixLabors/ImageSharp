@@ -4,12 +4,20 @@
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
-    internal static class LossyUtils
+    internal static unsafe class LossyUtils
     {
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create(0x00ff).AsByte();
+#endif
+
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
 
@@ -799,6 +807,64 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int offsetPlus4 = offset + 4;
             FilterLoop24(u, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
             FilterLoop24(v, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
+        }
+
+        public static void Mean16x4(Span<byte> input, Span<uint> dc, Span<ushort> tmp)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+#pragma warning disable SA1503 // Braces should not be omitted
+                tmp.Clear();
+                fixed (byte* inputPtr = input)
+                fixed (ushort* tmpPtr = tmp)
+                {
+                    Vector128<byte> a0 = Sse2.LoadVector128(inputPtr);
+                    Vector128<byte> a1 = Sse2.LoadVector128(inputPtr + WebpConstants.Bps);
+                    Vector128<byte> a2 = Sse2.LoadVector128(inputPtr + (WebpConstants.Bps * 2));
+                    Vector128<byte> a3 = Sse2.LoadVector128(inputPtr + (WebpConstants.Bps * 3));
+                    Vector128<short> b0 = Sse2.ShiftRightLogical(a0.AsInt16(), 8); // hi byte
+                    Vector128<short> b1 = Sse2.ShiftRightLogical(a1.AsInt16(), 8);
+                    Vector128<short> b2 = Sse2.ShiftRightLogical(a2.AsInt16(), 8);
+                    Vector128<short> b3 = Sse2.ShiftRightLogical(a3.AsInt16(), 8);
+                    Vector128<byte> c0 = Sse2.And(a0, Mean16x4Mask); // lo byte
+                    Vector128<byte> c1 = Sse2.And(a1, Mean16x4Mask);
+                    Vector128<byte> c2 = Sse2.And(a2, Mean16x4Mask);
+                    Vector128<byte> c3 = Sse2.And(a3, Mean16x4Mask);
+                    Vector128<int> d0 = Sse2.Add(b0.AsInt32(), c0.AsInt32());
+                    Vector128<int> d1 = Sse2.Add(b1.AsInt32(), c1.AsInt32());
+                    Vector128<int> d2 = Sse2.Add(b2.AsInt32(), c2.AsInt32());
+                    Vector128<int> d3 = Sse2.Add(b3.AsInt32(), c3.AsInt32());
+                    Vector128<int> e0 = Sse2.Add(d0, d1);
+                    Vector128<int> e1 = Sse2.Add(d2, d3);
+                    Vector128<int> f0 = Sse2.Add(e0, e1);
+                    Sse2.Store(tmpPtr, f0.AsUInt16());
+                }
+#pragma warning restore SA1503 // Braces should not be omitted
+
+                dc[0] = (uint)(tmp[1] + tmp[0]);
+                dc[1] = (uint)(tmp[3] + tmp[2]);
+                dc[2] = (uint)(tmp[5] + tmp[4]);
+                dc[3] = (uint)(tmp[7] + tmp[6]);
+            }
+            else
+#endif
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    uint avg = 0;
+                    for (int y = 0; y < 4; y++)
+                    {
+                        for (int x = 0; x < 4; x++)
+                        {
+                            avg += input[x + (y * WebpConstants.Bps)];
+                        }
+                    }
+
+                    dc[k] = avg;
+                    input = input.Slice(4); // go to next 4x4 block.
+                }
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

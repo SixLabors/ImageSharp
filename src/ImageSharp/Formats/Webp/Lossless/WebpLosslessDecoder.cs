@@ -418,6 +418,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             var huffmanTables = new HuffmanCode[numHTreeGroups * tableSize];
             var hTreeGroups = new HTreeGroup[numHTreeGroups];
             Span<HuffmanCode> huffmanTable = huffmanTables.AsSpan();
+            int[] codeLengths = new int[maxAlphabetSize];
             for (int i = 0; i < numHTreeGroupsMax; i++)
             {
                 hTreeGroups[i] = new HTreeGroup(HuffmanUtils.HuffmanPackedTableSize);
@@ -425,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int totalSize = 0;
                 bool isTrivialLiteral = true;
                 int maxBits = 0;
-                int[] codeLengths = new int[maxAlphabetSize];
+                codeLengths.AsSpan().Clear();
                 for (int j = 0; j < WebpConstants.HuffmanCodesPerMetaCode; j++)
                 {
                     int alphabetSize = WebpConstants.AlphabetSize[j];

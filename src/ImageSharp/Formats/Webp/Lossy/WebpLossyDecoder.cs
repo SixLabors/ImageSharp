@@ -35,6 +35,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private readonly Configuration configuration;
 
         /// <summary>
+        /// Scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly int[] scratch = new int[16];
+
+        /// <summary>
+        /// Another scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] scratchBytes = new byte[4];
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebpLossyDecoder"/> class.
         /// </summary>
         /// <param name="bitReader">Bitreader to read from the stream.</param>
@@ -395,7 +405,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                                 LossyUtils.TM4(dst, yuv, offset);
                                 break;
                             case 2:
-                                LossyUtils.VE4(dst, yuv, offset);
+                                LossyUtils.VE4(dst, yuv, offset, this.scratchBytes);
                                 break;
                             case 3:
                                 LossyUtils.HE4(dst, yuv, offset);
@@ -420,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                                 break;
                         }
 
-                        this.DoTransform(bits, coeffs.AsSpan(n * 16), dst);
+                        this.DoTransform(bits, coeffs.AsSpan(n * 16), dst, this.scratch);
                     }
                 }
                 else
@@ -456,7 +466,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         for (int n = 0; n < 16; ++n, bits <<= 2)
                         {
-                            this.DoTransform(bits, coeffs.AsSpan(n * 16), yDst.Slice(WebpConstants.Scan[n]));
+                            this.DoTransform(bits, coeffs.AsSpan(n * 16), yDst.Slice(WebpConstants.Scan[n]), this.scratch);
                         }
                     }
                 }
@@ -496,8 +506,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         break;
                 }
 
-                this.DoUVTransform(bitsUv, coeffs.AsSpan(16 * 16), uDst);
-                this.DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst);
+                this.DoUVTransform(bitsUv, coeffs.AsSpan(16 * 16), uDst, this.scratch);
+                this.DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst, this.scratch);
 
                 // Stash away top samples for next block.
                 if (mby < dec.MbHeight - 1)
@@ -787,12 +797,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        private void DoTransform(uint bits, Span<short> src, Span<byte> dst)
+        private void DoTransform(uint bits, Span<short> src, Span<byte> dst, Span<int> scratch)
         {
             switch (bits >> 30)
             {
                 case 3:
-                    LossyUtils.TransformOne(src, dst);
+                    LossyUtils.TransformOne(src, dst, scratch);
                     break;
                 case 2:
                     LossyUtils.TransformAc3(src, dst);
@@ -803,7 +813,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        private void DoUVTransform(uint bits, Span<short> src, Span<byte> dst)
+        private void DoUVTransform(uint bits, Span<short> src, Span<byte> dst, Span<int> scratch)
         {
             // any non-zero coeff at all?
             if ((bits & 0xff) > 0)
@@ -811,7 +821,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // any non-zero AC coefficient?
                 if ((bits & 0xaa) > 0)
                 {
-                    LossyUtils.TransformUv(src, dst); // note we don't use the AC3 variant for U/V.
+                    LossyUtils.TransformUv(src, dst, scratch); // note we don't use the AC3 variant for U/V.
                 }
                 else
                 {
@@ -884,7 +894,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 if (nz > 1)
                 {
                     // More than just the DC -> perform the full transform.
-                    LossyUtils.TransformWht(dc, dst);
+                    LossyUtils.TransformWht(dc, dst, this.scratch);
                 }
                 else
                 {

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     internal class Vp8LStreaks
@@ -27,6 +29,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// [zero/non-zero][streak &lt; 3 / streak >= 3].
         /// </summary>
         public int[][] Streaks { get; }
+
+        public void Clear()
+        {
+            this.Counts.AsSpan().Clear();
+            this.Streaks[0].AsSpan().Clear();
+            this.Streaks[1].AsSpan().Clear();
+        }
 
         public double FinalHuffmanCost()
         {

@@ -90,9 +90,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
             uint[] transformData = new uint[transformWidth * transformHeight];
+            int[] scratch = new int[256];
 
             // act
-            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData);
+            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData, scratch);
 
             // assert
             Assert.Equal(expectedData, transformData);
@@ -119,9 +120,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
             uint[] transformData = new uint[transformWidth * transformHeight];
+            int[] scratch = new int[256];
 
             // act
-            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData);
+            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData, scratch);
 
             // assert
             Assert.Equal(expectedData, transformData);

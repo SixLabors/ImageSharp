@@ -58,14 +58,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Disto16X16(Span<byte> a, Span<byte> b, Span<ushort> w)
+        public static int Vp8Disto16X16(Span<byte> a, Span<byte> b, Span<ushort> w, Span<int> scratch)
         {
             int d = 0;
             for (int y = 0; y < 16 * WebpConstants.Bps; y += 4 * WebpConstants.Bps)
             {
                 for (int x = 0; x < 16; x += 4)
                 {
-                    d += Vp8Disto4X4(a.Slice(x + y), b.Slice(x + y), w);
+                    d += Vp8Disto4X4(a.Slice(x + y), b.Slice(x + y), w, scratch);
                 }
             }
 
@@ -73,10 +73,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Disto4X4(Span<byte> a, Span<byte> b, Span<ushort> w)
+        public static int Vp8Disto4X4(Span<byte> a, Span<byte> b, Span<ushort> w, Span<int> scratch)
         {
-            int sum1 = TTransform(a, w);
-            int sum2 = TTransform(b, w);
+            int sum1 = TTransform(a, w, scratch);
+            int sum2 = TTransform(b, w, scratch);
             return Math.Abs(sum2 - sum1) >> 5;
         }
 
@@ -252,18 +252,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void TM4(Span<byte> dst, Span<byte> yuv, int offset) => TrueMotion(dst, yuv, offset, 4);
 
-        public static void VE4(Span<byte> dst, Span<byte> yuv, int offset)
+        public static void VE4(Span<byte> dst, Span<byte> yuv, int offset, Span<byte> vals)
         {
             // vertical
             int topOffset = offset - WebpConstants.Bps;
-            byte[] vals =
-            {
-                Avg3(yuv[topOffset - 1], yuv[topOffset], yuv[topOffset + 1]),
-                Avg3(yuv[topOffset], yuv[topOffset + 1], yuv[topOffset + 2]),
-                Avg3(yuv[topOffset + 1], yuv[topOffset + 2], yuv[topOffset + 3]),
-                Avg3(yuv[topOffset + 2], yuv[topOffset + 3], yuv[topOffset + 4])
-            };
-
+            vals[0] = Avg3(yuv[topOffset - 1], yuv[topOffset], yuv[topOffset + 1]);
+            vals[1] = Avg3(yuv[topOffset], yuv[topOffset + 1], yuv[topOffset + 2]);
+            vals[2] = Avg3(yuv[topOffset + 1], yuv[topOffset + 2], yuv[topOffset + 3]);
+            vals[3] = Avg3(yuv[topOffset + 2], yuv[topOffset + 3], yuv[topOffset + 4]);
             int endIdx = 4 * WebpConstants.Bps;
             for (int i = 0; i < endIdx; i += WebpConstants.Bps)
             {
@@ -504,9 +500,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Paragraph 14.3: Implementation of the Walsh-Hadamard transform inversion.
         /// </summary>
-        public static void TransformWht(Span<short> input, Span<short> output)
+        public static void TransformWht(Span<short> input, Span<short> output, Span<int> scratch)
         {
-            int[] tmp = new int[16];
+            Span<int> tmp = scratch.Slice(0, 16);
+            tmp.Clear();
             for (int i = 0; i < 4; i++)
             {
                 int iPlus4 = 4 + i;
@@ -544,10 +541,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Returns the weighted sum of the absolute value of transformed coefficients.
         /// w[] contains a row-major 4 by 4 symmetric matrix.
         /// </summary>
-        public static int TTransform(Span<byte> input, Span<ushort> w)
+        public static int TTransform(Span<byte> input, Span<ushort> w, Span<int> scratch)
         {
             int sum = 0;
-            int[] tmp = new int[16];
+            Span<int> tmp = scratch.Slice(0, 16);
+            tmp.Clear();
 
             // horizontal pass.
             int inputOffset = 0;
@@ -591,15 +589,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return sum;
         }
 
-        public static void TransformTwo(Span<short> src, Span<byte> dst)
+        public static void TransformTwo(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-            TransformOne(src, dst);
-            TransformOne(src.Slice(16), dst.Slice(4));
+            TransformOne(src, dst, scratch);
+            TransformOne(src.Slice(16), dst.Slice(4), scratch);
         }
 
-        public static void TransformOne(Span<short> src, Span<byte> dst)
+        public static void TransformOne(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-            Span<int> tmp = stackalloc int[4 * 4];
+            Span<int> tmp = scratch.Slice(0, 16);
+            tmp.Clear();
             int tmpOffset = 0;
             for (int srcOffset = 0; srcOffset < 4; srcOffset++)
             {
@@ -671,10 +670,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Store2(dst, 3, a - d4, d1, c1);
         }
 
-        public static void TransformUv(Span<short> src, Span<byte> dst)
+        public static void TransformUv(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-            TransformTwo(src.Slice(0 * 16), dst);
-            TransformTwo(src.Slice(2 * 16), dst.Slice(4 * WebpConstants.Bps));
+            TransformTwo(src.Slice(0 * 16), dst, scratch);
+            TransformTwo(src.Slice(2 * 16), dst.Slice(4 * WebpConstants.Bps), scratch);
         }
 
         public static void TransformDcuv(Span<short> src, Span<byte> dst)
@@ -934,11 +933,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            int a = (3 * (q0 - p0)) + WebpLookupTables.Sclip1[p1 - q1];
-            int a1 = WebpLookupTables.Sclip2[(a + 4) >> 3];
-            int a2 = WebpLookupTables.Sclip2[(a + 3) >> 3];
-            p[offset - step] = WebpLookupTables.Clip1[p0 + a2];
-            p[offset] = WebpLookupTables.Clip1[q0 - a1];
+            int a = (3 * (q0 - p0)) + WebpLookupTables.Sclip1(p1 - q1);
+            int a1 = WebpLookupTables.Sclip2((a + 4) >> 3);
+            int a2 = WebpLookupTables.Sclip2((a + 3) >> 3);
+            p[offset - step] = WebpLookupTables.Clip1(p0 + a2);
+            p[offset] = WebpLookupTables.Clip1(q0 - a1);
         }
 
         private static void DoFilter4(Span<byte> p, int offset, int step)
@@ -950,13 +949,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q0 = p[offset];
             int q1 = p[offset + step];
             int a = 3 * (q0 - p0);
-            int a1 = WebpLookupTables.Sclip2[(a + 4) >> 3];
-            int a2 = WebpLookupTables.Sclip2[(a + 3) >> 3];
+            int a1 = WebpLookupTables.Sclip2((a + 4) >> 3);
+            int a2 = WebpLookupTables.Sclip2((a + 3) >> 3);
             int a3 = (a1 + 1) >> 1;
-            p[offsetMinus2Step] = WebpLookupTables.Clip1[p1 + a3];
-            p[offset - step] = WebpLookupTables.Clip1[p0 + a2];
-            p[offset] = WebpLookupTables.Clip1[q0 - a1];
-            p[offset + step] = WebpLookupTables.Clip1[q1 - a3];
+            p[offsetMinus2Step] = WebpLookupTables.Clip1(p1 + a3);
+            p[offset - step] = WebpLookupTables.Clip1(p0 + a2);
+            p[offset] = WebpLookupTables.Clip1(q0 - a1);
+            p[offset + step] = WebpLookupTables.Clip1(q1 - a3);
         }
 
         private static void DoFilter6(Span<byte> p, int offset, int step)
@@ -971,18 +970,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q0 = p[offset];
             int q1 = p[offset + step];
             int q2 = p[offset + step2];
-            int a = WebpLookupTables.Sclip1[(3 * (q0 - p0)) + WebpLookupTables.Sclip1[p1 - q1]];
+            int a = WebpLookupTables.Sclip1((3 * (q0 - p0)) + WebpLookupTables.Sclip1(p1 - q1));
 
             // a is in [-128,127], a1 in [-27,27], a2 in [-18,18] and a3 in [-9,9]
             int a1 = ((27 * a) + 63) >> 7;  // eq. to ((3 * a + 7) * 9) >> 7
             int a2 = ((18 * a) + 63) >> 7;  // eq. to ((2 * a + 7) * 9) >> 7
             int a3 = ((9 * a) + 63) >> 7;  // eq. to ((1 * a + 7) * 9) >> 7
-            p[offset - step3] = WebpLookupTables.Clip1[p2 + a3];
-            p[offset - step2] = WebpLookupTables.Clip1[p1 + a2];
-            p[offsetMinusStep] = WebpLookupTables.Clip1[p0 + a1];
-            p[offset] = WebpLookupTables.Clip1[q0 - a1];
-            p[offset + step] = WebpLookupTables.Clip1[q1 - a2];
-            p[offset + step2] = WebpLookupTables.Clip1[q2 - a3];
+            p[offset - step3] = WebpLookupTables.Clip1(p2 + a3);
+            p[offset - step2] = WebpLookupTables.Clip1(p1 + a2);
+            p[offsetMinusStep] = WebpLookupTables.Clip1(p0 + a1);
+            p[offset] = WebpLookupTables.Clip1(q0 - a1);
+            p[offset + step] = WebpLookupTables.Clip1(q1 - a2);
+            p[offset + step2] = WebpLookupTables.Clip1(q2 - a3);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -992,7 +991,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return (4 * WebpLookupTables.Abs0[p0 - q0]) + WebpLookupTables.Abs0[p1 - q1] <= t;
+            return (4 * WebpLookupTables.Abs0(p0 - q0)) + WebpLookupTables.Abs0(p1 - q1) <= t;
         }
 
         private static bool NeedsFilter2(Span<byte> p, int offset, int step, int t, int it)
@@ -1007,14 +1006,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q1 = p[offset + step];
             int q2 = p[offset + step2];
             int q3 = p[offset + step3];
-            if ((4 * WebpLookupTables.Abs0[p0 - q0]) + WebpLookupTables.Abs0[p1 - q1] > t)
+            if ((4 * WebpLookupTables.Abs0(p0 - q0)) + WebpLookupTables.Abs0(p1 - q1) > t)
             {
                 return false;
             }
 
-            return WebpLookupTables.Abs0[p3 - p2] <= it && WebpLookupTables.Abs0[p2 - p1] <= it &&
-                   WebpLookupTables.Abs0[p1 - p0] <= it && WebpLookupTables.Abs0[q3 - q2] <= it &&
-                   WebpLookupTables.Abs0[q2 - q1] <= it && WebpLookupTables.Abs0[q1 - q0] <= it;
+            return WebpLookupTables.Abs0(p3 - p2) <= it && WebpLookupTables.Abs0(p2 - p1) <= it &&
+                   WebpLookupTables.Abs0(p1 - p0) <= it && WebpLookupTables.Abs0(q3 - q2) <= it &&
+                   WebpLookupTables.Abs0(q2 - q1) <= it && WebpLookupTables.Abs0(q1 - q0) <= it;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1024,7 +1023,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return WebpLookupTables.Abs0[p1 - p0] > thresh || WebpLookupTables.Abs0[q1 - q0] > thresh;
+            return WebpLookupTables.Abs0(p1 - p0) > thresh || WebpLookupTables.Abs0(q1 - q0) > thresh;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

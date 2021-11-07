@@ -163,11 +163,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="image">The cloned image where the transparent pixels will be changed.</param>
         private static void ClearTransparentPixels<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
+            where TPixel : unmanaged, IPixel<TPixel> =>
             image.ProcessPixelRows(accessor =>
             {
                 Rgba32 rgba32 = default;
+                Rgba32 transparent = Color.Transparent;
                 for (int y = 0; y < accessor.Height; y++)
                 {
                     Span<TPixel> span = accessor.GetRowSpan(y);
@@ -177,13 +177,11 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                         if (rgba32.A == 0)
                         {
-                            span[x].FromRgba32(Color.Transparent);
+                            span[x].FromRgba32(transparent);
                         }
                     }
                 }
             });
-
-        }
 
         /// <summary>
         /// Creates the quantized image and sets calculates and sets the bit depth.

@@ -107,7 +107,27 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Color FromPixel<TPixel>(TPixel pixel)
             where TPixel : unmanaged, IPixel<TPixel>
-            => new(pixel);
+        {
+            // Avoid boxing in case we can convert to Rgba64 safely and efficently
+            if (typeof(TPixel) == typeof(Rgba64))
+            {
+                return new((Rgba64)(object)pixel);
+            }
+            else if (typeof(TPixel) == typeof(Rgb48))
+            {
+                return new((Rgb48)(object)pixel);
+            }
+            else if (Unsafe.SizeOf<TPixel>() <= Unsafe.SizeOf<Rgba32>())
+            {
+                Rgba32 p = default;
+                pixel.ToRgba32(ref p);
+                return new(p);
+            }
+            else
+            {
+                return new(pixel);
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="Color"/> struct

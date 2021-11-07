@@ -26,6 +26,17 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
+        /// <param name="pixel">The <see cref="Rgb48"/> containing the color information.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Color(Rgb48 pixel)
+        {
+            this.data = new Rgba64(pixel.R, pixel.G, pixel.B, ushort.MaxValue);
+            this.boxedHighPrecisionPixel = null;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
         /// <param name="pixel">The <see cref="Rgba32"/> containing the color information.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Color(Rgba32 pixel)

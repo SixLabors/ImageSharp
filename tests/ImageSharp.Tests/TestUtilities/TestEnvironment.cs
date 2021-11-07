@@ -269,7 +269,14 @@ namespace SixLabors.ImageSharp.Tests
             int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
             if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
             {
-                return Version.Parse(assemblyPath[netCoreAppIndex + 1]);
+                string runtimeFolderStr = assemblyPath[netCoreAppIndex + 1];
+                int previewSuffix = runtimeFolderStr.IndexOf('-');
+                if (previewSuffix > 0)
+                {
+                    runtimeFolderStr = runtimeFolderStr.Substring(0, previewSuffix);
+                }
+
+                return Version.Parse(runtimeFolderStr);
             }
 
             return null;

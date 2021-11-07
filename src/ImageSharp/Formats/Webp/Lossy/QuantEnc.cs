@@ -516,6 +516,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 fixed (ushort* mtxIqPtr = mtx.IQ)
                 fixed (ushort* mtxQPtr = mtx.Q)
                 fixed (uint* biasQPtr = mtx.Bias)
+                fixed (short* sharpenPtr = mtx.Sharpen)
                 fixed (short* inputPtr = input)
                 fixed (short* outputPtr = output)
                 {
@@ -530,6 +531,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     // coeff = abs(in)
                     Vector128<ushort> coeff0 = Ssse3.Abs(input0);
                     Vector128<ushort> coeff8 = Ssse3.Abs(input8);
+
+                    // coeff = abs(in) + sharpen
+                    Vector128<short> sharpen0 = Sse2.LoadVector128(sharpenPtr);
+                    Vector128<short> sharpen8 = Sse2.LoadVector128(sharpenPtr + 8);
+                    Sse2.Add(coeff0.AsInt16(), sharpen0);
+                    Sse2.Add(coeff8.AsInt16(), sharpen8);
 
                     // out = (coeff * iQ + B) >> QFIX
                     // doing calculations with 32b precision (QFIX=17)

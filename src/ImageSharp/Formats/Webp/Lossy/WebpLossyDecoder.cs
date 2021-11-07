@@ -747,21 +747,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int xStep = 3;
             int lastPixelPair = (len - 1) >> 1;
-            uint tluv = LossyUtils.LoadUv(topU[0], topV[0]); // top-left sample
-            uint luv = LossyUtils.LoadUv(curU[0], curV[0]); // left-sample
+            uint tluv = YuvConversion.LoadUv(topU[0], topV[0]); // top-left sample
+            uint luv = YuvConversion.LoadUv(curU[0], curV[0]); // left-sample
             uint uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
-            LossyUtils.YuvToBgr(topY[0], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst);
+            YuvConversion.YuvToBgr(topY[0], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst);
 
             if (bottomY != null)
             {
                 uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
-                LossyUtils.YuvToBgr(bottomY[0], (int)uv0 & 0xff, (int)(uv0 >> 16), bottomDst);
+                YuvConversion.YuvToBgr(bottomY[0], (int)uv0 & 0xff, (int)(uv0 >> 16), bottomDst);
             }
 
             for (int x = 1; x <= lastPixelPair; x++)
             {
-                uint tuv = LossyUtils.LoadUv(topU[x], topV[x]); // top sample
-                uint uv = LossyUtils.LoadUv(curU[x], curV[x]); // sample
+                uint tuv = YuvConversion.LoadUv(topU[x], topV[x]); // top sample
+                uint uv = YuvConversion.LoadUv(curU[x], curV[x]); // sample
 
                 // Precompute invariant values associated with first and second diagonals.
                 uint avg = tluv + tuv + luv + uv + 0x00080008u;
@@ -770,15 +770,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 uv0 = (diag12 + tluv) >> 1;
                 uint uv1 = (diag03 + tuv) >> 1;
                 int xMul2 = x * 2;
-                LossyUtils.YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
-                LossyUtils.YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
+                YuvConversion.YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
+                YuvConversion.YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
 
                 if (bottomY != null)
                 {
                     uv0 = (diag03 + luv) >> 1;
                     uv1 = (diag12 + uv) >> 1;
-                    LossyUtils.YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((xMul2 - 1) * xStep));
-                    LossyUtils.YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice((xMul2 + 0) * xStep));
+                    YuvConversion.YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((xMul2 - 1) * xStep));
+                    YuvConversion.YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice((xMul2 + 0) * xStep));
                 }
 
                 tluv = tuv;
@@ -788,11 +788,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if ((len & 1) == 0)
             {
                 uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
-                LossyUtils.YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
+                YuvConversion.YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
                 if (bottomY != null)
                 {
                     uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
-                    LossyUtils.YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
+                    YuvConversion.YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
                 }
             }
         }

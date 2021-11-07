@@ -868,27 +868,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint LoadUv(byte u, byte v) =>
-            (uint)(u | (v << 16)); // We process u and v together stashed into 32bit(16bit each).
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static void YuvToBgr(int y, int u, int v, Span<byte> bgr)
-        {
-            bgr[0] = (byte)YuvToB(y, u);
-            bgr[1] = (byte)YuvToG(y, u, v);
-            bgr[2] = (byte)YuvToR(y, v);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToB(int y, int u) => Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToG(int y, int u, int v) => Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToR(int y, int v) => Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
         public static byte Avg2(byte a, byte b) => (byte)((a + b + 1) >> 1);
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1093,9 +1072,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int MultHi(int v, int coeff) => (v * coeff) >> 8;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Store(Span<byte> dst, int x, int y, int v)
         {
             int index = x + (y * WebpConstants.Bps);
@@ -1116,13 +1092,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Mul2(int a) => (a * 35468) >> 16;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Clip8(int v)
-        {
-            int yuvMask = (256 << 6) - 1;
-            return (byte)((v & ~yuvMask) == 0 ? v >> 6 : v < 0 ? 0 : 255);
-        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Put8x8uv(byte value, Span<byte> dst)

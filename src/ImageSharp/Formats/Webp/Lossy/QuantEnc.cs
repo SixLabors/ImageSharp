@@ -3,19 +3,35 @@
 
 using System;
 using System.Runtime.CompilerServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     /// <summary>
     /// Quantization methods.
     /// </summary>
-    internal static class QuantEnc
+    internal static unsafe class QuantEnc
     {
         private static readonly byte[] Zigzag = { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
 
         private static readonly ushort[] WeightY = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
 
         private const int MaxLevel = 2047;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector128<short> MaxCoeff2047 = Vector128.Create((short)MaxLevel);
+
+        private static readonly Vector128<byte> CstLo = Vector128.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13);
+
+        private static readonly Vector128<byte> Cst7 = Vector128.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255);
+
+        private static readonly Vector128<byte> CstHi = Vector128.Create(2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15);
+
+        private static readonly Vector128<byte> Cst8 = Vector128.Create(254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255);
+#endif
 
         // Diffusion weights. We under-correct a bit (15/16th of the error is actually
         // diffused) to avoid 'rainbow' chessboard pattern of blocks at q~=0.
@@ -486,51 +502,147 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Quantize2Blocks(Span<short> input, Span<short> output, Vp8Matrix mtx)
         {
-            int nz = QuantizeBlock(input, output, mtx) << 0;
-            nz |= QuantizeBlock(input.Slice(1 * 16), output.Slice(1 * 16), mtx) << 1;
+            int nz = QuantizeBlock(input.Slice(0, 16), output.Slice(0, 16), mtx) << 0;
+            nz |= QuantizeBlock(input.Slice(1 * 16, 16), output.Slice(1 * 16, 16), mtx) << 1;
             return nz;
         }
 
         public static int QuantizeBlock(Span<short> input, Span<short> output, Vp8Matrix mtx)
         {
-            int last = -1;
-            int n;
-            for (n = 0; n < 16; ++n)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse41.IsSupported)
             {
-                int j = Zigzag[n];
-                bool sign = input[j] < 0;
-                uint coeff = (uint)((sign ? -input[j] : input[j]) + mtx.Sharpen[j]);
-                if (coeff > mtx.ZThresh[j])
+#pragma warning disable SA1503 // Braces should not be omitted
+                fixed (ushort* mtxIqPtr = mtx.IQ)
+                fixed (ushort* mtxQPtr = mtx.Q)
+                fixed (uint* biasQPtr = mtx.Bias)
+                fixed (short* inputPtr = input)
+                fixed (short* outputPtr = output)
                 {
-                    uint q = mtx.Q[j];
-                    uint iQ = mtx.IQ[j];
-                    uint b = mtx.Bias[j];
-                    int level = QuantDiv(coeff, iQ, b);
-                    if (level > MaxLevel)
-                    {
-                        level = MaxLevel;
-                    }
+                    // Load all inputs.
+                    Vector128<short> input0 = Sse2.LoadVector128(inputPtr);
+                    Vector128<short> input8 = Sse2.LoadVector128(inputPtr + 8);
+                    Vector128<ushort> iq0 = Sse2.LoadVector128(mtxIqPtr);
+                    Vector128<ushort> iq8 = Sse2.LoadVector128(mtxIqPtr + 8);
+                    Vector128<ushort> q0 = Sse2.LoadVector128(mtxQPtr);
+                    Vector128<ushort> q8 = Sse2.LoadVector128(mtxQPtr + 8);
 
-                    if (sign)
-                    {
-                        level = -level;
-                    }
+                    // coeff = abs(in)
+                    Vector128<ushort> coeff0 = Ssse3.Abs(input0);
+                    Vector128<ushort> coeff8 = Ssse3.Abs(input8);
 
-                    input[j] = (short)(level * (int)q);
-                    output[n] = (short)level;
-                    if (level != 0)
-                    {
-                        last = n;
-                    }
+                    // out = (coeff * iQ + B) >> QFIX
+                    // doing calculations with 32b precision (QFIX=17)
+                    // out = (coeff * iQ)
+                    Vector128<ushort> coeffiQ0H = Sse2.MultiplyHigh(coeff0, iq0);
+                    Vector128<ushort> coeffiQ0L = Sse2.MultiplyLow(coeff0, iq0);
+                    Vector128<ushort> coeffiQ8H = Sse2.MultiplyHigh(coeff8, iq8);
+                    Vector128<ushort> coeffiQ8L = Sse2.MultiplyLow(coeff8, iq8);
+                    Vector128<ushort> out00 = Sse2.UnpackLow(coeffiQ0L, coeffiQ0H);
+                    Vector128<ushort> out04 = Sse2.UnpackHigh(coeffiQ0L, coeffiQ0H);
+                    Vector128<ushort> out08 = Sse2.UnpackLow(coeffiQ8L, coeffiQ8H);
+                    Vector128<ushort> out12 = Sse2.UnpackHigh(coeffiQ8L, coeffiQ8H);
+
+                    // out = (coeff * iQ + B)
+                    Vector128<uint> bias00 = Sse2.LoadVector128(biasQPtr);
+                    Vector128<uint> bias04 = Sse2.LoadVector128(biasQPtr + 4);
+                    Vector128<uint> bias08 = Sse2.LoadVector128(biasQPtr + 8);
+                    Vector128<uint> bias12 = Sse2.LoadVector128(biasQPtr + 12);
+                    out00 = Sse2.Add(out00.AsInt32(), bias00.AsInt32()).AsUInt16();
+                    out04 = Sse2.Add(out04.AsInt32(), bias04.AsInt32()).AsUInt16();
+                    out08 = Sse2.Add(out08.AsInt32(), bias08.AsInt32()).AsUInt16();
+                    out12 = Sse2.Add(out12.AsInt32(), bias12.AsInt32()).AsUInt16();
+
+                    // out = QUANTDIV(coeff, iQ, B, QFIX)
+                    out00 = Sse2.ShiftRightArithmetic(out00.AsInt32(), WebpConstants.QFix).AsUInt16();
+                    out04 = Sse2.ShiftRightArithmetic(out04.AsInt32(), WebpConstants.QFix).AsUInt16();
+                    out08 = Sse2.ShiftRightArithmetic(out08.AsInt32(), WebpConstants.QFix).AsUInt16();
+                    out12 = Sse2.ShiftRightArithmetic(out12.AsInt32(), WebpConstants.QFix).AsUInt16();
+
+                    // pack result as 16b
+                    Vector128<short> out0 = Sse2.PackSignedSaturate(out00.AsInt32(), out04.AsInt32());
+                    Vector128<short> out8 = Sse2.PackSignedSaturate(out08.AsInt32(), out12.AsInt32());
+
+                    // if (coeff > 2047) coeff = 2047
+                    out0 = Sse2.Min(out0, MaxCoeff2047);
+                    out8 = Sse2.Min(out8, MaxCoeff2047);
+
+                    // put sign back
+                    out0 = Ssse3.Sign(out0, input0);
+                    out8 = Ssse3.Sign(out8, input8);
+
+                    // in = out * Q
+                    input0 = Sse2.MultiplyLow(out0, q0.AsInt16());
+                    input8 = Sse2.MultiplyLow(out8, q8.AsInt16());
+
+                    // in = out * Q
+                    Sse2.Store(inputPtr, input0);
+                    Sse2.Store(inputPtr + 8, input8);
+
+                    // zigzag the output before storing it. The re-ordering is:
+                    //    0 1 2 3 4 5 6 7 | 8  9 10 11 12 13 14 15
+                    // -> 0 1 4[8]5 2 3 6 | 9 12 13 10 [7]11 14 15
+                    // There's only two misplaced entries ([8] and [7]) that are crossing the
+                    // reg's boundaries.
+                    // We use pshufb instead of pshuflo/pshufhi.
+                    Vector128<byte> tmpLo = Ssse3.Shuffle(out0.AsByte(), CstLo);
+                    Vector128<byte> tmp7 = Ssse3.Shuffle(out0.AsByte(), Cst7);  // extract #7
+                    Vector128<byte> tmpHi = Ssse3.Shuffle(out8.AsByte(), CstHi);
+                    Vector128<byte> tmp8 = Ssse3.Shuffle(out8.AsByte(), Cst8);  // extract #8
+                    Vector128<byte> outZ0 = Sse2.Or(tmpLo, tmp8);
+                    Vector128<byte> outZ8 = Sse2.Or(tmpHi, tmp7);
+                    Sse2.Store(outputPtr, outZ0.AsInt16());
+                    Sse2.Store(outputPtr + 8, outZ8.AsInt16());
+                    Vector128<sbyte> packedOutput = Sse2.PackSignedSaturate(outZ0.AsInt16(), outZ8.AsInt16());
+
+                    // Detect if all 'out' values are zeroes or not.
+                    Vector128<sbyte> cmpeq = Sse2.CompareEqual(packedOutput, Vector128<sbyte>.Zero);
+                    return Sse2.MoveMask(cmpeq) != 0xffff ? 1 : 0;
                 }
-                else
-                {
-                    output[n] = 0;
-                    input[j] = 0;
-                }
+#pragma warning restore SA1503 // Braces should not be omitted
             }
+            else
+#endif
+            {
+                int last = -1;
+                int n;
+                for (n = 0; n < 16; ++n)
+                {
+                    int j = Zigzag[n];
+                    bool sign = input[j] < 0;
+                    uint coeff = (uint)((sign ? -input[j] : input[j]) + mtx.Sharpen[j]);
+                    if (coeff > mtx.ZThresh[j])
+                    {
+                        uint q = mtx.Q[j];
+                        uint iQ = mtx.IQ[j];
+                        uint b = mtx.Bias[j];
+                        int level = QuantDiv(coeff, iQ, b);
+                        if (level > MaxLevel)
+                        {
+                            level = MaxLevel;
+                        }
 
-            return last >= 0 ? 1 : 0;
+                        if (sign)
+                        {
+                            level = -level;
+                        }
+
+                        input[j] = (short)(level * (int)q);
+                        output[n] = (short)level;
+                        if (level != 0)
+                        {
+                            last = n;
+                        }
+                    }
+                    else
+                    {
+                        output[n] = 0;
+                        input[j] = 0;
+                    }
+                }
+
+                return last >= 0 ? 1 : 0;
+            }
         }
 
         // Quantize as usual, but also compute and return the quantization error.

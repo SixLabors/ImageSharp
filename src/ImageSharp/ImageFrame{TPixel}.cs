@@ -267,6 +267,18 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Copy image pixels to <paramref name="destination"/>.
+        /// </summary>
+        /// <param name="destination">The <see cref="Span{TPixel}"/> to copy image pixels to.</param>
+        public void CopyPixelDataTo(Span<TPixel> destination) => this.GetPixelMemoryGroup().CopyTo(destination);
+
+        /// <summary>
+        /// Copy image pixels to <paramref name="destination"/>.
+        /// </summary>
+        /// <param name="destination">The <see cref="Span{T}"/> of <see cref="byte"/> to copy image pixels to.</param>
+        public void CopyPixelDataTo(Span<byte> destination) => this.GetPixelMemoryGroup().CopyTo(MemoryMarshal.Cast<byte, TPixel>(destination));
+
+        /// <summary>
         /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
         /// stored in row major order, if the backing buffer is contiguous.
         /// <para />

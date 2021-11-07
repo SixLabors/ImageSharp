@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -92,6 +94,59 @@ namespace SixLabors.ImageSharp.Tests
                 ImageFrame<Rgba32> frame = image.Frames.RootFrame;
                 ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => frame[3, y] = default);
                 Assert.Equal("y", ex.ParamName);
+            }
+
+            [Theory]
+            [InlineData(false, false)]
+            [InlineData(false, true)]
+            [InlineData(true, false)]
+            [InlineData(true, true)]
+            public void CopyPixelDataTo_Success(bool disco, bool byteSpan)
+            {
+                if (disco)
+                {
+                    this.LimitBufferCapacity(20);
+                }
+
+                using var image = new Image<La16>(this.configuration, 10, 10);
+                if (disco)
+                {
+                    Assert.True(image.GetPixelMemoryGroup().Count > 1);
+                }
+
+                byte[] expected = TestUtils.FillImageWithRandomBytes(image);
+                byte[] actual = new byte[expected.Length];
+                if (byteSpan)
+                {
+                    image.Frames.RootFrame.CopyPixelDataTo(actual);
+                }
+                else
+                {
+                    Span<La16> destination = MemoryMarshal.Cast<byte, La16>(actual);
+                    image.Frames.RootFrame.CopyPixelDataTo(destination);
+                }
+
+                Assert.True(expected.AsSpan().SequenceEqual(actual));
+            }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void CopyPixelDataTo_DestinationTooShort_Throws(bool byteSpan)
+            {
+                using var image = new Image<La16>(this.configuration, 10, 10);
+
+                Assert.ThrowsAny<ArgumentOutOfRangeException>(() =>
+                {
+                    if (byteSpan)
+                    {
+                        image.Frames.RootFrame.CopyPixelDataTo(new byte[199]);
+                    }
+                    else
+                    {
+                        image.Frames.RootFrame.CopyPixelDataTo(new La16[99]);
+                    }
+                });
             }
         }
 

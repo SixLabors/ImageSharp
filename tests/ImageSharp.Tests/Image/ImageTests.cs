@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Memory;
@@ -166,6 +167,59 @@ namespace SixLabors.ImageSharp.Tests
                 using var image = new Image<Rgba32>(this.configuration, 10, 10);
                 ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => image[3, y] = default);
                 Assert.Equal("y", ex.ParamName);
+            }
+
+            [Theory]
+            [InlineData(false, false)]
+            [InlineData(false, true)]
+            [InlineData(true, false)]
+            [InlineData(true, true)]
+            public void CopyPixelDataTo_Success(bool disco, bool byteSpan)
+            {
+                if (disco)
+                {
+                    this.LimitBufferCapacity(20);
+                }
+
+                using var image = new Image<La16>(this.configuration, 10, 10);
+                if (disco)
+                {
+                    Assert.True(image.GetPixelMemoryGroup().Count > 1);
+                }
+
+                byte[] expected = TestUtils.FillImageWithRandomBytes(image);
+                byte[] actual = new byte[expected.Length];
+                if (byteSpan)
+                {
+                    image.CopyPixelDataTo(actual);
+                }
+                else
+                {
+                    Span<La16> destination = MemoryMarshal.Cast<byte, La16>(actual);
+                    image.CopyPixelDataTo(destination);
+                }
+
+                Assert.True(expected.AsSpan().SequenceEqual(actual));
+            }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void CopyPixelDataTo_DestinationTooShort_Throws(bool byteSpan)
+            {
+                using var image = new Image<La16>(this.configuration, 10, 10);
+
+                Assert.ThrowsAny<ArgumentOutOfRangeException>(() =>
+                {
+                    if (byteSpan)
+                    {
+                        image.CopyPixelDataTo(new byte[199]);
+                    }
+                    else
+                    {
+                        image.CopyPixelDataTo(new La16[99]);
+                    }
+                });
             }
         }
 

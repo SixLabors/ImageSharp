@@ -54,6 +54,32 @@ namespace SixLabors.ImageSharp.Tests
 
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
+        public static byte[] GetRandomBytes(int length, int seed = 42)
+        {
+            var rnd = new Random(42);
+            byte[] bytes = new byte[length];
+            rnd.NextBytes(bytes);
+            return bytes;
+        }
+
+        internal static byte[] FillImageWithRandomBytes(Image<La16> image)
+        {
+            byte[] expected = TestUtils.GetRandomBytes(image.Width * image.Height * 2);
+            image.ProcessPixelRows(accessor =>
+            {
+                int cnt = 0;
+                for (int y = 0; y < accessor.Height; y++)
+                {
+                    Span<La16> row = accessor.GetRowSpan(y);
+                    for (int x = 0; x < row.Length; x++)
+                    {
+                        row[x] = new La16(expected[cnt++], expected[cnt++]);
+                    }
+                }
+            });
+            return expected;
+        }
+
         public static bool IsEquivalentTo<TPixel>(this Image<TPixel> a, Image<TPixel> b, bool compareAlpha = true)
             where TPixel : unmanaged, IPixel<TPixel>
         {

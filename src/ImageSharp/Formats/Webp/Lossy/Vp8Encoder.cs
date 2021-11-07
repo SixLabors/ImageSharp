@@ -70,6 +70,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         private int uvAlpha;
 
+        /// <summary>
+        /// Scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly int[] scratch = new int[16];
+
         private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
 
         private const int NumMbSegments = 4;
@@ -323,18 +328,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.StatLoop(width, height, yStride, uvStride);
             it.Init();
             it.InitFilter();
+            var info = new Vp8ModeScore();
+            var residual = new Vp8Residual();
             do
             {
                 bool dontUseSkip = !this.Proba.UseSkipProba;
-
-                var info = new Vp8ModeScore();
+                info.Clear();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
 
                 // Warning! order is important: first call VP8Decimate() and
                 // *then* decide how to code the skip decision if there's one.
                 if (!this.Decimate(it, ref info, this.rdOptLevel) || dontUseSkip)
                 {
-                    this.CodeResiduals(it, info);
+                    this.CodeResiduals(it, info, residual);
                 }
                 else
                 {
@@ -449,9 +455,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             it.Init();
             this.SetLoopParams(stats.Q);
+            var info = new Vp8ModeScore();
             do
             {
-                var info = new Vp8ModeScore();
+                info.Clear();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
                 if (this.Decimate(it, ref info, rdOpt))
                 {
@@ -932,10 +939,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return isSkipped;
         }
 
-        private void CodeResiduals(Vp8EncIterator it, Vp8ModeScore rd)
+        private void CodeResiduals(Vp8EncIterator it, Vp8ModeScore rd, Vp8Residual residual)
         {
             int x, y, ch;
-            var residual = new Vp8Residual();
             bool i16 = it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
             int segment = it.CurrentMacroBlockInfo.Segment;
 

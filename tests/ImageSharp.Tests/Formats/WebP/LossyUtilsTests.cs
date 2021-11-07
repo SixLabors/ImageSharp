@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             ushort[] w = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
             int expected = 2;
 
-            int actual = LossyUtils.Vp8Disto4X4(a, b, w);
+            int actual = LossyUtils.Vp8Disto4X4(a, b, w, new int[16]);
             Assert.Equal(expected, actual);
         }
 

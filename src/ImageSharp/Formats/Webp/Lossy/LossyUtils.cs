@@ -4,11 +4,15 @@
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
-    internal static class LossyUtils
+    internal static unsafe class LossyUtils
     {
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
@@ -61,11 +65,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static int Vp8Disto16X16(Span<byte> a, Span<byte> b, Span<ushort> w)
         {
             int d = 0;
+            int dataSize = (4 * WebpConstants.Bps) - 16;
             for (int y = 0; y < 16 * WebpConstants.Bps; y += 4 * WebpConstants.Bps)
             {
                 for (int x = 0; x < 16; x += 4)
                 {
-                    d += Vp8Disto4X4(a.Slice(x + y), b.Slice(x + y), w);
+                    d += Vp8Disto4X4(a.Slice(x + y, dataSize), b.Slice(x + y, dataSize), w);
                 }
             }
 
@@ -75,9 +80,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8Disto4X4(Span<byte> a, Span<byte> b, Span<ushort> w)
         {
-            int sum1 = TTransform(a, w);
-            int sum2 = TTransform(b, w);
-            return Math.Abs(sum2 - sum1) >> 5;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse41.IsSupported)
+            {
+                int diffSum = TTransformSse41(a, b, w);
+                return Math.Abs(diffSum) >> 5;
+            }
+            else
+#endif
+            {
+                int sum1 = TTransform(a, w);
+                int sum2 = TTransform(b, w);
+                return Math.Abs(sum2 - sum1) >> 5;
+            }
         }
 
         public static void DC16(Span<byte> dst, Span<byte> yuv, int offset)
@@ -590,6 +605,132 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             return sum;
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        /// <summary>
+        /// Hadamard transform
+        /// Returns the weighted sum of the absolute value of transformed coefficients.
+        /// w[] contains a row-major 4 by 4 symmetric matrix.
+        /// </summary>
+        public static int TTransformSse41(Span<byte> inputA, Span<byte> inputB, Span<ushort> w)
+        {
+            Span<int> sum = stackalloc int[4];
+#pragma warning disable SA1503 // Braces should not be omitted
+            fixed (byte* inputAPtr = inputA)
+            fixed (byte* inputBPtr = inputB)
+            fixed (ushort* wPtr = w)
+            fixed (int* outputPtr = sum)
+            {
+                // Load and combine inputs.
+                Vector128<byte> ina0 = Sse2.LoadVector128(inputAPtr);
+                Vector128<byte> ina1 = Sse2.LoadVector128(inputAPtr + (WebpConstants.Bps * 1));
+                Vector128<byte> ina2 = Sse2.LoadVector128(inputAPtr + (WebpConstants.Bps * 2));
+                Vector128<long> ina3 = Sse2.LoadVector128((long*)(inputAPtr + (WebpConstants.Bps * 3)));
+                Vector128<byte> inb0 = Sse2.LoadVector128(inputBPtr);
+                Vector128<byte> inb1 = Sse2.LoadVector128(inputBPtr + (WebpConstants.Bps * 1));
+                Vector128<byte> inb2 = Sse2.LoadVector128(inputBPtr + (WebpConstants.Bps * 2));
+                Vector128<long> inb3 = Sse2.LoadVector128((long*)(inputBPtr + (WebpConstants.Bps * 3)));
+
+                // Combine inA and inB (we'll do two transforms in parallel).
+                Vector128<int> inab0 = Sse2.UnpackLow(ina0.AsInt32(), inb0.AsInt32());
+                Vector128<int> inab1 = Sse2.UnpackLow(ina1.AsInt32(), inb1.AsInt32());
+                Vector128<int> inab2 = Sse2.UnpackLow(ina2.AsInt32(), inb2.AsInt32());
+                Vector128<int> inab3 = Sse2.UnpackLow(ina3.AsInt32(), inb3.AsInt32());
+                Vector128<short> tmp0 = Sse41.ConvertToVector128Int16(inab0.AsByte());
+                Vector128<short> tmp1 = Sse41.ConvertToVector128Int16(inab1.AsByte());
+                Vector128<short> tmp2 = Sse41.ConvertToVector128Int16(inab2.AsByte());
+                Vector128<short> tmp3 = Sse41.ConvertToVector128Int16(inab3.AsByte());
+
+                // a00 a01 a02 a03   b00 b01 b02 b03
+                // a10 a11 a12 a13   b10 b11 b12 b13
+                // a20 a21 a22 a23   b20 b21 b22 b23
+                // a30 a31 a32 a33   b30 b31 b32 b33
+                // Vertical pass first to avoid a transpose (vertical and horizontal passes
+                // are commutative because w/kWeightY is symmetric) and subsequent transpose.
+                // Calculate a and b (two 4x4 at once).
+                Vector128<short> a0 = Sse2.Add(tmp0, tmp2);
+                Vector128<short> a1 = Sse2.Add(tmp1, tmp3);
+                Vector128<short> a2 = Sse2.Subtract(tmp1, tmp3);
+                Vector128<short> a3 = Sse2.Subtract(tmp0, tmp2);
+                Vector128<short> b0 = Sse2.Add(a0, a1);
+                Vector128<short> b1 = Sse2.Add(a3, a2);
+                Vector128<short> b2 = Sse2.Subtract(a3, a2);
+                Vector128<short> b3 = Sse2.Subtract(a0, a1);
+
+                // a00 a01 a02 a03   b00 b01 b02 b03
+                // a10 a11 a12 a13   b10 b11 b12 b13
+                // a20 a21 a22 a23   b20 b21 b22 b23
+                // a30 a31 a32 a33   b30 b31 b32 b33
+                // Transpose the two 4x4.
+                Vector128<short> transpose00 = Sse2.UnpackLow(b0, b1);
+                Vector128<short> transpose01 = Sse2.UnpackLow(b2, b3);
+                Vector128<short> transpose02 = Sse2.UnpackHigh(b0, b1);
+                Vector128<short> transpose03 = Sse2.UnpackHigh(b2, b3);
+
+                // a00 a10 a01 a11   a02 a12 a03 a13
+                // a20 a30 a21 a31   a22 a32 a23 a33
+                // b00 b10 b01 b11   b02 b12 b03 b13
+                // b20 b30 b21 b31   b22 b32 b23 b33
+                Vector128<int> transpose10 = Sse2.UnpackLow(transpose00.AsInt32(), transpose01.AsInt32());
+                Vector128<int> transpose11 = Sse2.UnpackLow(transpose02.AsInt32(), transpose03.AsInt32());
+                Vector128<int> transpose12 = Sse2.UnpackHigh(transpose00.AsInt32(), transpose01.AsInt32());
+                Vector128<int> transpose13 = Sse2.UnpackHigh(transpose02.AsInt32(), transpose03.AsInt32());
+
+                // a00 a10 a20 a30 a01 a11 a21 a31
+                // b00 b10 b20 b30 b01 b11 b21 b31
+                // a02 a12 a22 a32 a03 a13 a23 a33
+                // b02 b12 a22 b32 b03 b13 b23 b33
+                Vector128<long> output0 = Sse2.UnpackLow(transpose10.AsInt64(), transpose11.AsInt64());
+                Vector128<long> output1 = Sse2.UnpackHigh(transpose10.AsInt64(), transpose11.AsInt64());
+                Vector128<long> output2 = Sse2.UnpackLow(transpose12.AsInt64(), transpose13.AsInt64());
+                Vector128<long> output3 = Sse2.UnpackHigh(transpose12.AsInt64(), transpose13.AsInt64());
+
+                // a00 a10 a20 a30   b00 b10 b20 b30
+                // a01 a11 a21 a31   b01 b11 b21 b31
+                // a02 a12 a22 a32   b02 b12 b22 b32
+                // a03 a13 a23 a33   b03 b13 b23 b33
+                // Horizontal pass and difference of weighted sums.
+                Vector128<ushort> w0 = Sse2.LoadVector128(wPtr);
+                Vector128<ushort> w8 = Sse2.LoadVector128(wPtr + 8);
+
+                // Calculate a and b (two 4x4 at once).
+                a0 = Sse2.Add(output0.AsInt16(), output2.AsInt16());
+                a1 = Sse2.Add(output1.AsInt16(), output3.AsInt16());
+                a2 = Sse2.Subtract(output1.AsInt16(), output3.AsInt16());
+                a3 = Sse2.Subtract(output0.AsInt16(), output2.AsInt16());
+                b0 = Sse2.Add(a0, a1);
+                b1 = Sse2.Add(a3, a2);
+                b2 = Sse2.Subtract(a3, a2);
+                b3 = Sse2.Subtract(a0, a1);
+
+                // Separate the transforms of inA and inB.
+                Vector128<long> ab0 = Sse2.UnpackLow(b0.AsInt64(), b1.AsInt64());
+                Vector128<long> ab2 = Sse2.UnpackLow(b2.AsInt64(), b3.AsInt64());
+                Vector128<long> bb0 = Sse2.UnpackHigh(b0.AsInt64(), b1.AsInt64());
+                Vector128<long> bb2 = Sse2.UnpackHigh(b2.AsInt64(), b3.AsInt64());
+
+                Vector128<ushort> ab0Abs = Ssse3.Abs(ab0.AsInt16());
+                Vector128<ushort> ab2Abs = Ssse3.Abs(ab2.AsInt16());
+                Vector128<ushort> b0Abs = Ssse3.Abs(bb0.AsInt16());
+                Vector128<ushort> bb2Abs = Ssse3.Abs(bb2.AsInt16());
+
+                // weighted sums.
+                Vector128<int> ab0mulw0 = Sse2.MultiplyAddAdjacent(ab0Abs.AsInt16(), w0.AsInt16());
+                Vector128<int> ab2mulw8 = Sse2.MultiplyAddAdjacent(ab2Abs.AsInt16(), w8.AsInt16());
+                Vector128<int> b0mulw0 = Sse2.MultiplyAddAdjacent(b0Abs.AsInt16(), w0.AsInt16());
+                Vector128<int> bb2mulw8 = Sse2.MultiplyAddAdjacent(bb2Abs.AsInt16(), w8.AsInt16());
+                Vector128<int> ab0ab2Sum = Sse2.Add(ab0mulw0, ab2mulw8);
+                Vector128<int> b0w0bb2w8Sum = Sse2.Add(b0mulw0, bb2mulw8);
+
+                // difference of weighted sums.
+                Vector128<int> result = Sse2.Subtract(ab0ab2Sum.AsInt32(), b0w0bb2w8Sum.AsInt32());
+                Sse2.Store(outputPtr, result.AsInt32());
+            }
+
+            return sum[3] + sum[2] + sum[1] + sum[0];
+#pragma warning restore SA1503 // Braces should not be omitted
+        }
+#endif
 
         public static void TransformTwo(Span<short> src, Span<byte> dst)
         {

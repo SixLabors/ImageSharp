@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public uint BgraOrDistance { get; set; }
 
         public static PixOrCopy CreateCacheIdx(int idx) =>
-            new PixOrCopy()
+            new()
             {
                 Mode = PixOrCopyMode.CacheIdx,
                 BgraOrDistance = (uint)idx,
@@ -23,14 +23,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             };
 
         public static PixOrCopy CreateLiteral(uint bgra) =>
-            new PixOrCopy()
+            new()
             {
                 Mode = PixOrCopyMode.Literal,
                 BgraOrDistance = bgra,
                 Len = 1
             };
 
-        public static PixOrCopy CreateCopy(uint distance, ushort len) => new PixOrCopy()
+        public static PixOrCopy CreateCopy(uint distance, ushort len) => new()
         {
             Mode = PixOrCopyMode.Copy,
             BgraOrDistance = distance,

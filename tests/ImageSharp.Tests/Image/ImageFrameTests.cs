@@ -4,6 +4,7 @@
 using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -16,10 +17,7 @@ namespace SixLabors.ImageSharp.Tests
 
             private void LimitBufferCapacity(int bufferCapacityInBytes)
             {
-                // TODO: Create a test-only MemoryAllocator for this
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-                var allocator = ArrayPoolMemoryAllocator.CreateDefault();
-#pragma warning restore CS0618
+                var allocator = new TestMemoryAllocator();
                 allocator.BufferCapacityInBytes = bufferCapacityInBytes;
                 this.configuration.MemoryAllocator = allocator;
             }

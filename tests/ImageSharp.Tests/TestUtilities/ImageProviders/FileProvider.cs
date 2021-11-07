@@ -24,18 +24,17 @@ namespace SixLabors.ImageSharp.Tests
             // are shared between PixelTypes.Color & PixelTypes.Rgba32
             private class Key : IEquatable<Key>
             {
-                private readonly Tuple<PixelTypes, string, Type, int> commonValues;
+                private readonly Tuple<PixelTypes, string, Type> commonValues;
 
                 private readonly Dictionary<string, object> decoderParameters;
 
-                public Key(PixelTypes pixelType, string filePath, int allocatorBufferCapacity, IImageDecoder customDecoder)
+                public Key(PixelTypes pixelType, string filePath, IImageDecoder customDecoder)
                 {
                     Type customType = customDecoder?.GetType();
-                    this.commonValues = new Tuple<PixelTypes, string, Type, int>(
+                    this.commonValues = new Tuple<PixelTypes, string, Type>(
                         pixelType,
                         filePath,
-                        customType,
-                        allocatorBufferCapacity);
+                        customType);
                     this.decoderParameters = GetDecoderParameters(customDecoder);
                 }
 
@@ -153,20 +152,13 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Guard.NotNull(decoder, nameof(decoder));
 
-                if (!TestEnvironment.Is64BitProcess)
+                // Do not cache with 64 bits or if image has been created with non-default MemoryAllocator
+                if (!TestEnvironment.Is64BitProcess || this.Configuration.MemoryAllocator != MemoryAllocator.Default)
                 {
                     return this.LoadImage(decoder);
                 }
 
-                int bufferCapacity = -1;
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-                if (this.Configuration.MemoryAllocator is ArrayPoolMemoryAllocator arrayPoolMemoryAllocator)
-#pragma warning restore CS0618
-                {
-                    bufferCapacity = arrayPoolMemoryAllocator.BufferCapacityInBytes;
-                }
-
-                var key = new Key(this.PixelType, this.FilePath, bufferCapacity, decoder);
+                var key = new Key(this.PixelType, this.FilePath, decoder);
 
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 

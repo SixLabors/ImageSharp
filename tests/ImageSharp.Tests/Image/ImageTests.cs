@@ -97,15 +97,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             private readonly Configuration configuration = Configuration.CreateDefaultInstance();
 
-            private void LimitBufferCapacity(int bufferCapacityInBytes)
-            {
-                // TODO: Create a test-only MemoryAllocator for this
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-                var allocator = ArrayPoolMemoryAllocator.CreateDefault();
-#pragma warning restore CS0618
-                allocator.BufferCapacityInBytes = bufferCapacityInBytes;
-                this.configuration.MemoryAllocator = allocator;
-            }
+            private void LimitBufferCapacity(int bufferCapacityInBytes) =>
+                this.configuration.MemoryAllocator = new TestMemoryAllocator { BufferCapacityInBytes = bufferCapacityInBytes };
 
             [Theory]
             [InlineData(false)]

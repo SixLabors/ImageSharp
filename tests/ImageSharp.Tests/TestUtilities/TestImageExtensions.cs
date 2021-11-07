@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -692,10 +693,7 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // TODO: Use a test-only allocator for this.
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-            var allocator = ArrayPoolMemoryAllocator.CreateDefault();
-#pragma warning restore
+            var allocator = new TestMemoryAllocator();
             provider.Configuration.MemoryAllocator = allocator;
             return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
         }
@@ -781,10 +779,10 @@ namespace SixLabors.ImageSharp.Tests
     internal class AllocatorBufferCapacityConfigurator
     {
 #pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-        private readonly ArrayPoolMemoryAllocator allocator;
+        private readonly TestMemoryAllocator allocator;
         private readonly int pixelSizeInBytes;
 
-        public AllocatorBufferCapacityConfigurator(ArrayPoolMemoryAllocator allocator, int pixelSizeInBytes)
+        public AllocatorBufferCapacityConfigurator(TestMemoryAllocator allocator, int pixelSizeInBytes)
         {
             this.allocator = allocator;
             this.pixelSizeInBytes = pixelSizeInBytes;

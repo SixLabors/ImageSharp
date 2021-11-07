@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
@@ -165,10 +166,7 @@ namespace SixLabors.ImageSharp.Tests
             int width = expected.Width;
             expected.Mutate(process);
 
-            // TODO: Use a test-only allocator for this
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-            var allocator = ArrayPoolMemoryAllocator.CreateDefault();
-#pragma warning restore CS0618
+            var allocator = new TestMemoryAllocator();
             provider.Configuration.MemoryAllocator = allocator;
             allocator.BufferCapacityInBytes = bufferCapacityInPixelRows * width * Unsafe.SizeOf<TPixel>();
 

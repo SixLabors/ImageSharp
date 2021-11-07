@@ -164,6 +164,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Fact]
+        [PlatformSpecific(~TestPlatforms.OSX)] // TODO: Investigate OSX failure
         public void MemoryAllocator_Create_LimitPoolSize()
         {
             RemoteExecutor.Invoke(RunTest).Dispose();

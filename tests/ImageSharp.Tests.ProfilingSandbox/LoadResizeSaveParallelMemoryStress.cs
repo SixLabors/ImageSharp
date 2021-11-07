@@ -192,19 +192,10 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
         }
 
-        private enum AllocatorKind
-        {
-            Classic,
-            Unmanaged
-        }
-
         private class CommandLineOptions
         {
             [Option('i', "imagesharp", Required = false, Default = false, HelpText = "Test ImageSharp without benchmark switching")]
             public bool ImageSharp { get; set; }
-
-            [Option('a', "allocator", Required = false, Default = AllocatorKind.Unmanaged, HelpText = "Select allocator: Classic (ArrayPoolMemoryAllocator) or Unmanaged")]
-            public AllocatorKind Allocator { get; set; }
 
             [Option('m', "max-contiguous", Required = false, Default = 4, HelpText = "Maximum size of contiguous pool buffers in MegaBytes")]
             public int MaxContiguousPoolBufferMegaBytes { get; set; } = 4;
@@ -253,40 +244,29 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.Allocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd})";
 
             public MemoryAllocator CreateMemoryAllocator()
             {
-                switch (this.Allocator)
+                if (this.TrimTimeSeconds.HasValue)
                 {
-                    case AllocatorKind.Classic:
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-                        return ArrayPoolMemoryAllocator.CreateDefault();
-#pragma warning restore CS0618
-                    case AllocatorKind.Unmanaged:
-                        if (this.TrimTimeSeconds.HasValue)
+                    return new UniformUnmanagedMemoryPoolMemoryAllocator(
+                        1024 * 1024,
+                        (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                        B(this.MaxPoolSizeMegaBytes),
+                        (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes),
+                        new UniformUnmanagedMemoryPool.TrimSettings
                         {
-                            return new UniformUnmanagedMemoryPoolMemoryAllocator(
-                                1024 * 1024,
-                                (int)B(this.MaxContiguousPoolBufferMegaBytes),
-                                B(this.MaxPoolSizeMegaBytes),
-                                (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes),
-                                new UniformUnmanagedMemoryPool.TrimSettings
-                                {
-                                    TrimPeriodMilliseconds = this.TrimTimeSeconds.Value * 1000
-                                });
-                        }
-                        else
-                        {
-                            return new UniformUnmanagedMemoryPoolMemoryAllocator(
-                                1024 * 1024,
-                                (int)B(this.MaxContiguousPoolBufferMegaBytes),
-                                B(this.MaxPoolSizeMegaBytes),
-                                (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes));
-                        }
-
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                            TrimPeriodMilliseconds = this.TrimTimeSeconds.Value * 1000
+                        });
+                }
+                else
+                {
+                    return new UniformUnmanagedMemoryPoolMemoryAllocator(
+                        1024 * 1024,
+                        (int)B(this.MaxContiguousPoolBufferMegaBytes),
+                        B(this.MaxPoolSizeMegaBytes),
+                        (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes));
                 }
             }
 

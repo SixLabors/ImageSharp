@@ -17,11 +17,6 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         // private const JpegKind Filter = JpegKind.Progressive;
         private const JpegKind Filter = JpegKind.Any;
 
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-        private ArrayPoolMemoryAllocator arrayPoolMemoryAllocator;
-#pragma warning restore CS0618
-        private MemoryAllocator defaultMemoryAllocator;
-
         [GlobalSetup]
         public void Setup()
         {
@@ -32,11 +27,6 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             };
             Console.WriteLine($"ImageCount: {this.runner.ImageCount} Filter: {Filter}");
             this.runner.Init();
-            this.defaultMemoryAllocator = Configuration.Default.MemoryAllocator;
-
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
-            this.arrayPoolMemoryAllocator = ArrayPoolMemoryAllocator.CreateDefault();
-#pragma warning restore CS0618
         }
 
         private void ForEachImage(Action<string> action, int maxDegreeOfParallelism)
@@ -59,17 +49,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         [Benchmark(Baseline = true)]
         [ArgumentsSource(nameof(ParallelismValues))]
-        public void ImageSharp_DefaultMemoryAllocator(int maxDegreeOfParallelism)
+        public void ImageSharp(int maxDegreeOfParallelism)
         {
-            Configuration.Default.MemoryAllocator = this.defaultMemoryAllocator;
-            this.ForEachImage(this.runner.ImageSharpResize, maxDegreeOfParallelism);
-        }
-
-        [Benchmark]
-        [ArgumentsSource(nameof(ParallelismValues))]
-        public void ImageSharp_ArrayPoolMemoryAllocator(int maxDegreeOfParallelism)
-        {
-            Configuration.Default.MemoryAllocator = this.arrayPoolMemoryAllocator;
             this.ForEachImage(this.runner.ImageSharpResize, maxDegreeOfParallelism);
         }
 

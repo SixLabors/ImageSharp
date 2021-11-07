@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     /// <summary>
@@ -92,6 +94,22 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Gets the diffusion errors.
         /// </summary>
         public int[,] Derr { get; }
+
+        public void Clear()
+        {
+            this.YDcLevels.AsSpan().Clear();
+            this.YAcLevels.AsSpan().Clear();
+            this.UvLevels.AsSpan().Clear();
+            this.ModesI4.AsSpan().Clear();
+
+            for (int i = 0; i < 2; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    this.Derr[i, j] = 0;
+                }
+            }
+        }
 
         public void InitScore()
         {

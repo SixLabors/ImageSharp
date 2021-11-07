@@ -142,10 +142,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool ReadBool() => this.ReadValue(1) is 1;
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public uint ReadValue(int nBits)
         {
-            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
-            Guard.MustBeLessThanOrEqualTo(nBits, 32, nameof(nBits));
+            DebugGuard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+            DebugGuard.MustBeLessThanOrEqualTo(nBits, 32, nameof(nBits));
 
             uint v = 0;
             while (nBits-- > 0)
@@ -156,10 +157,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
             return v;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public int ReadSignedValue(int nBits)
         {
-            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
-            Guard.MustBeLessThanOrEqualTo(nBits, 32, nameof(nBits));
+            DebugGuard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+            DebugGuard.MustBeLessThanOrEqualTo(nBits, 32, nameof(nBits));
 
             int value = (int)this.ReadValue(nBits);
             return this.ReadValue(1) != 0 ? -value : value;

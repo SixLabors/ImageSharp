@@ -117,6 +117,14 @@ namespace SixLabors.ImageSharp
             {
                 return new((Rgb48)(object)pixel);
             }
+            else if (typeof(TPixel) == typeof(La32))
+            {
+                return new((La32)(object)pixel);
+            }
+            else if (typeof(TPixel) == typeof(L16))
+            {
+                return new((L16)(object)pixel);
+            }
             else if (Unsafe.SizeOf<TPixel>() <= Unsafe.SizeOf<Rgba32>())
             {
                 Rgba32 p = default;

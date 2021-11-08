@@ -31,25 +31,35 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public void SetupBaselineInterleaved444() =>
             this.GenericSetup(TestImages.Jpeg.Baseline.Winter444_Interleaved);
 
+        [GlobalSetup(Target = nameof(JpegBaselineInterleaved420))]
+        public void SetupBaselineInterleaved420() =>
+            this.GenericSetup(TestImages.Jpeg.Baseline.Hiyamugi);
+
+        [GlobalSetup(Target = nameof(JpegBaseline400))]
+        public void SetupBaselineSingleComponent() =>
+            this.GenericSetup(TestImages.Jpeg.Baseline.Jpeg400);
+
         [GlobalSetup(Target = nameof(JpegProgressiveNonInterleaved420))]
         public void SetupProgressiveNoninterleaved420() =>
             this.GenericSetup(TestImages.Jpeg.Progressive.Winter420_NonInterleaved);
 
-        [GlobalCleanup(Targets = new[]
-        {
-            nameof(JpegProgressiveNonInterleaved420),
-            nameof(JpegBaselineInterleaved444)
-        })]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.preloadedImageStream.Dispose();
             this.preloadedImageStream = null;
         }
 
-        [Benchmark(Description = "Baseline Interleaved 4:4:4")]
+        [Benchmark(Description = "Baseline 4:4:4 Interleaved")]
         public void JpegBaselineInterleaved444() => this.GenericBechmark();
 
-        [Benchmark(Description = "Progressive Non-Interleaved 4:2:0")]
+        [Benchmark(Description = "Baseline 4:2:0 Interleaved")]
+        public void JpegBaselineInterleaved420() => this.GenericBechmark();
+
+        [Benchmark(Description = "Baseline 4:0:0 (grayscale)")]
+        public void JpegBaseline400() => this.GenericBechmark();
+
+        [Benchmark(Description = "Progressive 4:2:0 Non-Interleaved")]
         public void JpegProgressiveNonInterleaved420() => this.GenericBechmark();
     }
 }
@@ -79,4 +89,11 @@ Color conversion code cleanup - no extra virtual calls and if-checks for explici
 |------------------------------------ |---------:|---------:|---------:|
 |        'Baseline Interleaved 4:4:4' | 10.87 ms | 0.039 ms | 0.030 ms |
 | 'Progressive Non-Interleaved 4:2:0' | 13.02 ms | 0.030 ms | 0.027 ms |
+
+|                              Method |      Mean |     Error |    StdDev |
+|------------------------------------ |----------:|----------:|----------:|
+|        'Baseline 4:4:4 Interleaved' | 10.822 ms | 0.0521 ms | 0.0487 ms |
+|        'Baseline 4:2:0 Interleaved' |  8.386 ms | 0.0301 ms | 0.0282 ms |
+|        'Baseline 4:0:0 (grayscale)' |  1.482 ms | 0.0052 ms | 0.0043 ms |
+| 'Progressive 4:2:0 Non-Interleaved' | 13.005 ms | 0.0406 ms | 0.0380 ms |
 */

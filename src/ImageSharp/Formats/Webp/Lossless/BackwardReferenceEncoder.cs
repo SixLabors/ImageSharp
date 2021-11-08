@@ -49,6 +49,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             double bitCostBest = -1;
             int cacheBitsInitial = cacheBits;
             Vp8LHashChain hashChainBox = null;
+            var stats = new Vp8LStreaks();
+            var bitsEntropy = new Vp8LBitEntropy();
             for (int lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
             {
                 int cacheBitsTmp = cacheBitsInitial;
@@ -81,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 // Keep the best backward references.
                 var histo = new Vp8LHistogram(worst, cacheBitsTmp);
-                double bitCost = histo.EstimateBits();
+                double bitCost = histo.EstimateBits(stats, bitsEntropy);
 
                 if (lz77TypeBest == 0 || bitCost < bitCostBest)
                 {
@@ -100,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox;
                 BackwardReferencesTraceBackwards(width, height, bgra, cacheBits, hashChainTmp, best, worst);
                 var histo = new Vp8LHistogram(worst, cacheBits);
-                double bitCostTrace = histo.EstimateBits();
+                double bitCostTrace = histo.EstimateBits(stats, bitsEntropy);
                 if (bitCostTrace < bitCostBest)
                 {
                     best = worst;
@@ -214,9 +216,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
 
+            var stats = new Vp8LStreaks();
+            var bitsEntropy = new Vp8LBitEntropy();
             for (int i = 0; i <= cacheBitsMax; i++)
             {
-                double entropy = histos[i].EstimateBits();
+                double entropy = histos[i].EstimateBits(stats, bitsEntropy);
                 if (i == 0 || entropy < entropyMin)
                 {
                     entropyMin = entropy;

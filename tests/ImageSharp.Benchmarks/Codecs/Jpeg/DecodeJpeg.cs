@@ -73,22 +73,12 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
   DefaultJob : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
 
 MASTER
-|                              Method |     Mean |    Error |   StdDev |
-|------------------------------------ |---------:|---------:|---------:|
-|        'Baseline Interleaved 4:4:4' | 12.71 ms | 0.112 ms | 0.099 ms |
-| 'Progressive Non-Interleaved 4:2:0' | 13.89 ms | 0.087 ms | 0.073 ms |
-
-AAN IDCT + Fused zigzag/transpose
-|                              Method |     Mean |    Error |   StdDev |
-|------------------------------------ |---------:|---------:|---------:|
-|        'Baseline Interleaved 4:4:4' | 11.49 ms | 0.105 ms | 0.093 ms |
-| 'Progressive Non-Interleaved 4:2:0' | 13.46 ms | 0.060 ms | 0.050 ms |
-
-Color conversion code cleanup - no extra virtual calls and if-checks for explicit avx converters
-|                              Method |     Mean |    Error |   StdDev |
-|------------------------------------ |---------:|---------:|---------:|
-|        'Baseline Interleaved 4:4:4' | 10.87 ms | 0.039 ms | 0.030 ms |
-| 'Progressive Non-Interleaved 4:2:0' | 13.02 ms | 0.030 ms | 0.027 ms |
+|                              Method |      Mean |     Error |    StdDev |
+|------------------------------------ |----------:|----------:|----------:|
+|        'Baseline Interleaved 4:4:4' | 12.710 ms | 0.1120 ms | 0.0990 ms |
+|        'Baseline 4:2:0 Interleaved' |  8.855 ms | 0.1447 ms | 0.1353 ms |
+|        'Baseline 4:0:0 (grayscale)' |  1.660 ms | 0.0106 ms | 0.0088 ms |
+| 'Progressive 4:2:0 Non-Interleaved' | 14.138 ms | 0.2797 ms | 0.3330 ms |
 
 |                              Method |      Mean |     Error |    StdDev |
 |------------------------------------ |----------:|----------:|----------:|

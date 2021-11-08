@@ -765,6 +765,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Fast calculation of log2(v) for integer input.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float FastLog2(uint v) => v < LogLookupIdxMax ? WebpLookupTables.Log2Table[v] : FastLog2Slow(v);
 
         /// <summary>
@@ -793,7 +794,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static float FastSLog2Slow(uint v)
         {
-            Guard.MustBeGreaterThanOrEqualTo(v, LogLookupIdxMax, nameof(v));
+            DebugGuard.MustBeGreaterThanOrEqualTo<uint>(v, LogLookupIdxMax, nameof(v));
             if (v < ApproxLogWithCorrectionMax)
             {
                 int logCnt = 0;
@@ -1214,30 +1215,65 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
         {
-            int a = AddSubtractComponentFull(
-                (int)(c0 >> 24),
-                (int)(c1 >> 24),
-                (int)(c2 >> 24));
-            int r = AddSubtractComponentFull(
-                (int)((c0 >> 16) & 0xff),
-                (int)((c1 >> 16) & 0xff),
-                (int)((c2 >> 16) & 0xff));
-            int g = AddSubtractComponentFull(
-                (int)((c0 >> 8) & 0xff),
-                (int)((c1 >> 8) & 0xff),
-                (int)((c2 >> 8) & 0xff));
-            int b = AddSubtractComponentFull((int)(c0 & 0xff), (int)(c1 & 0xff), (int)(c2 & 0xff));
-            return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> c1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c1).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> c2Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c2).AsByte(), Vector128<byte>.Zero);
+                Vector128<short> v1 = Sse2.Add(c0Vec.AsInt16(), c1Vec.AsInt16());
+                Vector128<short> v2 = Sse2.Subtract(v1, c2Vec.AsInt16());
+                Vector128<byte> b = Sse2.PackUnsignedSaturate(v2, v2);
+                uint output = Sse2.ConvertToUInt32(b.AsUInt32());
+                return output;
+            }
+#endif
+            {
+                int a = AddSubtractComponentFull(
+                    (int)(c0 >> 24),
+                    (int)(c1 >> 24),
+                    (int)(c2 >> 24));
+                int r = AddSubtractComponentFull(
+                    (int)((c0 >> 16) & 0xff),
+                    (int)((c1 >> 16) & 0xff),
+                    (int)((c2 >> 16) & 0xff));
+                int g = AddSubtractComponentFull(
+                    (int)((c0 >> 8) & 0xff),
+                    (int)((c1 >> 8) & 0xff),
+                    (int)((c2 >> 8) & 0xff));
+                int b = AddSubtractComponentFull((int)(c0 & 0xff), (int)(c1 & 0xff), (int)(c2 & 0xff));
+                return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+            }
         }
 
         private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
         {
-            uint ave = Average2(c0, c1);
-            int a = AddSubtractComponentHalf((int)(ave >> 24), (int)(c2 >> 24));
-            int r = AddSubtractComponentHalf((int)((ave >> 16) & 0xff), (int)((c2 >> 16) & 0xff));
-            int g = AddSubtractComponentHalf((int)((ave >> 8) & 0xff), (int)((c2 >> 8) & 0xff));
-            int b = AddSubtractComponentHalf((int)(ave & 0xff), (int)(c2 & 0xff));
-            return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> c1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c1).AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> b0 = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c2).AsByte(), Vector128<byte>.Zero);
+                Vector128<short> avg = Sse2.Add(c1Vec.AsInt16(), c0Vec.AsInt16());
+                Vector128<short> a0 = Sse2.ShiftRightLogical(avg, 1);
+                Vector128<short> a1 = Sse2.Subtract(a0, b0.AsInt16());
+                Vector128<short> bgta = Sse2.CompareGreaterThan(b0.AsInt16(), a0.AsInt16());
+                Vector128<short> a2 = Sse2.Subtract(a1, bgta);
+                Vector128<short> a3 = Sse2.ShiftRightArithmetic(a2, 1);
+                Vector128<short> a4 = Sse2.Add(a0, a3).AsInt16();
+                Vector128<byte> a5 = Sse2.PackUnsignedSaturate(a4, a4);
+                uint output = Sse2.ConvertToUInt32(a5.AsUInt32());
+                return output;
+            }
+#endif
+            {
+                uint ave = Average2(c0, c1);
+                int a = AddSubtractComponentHalf((int)(ave >> 24), (int)(c2 >> 24));
+                int r = AddSubtractComponentHalf((int)((ave >> 16) & 0xff), (int)((c2 >> 16) & 0xff));
+                int g = AddSubtractComponentHalf((int)((ave >> 8) & 0xff), (int)((c2 >> 8) & 0xff));
+                int b = AddSubtractComponentHalf((int)(ave & 0xff), (int)(c2 & 0xff));
+                return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1275,11 +1311,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     Vector128<byte> pb = Sse2.UnpackLow(bc, Vector128<byte>.Zero); // |b - c|
                     Vector128<ushort> diff = Sse2.Subtract(pb.AsUInt16(), pa.AsUInt16());
                     Sse2.Store((ushort*)p, diff);
+                    int paMinusPb = output[3] + output[2] + output[1] + output[0];
+                    return (paMinusPb <= 0) ? a : b;
                 }
-
-                int paMinusPb = output[0] + output[1] + output[2] + output[3];
-
-                return (paMinusPb <= 0) ? a : b;
             }
             else
 #endif

@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -174,6 +175,11 @@ namespace SixLabors.ImageSharp.Tests
                         }
 
                         Assert.False(memoryManager.IsDisposed);
+                    }
+
+                    if (!Directory.Exists(TestEnvironment.ActualOutputDirectoryFullPath))
+                    {
+                        Directory.CreateDirectory(TestEnvironment.ActualOutputDirectoryFullPath);
                     }
 
                     string fn = System.IO.Path.Combine(

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -537,99 +538,99 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (Sse41.IsSupported)
             {
 #pragma warning disable SA1503 // Braces should not be omitted
-                fixed (ushort* mtxIqPtr = mtx.IQ)
-                fixed (ushort* mtxQPtr = mtx.Q)
-                fixed (uint* biasQPtr = mtx.Bias)
-                fixed (short* sharpenPtr = mtx.Sharpen)
+                // Load all inputs.
+                Vector128<short> input0 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(input));
+                Vector128<short> input8 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(input.Slice(8, 8)));
+                Vector128<ushort> iq0 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.IQ.AsSpan(0, 8)));
+                Vector128<ushort> iq8 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.IQ.AsSpan(8, 8)));
+                Vector128<ushort> q0 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.Q.AsSpan(0, 8)));
+                Vector128<ushort> q8 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.Q.AsSpan(8, 8)));
+
+                // coeff = abs(in)
+                Vector128<ushort> coeff0 = Ssse3.Abs(input0);
+                Vector128<ushort> coeff8 = Ssse3.Abs(input8);
+
+                // coeff = abs(in) + sharpen
+                Vector128<short> sharpen0 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(mtx.Sharpen.AsSpan(0, 8)));
+                Vector128<short> sharpen8 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(mtx.Sharpen.AsSpan(8, 8)));
+                Sse2.Add(coeff0.AsInt16(), sharpen0);
+                Sse2.Add(coeff8.AsInt16(), sharpen8);
+
+                // out = (coeff * iQ + B) >> QFIX
+                // doing calculations with 32b precision (QFIX=17)
+                // out = (coeff * iQ)
+                Vector128<ushort> coeffiQ0H = Sse2.MultiplyHigh(coeff0, iq0);
+                Vector128<ushort> coeffiQ0L = Sse2.MultiplyLow(coeff0, iq0);
+                Vector128<ushort> coeffiQ8H = Sse2.MultiplyHigh(coeff8, iq8);
+                Vector128<ushort> coeffiQ8L = Sse2.MultiplyLow(coeff8, iq8);
+                Vector128<ushort> out00 = Sse2.UnpackLow(coeffiQ0L, coeffiQ0H);
+                Vector128<ushort> out04 = Sse2.UnpackHigh(coeffiQ0L, coeffiQ0H);
+                Vector128<ushort> out08 = Sse2.UnpackLow(coeffiQ8L, coeffiQ8H);
+                Vector128<ushort> out12 = Sse2.UnpackHigh(coeffiQ8L, coeffiQ8H);
+
+                // out = (coeff * iQ + B)
+                Vector128<uint> bias00 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(0, 4)));
+                Vector128<uint> bias04 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(4, 4)));
+                Vector128<uint> bias08 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(8, 4)));
+                Vector128<uint> bias12 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(12, 4)));
+                out00 = Sse2.Add(out00.AsInt32(), bias00.AsInt32()).AsUInt16();
+                out04 = Sse2.Add(out04.AsInt32(), bias04.AsInt32()).AsUInt16();
+                out08 = Sse2.Add(out08.AsInt32(), bias08.AsInt32()).AsUInt16();
+                out12 = Sse2.Add(out12.AsInt32(), bias12.AsInt32()).AsUInt16();
+
+                // out = QUANTDIV(coeff, iQ, B, QFIX)
+                out00 = Sse2.ShiftRightArithmetic(out00.AsInt32(), WebpConstants.QFix).AsUInt16();
+                out04 = Sse2.ShiftRightArithmetic(out04.AsInt32(), WebpConstants.QFix).AsUInt16();
+                out08 = Sse2.ShiftRightArithmetic(out08.AsInt32(), WebpConstants.QFix).AsUInt16();
+                out12 = Sse2.ShiftRightArithmetic(out12.AsInt32(), WebpConstants.QFix).AsUInt16();
+
+                // pack result as 16b
+                Vector128<short> out0 = Sse2.PackSignedSaturate(out00.AsInt32(), out04.AsInt32());
+                Vector128<short> out8 = Sse2.PackSignedSaturate(out08.AsInt32(), out12.AsInt32());
+
+                // if (coeff > 2047) coeff = 2047
+                out0 = Sse2.Min(out0, MaxCoeff2047);
+                out8 = Sse2.Min(out8, MaxCoeff2047);
+
+                // put sign back
+                out0 = Ssse3.Sign(out0, input0);
+                out8 = Ssse3.Sign(out8, input8);
+
+                // in = out * Q
+                input0 = Sse2.MultiplyLow(out0, q0.AsInt16());
+                input8 = Sse2.MultiplyLow(out8, q8.AsInt16());
+
                 fixed (short* inputPtr = input)
-                fixed (short* outputPtr = output)
                 {
-                    // Load all inputs.
-                    Vector128<short> input0 = Sse2.LoadVector128(inputPtr);
-                    Vector128<short> input8 = Sse2.LoadVector128(inputPtr + 8);
-                    Vector128<ushort> iq0 = Sse2.LoadVector128(mtxIqPtr);
-                    Vector128<ushort> iq8 = Sse2.LoadVector128(mtxIqPtr + 8);
-                    Vector128<ushort> q0 = Sse2.LoadVector128(mtxQPtr);
-                    Vector128<ushort> q8 = Sse2.LoadVector128(mtxQPtr + 8);
-
-                    // coeff = abs(in)
-                    Vector128<ushort> coeff0 = Ssse3.Abs(input0);
-                    Vector128<ushort> coeff8 = Ssse3.Abs(input8);
-
-                    // coeff = abs(in) + sharpen
-                    Vector128<short> sharpen0 = Sse2.LoadVector128(sharpenPtr);
-                    Vector128<short> sharpen8 = Sse2.LoadVector128(sharpenPtr + 8);
-                    Sse2.Add(coeff0.AsInt16(), sharpen0);
-                    Sse2.Add(coeff8.AsInt16(), sharpen8);
-
-                    // out = (coeff * iQ + B) >> QFIX
-                    // doing calculations with 32b precision (QFIX=17)
-                    // out = (coeff * iQ)
-                    Vector128<ushort> coeffiQ0H = Sse2.MultiplyHigh(coeff0, iq0);
-                    Vector128<ushort> coeffiQ0L = Sse2.MultiplyLow(coeff0, iq0);
-                    Vector128<ushort> coeffiQ8H = Sse2.MultiplyHigh(coeff8, iq8);
-                    Vector128<ushort> coeffiQ8L = Sse2.MultiplyLow(coeff8, iq8);
-                    Vector128<ushort> out00 = Sse2.UnpackLow(coeffiQ0L, coeffiQ0H);
-                    Vector128<ushort> out04 = Sse2.UnpackHigh(coeffiQ0L, coeffiQ0H);
-                    Vector128<ushort> out08 = Sse2.UnpackLow(coeffiQ8L, coeffiQ8H);
-                    Vector128<ushort> out12 = Sse2.UnpackHigh(coeffiQ8L, coeffiQ8H);
-
-                    // out = (coeff * iQ + B)
-                    Vector128<uint> bias00 = Sse2.LoadVector128(biasQPtr);
-                    Vector128<uint> bias04 = Sse2.LoadVector128(biasQPtr + 4);
-                    Vector128<uint> bias08 = Sse2.LoadVector128(biasQPtr + 8);
-                    Vector128<uint> bias12 = Sse2.LoadVector128(biasQPtr + 12);
-                    out00 = Sse2.Add(out00.AsInt32(), bias00.AsInt32()).AsUInt16();
-                    out04 = Sse2.Add(out04.AsInt32(), bias04.AsInt32()).AsUInt16();
-                    out08 = Sse2.Add(out08.AsInt32(), bias08.AsInt32()).AsUInt16();
-                    out12 = Sse2.Add(out12.AsInt32(), bias12.AsInt32()).AsUInt16();
-
-                    // out = QUANTDIV(coeff, iQ, B, QFIX)
-                    out00 = Sse2.ShiftRightArithmetic(out00.AsInt32(), WebpConstants.QFix).AsUInt16();
-                    out04 = Sse2.ShiftRightArithmetic(out04.AsInt32(), WebpConstants.QFix).AsUInt16();
-                    out08 = Sse2.ShiftRightArithmetic(out08.AsInt32(), WebpConstants.QFix).AsUInt16();
-                    out12 = Sse2.ShiftRightArithmetic(out12.AsInt32(), WebpConstants.QFix).AsUInt16();
-
-                    // pack result as 16b
-                    Vector128<short> out0 = Sse2.PackSignedSaturate(out00.AsInt32(), out04.AsInt32());
-                    Vector128<short> out8 = Sse2.PackSignedSaturate(out08.AsInt32(), out12.AsInt32());
-
-                    // if (coeff > 2047) coeff = 2047
-                    out0 = Sse2.Min(out0, MaxCoeff2047);
-                    out8 = Sse2.Min(out8, MaxCoeff2047);
-
-                    // put sign back
-                    out0 = Ssse3.Sign(out0, input0);
-                    out8 = Ssse3.Sign(out8, input8);
-
-                    // in = out * Q
-                    input0 = Sse2.MultiplyLow(out0, q0.AsInt16());
-                    input8 = Sse2.MultiplyLow(out8, q8.AsInt16());
-
                     // in = out * Q
                     Sse2.Store(inputPtr, input0);
                     Sse2.Store(inputPtr + 8, input8);
+                }
 
-                    // zigzag the output before storing it. The re-ordering is:
-                    //    0 1 2 3 4 5 6 7 | 8  9 10 11 12 13 14 15
-                    // -> 0 1 4[8]5 2 3 6 | 9 12 13 10 [7]11 14 15
-                    // There's only two misplaced entries ([8] and [7]) that are crossing the
-                    // reg's boundaries.
-                    // We use pshufb instead of pshuflo/pshufhi.
-                    Vector128<byte> tmpLo = Ssse3.Shuffle(out0.AsByte(), CstLo);
-                    Vector128<byte> tmp7 = Ssse3.Shuffle(out0.AsByte(), Cst7);  // extract #7
-                    Vector128<byte> tmpHi = Ssse3.Shuffle(out8.AsByte(), CstHi);
-                    Vector128<byte> tmp8 = Ssse3.Shuffle(out8.AsByte(), Cst8);  // extract #8
-                    Vector128<byte> outZ0 = Sse2.Or(tmpLo, tmp8);
-                    Vector128<byte> outZ8 = Sse2.Or(tmpHi, tmp7);
+                // zigzag the output before storing it. The re-ordering is:
+                //    0 1 2 3 4 5 6 7 | 8  9 10 11 12 13 14 15
+                // -> 0 1 4[8]5 2 3 6 | 9 12 13 10 [7]11 14 15
+                // There's only two misplaced entries ([8] and [7]) that are crossing the
+                // reg's boundaries.
+                // We use pshufb instead of pshuflo/pshufhi.
+                Vector128<byte> tmpLo = Ssse3.Shuffle(out0.AsByte(), CstLo);
+                Vector128<byte> tmp7 = Ssse3.Shuffle(out0.AsByte(), Cst7);  // extract #7
+                Vector128<byte> tmpHi = Ssse3.Shuffle(out8.AsByte(), CstHi);
+                Vector128<byte> tmp8 = Ssse3.Shuffle(out8.AsByte(), Cst8);  // extract #8
+                Vector128<byte> outZ0 = Sse2.Or(tmpLo, tmp8);
+                Vector128<byte> outZ8 = Sse2.Or(tmpHi, tmp7);
+
+                fixed (short* outputPtr = output)
+                {
                     Sse2.Store(outputPtr, outZ0.AsInt16());
                     Sse2.Store(outputPtr + 8, outZ8.AsInt16());
-                    Vector128<sbyte> packedOutput = Sse2.PackSignedSaturate(outZ0.AsInt16(), outZ8.AsInt16());
-
-                    // Detect if all 'out' values are zeroes or not.
-                    Vector128<sbyte> cmpeq = Sse2.CompareEqual(packedOutput, Vector128<sbyte>.Zero);
-                    return Sse2.MoveMask(cmpeq) != 0xffff ? 1 : 0;
                 }
+
+                Vector128<sbyte> packedOutput = Sse2.PackSignedSaturate(outZ0.AsInt16(), outZ8.AsInt16());
+
+                // Detect if all 'out' values are zeroes or not.
+                Vector128<sbyte> cmpeq = Sse2.CompareEqual(packedOutput, Vector128<sbyte>.Zero);
+                return Sse2.MoveMask(cmpeq) != 0xffff ? 1 : 0;
 #pragma warning restore SA1503 // Braces should not be omitted
             }
             else

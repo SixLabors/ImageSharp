@@ -100,12 +100,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int end = Math.Min(start + this.pixelRowsPerStep, this.pixelBuffer.Height);
             for (int imageRowIndex = start; imageRowIndex < end; imageRowIndex++)
             {
-                // Convert from jpeg color space to rgb colorspace
+                // Convert from jpeg color space to rgb color space
                 int colorBufferRowIndex = imageRowIndex - start;
                 var values = new JpegColorConverter.ComponentValues(this.componentProcessors, colorBufferRowIndex);
                 this.colorConverter.ConvertToRgbInplace(values);
-                values = values.Slice(0, width);
 
+                // Convert from float RGB to byte RGB
+                values = values.Slice(0, width);
                 Span<byte> r = this.rgbBuffer.Slice(0, width);
                 Span<byte> g = this.rgbBuffer.Slice(width, width);
                 Span<byte> b = this.rgbBuffer.Slice(width * 2, width);
@@ -129,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            this.pixelRowCounter += this.pixelRowsPerStep;
+            this.pixelRowCounter = end;
         }
 
         /// <inheritdoc/>
@@ -138,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
 
             // iteration data
-            IJpegComponent c0 = frame.Components[0];
+            JpegComponent c0 = frame.Components[0];
 
             const int blockPixelHeight = 8;
             this.blockRowsPerStep = c0.SamplingFactors.Height;

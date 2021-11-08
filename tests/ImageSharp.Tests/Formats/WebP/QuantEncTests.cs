@@ -44,13 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void QuantizeBlock_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void QuantizeBlock_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableSSE2);
-
-        [Fact]
-        public void QuantizeBlock_WithoutSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableSSSE3);
-
-        [Fact]
-        public void QuantizeBlock_WithoutSSE2AndSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableSSSE3);
+        public void QuantizeBlock_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableHWIntrinsic);
 #endif
     }
 }

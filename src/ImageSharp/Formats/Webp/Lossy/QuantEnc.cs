@@ -600,12 +600,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 input0 = Sse2.MultiplyLow(out0, q0.AsInt16());
                 input8 = Sse2.MultiplyLow(out8, q8.AsInt16());
 
-                fixed (short* inputPtr = input)
-                {
-                    // in = out * Q
-                    Sse2.Store(inputPtr, input0);
-                    Sse2.Store(inputPtr + 8, input8);
-                }
+                // in = out * Q
+                ref short inputRef = ref MemoryMarshal.GetReference(input);
+                Unsafe.As<short, Vector128<short>>(ref inputRef) = input0;
+                Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref inputRef, 8)) = input8;
 
                 // zigzag the output before storing it. The re-ordering is:
                 //    0 1 2 3 4 5 6 7 | 8  9 10 11 12 13 14 15
@@ -620,11 +618,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<byte> outZ0 = Sse2.Or(tmpLo, tmp8);
                 Vector128<byte> outZ8 = Sse2.Or(tmpHi, tmp7);
 
-                fixed (short* outputPtr = output)
-                {
-                    Sse2.Store(outputPtr, outZ0.AsInt16());
-                    Sse2.Store(outputPtr + 8, outZ8.AsInt16());
-                }
+                ref short outputRef = ref MemoryMarshal.GetReference(output);
+                Unsafe.As<short, Vector128<short>>(ref outputRef) = outZ0.AsInt16();
+                Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref outputRef, 8)) = outZ8.AsInt16();
 
                 Vector128<sbyte> packedOutput = Sse2.PackSignedSaturate(outZ0.AsInt16(), outZ8.AsInt16());
 

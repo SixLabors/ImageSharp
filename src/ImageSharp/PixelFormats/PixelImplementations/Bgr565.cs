@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.ToVector3(), 1F);
+        public readonly Vector4 ToVector4() => new(this.ToVector3(), 1F);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -125,10 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -144,13 +141,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector3 ToVector3()
-        {
-            return new Vector3(
+        public readonly Vector3 ToVector3() => new(
                        ((this.PackedValue >> 11) & 0x1F) * (1F / 31F),
                        ((this.PackedValue >> 5) & 0x3F) * (1F / 63F),
                        (this.PackedValue & 0x1F) * (1F / 31F));
-        }
 
         /// <inheritdoc />
         public override readonly bool Equals(object obj) => obj is Bgr565 other && this.Equals(other);

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     public class Rgb24Tests
     {
         public static readonly TheoryData<byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte>
+            new()
             {
                 { 1, 2, 3 },
                 { 4, 5, 6 },
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(3, rgb.B);
         }
 
-        private static Vector4 Vec(byte r, byte g, byte b, byte a = 255) => new Vector4(
+        private static Vector4 Vec(byte r, byte g, byte b, byte a = 255) => new(
             r / 255f,
             g / 255f,
             b / 255f,

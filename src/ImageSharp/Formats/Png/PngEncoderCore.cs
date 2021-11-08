@@ -268,35 +268,27 @@ namespace SixLabors.ImageSharp.Formats.Png
                 if (this.use16Bit)
                 {
                     // 16 bit grayscale + alpha
-                    // TODO: Should we consider in the future a GrayAlpha32 type.
-                    using (IMemoryOwner<Rgba64> rgbaBuffer = this.memoryAllocator.Allocate<Rgba64>(rowSpan.Length))
-                    {
-                        Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
-                        ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                        PixelOperations<TPixel>.Instance.ToRgba64(this.configuration, rowSpan, rgbaSpan);
+                    using IMemoryOwner<La32> laBuffer = this.memoryAllocator.Allocate<La32>(rowSpan.Length);
+                    Span<La32> laSpan = laBuffer.GetSpan();
+                    ref La32 laRef = ref MemoryMarshal.GetReference(laSpan);
+                    PixelOperations<TPixel>.Instance.ToLa32(this.configuration, rowSpan, laSpan);
 
-                        // Can't map directly to byte array as it's big endian.
-                        for (int x = 0, o = 0; x < rgbaSpan.Length; x++, o += 4)
-                        {
-                            Rgba64 rgba = Unsafe.Add(ref rgbaRef, x);
-                            ushort luminance = ColorNumerics.Get16BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.A);
-                        }
+                    // Can't map directly to byte array as it's big endian.
+                    for (int x = 0, o = 0; x < laSpan.Length; x++, o += 4)
+                    {
+                        La32 la = Unsafe.Add(ref laRef, x);
+                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), la.L);
+                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), la.A);
                     }
                 }
                 else
                 {
                     // 8 bit grayscale + alpha
-                    // TODO: Should we consider in the future a GrayAlpha16 type.
-                    Rgba32 rgba = default;
-                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
-                    {
-                        Unsafe.Add(ref rowSpanRef, x).ToRgba32(ref rgba);
-                        Unsafe.Add(ref rawScanlineSpanRef, o) =
-                            ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                        Unsafe.Add(ref rawScanlineSpanRef, o + 1) = rgba.A;
-                    }
+                    PixelOperations<TPixel>.Instance.ToLa16Bytes(
+                        this.configuration,
+                        rowSpan,
+                        rawScanlineSpan,
+                        rowSpan.Length);
                 }
             }
         }

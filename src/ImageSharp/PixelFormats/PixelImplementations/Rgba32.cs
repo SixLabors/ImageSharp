@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         public byte A;
 
-        private static readonly Vector4 MaxBytes = new Vector4(byte.MaxValue);
-        private static readonly Vector4 Half = new Vector4(0.5F);
+        private static readonly Vector4 MaxBytes = new(byte.MaxValue);
+        private static readonly Vector4 Half = new(0.5F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Rgb24 Rgb
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            readonly get => new Rgb24(this.R, this.G, this.B);
+            readonly get => new(this.R, this.G, this.B);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Bgr24 Bgr
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            readonly get => new Bgr24(this.R, this.G, this.B);
+            readonly get => new(this.R, this.G, this.B);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set
@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The <see cref="Rgba32"/>.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Color(Rgba32 source) => new Color(source);
+        public static implicit operator Color(Rgba32 source) => new(source);
 
         /// <summary>
         /// Converts a <see cref="Color"/> to <see cref="Rgba32"/>.
@@ -393,10 +393,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest = this;
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest = this;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -424,7 +421,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>A hexadecimal string representation of the value.</returns>
         public readonly string ToHex()
         {
-            uint hexOrder = (uint)(this.A << 0 | this.B << 8 | this.G << 16 | this.R << 24);
+            uint hexOrder = (uint)((this.A << 0) | (this.B << 8) | (this.G << 16) | (this.R << 24));
             return hexOrder.ToString("X8");
         }
 
@@ -523,7 +520,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 return hex + "FF";
             }
 
-            if (hex.Length < 3 || hex.Length > 4)
+            if (hex.Length is < 3 or > 4)
             {
                 return null;
             }

@@ -42,11 +42,11 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             1
         };
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         [ArgumentsSource(nameof(ParallelismValues))]
         public void SystemDrawing(int maxDegreeOfParallelism) => this.ForEachImage(this.runner.SystemDrawingResize, maxDegreeOfParallelism);
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         [ArgumentsSource(nameof(ParallelismValues))]
         public void ImageSharp(int maxDegreeOfParallelism) => this.ForEachImage(this.runner.ImageSharpResize, maxDegreeOfParallelism);
 
@@ -61,6 +61,10 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         [Benchmark]
         [ArgumentsSource(nameof(ParallelismValues))]
         public void SkiaBitmap(int maxDegreeOfParallelism) => this.ForEachImage(this.runner.SkiaBitmapResize, maxDegreeOfParallelism);
+
+        [Benchmark]
+        [ArgumentsSource(nameof(ParallelismValues))]
+        public void SkiaBitmapDecodeToTargetSize(int maxDegreeOfParallelism) => this.ForEachImage(this.runner.SkiaBitmapDecodeToTargetSize, maxDegreeOfParallelism);
 
         [Benchmark]
         [ArgumentsSource(nameof(ParallelismValues))]

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
@@ -41,6 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Inserts a new color into the cache.
         /// </summary>
         /// <param name="bgra">The color to insert.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Insert(uint bgra)
         {
             int key = HashPix(bgra, this.HashShift);
@@ -52,6 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         /// <param name="key">The key to lookup.</param>
         /// <returns>The color for the key.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public uint Lookup(int key) => this.Colors[key];
 
         /// <summary>
@@ -59,6 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         /// <param name="bgra">The color to check.</param>
         /// <returns>The index of the color in the cache or -1 if its not present.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public int Contains(uint bgra)
         {
             int key = HashPix(bgra, this.HashShift);
@@ -70,6 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         /// <param name="bgra">The color.</param>
         /// <returns>The index for the color.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public int GetIndex(uint bgra) => HashPix(bgra, this.HashShift);
 
         /// <summary>
@@ -77,8 +83,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="bgra">The color to add.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Set(uint key, uint bgra) => this.Colors[key] = bgra;
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int HashPix(uint argb, int shift) => (int)((argb * HashMul) >> shift);
     }
 }

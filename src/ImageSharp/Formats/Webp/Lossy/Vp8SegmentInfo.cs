@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Gets the quantization matrix y1.
         /// </summary>
+#pragma warning disable SA1401 // Fields should be private
         public Vp8Matrix Y1;
 
         /// <summary>
@@ -21,6 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Gets the quantization matrix uv.
         /// </summary>
         public Vp8Matrix Uv;
+#pragma warning restore SA1401 // Fields should be private
 
         /// <summary>
         /// Gets or sets the quant-susceptibility, range [-127,127]. Zero is neutral. Lower values indicate a lower risk of blurriness.

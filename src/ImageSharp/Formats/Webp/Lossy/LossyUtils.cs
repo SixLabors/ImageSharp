@@ -28,14 +28,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (Sse2.IsSupported)
             {
                 // Load values.
-                Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a));
-                Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a.Slice(WebpConstants.Bps, 8)));
-                Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a.Slice(WebpConstants.Bps * 2, 8)));
-                Vector128<byte> a3 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a.Slice(WebpConstants.Bps * 3, 8)));
-                Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b));
-                Vector128<byte> b1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b.Slice(WebpConstants.Bps, 8)));
-                Vector128<byte> b2 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b.Slice(WebpConstants.Bps * 2, 8)));
-                Vector128<byte> b3 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b.Slice(WebpConstants.Bps * 3, 8)));
+                ref byte aRef = ref MemoryMarshal.GetReference(a);
+                Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref aRef);
+                Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps));
+                Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 2));
+                Vector128<byte> a3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 3));
+                ref byte bRef = ref MemoryMarshal.GetReference(b);
+                Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref bRef);
+                Vector128<byte> b1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps));
+                Vector128<byte> b2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 2));
+                Vector128<byte> b3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 3));
 
                 // Combine pair of lines.
                 Vector128<int> a01 = Sse2.UnpackLow(a0.AsInt32(), a1.AsInt32());

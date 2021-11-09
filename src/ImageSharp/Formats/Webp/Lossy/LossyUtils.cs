@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Numerics;
 using System.Runtime.Intrinsics;
@@ -27,45 +28,40 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-#pragma warning disable SA1503 // Braces should not be omitted
                 Span<int> tmp = stackalloc int[4];
-                fixed (byte* aPtr = a)
-                fixed (byte* bPtr = b)
-                fixed (int* tmpPtr = tmp)
-                {
-                    // Load values.
-                    Vector128<byte> a0 = Sse2.LoadVector128(aPtr);
-                    Vector128<byte> a1 = Sse2.LoadVector128(aPtr + WebpConstants.Bps);
-                    Vector128<byte> a2 = Sse2.LoadVector128(aPtr + (WebpConstants.Bps * 2));
-                    Vector128<byte> a3 = Sse2.LoadVector128(aPtr + (WebpConstants.Bps * 3));
-                    Vector128<byte> b0 = Sse2.LoadVector128(bPtr);
-                    Vector128<byte> b1 = Sse2.LoadVector128(bPtr + WebpConstants.Bps);
-                    Vector128<byte> b2 = Sse2.LoadVector128(bPtr + (WebpConstants.Bps * 2));
-                    Vector128<byte> b3 = Sse2.LoadVector128(bPtr + (WebpConstants.Bps * 3));
 
-                    // Combine pair of lines.
-                    Vector128<int> a01 = Sse2.UnpackLow(a0.AsInt32(), a1.AsInt32());
-                    Vector128<int> a23 = Sse2.UnpackLow(a2.AsInt32(), a3.AsInt32());
-                    Vector128<int> b01 = Sse2.UnpackLow(b0.AsInt32(), b1.AsInt32());
-                    Vector128<int> b23 = Sse2.UnpackLow(b2.AsInt32(), b3.AsInt32());
+                // Load values.
+                Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a));
+                Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a.Slice(WebpConstants.Bps, 8)));
+                Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a.Slice(WebpConstants.Bps * 2, 8)));
+                Vector128<byte> a3 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a.Slice(WebpConstants.Bps * 3, 8)));
+                Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b));
+                Vector128<byte> b1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b.Slice(WebpConstants.Bps, 8)));
+                Vector128<byte> b2 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b.Slice(WebpConstants.Bps * 2, 8)));
+                Vector128<byte> b3 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(b.Slice(WebpConstants.Bps * 3, 8)));
 
-                    // Convert to 16b.
-                    Vector128<byte> a01s = Sse2.UnpackLow(a01.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> a23s = Sse2.UnpackLow(a23.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> b01s = Sse2.UnpackLow(b01.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> b23s = Sse2.UnpackLow(b23.AsByte(), Vector128<byte>.Zero);
+                // Combine pair of lines.
+                Vector128<int> a01 = Sse2.UnpackLow(a0.AsInt32(), a1.AsInt32());
+                Vector128<int> a23 = Sse2.UnpackLow(a2.AsInt32(), a3.AsInt32());
+                Vector128<int> b01 = Sse2.UnpackLow(b0.AsInt32(), b1.AsInt32());
+                Vector128<int> b23 = Sse2.UnpackLow(b2.AsInt32(), b3.AsInt32());
 
-                    // subtract, square and accumulate.
-                    Vector128<byte> d0 = Sse2.SubtractSaturate(a01s, b01s);
-                    Vector128<byte> d1 = Sse2.SubtractSaturate(a23s, b23s);
-                    Vector128<int> e0 = Sse2.MultiplyAddAdjacent(d0.AsInt16(), d0.AsInt16());
-                    Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1.AsInt16(), d1.AsInt16());
-                    Vector128<int> sum = Sse2.Add(e0, e1);
+                // Convert to 16b.
+                Vector128<byte> a01s = Sse2.UnpackLow(a01.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> a23s = Sse2.UnpackLow(a23.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> b01s = Sse2.UnpackLow(b01.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> b23s = Sse2.UnpackLow(b23.AsByte(), Vector128<byte>.Zero);
 
-                    Sse2.Store(tmpPtr, sum);
-                    return tmp[3] + tmp[2] + tmp[1] + tmp[0];
-                }
-#pragma warning restore SA1503 // Braces should not be omitted
+                // subtract, square and accumulate.
+                Vector128<byte> d0 = Sse2.SubtractSaturate(a01s, b01s);
+                Vector128<byte> d1 = Sse2.SubtractSaturate(a23s, b23s);
+                Vector128<int> e0 = Sse2.MultiplyAddAdjacent(d0.AsInt16(), d0.AsInt16());
+                Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1.AsInt16(), d1.AsInt16());
+                Vector128<int> sum = Sse2.Add(e0, e1);
+
+                ref int outputRef = ref MemoryMarshal.GetReference(tmp);
+                Unsafe.As<int, Vector128<int>>(ref outputRef) = sum;
+                return tmp[3] + tmp[2] + tmp[1] + tmp[0];
             }
             else
 #endif

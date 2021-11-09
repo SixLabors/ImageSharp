@@ -13,7 +13,7 @@ using System.Runtime.Intrinsics.X86;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
-    internal static unsafe class LossyUtils
+    internal static class LossyUtils
     {
 #if SUPPORTS_RUNTIME_INTRINSICS
         private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
@@ -967,11 +967,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<int> e1 = Sse2.Add(d2, d3);
                 Vector128<int> f0 = Sse2.Add(e0, e1);
                 Vector128<short> hadd = Ssse3.HorizontalAdd(f0.AsInt16(), f0.AsInt16());
+                Vector128<uint> wide = Sse2.UnpackLow(hadd, Vector128<short>.Zero).AsUInt32();
 
-                dc[3] = (uint)hadd.GetElement(3);
-                dc[2] = (uint)hadd.GetElement(2);
-                dc[1] = (uint)hadd.GetElement(1);
-                dc[0] = (uint)hadd.GetElement(0);
+                ref uint outputRef = ref MemoryMarshal.GetReference(dc);
+                Unsafe.As<uint, Vector128<uint>>(ref outputRef) = wide;
             }
             else
 #endif

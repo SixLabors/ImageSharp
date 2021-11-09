@@ -10,6 +10,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
     [Trait("Format", "Webp")]
     public class LossyUtilsTests
     {
+        private static void RunVp8Sse4X4Test()
+        {
+            byte[] a =
+            {
+                27, 27, 28, 29, 29, 28, 27, 27, 27, 28, 28, 29, 29, 28, 28, 27, 129, 129, 129, 129, 129, 129, 129,
+                129, 128, 128, 128, 128, 128, 128, 128, 128, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28, 28, 29, 29, 28,
+                28, 27, 129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 27, 27, 26,
+                26, 26, 26, 27, 27, 27, 28, 28, 29, 29, 28, 28, 27, 129, 129, 129, 129, 129, 129, 129, 129, 128,
+                128, 128, 128, 128, 128, 128, 128, 28, 27, 27, 26, 26, 27, 27, 28, 27, 28, 28, 29, 29, 28, 28, 27,
+                129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128
+            };
+
+            byte[] b =
+            {
+                26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 204, 204, 204, 204, 204, 204, 204,
+                204, 204, 204, 204, 204, 204, 204, 204, 204, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+                28, 28, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 26, 26, 26,
+                26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 204, 204, 204, 204, 204, 204, 204, 204, 204,
+                204, 204, 204, 204, 204, 204, 204, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+                204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204
+            };
+
+            int expected = 27;
+
+            int actual = LossyUtils.Vp8Sse4X4(a, b);
+
+            Assert.Equal(expected, actual);
+        }
+
         private static void RunHadamardTransformTest()
         {
             byte[] a =
@@ -38,9 +67,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Fact]
+        public void Vp8Sse4X4_Works() => RunVp8Sse4X4Test();
+
+        [Fact]
         public void HadamardTransform_Works() => RunHadamardTransformTest();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void Vp8Sse4X4_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Vp8Sse4X4_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableHWIntrinsic);
+
         [Fact]
         public void HadamardTransform_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.AllowAll);
 

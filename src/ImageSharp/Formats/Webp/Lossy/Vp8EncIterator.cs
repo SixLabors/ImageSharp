@@ -363,7 +363,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             uint m2;
             for (k = 0; k < 16; k += 4)
             {
-                LossyUtils.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.Slice(k, 4), tmp);
+                LossyUtils.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.Slice(k, 4));
             }
 
             for (m = 0, m2 = 0, k = 0; k < 16; k++)

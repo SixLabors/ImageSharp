@@ -25,11 +25,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
                 173, 175, 166, 155, 155, 159, 159, 158
             };
             uint[] dc = new uint[4];
-            ushort[] tmp = new ushort[8];
             uint[] expectedDc = { 1940, 2139, 2252, 1813 };
 
             // act
-            LossyUtils.Mean16x4(input, dc, tmp);
+            LossyUtils.Mean16x4(input, dc);
 
             // assert
             Assert.True(dc.SequenceEqual(expectedDc));
@@ -73,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void Mean16x4_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void Mean16x4_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.DisableSSE2);
+        public void Mean16x4_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.DisableHWIntrinsic);
 
         [Fact]
         public void HadamardTransform_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.AllowAll);

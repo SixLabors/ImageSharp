@@ -942,7 +942,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             FilterLoop24(v, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
         }
 
-        public static void Mean16x4(Span<byte> input, Span<uint> dc, Span<ushort> tmp)
+        public static void Mean16x4(Span<byte> input, Span<uint> dc)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
@@ -966,13 +966,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<int> e0 = Sse2.Add(d0, d1);
                 Vector128<int> e1 = Sse2.Add(d2, d3);
                 Vector128<int> f0 = Sse2.Add(e0, e1);
-                ref ushort outputRef = ref MemoryMarshal.GetReference(tmp);
-                Unsafe.As<ushort, Vector128<ushort>>(ref outputRef) = f0.AsUInt16();
+                Vector128<short> hadd = Ssse3.HorizontalAdd(f0.AsInt16(), f0.AsInt16());
+                Vector64<short> lower = hadd.GetLower();
 
-                dc[0] = (uint)(tmp[1] + tmp[0]);
-                dc[1] = (uint)(tmp[3] + tmp[2]);
-                dc[2] = (uint)(tmp[5] + tmp[4]);
-                dc[3] = (uint)(tmp[7] + tmp[6]);
+                dc[0] = (uint)lower.GetElement(0);
+                dc[1] = (uint)lower.GetElement(1);
+                dc[2] = (uint)lower.GetElement(2);
+                dc[3] = (uint)lower.GetElement(3);
             }
             else
 #endif

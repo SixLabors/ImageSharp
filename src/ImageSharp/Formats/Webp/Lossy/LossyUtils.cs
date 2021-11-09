@@ -15,6 +15,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     internal static class LossyUtils
     {
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
+#endif
+
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
 
@@ -975,26 +979,55 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             FilterLoop24(v, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint LoadUv(byte u, byte v) =>
-            (uint)(u | (v << 16)); // We process u and v together stashed into 32bit(16bit each).
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static void YuvToBgr(int y, int u, int v, Span<byte> bgr)
+        public static void Mean16x4(Span<byte> input, Span<uint> dc)
         {
-            bgr[0] = (byte)YuvToB(y, u);
-            bgr[1] = (byte)YuvToG(y, u, v);
-            bgr[2] = (byte)YuvToR(y, v);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input));
+                Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps, 16)));
+                Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps * 2, 16)));
+                Vector128<byte> a3 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps * 3, 16)));
+                Vector128<short> b0 = Sse2.ShiftRightLogical(a0.AsInt16(), 8); // hi byte
+                Vector128<short> b1 = Sse2.ShiftRightLogical(a1.AsInt16(), 8);
+                Vector128<short> b2 = Sse2.ShiftRightLogical(a2.AsInt16(), 8);
+                Vector128<short> b3 = Sse2.ShiftRightLogical(a3.AsInt16(), 8);
+                Vector128<byte> c0 = Sse2.And(a0, Mean16x4Mask); // lo byte
+                Vector128<byte> c1 = Sse2.And(a1, Mean16x4Mask);
+                Vector128<byte> c2 = Sse2.And(a2, Mean16x4Mask);
+                Vector128<byte> c3 = Sse2.And(a3, Mean16x4Mask);
+                Vector128<int> d0 = Sse2.Add(b0.AsInt32(), c0.AsInt32());
+                Vector128<int> d1 = Sse2.Add(b1.AsInt32(), c1.AsInt32());
+                Vector128<int> d2 = Sse2.Add(b2.AsInt32(), c2.AsInt32());
+                Vector128<int> d3 = Sse2.Add(b3.AsInt32(), c3.AsInt32());
+                Vector128<int> e0 = Sse2.Add(d0, d1);
+                Vector128<int> e1 = Sse2.Add(d2, d3);
+                Vector128<int> f0 = Sse2.Add(e0, e1);
+                Vector128<short> hadd = Ssse3.HorizontalAdd(f0.AsInt16(), f0.AsInt16());
+                Vector128<uint> wide = Sse2.UnpackLow(hadd, Vector128<short>.Zero).AsUInt32();
+
+                ref uint outputRef = ref MemoryMarshal.GetReference(dc);
+                Unsafe.As<uint, Vector128<uint>>(ref outputRef) = wide;
+            }
+            else
+#endif
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    uint avg = 0;
+                    for (int y = 0; y < 4; y++)
+                    {
+                        for (int x = 0; x < 4; x++)
+                        {
+                            avg += input[x + (y * WebpConstants.Bps)];
+                        }
+                    }
+
+                    dc[k] = avg;
+                    input = input.Slice(4); // go to next 4x4 block.
+                }
+            }
         }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToB(int y, int u) => Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToG(int y, int u, int v) => Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int YuvToR(int y, int v) => Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static byte Avg2(byte a, byte b) => (byte)((a + b + 1) >> 1);
@@ -1201,9 +1234,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int MultHi(int v, int coeff) => (v * coeff) >> 8;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Store(Span<byte> dst, int x, int y, int v)
         {
             int index = x + (y * WebpConstants.Bps);
@@ -1224,13 +1254,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Mul2(int a) => (a * 35468) >> 16;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Clip8(int v)
-        {
-            int yuvMask = (256 << 6) - 1;
-            return (byte)((v & ~yuvMask) == 0 ? v >> 6 : v < 0 ? 0 : 255);
-        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Put8x8uv(byte value, Span<byte> dst)

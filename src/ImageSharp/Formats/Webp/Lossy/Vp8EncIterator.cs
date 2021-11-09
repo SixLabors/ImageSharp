@@ -357,15 +357,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q = quality;
             int kThreshold = 8 + ((17 - 8) * q / 100);
             int k;
-            uint[] dc = new uint[16];
+            Span<uint> dc = stackalloc uint[16];
+            Span<ushort> tmp = stackalloc ushort[16];
             uint m;
             uint m2;
             for (k = 0; k < 16; k += 4)
             {
-                this.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.AsSpan(k));
+                LossyUtils.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.Slice(k, 4));
             }
 
-            for (m = 0, m2 = 0, k = 0; k < 16; ++k)
+            for (m = 0, m2 = 0, k = 0; k < 16; k++)
             {
                 m += dc[k];
                 m2 += dc[k] * dc[k];
@@ -821,24 +822,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             nz |= (uint)((leftNz[4] << 17) | (leftNz[6] << 21));
 
             this.Nz[this.nzIdx] = nz;
-        }
-
-        private void Mean16x4(Span<byte> input, Span<uint> dc)
-        {
-            for (int k = 0; k < 4; k++)
-            {
-                uint avg = 0;
-                for (int y = 0; y < 4; y++)
-                {
-                    for (int x = 0; x < 4; x++)
-                    {
-                        avg += input[x + (y * WebpConstants.Bps)];
-                    }
-                }
-
-                dc[k] = avg;
-                input = input.Slice(4);   // go to next 4x4 block.
-            }
         }
 
         private void ImportBlock(Span<byte> src, int srcStride, Span<byte> dst, int w, int h, int size)

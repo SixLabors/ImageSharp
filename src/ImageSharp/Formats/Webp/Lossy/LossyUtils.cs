@@ -13,7 +13,7 @@ using System.Runtime.Intrinsics.X86;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
-    internal static unsafe class LossyUtils
+    internal static class LossyUtils
     {
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
@@ -771,7 +771,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static void TransformOne(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
             Span<int> tmp = scratch.Slice(0, 16);
-            tmp.Clear();
             int tmpOffset = 0;
             for (int srcOffset = 0; srcOffset < 4; srcOffset++)
             {

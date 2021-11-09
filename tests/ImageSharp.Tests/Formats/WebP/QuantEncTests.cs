@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             }
 
             // act
-            int actualResult = QuantEnc.QuantizeBlock(input, output, vp8Matrix);
+            int actualResult = QuantEnc.QuantizeBlock(input, output, ref vp8Matrix);
 
             // assert
             Assert.True(output.SequenceEqual(expectedOutput));

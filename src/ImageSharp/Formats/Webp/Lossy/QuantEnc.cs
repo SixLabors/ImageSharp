@@ -315,14 +315,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
 
             Vp8Encoding.FTransformWht(tmp, dcTmp, scratch);
-            nz |= QuantizeBlock(dcTmp, rd.YDcLevels, dqm.Y2) << 24;
+            nz |= QuantizeBlock(dcTmp, rd.YDcLevels, ref dqm.Y2) << 24;
 
             for (n = 0; n < 16; n += 2)
             {
                 // Zero-out the first coeff, so that: a) nz is correct below, and
                 // b) finding 'last' non-zero coeffs in SetResidualCoeffs() is simplified.
                 tmp[n * 16] = tmp[(n + 1) * 16] = 0;
-                nz |= Quantize2Blocks(tmp.Slice(n * 16, 32), rd.YAcLevels.AsSpan(n * 16, 32), dqm.Y1) << n;
+                nz |= Quantize2Blocks(tmp.Slice(n * 16, 32), rd.YAcLevels.AsSpan(n * 16, 32), ref dqm.Y1) << n;
             }
 
             // Transform back.
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             tmp.Clear();
             scratch.Clear();
             Vp8Encoding.FTransform(src, reference, tmp, scratch);
-            int nz = QuantizeBlock(tmp, levels, dqm.Y1);
+            int nz = QuantizeBlock(tmp, levels, ref dqm.Y1);
             Vp8Encoding.ITransform(reference, tmp, yuvOut, false, scratch);
 
             return nz;
@@ -370,11 +370,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     scratch);
             }
 
-            CorrectDcValues(it, dqm.Uv, tmp, rd);
+            CorrectDcValues(it, ref dqm.Uv, tmp, rd);
 
             for (n = 0; n < 8; n += 2)
             {
-                nz |= Quantize2Blocks(tmp.Slice(n * 16, 32), rd.UvLevels.AsSpan(n * 16, 32), dqm.Uv) << n;
+                nz |= Quantize2Blocks(tmp.Slice(n * 16, 32), rd.UvLevels.AsSpan(n * 16, 32), ref dqm.Uv) << n;
             }
 
             for (n = 0; n < 8; n += 2)
@@ -525,19 +525,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Quantize2Blocks(Span<short> input, Span<short> output, Vp8Matrix mtx)
+        public static int Quantize2Blocks(Span<short> input, Span<short> output, ref Vp8Matrix mtx)
         {
-            int nz = QuantizeBlock(input.Slice(0, 16), output.Slice(0, 16), mtx) << 0;
-            nz |= QuantizeBlock(input.Slice(1 * 16, 16), output.Slice(1 * 16, 16), mtx) << 1;
+            int nz = QuantizeBlock(input.Slice(0, 16), output.Slice(0, 16), ref mtx) << 0;
+            nz |= QuantizeBlock(input.Slice(1 * 16, 16), output.Slice(1 * 16, 16), ref mtx) << 1;
             return nz;
         }
 
-        public static int QuantizeBlock(Span<short> input, Span<short> output, Vp8Matrix mtx)
+        public static int QuantizeBlock(Span<short> input, Span<short> output, ref Vp8Matrix mtx)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
-#pragma warning disable SA1503 // Braces should not be omitted
                 // Load all inputs.
                 Vector128<short> input0 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(input));
                 Vector128<short> input8 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(input.Slice(8, 8)));
@@ -624,10 +623,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 Vector128<sbyte> packedOutput = Sse2.PackSignedSaturate(outZ0.AsInt16(), outZ8.AsInt16());
 
-                // Detect if all 'out' values are zeroes or not.
+                // Detect if all 'out' values are zeros or not.
                 Vector128<sbyte> cmpeq = Sse2.CompareEqual(packedOutput, Vector128<sbyte>.Zero);
                 return Sse2.MoveMask(cmpeq) != 0xffff ? 1 : 0;
-#pragma warning restore SA1503 // Braces should not be omitted
             }
             else
 #endif
@@ -675,7 +673,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         // Quantize as usual, but also compute and return the quantization error.
         // Error is already divided by DSHIFT.
-        public static int QuantizeSingle(Span<short> v, Vp8Matrix mtx)
+        public static int QuantizeSingle(Span<short> v, ref Vp8Matrix mtx)
         {
             int v0 = v[0];
             bool sign = v0 < 0;
@@ -696,7 +694,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return (sign ? -v0 : v0) >> DSCALE;
         }
 
-        public static void CorrectDcValues(Vp8EncIterator it, Vp8Matrix mtx, Span<short> tmp, Vp8ModeScore rd)
+        public static void CorrectDcValues(Vp8EncIterator it, ref Vp8Matrix mtx, Span<short> tmp, Vp8ModeScore rd)
         {
 #pragma warning disable SA1005 // Single line comments should begin with single space
             //         | top[0] | top[1]
@@ -713,13 +711,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Span<sbyte> left = it.LeftDerr.AsSpan(ch, 2);
                 Span<short> c = tmp.Slice(ch * 4 * 16, 4 * 16);
                 c[0] += (short)(((C1 * top[0]) + (C2 * left[0])) >> (DSHIFT - DSCALE));
-                int err0 = QuantizeSingle(c, mtx);
+                int err0 = QuantizeSingle(c, ref mtx);
                 c[1 * 16] += (short)(((C1 * top[1]) + (C2 * err0)) >> (DSHIFT - DSCALE));
-                int err1 = QuantizeSingle(c.Slice(1 * 16), mtx);
+                int err1 = QuantizeSingle(c.Slice(1 * 16), ref mtx);
                 c[2 * 16] += (short)(((C1 * err0) + (C2 * left[1])) >> (DSHIFT - DSCALE));
-                int err2 = QuantizeSingle(c.Slice(2 * 16), mtx);
+                int err2 = QuantizeSingle(c.Slice(2 * 16), ref mtx);
                 c[3 * 16] += (short)(((C1 * err1) + (C2 * err2)) >> (DSHIFT - DSCALE));
-                int err3 = QuantizeSingle(c.Slice(3 * 16), mtx);
+                int err3 = QuantizeSingle(c.Slice(3 * 16), ref mtx);
 
                 rd.Derr[ch, 0] = err1;
                 rd.Derr[ch, 1] = err2;

@@ -340,8 +340,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
             Span<short> tmp = it.Scratch2.AsSpan(0, 16);
             Span<int> scratch = it.Scratch3.AsSpan(0, 16);
-            tmp.Clear();
-            scratch.Clear();
             Vp8Encoding.FTransform(src, reference, tmp, scratch);
             int nz = QuantizeBlock(tmp, levels, ref dqm.Y1);
             Vp8Encoding.ITransform(reference, tmp, yuvOut, false, scratch);
@@ -357,8 +355,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int n;
             Span<short> tmp = it.Scratch2.AsSpan(0, 8 * 16);
             Span<int> scratch = it.Scratch3.AsSpan(0, 16);
-            tmp.Clear();
-            scratch.Clear();
 
             for (n = 0; n < 8; n += 2)
             {

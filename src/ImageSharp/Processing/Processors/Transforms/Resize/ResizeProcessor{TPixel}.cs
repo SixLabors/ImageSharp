@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -187,6 +188,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             bool compand,
             bool premultiplyAlpha)
         {
+            PixelAlphaRepresentation? alphaRepresentation = PixelOperations<TPixel>.Instance.GetPixelTypeInfo()?.AlphaRepresentation;
+
+            // Premultiply only if alpha representation is unknown or Unassociated:
+            bool needsPremultiplication = alphaRepresentation == null || alphaRepresentation.Value == PixelAlphaRepresentation.Unassociated;
+            premultiplyAlpha &= needsPremultiplication;
             PixelConversionModifiers conversionModifiers = GetModifiers(compand, premultiplyAlpha);
 
             Buffer2DRegion<TPixel> sourceRegion = source.PixelBuffer.GetRegion(sourceRectangle);

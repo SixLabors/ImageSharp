@@ -4,12 +4,13 @@
 using System;
 using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
 using Xunit;
 using Xunit.Abstractions;
 
@@ -56,6 +57,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
         {
             if (!TestEnvironment.IsWindows)
@@ -72,6 +74,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)
         {
             if (!TestEnvironment.IsWindows)
@@ -88,6 +91,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(BmpEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Linux(string fileName, Type expectedEncoderType)
         {
             if (!TestEnvironment.IsLinux)
@@ -104,6 +108,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(MagickReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Linux(string fileName, Type expectedDecoderType)
         {
             if (!TestEnvironment.IsLinux)

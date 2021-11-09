@@ -44,6 +44,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
             public const string Bike = "Png/Bike.png";
+            public const string BikeSmall = "Png/bike-small.png";
             public const string BikeGrayscale = "Png/BikeGrayscale.png";
             public const string SnakeGame = "Png/SnakeGame.png";
             public const string Icon = "Png/icon.png";
@@ -58,6 +59,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string PngWithMetadata = "Png/PngWithMetaData.png";
             public const string InvalidTextData = "Png/InvalidTextData.png";
             public const string David = "Png/david.png";
+            public const string TestPattern31x31 = "Png/testpattern31x31.png";
+            public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -111,6 +114,9 @@ namespace SixLabors.ImageSharp.Tests
             // Issue 935: https://github.com/SixLabors/ImageSharp/issues/935
             public const string Issue935 = "Png/issues/Issue_935.png";
 
+            // Issue 1765: https://github.com/SixLabors/ImageSharp/issues/1765
+            public const string Issue1765_Net6DeflateStreamRead = "Png/issues/Issue_1765_Net6DeflateStreamRead.png";
+
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -157,6 +163,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Fb = "Jpg/progressive/fb.jpg";
                 public const string Progress = "Jpg/progressive/progress.jpg";
                 public const string Festzug = "Jpg/progressive/Festzug.jpg";
+                public const string Winter = "Jpg/progressive/winter.jpg";
 
                 public static class Bad
                 {
@@ -189,6 +196,10 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Jpeg420Exif = "Jpg/baseline/jpeg420exif.jpg";
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
                 public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
+                public const string JpegRgb = "Jpg/baseline/jpeg-rgb.jpg";
+                public const string Jpeg410 = "Jpg/baseline/jpeg410.jpg";
+                public const string Jpeg411 = "Jpg/baseline/jpeg411.jpg";
+                public const string Jpeg422 = "Jpg/baseline/jpeg422.jpg";
                 public const string Testorig420 = "Jpg/baseline/testorig.jpg";
                 public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
                 public const string Ratio1x1 = "Jpg/baseline/ratio-1x1.jpg";
@@ -198,6 +209,10 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Iptc = "Jpg/baseline/iptc.jpg";
                 public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
                 public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
+                public const string ForestBridgeDifferentComponentsQuality = "Jpg/baseline/forest_bridge.jpg";
+                public const string ArithmeticCoding = "Jpg/baseline/arithmetic_coding.jpg";
+                public const string ArithmeticCodingProgressive = "Jpg/progressive/arithmetic_progressive.jpg";
+                public const string Lossless = "Jpg/baseline/lossless.jpg";
 
                 public static readonly string[] All =
                 {
@@ -235,6 +250,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ExifResize1049 = "Jpg/issues/issue1049-exif-resize.jpg";
                 public const string BadSubSampling1076 = "Jpg/issues/issue-1076-invalid-subsampling.jpg";
                 public const string IdentifyMultiFrame1211 = "Jpg/issues/issue-1221-identify-multi-frame.jpg";
+                public const string WrongColorSpace = "Jpg/issues/Issue1732-WrongColorSpace.jpg";
 
                 public static class Fuzz
                 {
@@ -261,6 +277,8 @@ namespace SixLabors.ImageSharp.Tests
                     public const string AccessViolationException827 = "Jpg/issues/fuzz/Issue827-AccessViolationException.jpg";
                     public const string ExecutionEngineException839 = "Jpg/issues/fuzz/Issue839-ExecutionEngineException.jpg";
                     public const string AccessViolationException922 = "Jpg/issues/fuzz/Issue922-AccessViolationException.jpg";
+                    public const string IndexOutOfRangeException1693A = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-A.jpg";
+                    public const string IndexOutOfRangeException1693B = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-B.jpg";
                 }
             }
 
@@ -499,6 +517,193 @@ namespace SixLabors.ImageSharp.Tests
             public const string NoAlphaBits32BitRle = "Tga/32bit_rle_no_alphabits.tga";
         }
 
+        public static class Webp
+        {
+            // Reference image as png
+            public const string Peak = "Webp/peak.png";
+
+            // Test pattern images for testing the encoder.
+            public const string TestPatternOpaque = "Webp/testpattern_opaque.png";
+            public const string TestPatternOpaqueSmall = "Webp/testpattern_opaque_small.png";
+            public const string RgbTestPattern100x100 = "Webp/rgb_pattern_100x100.png";
+            public const string RgbTestPattern80x80 = "Webp/rgb_pattern_80x80.png";
+            public const string RgbTestPattern63x63 = "Webp/rgb_pattern_63x63.png";
+
+            // Test image for encoding image with a palette.
+            public const string Flag = "Webp/flag_of_germany.png";
+
+            // Test images for converting rgb data to yuv.
+            public const string Yuv = "Webp/yuv_test.png";
+
+            public static class Animated
+            {
+                public const string Animated1 = "Webp/animated-webp.webp";
+                public const string Animated2 = "Webp/animated2.webp";
+                public const string Animated3 = "Webp/animated3.webp";
+                public const string Animated4 = "Webp/animated_lossy.webp";
+            }
+
+            public static class Lossless
+            {
+                public const string Earth = "Webp/earth_lossless.webp";
+                public const string Alpha = "Webp/lossless_alpha_small.webp";
+                public const string WithExif = "Webp/exif_lossless.webp";
+                public const string WithIccp = "Webp/lossless_with_iccp.webp";
+                public const string NoTransform1 = "Webp/lossless_vec_1_0.webp";
+                public const string NoTransform2 = "Webp/lossless_vec_2_0.webp";
+                public const string GreenTransform1 = "Webp/lossless1.webp";
+                public const string GreenTransform2 = "Webp/lossless2.webp";
+                public const string GreenTransform3 = "Webp/lossless3.webp";
+                public const string GreenTransform4 = "Webp/lossless_vec_1_4.webp";
+                public const string GreenTransform5 = "Webp/lossless_vec_2_4.webp";
+                public const string CrossColorTransform1 = "Webp/lossless_vec_1_8.webp";
+                public const string CrossColorTransform2 = "Webp/lossless_vec_2_8.webp";
+                public const string PredictorTransform1 = "Webp/lossless_vec_1_2.webp";
+                public const string PredictorTransform2 = "Webp/lossless_vec_2_2.webp";
+                public const string ColorIndexTransform1 = "Webp/lossless4.webp";
+                public const string ColorIndexTransform2 = "Webp/lossless_vec_1_1.webp";
+                public const string ColorIndexTransform3 = "Webp/lossless_vec_1_5.webp";
+                public const string ColorIndexTransform4 = "Webp/lossless_vec_2_1.webp";
+                public const string ColorIndexTransform5 = "Webp/lossless_vec_2_5.webp";
+                public const string TwoTransforms1 = "Webp/lossless_vec_1_10.webp"; // cross_color, predictor
+                public const string TwoTransforms2 = "Webp/lossless_vec_1_12.webp"; // cross_color, substract_green
+                public const string TwoTransforms3 = "Webp/lossless_vec_1_13.webp"; // color_indexing, cross_color
+                public const string TwoTransforms4 = "Webp/lossless_vec_1_3.webp"; // color_indexing, predictor
+                public const string TwoTransforms5 = "Webp/lossless_vec_1_6.webp"; // substract_green, predictor
+                public const string TwoTransforms6 = "Webp/lossless_vec_1_7.webp"; // color_indexing, predictor
+                public const string TwoTransforms7 = "Webp/lossless_vec_1_9.webp"; // color_indexing, cross_color
+                public const string TwoTransforms8 = "Webp/lossless_vec_2_10.webp"; // predictor, cross_color
+                public const string TwoTransforms9 = "Webp/lossless_vec_2_12.webp"; // substract_green, cross_color
+                public const string TwoTransforms10 = "Webp/lossless_vec_2_13.webp"; // color_indexing, cross_color
+                public const string TwoTransforms11 = "Webp/lossless_vec_2_3.webp"; // color_indexing, predictor
+                public const string TwoTransforms12 = "Webp/lossless_vec_2_6.webp"; // substract_green, predictor
+                public const string TwoTransforms13 = "Webp/lossless_vec_2_9.webp"; // color_indexing, predictor
+
+                // substract_green, predictor, cross_color
+                public const string ThreeTransforms1 = "Webp/color_cache_bits_11.webp";
+
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms2 = "Webp/lossless_vec_1_11.webp";
+
+                // substract_green, predictor, cross_color
+                public const string ThreeTransforms3 = "Webp/lossless_vec_1_14.webp";
+
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms4 = "Webp/lossless_vec_1_15.webp";
+
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms5 = "Webp/lossless_vec_2_11.webp";
+
+                // substract_green, predictor, cross_color
+                public const string ThreeTransforms6 = "Webp/lossless_vec_2_14.webp";
+
+                // color_indexing, predictor, cross_color
+                public const string ThreeTransforms7 = "Webp/lossless_vec_2_15.webp";
+
+                // substract_green, predictor, cross_color
+                public const string BikeThreeTransforms = "Webp/bike_lossless.webp";
+
+                // Invalid / corrupted images
+                // Below images have errors according to webpinfo. The error message webpinfo gives is "Truncated data detected when parsing RIFF payload."
+                public const string LossLessCorruptImage1 = "Webp/lossless_big_random_alpha.webp"; // substract_green, predictor, cross_color.
+
+                public const string LossLessCorruptImage2 = "Webp/lossless_vec_2_7.webp"; // color_indexing, predictor.
+
+                public const string LossLessCorruptImage3 = "Webp/lossless_color_transform.webp"; // cross_color, predictor
+
+                public const string LossLessCorruptImage4 = "Webp/near_lossless_75.webp"; // predictor, cross_color.
+            }
+
+            public static class Lossy
+            {
+                public const string Earth = "Webp/earth_lossy.webp";
+                public const string WithExif = "Webp/exif_lossy.webp";
+                public const string WithIccp = "Webp/lossy_with_iccp.webp";
+                public const string BikeSmall = "Webp/bike_lossless_small.webp";
+
+                // Lossy images without macroblock filtering.
+                public const string Bike = "Webp/bike_lossy.webp";
+                public const string NoFilter01 = "Webp/vp80-01-intra-1400.webp";
+                public const string NoFilter02 = "Webp/vp80-00-comprehensive-010.webp";
+                public const string NoFilter03 = "Webp/vp80-00-comprehensive-005.webp";
+                public const string NoFilter04 = "Webp/vp80-01-intra-1417.webp";
+                public const string NoFilter05 = "Webp/vp80-02-inter-1402.webp";
+                public const string NoFilter06 = "Webp/test.webp";
+
+                // Lossy images with a simple filter.
+                public const string SimpleFilter01 = "Webp/segment01.webp";
+                public const string SimpleFilter02 = "Webp/segment02.webp";
+                public const string SimpleFilter03 = "Webp/vp80-00-comprehensive-003.webp";
+                public const string SimpleFilter04 = "Webp/vp80-00-comprehensive-007.webp";
+                public const string SimpleFilter05 = "Webp/test-nostrong.webp";
+
+                // Lossy images with a complex filter.
+                public const string IccpComplexFilter = WithIccp;
+                public const string VeryShort = "Webp/very_short.webp";
+                public const string BikeComplexFilter = "Webp/bike_lossy_complex_filter.webp";
+                public const string ComplexFilter01 = "Webp/vp80-02-inter-1418.webp";
+                public const string ComplexFilter02 = "Webp/vp80-02-inter-1418.webp";
+                public const string ComplexFilter03 = "Webp/vp80-00-comprehensive-002.webp";
+                public const string ComplexFilter04 = "Webp/vp80-00-comprehensive-006.webp";
+                public const string ComplexFilter05 = "Webp/vp80-00-comprehensive-009.webp";
+                public const string ComplexFilter06 = "Webp/vp80-00-comprehensive-012.webp";
+                public const string ComplexFilter07 = "Webp/vp80-00-comprehensive-015.webp";
+                public const string ComplexFilter08 = "Webp/vp80-00-comprehensive-016.webp";
+                public const string ComplexFilter09 = "Webp/vp80-00-comprehensive-017.webp";
+
+                // Lossy with partitions.
+                public const string Partitions01 = "Webp/vp80-04-partitions-1404.webp";
+                public const string Partitions02 = "Webp/vp80-04-partitions-1405.webp";
+                public const string Partitions03 = "Webp/vp80-04-partitions-1406.webp";
+
+                // Lossy with segmentation.
+                public const string SegmentationNoFilter01 = "Webp/vp80-03-segmentation-1401.webp";
+                public const string SegmentationNoFilter02 = "Webp/vp80-03-segmentation-1403.webp";
+                public const string SegmentationNoFilter03 = "Webp/vp80-03-segmentation-1407.webp";
+                public const string SegmentationNoFilter04 = "Webp/vp80-03-segmentation-1408.webp";
+                public const string SegmentationNoFilter05 = "Webp/vp80-03-segmentation-1409.webp";
+                public const string SegmentationNoFilter06 = "Webp/vp80-03-segmentation-1410.webp";
+                public const string SegmentationComplexFilter01 = "Webp/vp80-03-segmentation-1413.webp";
+                public const string SegmentationComplexFilter02 = "Webp/vp80-03-segmentation-1425.webp";
+                public const string SegmentationComplexFilter03 = "Webp/vp80-03-segmentation-1426.webp";
+                public const string SegmentationComplexFilter04 = "Webp/vp80-03-segmentation-1427.webp";
+                public const string SegmentationComplexFilter05 = "Webp/vp80-03-segmentation-1432.webp";
+
+                // Lossy with sharpness level.
+                public const string Sharpness01 = "Webp/vp80-05-sharpness-1428.webp";
+                public const string Sharpness02 = "Webp/vp80-05-sharpness-1429.webp";
+                public const string Sharpness03 = "Webp/vp80-05-sharpness-1430.webp";
+                public const string Sharpness04 = "Webp/vp80-05-sharpness-1431.webp";
+                public const string Sharpness05 = "Webp/vp80-05-sharpness-1433.webp";
+                public const string Sharpness06 = "Webp/vp80-05-sharpness-1434.webp";
+
+                // Very small images (all with complex filter).
+                public const string Small01 = "Webp/small_13x1.webp";
+                public const string Small02 = "Webp/small_1x1.webp";
+                public const string Small03 = "Webp/small_1x13.webp";
+                public const string Small04 = "Webp/small_31x13.webp";
+
+                // Lossy images with a alpha channel.
+                public const string Alpha1 = "Webp/lossy_alpha1.webp";
+                public const string Alpha2 = "Webp/lossy_alpha2.webp";
+                public const string Alpha3 = "Webp/alpha_color_cache.webp";
+                public const string AlphaNoCompression = "Webp/alpha_no_compression.webp";
+                public const string AlphaNoCompressionNoFilter = "Webp/alpha_filter_0_method_0.webp";
+                public const string AlphaCompressedNoFilter = "Webp/alpha_filter_0_method_1.webp";
+                public const string AlphaNoCompressionHorizontalFilter = "Webp/alpha_filter_1_method_0.webp";
+                public const string AlphaCompressedHorizontalFilter = "Webp/alpha_filter_1_method_1.webp";
+                public const string AlphaNoCompressionVerticalFilter = "Webp/alpha_filter_2_method_0.webp";
+                public const string AlphaCompressedVerticalFilter = "Webp/alpha_filter_2_method_1.webp";
+                public const string AlphaNoCompressionGradientFilter = "Webp/alpha_filter_3_method_0.webp";
+                public const string AlphaCompressedGradientFilter = "Webp/alpha_filter_3_method_1.webp";
+                public const string AlphaThinkingSmiley = "Webp/1602311202.webp";
+                public const string AlphaSticker = "Webp/sticker.webp";
+
+                // Issues
+                public const string Issue1594 = "Webp/issues/Issue1594.webp";
+            }
+        }
+
         public static class Tiff
         {
             public const string Benchmark_Path = "Tiff/Benchmarks/";
@@ -530,11 +735,15 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_Fax4Compressed = "Tiff/Calliphora_ccitt_fax4.tiff";
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
             public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";
+            public const string Fax4Compressed = "Tiff/basi3p02_fax4.tiff";
+            public const string Fax4CompressedLowerOrderBitsFirst = "Tiff/basi3p02_fax4_lowerOrderBitsFirst.tiff";
 
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
             public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
             public const string HuffmanRleAllMakeupCodes = "Tiff/huffman_rle_all_makeup_codes.tiff";
+            public const string CcittFax3LowerOrderBitsFirst = "Tiff/basi3p02_fax3_lowerOrderBitsFirst.tiff";
+            public const string HuffmanRleLowerOrderBitsFirst = "Tiff/basi3p02_huffman_rle_lowerOrderBitsFirst.tiff";
 
             // Test case for an issue, that the last bits in a row got ignored.
             public const string HuffmanRle_basi3p02 = "Tiff/basi3p02_huffman_rle.tiff";
@@ -546,7 +755,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
             public const string RgbDeflatePredictor = "Tiff/rgb_deflate_predictor.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
-            public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
+            public const string RgbJpegCompressed = "Tiff/rgb_jpegcompression.tiff";
+            public const string RgbWithStripsJpegCompressed = "Tiff/rgb_jpegcompressed_stripped.tiff";
+            public const string RgbJpegCompressedNoJpegTable = "Tiff/rgb_jpegcompressed_nojpegtable.tiff";
             public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
             public const string RgbLzwNoPredictor = "Tiff/rgb_lzw_no_predictor.tiff";
             public const string RgbLzwNoPredictorMultistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";
@@ -559,13 +770,42 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbPalette = "Tiff/rgb_palette.tiff";
             public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
             public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
+            public const string FlowerRgbFloat323232 = "Tiff/flower-rgb-float32_msb.tiff";
+            public const string FlowerRgbFloat323232LittleEndian = "Tiff/flower-rgb-float32_lsb.tiff";
+            public const string FlowerRgb323232Contiguous = "Tiff/flower-rgb-contig-32.tiff";
+            public const string FlowerRgb323232ContiguousLittleEndian = "Tiff/flower-rgb-contig-32_lsb.tiff";
+            public const string FlowerRgb323232Planar = "Tiff/flower-rgb-planar-32.tiff";
+            public const string FlowerRgb323232PlanarLittleEndian = "Tiff/flower-rgb-planar-32_lsb.tiff";
+            public const string FlowerRgb323232PredictorBigEndian = "Tiff/flower-rgb-contig-32_msb_zip_predictor.tiff";
+            public const string FlowerRgb323232PredictorLittleEndian = "Tiff/flower-rgb-contig-32_lsb_zip_predictor.tiff";
+            public const string FlowerRgb242424Planar = "Tiff/flower-rgb-planar-24.tiff";
+            public const string FlowerRgb242424PlanarLittleEndian = "Tiff/flower-rgb-planar-24_lsb.tiff";
+            public const string FlowerRgb242424Contiguous = "Tiff/flower-rgb-contig-24.tiff";
+            public const string FlowerRgb242424ContiguousLittleEndian = "Tiff/flower-rgb-contig-24_lsb.tiff";
             public const string FlowerRgb161616Contiguous = "Tiff/flower-rgb-contig-16.tiff";
+            public const string FlowerRgb161616ContiguousLittleEndian = "Tiff/flower-rgb-contig-16_lsb.tiff";
+            public const string FlowerRgb161616PredictorBigEndian = "Tiff/flower-rgb-contig-16_msb_zip_predictor.tiff";
+            public const string FlowerRgb161616PredictorLittleEndian = "Tiff/flower-rgb-contig-16_lsb_zip_predictor.tiff";
             public const string FlowerRgb161616Planar = "Tiff/flower-rgb-planar-16.tiff";
+            public const string FlowerRgb161616PlanarLittleEndian = "Tiff/flower-rgb-planar-16_lsb.tiff";
             public const string FlowerRgb141414Contiguous = "Tiff/flower-rgb-contig-14.tiff";
             public const string FlowerRgb141414Planar = "Tiff/flower-rgb-planar-14.tiff";
+            public const string FlowerRgb121212Contiguous = "Tiff/flower-rgb-contig-12.tiff";
             public const string FlowerRgb101010Contiguous = "Tiff/flower-rgb-contig-10.tiff";
             public const string FlowerRgb101010Planar = "Tiff/flower-rgb-planar-10.tiff";
-            public const string FlowerRgb121212Contiguous = "Tiff/flower-rgb-contig-12.tiff";
+            public const string FlowerRgb888Contiguous = "Tiff/flower-rgb-contig-08.tiff";
+            public const string FlowerRgb888Planar6Strips = "Tiff/flower-rgb-planar-08-6strips.tiff";
+            public const string FlowerRgb888Planar15Strips = "Tiff/flower-rgb-planar-08-15strips.tiff";
+            public const string FlowerYCbCr888Contiguous = "Tiff/flower-ycbcr-contig-08_h1v1.tiff";
+            public const string FlowerYCbCr888Planar = "Tiff/flower-ycbcr-planar-08_h1v1.tiff";
+            public const string FlowerYCbCr888Contiguoush2v1 = "Tiff/flower-ycbcr-contig-08_h2v1.tiff";
+            public const string FlowerYCbCr888Contiguoush2v2 = "Tiff/flower-ycbcr-contig-08_h2v2.tiff";
+            public const string FlowerYCbCr888Contiguoush4v4 = "Tiff/flower-ycbcr-contig-08_h4v4.tiff";
+            public const string RgbYCbCr888Contiguoush1v1 = "Tiff/rgb-ycbcr-contig-08_h1v1.tiff";
+            public const string RgbYCbCr888Contiguoush2v1 = "Tiff/rgb-ycbcr-contig-08_h2v1.tiff";
+            public const string RgbYCbCr888Contiguoush2v2 = "Tiff/rgb-ycbcr-contig-08_h2v2.tiff";
+            public const string RgbYCbCr888Contiguoush4v4 = "Tiff/rgb-ycbcr-contig-08_h4v4.tiff";
+            public const string YCbCrJpegCompressed = "Tiff/ycbcr_jpegcompressed.tiff";
             public const string FlowerRgb444Contiguous = "Tiff/flower-rgb-contig-04.tiff";
             public const string FlowerRgb444Planar = "Tiff/flower-rgb-planar-04.tiff";
             public const string FlowerRgb222Contiguous = "Tiff/flower-rgb-contig-02.tiff";
@@ -580,6 +820,25 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower12BitGray = "Tiff/flower-minisblack-12.tiff";
             public const string Flower14BitGray = "Tiff/flower-minisblack-14.tiff";
             public const string Flower16BitGray = "Tiff/flower-minisblack-16.tiff";
+            public const string Flower16BitGrayLittleEndian = "Tiff/flower-minisblack-16_lsb.tiff";
+            public const string Flower16BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-16_lsb.tiff";
+            public const string Flower16BitGrayPredictorBigEndian = "Tiff/flower-minisblack-16_msb_lzw_predictor.tiff";
+            public const string Flower16BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-16_lsb_lzw_predictor.tiff";
+            public const string Flower16BitGrayMinIsWhiteBigEndian = "Tiff/flower-miniswhite-16_msb.tiff";
+            public const string Flower24BitGray = "Tiff/flower-minisblack-24_msb.tiff";
+            public const string Flower24BitGrayLittleEndian = "Tiff/flower-minisblack-24_lsb.tiff";
+            public const string Flower32BitGray = "Tiff/flower-minisblack-32_msb.tiff";
+            public const string Flower32BitGrayLittleEndian = "Tiff/flower-minisblack-32_lsb.tiff";
+            public const string Flower32BitFloatGray = "Tiff/flower-minisblack-float32_msb.tiff";
+            public const string Flower32BitFloatGrayLittleEndian = "Tiff/flower-minisblack-float32_lsb.tiff";
+            public const string Flower32BitFloatGrayMinIsWhite = "Tiff/flower-miniswhite-float32_msb.tiff";
+            public const string Flower32BitFloatGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-float32_lsb.tiff";
+            public const string Flower32BitGrayMinIsWhite = "Tiff/flower-miniswhite-32_msb.tiff";
+            public const string Flower32BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-32_lsb.tiff";
+            public const string Flower32BitGrayPredictorBigEndian = "Tiff/flower-minisblack-32_msb_deflate_predictor.tiff";
+            public const string Flower32BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-32_lsb_deflate_predictor.tiff";
+
+            public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -592,7 +851,6 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
 
-            public const string FillOrder2 = "Tiff/b0350_fillorder2.tiff";
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 
             public const string Fax4_Motorola = "Tiff/moy.tiff";
@@ -606,8 +864,6 @@ namespace SixLabors.ImageSharp.Tests
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
-
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, FillOrder2, Calliphora_Fax4Compressed, Fax4_Motorola };
         }
     }
 }

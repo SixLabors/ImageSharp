@@ -9,20 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     internal interface IJpegEncoderOptions
     {
         /// <summary>
-        /// Gets the quality, that will be used to encode the image. Quality
+        /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
+        /// Defaults to <value>75</value>.
         /// </summary>
-        /// <value>The quality of the jpg image from 0 to 100.</value>
-        int? Quality { get; }
+        public int? Quality { get; set; }
 
         /// <summary>
-        /// Gets the subsample ration, that will be used to encode the image.
-        /// </summary>
-        /// <value>The subsample ratio of the jpg image.</value>
-        JpegSubsample? Subsample { get; }
-
-        /// <summary>
-        /// Gets the color type.
+        /// Gets the color type, that will be used to encode the image.
         /// </summary>
         JpegColorType? ColorType { get; }
     }

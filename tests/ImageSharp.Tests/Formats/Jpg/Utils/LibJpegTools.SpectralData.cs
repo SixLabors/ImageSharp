@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -27,14 +26,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 this.ComponentCount = components.Length;
                 this.Components = components;
-            }
-
-            public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
-            {
-                JpegComponent[] srcComponents = decoder.Frame.Components;
-                LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
-
-                return new SpectralData(destComponents);
             }
 
             public Image<Rgba32> TryCreateRGBSpectralImage()

@@ -14,8 +14,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     public partial struct L8 : IPixel<L8>, IPackedVector<byte>
     {
-        private static readonly Vector4 MaxBytes = new Vector4(255F);
-        private static readonly Vector4 Half = new Vector4(0.5F);
+        private static readonly Vector4 MaxBytes = new(255F);
+        private static readonly Vector4 Half = new(0.5F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="L8"/> struct.

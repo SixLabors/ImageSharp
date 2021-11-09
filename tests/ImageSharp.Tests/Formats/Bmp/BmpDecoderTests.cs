@@ -14,7 +14,6 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
@@ -55,7 +54,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        [WithFile(Car, PixelTypes.Rgba32)]
+        [WithFile(F, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_MiscellaneousBitmaps_WithLimitedAllocatorBufferCapacity(
             TestImageProvider<Rgba32> provider)
         {

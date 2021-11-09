@@ -506,11 +506,15 @@ namespace SixLabors.ImageSharp.Formats.Png
             while (this.currentRow < this.header.Height)
             {
                 Span<byte> scanlineSpan = this.scanline.GetSpan();
-                int bytesRead = compressedStream.Read(scanlineSpan, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
-                this.currentRowBytesRead += bytesRead;
-                if (this.currentRowBytesRead < this.bytesPerScanline)
+                while (this.currentRowBytesRead < this.bytesPerScanline)
                 {
-                    return;
+                    int bytesRead = compressedStream.Read(scanlineSpan, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
+                    if (bytesRead <= 0)
+                    {
+                        return;
+                    }
+
+                    this.currentRowBytesRead += bytesRead;
                 }
 
                 this.currentRowBytesRead = 0;
@@ -577,11 +581,15 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 while (this.currentRow < this.header.Height)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
-                    this.currentRowBytesRead += bytesRead;
-                    if (this.currentRowBytesRead < bytesPerInterlaceScanline)
+                    while (this.currentRowBytesRead < bytesPerInterlaceScanline)
                     {
-                        return;
+                        int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
+                        if (bytesRead <= 0)
+                        {
+                            return;
+                        }
+
+                        this.currentRowBytesRead += bytesRead;
                     }
 
                     this.currentRowBytesRead = 0;
@@ -1063,7 +1071,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 while (bytesRead != 0)
                 {
-                    uncompressedBytes.AddRange(this.buffer.AsSpan().Slice(0, bytesRead).ToArray());
+                    uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
                     bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 }
 

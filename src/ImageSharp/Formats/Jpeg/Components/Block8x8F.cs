@@ -16,7 +16,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
-    /// Represents a Jpeg block with <see cref="float"/> coefficients.
+    /// 8x8 matrix of <see cref="float"/> coefficients.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     internal partial struct Block8x8F : IEquatable<Block8x8F>
@@ -66,30 +66,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public Vector4 V7L;
         [FieldOffset(240)]
         public Vector4 V7R;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        /// <summary>
-        /// A number of rows of 8 scalar coefficients each in <see cref="Block8x8F"/>
-        /// </summary>
-        public const int RowCount = 8;
-
-        [FieldOffset(0)]
-        public Vector256<float> V0;
-        [FieldOffset(32)]
-        public Vector256<float> V1;
-        [FieldOffset(64)]
-        public Vector256<float> V2;
-        [FieldOffset(96)]
-        public Vector256<float> V3;
-        [FieldOffset(128)]
-        public Vector256<float> V4;
-        [FieldOffset(160)]
-        public Vector256<float> V5;
-        [FieldOffset(192)]
-        public Vector256<float> V6;
-        [FieldOffset(224)]
-        public Vector256<float> V7;
-#endif
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
         /// <summary>
@@ -102,17 +78,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                GuardBlockIndex(idx);
+                DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
                 ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-                return Unsafe.Add(ref selfRef, idx);
+                return Unsafe.Add(ref selfRef, (nint)(uint)idx);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                GuardBlockIndex(idx);
+                DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
                 ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-                Unsafe.Add(ref selfRef, idx) = value;
+                Unsafe.Add(ref selfRef, (nint)(uint)idx) = value;
             }
         }
 
@@ -187,13 +163,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             result.LoadFrom(data);
             return result;
         }
-
-        /// <summary>
-        /// Fill the block with defaults (zeroes).
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Clear()
-            => this = default; // The cheapest way to do this in C#:
 
         /// <summary>
         /// Load raw 32bit floating point data from source.
@@ -302,7 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public float[] ToArray()
         {
-            var result = new float[Size];
+            float[] result = new float[Size];
             this.ScaledCopyTo(result);
             return result;
         }
@@ -434,100 +403,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Quantize the block.
+        /// Quantize input block, apply zig-zag ordering and store result as 16bit integers.
         /// </summary>
-        /// <param name="blockPtr">The block pointer.</param>
-        /// <param name="qtPtr">The qt pointer.</param>
-        /// <param name="unzigPtr">Unzig pointer</param>
-        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
-        {
-            float* b = (float*)blockPtr;
-            float* qtp = (float*)qtPtr;
-            for (int qtIndex = 0; qtIndex < Size; qtIndex++)
-            {
-                byte blockIndex = unzigPtr[qtIndex];
-                float* unzigPos = b + blockIndex;
-
-                float val = *unzigPos;
-                val *= qtp[qtIndex];
-                *unzigPos = val;
-            }
-        }
-
-        /// <summary>
-        /// Quantize 'block' into 'dest' using the 'qt' quantization table:
-        /// Unzig the elements of block into dest, while dividing them by elements of qt and "pre-rounding" the values.
-        /// To finish the rounding it's enough to (int)-cast these values.
-        /// </summary>
-        /// <param name="block">Source block</param>
-        /// <param name="dest">Destination block</param>
-        /// <param name="qt">The quantization table</param>
-        /// <param name="unZig">The 8x8 Unzig block.</param>
-        public static unsafe void Quantize(
-            ref Block8x8F block,
-            ref Block8x8F dest,
-            ref Block8x8F qt,
-            ref ZigZag unZig)
-        {
-            for (int zig = 0; zig < Size; zig++)
-            {
-                dest[zig] = block[unZig[zig]];
-            }
-
-            DivideRoundAll(ref dest, ref qt);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
+        /// <param name="block">Source block.</param>
+        /// <param name="dest">Destination block.</param>
+        /// <param name="qt">The quantization table.</param>
+        public static void Quantize(ref Block8x8F block, ref Block8x8 dest, ref Block8x8F qt)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx.IsSupported)
+            if (Avx2.IsSupported)
             {
-                var vnegOne = Vector256.Create(-1f);
-                var vadd = Vector256.Create(.5F);
-                var vone = Vector256.Create(1f);
-
-                for (int i = 0; i < RowCount; i++)
-                {
-                    ref Vector256<float> aRow = ref Unsafe.Add(ref a.V0, i);
-                    ref Vector256<float> bRow = ref Unsafe.Add(ref b.V0, i);
-                    Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, aRow), vone), vadd);
-                    aRow = Avx.Add(Avx.Divide(aRow, bRow), voff);
-                }
+                MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
+                ZigZag.ApplyZigZagOrderingAvx2(ref dest);
+            }
+            else if (Ssse3.IsSupported)
+            {
+                MultiplyIntoInt16_Sse2(ref block, ref qt, ref dest);
+                ZigZag.ApplyZigZagOrderingSsse3(ref dest);
             }
             else
 #endif
             {
-                a.V0L = DivideRound(a.V0L, b.V0L);
-                a.V0R = DivideRound(a.V0R, b.V0R);
-                a.V1L = DivideRound(a.V1L, b.V1L);
-                a.V1R = DivideRound(a.V1R, b.V1R);
-                a.V2L = DivideRound(a.V2L, b.V2L);
-                a.V2R = DivideRound(a.V2R, b.V2R);
-                a.V3L = DivideRound(a.V3L, b.V3L);
-                a.V3R = DivideRound(a.V3R, b.V3R);
-                a.V4L = DivideRound(a.V4L, b.V4L);
-                a.V4R = DivideRound(a.V4R, b.V4R);
-                a.V5L = DivideRound(a.V5L, b.V5L);
-                a.V5R = DivideRound(a.V5R, b.V5R);
-                a.V6L = DivideRound(a.V6L, b.V6L);
-                a.V6R = DivideRound(a.V6R, b.V6R);
-                a.V7L = DivideRound(a.V7L, b.V7L);
-                a.V7R = DivideRound(a.V7R, b.V7R);
+                for (int i = 0; i < Size; i++)
+                {
+                    int idx = ZigZag.ZigZagOrder[i];
+                    float quantizedVal = block[idx] * qt[idx];
+                    quantizedVal += quantizedVal < 0 ? -0.5f : 0.5f;
+                    dest[i] = (short)quantizedVal;
+                }
             }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
-        {
-            var neg = new Vector4(-1);
-            var add = new Vector4(.5F);
-
-            // sign(dividend) = max(min(dividend, 1), -1)
-            Vector4 sign = Numerics.Clamp(dividend, neg, Vector4.One);
-
-            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
-            return (dividend / divisor) + (sign * add);
         }
 
         public void RoundInto(ref Block8x8 dest)
@@ -627,6 +531,47 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Unsafe.Add(ref dRef, 7) = bottom;
         }
 
+        /// <summary>
+        /// Compares entire 8x8 block to a single scalar value.
+        /// </summary>
+        /// <param name="value">Value to compare to.</param>
+        public bool EqualsToScalar(int value)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
+
+                var targetVector = Vector256.Create(value);
+                ref Vector256<float> blockStride = ref this.V0;
+
+                for (int i = 0; i < RowCount; i++)
+                {
+                    Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
+                    if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+#endif
+            {
+                ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
+
+                for (int i = 0; i < Size; i++)
+                {
+                    if ((int)Unsafe.Add(ref scalars, i) != value)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
         /// <inheritdoc />
         public bool Equals(Block8x8F other)
             => this.V0L == other.V0L
@@ -663,6 +608,82 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Transpose the block inplace.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void TransposeInplace()
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                this.TransposeInplace_Avx();
+            }
+            else
+#endif
+            {
+                this.TransposeInplace_Scalar();
+            }
+        }
+
+        /// <summary>
+        /// Scalar inplace transpose implementation for <see cref="TransposeInplace"/>
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void TransposeInplace_Scalar()
+        {
+            ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref this);
+
+            // row #0
+            Swap(ref Unsafe.Add(ref elemRef, 1), ref Unsafe.Add(ref elemRef, 8));
+            Swap(ref Unsafe.Add(ref elemRef, 2), ref Unsafe.Add(ref elemRef, 16));
+            Swap(ref Unsafe.Add(ref elemRef, 3), ref Unsafe.Add(ref elemRef, 24));
+            Swap(ref Unsafe.Add(ref elemRef, 4), ref Unsafe.Add(ref elemRef, 32));
+            Swap(ref Unsafe.Add(ref elemRef, 5), ref Unsafe.Add(ref elemRef, 40));
+            Swap(ref Unsafe.Add(ref elemRef, 6), ref Unsafe.Add(ref elemRef, 48));
+            Swap(ref Unsafe.Add(ref elemRef, 7), ref Unsafe.Add(ref elemRef, 56));
+
+            // row #1
+            Swap(ref Unsafe.Add(ref elemRef, 10), ref Unsafe.Add(ref elemRef, 17));
+            Swap(ref Unsafe.Add(ref elemRef, 11), ref Unsafe.Add(ref elemRef, 25));
+            Swap(ref Unsafe.Add(ref elemRef, 12), ref Unsafe.Add(ref elemRef, 33));
+            Swap(ref Unsafe.Add(ref elemRef, 13), ref Unsafe.Add(ref elemRef, 41));
+            Swap(ref Unsafe.Add(ref elemRef, 14), ref Unsafe.Add(ref elemRef, 49));
+            Swap(ref Unsafe.Add(ref elemRef, 15), ref Unsafe.Add(ref elemRef, 57));
+
+            // row #2
+            Swap(ref Unsafe.Add(ref elemRef, 19), ref Unsafe.Add(ref elemRef, 26));
+            Swap(ref Unsafe.Add(ref elemRef, 20), ref Unsafe.Add(ref elemRef, 34));
+            Swap(ref Unsafe.Add(ref elemRef, 21), ref Unsafe.Add(ref elemRef, 42));
+            Swap(ref Unsafe.Add(ref elemRef, 22), ref Unsafe.Add(ref elemRef, 50));
+            Swap(ref Unsafe.Add(ref elemRef, 23), ref Unsafe.Add(ref elemRef, 58));
+
+            // row #3
+            Swap(ref Unsafe.Add(ref elemRef, 28), ref Unsafe.Add(ref elemRef, 35));
+            Swap(ref Unsafe.Add(ref elemRef, 29), ref Unsafe.Add(ref elemRef, 43));
+            Swap(ref Unsafe.Add(ref elemRef, 30), ref Unsafe.Add(ref elemRef, 51));
+            Swap(ref Unsafe.Add(ref elemRef, 31), ref Unsafe.Add(ref elemRef, 59));
+
+            // row #4
+            Swap(ref Unsafe.Add(ref elemRef, 37), ref Unsafe.Add(ref elemRef, 44));
+            Swap(ref Unsafe.Add(ref elemRef, 38), ref Unsafe.Add(ref elemRef, 52));
+            Swap(ref Unsafe.Add(ref elemRef, 39), ref Unsafe.Add(ref elemRef, 60));
+
+            // row #5
+            Swap(ref Unsafe.Add(ref elemRef, 46), ref Unsafe.Add(ref elemRef, 53));
+            Swap(ref Unsafe.Add(ref elemRef, 47), ref Unsafe.Add(ref elemRef, 61));
+
+            // row #6
+            Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
+
+            static void Swap(ref float a, ref float b)
+            {
+                float tmp = a;
+                a = b;
+                b = tmp;
+            }
+        }
+
         [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
         {
@@ -670,165 +691,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             row = Vector.Max(row, Vector<float>.Zero);
             row = Vector.Min(row, max);
             return row.FastRound();
-        }
-
-        [Conditional("DEBUG")]
-        private static void GuardBlockIndex(int idx)
-        {
-            DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
-            DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
-        }
-
-        /// <summary>
-        /// Transpose the block into the destination block.
-        /// </summary>
-        /// <param name="d">The destination block</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void TransposeInto(ref Block8x8F d)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx.IsSupported)
-            {
-                // https://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2/25627536#25627536
-                Vector256<float> r0 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V0L).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V4L),
-                   1);
-
-                Vector256<float> r1 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V1L).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V5L),
-                   1);
-
-                Vector256<float> r2 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V2L).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V6L),
-                   1);
-
-                Vector256<float> r3 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V3L).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V7L),
-                   1);
-
-                Vector256<float> r4 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V0R).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V4R),
-                   1);
-
-                Vector256<float> r5 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V1R).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V5R),
-                   1);
-
-                Vector256<float> r6 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V2R).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V6R),
-                   1);
-
-                Vector256<float> r7 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V3R).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref this.V7R),
-                   1);
-
-                Vector256<float> t0 = Avx.UnpackLow(r0, r1);
-                Vector256<float> t2 = Avx.UnpackLow(r2, r3);
-                Vector256<float> v = Avx.Shuffle(t0, t2, 0x4E);
-                d.V0 = Avx.Blend(t0, v, 0xCC);
-                d.V1 = Avx.Blend(t2, v, 0x33);
-
-                Vector256<float> t4 = Avx.UnpackLow(r4, r5);
-                Vector256<float> t6 = Avx.UnpackLow(r6, r7);
-                v = Avx.Shuffle(t4, t6, 0x4E);
-                d.V4 = Avx.Blend(t4, v, 0xCC);
-                d.V5 = Avx.Blend(t6, v, 0x33);
-
-                Vector256<float> t1 = Avx.UnpackHigh(r0, r1);
-                Vector256<float> t3 = Avx.UnpackHigh(r2, r3);
-                v = Avx.Shuffle(t1, t3, 0x4E);
-                d.V2 = Avx.Blend(t1, v, 0xCC);
-                d.V3 = Avx.Blend(t3, v, 0x33);
-
-                Vector256<float> t5 = Avx.UnpackHigh(r4, r5);
-                Vector256<float> t7 = Avx.UnpackHigh(r6, r7);
-                v = Avx.Shuffle(t5, t7, 0x4E);
-                d.V6 = Avx.Blend(t5, v, 0xCC);
-                d.V7 = Avx.Blend(t7, v, 0x33);
-            }
-            else
-#endif
-            {
-                d.V0L.X = this.V0L.X;
-                d.V1L.X = this.V0L.Y;
-                d.V2L.X = this.V0L.Z;
-                d.V3L.X = this.V0L.W;
-                d.V4L.X = this.V0R.X;
-                d.V5L.X = this.V0R.Y;
-                d.V6L.X = this.V0R.Z;
-                d.V7L.X = this.V0R.W;
-
-                d.V0L.Y = this.V1L.X;
-                d.V1L.Y = this.V1L.Y;
-                d.V2L.Y = this.V1L.Z;
-                d.V3L.Y = this.V1L.W;
-                d.V4L.Y = this.V1R.X;
-                d.V5L.Y = this.V1R.Y;
-                d.V6L.Y = this.V1R.Z;
-                d.V7L.Y = this.V1R.W;
-
-                d.V0L.Z = this.V2L.X;
-                d.V1L.Z = this.V2L.Y;
-                d.V2L.Z = this.V2L.Z;
-                d.V3L.Z = this.V2L.W;
-                d.V4L.Z = this.V2R.X;
-                d.V5L.Z = this.V2R.Y;
-                d.V6L.Z = this.V2R.Z;
-                d.V7L.Z = this.V2R.W;
-
-                d.V0L.W = this.V3L.X;
-                d.V1L.W = this.V3L.Y;
-                d.V2L.W = this.V3L.Z;
-                d.V3L.W = this.V3L.W;
-                d.V4L.W = this.V3R.X;
-                d.V5L.W = this.V3R.Y;
-                d.V6L.W = this.V3R.Z;
-                d.V7L.W = this.V3R.W;
-
-                d.V0R.X = this.V4L.X;
-                d.V1R.X = this.V4L.Y;
-                d.V2R.X = this.V4L.Z;
-                d.V3R.X = this.V4L.W;
-                d.V4R.X = this.V4R.X;
-                d.V5R.X = this.V4R.Y;
-                d.V6R.X = this.V4R.Z;
-                d.V7R.X = this.V4R.W;
-
-                d.V0R.Y = this.V5L.X;
-                d.V1R.Y = this.V5L.Y;
-                d.V2R.Y = this.V5L.Z;
-                d.V3R.Y = this.V5L.W;
-                d.V4R.Y = this.V5R.X;
-                d.V5R.Y = this.V5R.Y;
-                d.V6R.Y = this.V5R.Z;
-                d.V7R.Y = this.V5R.W;
-
-                d.V0R.Z = this.V6L.X;
-                d.V1R.Z = this.V6L.Y;
-                d.V2R.Z = this.V6L.Z;
-                d.V3R.Z = this.V6L.W;
-                d.V4R.Z = this.V6R.X;
-                d.V5R.Z = this.V6R.Y;
-                d.V6R.Z = this.V6R.Z;
-                d.V7R.Z = this.V6R.W;
-
-                d.V0R.W = this.V7L.X;
-                d.V1R.W = this.V7L.Y;
-                d.V2R.W = this.V7L.Z;
-                d.V3R.W = this.V7L.W;
-                d.V4R.W = this.V7R.X;
-                d.V5R.W = this.V7R.Y;
-                d.V6R.W = this.V7R.Z;
-                d.V7R.W = this.V7R.W;
-            }
         }
     }
 }

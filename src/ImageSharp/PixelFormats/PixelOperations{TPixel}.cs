@@ -181,11 +181,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.NotNull(configuration, nameof(configuration));
 
             int count = redChannel.Length;
-            Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
-            Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
-            Guard.IsTrue(destination.Length > count + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
-
-            Guard.DestinationShouldNotBeTooShort(redChannel, destination, nameof(destination));
+            GuardPackFromRgbPlanes(greenChannel, blueChannel, destination, count);
 
             Rgb24 rgb24 = default;
             ref byte r = ref MemoryMarshal.GetReference(redChannel);
@@ -200,6 +196,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                 rgb24.B = Unsafe.Add(ref b, i);
                 Unsafe.Add(ref d, i).FromRgb24(rgb24);
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal static void GuardPackFromRgbPlanes(ReadOnlySpan<byte> greenChannel, ReadOnlySpan<byte> blueChannel, Span<TPixel> destination, int count)
+        {
+            Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
+            Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
+            Guard.IsTrue(destination.Length > count + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
         }
     }
 }

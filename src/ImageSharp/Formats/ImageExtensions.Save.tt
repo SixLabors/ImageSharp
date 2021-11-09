@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.Advanced;
         "Jpeg",
         "Png",
         "Tga",
+        "Webp",
         "Tiff",
     };
 

@@ -28,8 +28,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.NotEqual(color1, color2);
         }
 
-        public static readonly TheoryData<byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte> { { 1, 2, 3 }, { 4, 5, 6 }, { 0, 255, 42 } };
+        public static readonly TheoryData<byte, byte, byte> ColorData = new() { { 1, 2, 3 }, { 4, 5, 6 }, { 0, 255, 42 } };
 
         [Theory]
         [MemberData(nameof(ColorData))]

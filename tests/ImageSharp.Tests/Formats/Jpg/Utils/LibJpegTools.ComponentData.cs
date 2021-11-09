@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
@@ -53,7 +52,41 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 this.MinVal = Math.Min(this.MinVal, data.Min());
                 this.MaxVal = Math.Max(this.MaxVal, data.Max());
-                this.SpectralBlocks[x, y] = new Block8x8(data);
+                this.SpectralBlocks[x, y] = Block8x8.Load(data);
+            }
+
+            public void LoadSpectralStride(Buffer2D<Block8x8> data, int strideIndex)
+            {
+                int startIndex = strideIndex * data.Height;
+
+                int endIndex = Math.Min(this.HeightInBlocks, startIndex + data.Height);
+
+                for (int y = startIndex; y < endIndex; y++)
+                {
+                    Span<Block8x8> blockRow = data.GetRowSpan(y - startIndex);
+                    for (int x = 0; x < this.WidthInBlocks; x++)
+                    {
+                        short[] block = blockRow[x].ToArray();
+
+                        // x coordinate stays the same - we load entire stride
+                        // y coordinate is tricky as we load single stride to full buffer - offset is needed
+                        this.MakeBlock(block, y, x);
+                    }
+                }
+            }
+
+            public void LoadSpectral(JpegComponent c)
+            {
+                Buffer2D<Block8x8> data = c.SpectralBlocks;
+                for (int y = 0; y < this.HeightInBlocks; y++)
+                {
+                    Span<Block8x8> blockRow = data.GetRowSpan(y);
+                    for (int x = 0; x < this.WidthInBlocks; x++)
+                    {
+                        short[] block = blockRow[x].ToArray();
+                        this.MakeBlock(block, y, x);
+                    }
+                }
             }
 
             public static ComponentData Load(JpegComponent c, int index)
@@ -63,16 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     c.HeightInBlocks,
                     index);
 
-                for (int y = 0; y < result.HeightInBlocks; y++)
-                {
-                    Span<Block8x8> blockRow = c.SpectralBlocks.GetRowSpan(y);
-                    for (int x = 0; x < result.WidthInBlocks; x++)
-                    {
-                        short[] data = blockRow[x].ToArray();
-                        result.MakeBlock(data, y, x);
-                    }
-                }
-
+                result.LoadSpectral(c);
                 return result;
             }
 

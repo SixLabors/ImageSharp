@@ -10,9 +10,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
@@ -23,21 +21,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         public static readonly string[] MultiframeTestImages = Multiframes;
 
-        public static readonly string[] NotSupportedImages = NotSupported;
-
         private static TiffDecoder TiffDecoder => new TiffDecoder();
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
         [Theory]
-        [WithFileCollection(nameof(NotSupportedImages), PixelTypes.Rgba32)]
+        [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
+        [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
+        [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
 
         [Theory]
         [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(SmallRgbDeflate, 24, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-        [InlineData(Calliphora_GrayscaleUncompressed, 8, 804, 1198, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+        [InlineData(Calliphora_GrayscaleUncompressed, 8, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
         [InlineData(Flower4BitPalette, 4, 73, 43, 72, 72, PixelResolutionUnit.PixelsPerInch)]
         public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
         {
@@ -85,6 +83,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(FlowerRgb888Planar6Strips, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb888Planar15Strips, PixelTypes.Rgba32)]
+        public void TiffDecoder_Planar<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         [WithFile(PaletteDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(RgbPalette, PixelTypes.Rgba32)]
@@ -107,48 +111,119 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Flower2BitGray, PixelTypes.Rgba32)]
-        public void TiffDecoder_CanDecode_2Bit<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffDecoder_CanDecode_2Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(FlowerRgb222Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb222Planar, PixelTypes.Rgba32)]
-        [WithFile(Flower6BitGray, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_6Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(Flower6BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_6Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(Flower8BitGray, PixelTypes.Rgba32)]
-        public void TiffDecoder_CanDecode_8Bit<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffDecoder_CanDecode_8Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(Flower10BitGray, PixelTypes.Rgba32)]
-        public void TiffDecoder_CanDecode_10Bit<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffDecoder_CanDecode_10Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(FlowerRgb444Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb444Planar, PixelTypes.Rgba32)]
-        [WithFile(Flower12BitGray, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_12Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
-        [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
-        public void TiffDecoder_CanDecode_14Bit<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(Flower12BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_12Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
-        [WithFile(Flower16BitGray, PixelTypes.Rgba32)]
-        public void TiffDecoder_CanDecode_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_14Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower16BitGrayLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower16BitGray, PixelTypes.Rgba32)]
+        [WithFile(Flower16BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower16BitGrayMinIsWhiteBigEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_16Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower16BitGrayPredictorBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower16BitGrayPredictorLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_16Bit_Gray_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower24BitGray, PixelTypes.Rgba32)]
+        [WithFile(Flower24BitGrayLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_24Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(FlowerYCbCr888Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Planar, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush1v1, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush2v2, PixelTypes.Rgba32)]
+        [WithFile(RgbYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Contiguoush2v2, PixelTypes.Rgba32)]
+        [WithFile(FlowerYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_YCbCr_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
+            // converting the pixel data from Magick.Net to our format with YCbCr?
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
 
         [Theory]
         [WithFile(FlowerRgb101010Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb101010Planar, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_30Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Flower32BitGray, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitGrayLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitGrayMinIsWhite, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_32Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(Flower32BitGrayPredictorBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitGrayPredictorLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_32Bit_Gray_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
 
         [Theory]
         [WithFile(FlowerRgb121212Contiguous, PixelTypes.Rgba32)]
@@ -163,9 +238,79 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(FlowerRgb161616Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb161616ContiguousLittleEndian, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb161616Planar, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb161616PlanarLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Issues1716Rgb161616BitLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_48Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FlowerRgb161616PredictorBigEndian, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb161616PredictorLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_48Bit_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FlowerRgb242424Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb242424ContiguousLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb242424Planar, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb242424PlanarLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_72Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(FlowerRgb323232Contiguous, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb323232ContiguousLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb323232Planar, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb323232PlanarLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_96Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(FlowerRgbFloat323232, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgbFloat323232LittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Float_96Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(FlowerRgb323232PredictorBigEndian, PixelTypes.Rgba32)]
+        [WithFile(FlowerRgb323232PredictorLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_96Bit_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(Flower32BitFloatGray, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitFloatGrayLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitFloatGrayMinIsWhite, PixelTypes.Rgba32)]
+        [WithFile(Flower32BitFloatGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Float_96Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
 
         [Theory]
         [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]
@@ -210,11 +355,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(Fax4Compressed, PixelTypes.Rgba32)]
+        [WithFile(Fax4CompressedLowerOrderBitsFirst, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_Fax4Compressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Fax4Compressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(CcittFax3LowerOrderBitsFirst, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Compressed_LowerOrderBitsFirst<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(Calliphora_RgbPackbits, PixelTypes.Rgba32)]
         [WithFile(RgbPackbits, PixelTypes.Rgba32)]
         [WithFile(RgbPackbitsMultistrip, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_PackBitsCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
 
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]

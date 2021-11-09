@@ -39,13 +39,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
             Task readTask = Task.Factory.StartNew(
                 () =>
-            {
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-            }, TaskCreationOptions.LongRunning);
+                {
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                },
+                TaskCreationOptions.LongRunning);
 
             await Task.Delay(5);
             Assert.False(readTask.IsCompleted);
@@ -70,7 +71,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                     await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
                     await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
                     await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
-                }, TaskCreationOptions.LongRunning);
+                },
+                TaskCreationOptions.LongRunning);
             await Task.Delay(5);
             Assert.False(readTask.IsCompleted);
             await this.notifyWaitPositionReachedSemaphore.WaitAsync();

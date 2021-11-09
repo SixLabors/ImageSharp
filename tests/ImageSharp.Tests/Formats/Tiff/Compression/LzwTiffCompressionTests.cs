@@ -5,6 +5,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.IO;
 using Xunit;
 
@@ -38,8 +39,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             using BufferedReadStream stream = CreateCompressedStream(data);
             var buffer = new byte[data.Length];
 
-            using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None);
-            decompressor.Decompress(stream, 0, (uint)stream.Length, buffer);
+            using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false);
+            decompressor.Decompress(stream, 0, (uint)stream.Length, 1, buffer);
 
             Assert.Equal(data, buffer);
         }

@@ -3,7 +3,6 @@
 
 using System.Drawing.Imaging;
 using System.IO;
-
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -72,12 +71,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void TiffCore()
         {
             TiffPhotometricInterpretation photometricInterpretation = TiffPhotometricInterpretation.Rgb;
-
-            // Workaround for 1-bit bug
-            if (this.Compression == TiffCompression.CcittGroup3Fax || this.Compression == TiffCompression.Ccitt1D)
-            {
-                photometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
-            }
 
             var encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
             using var memoryStream = new MemoryStream();

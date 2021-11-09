@@ -26,11 +26,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         [InlineData(new byte[] { 0xFE, 0xAA, 0x02, 0x80, 0x00, 0x2A, 0xFD, 0xAA, 0x03, 0x80, 0x00, 0x2A, 0x22, 0xF7, 0xAA }, new byte[] { 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0xAA, 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0x22, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA })] // Apple PackBits sample
         public void Decompress_ReadsData(byte[] inputData, byte[] expectedResult)
         {
-            var stream = new BufferedReadStream(Configuration.Default, new MemoryStream(inputData));
-            var buffer = new byte[expectedResult.Length];
+            using var memoryStream = new MemoryStream(inputData);
+            using var stream = new BufferedReadStream(Configuration.Default, memoryStream);
+            byte[] buffer = new byte[expectedResult.Length];
 
             using var decompressor = new PackBitsTiffCompression(new ArrayPoolMemoryAllocator(), default, default);
-            decompressor.Decompress(stream, 0, (uint)inputData.Length, buffer);
+            decompressor.Decompress(stream, 0, (uint)inputData.Length, 1, buffer);
 
             Assert.Equal(expectedResult, buffer);
         }
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         {
             // arrange
             Span<byte> input = inputData.AsSpan();
-            var compressed = new byte[expectedResult.Length];
+            byte[] compressed = new byte[expectedResult.Length];
 
             // act
             PackBitsWriter.PackBits(input, compressed);

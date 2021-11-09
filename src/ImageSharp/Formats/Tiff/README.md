@@ -25,7 +25,7 @@
 
 ## Implementation Status
 
-- The Decoder and Encoder currently only supports a single frame per image.
+- The Decoder currently only supports a single frame per image.
 - Some compression formats are not yet supported. See the list below.
 
 ### Deviations from the TIFF spec (to be fixed)
@@ -45,10 +45,10 @@
 |Ccitt1D                    |   Y   |   Y   |                          |
 |PackBits                   |   Y   |   Y   |                          |
 |CcittGroup3Fax             |   Y   |   Y   |                          |
-|CcittGroup4Fax             |       |       |                          |
+|CcittGroup4Fax             |       |   Y   |                          |
 |Lzw                        |   Y   |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
 |Old Jpeg                   |       |       | We should not even try to support this |
-|Jpeg (Technote 2)          |       |       |                          |
+|Jpeg (Technote 2)          |   Y   |   Y   |                          |
 |Deflate (Technote 2)       |   Y   |   Y   | Based on PNG Deflate.    |
 |Old Deflate (Technote 2)   |       |   Y   |                          |
 
@@ -63,7 +63,7 @@
 |PaletteColor               |   Y   |   Y   | General implementation only |
 |TransparencyMask           |       |       |                          |
 |Separated (TIFF Extension) |       |       |                          |
-|YCbCr (TIFF Extension)     |       |       |                          |
+|YCbCr (TIFF Extension)     |       |   Y   |                          |
 |CieLab (TIFF Extension)    |       |       |                          |
 |IccLab (TechNote 1)        |       |       |                          |
 
@@ -81,7 +81,7 @@
 |Thresholding               |       |       |                          |
 |CellWidth                  |       |       |                          |
 |CellLength                 |       |       |                          |
-|FillOrder                  |       |   -   | Ignore. In practice is very uncommon, and is not recommended. |
+|FillOrder                  |       |   Y   | 						   |
 |ImageDescription           |   Y   |   Y   |                          |
 |Make                       |   Y   |   Y   |                          |
 |Model                      |   Y   |   Y   |                          |
@@ -165,10 +165,10 @@
 |JPEGQTables                |       |       |                          |
 |JPEGDCTables               |       |       |                          |
 |JPEGACTables               |       |       |                          |
-|YCbCrCoefficients          |       |       |                          |
-|YCbCrSubSampling           |       |       |                          |
+|YCbCrCoefficients          |       |   Y   |                          |
+|YCbCrSubSampling           |       |   Y   |                          |
 |YCbCrPositioning           |       |       |                          |
-|ReferenceBlackWhite        |       |       |                          |
+|ReferenceBlackWhite        |       |   Y   |                          |
 |StripRowCounts             |   -   |   -   | See RFC 2301 (File Format for Internet Fax). |
 |XMP                        |   Y   |   Y   |                          |
 |ImageID                    |       |       |                          |

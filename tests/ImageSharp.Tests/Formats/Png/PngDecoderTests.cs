@@ -368,6 +368,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Assert.Null(ex);
         }
 
+        // https://github.com/SixLabors/ImageSharp/issues/1765
+        [Theory]
+        [WithFile(TestImages.Png.Issue1765_Net6DeflateStreamRead, PixelTypes.Rgba32)]
+        public void Issue1765<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            System.Exception ex = Record.Exception(
+                () =>
+                {
+                    using (Image<TPixel> image = provider.GetImage(PngDecoder))
+                    {
+                        image.DebugSave(provider);
+                        image.CompareToOriginal(provider, ImageComparer.Exact);
+                    }
+                });
+            Assert.Null(ex);
+        }
+
         // https://github.com/SixLabors/ImageSharp/issues/410
         [Theory]
         [WithFile(TestImages.Png.Bad.Issue410_MalformedApplePng, PixelTypes.Rgba32)]

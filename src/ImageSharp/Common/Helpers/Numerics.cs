@@ -879,5 +879,13 @@ namespace SixLabors.ImageSharp
                 (IntPtr)(int)((value * 0x07C4ACDDu) >> 27)); // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
         }
 #endif
+
+        /// <summary>
+        /// Fast division with ceiling for <see cref="uint"/> numbers.
+        /// </summary>
+        /// <param name="value">Divident value.</param>
+        /// <param name="divisor">Divisor value.</param>
+        /// <returns>Ceiled division result.</returns>
+        public static uint DivideCeil(uint value, uint divisor) => (value + divisor - 1) / divisor;
     }
 }

@@ -58,22 +58,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Temporal 16x8 block to hold TPixel data
         /// </summary>
-        private Span<TPixel> pixelSpan;
+        private readonly Span<TPixel> pixelSpan;
 
         /// <summary>
         /// Temporal RGB block
         /// </summary>
-        private Span<Rgb24> rgbSpan;
+        private readonly Span<Rgb24> rgbSpan;
 
         /// <summary>
         /// Sampled pixel buffer size
         /// </summary>
-        private Size samplingAreaSize;
+        private readonly Size samplingAreaSize;
 
         /// <summary>
         /// <see cref="Configuration"/> for internal operations
         /// </summary>
-        private Configuration config;
+        private readonly Configuration config;
 
         public YCbCrForwardConverter420(ImageFrame<TPixel> frame)
         {

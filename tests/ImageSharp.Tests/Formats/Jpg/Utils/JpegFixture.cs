@@ -5,10 +5,10 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -189,6 +189,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             Assert.False(failed);
         }
 
+        internal static bool CompareBlocks(Block8x8 a, Block8x8 b, int tolerance, out int diff)
+        {
+            bool res = CompareBlocks(a.AsFloatBlock(), b.AsFloatBlock(), tolerance + 1e-5f, out float fdiff);
+            diff = (int)fdiff;
+            return res;
+        }
+
+        internal static bool CompareBlocks(Block8x8F a, Block8x8F b, float tolerance, out float diff) =>
+            CompareBlocks(a.ToArray(), b.ToArray(), tolerance, out diff);
+
+        internal static bool CompareBlocks(Span<float> a, Span<float> b, float tolerance, out float diff)
+        {
+            var comparer = new ApproximateFloatComparer(tolerance);
+            bool failed = false;
+
+            diff = 0;
+
+            for (int i = 0; i < 64; i++)
+            {
+                float expected = a[i];
+                float actual = b[i];
+                diff += Math.Abs(expected - actual);
+
+                if (!comparer.Equals(expected, actual))
+                {
+                    failed = true;
+                }
+            }
+
+            return !failed;
+        }
+
         internal static JpegDecoderCore ParseJpegStream(string testFileName, bool metaDataOnly = false)
         {
             byte[] bytes = TestFile.Create(testFileName).Bytes;
@@ -196,7 +228,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-            decoder.ParseStream(bufferedStream, metaDataOnly);
+            if (metaDataOnly)
+            {
+                decoder.Identify(bufferedStream, cancellationToken: default);
+            }
+            else
+            {
+                using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
+            }
 
             return decoder;
         }

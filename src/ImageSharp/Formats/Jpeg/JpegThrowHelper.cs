@@ -9,6 +9,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     internal static class JpegThrowHelper
     {
         /// <summary>
+        /// Cold path optimization for throwing <see cref="NotSupportedException"/>'s.
+        /// </summary>
+        /// <param name="errorMessage">The error message for the exception.</param>
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNotSupportedException(string errorMessage) => throw new NotSupportedException(errorMessage);
+
+        /// <summary>
         /// Cold path optimization for throwing <see cref="InvalidImageContentException"/>'s.
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>
@@ -36,7 +43,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowBadMarker(string marker, int length) => throw new InvalidImageContentException($"Marker {marker} has bad length {length}.");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowBadQuantizationTable() => throw new InvalidImageContentException("Bad Quantization Table index.");
+        public static void ThrowBadQuantizationTableIndex(int index) => throw new InvalidImageContentException($"Bad Quantization Table index {index}.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowBadQuantizationTablePrecision(int precision) => throw new InvalidImageContentException($"Unknown Quantization Table precision {precision}.");
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowBadSampling() => throw new InvalidImageContentException("Bad sampling factor.");

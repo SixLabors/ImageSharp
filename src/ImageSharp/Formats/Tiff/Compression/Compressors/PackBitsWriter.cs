@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         private static bool IsReplicateRun(ReadOnlySpan<byte> rowSpan, int startPos)
         {
             // We consider run which has at least 3 same consecutive bytes a candidate for a run.
-            var startByte = rowSpan[startPos];
+            byte startByte = rowSpan[startPos];
             int count = 0;
             for (int i = startPos + 1; i < rowSpan.Length; i++)
             {

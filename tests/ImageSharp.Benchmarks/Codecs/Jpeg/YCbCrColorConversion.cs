@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYCbCrBasic(8).ConvertToRgba(values, this.Output);
+            new JpegColorConverter.FromYCbCrBasic(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark(Baseline = true)]
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYCbCrVector4(8).ConvertToRgba(values, this.Output);
+            new JpegColorConverter.FromYCbCrVector4(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYCbCrVector8(8).ConvertToRgba(values, this.Output);
+            new JpegColorConverter.FromYCbCrVector8(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYCbCrAvx2(8).ConvertToRgba(values, this.Output);
+            new JpegColorConverter.FromYCbCrAvx2(8).ConvertToRgbInplace(values);
         }
     }
 }

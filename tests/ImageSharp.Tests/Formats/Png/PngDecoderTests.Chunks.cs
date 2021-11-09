@@ -4,7 +4,6 @@
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
-
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 

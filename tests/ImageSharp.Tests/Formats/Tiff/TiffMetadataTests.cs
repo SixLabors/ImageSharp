@@ -12,11 +12,11 @@ using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
@@ -278,8 +278,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             PixelResolutionUnit resolutionUnitInput = UnitConverter.ExifProfileToResolutionUnit(exifProfileInput);
             PixelResolutionUnit resolutionUnitEncoded = UnitConverter.ExifProfileToResolutionUnit(encodedImageExifProfile);
             Assert.Equal(resolutionUnitInput, resolutionUnitEncoded);
-            Assert.Equal(exifProfileInput.GetValue(ExifTag.XResolution), encodedImageExifProfile.GetValue(ExifTag.XResolution));
-            Assert.Equal(exifProfileInput.GetValue(ExifTag.YResolution), encodedImageExifProfile.GetValue(ExifTag.YResolution));
+            Assert.Equal(exifProfileInput.GetValue(ExifTag.XResolution).Value.ToDouble(), encodedImageExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
+            Assert.Equal(exifProfileInput.GetValue(ExifTag.YResolution).Value.ToDouble(), encodedImageExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
 
             Assert.Equal(xmpProfileInput, encodedImageXmpProfile);
 

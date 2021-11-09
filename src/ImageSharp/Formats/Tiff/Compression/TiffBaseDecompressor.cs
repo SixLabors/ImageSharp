@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -15,8 +14,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
     /// </summary>
     internal abstract class TiffBaseDecompressor : TiffBaseCompression
     {
-        protected TiffBaseDecompressor(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
-         : base(allocator, width, bitsPerPixel, predictor)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TiffBaseDecompressor"/> class.
+        /// </summary>
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="bitsPerPixel">The bits per pixel.</param>
+        /// <param name="predictor">The predictor.</param>
+        protected TiffBaseDecompressor(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
+         : base(memoryAllocator, width, bitsPerPixel, predictor)
         {
         }
 
@@ -26,8 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <param name="stream">The <see cref="Stream" /> to read image data from.</param>
         /// <param name="stripOffset">The strip offset of stream.</param>
         /// <param name="stripByteCount">The number of bytes to read from the input stream.</param>
+        /// <param name="stripHeight">The height of the strip.</param>
         /// <param name="buffer">The output buffer for uncompressed data.</param>
-        public void Decompress(BufferedReadStream stream, uint stripOffset, uint stripByteCount, Span<byte> buffer)
+        public void Decompress(BufferedReadStream stream, uint stripOffset, uint stripByteCount, int stripHeight, Span<byte> buffer)
         {
             if (stripByteCount > int.MaxValue)
             {
@@ -35,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             }
 
             stream.Seek(stripOffset, SeekOrigin.Begin);
-            this.Decompress(stream, (int)stripByteCount, buffer);
+            this.Decompress(stream, (int)stripByteCount, stripHeight, buffer);
 
             if (stripOffset + stripByteCount < stream.Position)
             {
@@ -48,7 +55,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// </summary>
         /// <param name="stream">The <see cref="Stream" /> to read image data from.</param>
         /// <param name="byteCount">The number of bytes to read from the input stream.</param>
+        /// <param name="stripHeight">The height of the strip.</param>
         /// <param name="buffer">The output buffer for uncompressed data.</param>
-        protected abstract void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer);
+        protected abstract void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer);
     }
 }

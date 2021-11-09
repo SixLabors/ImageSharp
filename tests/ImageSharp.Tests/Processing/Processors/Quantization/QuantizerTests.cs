@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
@@ -152,6 +152,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             new WuQuantizer(OrderedDitherOptions),
         };
 
+        public static readonly TheoryData<IDither> DefaultInstanceDitherers
+            = new TheoryData<IDither>
+            {
+                default(ErrorDither),
+                default(OrderedDither)
+            };
+
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05F);
 
         [Theory]
@@ -216,6 +223,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
                 comparer: ValidatorComparer,
                 testOutputDetails: testOutputDetails,
                 appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [MemberData(nameof(DefaultInstanceDitherers))]
+        public void ShouldThrowForDefaultDitherInstance(IDither dither)
+        {
+            void Command()
+            {
+                using var image = new Image<Rgba32>(10, 10);
+                var quantizer = new WebSafePaletteQuantizer();
+                quantizer.Options.Dither = dither;
+                image.Mutate(x => x.Quantize(quantizer));
+            }
+
+            Assert.Throws<ImageProcessingException>(Command);
         }
     }
 }

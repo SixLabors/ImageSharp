@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             this.benchmarks = new LoadResizeSaveStressRunner()
             {
                 // MaxDegreeOfParallelism = 10,
-                // Filter = JpegKind.Baseline
+                Filter = JpegKind.Baseline,
             };
             this.benchmarks.Init();
         }
@@ -58,6 +58,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                         lrs.SystemDrawingBenchmarkParallel();
                         break;
                     case ConsoleKey.D2:
+                        Console.WriteLine($"Images: {lrs.benchmarks.Images.Length}");
                         lrs.ImageSharpBenchmarkParallel();
                         break;
                     case ConsoleKey.D3:
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
                 return bld.ToString();
 
-                static string L(string header) => new ('-', header.Length);
+                static string L(string header) => new('-', header.Length);
                 static string F(string column) => $"{{0,{column.Length}:f3}}";
             }
         }

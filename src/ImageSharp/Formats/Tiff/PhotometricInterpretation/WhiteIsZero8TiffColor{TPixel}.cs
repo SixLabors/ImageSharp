@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -24,14 +24,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var l8 = default(L8);
             for (int y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x++)
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
+                for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    byte intensity = (byte)(255 - data[offset++]);
-
-                    l8.PackedValue = intensity;
-                    color.FromL8(l8);
-
-                    pixels[x, y] = color;
+                    byte intensity = (byte)(byte.MaxValue - data[offset++]);
+                    pixelRow[x] = TiffUtils.ColorFromL8(l8, intensity, color);
                 }
             }
         }

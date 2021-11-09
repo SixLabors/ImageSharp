@@ -19,41 +19,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected override void ConvertCoreVectorized(in ComponentValues values, Span<Vector4> result)
+            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
             {
-                ref Vector<float> yBase =
+                ref Vector<float> c0Base =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
-                ref Vector<float> cbBase =
+                ref Vector<float> c1Base =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
-                ref Vector<float> crBase =
+                ref Vector<float> c2Base =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
-
-                ref Vector4Octet resultBase =
-                    ref Unsafe.As<Vector4, Vector4Octet>(ref MemoryMarshal.GetReference(result));
 
                 var chromaOffset = new Vector<float>(-this.HalfValue);
 
                 // Walking 8 elements at one step:
-                int n = result.Length / 8;
-
-                Vector4Pair rr = default;
-                Vector4Pair gg = default;
-                Vector4Pair bb = default;
-
-                ref Vector<float> rrRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref rr);
-                ref Vector<float> ggRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref gg);
-                ref Vector<float> bbRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref bb);
-
+                nint n = values.Component0.Length / 8;
                 var scale = new Vector<float>(1 / this.MaximumValue);
 
-                for (int i = 0; i < n; i++)
+                for (nint i = 0; i < n; i++)
                 {
                     // y = yVals[i];
                     // cb = cbVals[i] - 128F;
                     // cr = crVals[i] - 128F;
-                    Vector<float> y = Unsafe.Add(ref yBase, i);
-                    Vector<float> cb = Unsafe.Add(ref cbBase, i) + chromaOffset;
-                    Vector<float> cr = Unsafe.Add(ref crBase, i) + chromaOffset;
+                    ref Vector<float> c0 = ref Unsafe.Add(ref c0Base, i);
+                    ref Vector<float> c1 = ref Unsafe.Add(ref c1Base, i);
+                    ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
+                    Vector<float> y = Unsafe.Add(ref c0Base, i);
+                    Vector<float> cb = Unsafe.Add(ref c1Base, i) + chromaOffset;
+                    Vector<float> cr = Unsafe.Add(ref c2Base, i) + chromaOffset;
 
                     // r = y + (1.402F * cr);
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
@@ -70,18 +61,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     g *= scale;
                     b *= scale;
 
-                    rrRefAsVector = r;
-                    ggRefAsVector = g;
-                    bbRefAsVector = b;
-
-                    // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
-                    ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);
-                    destination.Pack(ref rr, ref gg, ref bb);
+                    c0 = r;
+                    c1 = g;
+                    c2 = b;
                 }
             }
 
-            protected override void ConvertCore(in ComponentValues values, Span<Vector4> result) =>
-                FromYCbCrBasic.ConvertCore(values, result, this.MaximumValue, this.HalfValue);
+            protected override void ConvertCoreInplace(in ComponentValues values) =>
+                FromYCbCrBasic.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
         }
     }
 }

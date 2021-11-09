@@ -153,8 +153,54 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             }
         }
 
+        private static void RunPredictor12Test()
+        {
+            // arrange
+            uint[] topData = { 4294844413, 4294779388 };
+            uint left = 4294844413;
+            uint expectedResult = 4294779388;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[1])
+                {
+                    uint actual = LosslessUtils.Predictor12(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
+        private static void RunPredictor13Test()
+        {
+            // arrange
+            uint[] topData = { 4278193922, 4278193666 };
+            uint left = 4278193410;
+            uint expectedResult = 4278193154;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[1])
+                {
+                    uint actual = LosslessUtils.Predictor13(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
         [Fact]
         public void Predictor11_Works() => RunPredictor11Test();
+
+        [Fact]
+        public void Predictor12_Works() => RunPredictor12Test();
+
+        [Fact]
+        public void Predictor13_Works() => RunPredictor13Test();
 
         [Fact]
         public void SubtractGreen_Works() => RunSubtractGreenTest();
@@ -174,6 +220,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Fact]
         public void Predictor11_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor11Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Predictor12_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor12Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor12_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor12Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Predictor13_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor13Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor13_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor13Test, HwIntrinsics.DisableSSE2);
 
         [Fact]
         public void SubtractGreen_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.AllowAll);

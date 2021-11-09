@@ -27,8 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-                Span<int> tmp = stackalloc int[4];
-
                 // Load values.
                 Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a));
                 Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(a.Slice(WebpConstants.Bps, 8)));
@@ -58,9 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1.AsInt16(), d1.AsInt16());
                 Vector128<int> sum = Sse2.Add(e0, e1);
 
-                ref int outputRef = ref MemoryMarshal.GetReference(tmp);
-                Unsafe.As<int, Vector128<int>>(ref outputRef) = sum;
-                return tmp[3] + tmp[2] + tmp[1] + tmp[0];
+                return Numerics.ReduceSum(sum);
             }
             else
 #endif
@@ -658,9 +654,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         public static int TTransformSse41(Span<byte> inputA, Span<byte> inputB, Span<ushort> w, Span<int> scratch)
         {
-            Span<int> sum = scratch.Slice(0, 4);
-            sum.Clear();
-
             // Load and combine inputs.
             Vector128<byte> ina0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(inputA));
             Vector128<byte> ina1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(inputA.Slice(WebpConstants.Bps, 16)));
@@ -765,9 +758,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // difference of weighted sums.
             Vector128<int> result = Sse2.Subtract(ab0ab2Sum.AsInt32(), b0w0bb2w8Sum.AsInt32());
 
-            ref int outputRef = ref MemoryMarshal.GetReference(sum);
-            Unsafe.As<int, Vector128<int>>(ref outputRef) = result.AsInt32();
-            return sum[3] + sum[2] + sum[1] + sum[0];
+            return Numerics.ReduceSum(result);
         }
 #endif
 

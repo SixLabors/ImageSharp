@@ -11,22 +11,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
     [Trait("Format", "Webp")]
     public class QuantEncTests
     {
-        private static void RunQuantizeBlockTest()
+        private static unsafe void RunQuantizeBlockTest()
         {
             // arrange
             short[] input = { 378, 777, -851, 888, 259, 148, 0, -111, -185, -185, -74, -37, 148, 74, 111, 74 };
             short[] output = new short[16];
             ushort[] q = { 42, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37 };
             ushort[] iq = { 3120, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542, 3542 };
-            uint[] bias =
-            {
-                49152, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296,
-                55296, 55296
-            };
+            uint[] bias = { 49152, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296, 55296 };
             uint[] zthresh = { 26, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21 };
             short[] expectedOutput = { 9, 21, 7, -5, 4, -23, 24, 0, -5, 4, 2, -2, -3, -1, 3, 2 };
             int expectedResult = 1;
-            var vp8Matrix = new Vp8Matrix(q, iq, bias, zthresh, new short[16]);
+            Vp8Matrix vp8Matrix = default;
+            for (int i = 0; i < 16; i++)
+            {
+                vp8Matrix.Q[i] = q[i];
+                vp8Matrix.IQ[i] = iq[i];
+                vp8Matrix.Bias[i] = bias[i];
+                vp8Matrix.ZThresh[i] = zthresh[i];
+            }
 
             // act
             int actualResult = QuantEnc.QuantizeBlock(input, output, vp8Matrix);

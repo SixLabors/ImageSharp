@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
-    internal class Vp8Matrix
+    internal unsafe struct Vp8Matrix
     {
         private static readonly int[][] BiasMatrices =
         {
@@ -23,50 +23,29 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private const int SharpenBits = 11;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Vp8Matrix"/> class.
+        /// The quantizer steps.
         /// </summary>
-        public Vp8Matrix()
-        {
-            this.Q = new ushort[16];
-            this.IQ = new ushort[16];
-            this.Bias = new uint[16];
-            this.ZThresh = new uint[16];
-            this.Sharpen = new short[16];
-        }
-
-        public Vp8Matrix(ushort[] q, ushort[] iq, uint[] bias, uint[] zThresh, short[] sharpen)
-        {
-            this.Q = q;
-            this.IQ = iq;
-            this.Bias = bias;
-            this.ZThresh = zThresh;
-            this.Sharpen = sharpen;
-        }
+        public fixed ushort Q[16];
 
         /// <summary>
-        /// Gets the quantizer steps.
+        /// The reciprocals, fixed point.
         /// </summary>
-        public ushort[] Q { get; }
+        public fixed ushort IQ[16];
 
         /// <summary>
-        /// Gets the reciprocals, fixed point.
+        /// The rounding bias.
         /// </summary>
-        public ushort[] IQ { get; }
+        public fixed uint Bias[16];
 
         /// <summary>
-        /// Gets the rounding bias.
+        /// The value below which a coefficient is zeroed.
         /// </summary>
-        public uint[] Bias { get; }
+        public fixed uint ZThresh[16];
 
         /// <summary>
-        /// Gets the value below which a coefficient is zeroed.
+        /// The frequency boosters for slight sharpening.
         /// </summary>
-        public uint[] ZThresh { get; }
-
-        /// <summary>
-        /// Gets the frequency boosters for slight sharpening.
-        /// </summary>
-        public short[] Sharpen { get; }
+        public fixed short Sharpen[16];
 
         /// <summary>
         /// Returns the average quantizer.
@@ -81,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 int isAcCoeff = i > 0 ? 1 : 0;
                 int bias = BiasMatrices[type][isAcCoeff];
                 this.IQ[i] = (ushort)((1 << WebpConstants.QFix) / this.Q[i]);
-                this.Bias[i] = (uint)this.BIAS(bias);
+                this.Bias[i] = (uint)BIAS(bias);
 
                 // zthresh is the exact value such that QUANTDIV(coeff, iQ, B) is:
                 //   * zero if coeff <= zthresh
@@ -115,6 +94,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return (sum + 8) >> 4;
         }
 
-        private int BIAS(int b) => b << (WebpConstants.QFix - 8);
+        private static int BIAS(int b) => b << (WebpConstants.QFix - 8);
     }
 }

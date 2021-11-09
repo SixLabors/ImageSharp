@@ -541,18 +541,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // Load all inputs.
                 Vector128<short> input0 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(input));
                 Vector128<short> input8 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(input.Slice(8, 8)));
-                Vector128<ushort> iq0 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.IQ.AsSpan(0, 8)));
-                Vector128<ushort> iq8 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.IQ.AsSpan(8, 8)));
-                Vector128<ushort> q0 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.Q.AsSpan(0, 8)));
-                Vector128<ushort> q8 = Unsafe.As<ushort, Vector128<ushort>>(ref MemoryMarshal.GetReference(mtx.Q.AsSpan(8, 8)));
+                Vector128<ushort> iq0 = Unsafe.As<ushort, Vector128<ushort>>(ref mtx.IQ[0]);
+                Vector128<ushort> iq8 = Unsafe.As<ushort, Vector128<ushort>>(ref mtx.IQ[8]);
+                Vector128<ushort> q0 = Unsafe.As<ushort, Vector128<ushort>>(ref mtx.Q[0]);
+                Vector128<ushort> q8 = Unsafe.As<ushort, Vector128<ushort>>(ref mtx.Q[8]);
 
                 // coeff = abs(in)
                 Vector128<ushort> coeff0 = Ssse3.Abs(input0);
                 Vector128<ushort> coeff8 = Ssse3.Abs(input8);
 
                 // coeff = abs(in) + sharpen
-                Vector128<short> sharpen0 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(mtx.Sharpen.AsSpan(0, 8)));
-                Vector128<short> sharpen8 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(mtx.Sharpen.AsSpan(8, 8)));
+                Vector128<short> sharpen0 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[0]);
+                Vector128<short> sharpen8 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[8]);
                 Sse2.Add(coeff0.AsInt16(), sharpen0);
                 Sse2.Add(coeff8.AsInt16(), sharpen8);
 
@@ -569,10 +569,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<ushort> out12 = Sse2.UnpackHigh(coeffiQ8L, coeffiQ8H);
 
                 // out = (coeff * iQ + B)
-                Vector128<uint> bias00 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(0, 4)));
-                Vector128<uint> bias04 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(4, 4)));
-                Vector128<uint> bias08 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(8, 4)));
-                Vector128<uint> bias12 = Unsafe.As<uint, Vector128<uint>>(ref MemoryMarshal.GetReference(mtx.Bias.AsSpan(12, 4)));
+                Vector128<uint> bias00 = Unsafe.As<uint, Vector128<uint>>(ref mtx.Bias[0]);
+                Vector128<uint> bias04 = Unsafe.As<uint, Vector128<uint>>(ref mtx.Bias[4]);
+                Vector128<uint> bias08 = Unsafe.As<uint, Vector128<uint>>(ref mtx.Bias[8]);
+                Vector128<uint> bias12 = Unsafe.As<uint, Vector128<uint>>(ref mtx.Bias[12]);
                 out00 = Sse2.Add(out00.AsInt32(), bias00.AsInt32()).AsUInt16();
                 out04 = Sse2.Add(out04.AsInt32(), bias04.AsInt32()).AsUInt16();
                 out08 = Sse2.Add(out08.AsInt32(), bias08.AsInt32()).AsUInt16();

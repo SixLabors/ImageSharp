@@ -97,18 +97,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public void Clear()
         {
-            this.YDcLevels.AsSpan().Clear();
-            this.YAcLevels.AsSpan().Clear();
-            this.UvLevels.AsSpan().Clear();
-            this.ModesI4.AsSpan().Clear();
-
-            for (int i = 0; i < 2; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
-                    this.Derr[i, j] = 0;
-                }
-            }
+            Array.Clear(this.YDcLevels, 0, this.YDcLevels.Length);
+            Array.Clear(this.YAcLevels, 0, this.YAcLevels.Length);
+            Array.Clear(this.UvLevels, 0, this.UvLevels.Length);
+            Array.Clear(this.ModesI4, 0, this.ModesI4.Length);
+            Array.Clear(this.Derr, 0, this.Derr.Length);
         }
 
         public void InitScore()

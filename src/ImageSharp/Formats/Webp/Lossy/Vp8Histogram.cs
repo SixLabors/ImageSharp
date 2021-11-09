@@ -49,7 +49,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.distribution.AsSpan().Clear();
             for (j = startBlock; j < endBlock; j++)
             {
-                this.output.AsSpan().Clear();
                 this.Vp8FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), this.output);
 
                 // Convert coefficients to bin.

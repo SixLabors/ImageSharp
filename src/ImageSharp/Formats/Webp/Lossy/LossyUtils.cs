@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
-                int diffSum = TTransformSse41(a, b, w, scratch);
+                int diffSum = TTransformSse41(a, b, w);
                 return Math.Abs(diffSum) >> 5;
             }
             else
@@ -654,7 +654,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Returns the weighted sum of the absolute value of transformed coefficients.
         /// w[] contains a row-major 4 by 4 symmetric matrix.
         /// </summary>
-        public static int TTransformSse41(Span<byte> inputA, Span<byte> inputB, Span<ushort> w, Span<int> scratch)
+        public static int TTransformSse41(Span<byte> inputA, Span<byte> inputB, Span<ushort> w)
         {
             // Load and combine inputs.
             Vector128<byte> ina0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(inputA));

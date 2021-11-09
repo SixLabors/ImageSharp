@@ -969,10 +969,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> hadd = Ssse3.HorizontalAdd(f0.AsInt16(), f0.AsInt16());
                 Vector64<short> lower = hadd.GetLower();
 
-                dc[0] = (uint)lower.GetElement(0);
-                dc[1] = (uint)lower.GetElement(1);
-                dc[2] = (uint)lower.GetElement(2);
                 dc[3] = (uint)lower.GetElement(3);
+                dc[2] = (uint)lower.GetElement(2);
+                dc[1] = (uint)lower.GetElement(1);
+                dc[0] = (uint)lower.GetElement(0);
             }
             else
 #endif

@@ -52,7 +52,12 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             {
                 Console.WriteLine("Running ImageSharp with options:");
                 Console.WriteLine(options.ToString());
-                Configuration.Default.MemoryAllocator = options.CreateMemoryAllocator();
+
+                if (!options.KeepDefaultAllocator)
+                {
+                    MemoryAllocator.Default = Configuration.Default.MemoryAllocator = options.CreateMemoryAllocator();
+                }
+
                 timer = Stopwatch.StartNew();
                 try
                 {
@@ -197,6 +202,9 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('i', "imagesharp", Required = false, Default = false, HelpText = "Test ImageSharp without benchmark switching")]
             public bool ImageSharp { get; set; }
 
+            [Option('d', "default-allocator", Required = false, Default = false, HelpText = "Keep default MemoryAllocator and ignore all settings")]
+            public bool KeepDefaultAllocator { get; set; }
+
             [Option('m', "max-contiguous", Required = false, Default = 4, HelpText = "Maximum size of contiguous pool buffers in MegaBytes")]
             public int MaxContiguousPoolBufferMegaBytes { get; set; } = 4;
 
@@ -244,7 +252,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_d({this.KeepDefaultAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd})";
 
             public MemoryAllocator CreateMemoryAllocator()
             {

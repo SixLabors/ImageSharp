@@ -36,7 +36,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         {
             try
             {
-                Console.WriteLine("WUT: " + GetNetCoreVersion());
                 LoadResizeSaveParallelMemoryStress.Run(args);
             }
             catch (Exception ex)

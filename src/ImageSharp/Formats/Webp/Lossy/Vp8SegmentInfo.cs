@@ -8,19 +8,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     internal class Vp8SegmentInfo
     {
         /// <summary>
-        /// Gets or sets the quantization matrix y1.
+        /// Gets the quantization matrix y1.
         /// </summary>
-        public Vp8Matrix Y1 { get; set; }
+#pragma warning disable SA1401 // Fields should be private
+        public Vp8Matrix Y1;
 
         /// <summary>
-        /// Gets or sets the quantization matrix y2.
+        /// Gets the quantization matrix y2.
         /// </summary>
-        public Vp8Matrix Y2 { get; set; }
+        public Vp8Matrix Y2;
 
         /// <summary>
-        /// Gets or sets the quantization matrix uv.
+        /// Gets the quantization matrix uv.
         /// </summary>
-        public Vp8Matrix Uv { get; set; }
+        public Vp8Matrix Uv;
+#pragma warning restore SA1401 // Fields should be private
 
         /// <summary>
         /// Gets or sets the quant-susceptibility, range [-127,127]. Zero is neutral. Lower values indicate a lower risk of blurriness.

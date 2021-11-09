@@ -502,7 +502,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.ResetStats();
         }
 
-        private void AdjustFilterStrength()
+        private unsafe void AdjustFilterStrength()
         {
             if (this.filterStrength > 0)
             {
@@ -806,17 +806,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             proba.NbSkip = 0;
         }
 
-        private void SetupMatrices(Vp8SegmentInfo[] dqm)
+        private unsafe void SetupMatrices(Vp8SegmentInfo[] dqm)
         {
             int tlambdaScale = this.method >= WebpEncodingMethod.Default ? this.spatialNoiseShaping : 0;
             for (int i = 0; i < dqm.Length; i++)
             {
                 Vp8SegmentInfo m = dqm[i];
                 int q = m.Quant;
-
-                m.Y1 = new Vp8Matrix();
-                m.Y2 = new Vp8Matrix();
-                m.Uv = new Vp8Matrix();
 
                 m.Y1.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqY1Dc, 0, 127)];
                 m.Y1.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q, 0, 127)];

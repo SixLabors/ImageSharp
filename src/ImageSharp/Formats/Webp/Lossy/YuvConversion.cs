@@ -307,9 +307,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void YuvToBgr(int y, int u, int v, Span<byte> bgr)
         {
-            bgr[0] = (byte)YuvToB(y, u);
-            bgr[1] = (byte)YuvToG(y, u, v);
             bgr[2] = (byte)YuvToR(y, v);
+            bgr[1] = (byte)YuvToG(y, u, v);
+            bgr[0] = (byte)YuvToB(y, u);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

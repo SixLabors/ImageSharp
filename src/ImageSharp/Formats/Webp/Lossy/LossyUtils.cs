@@ -945,7 +945,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static void Mean16x4(Span<byte> input, Span<uint> dc)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse2.IsSupported)
+            if (Ssse3.IsSupported)
             {
                 Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input));
                 Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps, 16)));

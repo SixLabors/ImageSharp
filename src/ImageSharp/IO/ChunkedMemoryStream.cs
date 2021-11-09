@@ -243,7 +243,7 @@ namespace SixLabors.ImageSharp.IO
             const string bufferMessage = "Offset subtracted from the buffer length is less than count.";
             Guard.IsFalse(buffer.Length - offset < count, nameof(buffer), bufferMessage);
 
-            return this.ReadImpl(buffer.AsSpan().Slice(offset, count));
+            return this.ReadImpl(buffer.AsSpan(offset, count));
         }
 
 #if SUPPORTS_SPAN_STREAM
@@ -359,7 +359,7 @@ namespace SixLabors.ImageSharp.IO
             const string bufferMessage = "Offset subtracted from the buffer length is less than count.";
             Guard.IsFalse(buffer.Length - offset < count, nameof(buffer), bufferMessage);
 
-            this.WriteImpl(buffer.AsSpan().Slice(offset, count));
+            this.WriteImpl(buffer.AsSpan(offset, count));
         }
 
 #if SUPPORTS_SPAN_STREAM

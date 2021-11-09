@@ -35,6 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         /// <summary>
         /// Gets the number of entropy-analysis passes (in [1..10]).
+        /// Defaults to 1.
         /// </summary>
         int EntropyPasses { get; }
 

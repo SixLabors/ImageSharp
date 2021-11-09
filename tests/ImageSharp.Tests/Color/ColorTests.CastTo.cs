@@ -90,16 +90,25 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void TPixel()
+            public void GenericPixel()
             {
-                var source = new RgbaVector(float.Epsilon, 2 * float.Epsilon, float.MaxValue, float.MinValue);
+                AssertGenericPixel(new RgbaVector(float.Epsilon, 2 * float.Epsilon, float.MaxValue, float.MinValue));
+                AssertGenericPixel(new Rgba64(1, 2, ushort.MaxValue, ushort.MaxValue - 1));
+                AssertGenericPixel(new Rgb48(1, 2, ushort.MaxValue - 1));
+                AssertGenericPixel(new La32(1, ushort.MaxValue - 1));
+                AssertGenericPixel(new L16(ushort.MaxValue - 1));
+                AssertGenericPixel(new Rgba32(1, 2, 255, 254));
+            }
 
+            private static void AssertGenericPixel<TPixel>(TPixel source)
+                where TPixel : unmanaged, IPixel<TPixel>
+            {
                 // Act:
                 var color = Color.FromPixel(source);
 
                 // Assert:
-                RgbaVector data = color.ToPixel<RgbaVector>();
-                Assert.Equal(source, data);
+                TPixel actual = color.ToPixel<TPixel>();
+                Assert.Equal(source, actual);
             }
         }
     }

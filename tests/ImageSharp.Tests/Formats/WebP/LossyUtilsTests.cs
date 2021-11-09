@@ -45,13 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void HadamardTransform_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void HadamardTransform_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.DisableSSE2);
-
-        [Fact]
-        public void HadamardTransform_WithoutSSE41_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.DisableSSE41);
-
-        [Fact]
-        public void HadamardTransform_WithoutSSE2AndSSE41_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.DisableSSE41 | HwIntrinsics.DisableSSE2);
+        public void HadamardTransform_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.DisableHWIntrinsic);
 #endif
 
     }

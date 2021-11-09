@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -814,33 +815,28 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-#pragma warning disable SA1503 // Braces should not be omitted
                 tmp.Clear();
-                fixed (byte* inputPtr = input)
-                fixed (ushort* tmpPtr = tmp)
-                {
-                    Vector128<byte> a0 = Sse2.LoadVector128(inputPtr);
-                    Vector128<byte> a1 = Sse2.LoadVector128(inputPtr + WebpConstants.Bps);
-                    Vector128<byte> a2 = Sse2.LoadVector128(inputPtr + (WebpConstants.Bps * 2));
-                    Vector128<byte> a3 = Sse2.LoadVector128(inputPtr + (WebpConstants.Bps * 3));
-                    Vector128<short> b0 = Sse2.ShiftRightLogical(a0.AsInt16(), 8); // hi byte
-                    Vector128<short> b1 = Sse2.ShiftRightLogical(a1.AsInt16(), 8);
-                    Vector128<short> b2 = Sse2.ShiftRightLogical(a2.AsInt16(), 8);
-                    Vector128<short> b3 = Sse2.ShiftRightLogical(a3.AsInt16(), 8);
-                    Vector128<byte> c0 = Sse2.And(a0, Mean16x4Mask); // lo byte
-                    Vector128<byte> c1 = Sse2.And(a1, Mean16x4Mask);
-                    Vector128<byte> c2 = Sse2.And(a2, Mean16x4Mask);
-                    Vector128<byte> c3 = Sse2.And(a3, Mean16x4Mask);
-                    Vector128<int> d0 = Sse2.Add(b0.AsInt32(), c0.AsInt32());
-                    Vector128<int> d1 = Sse2.Add(b1.AsInt32(), c1.AsInt32());
-                    Vector128<int> d2 = Sse2.Add(b2.AsInt32(), c2.AsInt32());
-                    Vector128<int> d3 = Sse2.Add(b3.AsInt32(), c3.AsInt32());
-                    Vector128<int> e0 = Sse2.Add(d0, d1);
-                    Vector128<int> e1 = Sse2.Add(d2, d3);
-                    Vector128<int> f0 = Sse2.Add(e0, e1);
-                    Sse2.Store(tmpPtr, f0.AsUInt16());
-                }
-#pragma warning restore SA1503 // Braces should not be omitted
+                Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input));
+                Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps, 16)));
+                Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps * 2, 16)));
+                Vector128<byte> a3 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps * 3, 16)));
+                Vector128<short> b0 = Sse2.ShiftRightLogical(a0.AsInt16(), 8); // hi byte
+                Vector128<short> b1 = Sse2.ShiftRightLogical(a1.AsInt16(), 8);
+                Vector128<short> b2 = Sse2.ShiftRightLogical(a2.AsInt16(), 8);
+                Vector128<short> b3 = Sse2.ShiftRightLogical(a3.AsInt16(), 8);
+                Vector128<byte> c0 = Sse2.And(a0, Mean16x4Mask); // lo byte
+                Vector128<byte> c1 = Sse2.And(a1, Mean16x4Mask);
+                Vector128<byte> c2 = Sse2.And(a2, Mean16x4Mask);
+                Vector128<byte> c3 = Sse2.And(a3, Mean16x4Mask);
+                Vector128<int> d0 = Sse2.Add(b0.AsInt32(), c0.AsInt32());
+                Vector128<int> d1 = Sse2.Add(b1.AsInt32(), c1.AsInt32());
+                Vector128<int> d2 = Sse2.Add(b2.AsInt32(), c2.AsInt32());
+                Vector128<int> d3 = Sse2.Add(b3.AsInt32(), c3.AsInt32());
+                Vector128<int> e0 = Sse2.Add(d0, d1);
+                Vector128<int> e1 = Sse2.Add(d2, d3);
+                Vector128<int> f0 = Sse2.Add(e0, e1);
+                ref ushort outputRef = ref MemoryMarshal.GetReference(tmp);
+                Unsafe.As<ushort, Vector128<ushort>>(ref outputRef) = f0.AsUInt16();
 
                 dc[0] = (uint)(tmp[1] + tmp[0]);
                 dc[1] = (uint)(tmp[3] + tmp[2]);

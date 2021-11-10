@@ -19,14 +19,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
 #endif
 
+        // Note: method name in libwebp reference implementation is called VP8SSE16x16.
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
+        public static int Vp8_Sse16X16(Span<byte> a, Span<byte> b) => Vp8_SseNxN(a, b, 16, 16);
 
+        // Note: method name in libwebp reference implementation is called VP8SSE16x8.
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Sse16X8(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 8);
+        public static int Vp8_Sse16X8(Span<byte> a, Span<byte> b) => Vp8_SseNxN(a, b, 16, 8);
 
+        // Note: method name in libwebp reference implementation is called VP8SSE4x4.
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Sse4X4(Span<byte> a, Span<byte> b)
+        public static int Vp8_Sse4X4(Span<byte> a, Span<byte> b)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
@@ -67,12 +70,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             else
 #endif
             {
-                return GetSse(a, b, 4, 4);
+                return Vp8_SseNxN(a, b, 4, 4);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetSse(Span<byte> a, Span<byte> b, int w, int h)
+        public static int Vp8_SseNxN(Span<byte> a, Span<byte> b, int w, int h)
         {
             int count = 0;
             int aOffset = 0;

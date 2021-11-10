@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 
             int expected = 27;
 
-            int actual = LossyUtils.Vp8Sse4X4(a, b);
+            int actual = LossyUtils.Vp8_Sse4X4(a, b);
 
             Assert.Equal(expected, actual);
 		}

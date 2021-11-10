@@ -661,28 +661,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // a20 a21 a22 a23   b20 b21 b22 b23
             // a30 a31 a32 a33   b30 b31 b32 b33
             // Transpose the two 4x4.
-            Vector128<short> transpose00 = Sse2.UnpackLow(b0, b1);
-            Vector128<short> transpose01 = Sse2.UnpackLow(b2, b3);
-            Vector128<short> transpose02 = Sse2.UnpackHigh(b0, b1);
-            Vector128<short> transpose03 = Sse2.UnpackHigh(b2, b3);
-
-            // a00 a10 a01 a11   a02 a12 a03 a13
-            // a20 a30 a21 a31   a22 a32 a23 a33
-            // b00 b10 b01 b11   b02 b12 b03 b13
-            // b20 b30 b21 b31   b22 b32 b23 b33
-            Vector128<int> transpose10 = Sse2.UnpackLow(transpose00.AsInt32(), transpose01.AsInt32());
-            Vector128<int> transpose11 = Sse2.UnpackLow(transpose02.AsInt32(), transpose03.AsInt32());
-            Vector128<int> transpose12 = Sse2.UnpackHigh(transpose00.AsInt32(), transpose01.AsInt32());
-            Vector128<int> transpose13 = Sse2.UnpackHigh(transpose02.AsInt32(), transpose03.AsInt32());
-
-            // a00 a10 a20 a30 a01 a11 a21 a31
-            // b00 b10 b20 b30 b01 b11 b21 b31
-            // a02 a12 a22 a32 a03 a13 a23 a33
-            // b02 b12 a22 b32 b03 b13 b23 b33
-            Vector128<long> output0 = Sse2.UnpackLow(transpose10.AsInt64(), transpose11.AsInt64());
-            Vector128<long> output1 = Sse2.UnpackHigh(transpose10.AsInt64(), transpose11.AsInt64());
-            Vector128<long> output2 = Sse2.UnpackLow(transpose12.AsInt64(), transpose13.AsInt64());
-            Vector128<long> output3 = Sse2.UnpackHigh(transpose12.AsInt64(), transpose13.AsInt64());
+            Vp8Transpose_2_4x4_16b(b0, b1, b2, b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3);
 
             // a00 a10 a20 a30   b00 b10 b20 b30
             // a01 a11 a21 a31   b01 b11 b21 b31
@@ -727,6 +706,43 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             ref int outputRef = ref MemoryMarshal.GetReference(sum);
             Unsafe.As<int, Vector128<int>>(ref outputRef) = result.AsInt32();
             return sum[3] + sum[2] + sum[1] + sum[0];
+        }
+
+        // Transpose two 4x4 16b matrices horizontally stored in registers.
+        public static void Vp8Transpose_2_4x4_16b(Vector128<short> b0, Vector128<short> b1, Vector128<short> b2, Vector128<short> b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3)
+        {
+            // Transpose the two 4x4.
+            // a00 a01 a02 a03   b00 b01 b02 b03
+            // a10 a11 a12 a13   b10 b11 b12 b13
+            // a20 a21 a22 a23   b20 b21 b22 b23
+            // a30 a31 a32 a33   b30 b31 b32 b33
+            Vector128<short> transpose00 = Sse2.UnpackLow(b0, b1);
+            Vector128<short> transpose01 = Sse2.UnpackLow(b2, b3);
+            Vector128<short> transpose02 = Sse2.UnpackHigh(b0, b1);
+            Vector128<short> transpose03 = Sse2.UnpackHigh(b2, b3);
+
+            // a00 a10 a01 a11   a02 a12 a03 a13
+            // a20 a30 a21 a31   a22 a32 a23 a33
+            // b00 b10 b01 b11   b02 b12 b03 b13
+            // b20 b30 b21 b31   b22 b32 b23 b33
+            Vector128<int> transpose10 = Sse2.UnpackLow(transpose00.AsInt32(), transpose01.AsInt32());
+            Vector128<int> transpose11 = Sse2.UnpackLow(transpose02.AsInt32(), transpose03.AsInt32());
+            Vector128<int> transpose12 = Sse2.UnpackHigh(transpose00.AsInt32(), transpose01.AsInt32());
+            Vector128<int> transpose13 = Sse2.UnpackHigh(transpose02.AsInt32(), transpose03.AsInt32());
+
+            // a00 a10 a20 a30 a01 a11 a21 a31
+            // b00 b10 b20 b30 b01 b11 b21 b31
+            // a02 a12 a22 a32 a03 a13 a23 a33
+            // b02 b12 a22 b32 b03 b13 b23 b33
+            output0 = Sse2.UnpackLow(transpose10.AsInt64(), transpose11.AsInt64());
+            output1 = Sse2.UnpackHigh(transpose10.AsInt64(), transpose11.AsInt64());
+            output2 = Sse2.UnpackLow(transpose12.AsInt64(), transpose13.AsInt64());
+            output3 = Sse2.UnpackHigh(transpose12.AsInt64(), transpose13.AsInt64());
+
+            // a00 a10 a20 a30   b00 b10 b20 b30
+            // a01 a11 a21 a31   b01 b11 b21 b31
+            // a02 a12 a22 a32   b02 b12 b22 b32
+            // a03 a13 a23 a33   b03 b13 b23 b33
         }
 #endif
 

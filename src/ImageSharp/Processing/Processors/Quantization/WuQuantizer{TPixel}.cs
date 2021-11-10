@@ -418,18 +418,44 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             for (int r = 1; r < IndexCount; r++)
             {
                 volumeSpan.Clear();
+#if ALTERNATE
+                int ind1_r = (r << ((IndexBits * 2) + IndexAlphaBits)) +
+                    (r << (IndexBits + IndexAlphaBits + 1)) +
+                    (r << (IndexBits * 2)) +
+                    (r << (IndexBits + 1)) +
+                    r;
+#endif
 
                 for (int g = 1; g < IndexCount; g++)
                 {
                     areaSpan.Clear();
 
+#if ALTERNATE
+                    int ind1_g = ind1_r +
+                        (g << (IndexBits + IndexAlphaBits)) +
+                        (g << IndexBits) +
+                        g;
+
+                    int r_g = r + g;
+#endif
+
                     for (int b = 1; b < IndexCount; b++)
                     {
+#if ALTERNATE
+                        int ind1_b = ind1_g +
+                            ((r_g + b) << IndexAlphaBits) +
+                            b;
+#endif
+
                         Moment line = default;
 
                         for (int a = 1; a < IndexAlphaCount; a++)
                         {
+#if ALTERNATE
+                            int ind1 = ind1_b + a;
+#else
                             int ind1 = GetPaletteIndex(r, g, b, a);
+#endif
                             line += momentSpan[ind1];
 
                             areaSpan[a] += line;

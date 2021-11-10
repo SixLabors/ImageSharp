@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void PngCoreWuNoDither()
         {
             using var memoryStream = new MemoryStream();
-            var options = new PngEncoder { Quantizer = new WuQuantizer(new QuantizerOptions { Dither = null }) };
+            var options = new PngEncoder { Quantizer = new WuQuantizer(new QuantizerOptions { Dither = null }), ColorType = PngColorType.Palette };
             this.bmpCore.SaveAsPng(memoryStream, options);
         }
     }

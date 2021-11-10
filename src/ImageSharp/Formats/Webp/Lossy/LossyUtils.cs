@@ -19,17 +19,63 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
 #endif
 
+        // Note: method name in libwebp reference implementation is called VP8SSE16x16.
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Sse16X16(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 16);
+        public static int Vp8_Sse16X16(Span<byte> a, Span<byte> b) => Vp8_SseNxN(a, b, 16, 16);
+
+        // Note: method name in libwebp reference implementation is called VP8SSE16x8.
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Vp8_Sse16X8(Span<byte> a, Span<byte> b) => Vp8_SseNxN(a, b, 16, 8);
+
+        // Note: method name in libwebp reference implementation is called VP8SSE4x4.
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Vp8_Sse4X4(Span<byte> a, Span<byte> b)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                // Load values.
+                ref byte aRef = ref MemoryMarshal.GetReference(a);
+                Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref aRef);
+                Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps));
+                Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 2));
+                Vector128<byte> a3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 3));
+                ref byte bRef = ref MemoryMarshal.GetReference(b);
+                Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref bRef);
+                Vector128<byte> b1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps));
+                Vector128<byte> b2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 2));
+                Vector128<byte> b3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 3));
+
+                // Combine pair of lines.
+                Vector128<int> a01 = Sse2.UnpackLow(a0.AsInt32(), a1.AsInt32());
+                Vector128<int> a23 = Sse2.UnpackLow(a2.AsInt32(), a3.AsInt32());
+                Vector128<int> b01 = Sse2.UnpackLow(b0.AsInt32(), b1.AsInt32());
+                Vector128<int> b23 = Sse2.UnpackLow(b2.AsInt32(), b3.AsInt32());
+
+                // Convert to 16b.
+                Vector128<byte> a01s = Sse2.UnpackLow(a01.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> a23s = Sse2.UnpackLow(a23.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> b01s = Sse2.UnpackLow(b01.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> b23s = Sse2.UnpackLow(b23.AsByte(), Vector128<byte>.Zero);
+
+                // subtract, square and accumulate.
+                Vector128<byte> d0 = Sse2.SubtractSaturate(a01s, b01s);
+                Vector128<byte> d1 = Sse2.SubtractSaturate(a23s, b23s);
+                Vector128<int> e0 = Sse2.MultiplyAddAdjacent(d0.AsInt16(), d0.AsInt16());
+                Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1.AsInt16(), d1.AsInt16());
+                Vector128<int> sum = Sse2.Add(e0, e1);
+
+                return Numerics.ReduceSum(sum);
+            }
+            else
+#endif
+            {
+                return Vp8_SseNxN(a, b, 4, 4);
+            }
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Sse16X8(Span<byte> a, Span<byte> b) => GetSse(a, b, 16, 8);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8Sse4X4(Span<byte> a, Span<byte> b) => GetSse(a, b, 4, 4);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetSse(Span<byte> a, Span<byte> b, int w, int h)
+        public static int Vp8_SseNxN(Span<byte> a, Span<byte> b, int w, int h)
         {
             int count = 0;
             int aOffset = 0;
@@ -88,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
-                int diffSum = TTransformSse41(a, b, w, scratch);
+                int diffSum = TTransformSse41(a, b, w);
                 return Math.Abs(diffSum) >> 5;
             }
             else
@@ -615,11 +661,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Returns the weighted sum of the absolute value of transformed coefficients.
         /// w[] contains a row-major 4 by 4 symmetric matrix.
         /// </summary>
-        public static int TTransformSse41(Span<byte> inputA, Span<byte> inputB, Span<ushort> w, Span<int> scratch)
+        public static int TTransformSse41(Span<byte> inputA, Span<byte> inputB, Span<ushort> w)
         {
-            Span<int> sum = scratch.Slice(0, 4);
-            sum.Clear();
-
             // Load and combine inputs.
             Vector128<byte> ina0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(inputA));
             Vector128<byte> ina1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(inputA.Slice(WebpConstants.Bps, 16)));
@@ -703,9 +746,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // difference of weighted sums.
             Vector128<int> result = Sse2.Subtract(ab0ab2Sum.AsInt32(), b0w0bb2w8Sum.AsInt32());
 
-            ref int outputRef = ref MemoryMarshal.GetReference(sum);
-            Unsafe.As<int, Vector128<int>>(ref outputRef) = result.AsInt32();
-            return sum[3] + sum[2] + sum[1] + sum[0];
+            return Numerics.ReduceSum(result);
         }
 
         // Transpose two 4x4 16b matrices horizontally stored in registers.
@@ -755,7 +796,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static void TransformOne(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
             Span<int> tmp = scratch.Slice(0, 16);
-            tmp.Clear();
             int tmpOffset = 0;
             for (int srcOffset = 0; srcOffset < 4; srcOffset++)
             {

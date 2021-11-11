@@ -248,9 +248,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     fixed (byte* dstPtr = dst)
                     {
                         Sse2.StoreScalar((long*)dstPtr, ref0.AsInt64());
-                        Sse2.StoreScalar((long*)(dstPtr + WebpConstants.Bps), ref0.AsInt64());
-                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 2)), ref0.AsInt64());
-                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 3)), ref0.AsInt64());
+                        Sse2.StoreScalar((long*)(dstPtr + WebpConstants.Bps), ref1.AsInt64());
+                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 2)), ref2.AsInt64());
+                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 3)), ref3.AsInt64());
                     }
                 }
                 else

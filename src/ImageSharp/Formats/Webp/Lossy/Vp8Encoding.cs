@@ -242,17 +242,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 ref3 = Sse2.PackUnsignedSaturate(ref3InvAdded, ref3InvAdded);
 
                 // Unsigned saturate to 8b.
+                ref byte outputRef = ref MemoryMarshal.GetReference(dst);
                 if (doTwo)
                 {
                     // Store eight bytes/pixels per line.
-                    // TODO: avoid pinning, if possible.
-                    fixed (byte* dstPtr = dst)
-                    {
-                        Sse2.StoreScalar((long*)dstPtr, ref0.AsInt64());
-                        Sse2.StoreScalar((long*)(dstPtr + WebpConstants.Bps), ref1.AsInt64());
-                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 2)), ref2.AsInt64());
-                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 3)), ref3.AsInt64());
-                    }
+                    Unsafe.As<byte, Vector64<byte>>(ref outputRef) = ref0.GetLower();
+                    Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = ref1.GetLower();
+                    Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = ref2.GetLower();
+                    Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = ref3.GetLower();
                 }
                 else
                 {
@@ -262,7 +259,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     int output2 = Sse2.ConvertToInt32(ref2.AsInt32());
                     int output3 = Sse2.ConvertToInt32(ref3.AsInt32());
 
-                    ref byte outputRef = ref MemoryMarshal.GetReference(dst);
                     Unsafe.As<byte, int>(ref outputRef) = output0;
                     Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = output1;
                     Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = output2;

@@ -87,7 +87,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
-            //if (false)
             {
                 // This implementation makes use of 16-bit fixed point versions of two
                 // multiply constants:

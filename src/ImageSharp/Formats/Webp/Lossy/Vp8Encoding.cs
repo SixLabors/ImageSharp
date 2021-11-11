@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -145,14 +146,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
                 Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2.AsInt16());
                 Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1.AsInt16());
-                Vector128<long> c3 = Sse2.Subtract(in1, in3);
+                Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
                 Vector128<short> c4 = Sse2.Subtract(c1, c2);
                 Vector128<short> c = Sse2.Add(c3.AsInt16(), c4.AsInt16());
 
                 // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
                 Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1.AsInt16());
                 Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2.AsInt16());
-                Vector128<long> d3 = Sse2.Add(in1, in3);
+                Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
                 Vector128<short> d4 = Sse2.Add(d1, d2);
                 Vector128<short> d = Sse2.Add(d3.AsInt16(), d4.AsInt16());
 
@@ -174,14 +175,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
                 c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
                 c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
-                c3 = Sse2.Subtract(t1, t3);
+                c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
                 c4 = Sse2.Subtract(c1, c2);
                 c = Sse2.Add(c3.AsInt16(), c4);
 
                 // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
                 d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
                 d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
-                d3 = Sse2.Add(t1, t3);
+                d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
                 d4 = Sse2.Add(d1, d2);
                 d = Sse2.Add(d3.AsInt16(), d4);
 
@@ -229,10 +230,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 ref3 = Sse2.UnpackLow(ref3, Vector128<byte>.Zero);
 
                 // Add the inverse transform(s).
-                Vector128<ushort> ref0InvAdded = Sse2.Add(ref0.AsUInt16(), t0.AsUInt16());
-                Vector128<ushort> ref1InvAdded = Sse2.Add(ref1.AsUInt16(), t1.AsUInt16());
-                Vector128<ushort> ref2InvAdded = Sse2.Add(ref2.AsUInt16(), t2.AsUInt16());
-                Vector128<ushort> ref3InvAdded = Sse2.Add(ref3.AsUInt16(), t3.AsUInt16());
+                Vector128<short> ref0InvAdded = Sse2.Add(ref0.AsInt16(), t0.AsInt16());
+                Vector128<short> ref1InvAdded = Sse2.Add(ref1.AsInt16(), t1.AsInt16());
+                Vector128<short> ref2InvAdded = Sse2.Add(ref2.AsInt16(), t2.AsInt16());
+                Vector128<short> ref3InvAdded = Sse2.Add(ref3.AsInt16(), t3.AsInt16());
 
                 // Unsigned saturate to 8b.
                 ref0 = Sse2.PackUnsignedSaturate(ref0InvAdded.AsInt16(), ref0InvAdded.AsInt16());

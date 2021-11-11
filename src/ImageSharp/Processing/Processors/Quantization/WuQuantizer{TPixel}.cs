@@ -417,45 +417,40 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int r = 1; r < IndexCount; r++)
             {
-                volumeSpan.Clear();
-#if ALTERNATE
-                int ind1_r = (r << ((IndexBits * 2) + IndexAlphaBits)) +
+                // Currently, RyuJIT hoists the invariants of multi-level nested loop only to the
+                // immediate outer loop. See https://github.com/dotnet/runtime/issues/61420
+                // To ensure the calculation doesn't happen repeatedly, hoist some of the calculations
+                // in the form of ind1* manually.
+                int ind1R = (r << ((IndexBits * 2) + IndexAlphaBits)) +
                     (r << (IndexBits + IndexAlphaBits + 1)) +
                     (r << (IndexBits * 2)) +
                     (r << (IndexBits + 1)) +
                     r;
-#endif
+
+                volumeSpan.Clear();
 
                 for (int g = 1; g < IndexCount; g++)
                 {
-                    areaSpan.Clear();
-
-#if ALTERNATE
-                    int ind1_g = ind1_r +
+                    int ind1G = ind1R +
                         (g << (IndexBits + IndexAlphaBits)) +
                         (g << IndexBits) +
                         g;
-
                     int r_g = r + g;
-#endif
+
+                    areaSpan.Clear();
 
                     for (int b = 1; b < IndexCount; b++)
                     {
-#if ALTERNATE
-                        int ind1_b = ind1_g +
+                        int ind1B = ind1G +
                             ((r_g + b) << IndexAlphaBits) +
                             b;
-#endif
 
                         Moment line = default;
 
                         for (int a = 1; a < IndexAlphaCount; a++)
                         {
-#if ALTERNATE
-                            int ind1 = ind1_b + a;
-#else
-                            int ind1 = GetPaletteIndex(r, g, b, a);
-#endif
+                            int ind1 = ind1B + a;
+
                             line += momentSpan[ind1];
 
                             areaSpan[a] += line;

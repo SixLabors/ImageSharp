@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     /// <summary>
     /// Methods for encoding a VP8 frame.
     /// </summary>
-    internal static class Vp8Encoding
+    internal static unsafe class Vp8Encoding
     {
         private const int KC1 = 20091 + (1 << 16);
 
@@ -69,6 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static readonly Vector128<short> K1 = Vector128.Create((short)20091).AsInt16();
 
         public static readonly Vector128<short> K2 = Vector128.Create((short)-30068).AsInt16();
+
+        public static readonly Vector128<short> Four = Vector128.Create((short)4);
 #endif
 
         static Vp8Encoding()
@@ -85,6 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
+            //if (false)
             {
                 // This implementation makes use of 16-bit fixed point versions of two
                 // multiply constants:
@@ -165,8 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Horizontal pass and subsequent transpose.
                 // First pass, c and d calculations are longer because of the "trick" multiplications.
-                var four = Vector128.Create((short)4);
-                Vector128<short> dc = Sse2.Add(t0.AsInt16(), four);
+                Vector128<short> dc = Sse2.Add(t0.AsInt16(), Four);
                 a = Sse2.Add(dc, t2.AsInt16());
                 b = Sse2.Subtract(dc, t2.AsInt16());
 
@@ -243,11 +245,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 if (doTwo)
                 {
                     // Store eight bytes/pixels per line.
-                    ref byte outputRef = ref MemoryMarshal.GetReference(dst);
-                    Unsafe.As<byte, Vector128<byte>>(ref outputRef) = ref0;
-                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = ref1;
-                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = ref2;
-                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = ref3;
+                    // TODO: avoid pinning, if possible.
+                    fixed (byte* dstPtr = dst)
+                    {
+                        Sse2.StoreScalar((long*)dstPtr, ref0.AsInt64());
+                        Sse2.StoreScalar((long*)(dstPtr + WebpConstants.Bps), ref0.AsInt64());
+                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 2)), ref0.AsInt64());
+                        Sse2.StoreScalar((long*)(dstPtr + (WebpConstants.Bps * 3)), ref0.AsInt64());
+                    }
                 }
                 else
                 {

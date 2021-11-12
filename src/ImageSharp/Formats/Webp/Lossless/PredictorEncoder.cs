@@ -587,19 +587,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 return (byte)lower;
             }
-            else
-            {
-                // upper is closer to residual than lower.
-                if (residual <= boundaryResidual && upper > boundaryResidual)
-                {
-                    // Halve quantization step to avoid crossing boundary. This midpoint is
-                    // on the same side of boundary as residual because midpoint <= residual
-                    // (since upper is closer than lower) and residual is below the boundary.
-                    return (byte)(lower + (quantization >> 1));
-                }
 
-                return (byte)(upper & 0xff);
+            // upper is closer to residual than lower.
+            if (residual <= boundaryResidual && upper > boundaryResidual)
+            {
+                // Halve quantization step to avoid crossing boundary. This midpoint is
+                // on the same side of boundary as residual because midpoint <= residual
+                // (since upper is closer than lower) and residual is below the boundary.
+                return (byte)(lower + (quantization >> 1));
             }
+
+            return (byte)(upper & 0xff);
         }
 
         /// <summary>
@@ -1075,7 +1073,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported && tileWidth > 16)
+            if (Avx2.IsSupported && tileWidth >= 16)
             {
                 var multsg = Vector256.Create(LosslessUtils.Cst5b(greenToRed));
                 const int span = 16;
@@ -1182,7 +1180,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported && tileWidth > 16)
+            if (Avx2.IsSupported && tileWidth >= 16)
             {
                 const int span = 16;
                 Span<ushort> values = stackalloc ushort[span];
@@ -1219,12 +1217,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             ++histo[values[i]];
                         }
                     }
+                }
 
-                    int leftOver = tileWidth & (span - 1);
-                    if (leftOver > 0)
-                    {
-                        CollectColorBlueTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
-                    }
+                int leftOver = tileWidth & (span - 1);
+                if (leftOver > 0)
+                {
+                    CollectColorBlueTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
                 }
             }
             else if (Sse41.IsSupported)

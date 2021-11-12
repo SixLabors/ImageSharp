@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(0, 0, 0, this.PackedValue / 255F);
+        public readonly Vector4 ToVector4() => new(0, 0, 0, this.PackedValue / 255F);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

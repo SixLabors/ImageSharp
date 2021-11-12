@@ -41,12 +41,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// The maximum byte value.
         /// </summary>
-        private static readonly Vector4 MaxBytes = new Vector4(255);
+        private static readonly Vector4 MaxBytes = new(255);
 
         /// <summary>
         /// The half vector value.
         /// </summary>
-        private static readonly Vector4 Half = new Vector4(0.5F);
+        private static readonly Vector4 Half = new(0.5F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct.
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The <see cref="Bgra32"/>.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Color(Bgra32 source) => new Color(source);
+        public static implicit operator Color(Bgra32 source) => new(source);
 
         /// <summary>
         /// Converts a <see cref="Color"/> to <see cref="Bgra32"/>.

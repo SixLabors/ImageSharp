@@ -36,8 +36,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         [FieldOffset(2)]
         public byte B;
 
-        private static readonly Vector4 MaxBytes = new Vector4(byte.MaxValue);
-        private static readonly Vector4 Half = new Vector4(0.5F);
+        private static readonly Vector4 MaxBytes = new(byte.MaxValue);
+        private static readonly Vector4 Half = new(0.5F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb24"/> struct.

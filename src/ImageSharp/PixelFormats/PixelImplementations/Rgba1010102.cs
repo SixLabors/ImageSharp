@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     {
-        private static readonly Vector4 Multiplier = new Vector4(1023F, 1023F, 1023F, 3F);
+        private static readonly Vector4 Multiplier = new(1023F, 1023F, 1023F, 3F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba1010102"/> struct.
@@ -78,14 +78,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
-        {
-            return new Vector4(
+        public readonly Vector4 ToVector4() => new Vector4(
                 (this.PackedValue >> 0) & 0x03FF,
                 (this.PackedValue >> 10) & 0x03FF,
                 (this.PackedValue >> 20) & 0x03FF,
                 (this.PackedValue >> 30) & 0x03) / Multiplier;
-        }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -129,10 +126,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

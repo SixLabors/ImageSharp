@@ -15,8 +15,10 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<uint>
     {
-        private static readonly Vector4 Half = new Vector4(127);
-        private static readonly Vector4 MinusOne = new Vector4(-1F);
+        private const float MaxPos = 127F;
+
+        private static readonly Vector4 Half = new(MaxPos);
+        private static readonly Vector4 MinusOne = new(-1F);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NormalizedByte4"/> struct.
@@ -89,14 +91,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
-        {
-            return new Vector4(
-                (sbyte)((this.PackedValue >> 0) & 0xFF) / 127F,
-                (sbyte)((this.PackedValue >> 8) & 0xFF) / 127F,
-                (sbyte)((this.PackedValue >> 16) & 0xFF) / 127F,
-                (sbyte)((this.PackedValue >> 24) & 0xFF) / 127F);
-        }
+        public readonly Vector4 ToVector4() => new(
+                (sbyte)((this.PackedValue >> 0) & 0xFF) / MaxPos,
+                (sbyte)((this.PackedValue >> 8) & 0xFF) / MaxPos,
+                (sbyte)((this.PackedValue >> 16) & 0xFF) / MaxPos,
+                (sbyte)((this.PackedValue >> 24) & 0xFF) / MaxPos);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -140,10 +139,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -176,10 +172,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector = Numerics.Clamp(vector, MinusOne, Vector4.One) * Half;
 
-            uint byte4 = ((uint)MathF.Round(vector.X) & 0xFF) << 0;
-            uint byte3 = ((uint)MathF.Round(vector.Y) & 0xFF) << 8;
-            uint byte2 = ((uint)MathF.Round(vector.Z) & 0xFF) << 16;
-            uint byte1 = ((uint)MathF.Round(vector.W) & 0xFF) << 24;
+            uint byte4 = ((uint)Convert.ToInt16(MathF.Round(vector.X)) & 0xFF) << 0;
+            uint byte3 = ((uint)Convert.ToInt16(MathF.Round(vector.Y)) & 0xFF) << 8;
+            uint byte2 = ((uint)Convert.ToInt16(MathF.Round(vector.Z)) & 0xFF) << 16;
+            uint byte1 = ((uint)Convert.ToInt16(MathF.Round(vector.W)) & 0xFF) << 24;
 
             return byte4 | byte3 | byte2 | byte1;
         }

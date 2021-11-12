@@ -35,6 +35,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private readonly Configuration configuration;
 
         /// <summary>
+        /// Scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly int[] scratch = new int[16];
+
+        /// <summary>
+        /// Another scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] scratchBytes = new byte[4];
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebpLossyDecoder"/> class.
         /// </summary>
         /// <param name="bitReader">Bitreader to read from the stream.</param>
@@ -395,7 +405,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                                 LossyUtils.TM4(dst, yuv, offset);
                                 break;
                             case 2:
-                                LossyUtils.VE4(dst, yuv, offset);
+                                LossyUtils.VE4(dst, yuv, offset, this.scratchBytes);
                                 break;
                             case 3:
                                 LossyUtils.HE4(dst, yuv, offset);
@@ -420,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                                 break;
                         }
 
-                        this.DoTransform(bits, coeffs.AsSpan(n * 16), dst);
+                        this.DoTransform(bits, coeffs.AsSpan(n * 16), dst, this.scratch);
                     }
                 }
                 else
@@ -456,7 +466,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         for (int n = 0; n < 16; ++n, bits <<= 2)
                         {
-                            this.DoTransform(bits, coeffs.AsSpan(n * 16), yDst.Slice(WebpConstants.Scan[n]));
+                            this.DoTransform(bits, coeffs.AsSpan(n * 16), yDst.Slice(WebpConstants.Scan[n]), this.scratch);
                         }
                     }
                 }
@@ -496,8 +506,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         break;
                 }
 
-                this.DoUVTransform(bitsUv, coeffs.AsSpan(16 * 16), uDst);
-                this.DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst);
+                this.DoUVTransform(bitsUv, coeffs.AsSpan(16 * 16), uDst, this.scratch);
+                this.DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst, this.scratch);
 
                 // Stash away top samples for next block.
                 if (mby < dec.MbHeight - 1)
@@ -737,21 +747,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int xStep = 3;
             int lastPixelPair = (len - 1) >> 1;
-            uint tluv = LossyUtils.LoadUv(topU[0], topV[0]); // top-left sample
-            uint luv = LossyUtils.LoadUv(curU[0], curV[0]); // left-sample
+            uint tluv = YuvConversion.LoadUv(topU[0], topV[0]); // top-left sample
+            uint luv = YuvConversion.LoadUv(curU[0], curV[0]); // left-sample
             uint uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
-            LossyUtils.YuvToBgr(topY[0], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst);
+            YuvConversion.YuvToBgr(topY[0], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst);
 
             if (bottomY != null)
             {
                 uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
-                LossyUtils.YuvToBgr(bottomY[0], (int)uv0 & 0xff, (int)(uv0 >> 16), bottomDst);
+                YuvConversion.YuvToBgr(bottomY[0], (int)uv0 & 0xff, (int)(uv0 >> 16), bottomDst);
             }
 
             for (int x = 1; x <= lastPixelPair; x++)
             {
-                uint tuv = LossyUtils.LoadUv(topU[x], topV[x]); // top sample
-                uint uv = LossyUtils.LoadUv(curU[x], curV[x]); // sample
+                uint tuv = YuvConversion.LoadUv(topU[x], topV[x]); // top sample
+                uint uv = YuvConversion.LoadUv(curU[x], curV[x]); // sample
 
                 // Precompute invariant values associated with first and second diagonals.
                 uint avg = tluv + tuv + luv + uv + 0x00080008u;
@@ -760,15 +770,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 uv0 = (diag12 + tluv) >> 1;
                 uint uv1 = (diag03 + tuv) >> 1;
                 int xMul2 = x * 2;
-                LossyUtils.YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
-                LossyUtils.YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
+                YuvConversion.YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
+                YuvConversion.YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
 
                 if (bottomY != null)
                 {
                     uv0 = (diag03 + luv) >> 1;
                     uv1 = (diag12 + uv) >> 1;
-                    LossyUtils.YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((xMul2 - 1) * xStep));
-                    LossyUtils.YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice((xMul2 + 0) * xStep));
+                    YuvConversion.YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((xMul2 - 1) * xStep));
+                    YuvConversion.YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice((xMul2 + 0) * xStep));
                 }
 
                 tluv = tuv;
@@ -778,21 +788,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if ((len & 1) == 0)
             {
                 uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
-                LossyUtils.YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
+                YuvConversion.YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
                 if (bottomY != null)
                 {
                     uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
-                    LossyUtils.YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
+                    YuvConversion.YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
                 }
             }
         }
 
-        private void DoTransform(uint bits, Span<short> src, Span<byte> dst)
+        private void DoTransform(uint bits, Span<short> src, Span<byte> dst, Span<int> scratch)
         {
             switch (bits >> 30)
             {
                 case 3:
-                    LossyUtils.TransformOne(src, dst);
+                    LossyUtils.TransformOne(src, dst, scratch);
                     break;
                 case 2:
                     LossyUtils.TransformAc3(src, dst);
@@ -803,7 +813,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        private void DoUVTransform(uint bits, Span<short> src, Span<byte> dst)
+        private void DoUVTransform(uint bits, Span<short> src, Span<byte> dst, Span<int> scratch)
         {
             // any non-zero coeff at all?
             if ((bits & 0xff) > 0)
@@ -811,7 +821,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // any non-zero AC coefficient?
                 if ((bits & 0xaa) > 0)
                 {
-                    LossyUtils.TransformUv(src, dst); // note we don't use the AC3 variant for U/V.
+                    LossyUtils.TransformUv(src, dst, scratch); // note we don't use the AC3 variant for U/V.
                 }
                 else
                 {
@@ -884,7 +894,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 if (nz > 1)
                 {
                     // More than just the DC -> perform the full transform.
-                    LossyUtils.TransformWht(dc, dst);
+                    LossyUtils.TransformWht(dc, dst, this.scratch);
                 }
                 else
                 {

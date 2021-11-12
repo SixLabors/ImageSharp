@@ -17,6 +17,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// </summary>
     internal static unsafe class PredictorEncoder
     {
+        private static readonly sbyte[][] Offset =
+        {
+            new sbyte[] { 0, -1 }, new sbyte[] { 0, 1 }, new sbyte[] { -1, 0 }, new sbyte[] { 1, 0 }, new sbyte[] { -1, -1 }, new sbyte[] { -1, 1 }, new sbyte[] { 1, -1 }, new sbyte[] { 1, 1 }
+        };
+
         private const int GreenRedToBlueNumAxis = 8;
 
         private const int GreenRedToBlueMaxIters = 7;
@@ -28,6 +33,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private const float SpatialPredictorBias = 15.0f;
 
         private const int PredLowEffort = 11;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector128<byte> CollectColorRedTransformsGreenMask = Vector128.Create(0x00ff00).AsByte();
+
+        private static readonly Vector128<byte> CollectColorRedTransformsAndMask = Vector128.Create((short)0xff).AsByte();
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
+
+        private static readonly Vector128<byte> CollectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
+#endif
+
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<sbyte> DeltaLut => new sbyte[] { 16, 16, 8, 4, 2, 2, 2 };
 
         /// <summary>
         /// Finds the best predictor for each tile, and converts the image to residuals
@@ -41,6 +65,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> bgra,
             Span<uint> bgraScratch,
             Span<uint> image,
+            int[][] histoArgb,
+            int[][] bestHisto,
             bool nearLossless,
             int nearLosslessQuality,
             WebpTransparentColorMode transparentColorMode,
@@ -50,6 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
             int tilesPerCol = LosslessUtils.SubSampleSize(height, bits);
             int maxQuantization = 1 << LosslessUtils.NearLosslessBits(nearLosslessQuality);
+            Span<short> scratch = stackalloc short[8];
 
             // TODO: Can we optimize this?
             int[][] histo = new int[4][];
@@ -80,11 +107,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             histo,
                             bgraScratch,
                             bgra,
+                            histoArgb,
+                            bestHisto,
                             maxQuantization,
                             transparentColorMode,
                             usedSubtractGreen,
                             nearLossless,
-                            image);
+                            image,
+                            scratch);
 
                         image[(tileY * tilesPerRow) + tileX] = (uint)(WebpConstants.ArgbBlack | (pred << 8));
                     }
@@ -105,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 lowEffort);
         }
 
-        public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> bgra, Span<uint> image)
+        public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> bgra, Span<uint> image, Span<int> scratch)
         {
             int maxTileSize = 1 << bits;
             int tileXSize = LosslessUtils.SubSampleSize(width, bits);
@@ -139,7 +169,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         height,
                         accumulatedRedHisto,
                         accumulatedBlueHisto,
-                        bgra);
+                        bgra,
+                        scratch);
 
                     image[offset] = MultipliersToColorCode(prevX);
                     CopyTileWithColorTransform(width, height, tileXOffset, tileYOffset, maxTileSize, prevX, bgra);
@@ -188,11 +219,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int[][] accumulated,
             Span<uint> argbScratch,
             Span<uint> argb,
+            int[][] histoArgb,
+            int[][] bestHisto,
             int maxQuantization,
             WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool nearLossless,
-            Span<uint> modes)
+            Span<uint> modes,
+            Span<short> scratch)
         {
             const int numPredModes = 14;
             int startX = tileX << bits;
@@ -222,21 +256,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             float bestDiff = MaxDiffCost;
             int bestMode = 0;
             uint[] residuals = new uint[1 << WebpConstants.MaxTransformBits];
-            int[][] histoArgb = new int[4][];
-            int[][] bestHisto = new int[4][];
             for (int i = 0; i < 4; i++)
             {
-                histoArgb[i] = new int[256];
-                bestHisto[i] = new int[256];
+                histoArgb[i].AsSpan().Clear();
+                bestHisto[i].AsSpan().Clear();
             }
 
             for (int mode = 0; mode < numPredModes; mode++)
             {
-                for (int i = 0; i < 4; i++)
-                {
-                    histoArgb[i].AsSpan().Fill(0);
-                }
-
                 if (startY > 0)
                 {
                     // Read the row above the tile which will become the first upper_row.
@@ -272,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         }
                     }
 
-                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, transparentColorMode, usedSubtractGreen, nearLossless, residuals);
+                    GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, transparentColorMode, usedSubtractGreen, nearLossless, residuals, scratch);
                     for (int relativeX = 0; relativeX < maxX; ++relativeX)
                     {
                         UpdateHisto(histoArgb, residuals[relativeX]);
@@ -299,6 +326,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     bestHisto = tmp;
                     bestDiff = curDiff;
                     bestMode = mode;
+                }
+
+                for (int i = 0; i < 4; i++)
+                {
+                    histoArgb[i].AsSpan().Clear();
                 }
             }
 
@@ -333,11 +365,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             WebpTransparentColorMode transparentColorMode,
             bool usedSubtractGreen,
             bool nearLossless,
-            Span<uint> output)
+            Span<uint> output,
+            Span<short> scratch)
         {
             if (transparentColorMode == WebpTransparentColorMode.Preserve)
             {
-                PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output);
+                PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output, scratch);
             }
             else
             {
@@ -395,7 +428,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                                     predict = LosslessUtils.Predictor10(currentRow[x - 1], upperRow + x);
                                     break;
                                 case 11:
-                                    predict = LosslessUtils.Predictor11(currentRow[x - 1], upperRow + x);
+                                    predict = LosslessUtils.Predictor11(currentRow[x - 1], upperRow + x, scratch);
                                     break;
                                 case 12:
                                     predict = LosslessUtils.Predictor12(currentRow[x - 1], upperRow + x);
@@ -583,6 +616,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
 
             Span<byte> lowerMaxDiffs = currentMaxDiffs.Slice(width);
+            Span<short> scratch = stackalloc short[8];
             for (int y = 0; y < height; y++)
             {
                 Span<uint> tmp32 = upperRow;
@@ -593,7 +627,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (lowEffort)
                 {
-                    PredictBatch(PredLowEffort, 0, y, width, currentRow, upperRow, argb.Slice(y * width));
+                    PredictBatch(PredLowEffort, 0, y, width, currentRow, upperRow, argb.Slice(y * width), scratch);
                 }
                 else
                 {
@@ -634,7 +668,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             transparentColorMode,
                             usedSubtractGreen,
                             nearLossless,
-                            argb.Slice((y * width) + x));
+                            argb.Slice((y * width) + x),
+                            scratch);
 
                         x = xEnd;
                     }
@@ -649,7 +684,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int numPixels,
             Span<uint> currentSpan,
             Span<uint> upperSpan,
-            Span<uint> outputSpan)
+            Span<uint> outputSpan,
+            Span<short> scratch)
         {
 #pragma warning disable SA1503 // Braces should not be omitted
             fixed (uint* current = currentSpan)
@@ -718,7 +754,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             LosslessUtils.PredictorSub10(current + xStart, upper + xStart, numPixels, output);
                             break;
                         case 11:
-                            LosslessUtils.PredictorSub11(current + xStart, upper + xStart, numPixels, output);
+                            LosslessUtils.PredictorSub11(current + xStart, upper + xStart, numPixels, output, scratch);
                             break;
                         case 12:
                             LosslessUtils.PredictorSub12(current + xStart, upper + xStart, numPixels, output);
@@ -819,7 +855,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static Vp8LMultipliers GetBestColorTransformForTile(int tileX, int tileY, int bits, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int quality, int xSize, int ySize, int[] accumulatedRedHisto, int[] accumulatedBlueHisto, Span<uint> argb)
+        private static Vp8LMultipliers GetBestColorTransformForTile(
+            int tileX,
+            int tileY,
+            int bits,
+            Vp8LMultipliers prevX,
+            Vp8LMultipliers prevY,
+            int quality,
+            int xSize,
+            int ySize,
+            int[] accumulatedRedHisto,
+            int[] accumulatedBlueHisto,
+            Span<uint> argb,
+            Span<int> scratch)
         {
             int maxTileSize = 1 << bits;
             int tileYOffset = tileY * maxTileSize;
@@ -832,18 +880,28 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             var bestTx = default(Vp8LMultipliers);
 
-            GetBestGreenToRed(tileArgb, xSize, tileWidth, tileHeight, prevX, prevY, quality, accumulatedRedHisto, ref bestTx);
+            GetBestGreenToRed(tileArgb, xSize, scratch, tileWidth, tileHeight, prevX, prevY, quality, accumulatedRedHisto, ref bestTx);
 
-            GetBestGreenRedToBlue(tileArgb, xSize, tileWidth, tileHeight, prevX, prevY, quality, accumulatedBlueHisto, ref bestTx);
+            GetBestGreenRedToBlue(tileArgb, xSize, scratch, tileWidth, tileHeight, prevX, prevY, quality, accumulatedBlueHisto, ref bestTx);
 
             return bestTx;
         }
 
-        private static void GetBestGreenToRed(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int quality, int[] accumulatedRedHisto, ref Vp8LMultipliers bestTx)
+        private static void GetBestGreenToRed(
+            Span<uint> argb,
+            int stride,
+            Span<int> scratch,
+            int tileWidth,
+            int tileHeight,
+            Vp8LMultipliers prevX,
+            Vp8LMultipliers prevY,
+            int quality,
+            int[] accumulatedRedHisto,
+            ref Vp8LMultipliers bestTx)
         {
             int maxIters = 4 + ((7 * quality) >> 8);  // in range [4..6]
             int greenToRedBest = 0;
-            double bestDiff = GetPredictionCostCrossColorRed(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToRedBest, accumulatedRedHisto);
+            double bestDiff = GetPredictionCostCrossColorRed(argb, stride, scratch, tileWidth, tileHeight, prevX, prevY, greenToRedBest, accumulatedRedHisto);
             for (int iter = 0; iter < maxIters; iter++)
             {
                 // ColorTransformDelta is a 3.5 bit fixed point, so 32 is equal to
@@ -855,7 +913,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 for (int offset = -delta; offset <= delta; offset += 2 * delta)
                 {
                     int greenToRedCur = offset + greenToRedBest;
-                    double curDiff = GetPredictionCostCrossColorRed(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToRedCur, accumulatedRedHisto);
+                    double curDiff = GetPredictionCostCrossColorRed(argb, stride, scratch, tileWidth, tileHeight, prevX, prevY, greenToRedCur, accumulatedRedHisto);
                     if (curDiff < bestDiff)
                     {
                         bestDiff = curDiff;
@@ -867,24 +925,22 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             bestTx.GreenToRed = (byte)(greenToRedBest & 0xff);
         }
 
-        private static void GetBestGreenRedToBlue(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int quality, int[] accumulatedBlueHisto, ref Vp8LMultipliers bestTx)
+        private static void GetBestGreenRedToBlue(Span<uint> argb, int stride, Span<int> scratch, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int quality, int[] accumulatedBlueHisto, ref Vp8LMultipliers bestTx)
         {
             int iters = (quality < 25) ? 1 : (quality > 50) ? GreenRedToBlueMaxIters : 4;
             int greenToBlueBest = 0;
             int redToBlueBest = 0;
-            sbyte[][] offset = { new sbyte[] { 0, -1 }, new sbyte[] { 0, 1 }, new sbyte[] { -1, 0 }, new sbyte[] { 1, 0 }, new sbyte[] { -1, -1 }, new sbyte[] { -1, 1 }, new sbyte[] { 1, -1 }, new sbyte[] { 1, 1 } };
-            sbyte[] deltaLut = { 16, 16, 8, 4, 2, 2, 2 };
 
             // Initial value at origin:
-            double bestDiff = GetPredictionCostCrossColorBlue(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToBlueBest, redToBlueBest, accumulatedBlueHisto);
+            double bestDiff = GetPredictionCostCrossColorBlue(argb, stride, scratch, tileWidth, tileHeight, prevX, prevY, greenToBlueBest, redToBlueBest, accumulatedBlueHisto);
             for (int iter = 0; iter < iters; iter++)
             {
-                int delta = deltaLut[iter];
+                int delta = DeltaLut[iter];
                 for (int axis = 0; axis < GreenRedToBlueNumAxis; axis++)
                 {
-                    int greenToBlueCur = (offset[axis][0] * delta) + greenToBlueBest;
-                    int redToBlueCur = (offset[axis][1] * delta) + redToBlueBest;
-                    double curDiff = GetPredictionCostCrossColorBlue(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToBlueCur, redToBlueCur, accumulatedBlueHisto);
+                    int greenToBlueCur = (Offset[axis][0] * delta) + greenToBlueBest;
+                    int redToBlueCur = (Offset[axis][1] * delta) + redToBlueBest;
+                    double curDiff = GetPredictionCostCrossColorBlue(argb, stride, scratch, tileWidth, tileHeight, prevX, prevY, greenToBlueCur, redToBlueCur, accumulatedBlueHisto);
                     if (curDiff < bestDiff)
                     {
                         bestDiff = curDiff;
@@ -910,9 +966,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             bestTx.RedToBlue = (byte)(redToBlueBest & 0xff);
         }
 
-        private static double GetPredictionCostCrossColorRed(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int greenToRed, int[] accumulatedRedHisto)
+        private static double GetPredictionCostCrossColorRed(
+            Span<uint> argb,
+            int stride,
+            Span<int> scratch,
+            int tileWidth,
+            int tileHeight,
+            Vp8LMultipliers prevX,
+            Vp8LMultipliers prevY,
+            int greenToRed,
+            int[] accumulatedRedHisto)
         {
-            int[] histo = new int[256];
+            Span<int> histo = scratch.Slice(0, 256);
+            histo.Clear();
 
             CollectColorRedTransforms(argb, stride, tileWidth, tileHeight, greenToRed, histo);
             double curDiff = PredictionCostCrossColor(accumulatedRedHisto, histo);
@@ -937,9 +1003,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return curDiff;
         }
 
-        private static double GetPredictionCostCrossColorBlue(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int greenToBlue, int redToBlue, int[] accumulatedBlueHisto)
+        private static double GetPredictionCostCrossColorBlue(
+            Span<uint> argb,
+            int stride,
+            Span<int> scratch,
+            int tileWidth,
+            int tileHeight,
+            Vp8LMultipliers prevX,
+            Vp8LMultipliers prevY,
+            int greenToBlue,
+            int redToBlue,
+            int[] accumulatedBlueHisto)
         {
-            int[] histo = new int[256];
+            Span<int> histo = scratch.Slice(0, 256);
+            histo.Clear();
 
             CollectColorBlueTransforms(argb, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
             double curDiff = PredictionCostCrossColor(accumulatedBlueHisto, histo);
@@ -980,15 +1057,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return curDiff;
         }
 
-        private static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, int[] histo)
+        private static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
                 var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
-                var maskgreen = Vector128.Create(0x00ff00);
-                var mask = Vector128.Create((short)0xff);
-
                 const int span = 8;
                 Span<ushort> values = stackalloc ushort[span];
                 for (int y = 0; y < tileHeight; y++)
@@ -1004,15 +1078,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             uint* input1Idx = src + x + (span / 2);
                             Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
                             Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> g0 = Sse2.And(input0, maskgreen.AsByte()); // 0 0  | g 0
-                            Vector128<byte> g1 = Sse2.And(input1, maskgreen.AsByte());
+                            Vector128<byte> g0 = Sse2.And(input0, CollectColorRedTransformsGreenMask); // 0 0  | g 0
+                            Vector128<byte> g1 = Sse2.And(input1, CollectColorRedTransformsGreenMask);
                             Vector128<ushort> g = Sse41.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
                             Vector128<int> a0 = Sse2.ShiftRightLogical(input0.AsInt32(), 16); // 0 0  | x r
                             Vector128<int> a1 = Sse2.ShiftRightLogical(input1.AsInt32(), 16);
                             Vector128<ushort> a = Sse41.PackUnsignedSaturate(a0, a1); // x r
                             Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg); // x dr
                             Vector128<byte> c = Sse2.Subtract(a.AsByte(), b.AsByte()); // x r'
-                            Vector128<byte> d = Sse2.And(c, mask.AsByte()); // 0 r'
+                            Vector128<byte> d = Sse2.And(c, CollectColorRedTransformsAndMask); // 0 r'
                             Sse2.Store(dst, d.AsUInt16());
                             for (int i = 0; i < span; i++)
                             {
@@ -1036,7 +1110,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static void CollectColorRedTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, int[] histo)
+        private static void CollectColorRedTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
         {
             int pos = 0;
             while (tileHeight-- > 0)
@@ -1051,7 +1125,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, int[] histo)
+        private static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
@@ -1060,12 +1134,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Span<ushort> values = stackalloc ushort[span];
                 var multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
                 var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
-                var maskgreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-                var maskgreenblue = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-                var maskblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-                var shufflerLow = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
-                var shufflerHigh = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
-
                 for (int y = 0; y < tileHeight; y++)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
@@ -1079,18 +1147,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             uint* input1Idx = src + x + (span / 2);
                             Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
                             Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> r0 = Ssse3.Shuffle(input0, shufflerLow);
-                            Vector128<byte> r1 = Ssse3.Shuffle(input1, shufflerHigh);
+                            Vector128<byte> r0 = Ssse3.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask);
+                            Vector128<byte> r1 = Ssse3.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask);
                             Vector128<byte> r = Sse2.Or(r0, r1);
-                            Vector128<byte> gb0 = Sse2.And(input0, maskgreenblue);
-                            Vector128<byte> gb1 = Sse2.And(input1, maskgreenblue);
+                            Vector128<byte> gb0 = Sse2.And(input0, CollectColorBlueTransformsGreenBlueMask);
+                            Vector128<byte> gb1 = Sse2.And(input1, CollectColorBlueTransformsGreenBlueMask);
                             Vector128<ushort> gb = Sse41.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
-                            Vector128<byte> g = Sse2.And(gb.AsByte(), maskgreen);
+                            Vector128<byte> g = Sse2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask);
                             Vector128<short> a = Sse2.MultiplyHigh(r.AsInt16(), multsr);
                             Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg);
                             Vector128<byte> c = Sse2.Subtract(gb.AsByte(), b.AsByte());
                             Vector128<byte> d = Sse2.Subtract(c, a.AsByte());
-                            Vector128<byte> e = Sse2.And(d, maskblue);
+                            Vector128<byte> e = Sse2.And(d, CollectColorBlueTransformsBlueMask);
                             Sse2.Store(dst, e.AsUInt16());
                             for (int i = 0; i < span; i++)
                             {
@@ -1114,7 +1182,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static void CollectColorBlueTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, int[] histo)
+        private static void CollectColorBlueTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
         {
             int pos = 0;
             while (tileHeight-- > 0)
@@ -1143,7 +1211,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static double PredictionCostCrossColor(int[] accumulated, int[] counts)
+        private static double PredictionCostCrossColor(int[] accumulated, Span<int> counts)
         {
             // Favor low entropy, locally and globally.
             // Favor small absolute values for PredictionCostSpatial.
@@ -1152,7 +1220,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static float PredictionCostSpatial(int[] counts, int weight0, double expVal)
+        private static float PredictionCostSpatial(Span<int> counts, int weight0, double expVal)
         {
             int significantSymbols = 256 >> 4;
             double expDecayFactor = 0.6;

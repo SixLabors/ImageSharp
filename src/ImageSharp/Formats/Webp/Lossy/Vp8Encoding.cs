@@ -68,22 +68,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void ITransform(Span<byte> reference, Span<short> input, Span<byte> dst, bool doTwo)
+        public static void ITransform(Span<byte> reference, Span<short> input, Span<byte> dst, bool doTwo, Span<int> scratch)
         {
-            ITransformOne(reference, input, dst);
+            ITransformOne(reference, input, dst, scratch);
             if (doTwo)
             {
-                ITransformOne(reference.Slice(4), input.Slice(16), dst.Slice(4));
+                ITransformOne(reference.Slice(4), input.Slice(16), dst.Slice(4), scratch);
             }
         }
 
-        public static void ITransformOne(Span<byte> reference, Span<short> input, Span<byte> dst)
+        public static void ITransformOne(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
         {
             int i;
-#pragma warning disable SA1312 // Variable names should begin with lower-case letter
-            int[] C = new int[4 * 4];
-#pragma warning restore SA1312 // Variable names should begin with lower-case letter
-            Span<int> tmp = C.AsSpan();
+            Span<int> tmp = scratch.Slice(0, 16);
             for (i = 0; i < 4; i++)
             {
                 // vertical pass.
@@ -99,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 input = input.Slice(1);
             }
 
-            tmp = C.AsSpan();
+            tmp = scratch;
             for (i = 0; i < 4; i++)
             {
                 // horizontal pass.
@@ -116,16 +113,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void FTransform2(Span<byte> src, Span<byte> reference, Span<short> output, Span<short> output2)
+        public static void FTransform2(Span<byte> src, Span<byte> reference, Span<short> output, Span<short> output2, Span<int> scratch)
         {
-            FTransform(src, reference, output);
-            FTransform(src.Slice(4), reference.Slice(4), output2);
+            FTransform(src, reference, output, scratch);
+            FTransform(src.Slice(4), reference.Slice(4), output2, scratch);
         }
 
-        public static void FTransform(Span<byte> src, Span<byte> reference, Span<short> output)
+        public static void FTransform(Span<byte> src, Span<byte> reference, Span<short> output, Span<int> scratch)
         {
             int i;
-            int[] tmp = new int[16];
+            Span<int> tmp = scratch.Slice(0, 16);
+
             int srcIdx = 0;
             int refIdx = 0;
             for (i = 0; i < 4; i++)
@@ -160,9 +158,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void FTransformWht(Span<short> input, Span<short> output)
+        public static void FTransformWht(Span<short> input, Span<short> output, Span<int> scratch)
         {
-            int[] tmp = new int[16];
+            Span<int> tmp = scratch.Slice(0, 16);
+
             int i;
             int inputIdx = 0;
             for (i = 0; i < 4; i++)
@@ -234,11 +233,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         // Left samples are top[-5 .. -2], top_left is top[-1], top are
         // located at top[0..3], and top right is top[4..7]
-        public static void EncPredLuma4(Span<byte> dst, Span<byte> top, int topOffset)
+        public static void EncPredLuma4(Span<byte> dst, Span<byte> top, int topOffset, Span<byte> vals)
         {
             Dc4(dst.Slice(I4DC4), top, topOffset);
             Tm4(dst.Slice(I4TM4), top, topOffset);
-            Ve4(dst.Slice(I4VE4), top, topOffset);
+            Ve4(dst.Slice(I4VE4), top, topOffset, vals);
             He4(dst.Slice(I4HE4), top, topOffset);
             Rd4(dst.Slice(I4RD4), top, topOffset);
             Vr4(dst.Slice(I4VR4), top, topOffset);
@@ -395,20 +394,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        private static void Ve4(Span<byte> dst, Span<byte> top, int topOffset)
+        private static void Ve4(Span<byte> dst, Span<byte> top, int topOffset, Span<byte> vals)
         {
             // vertical
-            byte[] vals =
-            {
-                LossyUtils.Avg3(top[topOffset - 1], top[topOffset], top[topOffset + 1]),
-                LossyUtils.Avg3(top[topOffset], top[topOffset + 1], top[topOffset + 2]),
-                LossyUtils.Avg3(top[topOffset + 1], top[topOffset + 2], top[topOffset + 3]),
-                LossyUtils.Avg3(top[topOffset + 2], top[topOffset + 3], top[topOffset + 4])
-            };
-
+            vals[0] = LossyUtils.Avg3(top[topOffset - 1], top[topOffset], top[topOffset + 1]);
+            vals[1] = LossyUtils.Avg3(top[topOffset], top[topOffset + 1], top[topOffset + 2]);
+            vals[2] = LossyUtils.Avg3(top[topOffset + 1], top[topOffset + 2], top[topOffset + 3]);
+            vals[3] = LossyUtils.Avg3(top[topOffset + 2], top[topOffset + 3], top[topOffset + 4]);
             for (int i = 0; i < 4; i++)
             {
-                vals.AsSpan().CopyTo(dst.Slice(i * WebpConstants.Bps));
+                vals.CopyTo(dst.Slice(i * WebpConstants.Bps));
             }
         }
 

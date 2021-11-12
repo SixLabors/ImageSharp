@@ -48,6 +48,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static readonly Vector128<byte> CollectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
 
         private static readonly Vector128<byte> CollectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
+
+        private static readonly Vector256<byte> CollectColorBlueTransformsShuffleLowMask256 = Vector256.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 18, 255, 22, 255, 26, 255, 30, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255);
+
+        private static readonly Vector256<byte> CollectColorBlueTransformsShuffleHighMask256 = Vector256.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14, 255, 18, 255, 22, 255, 26, 255, 30, 255);
+
+        private static readonly Vector256<byte> CollectColorBlueTransformsGreenBlueMask256 = Vector256.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+
+        private static readonly Vector256<byte> CollectColorBlueTransformsBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+
+        private static readonly Vector256<byte> CollectColorBlueTransformsGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+
 #endif
 
         // This uses C#'s compiler optimization to refer to assembly's static data directly.
@@ -1128,7 +1139,54 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse41.IsSupported)
+            if (Avx2.IsSupported && tileWidth > 16)
+            {
+                const int span = 16;
+                Span<ushort> values = stackalloc ushort[span];
+                var multsr = Vector256.Create(LosslessUtils.Cst5b(redToBlue));
+                var multsg = Vector256.Create(LosslessUtils.Cst5b(greenToBlue));
+                for (int y = 0; y < tileHeight; y++)
+                {
+                    Span<uint> srcSpan = bgra.Slice(y * stride);
+#pragma warning disable SA1503 // Braces should not be omitted
+                    fixed (uint* src = srcSpan)
+                    fixed (ushort* dst = values)
+                    {
+                        for (int x = 0; x + span <= tileWidth; x += span)
+                        {
+                            uint* input0Idx = src + x;
+                            uint* input1Idx = src + x + (span / 2);
+                            Vector256<byte> input0 = Avx.LoadVector256(input0Idx).AsByte();
+                            Vector256<byte> input1 = Avx.LoadVector256(input1Idx).AsByte();
+                            Vector256<byte> r0 = Avx2.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask256);
+                            Vector256<byte> r1 = Avx2.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask256);
+                            Vector256<byte> r = Avx2.Or(r0, r1);
+                            Vector256<byte> gb0 = Avx2.And(input0, CollectColorBlueTransformsGreenBlueMask256);
+                            Vector256<byte> gb1 = Avx2.And(input1, CollectColorBlueTransformsGreenBlueMask256);
+                            Vector256<ushort> gb = Avx2.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
+                            Vector256<byte> g = Avx2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask256);
+                            Vector256<short> a = Avx2.MultiplyHigh(r.AsInt16(), multsr);
+                            Vector256<short> b = Avx2.MultiplyHigh(g.AsInt16(), multsg);
+                            Vector256<byte> c = Avx2.Subtract(gb.AsByte(), b.AsByte());
+                            Vector256<byte> d = Avx2.Subtract(c, a.AsByte());
+                            Vector256<byte> e = Avx2.And(d, CollectColorBlueTransformsBlueMask256);
+                            Avx.Store(dst, e.AsUInt16());
+                            for (int i = 0; i < span; i++)
+                            {
+                                ++histo[values[i]];
+                            }
+                        }
+                    }
+#pragma warning restore SA1503 // Braces should not be omitted
+
+                    int leftOver = tileWidth & (span - 1);
+                    if (leftOver > 0)
+                    {
+                        CollectColorBlueTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
+                    }
+                }
+            }
+            else if (Sse41.IsSupported)
             {
                 const int span = 8;
                 Span<ushort> values = stackalloc ushort[span];

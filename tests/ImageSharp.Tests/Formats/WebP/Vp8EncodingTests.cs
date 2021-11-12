@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             int[] scratch = new int[16];
 
             // act
-            Vp8Encoding.ITransform(reference, input, dst, false, scratch);
+            Vp8Encoding.ITransformOne(reference, input, dst, scratch);
 
             // assert
             Assert.True(dst.SequenceEqual(expected));
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             int[] scratch = new int[16];
 
             // act
-            Vp8Encoding.ITransform(reference, input, dst, true, scratch);
+            Vp8Encoding.ITransform(reference, input, dst, scratch);
 
             // assert
             Assert.True(dst.SequenceEqual(expected));

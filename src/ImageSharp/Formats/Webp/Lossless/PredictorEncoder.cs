@@ -39,6 +39,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static readonly Vector128<byte> CollectColorRedTransformsAndMask = Vector128.Create((short)0xff).AsByte();
 
+        private static readonly Vector256<byte> CollectColorRedTransformsGreenMask256 = Vector256.Create(0x00ff00).AsByte();
+
+        private static readonly Vector256<byte> CollectColorRedTransformsAndMask256 = Vector256.Create((short)0xff).AsByte();
+
         private static readonly Vector128<byte> CollectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
 
         private static readonly Vector128<byte> CollectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
@@ -1071,7 +1075,48 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse41.IsSupported)
+            if (Avx2.IsSupported && tileWidth > 16)
+            {
+                var multsg = Vector256.Create(LosslessUtils.Cst5b(greenToRed));
+                const int span = 16;
+                Span<ushort> values = stackalloc ushort[span];
+                for (int y = 0; y < tileHeight; y++)
+                {
+                    Span<uint> srcSpan = bgra.Slice(y * stride);
+                    ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
+                    for (int x = 0; x + span <= tileWidth; x += span)
+                    {
+                        int input0Idx = x;
+                        int input1Idx = x + (span / 2);
+                        Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
+                        Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                        Vector256<byte> g0 = Avx2.And(input0, CollectColorRedTransformsGreenMask256); // 0 0  | g 0
+                        Vector256<byte> g1 = Avx2.And(input1, CollectColorRedTransformsGreenMask256);
+                        Vector256<ushort> g = Avx2.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
+                        Vector256<int> a0 = Avx2.ShiftRightLogical(input0.AsInt32(), 16); // 0 0  | x r
+                        Vector256<int> a1 = Avx2.ShiftRightLogical(input1.AsInt32(), 16);
+                        Vector256<ushort> a = Avx2.PackUnsignedSaturate(a0, a1); // x r
+                        Vector256<short> b = Avx2.MultiplyHigh(g.AsInt16(), multsg); // x dr
+                        Vector256<byte> c = Avx2.Subtract(a.AsByte(), b.AsByte()); // x r'
+                        Vector256<byte> d = Avx2.And(c, CollectColorRedTransformsAndMask256); // 0 r'
+
+                        ref ushort outputRef = ref MemoryMarshal.GetReference(values);
+                        Unsafe.As<ushort, Vector256<ushort>>(ref outputRef) = d.AsUInt16();
+
+                        for (int i = 0; i < span; i++)
+                        {
+                            ++histo[values[i]];
+                        }
+                    }
+                }
+
+                int leftOver = tileWidth & (span - 1);
+                if (leftOver > 0)
+                {
+                    CollectColorRedTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToRed, histo);
+                }
+            }
+            else if (Sse41.IsSupported)
             {
                 var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
                 const int span = 8;

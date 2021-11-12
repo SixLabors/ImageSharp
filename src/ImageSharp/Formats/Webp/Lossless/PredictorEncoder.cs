@@ -1079,34 +1079,32 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 for (int y = 0; y < tileHeight; y++)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
-#pragma warning disable SA1503 // Braces should not be omitted
-                    fixed (uint* src = srcSpan)
-                    fixed (ushort* dst = values)
+                    ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
+                    for (int x = 0; x + span <= tileWidth; x += span)
                     {
-                        for (int x = 0; x + span <= tileWidth; x += span)
+                        int input0Idx = x;
+                        int input1Idx = x + (span / 2);
+                        Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
+                        Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                        Vector128<byte> g0 = Sse2.And(input0, CollectColorRedTransformsGreenMask); // 0 0  | g 0
+                        Vector128<byte> g1 = Sse2.And(input1, CollectColorRedTransformsGreenMask);
+                        Vector128<ushort> g = Sse41.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
+                        Vector128<int> a0 = Sse2.ShiftRightLogical(input0.AsInt32(), 16); // 0 0  | x r
+                        Vector128<int> a1 = Sse2.ShiftRightLogical(input1.AsInt32(), 16);
+                        Vector128<ushort> a = Sse41.PackUnsignedSaturate(a0, a1); // x r
+                        Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg); // x dr
+                        Vector128<byte> c = Sse2.Subtract(a.AsByte(), b.AsByte()); // x r'
+                        Vector128<byte> d = Sse2.And(c, CollectColorRedTransformsAndMask); // 0 r'
+
+                        ref ushort outputRef = ref MemoryMarshal.GetReference(values);
+                        Unsafe.As<ushort, Vector128<ushort>>(ref outputRef) = d.AsUInt16();
+
+                        for (int i = 0; i < span; i++)
                         {
-                            uint* input0Idx = src + x;
-                            uint* input1Idx = src + x + (span / 2);
-                            Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
-                            Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> g0 = Sse2.And(input0, CollectColorRedTransformsGreenMask); // 0 0  | g 0
-                            Vector128<byte> g1 = Sse2.And(input1, CollectColorRedTransformsGreenMask);
-                            Vector128<ushort> g = Sse41.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
-                            Vector128<int> a0 = Sse2.ShiftRightLogical(input0.AsInt32(), 16); // 0 0  | x r
-                            Vector128<int> a1 = Sse2.ShiftRightLogical(input1.AsInt32(), 16);
-                            Vector128<ushort> a = Sse41.PackUnsignedSaturate(a0, a1); // x r
-                            Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg); // x dr
-                            Vector128<byte> c = Sse2.Subtract(a.AsByte(), b.AsByte()); // x r'
-                            Vector128<byte> d = Sse2.And(c, CollectColorRedTransformsAndMask); // 0 r'
-                            Sse2.Store(dst, d.AsUInt16());
-                            for (int i = 0; i < span; i++)
-                            {
-                                ++histo[values[i]];
-                            }
+                            ++histo[values[i]];
                         }
                     }
                 }
-#pragma warning restore SA1503 // Braces should not be omitted
 
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)
@@ -1148,36 +1146,34 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 for (int y = 0; y < tileHeight; y++)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
-#pragma warning disable SA1503 // Braces should not be omitted
-                    fixed (uint* src = srcSpan)
-                    fixed (ushort* dst = values)
+                    ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
+                    for (int x = 0; x + span <= tileWidth; x += span)
                     {
-                        for (int x = 0; x + span <= tileWidth; x += span)
+                        int input0Idx = x;
+                        int input1Idx = x + (span / 2);
+                        Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
+                        Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                        Vector256<byte> r0 = Avx2.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask256);
+                        Vector256<byte> r1 = Avx2.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask256);
+                        Vector256<byte> r = Avx2.Or(r0, r1);
+                        Vector256<byte> gb0 = Avx2.And(input0, CollectColorBlueTransformsGreenBlueMask256);
+                        Vector256<byte> gb1 = Avx2.And(input1, CollectColorBlueTransformsGreenBlueMask256);
+                        Vector256<ushort> gb = Avx2.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
+                        Vector256<byte> g = Avx2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask256);
+                        Vector256<short> a = Avx2.MultiplyHigh(r.AsInt16(), multsr);
+                        Vector256<short> b = Avx2.MultiplyHigh(g.AsInt16(), multsg);
+                        Vector256<byte> c = Avx2.Subtract(gb.AsByte(), b.AsByte());
+                        Vector256<byte> d = Avx2.Subtract(c, a.AsByte());
+                        Vector256<byte> e = Avx2.And(d, CollectColorBlueTransformsBlueMask256);
+
+                        ref ushort outputRef = ref MemoryMarshal.GetReference(values);
+                        Unsafe.As<ushort, Vector256<ushort>>(ref outputRef) = e.AsUInt16();
+
+                        for (int i = 0; i < span; i++)
                         {
-                            uint* input0Idx = src + x;
-                            uint* input1Idx = src + x + (span / 2);
-                            Vector256<byte> input0 = Avx.LoadVector256(input0Idx).AsByte();
-                            Vector256<byte> input1 = Avx.LoadVector256(input1Idx).AsByte();
-                            Vector256<byte> r0 = Avx2.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask256);
-                            Vector256<byte> r1 = Avx2.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask256);
-                            Vector256<byte> r = Avx2.Or(r0, r1);
-                            Vector256<byte> gb0 = Avx2.And(input0, CollectColorBlueTransformsGreenBlueMask256);
-                            Vector256<byte> gb1 = Avx2.And(input1, CollectColorBlueTransformsGreenBlueMask256);
-                            Vector256<ushort> gb = Avx2.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
-                            Vector256<byte> g = Avx2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask256);
-                            Vector256<short> a = Avx2.MultiplyHigh(r.AsInt16(), multsr);
-                            Vector256<short> b = Avx2.MultiplyHigh(g.AsInt16(), multsg);
-                            Vector256<byte> c = Avx2.Subtract(gb.AsByte(), b.AsByte());
-                            Vector256<byte> d = Avx2.Subtract(c, a.AsByte());
-                            Vector256<byte> e = Avx2.And(d, CollectColorBlueTransformsBlueMask256);
-                            Avx.Store(dst, e.AsUInt16());
-                            for (int i = 0; i < span; i++)
-                            {
-                                ++histo[values[i]];
-                            }
+                            ++histo[values[i]];
                         }
                     }
-#pragma warning restore SA1503 // Braces should not be omitted
 
                     int leftOver = tileWidth & (span - 1);
                     if (leftOver > 0)
@@ -1195,37 +1191,35 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 for (int y = 0; y < tileHeight; y++)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
-#pragma warning disable SA1503 // Braces should not be omitted
-                    fixed (uint* src = srcSpan)
-                    fixed (ushort* dst = values)
+                    ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
+                    for (int x = 0; x + span <= tileWidth; x += span)
                     {
-                        for (int x = 0; x + span <= tileWidth; x += span)
+                        int input0Idx = x;
+                        int input1Idx = x + (span / 2);
+                        Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
+                        Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                        Vector128<byte> r0 = Ssse3.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask);
+                        Vector128<byte> r1 = Ssse3.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask);
+                        Vector128<byte> r = Sse2.Or(r0, r1);
+                        Vector128<byte> gb0 = Sse2.And(input0, CollectColorBlueTransformsGreenBlueMask);
+                        Vector128<byte> gb1 = Sse2.And(input1, CollectColorBlueTransformsGreenBlueMask);
+                        Vector128<ushort> gb = Sse41.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
+                        Vector128<byte> g = Sse2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask);
+                        Vector128<short> a = Sse2.MultiplyHigh(r.AsInt16(), multsr);
+                        Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg);
+                        Vector128<byte> c = Sse2.Subtract(gb.AsByte(), b.AsByte());
+                        Vector128<byte> d = Sse2.Subtract(c, a.AsByte());
+                        Vector128<byte> e = Sse2.And(d, CollectColorBlueTransformsBlueMask);
+
+                        ref ushort outputRef = ref MemoryMarshal.GetReference(values);
+                        Unsafe.As<ushort, Vector128<ushort>>(ref outputRef) = e.AsUInt16();
+
+                        for (int i = 0; i < span; i++)
                         {
-                            uint* input0Idx = src + x;
-                            uint* input1Idx = src + x + (span / 2);
-                            Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
-                            Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> r0 = Ssse3.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask);
-                            Vector128<byte> r1 = Ssse3.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask);
-                            Vector128<byte> r = Sse2.Or(r0, r1);
-                            Vector128<byte> gb0 = Sse2.And(input0, CollectColorBlueTransformsGreenBlueMask);
-                            Vector128<byte> gb1 = Sse2.And(input1, CollectColorBlueTransformsGreenBlueMask);
-                            Vector128<ushort> gb = Sse41.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
-                            Vector128<byte> g = Sse2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask);
-                            Vector128<short> a = Sse2.MultiplyHigh(r.AsInt16(), multsr);
-                            Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg);
-                            Vector128<byte> c = Sse2.Subtract(gb.AsByte(), b.AsByte());
-                            Vector128<byte> d = Sse2.Subtract(c, a.AsByte());
-                            Vector128<byte> e = Sse2.And(d, CollectColorBlueTransformsBlueMask);
-                            Sse2.Store(dst, e.AsUInt16());
-                            for (int i = 0; i < span; i++)
-                            {
-                                ++histo[values[i]];
-                            }
+                            ++histo[values[i]];
                         }
                     }
                 }
-#pragma warning restore SA1503 // Braces should not be omitted
 
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)

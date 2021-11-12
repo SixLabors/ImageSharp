@@ -750,6 +750,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         // Transpose two 4x4 16b matrices horizontally stored in registers.
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void Vp8Transpose_2_4x4_16b(Vector128<short> b0, Vector128<short> b1, Vector128<short> b2, Vector128<short> b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3)
         {
             // Transpose the two 4x4.

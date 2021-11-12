@@ -136,61 +136,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Vertical pass and subsequent transpose.
                 // First pass, c and d calculations are longer because of the "trick" multiplications.
-                Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
-                Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
-
-                // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
-                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2);
-                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1);
-                Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
-                Vector128<short> c4 = Sse2.Subtract(c1, c2);
-                Vector128<short> c = Sse2.Add(c3, c4);
-
-                // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
-                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1);
-                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2);
-                Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
-                Vector128<short> d4 = Sse2.Add(d1, d2);
-                Vector128<short> d = Sse2.Add(d3, d4);
-
-                // Second pass.
-                Vector128<short> tmp0 = Sse2.Add(a, d);
-                Vector128<short> tmp1 = Sse2.Add(b, c);
-                Vector128<short> tmp2 = Sse2.Subtract(b, c);
-                Vector128<short> tmp3 = Sse2.Subtract(a, d);
+                InverseTransformVerticalPass(in0, in2, in1, in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3);
 
                 // Transpose the two 4x4.
                 LossyUtils.Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
 
                 // Horizontal pass and subsequent transpose.
                 // First pass, c and d calculations are longer because of the "trick" multiplications.
-                Vector128<short> dc = Sse2.Add(t0.AsInt16(), Four);
-                a = Sse2.Add(dc, t2.AsInt16());
-                b = Sse2.Subtract(dc, t2.AsInt16());
-
-                // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
-                c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
-                c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
-                c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
-                c4 = Sse2.Subtract(c1, c2);
-                c = Sse2.Add(c3, c4);
-
-                // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
-                d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
-                d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
-                d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
-                d4 = Sse2.Add(d1, d2);
-                d = Sse2.Add(d3, d4);
-
-                // Second pass.
-                tmp0 = Sse2.Add(a, d);
-                tmp1 = Sse2.Add(b, c);
-                tmp2 = Sse2.Subtract(b, c);
-                tmp3 = Sse2.Subtract(a, d);
-                Vector128<short> shifted0 = Sse2.ShiftRightArithmetic(tmp0, 3);
-                Vector128<short> shifted1 = Sse2.ShiftRightArithmetic(tmp1, 3);
-                Vector128<short> shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
-                Vector128<short> shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
+                InverseTransformHorizontalPass(t0, t2, t1, t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3);
 
                 // Transpose the two 4x4.
                 LossyUtils.Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
@@ -266,61 +219,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Vertical pass and subsequent transpose.
                 // First pass, c and d calculations are longer because of the "trick" multiplications.
-                Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
-                Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
-
-                // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
-                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2);
-                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1);
-                Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
-                Vector128<short> c4 = Sse2.Subtract(c1, c2);
-                Vector128<short> c = Sse2.Add(c3, c4);
-
-                // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
-                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1);
-                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2);
-                Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
-                Vector128<short> d4 = Sse2.Add(d1, d2);
-                Vector128<short> d = Sse2.Add(d3, d4);
-
-                // Second pass.
-                Vector128<short> tmp0 = Sse2.Add(a, d);
-                Vector128<short> tmp1 = Sse2.Add(b, c);
-                Vector128<short> tmp2 = Sse2.Subtract(b, c);
-                Vector128<short> tmp3 = Sse2.Subtract(a, d);
+                InverseTransformVerticalPass(in0, in2, in1, in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3);
 
                 // Transpose the two 4x4.
                 LossyUtils.Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
 
                 // Horizontal pass and subsequent transpose.
                 // First pass, c and d calculations are longer because of the "trick" multiplications.
-                Vector128<short> dc = Sse2.Add(t0.AsInt16(), Four);
-                a = Sse2.Add(dc, t2.AsInt16());
-                b = Sse2.Subtract(dc, t2.AsInt16());
-
-                // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
-                c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
-                c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
-                c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
-                c4 = Sse2.Subtract(c1, c2);
-                c = Sse2.Add(c3, c4);
-
-                // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
-                d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
-                d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
-                d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
-                d4 = Sse2.Add(d1, d2);
-                d = Sse2.Add(d3, d4);
-
-                // Second pass.
-                tmp0 = Sse2.Add(a, d);
-                tmp1 = Sse2.Add(b, c);
-                tmp2 = Sse2.Subtract(b, c);
-                tmp3 = Sse2.Subtract(a, d);
-                Vector128<short> shifted0 = Sse2.ShiftRightArithmetic(tmp0, 3);
-                Vector128<short> shifted1 = Sse2.ShiftRightArithmetic(tmp1, 3);
-                Vector128<short> shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
-                Vector128<short> shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
+                InverseTransformHorizontalPass(t0, t2, t1, t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3);
 
                 // Transpose the two 4x4.
                 LossyUtils.Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
@@ -408,6 +314,65 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static void InverseTransformVerticalPass(Vector128<long> in0, Vector128<long> in2, Vector128<long> in1, Vector128<long> in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3)
+        {
+            Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
+            Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
+
+            // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
+            Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2);
+            Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1);
+            Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
+            Vector128<short> c4 = Sse2.Subtract(c1, c2);
+            Vector128<short> c = Sse2.Add(c3, c4);
+
+            // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
+            Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1);
+            Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2);
+            Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
+            Vector128<short> d4 = Sse2.Add(d1, d2);
+            Vector128<short> d = Sse2.Add(d3, d4);
+
+            // Second pass.
+            tmp0 = Sse2.Add(a, d);
+            tmp1 = Sse2.Add(b, c);
+            tmp2 = Sse2.Subtract(b, c);
+            tmp3 = Sse2.Subtract(a, d);
+        }
+
+        private static void InverseTransformHorizontalPass(Vector128<long> t0, Vector128<long> t2, Vector128<long> t1, Vector128<long> t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3)
+        {
+            Vector128<short> dc = Sse2.Add(t0.AsInt16(), Four);
+            Vector128<short> a = Sse2.Add(dc, t2.AsInt16());
+            Vector128<short> b = Sse2.Subtract(dc, t2.AsInt16());
+
+            // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
+            Vector128<short> c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
+            Vector128<short> c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
+            Vector128<short> c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
+            Vector128<short> c4 = Sse2.Subtract(c1, c2);
+            Vector128<short> c = Sse2.Add(c3, c4);
+
+            // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
+            Vector128<short> d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
+            Vector128<short> d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
+            Vector128<short> d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
+            Vector128<short> d4 = Sse2.Add(d1, d2);
+            Vector128<short> d = Sse2.Add(d3, d4);
+
+            // Second pass.
+            Vector128<short> tmp0 = Sse2.Add(a, d);
+            Vector128<short> tmp1 = Sse2.Add(b, c);
+            Vector128<short> tmp2 = Sse2.Subtract(b, c);
+            Vector128<short> tmp3 = Sse2.Subtract(a, d);
+            shifted0 = Sse2.ShiftRightArithmetic(tmp0, 3);
+            shifted1 = Sse2.ShiftRightArithmetic(tmp1, 3);
+            shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
+            shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
+        }
+#endif
 
         public static void FTransform2(Span<byte> src, Span<byte> reference, Span<short> output, Span<short> output2, Span<int> scratch)
         {

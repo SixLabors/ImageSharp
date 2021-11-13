@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                     return;
                 }
 
+                this.VerifyMemorySentinel();
                 this.pool.Return(this.BufferHandle);
                 this.pool = null;
                 this.BufferHandle = null;

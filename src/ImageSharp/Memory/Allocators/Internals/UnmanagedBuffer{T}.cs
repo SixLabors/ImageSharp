@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -61,10 +62,15 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 return;
             }
 
+            this.VerifyMemorySentinel();
+
             if (disposing)
             {
                 this.BufferHandle.Dispose();
             }
         }
+
+        [Conditional("MEMORY_SENTINEL")]
+        protected void VerifyMemorySentinel() => this.BufferHandle.VerifyMemorySentinel(this.lengthInElements * Unsafe.SizeOf<T>());
     }
 }

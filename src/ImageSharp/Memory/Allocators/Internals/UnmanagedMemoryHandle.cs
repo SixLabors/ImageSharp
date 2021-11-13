@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
@@ -23,6 +24,12 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         // A Monitor to wait/signal when we are low on memory.
         private static object lowMemoryMonitor;
+
+#if MEMORY_SENTINEL
+        private const int MemorySentinelPadding = 16;
+#else
+        private const int MemorySentinelPadding = 0;
+#endif
 
         private UnmanagedMemoryHandle(IntPtr handle, int lengthInBytes)
             : base(handle, true)
@@ -77,8 +84,29 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         internal static UnmanagedMemoryHandle Allocate(int lengthInBytes)
         {
-            IntPtr handle = AllocateHandle(lengthInBytes);
+            IntPtr handle = AllocateHandle(lengthInBytes + MemorySentinelPadding);
+#if MEMORY_SENTINEL
+            unsafe
+            {
+                new Span<byte>((void*)handle, lengthInBytes + MemorySentinelPadding).Fill(42);
+            }
+#endif
             return new UnmanagedMemoryHandle(handle, lengthInBytes);
+        }
+
+        [Conditional("MEMORY_SENTINEL")]
+        internal unsafe void VerifyMemorySentinel(int actualLengthInBytes)
+        {
+            Span<byte> remainder =
+                new Span<byte>((void*)this.handle, this.lengthInBytes + MemorySentinelPadding)
+                    .Slice(actualLengthInBytes);
+            for (int i = 0; i < remainder.Length; i++)
+            {
+                if (remainder[i] != 42)
+                {
+                    throw new InvalidMemoryOperationException("Memory corruption detected!");
+                }
+            }
         }
 
         private static IntPtr AllocateHandle(int lengthInBytes)

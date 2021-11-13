@@ -117,6 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
                 var allocator = new TestMemoryAllocator();
+                allocator.EnableLogging();
                 configuration.MemoryAllocator = allocator;
                 configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
 

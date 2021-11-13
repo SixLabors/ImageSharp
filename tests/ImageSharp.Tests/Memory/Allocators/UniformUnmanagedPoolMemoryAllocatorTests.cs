@@ -163,9 +163,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        public static bool IsNotOsx = !TestEnvironment.IsOSX;
-
-        [ConditionalFact(nameof(IsNotOsx))] // TODO: Investigate OSX failure
+        [Fact]
         public void MemoryAllocator_Create_LimitPoolSize()
         {
             RemoteExecutor.Invoke(RunTest).Dispose();
@@ -181,17 +179,23 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 MemoryGroup<byte> g1 = allocator.AllocateGroup<byte>(B(8), 1024);
                 ref byte r0 = ref MemoryMarshal.GetReference(g0[0].Span);
                 ref byte r1 = ref MemoryMarshal.GetReference(g1[0].Span);
-
                 g0.Dispose();
                 g1.Dispose();
 
-                MemoryGroup<byte> g2 = allocator.AllocateGroup<byte>(B(8), 1024);
-                MemoryGroup<byte> g3 = allocator.AllocateGroup<byte>(B(8), 1024);
+                // Do some unmanaged allocations to make sure new non-pooled unmanaged allocations will grab different memory:
+                IntPtr dummy1 = Marshal.AllocHGlobal((IntPtr)B(8));
+                IntPtr dummy2 = Marshal.AllocHGlobal((IntPtr)B(8));
+
+                using MemoryGroup<byte> g2 = allocator.AllocateGroup<byte>(B(8), 1024);
+                using MemoryGroup<byte> g3 = allocator.AllocateGroup<byte>(B(8), 1024);
                 ref byte r2 = ref MemoryMarshal.GetReference(g2[0].Span);
                 ref byte r3 = ref MemoryMarshal.GetReference(g3[0].Span);
 
                 Assert.True(Unsafe.AreSame(ref r0, ref r2));
                 Assert.False(Unsafe.AreSame(ref r1, ref r3));
+
+                Marshal.FreeHGlobal(dummy1);
+                Marshal.FreeHGlobal(dummy2);
             }
 
             static long B(int value) => value << 20;

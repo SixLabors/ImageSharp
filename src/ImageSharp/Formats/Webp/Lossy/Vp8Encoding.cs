@@ -81,7 +81,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int i;
             Span<int> tmp = scratch.Slice(0, 16);
-            tmp.Clear();
             for (i = 0; i < 4; i++)
             {
                 // vertical pass.
@@ -124,7 +123,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int i;
             Span<int> tmp = scratch.Slice(0, 16);
-            tmp.Clear();
 
             int srcIdx = 0;
             int refIdx = 0;
@@ -163,7 +161,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static void FTransformWht(Span<short> input, Span<short> output, Span<int> scratch)
         {
             Span<int> tmp = scratch.Slice(0, 16);
-            tmp.Clear();
 
             int i;
             int inputIdx = 0;

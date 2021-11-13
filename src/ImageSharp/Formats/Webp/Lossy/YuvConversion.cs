@@ -300,5 +300,36 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             uv = (uv + rounding + (128 << (YuvFix + 2))) >> (YuvFix + 2);
             return (uv & ~0xff) == 0 ? uv : uv < 0 ? 0 : 255;
         }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint LoadUv(byte u, byte v) =>
+            (uint)(u | (v << 16)); // We process u and v together stashed into 32bit(16bit each).
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void YuvToBgr(int y, int u, int v, Span<byte> bgr)
+        {
+            bgr[2] = (byte)YuvToR(y, v);
+            bgr[1] = (byte)YuvToG(y, u, v);
+            bgr[0] = (byte)YuvToB(y, u);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int YuvToB(int y, int u) => Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int YuvToG(int y, int u, int v) => Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int YuvToR(int y, int v) => Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int MultHi(int v, int coeff) => (v * coeff) >> 8;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static byte Clip8(int v)
+        {
+            int yuvMask = (256 << 6) - 1;
+            return (byte)((v & ~yuvMask) == 0 ? v >> 6 : v < 0 ? 0 : 255);
+        }
     }
 }

@@ -1072,7 +1072,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 while (bytesRead != 0)
                 {
-                    uncompressedBytes.AddRange(this.buffer.AsSpan().Slice(0, bytesRead).ToArray());
+                    uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
                     bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 }
 

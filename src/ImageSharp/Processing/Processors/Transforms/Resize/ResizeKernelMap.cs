@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             ResizeKernel kernel = this.CreateKernel(dataRowIndex, left, right);
 
-            Span<double> kernelValues = this.tempValues.AsSpan().Slice(0, kernel.Length);
+            Span<double> kernelValues = this.tempValues.AsSpan(0, kernel.Length);
             double sum = 0;
 
             for (int j = left; j <= right; j++)

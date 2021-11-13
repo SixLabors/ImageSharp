@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
             public void MemoryAllocatorIsUtilizedCorrectly(AllocationOptions allocationOptions)
             {
                 this.MemoryAllocator.BufferCapacityInBytes = 200;
-                this.MemoryAllocator.EnableLogging();
+                this.MemoryAllocator.EnableNonThreadSafeLogging();
 
                 HashSet<int> bufferHashes;
 

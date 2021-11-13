@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         protected internal override int GetBufferCapacityInBytes() => this.BufferCapacityInBytes;
 
-        public void EnableLogging()
+        public void EnableNonThreadSafeLogging()
         {
             this.allocationLog = new List<AllocationRequest>();
             this.returnLog = new List<ReturnRequest>();

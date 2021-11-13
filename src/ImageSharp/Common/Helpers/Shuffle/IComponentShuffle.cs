@@ -28,6 +28,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The source span of bytes.</param>
         /// <param name="dest">The destination span of bytes.</param>
+        /// <remarks>
+        /// Implementation can assume that source.Length is less or equal than dest.Length.
+        /// Loops should iterate using source.Length.
+        /// </remarks>
         void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest);
     }
 

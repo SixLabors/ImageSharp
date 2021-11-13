@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,8 +17,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats
 {
-    [Collection("RunSerial")]
-    public class GeneralFormatTests
+    // [Collection("RunSerial")]
+    public abstract class GeneralFormatTests
     {
         /// <summary>
         /// A collection made up of one file for each image format.
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
             {
                 image.Metadata.VerticalResolution = 150;
                 image.Metadata.HorizontalResolution = 150;
-                image.DebugSave(provider);
+                image.DebugSave(provider, testOutputDetails: this.GetType().Name);
             }
         }
 
@@ -64,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
             {
                 using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
-                    string filename = Path.Combine(path, $"{file.FileNameWithoutExtension}.txt");
+                    string filename = Path.Combine(path, $"{file.FileNameWithoutExtension}-{this.GetType().Name}.txt");
                     File.WriteAllText(filename, image.ToBase64String(PngFormat.Instance));
                 }
             }
@@ -79,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
             {
                 using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
-                    image.Save(Path.Combine(path, file.FileName));
+                    image.Save(Path.Combine(path, $"_{this.GetType().Name}-{file.FileName}"));
                 }
             }
         }
@@ -103,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.DebugSave(provider, new PngEncoder { ColorType = PngColorType.Palette, Quantizer = quantizer }, testOutputDetails: quantizerName);
+                image.DebugSave(provider, new PngEncoder { ColorType = PngColorType.Palette, Quantizer = quantizer }, testOutputDetails: $"{quantizerName}-{this.GetType().Name}");
             }
 
             provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
@@ -124,32 +125,32 @@ namespace SixLabors.ImageSharp.Tests.Formats
             {
                 using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
-                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.bmp")))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}-{this.GetType().Name}.bmp")))
                     {
                         image.SaveAsBmp(output);
                     }
 
-                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}-{this.GetType().Name}.jpg")))
                     {
                         image.SaveAsJpeg(output);
                     }
 
-                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}-{this.GetType().Name}.png")))
                     {
                         image.SaveAsPng(output);
                     }
 
-                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.gif")))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}-{this.GetType().Name}.gif")))
                     {
                         image.SaveAsGif(output);
                     }
 
-                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tga")))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}-{this.GetType().Name}.tga")))
                     {
                         image.SaveAsTga(output);
                     }
 
-                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tiff")))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}-{this.GetType().Name}.tiff")))
                     {
                         image.SaveAsTiff(output);
                     }
@@ -175,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
 
                 using (var image2 = Image.Load<Rgba32>(serialized))
                 {
-                    image2.Save($"{path}{Path.DirectorySeparatorChar}{file.FileName}");
+                    image2.Save($"{path}{Path.DirectorySeparatorChar}{this.GetType().Name}-{file.FileName}");
                 }
             }
         }
@@ -245,4 +246,60 @@ namespace SixLabors.ImageSharp.Tests.Formats
             => Configuration.Default.ImageFormats
             .FirstOrDefault(x => x.FileExtensions.Contains(format));
     }
+
+    public class GeneralFormatTests_00 : GeneralFormatTests { }
+    public class GeneralFormatTests_01 : GeneralFormatTests { }
+    public class GeneralFormatTests_02 : GeneralFormatTests { }
+    public class GeneralFormatTests_03 : GeneralFormatTests { }
+    public class GeneralFormatTests_04 : GeneralFormatTests { }
+    public class GeneralFormatTests_05 : GeneralFormatTests { }
+    public class GeneralFormatTests_06 : GeneralFormatTests { }
+    public class GeneralFormatTests_07 : GeneralFormatTests { }
+    public class GeneralFormatTests_08 : GeneralFormatTests { }
+    public class GeneralFormatTests_09 : GeneralFormatTests { }
+    public class GeneralFormatTests_10 : GeneralFormatTests { }
+    public class GeneralFormatTests_11 : GeneralFormatTests { }
+    public class GeneralFormatTests_12 : GeneralFormatTests { }
+    public class GeneralFormatTests_13 : GeneralFormatTests { }
+    public class GeneralFormatTests_14 : GeneralFormatTests { }
+    public class GeneralFormatTests_15 : GeneralFormatTests { }
+    public class GeneralFormatTests_16 : GeneralFormatTests { }
+    public class GeneralFormatTests_17 : GeneralFormatTests { }
+    public class GeneralFormatTests_18 : GeneralFormatTests { }
+    public class GeneralFormatTests_19 : GeneralFormatTests { }
+
+
+    public abstract class Thrash
+    {
+        [Theory]
+        [InlineData(395307)]
+        [InlineData(1185921)]
+        [InlineData((1185921 * 3) + 7)]
+        public void ThreshIt(int length)
+        {
+            using IMemoryOwner<short> buffer = MemoryAllocator.Default.Allocate<short>(length);
+            buffer.Memory.Span.Fill(-1);
+        }
+    }
+
+    public class Thrash_00 : Thrash { }
+    public class Thrash_01 : Thrash { }
+    public class Thrash_02 : Thrash { }
+    public class Thrash_03 : Thrash { }
+    public class Thrash_04 : Thrash { }
+    public class Thrash_05 : Thrash { }
+    public class Thrash_06 : Thrash { }
+    public class Thrash_07 : Thrash { }
+    public class Thrash_08 : Thrash { }
+    public class Thrash_09 : Thrash { }
+    public class Thrash_10 : Thrash { }
+    public class Thrash_11 : Thrash { }
+    public class Thrash_12 : Thrash { }
+    public class Thrash_13 : Thrash { }
+    public class Thrash_14 : Thrash { }
+    public class Thrash_15 : Thrash { }
+    public class Thrash_16 : Thrash { }
+    public class Thrash_17 : Thrash { }
+    public class Thrash_18 : Thrash { }
+    public class Thrash_19 : Thrash { }
 }

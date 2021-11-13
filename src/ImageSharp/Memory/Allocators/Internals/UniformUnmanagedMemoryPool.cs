@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         public int Capacity { get; }
 
-        public UnmanagedMemoryHandle Rent(AllocationOptions allocationOptions = AllocationOptions.None)
+        public UnmanagedMemoryHandle Rent()
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
 
@@ -79,11 +79,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
             if (buffer == null)
             {
                 buffer = UnmanagedMemoryHandle.Allocate(this.BufferLength);
-            }
-
-            if (allocationOptions.Has(AllocationOptions.Clean))
-            {
-                this.GetSpan(buffer).Clear();
             }
 
             return buffer;

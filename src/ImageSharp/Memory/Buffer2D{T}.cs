@@ -164,6 +164,8 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(InliningOptions.ShortMethod)]
         internal Memory<T> DangerousGetSingleMemory() => this.FastMemoryGroup.Single();
 
+        internal void VerifyMemorySentinel() => this.FastMemoryGroup.VerifyMemorySentinel();
+
         /// <summary>
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
         /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!

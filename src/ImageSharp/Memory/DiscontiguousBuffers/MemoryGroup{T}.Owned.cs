@@ -111,6 +111,17 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
+            public override void VerifyMemorySentinel()
+            {
+                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                {
+                    if (memoryOwner is UnmanagedBuffer<T> unmanagedBuffer)
+                    {
+                        unmanagedBuffer.VerifyMemorySentinel();
+                    }
+                }
+            }
+
             /// <inheritdoc/>
             IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
             {

@@ -85,14 +85,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
         internal static UnmanagedMemoryHandle Allocate(int lengthInBytes)
         {
             IntPtr handle = AllocateHandle(lengthInBytes + MemorySentinelPadding);
-#if MEMORY_SENTINEL
-            unsafe
-            {
-                new Span<byte>((void*)handle, lengthInBytes + MemorySentinelPadding).Fill(42);
-            }
-#endif
             return new UnmanagedMemoryHandle(handle, lengthInBytes);
         }
+
+        [Conditional("MEMORY_SENTINEL")]
+        internal unsafe void InitMemorySentinel() => new Span<byte>((void*)this.handle, this.lengthInBytes + MemorySentinelPadding).Fill(42);
 
         [Conditional("MEMORY_SENTINEL")]
         internal unsafe void VerifyMemorySentinel(int actualLengthInBytes)

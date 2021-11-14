@@ -278,5 +278,9 @@ namespace SixLabors.ImageSharp.Memory
         public virtual void DecreaseRefCounts()
         {
         }
+
+        public virtual void VerifyMemorySentinel()
+        {
+        }
     }
 }

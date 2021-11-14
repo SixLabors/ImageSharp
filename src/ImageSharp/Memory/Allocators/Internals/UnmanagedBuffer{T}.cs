@@ -32,6 +32,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             this.lengthInElements = lengthInElements;
             this.BufferHandle = bufferHandle;
+            this.BufferHandle.InitMemorySentinel();
         }
 
         public UnmanagedMemoryHandle BufferHandle { get; protected set; }
@@ -71,6 +72,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
         }
 
         [Conditional("MEMORY_SENTINEL")]
-        protected void VerifyMemorySentinel() => this.BufferHandle.VerifyMemorySentinel(this.lengthInElements * Unsafe.SizeOf<T>());
+        internal void VerifyMemorySentinel() => this.BufferHandle.VerifyMemorySentinel(this.lengthInElements * Unsafe.SizeOf<T>());
     }
 }

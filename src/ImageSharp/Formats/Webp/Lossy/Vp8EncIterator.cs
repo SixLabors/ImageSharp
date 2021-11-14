@@ -911,7 +911,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             this.LeftNz[8] = 0;
 
-            this.LeftDerr.AsSpan().Fill(0);
+            this.LeftDerr.AsSpan().Clear();
         }
 
         private void InitTop()
@@ -919,14 +919,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int topSize = this.mbw * 16;
             this.YTop.AsSpan(0, topSize).Fill(127);
             this.UvTop.AsSpan().Fill(127);
-            this.Nz.AsSpan().Fill(0);
+            this.Nz.AsSpan().Clear();
 
             int predsW = (4 * this.mbw) + 1;
             int predsH = (4 * this.mbh) + 1;
             int predsSize = predsW * predsH;
-            this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Fill(0);
+            this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Clear();
 
-            this.TopDerr.AsSpan().Fill(0);
+            this.TopDerr.AsSpan().Clear();
         }
 
         private int Bit(uint nz, int n) => (nz & (1 << n)) != 0 ? 1 : 0;

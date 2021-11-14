@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             if (nonzeros <= 1)
             {
-                output.AsSpan(0, numSymbols).Fill(0);
+                output.AsSpan(0, numSymbols).Clear();
             }
             else
             {

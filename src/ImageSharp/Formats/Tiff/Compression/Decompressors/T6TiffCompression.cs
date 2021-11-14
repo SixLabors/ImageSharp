@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             uint bitsWritten = 0;
             for (int y = 0; y < height; y++)
             {
-                scanLine.Fill(0);
+                scanLine.Clear();
                 Decode2DScanline(bitReader, this.isWhiteZero, referenceScanLine, scanLine);
 
                 bitsWritten = this.WriteScanLine(buffer, scanLine, bitsWritten);
@@ -116,7 +116,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 {
                     // If a TIFF reader encounters EOFB before the expected number of lines has been extracted,
                     // it is appropriate to assume that the missing rows consist entirely of white pixels.
-                    scanline.Fill(whiteIsZero ? (byte)0 : (byte)255);
+                    if (whiteIsZero)
+                    {
+                        scanline.Clear();
+                    }
+                    else
+                    {
+                        scanline.Fill((byte)255);
+                    }
+
                     break;
                 }
 

@@ -546,7 +546,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int predsW = (4 * this.Mbw) + 1;
             int predsH = (4 * this.Mbh) + 1;
             int predsSize = predsW * predsH;
-            this.Preds.AsSpan(predsSize + this.PredsWidth - 4, 4).Fill(0);
+            this.Preds.AsSpan(predsSize + this.PredsWidth - 4, 4).Clear();
 
             this.Nz[0] = 0;   // constant
         }

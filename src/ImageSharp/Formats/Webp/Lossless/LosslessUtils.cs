@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 int numPixels = pixelData.Length;
                 int i;
-                for (i = 0; i + 4 <= numPixels; i += 4)
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 int numPixels = pixelData.Length;
                 int i;
-                for (i = 0; i + 4 <= numPixels; i += 4)
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 int numPixels = pixelData.Length;
                 int i;
-                for (i = 0; i + 8 <= numPixels; i += 8)
+                for (i = 0; i <= numPixels - 8; i += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 int numPixels = pixelData.Length;
                 int i;
-                for (i = 0; i + 4 <= numPixels; i += 4)
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 int numPixels = pixelData.Length;
                 int i;
-                for (i = 0; i + 4 <= numPixels; i += 4)
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
@@ -402,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
 
                 int idx;
-                for (idx = 0; idx + 8 <= numPixels; idx += 8)
+                for (idx = 0; idx <= numPixels - 8; idx += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
@@ -429,7 +429,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
                 int idx;
-                for (idx = 0; idx + 4 <= numPixels; idx += 4)
+                for (idx = 0; idx <= numPixels - 4; idx += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
@@ -489,7 +489,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
                 int idx;
-                for (idx = 0; idx + 8 <= pixelData.Length; idx += 8)
+                for (idx = 0; idx <= pixelData.Length - 8; idx += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
@@ -518,7 +518,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
 
                 int idx;
-                for (idx = 0; idx + 4 <= pixelData.Length; idx += 4)
+                for (idx = 0; idx <= pixelData.Length - 4; idx += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);

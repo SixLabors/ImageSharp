@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class WuQuantizer<TPixel> : IQuantizer<TPixel>
+    internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly MemoryAllocator memoryAllocator;
@@ -101,8 +100,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.isDithering = this.isDithering = !(this.Options.Dither is null);
         }
 
-        ~WuQuantizer() => throw new Exception("very bad");
-
         /// <inheritdoc/>
         public Configuration Configuration { get; }
 
@@ -165,11 +162,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => QuantizerUtilities.QuantizeFrame(this, source, bounds);
+        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
-        public byte GetQuantizedColor(TPixel color, out TPixel match)
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
         {
             if (this.isDithering)
             {
@@ -206,8 +203,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.pixelMap?.Dispose();
                 this.pixelMap = null;
             }
-
-            GC.SuppressFinalize(this);
         }
 
         /// <summary>

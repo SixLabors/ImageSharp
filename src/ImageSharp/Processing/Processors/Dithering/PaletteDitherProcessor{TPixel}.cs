@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            this.dither.ApplyPaletteDither(this.ditherProcessor, source, interest);
+            this.dither.ApplyPaletteDither(in this.ditherProcessor, source, interest);
         }
 
         /// <inheritdoc/>
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel)"/>.
         /// </summary>
         /// <remarks>Internal for AOT</remarks>
-        internal class DitherProcessor : IPaletteDitherImageProcessor<TPixel>, IDisposable
+        internal readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>, IDisposable
         {
             private readonly EuclideanPixelMap<TPixel> pixelMap;
 

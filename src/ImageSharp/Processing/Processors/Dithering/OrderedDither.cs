@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// An ordered dithering matrix with equal sides of arbitrary length
     /// </summary>
-    public partial class OrderedDither : IDither, IEquatable<OrderedDither>, IEquatable<IDither>
+    public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither>, IEquatable<IDither>
     {
         private readonly DenseMatrix<float> thresholdMatrix;
         private readonly int modulusX;
@@ -105,17 +105,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
-            TFrameQuantizer quantizer,
+            ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
             IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
-            where TFrameQuantizer : class, IQuantizer<TPixel>
+            where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // if (this == default)
-            // {
-            //     ThrowDefaultInstance();
-            // }
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
 
             int spread = CalculatePaletteSpread(destination.Palette.Length);
             float scale = quantizer.Options.DitherScale;
@@ -134,24 +134,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
         }
 
-        // public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(TFrameQuantizer quantizer, ImageFrame<TPixel> source,
-        //     IndexedImageFrame<TPixel> destination, Rectangle bounds)
-        //     where TFrameQuantizer : class, IQuantizer<TPixel> where TPixel : unmanaged, IPixel<TPixel> =>
-        //     throw new NotImplementedException();
-
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
-            TPaletteDitherImageProcessor processor,
+            in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
             Rectangle bounds)
-            where TPaletteDitherImageProcessor : class, IPaletteDitherImageProcessor<TPixel>
+            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // if (this == default)
-            // {
-            //     ThrowDefaultInstance();
-            // }
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
 
             int spread = CalculatePaletteSpread(processor.Palette.Length);
             float scale = processor.DitherScale;

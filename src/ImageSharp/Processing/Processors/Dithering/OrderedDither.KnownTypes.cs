@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <content>
     /// An ordered dithering matrix with equal sides of arbitrary length
     /// </content>
-    public partial class OrderedDither
+    public readonly partial struct OrderedDither
     {
         /// <summary>
         /// Applies order dithering using the 2x2 Bayer dithering matrix.

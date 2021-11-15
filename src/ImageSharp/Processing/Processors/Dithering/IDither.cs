@@ -22,11 +22,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="destination">The destination quantized frame.</param>
         /// <param name="bounds">The region of interest bounds.</param>
         void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
-            TFrameQuantizer quantizer,
+            ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
             IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
-            where TFrameQuantizer : class, IQuantizer<TPixel>
+            where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
@@ -39,10 +39,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="source">The source image.</param>
         /// <param name="bounds">The region of interest bounds.</param>
         void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
-            TPaletteDitherImageProcessor processor,
+            in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
             Rectangle bounds)
-            where TPaletteDitherImageProcessor : class, IPaletteDitherImageProcessor<TPixel>
+            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

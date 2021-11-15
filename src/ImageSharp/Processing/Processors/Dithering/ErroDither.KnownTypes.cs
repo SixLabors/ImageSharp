@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// An error diffusion dithering implementation.
     /// </summary>
-    public partial class ErrorDither
+    public readonly partial struct ErrorDither
     {
         /// <summary>
         /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.

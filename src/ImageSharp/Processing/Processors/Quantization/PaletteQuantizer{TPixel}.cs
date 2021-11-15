@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.ConstrainedExecution;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class PaletteQuantizer<TPixel> : IQuantizer<TPixel>
+    internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private EuclideanPixelMap<TPixel> pixelMap;
@@ -36,8 +35,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
         }
 
-        ~PaletteQuantizer() => throw new Exception("Very bad");
-
         /// <inheritdoc/>
         public Configuration Configuration { get; }
 
@@ -49,8 +46,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => QuantizerUtilities.QuantizeFrame(this, source, bounds);
+        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -60,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public byte GetQuantizedColor(TPixel color, out TPixel match)
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
             => (byte)this.pixelMap.GetClosestColor(color, out match);
 
         /// <inheritdoc/>
@@ -68,7 +65,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             this.pixelMap?.Dispose();
             this.pixelMap = null;
-            GC.SuppressFinalize(this);
         }
     }
 }

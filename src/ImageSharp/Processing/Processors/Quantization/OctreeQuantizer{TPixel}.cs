@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
+    public class OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly int maxColors;
@@ -50,6 +51,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.palette = default;
             this.isDithering = !(this.Options.Dither is null);
             this.isDisposed = false;
+        }
+
+        ~OctreeQuantizer()
+        {
+            throw new Exception("Very bad");
         }
 
         /// <inheritdoc/>
@@ -126,12 +132,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+        public IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => QuantizerUtilities.QuantizeFrame(this, source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
+        public byte GetQuantizedColor(TPixel color, out TPixel match)
         {
             // Octree only maps the RGB component of a color
             // so cannot tell the difference between a fully transparent
@@ -158,6 +164,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.pixelMap?.Dispose();
                 this.pixelMap = null;
             }
+
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

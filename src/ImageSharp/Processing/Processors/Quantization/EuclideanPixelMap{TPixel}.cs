@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private Rgba32[] rgbaPalette;
-        private readonly ColorDistanceCache cache;
+        private ColorDistanceCache cache;
         private readonly Configuration configuration;
 
         /// <summary>
@@ -136,7 +136,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             return (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB) + (deltaA * deltaA);
         }
 
-        public void Dispose() => this.cache.Dispose();
+        public void Dispose()
+        {
+            this.cache.Dispose();
+            GC.SuppressFinalize(this);
+        }
+
+        ~EuclideanPixelMap() => throw new Exception("very bad");
 
         /// <summary>
         /// A cache for storing color distance matching results.
@@ -149,7 +155,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Entry count is currently limited to 1185921 entries (2371842 bytes ~2.26MB).
         /// </para>
         /// </remarks>
-        private unsafe struct ColorDistanceCache : IDisposable
+        private class ColorDistanceCache : IDisposable
         {
             private const int IndexBits = 5;
             private const int IndexAlphaBits = 5;
@@ -158,16 +164,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             private const int RgbShift = 8 - IndexBits;
             private const int AlphaShift = 8 - IndexAlphaBits;
             private const int Entries = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
-            private MemoryHandle tableHandle;
+            // private MemoryHandle tableHandle;
             private readonly IMemoryOwner<short> table;
-            private readonly short* tablePointer;
+            // private readonly short* tablePointer;
+            private Memory<short> tableMemory;
 
             public ColorDistanceCache(MemoryAllocator allocator)
             {
                 this.table = allocator.Allocate<short>(Entries);
                 this.table.GetSpan().Fill(-1);
-                this.tableHandle = this.table.Memory.Pin();
-                this.tablePointer = (short*)this.tableHandle.Pointer;
+                this.tableMemory = this.table.Memory;
+                // this.tableHandle = this.table.Memory.Pin();
+                // this.tablePointer = (short*)this.tableHandle.Pointer;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -178,7 +186,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 int b = rgba.B >> RgbShift;
                 int a = rgba.A >> AlphaShift;
                 int idx = GetPaletteIndex(r, g, b, a);
-                this.tablePointer[idx] = index;
+                // this.tablePointer[idx] = index;
+                this.table.Memory.Span[idx] = index;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -189,7 +198,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 int b = rgba.B >> RgbShift;
                 int a = rgba.A >> AlphaShift;
                 int idx = GetPaletteIndex(r, g, b, a);
-                match = this.tablePointer[idx];
+                // match = this.tablePointer[idx];
+                match = this.tableMemory.Span[idx];
                 return match > -1;
             }
 
@@ -214,9 +224,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 if (this.table != null)
                 {
-                    this.tableHandle.Dispose();
+                    // this.tableHandle.Dispose();
                     this.table.Dispose();
                 }
+                GC.SuppressFinalize(this);
+            }
+
+            ~ColorDistanceCache()
+            {
+                throw new Exception("very bad");
             }
         }
     }

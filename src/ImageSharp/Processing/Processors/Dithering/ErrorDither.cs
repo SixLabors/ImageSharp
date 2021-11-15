@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// An error diffusion dithering implementation.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, IEquatable<IDither>
+    public partial class ErrorDither : IDither, IEquatable<ErrorDither>, IEquatable<IDither>
     {
         private readonly int offset;
         private readonly DenseMatrix<float> matrix;
@@ -91,17 +91,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
-            ref TFrameQuantizer quantizer,
+            TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
             IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
-            where TFrameQuantizer : struct, IQuantizer<TPixel>
+            where TFrameQuantizer : class, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (this == default)
-            {
-                ThrowDefaultInstance();
-            }
+            // if (this == default)
+            // {
+            //     ThrowDefaultInstance();
+            // }
 
             int offsetY = bounds.Top;
             int offsetX = bounds.Left;
@@ -131,16 +131,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
-            in TPaletteDitherImageProcessor processor,
+            TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
             Rectangle bounds)
-            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
+            where TPaletteDitherImageProcessor : class, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (this == default)
-            {
-                ThrowDefaultInstance();
-            }
+            // if (this == default)
+            // {
+            //     ThrowDefaultInstance();
+            // }
 
             Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
             float scale = processor.DitherScale;

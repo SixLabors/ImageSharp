@@ -71,10 +71,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
         /// </returns>
         public static IndexedImageFrame<TPixel> QuantizeFrame<TFrameQuantizer, TPixel>(
-            ref TFrameQuantizer quantizer,
+            TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
             Rectangle bounds)
-            where TFrameQuantizer : struct, IQuantizer<TPixel>
+            where TFrameQuantizer : class, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
@@ -88,13 +88,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             if (quantizer.Options.Dither is null)
             {
-                SecondPass(ref quantizer, source, destination, interest);
+                SecondPass(quantizer, source, destination, interest);
             }
             else
             {
                 // We clone the image as we don't want to alter the original via error diffusion based dithering.
                 using ImageFrame<TPixel> clone = source.Clone();
-                SecondPass(ref quantizer, clone, destination, interest);
+                SecondPass(quantizer, clone, destination, interest);
             }
 
             return destination;
@@ -114,11 +114,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void SecondPass<TFrameQuantizer, TPixel>(
-            ref TFrameQuantizer quantizer,
+            TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
             IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
-            where TFrameQuantizer : struct, IQuantizer<TPixel>
+            where TFrameQuantizer : class, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IDither dither = quantizer.Options.Dither;
@@ -136,14 +136,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                     for (int x = bounds.Left; x < bounds.Right; x++)
                     {
-                        destinationRow[x - offsetX] = Unsafe.AsRef(quantizer).GetQuantizedColor(sourceRow[x], out TPixel _);
+                        destinationRow[x - offsetX] = quantizer.GetQuantizedColor(sourceRow[x], out TPixel _);
                     }
                 }
 
                 return;
             }
 
-            dither.ApplyQuantizationDither(ref quantizer, source, destination, bounds);
+            dither.ApplyQuantizationDither(quantizer, source, destination, bounds);
         }
     }
 }

@@ -508,16 +508,16 @@ namespace SixLabors.ImageSharp.Advanced
         [Preserve]
         private static void AotCompileDither<TPixel, TDither>()
             where TPixel : unmanaged, IPixel<TPixel>
-            where TDither : struct, IDither
+            where TDither : class, IDither
         {
             var octree = default(OctreeQuantizer<TPixel>);
-            default(TDither).ApplyQuantizationDither<OctreeQuantizer<TPixel>, TPixel>(ref octree, default, default, default);
+            default(TDither).ApplyQuantizationDither<OctreeQuantizer<TPixel>, TPixel>(octree, default, default, default);
 
             var palette = default(PaletteQuantizer<TPixel>);
-            default(TDither).ApplyQuantizationDither<PaletteQuantizer<TPixel>, TPixel>(ref palette, default, default, default);
+            default(TDither).ApplyQuantizationDither<PaletteQuantizer<TPixel>, TPixel>(palette, default, default, default);
 
             var wu = default(WuQuantizer<TPixel>);
-            default(TDither).ApplyQuantizationDither<WuQuantizer<TPixel>, TPixel>(ref wu, default, default, default);
+            default(TDither).ApplyQuantizationDither<WuQuantizer<TPixel>, TPixel>(wu, default, default, default);
             default(TDither).ApplyPaletteDither<PaletteDitherProcessor<TPixel>.DitherProcessor, TPixel>(default, default, default);
         }
 

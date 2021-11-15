@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                     result[i] = buffersLocal[this.index];
                     buffersLocal[this.index++] = null;
 
-                    if (result[i].IsInvalid)
+                    if (result[i]?.IsInvalid == true)
                     {
                         throw new InvalidOperationException("Renting disposed handle :O !!!");
                     }

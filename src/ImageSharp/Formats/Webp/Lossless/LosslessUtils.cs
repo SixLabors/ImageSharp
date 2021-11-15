@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 int numPixels = pixelData.Length;
                 int i;
-                for (i = 0; i + 8 <= numPixels; i += 8)
+                for (i = 0; i <= numPixels - 8; i += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();

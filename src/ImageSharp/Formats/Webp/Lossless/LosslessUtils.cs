@@ -52,6 +52,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static readonly Vector128<byte> TransformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
 
+        private static readonly Vector256<byte> TransformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+
         private static readonly byte TransformColorInverseShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
 #endif
 
@@ -505,7 +507,38 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse2.IsSupported)
+            if (Avx2.IsSupported && pixelData.Length >= 8)
+            {
+                Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
+                Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
+                fixed (uint* src = pixelData)
+                {
+                    int idx;
+                    for (idx = 0; idx + 8 <= pixelData.Length; idx += 8)
+                    {
+                        uint* pos = src + idx;
+                        Vector256<uint> input = Avx.LoadVector256(pos);
+                        Vector256<byte> a = Avx2.And(input.AsByte(), TransformColorInverseAlphaGreenMask256);
+                        Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), TransformColorInverseShuffleMask);
+                        Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), TransformColorInverseShuffleMask);
+                        Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                        Vector256<byte> e = Avx2.Add(input.AsByte(), d.AsByte());
+                        Vector256<short> f = Avx2.ShiftLeftLogical(e.AsInt16(), 8);
+                        Vector256<short> g = Avx2.MultiplyHigh(f, multsb2.AsInt16());
+                        Vector256<int> h = Avx2.ShiftRightLogical(g.AsInt32(), 8);
+                        Vector256<byte> i = Avx2.Add(h.AsByte(), f.AsByte());
+                        Vector256<short> j = Avx2.ShiftRightLogical(i.AsInt16(), 8);
+                        Vector256<byte> output = Avx2.Or(j.AsByte(), a);
+                        Avx.Store((byte*)pos, output);
+                    }
+
+                    if (idx != pixelData.Length)
+                    {
+                        TransformColorInverseNoneVectorized(m, pixelData.Slice(idx));
+                    }
+                }
+            }
+            else if (Sse2.IsSupported)
             {
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);

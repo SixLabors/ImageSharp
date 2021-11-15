@@ -56,10 +56,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x <= tileWidth - span; x += span)
+                    for (nint x = 0; x <= tileWidth - span; x += span)
                     {
-                        int input0Idx = x;
-                        int input1Idx = x + (span / 2);
+                        nint input0Idx = x;
+                        nint input1Idx = x + (span / 2);
                         Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
                         Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
                         Vector256<byte> r0 = Avx2.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask256);
@@ -101,10 +101,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x <= tileWidth - span; x += span)
+                    for (nint x = 0; x <= tileWidth - span; x += span)
                     {
-                        int input0Idx = x;
-                        int input1Idx = x + (span / 2);
+                        nint input0Idx = x;
+                        nint input1Idx = x + (span / 2);
                         Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
                         Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
                         Vector128<byte> r0 = Ssse3.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask);
@@ -170,10 +170,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x <= tileWidth - span; x += span)
+                    for (nint x = 0; x <= tileWidth - span; x += span)
                     {
-                        int input0Idx = x;
-                        int input1Idx = x + (span / 2);
+                        nint input0Idx = x;
+                        nint input1Idx = x + (span / 2);
                         Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
                         Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
                         Vector256<byte> g0 = Avx2.And(input0, CollectColorRedTransformsGreenMask256); // 0 0  | g 0
@@ -211,10 +211,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x <= tileWidth - span; x += span)
+                    for (nint x = 0; x <= tileWidth - span; x += span)
                     {
-                        int input0Idx = x;
-                        int input1Idx = x + (span / 2);
+                        nint input0Idx = x;
+                        nint input1Idx = x + (span / 2);
                         Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
                         Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
                         Vector128<byte> g0 = Sse2.And(input0, CollectColorRedTransformsGreenMask); // 0 0  | g 0

@@ -106,6 +106,8 @@ namespace SixLabors.ImageSharp.Memory
                     {
                         buffer.Clear();
                     }
+
+                    return buffer;
                 }
             }
 
@@ -131,6 +133,11 @@ namespace SixLabors.ImageSharp.Memory
                 UnmanagedMemoryHandle array = this.pool.Rent();
                 if (array != null)
                 {
+                    if (array.IsInvalid)
+                    {
+                        throw new InvalidOperationException("Rending disposed handle :O !!!");
+                    }
+
                     var buffer = new UniformUnmanagedMemoryPool.FinalizableBuffer<T>(this.pool, array, (int)totalLength);
                     if (options.Has(AllocationOptions.Clean))
                     {

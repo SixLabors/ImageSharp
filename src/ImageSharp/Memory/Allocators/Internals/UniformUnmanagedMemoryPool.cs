@@ -81,10 +81,15 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 buffer = UnmanagedMemoryHandle.Allocate(this.BufferLength);
             }
 
+            if (buffer.IsInvalid)
+            {
+                throw new InvalidOperationException("Rending disposed handle :O !!!");
+            }
+
             return buffer;
         }
 
-        public UnmanagedMemoryHandle[] Rent(int bufferCount, AllocationOptions allocationOptions = AllocationOptions.None)
+        public UnmanagedMemoryHandle[] Rent(int bufferCount)
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
 
@@ -108,6 +113,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 {
                     result[i] = buffersLocal[this.index];
                     buffersLocal[this.index++] = null;
+
+                    if (result[i].IsInvalid)
+                    {
+                        throw new InvalidOperationException("Renting disposed handle :O !!!");
+                    }
                 }
             }
 
@@ -117,11 +127,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 {
                     result[i] = UnmanagedMemoryHandle.Allocate(this.BufferLength);
                 }
-
-                if (allocationOptions.Has(AllocationOptions.Clean))
-                {
-                    this.GetSpan(result[i]).Clear();
-                }
             }
 
             return result;
@@ -129,6 +134,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         public void Return(UnmanagedMemoryHandle buffer)
         {
+            if (buffer.IsInvalid)
+            {
+                throw new InvalidOperationException("Returning a disposed handle :O !!!");
+            }
+
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
             if (buffersLocal == null)
             {
@@ -183,6 +193,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
                 for (int i = buffers.Length - 1; i >= 0; i--)
                 {
+                    if (buffers[i].IsInvalid)
+                    {
+                        throw new InvalidOperationException("Returning a disposed handle :O !!!");
+                    }
+
                     buffersLocal[--this.index] = buffers[i];
                 }
             }

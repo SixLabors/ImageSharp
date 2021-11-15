@@ -192,15 +192,14 @@ namespace SixLabors.ImageSharp.Memory
                 bufferCount++;
             }
 
-            UnmanagedMemoryHandle[] arrays = pool.Rent(bufferCount, options);
+            UnmanagedMemoryHandle[] arrays = pool.Rent(bufferCount);
 
             if (arrays == null)
             {
                 // Pool is full
                 return null;
             }
-
-            return new Owned(pool, arrays, bufferLength, totalLengthInElements, sizeOfLastBuffer);
+            return new Owned(pool, arrays, bufferLength, totalLengthInElements, sizeOfLastBuffer, options);
         }
 
         public static MemoryGroup<T> Wrap(params Memory<T>[] source)

@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory.Internals
@@ -14,9 +15,15 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             private UniformUnmanagedMemoryPool pool;
 
+            private StackTrace _creatorStackTrace;
+
             public Buffer(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle bufferHandle, int length)
-                : base(bufferHandle, length) =>
+                : base(bufferHandle, length)
+            {
                 this.pool = pool;
+                this._creatorStackTrace = new StackTrace();
+            }
+
 
             /// <inheritdoc />
             protected override void Dispose(bool disposing)
@@ -24,6 +31,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 if (this.pool == null)
                 {
                     return;
+                }
+
+                if (this.BufferHandle.IsInvalid)
+                {
+                    throw new InvalidOperationException("The underlying handle has been disposed!");
                 }
 
                 this.VerifyMemorySentinel();
@@ -48,6 +60,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 bufferHandle.AssignedToNewOwner();
             }
 
+            private bool disposedProperly;
+
             // A VERY poorly written user code holding a Span<TPixel> on the stack,
             // while loosing the reference to Image<TPixel> (or disposing it) may write to (now unrelated) pool buffer,
             // or cause memory corruption if the underlying UmnanagedMemoryHandle has been released.
@@ -66,6 +80,12 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 }
 
                 base.Dispose(disposing);
+
+                if (disposing)
+                {
+                    GC.SuppressFinalize(this);
+                    this.disposedProperly = true;
+                }
             }
         }
     }

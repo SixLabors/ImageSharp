@@ -56,12 +56,16 @@ namespace SixLabors.ImageSharp.Memory.Internals
         /// <inheritdoc />
         public override bool IsInvalid => this.handle == IntPtr.Zero;
 
+        public StackTrace ReleaseHandleStackTrace { get; private set; }
+
         protected override bool ReleaseHandle()
         {
             if (this.IsInvalid)
             {
                 return false;
             }
+
+            this.ReleaseHandleStackTrace = new StackTrace();
 
             Marshal.FreeHGlobal(this.handle);
             if (this.lengthInBytes > 0)
@@ -91,19 +95,35 @@ namespace SixLabors.ImageSharp.Memory.Internals
         [Conditional("MEMORY_SENTINEL")]
         internal unsafe void InitMemorySentinel() => new Span<byte>((void*)this.handle, this.lengthInBytes + MemorySentinelPadding).Fill(42);
 
+        private volatile bool sentinelRunning;
+
         [Conditional("MEMORY_SENTINEL")]
         internal unsafe void VerifyMemorySentinel(int actualLengthInBytes)
         {
+            if (this.IsInvalid)
+            {
+                throw new InvalidOperationException("VerifyMemorySentinel on released handle!");
+            }
+
+            this.sentinelRunning = true;
+
             Span<byte> remainder =
                 new Span<byte>((void*)this.handle, this.lengthInBytes + MemorySentinelPadding)
                     .Slice(actualLengthInBytes);
             for (int i = 0; i < remainder.Length; i++)
             {
+                if (this.IsInvalid)
+                {
+                    throw new InvalidOperationException("mega wtf");
+                }
+
                 if (remainder[i] != 42)
                 {
                     throw new InvalidMemoryOperationException("Memory corruption detected!");
                 }
             }
+
+            this.sentinelRunning = false;
         }
 
         private static IntPtr AllocateHandle(int lengthInBytes)
@@ -149,8 +169,22 @@ namespace SixLabors.ImageSharp.Memory.Internals
         internal void Resurrect()
         {
             GC.SuppressFinalize(this);
+            // GC.ReRegisterForFinalize(this);
             this.resurrected = true;
+            this.reRegistered = false;
         }
+
+        // protected override void Dispose(bool disposing)
+        // {
+        //     if (!disposing)
+        //     {
+        //         GC.ReRegisterForFinalize(this);
+        //     }
+        //     else
+        //     {
+        //         base.Dispose(true);
+        //     }
+        // }
 
         internal void AssignedToNewOwner()
         {
@@ -159,7 +193,10 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 // The handle has been resurrected
                 GC.ReRegisterForFinalize(this);
                 this.resurrected = false;
+                this.reRegistered = true;
             }
         }
+
+        private bool reRegistered;
     }
 }

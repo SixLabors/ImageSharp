@@ -30,8 +30,8 @@ namespace SixLabors.ImageSharp.Memory
                 this.View = new MemoryGroupView<T>(this);
             }
 
-            public Owned(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle[] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer)
-                : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
+            public Owned(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle[] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer, AllocationOptions options)
+                : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer, options), bufferLength, totalLength, true)
             {
                 this.pooledHandles = pooledArrays;
                 this.unmanagedMemoryPool = pool;
@@ -66,13 +66,18 @@ namespace SixLabors.ImageSharp.Memory
                 UniformUnmanagedMemoryPool pool,
                 UnmanagedMemoryHandle[] pooledBuffers,
                 int bufferLength,
-                int sizeOfLastBuffer)
+                int sizeOfLastBuffer,
+                AllocationOptions options)
             {
                 var result = new IMemoryOwner<T>[pooledBuffers.Length];
                 for (int i = 0; i < pooledBuffers.Length - 1; i++)
                 {
                     pooledBuffers[i].AssignedToNewOwner();
                     result[i] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[i], bufferLength);
+                    if (options.Has(AllocationOptions.Clean))
+                    {
+                        result[i].Clear();
+                    }
                 }
 
                 result[result.Length - 1] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer);
@@ -169,6 +174,11 @@ namespace SixLabors.ImageSharp.Memory
                 this.pooledArrays = null;
                 this.unmanagedMemoryPool = null;
                 this.pooledHandles = null;
+
+                if (disposing)
+                {
+                    GC.SuppressFinalize(this);
+                }
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]

@@ -13,6 +13,7 @@
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Tga NetCore</PackageTags>
     <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
+    <DefineConstants>$(DefineConstants);MEMORY_SENTINEL</DefineConstants>
     <DefineConstants Condition="'$(Configuration)' == 'Debug-InnerLoop'">$(DefineConstants);DEBUG</DefineConstants>
   </PropertyGroup>
 

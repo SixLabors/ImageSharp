@@ -258,10 +258,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void TransformColor_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.DisableSSE2);
 
         [Fact]
+        public void TransformColor_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.DisableAVX2);
+
+        [Fact]
         public void TransformColorInverse_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.AllowAll);
 
         [Fact]
         public void TransformColorInverse_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void TransformColorInverse_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableAVX2);
 #endif
     }
 }

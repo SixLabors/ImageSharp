@@ -42,7 +42,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static readonly Vector128<byte> TransformColorAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
 
+        private static readonly Vector256<byte> TransformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+
         private static readonly Vector128<byte> TransformColorRedBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+
+        private static readonly Vector256<byte> TransformColorRedBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
 
         private static readonly byte TransformColorShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
 
@@ -408,7 +412,37 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static void TransformColor(Vp8LMultipliers m, Span<uint> data, int numPixels)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse2.IsSupported)
+            if (Avx2.IsSupported && numPixels >= 8)
+            {
+                Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
+                Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
+                fixed (uint* src = data)
+                {
+                    int idx;
+                    for (idx = 0; idx + 8 <= numPixels; idx += 8)
+                    {
+                        uint* pos = src + idx;
+                        Vector256<uint> input = Avx.LoadVector256(pos);
+                        Vector256<byte> a = Avx2.And(input.AsByte(), TransformColorAlphaGreenMask256);
+                        Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), TransformColorShuffleMask);
+                        Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), TransformColorShuffleMask);
+                        Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                        Vector256<short> e = Avx2.ShiftLeftLogical(input.AsInt16(), 8);
+                        Vector256<short> f = Avx2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
+                        Vector256<int> g = Avx2.ShiftRightLogical(f.AsInt32(), 16);
+                        Vector256<byte> h = Avx2.Add(g.AsByte(), d.AsByte());
+                        Vector256<byte> i = Avx2.And(h, TransformColorRedBlueMask256);
+                        Vector256<byte> output = Avx2.Subtract(input.AsByte(), i);
+                        Avx.Store((byte*)pos, output);
+                    }
+
+                    if (idx != numPixels)
+                    {
+                        TransformColorNoneVectorized(m, data.Slice(idx), numPixels - idx);
+                    }
+                }
+            }
+            else if (Sse2.IsSupported)
             {
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
@@ -1288,6 +1322,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 #if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector128<int> MkCst16(int hi, int lo) => Vector128.Create((hi << 16) | (lo & 0xffff));
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static Vector256<int> MkCst32(int hi, int lo) => Vector256.Create((hi << 16) | (lo & 0xffff));
 #endif
 
         private static uint Select(uint a, uint b, uint c, Span<short> scratch)

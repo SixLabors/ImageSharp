@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x + span <= tileWidth; x += span)
+                    for (int x = 0; x <= tileWidth - span; x += span)
                     {
                         int input0Idx = x;
                         int input1Idx = x + (span / 2);
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x + span <= tileWidth; x += span)
+                    for (int x = 0; x <= tileWidth - span; x += span)
                     {
                         int input0Idx = x;
                         int input1Idx = x + (span / 2);
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x + span <= tileWidth; x += span)
+                    for (int x = 0; x <= tileWidth - span; x += span)
                     {
                         int input0Idx = x;
                         int input1Idx = x + (span / 2);
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
-                    for (int x = 0; x + span <= tileWidth; x += span)
+                    for (int x = 0; x <= tileWidth - span; x += span)
                     {
                         int input0Idx = x;
                         int input1Idx = x + (span / 2);

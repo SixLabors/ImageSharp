@@ -561,7 +561,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return (byte)(lower + (quantization >> 1));
             }
 
-            return (byte)(upper & 0xff);
+            return (byte)upper;
         }
 
         /// <summary>

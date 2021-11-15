@@ -73,14 +73,22 @@ namespace SixLabors.ImageSharp.Memory
                 for (int i = 0; i < pooledBuffers.Length - 1; i++)
                 {
                     pooledBuffers[i].AssignedToNewOwner();
-                    result[i] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[i], bufferLength);
+                    var currentBuffer = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[i], bufferLength);
                     if (options.Has(AllocationOptions.Clean))
                     {
-                        result[i].Clear();
+                        currentBuffer.Clear();
                     }
+
+                    result[i] = currentBuffer;
                 }
 
-                result[result.Length - 1] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer);
+                var lastBuffer = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer);
+                if (options.Has(AllocationOptions.Clean))
+                {
+                    lastBuffer.Clear();
+                }
+
+                result[result.Length - 1] = lastBuffer;
                 return result;
             }
 

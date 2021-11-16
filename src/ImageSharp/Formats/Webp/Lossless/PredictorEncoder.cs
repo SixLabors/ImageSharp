@@ -5,11 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-#endif
-
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
     /// <summary>
@@ -33,22 +28,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private const float SpatialPredictorBias = 15.0f;
 
         private const int PredLowEffort = 11;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector128<byte> CollectColorRedTransformsGreenMask = Vector128.Create(0x00ff00).AsByte();
-
-        private static readonly Vector128<byte> CollectColorRedTransformsAndMask = Vector128.Create((short)0xff).AsByte();
-
-        private static readonly Vector128<byte> CollectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-
-        private static readonly Vector128<byte> CollectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-
-        private static readonly Vector128<byte> CollectColorBlueTransformsBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-
-        private static readonly Vector128<byte> CollectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
-
-        private static readonly Vector128<byte> CollectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
-#endif
 
         // This uses C#'s compiler optimization to refer to assembly's static data directly.
         private static ReadOnlySpan<sbyte> DeltaLut => new sbyte[] { 16, 16, 8, 4, 2, 2, 2 };
@@ -572,19 +551,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 return (byte)lower;
             }
-            else
-            {
-                // upper is closer to residual than lower.
-                if (residual <= boundaryResidual && upper > boundaryResidual)
-                {
-                    // Halve quantization step to avoid crossing boundary. This midpoint is
-                    // on the same side of boundary as residual because midpoint <= residual
-                    // (since upper is closer than lower) and residual is below the boundary.
-                    return (byte)(lower + (quantization >> 1));
-                }
 
-                return (byte)(upper & 0xff);
+            // upper is closer to residual than lower.
+            if (residual <= boundaryResidual && upper > boundaryResidual)
+            {
+                // Halve quantization step to avoid crossing boundary. This midpoint is
+                // on the same side of boundary as residual because midpoint <= residual
+                // (since upper is closer than lower) and residual is below the boundary.
+                return (byte)(lower + (quantization >> 1));
             }
+
+            return (byte)upper;
         }
 
         /// <summary>
@@ -980,7 +957,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<int> histo = scratch.Slice(0, 256);
             histo.Clear();
 
-            CollectColorRedTransforms(argb, stride, tileWidth, tileHeight, greenToRed, histo);
+            ColorSpaceTransformUtils.CollectColorRedTransforms(argb, stride, tileWidth, tileHeight, greenToRed, histo);
             double curDiff = PredictionCostCrossColor(accumulatedRedHisto, histo);
 
             if ((byte)greenToRed == prevX.GreenToRed)
@@ -1018,7 +995,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<int> histo = scratch.Slice(0, 256);
             histo.Clear();
 
-            CollectColorBlueTransforms(argb, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
+            ColorSpaceTransformUtils.CollectColorBlueTransforms(argb, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
             double curDiff = PredictionCostCrossColor(accumulatedBlueHisto, histo);
             if ((byte)greenToBlue == prevX.GreenToBlue)
             {
@@ -1055,146 +1032,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             return curDiff;
-        }
-
-        private static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse41.IsSupported)
-            {
-                var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
-                const int span = 8;
-                Span<ushort> values = stackalloc ushort[span];
-                for (int y = 0; y < tileHeight; y++)
-                {
-                    Span<uint> srcSpan = bgra.Slice(y * stride);
-#pragma warning disable SA1503 // Braces should not be omitted
-                    fixed (uint* src = srcSpan)
-                    fixed (ushort* dst = values)
-                    {
-                        for (int x = 0; x + span <= tileWidth; x += span)
-                        {
-                            uint* input0Idx = src + x;
-                            uint* input1Idx = src + x + (span / 2);
-                            Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
-                            Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> g0 = Sse2.And(input0, CollectColorRedTransformsGreenMask); // 0 0  | g 0
-                            Vector128<byte> g1 = Sse2.And(input1, CollectColorRedTransformsGreenMask);
-                            Vector128<ushort> g = Sse41.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
-                            Vector128<int> a0 = Sse2.ShiftRightLogical(input0.AsInt32(), 16); // 0 0  | x r
-                            Vector128<int> a1 = Sse2.ShiftRightLogical(input1.AsInt32(), 16);
-                            Vector128<ushort> a = Sse41.PackUnsignedSaturate(a0, a1); // x r
-                            Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg); // x dr
-                            Vector128<byte> c = Sse2.Subtract(a.AsByte(), b.AsByte()); // x r'
-                            Vector128<byte> d = Sse2.And(c, CollectColorRedTransformsAndMask); // 0 r'
-                            Sse2.Store(dst, d.AsUInt16());
-                            for (int i = 0; i < span; i++)
-                            {
-                                ++histo[values[i]];
-                            }
-                        }
-                    }
-                }
-#pragma warning restore SA1503 // Braces should not be omitted
-
-                int leftOver = tileWidth & (span - 1);
-                if (leftOver > 0)
-                {
-                    CollectColorRedTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToRed, histo);
-                }
-            }
-            else
-#endif
-            {
-                CollectColorRedTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToRed, histo);
-            }
-        }
-
-        private static void CollectColorRedTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
-        {
-            int pos = 0;
-            while (tileHeight-- > 0)
-            {
-                for (int x = 0; x < tileWidth; x++)
-                {
-                    int idx = LosslessUtils.TransformColorRed((sbyte)greenToRed, bgra[pos + x]);
-                    ++histo[idx];
-                }
-
-                pos += stride;
-            }
-        }
-
-        private static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
-        {
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse41.IsSupported)
-            {
-                const int span = 8;
-                Span<ushort> values = stackalloc ushort[span];
-                var multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
-                var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
-                for (int y = 0; y < tileHeight; y++)
-                {
-                    Span<uint> srcSpan = bgra.Slice(y * stride);
-#pragma warning disable SA1503 // Braces should not be omitted
-                    fixed (uint* src = srcSpan)
-                    fixed (ushort* dst = values)
-                    {
-                        for (int x = 0; x + span <= tileWidth; x += span)
-                        {
-                            uint* input0Idx = src + x;
-                            uint* input1Idx = src + x + (span / 2);
-                            Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
-                            Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
-                            Vector128<byte> r0 = Ssse3.Shuffle(input0, CollectColorBlueTransformsShuffleLowMask);
-                            Vector128<byte> r1 = Ssse3.Shuffle(input1, CollectColorBlueTransformsShuffleHighMask);
-                            Vector128<byte> r = Sse2.Or(r0, r1);
-                            Vector128<byte> gb0 = Sse2.And(input0, CollectColorBlueTransformsGreenBlueMask);
-                            Vector128<byte> gb1 = Sse2.And(input1, CollectColorBlueTransformsGreenBlueMask);
-                            Vector128<ushort> gb = Sse41.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
-                            Vector128<byte> g = Sse2.And(gb.AsByte(), CollectColorBlueTransformsGreenMask);
-                            Vector128<short> a = Sse2.MultiplyHigh(r.AsInt16(), multsr);
-                            Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg);
-                            Vector128<byte> c = Sse2.Subtract(gb.AsByte(), b.AsByte());
-                            Vector128<byte> d = Sse2.Subtract(c, a.AsByte());
-                            Vector128<byte> e = Sse2.And(d, CollectColorBlueTransformsBlueMask);
-                            Sse2.Store(dst, e.AsUInt16());
-                            for (int i = 0; i < span; i++)
-                            {
-                                ++histo[values[i]];
-                            }
-                        }
-                    }
-                }
-#pragma warning restore SA1503 // Braces should not be omitted
-
-                int leftOver = tileWidth & (span - 1);
-                if (leftOver > 0)
-                {
-                    CollectColorBlueTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
-                }
-            }
-            else
-#endif
-            {
-                CollectColorBlueTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
-            }
-        }
-
-        private static void CollectColorBlueTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
-        {
-            int pos = 0;
-            while (tileHeight-- > 0)
-            {
-                for (int x = 0; x < tileWidth; x++)
-                {
-                    int idx = LosslessUtils.TransformColorBlue((sbyte)greenToBlue, (sbyte)redToBlue, bgra[pos + x]);
-                    ++histo[idx];
-                }
-
-                pos += stride;
-            }
         }
 
         private static float PredictionCostSpatialHistogram(int[][] accumulated, int[][] tile)

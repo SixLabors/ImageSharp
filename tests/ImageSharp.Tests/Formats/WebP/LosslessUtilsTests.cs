@@ -132,6 +132,126 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.Equal(expectedOutput, pixelData);
         }
 
+        private static void RunPredictor5Test()
+        {
+            // arrange
+            uint[] topData = { 4284254193, 4284318702 };
+            uint left = 4284384236;
+            uint expectedResult = 4284253679;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[0])
+                {
+                    uint actual = LosslessUtils.Predictor5(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
+        private static void RunPredictor6Test()
+        {
+            // arrange
+            uint[] topData = { 4284188659, 4284254193 };
+            uint left = 4284384236;
+            uint expectedResult = 4284253679;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[1])
+                {
+                    uint actual = LosslessUtils.Predictor6(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
+        private static void RunPredictor7Test()
+        {
+            // arrange
+            uint[] topData = { 4284254193, 4284318702 };
+            uint left = 4284384236;
+            uint expectedResult = 4284319214;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[0])
+                {
+                    uint actual = LosslessUtils.Predictor7(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
+        private static void RunPredictor8Test()
+        {
+            // arrange
+            uint[] topData = { 4284254193, 4284318702 };
+            uint left = 4284384236;
+            uint expectedResult = 4284253679;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[1])
+                {
+                    uint actual = LosslessUtils.Predictor8(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
+        private static void RunPredictor9Test()
+        {
+            // arrange
+            uint[] topData = { 4284254193, 4284318702 };
+            uint left = 4284384236;
+            uint expectedResult = 4284253679;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[0])
+                {
+                    uint actual = LosslessUtils.Predictor9(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
+        private static void RunPredictor10Test()
+        {
+            // arrange
+            uint[] topData = { 4278193664, 4278193664, 4278193664 };
+            uint left = 4278193664;
+            uint expectedResult = 4278193664;
+
+            // act
+            unsafe
+            {
+                fixed (uint* top = &topData[1])
+                {
+                    uint actual = LosslessUtils.Predictor10(left, top);
+
+                    // assert
+                    Assert.Equal(expectedResult, actual);
+                }
+            }
+        }
+
         private static void RunPredictor11Test()
         {
             // arrange
@@ -194,6 +314,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Fact]
+        public void Predictor5_Works() => RunPredictor5Test();
+
+        [Fact]
+        public void Predictor6_Works() => RunPredictor6Test();
+
+        [Fact]
+        public void Predictor7_Works() => RunPredictor7Test();
+
+        [Fact]
+        public void Predictor8_Works() => RunPredictor8Test();
+
+        [Fact]
+        public void Predictor9_Works() => RunPredictor9Test();
+
+        [Fact]
+        public void Predictor10_Works() => RunPredictor10Test();
+
+        [Fact]
         public void Predictor11_Works() => RunPredictor11Test();
 
         [Fact]
@@ -215,6 +353,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void TransformColorInverse_Works() => RunTransformColorInverseTest();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void Predictor5_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor5Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor5_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor5Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Predictor6_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor6Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor6_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor6Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Predictor7_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor7Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor7_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor7Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Predictor8_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor8Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor8_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor8Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Predictor9_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor9Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor9_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor9Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Predictor10_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor10Test, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void Predictor10_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor10Test, HwIntrinsics.DisableSSE2);
+
         [Fact]
         public void Predictor11_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor11Test, HwIntrinsics.AllowAll);
 

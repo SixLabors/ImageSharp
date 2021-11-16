@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (Avx2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                int i;
+                nint i;
                 for (i = 0; i <= numPixels - 8; i += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
@@ -140,13 +140,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Ssse3.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                int i;
+                nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
@@ -158,13 +158,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Sse2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                int i;
+                nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
@@ -178,17 +178,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else
 #endif
             {
-                AddGreenToBlueAndRedNoneVectorized(pixelData);
+                AddGreenToBlueAndRedScalar(pixelData);
             }
         }
 
-        private static void AddGreenToBlueAndRedNoneVectorized(Span<uint> pixelData)
+        private static void AddGreenToBlueAndRedScalar(Span<uint> pixelData)
         {
             int numPixels = pixelData.Length;
             for (int i = 0; i < numPixels; i++)
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (Avx2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                int i;
+                nint i;
                 for (i = 0; i <= numPixels - 8; i += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
@@ -220,13 +220,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Ssse3.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                int i;
+                nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
@@ -238,13 +238,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Sse2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                int i;
+                nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
@@ -258,17 +258,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else
 #endif
             {
-                SubtractGreenFromBlueAndRedNoneVectorized(pixelData);
+                SubtractGreenFromBlueAndRedScalar(pixelData);
             }
         }
 
-        private static void SubtractGreenFromBlueAndRedNoneVectorized(Span<uint> pixelData)
+        private static void SubtractGreenFromBlueAndRedScalar(Span<uint> pixelData)
         {
             int numPixels = pixelData.Length;
             for (int i = 0; i < numPixels; i++)
@@ -401,7 +401,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
 
-                int idx;
+                nint idx;
                 for (idx = 0; idx <= numPixels - 8; idx += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
@@ -421,14 +421,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != numPixels)
                 {
-                    TransformColorNoneVectorized(m, pixelData.Slice(idx), numPixels - idx);
+                    TransformColorScalar(m, pixelData.Slice((int)idx), numPixels - (int)idx);
                 }
             }
             else if (Sse2.IsSupported)
             {
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
-                int idx;
+                nint idx;
                 for (idx = 0; idx <= numPixels - 4; idx += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
@@ -448,17 +448,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != numPixels)
                 {
-                    TransformColorNoneVectorized(m, pixelData.Slice(idx), numPixels - idx);
+                    TransformColorScalar(m, pixelData.Slice((int)idx), numPixels - (int)idx);
                 }
             }
             else
 #endif
             {
-                TransformColorNoneVectorized(m, pixelData, numPixels);
+                TransformColorScalar(m, pixelData, numPixels);
             }
         }
 
-        private static void TransformColorNoneVectorized(Vp8LMultipliers m, Span<uint> data, int numPixels)
+        private static void TransformColorScalar(Vp8LMultipliers m, Span<uint> data, int numPixels)
         {
             for (int i = 0; i < numPixels; i++)
             {
@@ -488,7 +488,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
-                int idx;
+                nint idx;
                 for (idx = 0; idx <= pixelData.Length - 8; idx += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
@@ -509,7 +509,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != pixelData.Length)
                 {
-                    TransformColorInverseNoneVectorized(m, pixelData.Slice(idx));
+                    TransformColorInverseScalar(m, pixelData.Slice((int)idx));
                 }
             }
             else if (Sse2.IsSupported)
@@ -517,7 +517,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
 
-                int idx;
+                nint idx;
                 for (idx = 0; idx <= pixelData.Length - 4; idx += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
@@ -538,17 +538,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != pixelData.Length)
                 {
-                    TransformColorInverseNoneVectorized(m, pixelData.Slice(idx));
+                    TransformColorInverseScalar(m, pixelData.Slice((int)idx));
                 }
             }
             else
 #endif
             {
-                TransformColorInverseNoneVectorized(m, pixelData);
+                TransformColorInverseScalar(m, pixelData);
             }
         }
 
-        private static void TransformColorInverseNoneVectorized(Vp8LMultipliers m, Span<uint> pixelData)
+        private static void TransformColorInverseScalar(Vp8LMultipliers m, Span<uint> pixelData)
         {
             for (int i = 0; i < pixelData.Length; i++)
             {

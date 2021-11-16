@@ -783,6 +783,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return (float)retVal;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static byte TransformColorRed(sbyte greenToRed, uint argb)
         {
             sbyte green = U32ToS8(argb >> 8);
@@ -791,6 +792,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return (byte)(newRed & 0xff);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static byte TransformColorBlue(sbyte greenToBlue, sbyte redToBlue, uint argb)
         {
             sbyte green = U32ToS8(argb >> 8);

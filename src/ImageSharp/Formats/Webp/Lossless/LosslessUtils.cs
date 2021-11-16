@@ -42,11 +42,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static readonly Vector128<byte> TransformColorAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
 
+        private static readonly Vector256<byte> TransformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+
         private static readonly Vector128<byte> TransformColorRedBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+
+        private static readonly Vector256<byte> TransformColorRedBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
 
         private static readonly byte TransformColorShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
 
         private static readonly Vector128<byte> TransformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+
+        private static readonly Vector256<byte> TransformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
 
         private static readonly byte TransformColorInverseShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
 
@@ -124,76 +130,67 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (Avx2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                fixed (uint* p = pixelData)
+                nint i;
+                for (i = 0; i <= numPixels - 8; i += 8)
                 {
-                    int i;
-                    for (i = 0; i + 8 <= numPixels; i += 8)
-                    {
-                        uint* idx = p + i;
-                        Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
-                        Vector256<byte> in0g0g = Avx2.Shuffle(input, AddGreenToBlueAndRedMaskAvx2);
-                        Vector256<byte> output = Avx2.Add(input, in0g0g);
-                        Avx.Store((byte*)idx, output);
-                    }
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                    Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
+                    Vector256<byte> in0g0g = Avx2.Shuffle(input, AddGreenToBlueAndRedMaskAvx2);
+                    Vector256<byte> output = Avx2.Add(input, in0g0g);
+                    Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
+                }
 
-                    if (i != numPixels)
-                    {
-                        AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
-                    }
+                if (i != numPixels)
+                {
+                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Ssse3.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                fixed (uint* p = pixelData)
+                nint i;
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
-                    int i;
-                    for (i = 0; i + 4 <= numPixels; i += 4)
-                    {
-                        uint* idx = p + i;
-                        Vector128<byte> input = Sse2.LoadVector128((ushort*)idx).AsByte();
-                        Vector128<byte> in0g0g = Ssse3.Shuffle(input, AddGreenToBlueAndRedMaskSsse3);
-                        Vector128<byte> output = Sse2.Add(input, in0g0g);
-                        Sse2.Store((byte*)idx, output.AsByte());
-                    }
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                    Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
+                    Vector128<byte> in0g0g = Ssse3.Shuffle(input, AddGreenToBlueAndRedMaskSsse3);
+                    Vector128<byte> output = Sse2.Add(input, in0g0g);
+                    Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
+                }
 
-                    if (i != numPixels)
-                    {
-                        AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
-                    }
+                if (i != numPixels)
+                {
+                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Sse2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                fixed (uint* p = pixelData)
+                nint i;
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
-                    int i;
-                    for (i = 0; i + 4 <= numPixels; i += 4)
-                    {
-                        uint* idx = p + i;
-                        Vector128<ushort> input = Sse2.LoadVector128((ushort*)idx);
-                        Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                        Vector128<ushort> b = Sse2.ShuffleLow(a, AddGreenToBlueAndRedShuffleMask);
-                        Vector128<ushort> c = Sse2.ShuffleHigh(b, AddGreenToBlueAndRedShuffleMask); // 0g0g
-                        Vector128<byte> output = Sse2.Add(input.AsByte(), c.AsByte());
-                        Sse2.Store((byte*)idx, output);
-                    }
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                    Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
+                    Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
+                    Vector128<ushort> b = Sse2.ShuffleLow(a, AddGreenToBlueAndRedShuffleMask);
+                    Vector128<ushort> c = Sse2.ShuffleHigh(b, AddGreenToBlueAndRedShuffleMask); // 0g0g
+                    Vector128<byte> output = Sse2.Add(input.AsByte(), c.AsByte());
+                    Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
+                }
 
-                    if (i != numPixels)
-                    {
-                        AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
-                    }
+                if (i != numPixels)
+                {
+                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else
 #endif
             {
-                AddGreenToBlueAndRedNoneVectorized(pixelData);
+                AddGreenToBlueAndRedScalar(pixelData);
             }
         }
 
-        private static void AddGreenToBlueAndRedNoneVectorized(Span<uint> pixelData)
+        private static void AddGreenToBlueAndRedScalar(Span<uint> pixelData)
         {
             int numPixels = pixelData.Length;
             for (int i = 0; i < numPixels; i++)
@@ -213,76 +210,67 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (Avx2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                fixed (uint* p = pixelData)
+                nint i;
+                for (i = 0; i <= numPixels - 8; i += 8)
                 {
-                    int i;
-                    for (i = 0; i + 8 <= numPixels; i += 8)
-                    {
-                        uint* idx = p + i;
-                        Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
-                        Vector256<byte> in0g0g = Avx2.Shuffle(input, SubtractGreenFromBlueAndRedMaskAvx2);
-                        Vector256<byte> output = Avx2.Subtract(input, in0g0g);
-                        Avx.Store((byte*)idx, output);
-                    }
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                    Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
+                    Vector256<byte> in0g0g = Avx2.Shuffle(input, SubtractGreenFromBlueAndRedMaskAvx2);
+                    Vector256<byte> output = Avx2.Subtract(input, in0g0g);
+                    Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
+                }
 
-                    if (i != numPixels)
-                    {
-                        SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
-                    }
+                if (i != numPixels)
+                {
+                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Ssse3.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                fixed (uint* p = pixelData)
+                nint i;
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
-                    int i;
-                    for (i = 0; i + 4 <= numPixels; i += 4)
-                    {
-                        uint* idx = p + i;
-                        Vector128<byte> input = Sse2.LoadVector128((ushort*)idx).AsByte();
-                        Vector128<byte> in0g0g = Ssse3.Shuffle(input, SubtractGreenFromBlueAndRedMaskSsse3);
-                        Vector128<byte> output = Sse2.Subtract(input, in0g0g);
-                        Sse2.Store((byte*)idx, output.AsByte());
-                    }
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                    Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
+                    Vector128<byte> in0g0g = Ssse3.Shuffle(input, SubtractGreenFromBlueAndRedMaskSsse3);
+                    Vector128<byte> output = Sse2.Subtract(input, in0g0g);
+                    Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
+                }
 
-                    if (i != numPixels)
-                    {
-                        SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
-                    }
+                if (i != numPixels)
+                {
+                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else if (Sse2.IsSupported)
             {
                 int numPixels = pixelData.Length;
-                fixed (uint* p = pixelData)
+                nint i;
+                for (i = 0; i <= numPixels - 4; i += 4)
                 {
-                    int i;
-                    for (i = 0; i + 4 <= numPixels; i += 4)
-                    {
-                        uint* idx = p + i;
-                        Vector128<ushort> input = Sse2.LoadVector128((ushort*)idx);
-                        Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                        Vector128<ushort> b = Sse2.ShuffleLow(a, SubtractGreenFromBlueAndRedShuffleMask);
-                        Vector128<ushort> c = Sse2.ShuffleHigh(b, SubtractGreenFromBlueAndRedShuffleMask); // 0g0g
-                        Vector128<byte> output = Sse2.Subtract(input.AsByte(), c.AsByte());
-                        Sse2.Store((byte*)idx, output);
-                    }
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                    Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
+                    Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
+                    Vector128<ushort> b = Sse2.ShuffleLow(a, SubtractGreenFromBlueAndRedShuffleMask);
+                    Vector128<ushort> c = Sse2.ShuffleHigh(b, SubtractGreenFromBlueAndRedShuffleMask); // 0g0g
+                    Vector128<byte> output = Sse2.Subtract(input.AsByte(), c.AsByte());
+                    Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
+                }
 
-                    if (i != numPixels)
-                    {
-                        SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
-                    }
+                if (i != numPixels)
+                {
+                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
                 }
             }
             else
 #endif
             {
-                SubtractGreenFromBlueAndRedNoneVectorized(pixelData);
+                SubtractGreenFromBlueAndRedScalar(pixelData);
             }
         }
 
-        private static void SubtractGreenFromBlueAndRedNoneVectorized(Span<uint> pixelData)
+        private static void SubtractGreenFromBlueAndRedScalar(Span<uint> pixelData)
         {
             int numPixels = pixelData.Length;
             for (int i = 0; i < numPixels; i++)
@@ -405,49 +393,74 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Color transform keeps the green (G) value as it is, transforms red (R) based on green and transforms blue (B) based on green and then based on red.
         /// </summary>
         /// <param name="m">The Vp8LMultipliers.</param>
-        /// <param name="data">The pixel data to transform.</param>
+        /// <param name="pixelData">The pixel data to transform.</param>
         /// <param name="numPixels">The number of pixels to process.</param>
-        public static void TransformColor(Vp8LMultipliers m, Span<uint> data, int numPixels)
+        public static void TransformColor(Vp8LMultipliers m, Span<uint> pixelData, int numPixels)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse2.IsSupported)
+            if (Avx2.IsSupported && numPixels >= 8)
+            {
+                Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
+                Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
+
+                nint idx;
+                for (idx = 0; idx <= numPixels - 8; idx += 8)
+                {
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                    Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
+                    Vector256<byte> a = Avx2.And(input.AsByte(), TransformColorAlphaGreenMask256);
+                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), TransformColorShuffleMask);
+                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), TransformColorShuffleMask);
+                    Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                    Vector256<short> e = Avx2.ShiftLeftLogical(input.AsInt16(), 8);
+                    Vector256<short> f = Avx2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
+                    Vector256<int> g = Avx2.ShiftRightLogical(f.AsInt32(), 16);
+                    Vector256<byte> h = Avx2.Add(g.AsByte(), d.AsByte());
+                    Vector256<byte> i = Avx2.And(h, TransformColorRedBlueMask256);
+                    Vector256<byte> output = Avx2.Subtract(input.AsByte(), i);
+                    Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
+                }
+
+                if (idx != numPixels)
+                {
+                    TransformColorScalar(m, pixelData.Slice((int)idx), numPixels - (int)idx);
+                }
+            }
+            else if (Sse2.IsSupported)
             {
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
-                fixed (uint* src = data)
+                nint idx;
+                for (idx = 0; idx <= numPixels - 4; idx += 4)
                 {
-                    int idx;
-                    for (idx = 0; idx + 4 <= numPixels; idx += 4)
-                    {
-                        uint* pos = src + idx;
-                        Vector128<uint> input = Sse2.LoadVector128(pos);
-                        Vector128<byte> a = Sse2.And(input.AsByte(), TransformColorAlphaGreenMask);
-                        Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), TransformColorShuffleMask);
-                        Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), TransformColorShuffleMask);
-                        Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
-                        Vector128<short> e = Sse2.ShiftLeftLogical(input.AsInt16(), 8);
-                        Vector128<short> f = Sse2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
-                        Vector128<int> g = Sse2.ShiftRightLogical(f.AsInt32(), 16);
-                        Vector128<byte> h = Sse2.Add(g.AsByte(), d.AsByte());
-                        Vector128<byte> i = Sse2.And(h, TransformColorRedBlueMask);
-                        Vector128<byte> output = Sse2.Subtract(input.AsByte(), i);
-                        Sse2.Store((byte*)pos, output);
-                    }
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                    Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
+                    Vector128<byte> a = Sse2.And(input.AsByte(), TransformColorAlphaGreenMask);
+                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), TransformColorShuffleMask);
+                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), TransformColorShuffleMask);
+                    Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                    Vector128<short> e = Sse2.ShiftLeftLogical(input.AsInt16(), 8);
+                    Vector128<short> f = Sse2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
+                    Vector128<int> g = Sse2.ShiftRightLogical(f.AsInt32(), 16);
+                    Vector128<byte> h = Sse2.Add(g.AsByte(), d.AsByte());
+                    Vector128<byte> i = Sse2.And(h, TransformColorRedBlueMask);
+                    Vector128<byte> output = Sse2.Subtract(input.AsByte(), i);
+                    Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
+                }
 
-                    if (idx != numPixels)
-                    {
-                        TransformColorNoneVectorized(m, data.Slice(idx), numPixels - idx);
-                    }
+                if (idx != numPixels)
+                {
+                    TransformColorScalar(m, pixelData.Slice((int)idx), numPixels - (int)idx);
                 }
             }
             else
 #endif
             {
-                TransformColorNoneVectorized(m, data, numPixels);
+                TransformColorScalar(m, pixelData, numPixels);
             }
         }
 
-        private static void TransformColorNoneVectorized(Vp8LMultipliers m, Span<uint> data, int numPixels)
+        private static void TransformColorScalar(Vp8LMultipliers m, Span<uint> data, int numPixels)
         {
             for (int i = 0; i < numPixels; i++)
             {
@@ -473,45 +486,71 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse2.IsSupported)
+            if (Avx2.IsSupported && pixelData.Length >= 8)
+            {
+                Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
+                Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
+                nint idx;
+                for (idx = 0; idx <= pixelData.Length - 8; idx += 8)
+                {
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                    Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
+                    Vector256<byte> a = Avx2.And(input.AsByte(), TransformColorInverseAlphaGreenMask256);
+                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), TransformColorInverseShuffleMask);
+                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), TransformColorInverseShuffleMask);
+                    Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                    Vector256<byte> e = Avx2.Add(input.AsByte(), d.AsByte());
+                    Vector256<short> f = Avx2.ShiftLeftLogical(e.AsInt16(), 8);
+                    Vector256<short> g = Avx2.MultiplyHigh(f, multsb2.AsInt16());
+                    Vector256<int> h = Avx2.ShiftRightLogical(g.AsInt32(), 8);
+                    Vector256<byte> i = Avx2.Add(h.AsByte(), f.AsByte());
+                    Vector256<short> j = Avx2.ShiftRightLogical(i.AsInt16(), 8);
+                    Vector256<byte> output = Avx2.Or(j.AsByte(), a);
+                    Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
+                }
+
+                if (idx != pixelData.Length)
+                {
+                    TransformColorInverseScalar(m, pixelData.Slice((int)idx));
+                }
+            }
+            else if (Sse2.IsSupported)
             {
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
-                fixed (uint* src = pixelData)
-                {
-                    int idx;
-                    for (idx = 0; idx + 4 <= pixelData.Length; idx += 4)
-                    {
-                        uint* pos = src + idx;
-                        Vector128<uint> input = Sse2.LoadVector128(pos);
-                        Vector128<byte> a = Sse2.And(input.AsByte(), TransformColorInverseAlphaGreenMask);
-                        Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), TransformColorInverseShuffleMask);
-                        Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), TransformColorInverseShuffleMask);
-                        Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
-                        Vector128<byte> e = Sse2.Add(input.AsByte(), d.AsByte());
-                        Vector128<short> f = Sse2.ShiftLeftLogical(e.AsInt16(), 8);
-                        Vector128<short> g = Sse2.MultiplyHigh(f, multsb2.AsInt16());
-                        Vector128<int> h = Sse2.ShiftRightLogical(g.AsInt32(), 8);
-                        Vector128<byte> i = Sse2.Add(h.AsByte(), f.AsByte());
-                        Vector128<short> j = Sse2.ShiftRightLogical(i.AsInt16(), 8);
-                        Vector128<byte> output = Sse2.Or(j.AsByte(), a);
-                        Sse2.Store((byte*)pos, output);
-                    }
 
-                    if (idx != pixelData.Length)
-                    {
-                        TransformColorInverseNoneVectorized(m, pixelData.Slice(idx));
-                    }
+                nint idx;
+                for (idx = 0; idx <= pixelData.Length - 4; idx += 4)
+                {
+                    ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                    Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
+                    Vector128<byte> a = Sse2.And(input.AsByte(), TransformColorInverseAlphaGreenMask);
+                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), TransformColorInverseShuffleMask);
+                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), TransformColorInverseShuffleMask);
+                    Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                    Vector128<byte> e = Sse2.Add(input.AsByte(), d.AsByte());
+                    Vector128<short> f = Sse2.ShiftLeftLogical(e.AsInt16(), 8);
+                    Vector128<short> g = Sse2.MultiplyHigh(f, multsb2.AsInt16());
+                    Vector128<int> h = Sse2.ShiftRightLogical(g.AsInt32(), 8);
+                    Vector128<byte> i = Sse2.Add(h.AsByte(), f.AsByte());
+                    Vector128<short> j = Sse2.ShiftRightLogical(i.AsInt16(), 8);
+                    Vector128<byte> output = Sse2.Or(j.AsByte(), a);
+                    Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
+                }
+
+                if (idx != pixelData.Length)
+                {
+                    TransformColorInverseScalar(m, pixelData.Slice((int)idx));
                 }
             }
             else
 #endif
             {
-                TransformColorInverseNoneVectorized(m, pixelData);
+                TransformColorInverseScalar(m, pixelData);
             }
         }
 
-        private static void TransformColorInverseNoneVectorized(Vp8LMultipliers m, Span<uint> pixelData)
+        private static void TransformColorInverseScalar(Vp8LMultipliers m, Span<uint> pixelData)
         {
             for (int i = 0; i < pixelData.Length; i++)
             {
@@ -822,15 +861,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int correction = (int)((23 * (origV & (y - 1))) >> 4);
                 return (vF * (WebpLookupTables.Log2Table[v] + logCnt)) + correction;
             }
-            else
-            {
-                return (float)(Log2Reciprocal * v * Math.Log(v));
-            }
+
+            return (float)(Log2Reciprocal * v * Math.Log(v));
         }
 
         private static float FastLog2Slow(uint v)
         {
             Guard.MustBeGreaterThanOrEqualTo(v, LogLookupIdxMax, nameof(v));
+
             if (v < ApproxLogWithCorrectionMax)
             {
                 int logCnt = 0;
@@ -1292,6 +1330,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 #if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector128<int> MkCst16(int hi, int lo) => Vector128.Create((hi << 16) | (lo & 0xffff));
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static Vector256<int> MkCst32(int hi, int lo) => Vector256.Create((hi << 16) | (lo & 0xffff));
 #endif
 
         private static uint Select(uint a, uint b, uint c, Span<short> scratch)

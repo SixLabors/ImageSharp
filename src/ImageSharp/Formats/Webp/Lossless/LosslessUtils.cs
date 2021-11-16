@@ -49,6 +49,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static readonly Vector128<byte> TransformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
 
         private static readonly byte TransformColorInverseShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
+
+        private static readonly Vector128<byte> Ones = Vector128.Create((byte)1);
 #endif
 
         /// <summary>
@@ -1338,13 +1340,91 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Average2(uint a0, uint a1) => (((a0 ^ a1) & 0xfefefefeu) >> 1) + (a0 & a1);
+        private static uint Average2(uint a0, uint a1)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                return Average2_uint32_SSE2(a0, a1);
+            }
+            else
+#endif
+            {
+                return (((a0 ^ a1) & 0xfefefefeu) >> 1) + (a0 & a1);
+            }
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Average3(uint a0, uint a1, uint a2) => Average2(Average2(a0, a2), a1);
+        private static uint Average3(uint a0, uint a1, uint a2)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                return Average3_SSE2(a0, a1, a2);
+            }
+            else
+#endif
+            {
+                return Average2(Average2(a0, a2), a1);
+            }
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Average4(uint a0, uint a1, uint a2, uint a3) => Average2(Average2(a0, a1), Average2(a2, a3));
+        private static uint Average4(uint a0, uint a1, uint a2, uint a3)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                return Average4_SSE2(a0, a1, a2, a3);
+            }
+            else
+#endif
+            {
+                return Average2(Average2(a0, a1), Average2(a2, a3));
+            }
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+        private static uint Average2_uint32_SSE2(uint a0, uint a1)
+        {
+            // (a + b) >> 1 = ((a + b + 1) >> 1) - ((a ^ b) & 1)
+            Vector128<byte> a0Vec = Sse2.ConvertScalarToVector128UInt32(a0).AsByte();
+            Vector128<byte> a1Vec = Sse2.ConvertScalarToVector128UInt32(a1).AsByte();
+            Vector128<byte> avg1 = Sse2.Average(a0Vec, a1Vec);
+            Vector128<byte> one = Sse2.And(Sse2.Xor(a0Vec, a1Vec), Ones);
+            Vector128<byte> avg = Sse2.Subtract(avg1, one);
+            return Sse2.ConvertToUInt32(avg.AsUInt32());
+        }
+
+        private static uint Average3_SSE2(uint a0, uint a1, uint a2)
+        {
+            Vector128<short> avg1 = Average2_uint32_16_SSE2(a0, a2);
+            Vector128<byte> a1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(a1).AsByte(), Vector128<byte>.Zero);
+            Vector128<short> sum = Sse2.Add(avg1.AsInt16(), a1Vec.AsInt16());
+            Vector128<short> avg2 = Sse2.ShiftRightLogical(sum, 1);
+            Vector128<byte> a2Vec = Sse2.PackUnsignedSaturate(avg2, avg2);
+            return Sse2.ConvertToUInt32(a2Vec.AsUInt32());
+        }
+
+        private static uint Average4_SSE2(uint a0, uint a1, uint a2, uint a3)
+        {
+            Vector128<short> avg1 = Average2_uint32_16_SSE2(a0, a1);
+            Vector128<short> avg2 = Average2_uint32_16_SSE2(a2, a3);
+            Vector128<short> sum = Sse2.Add(avg2.AsInt16(), avg1.AsInt16());
+            Vector128<short> avg3 = Sse2.ShiftRightLogical(sum, 1);
+            Vector128<byte> a0Vec = Sse2.PackUnsignedSaturate(avg3, avg3);
+            return Sse2.ConvertToUInt32(a0Vec.AsUInt32());
+        }
+
+        private static Vector128<short> Average2_uint32_16_SSE2(uint a0, uint a1)
+        {
+            Vector128<byte> a0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(a0).AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> a1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(a1).AsByte(), Vector128<byte>.Zero);
+            Vector128<short> sum = Sse2.Add(a1Vec.AsInt16(), a0Vec.AsInt16());
+            return Sse2.ShiftRightLogical(sum, 1);
+        }
+#endif
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint GetArgbIndex(uint idx) => (idx >> 8) & 0xff;

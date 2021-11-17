@@ -16,10 +16,11 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats
 {
+    [Collection("RunSerial")]
     public class GeneralFormatTests
     {
         /// <summary>
-        /// A collection made up of one file for each image format
+        /// A collection made up of one file for each image format.
         /// </summary>
         public static readonly IEnumerable<string> DefaultFiles =
             new[]
@@ -149,6 +150,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
                     {
                         image.SaveAsTga(output);
                     }
+
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tiff")))
+                    {
+                        image.SaveAsTiff(output);
+                    }
                 }
             }
         }
@@ -171,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
 
                 using (var image2 = Image.Load<Rgba32>(serialized))
                 {
-                    image2.Save($"{path}/{file.FileName}");
+                    image2.Save($"{path}{Path.DirectorySeparatorChar}{file.FileName}");
                 }
             }
         }
@@ -196,6 +202,10 @@ namespace SixLabors.ImageSharp.Tests.Formats
         [InlineData(100, 100, "tga")]
         [InlineData(100, 10, "tga")]
         [InlineData(10, 100, "tga")]
+        [InlineData(100, 100, "tiff")]
+        [InlineData(100, 10, "tiff")]
+        [InlineData(10, 100, "tiff")]
+
         public void CanIdentifyImageLoadedFromBytes(int width, int height, string extension)
         {
             using (var image = Image.LoadPixelData(new Rgba32[width * height], width, height))

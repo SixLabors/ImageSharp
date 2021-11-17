@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata;
@@ -13,13 +12,12 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
-using Xunit.Abstractions;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Bmp")]
     public class BmpEncoderTests
     {
@@ -41,13 +39,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
         new TheoryData<string, BmpBitsPerPixel>
         {
+            { Bit1, BmpBitsPerPixel.Pixel1 },
+            { Bit4, BmpBitsPerPixel.Pixel4 },
+            { Bit8, BmpBitsPerPixel.Pixel8 },
+            { Rgb16, BmpBitsPerPixel.Pixel16 },
             { Car, BmpBitsPerPixel.Pixel24 },
             { Bit32Rgb, BmpBitsPerPixel.Pixel32 }
         };
-
-        public BmpEncoderTests(ITestOutputHelper output) => this.Output = output;
-
-        private ITestOutputHelper Output { get; }
 
         [Theory]
         [MemberData(nameof(RatioFiles))]
@@ -176,6 +174,52 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 supportTransparency: false);
 
         [Theory]
+        [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+        public void Encode_4Bit_WithV3Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Oddly the difference only happens locally but we'll not test for that.
+            // I suspect the issue is with the reference codec.
+            ImageComparer comparer = TestEnvironment.IsFramework
+                ? ImageComparer.TolerantPercentage(0.0161F)
+                : ImageComparer.Exact;
+
+            TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false, customComparer: comparer);
+        }
+
+        [Theory]
+        [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+        public void Encode_4Bit_WithV4Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Oddly the difference only happens locally but we'll not test for that.
+            // I suspect the issue is with the reference codec.
+            ImageComparer comparer = TestEnvironment.IsFramework
+                ? ImageComparer.TolerantPercentage(0.0161F)
+                : ImageComparer.Exact;
+
+            TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true, customComparer: comparer);
+        }
+
+        [Theory]
+        [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel1)]
+        public void Encode_1Bit_WithV3Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
+
+        [Theory]
+        [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel1)]
+        public void Encode_1Bit_WithV4Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
+
+        [Theory]
         [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
         public void Encode_8BitGray_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel> =>
@@ -271,7 +315,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         private static void TestBmpEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             BmpBitsPerPixel bitsPerPixel,
-            bool supportTransparency = true,
+            bool supportTransparency = true, // if set to true, will write a V4 header, otherwise a V3 header.
+            IQuantizer quantizer = null,
             ImageComparer customComparer = null)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -283,7 +328,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                     image.Mutate(c => c.MakeOpaque());
                 }
 
-                var encoder = new BmpEncoder { BitsPerPixel = bitsPerPixel, SupportTransparency = supportTransparency };
+                var encoder = new BmpEncoder
+                {
+                    BitsPerPixel = bitsPerPixel,
+                    SupportTransparency = supportTransparency,
+                    Quantizer = quantizer ?? KnownQuantizers.Octree
+                };
 
                 // Does DebugSave & load reference CompareToReferenceInput():
                 image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder, customComparer);

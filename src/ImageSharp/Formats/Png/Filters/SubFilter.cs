@@ -2,8 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -43,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel, out int sum)
+        public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> result, int bytesPerPixel, out int sum)
         {
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
@@ -63,6 +69,49 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 res = scan;
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                Vector256<byte> zero = Vector256<byte>.Zero;
+                Vector256<int> sumAccumulator = Vector256<int>.Zero;
+
+                for (int xLeft = x - bytesPerPixel; x + Vector256<byte>.Count <= scanline.Length; xLeft += Vector256<byte>.Count)
+                {
+                    Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector256<byte> prev = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
+
+                    Vector256<byte> res = Avx2.Subtract(scan, prev);
+                    Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                    x += Vector256<byte>.Count;
+
+                    sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
+                }
+
+                sum += Numerics.EvenReduceSum(sumAccumulator);
+            }
+            else if (Vector.IsHardwareAccelerated)
+            {
+                Vector<uint> sumAccumulator = Vector<uint>.Zero;
+
+                for (int xLeft = x - bytesPerPixel; x + Vector<byte>.Count <= scanline.Length; xLeft += Vector<byte>.Count)
+                {
+                    Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
+                    Vector<byte> prev = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
+
+                    Vector<byte> res = scan - prev;
+                    Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                    x += Vector<byte>.Count;
+
+                    Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
+                }
+
+                for (int i = 0; i < Vector<uint>.Count; i++)
+                {
+                    sum += (int)sumAccumulator[i];
+                }
+            }
+#endif
 
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
             {

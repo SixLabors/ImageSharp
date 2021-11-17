@@ -15,6 +15,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Png")]
     public partial class PngEncoderTests
     {

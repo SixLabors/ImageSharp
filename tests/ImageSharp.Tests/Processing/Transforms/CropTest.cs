@@ -1,14 +1,14 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    [Trait("Category", "Processors")]
     public class CropTest : BaseImageOperationsExtensionTest
     {
         [Theory]

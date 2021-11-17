@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,6 +13,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Gif")]
     public class GifEncoderTests
     {

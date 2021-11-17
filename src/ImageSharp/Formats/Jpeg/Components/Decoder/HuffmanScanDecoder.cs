@@ -16,93 +16,112 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal class HuffmanScanDecoder
     {
-        private readonly JpegFrame frame;
-        private readonly HuffmanTable[] dcHuffmanTables;
-        private readonly HuffmanTable[] acHuffmanTables;
         private readonly BufferedReadStream stream;
-        private readonly JpegComponent[] components;
 
-        // The restart interval.
-        private readonly int restartInterval;
+        /// <summary>
+        /// <see cref="JpegFrame"/> instance containing decoding-related information.
+        /// </summary>
+        private JpegFrame frame;
 
-        // The number of interleaved components.
-        private readonly int componentsLength;
+        /// <summary>
+        /// Shortcut for <see cref="frame"/>.Components.
+        /// </summary>
+        private JpegComponent[] components;
 
-        // The spectral selection start.
-        private readonly int spectralStart;
+        /// <summary>
+        /// Number of component in the current scan.
+        /// </summary>
+        private int componentsCount;
 
-        // The spectral selection end.
-        private readonly int spectralEnd;
+        /// <summary>
+        /// The reset interval determined by RST markers.
+        /// </summary>
+        private int restartInterval;
 
-        // The successive approximation high bit end.
-        private readonly int successiveHigh;
-
-        // The successive approximation low bit end.
-        private readonly int successiveLow;
-
-        // How many mcu's are left to do.
+        /// <summary>
+        /// How many mcu's are left to do.
+        /// </summary>
         private int todo;
 
-        // The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
+        /// <summary>
+        /// The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
+        /// </summary>
         private int eobrun;
 
-        // The unzig data.
-        private ZigZag dctZigZag;
+        /// <summary>
+        /// The DC Huffman tables.
+        /// </summary>
+        private readonly HuffmanTable[] dcHuffmanTables;
+
+        /// <summary>
+        /// The AC Huffman tables
+        /// </summary>
+        private readonly HuffmanTable[] acHuffmanTables;
 
         private HuffmanScanBuffer scanBuffer;
 
-        private CancellationToken cancellationToken;
+        private readonly SpectralConverter spectralConverter;
+
+        private readonly CancellationToken cancellationToken;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanScanDecoder"/> class.
         /// </summary>
         /// <param name="stream">The input stream.</param>
-        /// <param name="frame">The image frame.</param>
-        /// <param name="dcHuffmanTables">The DC Huffman tables.</param>
-        /// <param name="acHuffmanTables">The AC Huffman tables.</param>
-        /// <param name="componentsLength">The length of the components. Different to the array length.</param>
-        /// <param name="restartInterval">The reset interval.</param>
-        /// <param name="spectralStart">The spectral selection start.</param>
-        /// <param name="spectralEnd">The spectral selection end.</param>
-        /// <param name="successiveHigh">The successive approximation bit high end.</param>
-        /// <param name="successiveLow">The successive approximation bit low end.</param>
+        /// <param name="converter">Spectral to pixel converter.</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
         public HuffmanScanDecoder(
             BufferedReadStream stream,
-            JpegFrame frame,
-            HuffmanTable[] dcHuffmanTables,
-            HuffmanTable[] acHuffmanTables,
-            int componentsLength,
-            int restartInterval,
-            int spectralStart,
-            int spectralEnd,
-            int successiveHigh,
-            int successiveLow,
+            SpectralConverter converter,
             CancellationToken cancellationToken)
         {
-            this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
-            this.scanBuffer = new HuffmanScanBuffer(stream);
-            this.frame = frame;
-            this.dcHuffmanTables = dcHuffmanTables;
-            this.acHuffmanTables = acHuffmanTables;
-            this.components = frame.Components;
-            this.componentsLength = componentsLength;
-            this.restartInterval = restartInterval;
-            this.todo = restartInterval;
-            this.spectralStart = spectralStart;
-            this.spectralEnd = spectralEnd;
-            this.successiveHigh = successiveHigh;
-            this.successiveLow = successiveLow;
+            this.spectralConverter = converter;
             this.cancellationToken = cancellationToken;
+
+            // TODO: this is actually a variable value depending on component count
+            const int maxTables = 4;
+            this.dcHuffmanTables = new HuffmanTable[maxTables];
+            this.acHuffmanTables = new HuffmanTable[maxTables];
         }
+
+        /// <summary>
+        /// Sets reset interval determined by RST markers.
+        /// </summary>
+        public int ResetInterval
+        {
+            set
+            {
+                this.restartInterval = value;
+                this.todo = value;
+            }
+        }
+
+        // The spectral selection start.
+        public int SpectralStart { get; set; }
+
+        // The spectral selection end.
+        public int SpectralEnd { get; set; }
+
+        // The successive approximation high bit end.
+        public int SuccessiveHigh { get; set; }
+
+        // The successive approximation low bit end.
+        public int SuccessiveLow { get; set; }
 
         /// <summary>
         /// Decodes the entropy coded data.
         /// </summary>
-        public void ParseEntropyCodedData()
+        public void ParseEntropyCodedData(int componentCount)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
+
+            this.componentsCount = componentCount;
+
+            this.scanBuffer = new HuffmanScanBuffer(this.stream);
+
+            bool fullScan = this.frame.Progressive || this.frame.MultiScan;
+            this.frame.AllocateComponents(fullScan);
 
             if (!this.frame.Progressive)
             {
@@ -119,15 +138,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
+        public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+        {
+            this.frame = frame;
+            this.components = frame.Components;
+
+            this.spectralConverter.InjectFrameData(frame, jpegData);
+        }
+
         private void ParseBaselineData()
         {
-            if (this.componentsLength == 1)
+            if (this.componentsCount == this.frame.ComponentCount)
             {
-                this.ParseBaselineDataNonInterleaved();
+                this.ParseBaselineDataInterleaved();
             }
             else
             {
-                this.ParseBaselineDataInterleaved();
+                this.ParseBaselineDataNonInterleaved();
             }
         }
 
@@ -140,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
             // Pre-derive the huffman table to avoid in-loop checks.
-            for (int i = 0; i < this.componentsLength; i++)
+            for (int i = 0; i < this.componentsCount; i++)
             {
                 int order = this.frame.ComponentOrder[i];
                 JpegComponent component = this.components[order];
@@ -155,12 +182,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 this.cancellationToken.ThrowIfCancellationRequested();
 
+                // decode from binary to spectral
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
-                    int mcuRow = mcu / mcusPerLine;
                     int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < this.componentsLength; k++)
+                    for (int k = 0; k < this.componentsCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
@@ -175,14 +202,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
-                            int blockRow = (mcuRow * v) + y;
-                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(y);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
                             {
                                 if (buffer.NoData)
                                 {
+                                    // It is very likely that some spectral data was decoded before we encountered EOI marker
+                                    // so we need to decode what's left and return (or maybe throw?)
+                                    this.spectralConverter.ConvertStrideBaseline();
                                     return;
                                 }
 
@@ -202,6 +231,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     mcu++;
                     this.HandleRestart();
                 }
+
+                // convert from spectral to actual pixels via given converter
+                this.spectralConverter.ConvertStrideBaseline();
             }
         }
 
@@ -248,9 +280,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // Logic has been adapted from libjpeg.
             // See Table B.3 – Scan header parameter size and values. itu-t81.pdf
             bool invalid = false;
-            if (this.spectralStart == 0)
+            if (this.SpectralStart == 0)
             {
-                if (this.spectralEnd != 0)
+                if (this.SpectralEnd != 0)
                 {
                     invalid = true;
                 }
@@ -258,22 +290,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 // Need not check Ss/Se < 0 since they came from unsigned bytes.
-                if (this.spectralEnd < this.spectralStart || this.spectralEnd > 63)
+                if (this.SpectralEnd < this.SpectralStart || this.SpectralEnd > 63)
                 {
                     invalid = true;
                 }
 
                 // AC scans may have only one component.
-                if (this.componentsLength != 1)
+                if (this.componentsCount != 1)
                 {
                     invalid = true;
                 }
             }
 
-            if (this.successiveHigh != 0)
+            if (this.SuccessiveHigh != 0)
             {
                 // Successive approximation refinement scan: must have Al = Ah-1.
-                if (this.successiveHigh - 1 != this.successiveLow)
+                if (this.SuccessiveHigh - 1 != this.SuccessiveLow)
                 {
                     invalid = true;
                 }
@@ -281,14 +313,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             // TODO: How does this affect 12bit jpegs.
             // According to libjpeg the range covers 8bit only?
-            if (this.successiveLow > 13)
+            if (this.SuccessiveLow > 13)
             {
                 invalid = true;
             }
 
             if (invalid)
             {
-                JpegThrowHelper.ThrowBadProgressiveScan(this.spectralStart, this.spectralEnd, this.successiveHigh, this.successiveLow);
+                JpegThrowHelper.ThrowBadProgressiveScan(this.SpectralStart, this.SpectralEnd, this.SuccessiveHigh, this.SuccessiveLow);
             }
         }
 
@@ -296,7 +328,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.CheckProgressiveData();
 
-            if (this.componentsLength == 1)
+            if (this.componentsCount == 1)
             {
                 this.ParseProgressiveDataNonInterleaved();
             }
@@ -315,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
             // Pre-derive the huffman table to avoid in-loop checks.
-            for (int k = 0; k < this.componentsLength; k++)
+            for (int k = 0; k < this.componentsCount; k++)
             {
                 int order = this.frame.ComponentOrder[k];
                 JpegComponent component = this.components[order];
@@ -330,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Scan an interleaved mcu... process components in order
                     int mcuRow = mcu / mcusPerLine;
                     int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < this.componentsLength; k++)
+                    for (int k = 0; k < this.componentsCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
@@ -380,7 +412,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
 
-            if (this.spectralStart == 0)
+            if (this.SpectralStart == 0)
             {
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                 dcHuffmanTable.Configure();
@@ -445,7 +477,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-            ref ZigZag zigzag = ref this.dctZigZag;
 
             // DC
             int t = buffer.DecodeHuffman(ref dcTable);
@@ -470,7 +501,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     i += r;
                     s = buffer.Receive(s);
-                    Unsafe.Add(ref blockDataRef, zigzag[i++]) = (short)s;
+                    Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i++]) = (short)s;
                 }
                 else
                 {
@@ -489,7 +520,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
-            if (this.successiveHigh == 0)
+            if (this.SuccessiveHigh == 0)
             {
                 // First scan for DC coefficient, must be first
                 int s = buffer.DecodeHuffman(ref dcTable);
@@ -500,20 +531,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 s += component.DcPredictor;
                 component.DcPredictor = s;
-                blockDataRef = (short)(s << this.successiveLow);
+                blockDataRef = (short)(s << this.SuccessiveLow);
             }
             else
             {
                 // Refinement scan for DC coefficient
                 buffer.CheckBits();
-                blockDataRef |= (short)(buffer.GetBits(1) << this.successiveLow);
+                blockDataRef |= (short)(buffer.GetBits(1) << this.SuccessiveLow);
             }
         }
 
         private void DecodeBlockProgressiveAC(ref Block8x8 block, ref HuffmanTable acTable)
         {
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
-            if (this.successiveHigh == 0)
+            if (this.SuccessiveHigh == 0)
             {
                 // MCU decoding for AC initial scan (either spectral selection,
                 // or first pass of successive approximation).
@@ -524,10 +555,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-                ref ZigZag zigzag = ref this.dctZigZag;
-                int start = this.spectralStart;
-                int end = this.spectralEnd;
-                int low = this.successiveLow;
+                int start = this.SpectralStart;
+                int end = this.SpectralEnd;
+                int low = this.SuccessiveLow;
 
                 for (int i = start; i <= end; ++i)
                 {
@@ -540,7 +570,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     if (s != 0)
                     {
                         s = buffer.Receive(s);
-                        Unsafe.Add(ref blockDataRef, zigzag[i]) = (short)(s << low);
+                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i]) = (short)(s << low);
                     }
                     else
                     {
@@ -570,12 +600,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             // Refinement scan for these AC coefficients
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-            ref ZigZag zigzag = ref this.dctZigZag;
-            int start = this.spectralStart;
-            int end = this.spectralEnd;
+            int start = this.SpectralStart;
+            int end = this.SpectralEnd;
 
-            int p1 = 1 << this.successiveLow;
-            int m1 = (-1) << this.successiveLow;
+            int p1 = 1 << this.SuccessiveLow;
+            int m1 = (-1) << this.SuccessiveLow;
 
             int k = start;
 
@@ -617,7 +646,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     do
                     {
-                        ref short coef = ref Unsafe.Add(ref blockDataRef, zigzag[k]);
+                        ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
                         if (coef != 0)
                         {
                             buffer.CheckBits();
@@ -643,7 +672,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     if ((s != 0) && (k < 64))
                     {
-                        Unsafe.Add(ref blockDataRef, zigzag[k]) = (short)s;
+                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]) = (short)s;
                     }
                 }
             }
@@ -652,7 +681,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 for (; k <= end; k++)
                 {
-                    ref short coef = ref Unsafe.Add(ref blockDataRef, zigzag[k]);
+                    ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
 
                     if (coef != 0)
                     {
@@ -713,6 +742,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Build the huffman table using code lengths and code values.
+        /// </summary>
+        /// <param name="type">Table type.</param>
+        /// <param name="index">Table index.</param>
+        /// <param name="codeLengths">Code lengths.</param>
+        /// <param name="values">Code values.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        {
+            HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
+            tables[index] = new HuffmanTable(codeLengths, values);
         }
     }
 }

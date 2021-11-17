@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.IO;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -97,7 +99,8 @@ namespace SixLabors.ImageSharp.Tests
 
             private void LimitBufferCapacity(int bufferCapacityInBytes)
             {
-                var allocator = (ArrayPoolMemoryAllocator)this.configuration.MemoryAllocator;
+                var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+                this.configuration.MemoryAllocator = allocator;
                 allocator.BufferCapacityInBytes = bufferCapacityInBytes;
             }
 
@@ -167,6 +170,73 @@ namespace SixLabors.ImageSharp.Tests
                 using var image = new Image<Rgba32>(this.configuration, 10, 10);
                 ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => image[3, y] = default);
                 Assert.Equal("y", ex.ParamName);
+            }
+        }
+
+        public class Dispose
+        {
+            private readonly Configuration configuration = Configuration.CreateDefaultInstance();
+
+            public void MultipleDisposeCalls()
+            {
+                var image = new Image<Rgba32>(this.configuration, 10, 10);
+                image.Dispose();
+                image.Dispose();
+            }
+
+            [Fact]
+            public void NonPrivateProperties_ObjectDisposedException()
+            {
+                var image = new Image<Rgba32>(this.configuration, 10, 10);
+                var genericImage = (Image)image;
+
+                image.Dispose();
+
+                // Image<TPixel>
+                Assert.Throws<ObjectDisposedException>(() => { var prop = image.Frames; });
+
+                // Image
+                Assert.Throws<ObjectDisposedException>(() => { var prop = genericImage.Frames; });
+            }
+
+            [Fact]
+            public void Save_ObjectDisposedException()
+            {
+                using var stream = new MemoryStream();
+                var image = new Image<Rgba32>(this.configuration, 10, 10);
+                var encoder = new JpegEncoder();
+
+                image.Dispose();
+
+                // Image<TPixel>
+                Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
+            }
+
+            [Fact]
+            public void AcceptVisitor_ObjectDisposedException()
+            {
+                // This test technically should exist but it's impossible to write proper test case without reflection:
+                // All visitor types are private and can't be created without context of some save/processing operation
+                // Save_ObjectDisposedException test checks this method with AcceptVisitor(EncodeVisitor) anyway
+                return;
+            }
+
+            [Fact]
+            public void NonPrivateMethods_ObjectDisposedException()
+            {
+                var image = new Image<Rgba32>(this.configuration, 10, 10);
+                var genericImage = (Image)image;
+
+                image.Dispose();
+
+                // Image<TPixel>
+                Assert.Throws<ObjectDisposedException>(() => { var res = image.Clone(this.configuration); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = image.CloneAs<Rgba32>(this.configuration); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = image.GetPixelRowSpan(default); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = image.TryGetSinglePixelSpan(out var _); });
+
+                // Image
+                Assert.Throws<ObjectDisposedException>(() => { var res = genericImage.CloneAs<Rgba32>(this.configuration); });
             }
         }
     }

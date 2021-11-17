@@ -13,21 +13,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
     {
-        /// <summary>
-        /// Gets or sets the quality, that will be used to encode the image. Quality
-        /// index must be between 0 and 100 (compression from max to min).
-        /// Defaults to <value>75</value>.
-        /// </summary>
+        /// <inheritdoc/>
         public int? Quality { get; set; }
 
-        /// <summary>
-        /// Gets or sets the subsample ration, that will be used to encode the image.
-        /// </summary>
-        public JpegSubsample? Subsample { get; set; }
-
-        /// <summary>
-        /// Gets or sets the color type, that will be used to encode the image.
-        /// </summary>
+        /// <inheritdoc/>
         public JpegColorType? ColorType { get; set; }
 
         /// <summary>
@@ -40,7 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.InitializeColorType<TPixel>(image);
             encoder.Encode(image, stream);
         }
 
@@ -56,31 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.InitializeColorType<TPixel>(image);
             return encoder.EncodeAsync(image, stream, cancellationToken);
-        }
-
-        /// <summary>
-        /// If ColorType was not set, set it based on the given image.
-        /// </summary>
-        private void InitializeColorType<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // First inspect the image metadata.
-            if (this.ColorType == null)
-            {
-                JpegMetadata metadata = image.Metadata.GetJpegMetadata();
-                this.ColorType = metadata.ColorType;
-            }
-
-            // Secondly, inspect the pixel type.
-            if (this.ColorType == null)
-            {
-                bool isGrayscale =
-                    typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
-                    typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
-                this.ColorType = isGrayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
-            }
         }
     }
 }

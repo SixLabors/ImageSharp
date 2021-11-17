@@ -12,6 +12,8 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -56,7 +58,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// necessary methods to complete the SaveAsGif call. That's it, otherwise you should NEVER need this method!!!
         /// </remarks>
         [Preserve]
-        private static void SeedEverything()
+        private static void SeedPixelFormats()
         {
             try
             {
@@ -194,11 +196,13 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageEncoderInternals<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            default(WebpEncoderCore).Encode<TPixel>(default, default, default);
             default(BmpEncoderCore).Encode<TPixel>(default, default, default);
             default(GifEncoderCore).Encode<TPixel>(default, default, default);
             default(JpegEncoderCore).Encode<TPixel>(default, default, default);
             default(PngEncoderCore).Encode<TPixel>(default, default, default);
             default(TgaEncoderCore).Encode<TPixel>(default, default, default);
+            default(TiffEncoderCore).Encode<TPixel>(default, default, default);
         }
 
         /// <summary>
@@ -209,11 +213,13 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageDecoderInternals<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            default(WebpDecoderCore).Decode<TPixel>(default, default, default);
             default(BmpDecoderCore).Decode<TPixel>(default, default, default);
             default(GifDecoderCore).Decode<TPixel>(default, default, default);
             default(JpegDecoderCore).Decode<TPixel>(default, default, default);
             default(PngDecoderCore).Decode<TPixel>(default, default, default);
             default(TgaDecoderCore).Decode<TPixel>(default, default, default);
+            default(TiffDecoderCore).Decode<TPixel>(default, default, default);
         }
 
         /// <summary>
@@ -224,11 +230,13 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageEncoders<TPixel>()
            where TPixel : unmanaged, IPixel<TPixel>
         {
+            AotCompileImageEncoder<TPixel, WebpEncoder>();
             AotCompileImageEncoder<TPixel, BmpEncoder>();
             AotCompileImageEncoder<TPixel, GifEncoder>();
             AotCompileImageEncoder<TPixel, JpegEncoder>();
             AotCompileImageEncoder<TPixel, PngEncoder>();
             AotCompileImageEncoder<TPixel, TgaEncoder>();
+            AotCompileImageEncoder<TPixel, TiffEncoder>();
         }
 
         /// <summary>
@@ -239,11 +247,13 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageDecoders<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            AotCompileImageDecoder<TPixel, WebpDecoder>();
             AotCompileImageDecoder<TPixel, BmpDecoder>();
             AotCompileImageDecoder<TPixel, GifDecoder>();
             AotCompileImageDecoder<TPixel, JpegDecoder>();
             AotCompileImageDecoder<TPixel, PngDecoder>();
             AotCompileImageDecoder<TPixel, TgaDecoder>();
+            AotCompileImageDecoder<TPixel, TiffDecoder>();
         }
 
         /// <summary>

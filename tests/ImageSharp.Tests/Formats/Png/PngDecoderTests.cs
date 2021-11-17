@@ -16,6 +16,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Png")]
     public partial class PngDecoderTests
     {
@@ -362,6 +363,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                         {
                             image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
                         }
+                    }
+                });
+            Assert.Null(ex);
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/1765
+        [Theory]
+        [WithFile(TestImages.Png.Issue1765_Net6DeflateStreamRead, PixelTypes.Rgba32)]
+        public void Issue1765<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            System.Exception ex = Record.Exception(
+                () =>
+                {
+                    using (Image<TPixel> image = provider.GetImage(PngDecoder))
+                    {
+                        image.DebugSave(provider);
+                        image.CompareToOriginal(provider, ImageComparer.Exact);
                     }
                 });
             Assert.Null(ex);

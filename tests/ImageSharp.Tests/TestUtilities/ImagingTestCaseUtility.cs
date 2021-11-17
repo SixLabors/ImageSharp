@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -97,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests
                 details = '_' + details;
             }
 
-            return TestUtils.AsInvariantString($"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{details}{extension}");
+            return TestUtils.AsInvariantString($"{this.GetTestOutputDir()}{Path.DirectorySeparatorChar}{this.TestName}{pixName}{fn}{details}{extension}");
         }
 
         /// <summary>
@@ -174,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription);
 
-            encoder = encoder ?? TestEnvironment.GetReferenceEncoder(path);
+            encoder ??= TestEnvironment.GetReferenceEncoder(path);
 
             using (FileStream stream = File.OpenWrite(path))
             {

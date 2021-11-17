@@ -1,13 +1,12 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 {
     public class SemaphoreReadMemoryStreamTests
     {
@@ -40,13 +39,14 @@ namespace SixLabors.ImageSharp.Tests
 
             Task readTask = Task.Factory.StartNew(
                 () =>
-            {
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-                stream.Read(this.buffer);
-            }, TaskCreationOptions.LongRunning);
+                {
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                    stream.Read(this.buffer);
+                },
+                TaskCreationOptions.LongRunning);
 
             await Task.Delay(5);
             Assert.False(readTask.IsCompleted);
@@ -71,7 +71,8 @@ namespace SixLabors.ImageSharp.Tests
                     await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
                     await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
                     await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
-                }, TaskCreationOptions.LongRunning);
+                },
+                TaskCreationOptions.LongRunning);
             await Task.Delay(5);
             Assert.False(readTask.IsCompleted);
             await this.notifyWaitPositionReachedSemaphore.WaitAsync();

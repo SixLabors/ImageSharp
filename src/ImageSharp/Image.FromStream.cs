@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -216,7 +215,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
@@ -229,7 +228,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
@@ -242,7 +241,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
@@ -254,7 +253,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
@@ -268,7 +267,7 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>The <see cref="Image"/>.</returns>
@@ -283,7 +282,7 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
@@ -300,7 +299,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>
@@ -321,7 +320,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
@@ -346,7 +345,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>
@@ -360,7 +359,7 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
@@ -376,7 +375,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -390,7 +389,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -405,7 +404,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -419,7 +418,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -434,7 +433,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -450,7 +449,7 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -471,7 +470,7 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -489,7 +488,7 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -513,7 +512,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -530,7 +529,7 @@ namespace SixLabors.ImageSharp
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -566,7 +565,7 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
@@ -606,7 +605,7 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -649,7 +648,7 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -674,19 +673,19 @@ namespace SixLabors.ImageSharp
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
-        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (Image img, IImageFormat format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
+            (Image Img, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
 
-            format = data.format;
+            format = data.Format;
 
-            if (data.img != null)
+            if (data.Img != null)
             {
-                return data.img;
+                return data.Img;
             }
 
             var sb = new StringBuilder();
@@ -763,7 +762,7 @@ namespace SixLabors.ImageSharp
             }
 
             // To make sure we don't trigger anything with aspnetcore then we just need to make sure we are
-            // seekable and we make the copy using CopyToAsync if the stream is seekable then we arn't using
+            // seekable and we make the copy using CopyToAsync if the stream is seekable then we aren't using
             // one of the aspnetcore wrapped streams that error on sync api calls and we can use it without
             // having to further wrap
             if (stream.CanSeek)

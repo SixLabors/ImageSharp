@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -8,8 +9,9 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
 {
+    [Trait("Category", "Processors")]
     public class DitherTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes =
@@ -39,6 +41,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 { KnownDitherings.Bayer8x8, nameof(KnownDitherings.Bayer8x8) },
                 { KnownDitherings.Bayer16x16, nameof(KnownDitherings.Bayer16x16) },
                 { KnownDitherings.Ordered3x3, nameof(KnownDitherings.Ordered3x3) }
+            };
+
+        public static readonly TheoryData<IDither> DefaultInstanceDitherers
+            = new TheoryData<IDither>
+            {
+                default(ErrorDither),
+                default(OrderedDither)
             };
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
@@ -171,8 +180,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             provider.RunBufferCapacityLimitProcessorTest(
                 41,
                 c => c.Dither(dither),
-                name,
-                ImageComparer.TolerantPercentage(0.001f));
+                name);
+        }
+
+        [Theory]
+        [MemberData(nameof(DefaultInstanceDitherers))]
+        public void ShouldThrowForDefaultDitherInstance(IDither dither)
+        {
+            void Command()
+            {
+                using var image = new Image<Rgba32>(10, 10);
+                image.Mutate(x => x.Dither(dither));
+            }
+
+            Assert.Throws<ImageProcessingException>(Command);
         }
     }
 }

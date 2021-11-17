@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -57,30 +58,42 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(headerSize, AllocationOptions.Clean))
+            // Header sizes are so small, that headersBuffer will be always stackalloc-ed in practice,
+            // and heap allocation will never happen, there is no need for the usual try-finally ArrayPool dance.
+            // The array case is only a safety mechanism following stackalloc best practices.
+            Span<byte> headersBuffer = headerSize > 512 ? new byte[headerSize] : stackalloc byte[headerSize];
+            long startPosition = stream.Position;
+
+            // Read doesn't always guarantee the full returned length so read a byte
+            // at a time until we get either our count or hit the end of the stream.
+            int n = 0;
+            int i;
+            do
             {
-                long startPosition = stream.Position;
-
-                // Read doesn't always guarantee the full returned length so read a byte
-                // at a time until we get either our count or hit the end of the stream.
-                int n = 0;
-                int i;
-                do
-                {
-                    i = stream.Read(buffer.Array, n, headerSize - n);
-                    n += i;
-                }
-                while (n < headerSize && i > 0);
-
-                stream.Position = startPosition;
-
-                // Does the given stream contain enough data to fit in the header for the format
-                // and does that data match the format specification?
-                // Individual formats should still check since they are public.
-                return config.ImageFormatsManager.FormatDetectors
-                    .Where(x => x.HeaderSize <= headerSize)
-                    .Select(x => x.DetectFormat(buffer.GetSpan())).LastOrDefault(x => x != null);
+                i = stream.Read(headersBuffer, n, headerSize - n);
+                n += i;
             }
+            while (n < headerSize && i > 0);
+
+            stream.Position = startPosition;
+
+            // Does the given stream contain enough data to fit in the header for the format
+            // and does that data match the format specification?
+            // Individual formats should still check since they are public.
+            IImageFormat format = null;
+            foreach (IImageFormatDetector formatDetector in config.ImageFormatsManager.FormatDetectors)
+            {
+                if (formatDetector.HeaderSize <= headerSize)
+                {
+                    IImageFormat attemptFormat = formatDetector.DetectFormat(headersBuffer);
+                    if (attemptFormat != null)
+                    {
+                        format = attemptFormat;
+                    }
+                }
+            }
+
+            return format;
         }
 
         /// <summary>
@@ -119,7 +132,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
         /// <returns>The decoder and the image format or null if none found.</returns>
-        private static async Task<(IImageDecoder decoder, IImageFormat format)> DiscoverDecoderAsync(Stream stream, Configuration config)
+        private static async Task<(IImageDecoder Decoder, IImageFormat Format)> DiscoverDecoderAsync(Stream stream, Configuration config)
         {
             IImageFormat format = await InternalDetectFormatAsync(stream, config).ConfigureAwait(false);
 

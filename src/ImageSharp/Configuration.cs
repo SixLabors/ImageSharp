@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
@@ -39,7 +41,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
-        /// <param name="configurationModules">A collection of configuration modules to register</param>
+        /// <param name="configurationModules">A collection of configuration modules to register.</param>
         public Configuration(params IConfigurationModule[] configurationModules)
         {
             if (configurationModules != null)
@@ -77,7 +79,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Gets or sets the size of the buffer to use when working with streams.
-        /// Intitialized with <see cref="DefaultStreamProcessingBufferSize"/> by default.
+        /// Initialized with <see cref="DefaultStreamProcessingBufferSize"/> by default.
         /// </summary>
         public int StreamProcessingBufferSize
         {
@@ -94,9 +96,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets a set of properties for the Congiguration.
+        /// Gets a set of properties for the Configuration.
         /// </summary>
-        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        /// <remarks>This can be used for storing global settings and defaults to be accessible to processors.</remarks>
         public IDictionary<object, object> Properties { get; } = new ConcurrentDictionary<object, object>();
 
         /// <summary>
@@ -158,20 +160,17 @@ namespace SixLabors.ImageSharp
         /// Creates a shallow copy of the <see cref="Configuration"/>.
         /// </summary>
         /// <returns>A new configuration instance.</returns>
-        public Configuration Clone()
+        public Configuration Clone() => new Configuration
         {
-            return new Configuration
-            {
-                MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
-                StreamProcessingBufferSize = this.StreamProcessingBufferSize,
-                ImageFormatsManager = this.ImageFormatsManager,
-                MemoryAllocator = this.MemoryAllocator,
-                ImageOperationsProvider = this.ImageOperationsProvider,
-                ReadOrigin = this.ReadOrigin,
-                FileSystem = this.FileSystem,
-                WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInBytes,
-            };
-        }
+            MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
+            StreamProcessingBufferSize = this.StreamProcessingBufferSize,
+            ImageFormatsManager = this.ImageFormatsManager,
+            MemoryAllocator = this.MemoryAllocator,
+            ImageOperationsProvider = this.ImageOperationsProvider,
+            ReadOrigin = this.ReadOrigin,
+            FileSystem = this.FileSystem,
+            WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInBytes,
+        };
 
         /// <summary>
         /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
@@ -180,16 +179,17 @@ namespace SixLabors.ImageSharp
         /// <see cref="GifConfigurationModule"/>
         /// <see cref="BmpConfigurationModule"/>.
         /// <see cref="TgaConfigurationModule"/>.
+        /// <see cref="TiffConfigurationModule"/>.
+        /// <see cref="WebpConfigurationModule"/>.
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
-        internal static Configuration CreateDefaultInstance()
-        {
-            return new Configuration(
+        internal static Configuration CreateDefaultInstance() => new Configuration(
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new BmpConfigurationModule(),
-                new TgaConfigurationModule());
-        }
+                new TgaConfigurationModule(),
+                new TiffConfigurationModule(),
+                new WebpConfigurationModule());
     }
 }

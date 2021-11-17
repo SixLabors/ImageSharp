@@ -9,10 +9,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public static ExifValue Create(ExifTag tag) => (ExifValue)CreateValue((ExifTagValue)(ushort)tag);
 
-        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, uint numberOfComponents)
-        {
-            bool isArray = numberOfComponents != 1;
+        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, uint numberOfComponents) => Create(tag, dataType, numberOfComponents != 1);
 
+        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, bool isArray)
+        {
             switch (dataType)
             {
                 case ExifDataType.Byte: return isArray ? (ExifValue)new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);
@@ -93,6 +93,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 case ExifTagValue.ImageWidth: return new ExifNumber(ExifTag.ImageWidth);
                 case ExifTagValue.ImageLength: return new ExifNumber(ExifTag.ImageLength);
+                case ExifTagValue.RowsPerStrip: return new ExifNumber(ExifTag.RowsPerStrip);
                 case ExifTagValue.TileWidth: return new ExifNumber(ExifTag.TileWidth);
                 case ExifTagValue.TileLength: return new ExifNumber(ExifTag.TileLength);
                 case ExifTagValue.BadFaxLines: return new ExifNumber(ExifTag.BadFaxLines);
@@ -100,6 +101,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.PixelXDimension: return new ExifNumber(ExifTag.PixelXDimension);
                 case ExifTagValue.PixelYDimension: return new ExifNumber(ExifTag.PixelYDimension);
 
+                case ExifTagValue.StripByteCounts: return new ExifNumberArray(ExifTag.StripByteCounts);
                 case ExifTagValue.StripOffsets: return new ExifNumberArray(ExifTag.StripOffsets);
                 case ExifTagValue.TileByteCounts: return new ExifNumberArray(ExifTag.TileByteCounts);
                 case ExifTagValue.ImageLayer: return new ExifNumberArray(ExifTag.ImageLayer);
@@ -158,6 +160,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.Orientation: return new ExifShort(ExifTag.Orientation);
                 case ExifTagValue.SamplesPerPixel: return new ExifShort(ExifTag.SamplesPerPixel);
                 case ExifTagValue.PlanarConfiguration: return new ExifShort(ExifTag.PlanarConfiguration);
+                case ExifTagValue.Predictor: return new ExifShort(ExifTag.Predictor);
                 case ExifTagValue.GrayResponseUnit: return new ExifShort(ExifTag.GrayResponseUnit);
                 case ExifTagValue.ResolutionUnit: return new ExifShort(ExifTag.ResolutionUnit);
                 case ExifTagValue.CleanFaxData: return new ExifShort(ExifTag.CleanFaxData);
@@ -203,7 +206,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.ExtraSamples: return new ExifShortArray(ExifTag.ExtraSamples);
                 case ExifTagValue.PageNumber: return new ExifShortArray(ExifTag.PageNumber);
                 case ExifTagValue.TransferFunction: return new ExifShortArray(ExifTag.TransferFunction);
-                case ExifTagValue.Predictor: return new ExifShortArray(ExifTag.Predictor);
                 case ExifTagValue.HalftoneHints: return new ExifShortArray(ExifTag.HalftoneHints);
                 case ExifTagValue.SampleFormat: return new ExifShortArray(ExifTag.SampleFormat);
                 case ExifTagValue.TransferRange: return new ExifShortArray(ExifTag.TransferRange);

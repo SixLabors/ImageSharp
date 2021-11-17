@@ -53,6 +53,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="ExifProfile" /> class.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="invalidTags">The invalid tags.</param>
+        internal ExifProfile(List<IExifValue> values, IReadOnlyList<ExifTag> invalidTags)
+        {
+            this.Parts = ExifParts.All;
+            this.values = values;
+            this.InvalidTags = invalidTags;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ExifProfile"/> class
         /// by making a copy from another EXIF profile.
         /// </summary>
@@ -154,7 +166,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         /// <param name="tag">The tag of the EXIF value.</param>
         /// <returns>
-        /// The <see cref="bool"/>.
+        /// True, if the value was removed, otherwise false.
         /// </returns>
         public bool RemoveValue(ExifTag tag)
         {

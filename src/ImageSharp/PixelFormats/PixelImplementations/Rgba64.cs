@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The <see cref="Rgba64"/>.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Color(Rgba64 source) => new Color(source);
+        public static implicit operator Color(Rgba64 source) => new(source);
 
         /// <summary>
         /// Converts a <see cref="Color"/> to <see cref="Rgba64"/>.

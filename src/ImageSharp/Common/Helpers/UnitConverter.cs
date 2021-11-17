@@ -31,6 +31,11 @@ namespace SixLabors.ImageSharp.Common.Helpers
         private const double InchesInMeter = 1 / 0.0254D;
 
         /// <summary>
+        /// The default resolution unit value.
+        /// </summary>
+        private const PixelResolutionUnit DefaultResolutionUnit = PixelResolutionUnit.PixelsPerInch;
+
+        /// <summary>
         /// Scales the value from centimeters to meters.
         /// </summary>
         /// <param name="x">The value to scale.</param>
@@ -89,7 +94,45 @@ namespace SixLabors.ImageSharp.Common.Helpers
             IExifValue<ushort> resolution = profile.GetValue(ExifTag.ResolutionUnit);
 
             // EXIF is 1, 2, 3 so we minus "1" off the result.
-            return resolution is null ? default : (PixelResolutionUnit)(byte)(resolution.Value - 1);
+            return resolution is null ? DefaultResolutionUnit : (PixelResolutionUnit)(byte)(resolution.Value - 1);
+        }
+
+        /// <summary>
+        /// Gets the exif profile resolution values.
+        /// </summary>
+        /// <param name="unit">The resolution unit.</param>
+        /// <param name="horizontal">The horizontal resolution value.</param>
+        /// <param name="vertical">The vertical resolution value.</param>
+        /// <returns><see cref="ExifResolutionValues"/></returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static ExifResolutionValues GetExifResolutionValues(PixelResolutionUnit unit, double horizontal, double vertical)
+        {
+            switch (unit)
+            {
+                case PixelResolutionUnit.AspectRatio:
+                case PixelResolutionUnit.PixelsPerInch:
+                case PixelResolutionUnit.PixelsPerCentimeter:
+                    break;
+                case PixelResolutionUnit.PixelsPerMeter:
+                    {
+                    unit = PixelResolutionUnit.PixelsPerCentimeter;
+                    horizontal = MeterToCm(horizontal);
+                    vertical = MeterToCm(vertical);
+                    }
+
+                    break;
+                default:
+                    unit = PixelResolutionUnit.PixelsPerInch;
+                    break;
+            }
+
+            ushort exifUnit = (ushort)(unit + 1);
+            if (unit == PixelResolutionUnit.AspectRatio)
+            {
+                return new ExifResolutionValues(exifUnit, null, null);
+            }
+
+            return new ExifResolutionValues(exifUnit, horizontal, vertical);
         }
     }
 }

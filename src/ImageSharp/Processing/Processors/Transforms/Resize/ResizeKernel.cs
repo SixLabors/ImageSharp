@@ -13,7 +13,7 @@ using System.Runtime.Intrinsics.X86;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap"/>.
+    /// Points to a collection of weights allocated in <see cref="ResizeKernelMap"/>.
     /// </summary>
     internal readonly unsafe struct ResizeKernel
     {
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Gets the the length of the kernel.
+        /// Gets the length of the kernel.
         /// </summary>
         public int Length
         {

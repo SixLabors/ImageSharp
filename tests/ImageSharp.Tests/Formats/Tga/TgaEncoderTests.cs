@@ -2,17 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Tga")]
     public class TgaEncoderTests
     {

@@ -5,7 +5,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Colors
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     [Trait("Category", "PixelFormats")]
     public class UnPackedPixelTests

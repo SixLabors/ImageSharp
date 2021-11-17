@@ -7,7 +7,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
@@ -160,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests
 
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
-                            Assert.Equal(memory, image.GetRootFramePixelBuffer().GetSingleMemory());
+                            Assert.Equal(memory, image.GetRootFramePixelBuffer().DangerousGetSingleMemory());
                             Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
                             imageSpan.Fill(bg);
                             for (var i = 10; i < 20; i++)
@@ -196,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests
 
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {
-                        Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().GetSingleMemory());
+                        Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().DangerousGetSingleMemory());
                         Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
                         imageSpan.Fill(bg);
                         for (var i = 10; i < 20; i++)
@@ -255,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests
                         using (var image = Image.WrapMemory<Bgra32>(byteMemory, bmp.Width, bmp.Height))
                         {
                             Span<Bgra32> pixelSpan = pixelMemory.Span;
-                            Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().GetSingleMemory().Span;
+                            Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().DangerousGetSingleMemory().Span;
 
                             // We can't compare the two Memory<T> instances directly as they wrap different memory managers.
                             // To check that the underlying data matches, we can just manually check their lenth, and the
@@ -327,7 +326,7 @@ namespace SixLabors.ImageSharp.Tests
                             using (var image = Image.WrapMemory<Bgra32>(p, bmp.Width, bmp.Height))
                             {
                                 Span<Bgra32> pixelSpan = pixelMemory.Span;
-                                Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().GetSingleMemory().Span;
+                                Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().DangerousGetSingleMemory().Span;
 
                                 Assert.Equal(pixelSpan.Length, imageSpan.Length);
                                 Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(), ref imageSpan.GetPinnableReference()));
@@ -380,11 +379,11 @@ namespace SixLabors.ImageSharp.Tests
 
             private class TestMemoryOwner<T> : IMemoryOwner<T>
             {
+                public bool Disposed { get; private set; }
+
                 public Memory<T> Memory { get; set; }
 
-                public void Dispose()
-                {
-                }
+                public void Dispose() => this.Disposed = true;
             }
 
             [Theory]
@@ -410,7 +409,68 @@ namespace SixLabors.ImageSharp.Tests
                 var array = new Rgba32[size];
                 var memory = new TestMemoryOwner<Rgba32> { Memory = array };
 
-                Image.WrapMemory(memory, height, width);
+                using (var img = Image.WrapMemory<Rgba32>(memory, width, height))
+                {
+                    Assert.Equal(width, img.Width);
+                    Assert.Equal(height, img.Height);
+
+                    for (int i = 0; i < height; ++i)
+                    {
+                        var arrayIndex = width * i;
+
+                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
+                        ref Rgba32 r0 = ref rowSpan[0];
+                        ref Rgba32 r1 = ref array[arrayIndex];
+
+                        Assert.True(Unsafe.AreSame(ref r0, ref r1));
+                    }
+                }
+
+                Assert.True(memory.Disposed);
+            }
+
+            [Theory]
+            [InlineData(0, 5, 5)]
+            [InlineData(20, 5, 5)]
+            [InlineData(1023, 32, 32)]
+            public void WrapMemory_IMemoryOwnerOfByte_InvalidSize(int size, int height, int width)
+            {
+                var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+                var memory = new TestMemoryOwner<byte> { Memory = array };
+
+                Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>(memory, height, width));
+            }
+
+            [Theory]
+            [InlineData(25, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1024, 32, 32)]
+            [InlineData(2048, 32, 32)]
+            public void WrapMemory_IMemoryOwnerOfByte_ValidSize(int size, int height, int width)
+            {
+                var pixelSize = Unsafe.SizeOf<Rgba32>();
+                var array = new byte[size * pixelSize];
+                var memory = new TestMemoryOwner<byte> { Memory = array };
+
+                using (var img = Image.WrapMemory<Rgba32>(memory, width, height))
+                {
+                    Assert.Equal(width, img.Width);
+                    Assert.Equal(height, img.Height);
+
+                    for (int i = 0; i < height; ++i)
+                    {
+                        var arrayIndex = pixelSize * width * i;
+
+                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
+                        ref Rgba32 r0 = ref rowSpan[0];
+                        ref Rgba32 r1 = ref Unsafe.As<byte, Rgba32>(ref array[arrayIndex]);
+
+                        Assert.True(Unsafe.AreSame(ref r0, ref r1));
+                    }
+                }
+
+                Assert.True(memory.Disposed);
             }
 
             [Theory]

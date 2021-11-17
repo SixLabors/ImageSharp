@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.DestinationLength = destinationLength;
             this.MaxDiameter = (radius * 2) + 1;
             this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, AllocationOptions.Clean);
-            this.pinHandle = this.data.GetSingleMemory().Pin();
+            this.pinHandle = this.data.DangerousGetSingleMemory().Pin();
             this.kernels = new ResizeKernel[destinationLength];
             this.tempValues = new double[this.MaxDiameter];
         }
@@ -130,9 +130,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
 
             // 'ratio' is a rational number.
-            // Multiplying it by LCM(sourceSize, destSize)/sourceSize will result in a whole number "again".
+            // Multiplying it by destSize/GCD(sourceSize, destSize) will result in a whole number "again".
             // This value is determining the length of the periods in repeating kernel map rows.
-            int period = Numerics.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
+            int period = destinationSize / Numerics.GreatestCommonDivisor(sourceSize, destinationSize);
 
             // the center position at i == 0:
             double center0 = (ratio - 1) * 0.5;
@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             ResizeKernel kernel = this.CreateKernel(dataRowIndex, left, right);
 
-            Span<double> kernelValues = this.tempValues.AsSpan().Slice(0, kernel.Length);
+            Span<double> kernelValues = this.tempValues.AsSpan(0, kernel.Length);
             double sum = 0;
 
             for (int j = left; j <= right; j++)

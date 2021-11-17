@@ -3,11 +3,12 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     public partial class ResizeKernelMapTests
     {
         /// <summary>

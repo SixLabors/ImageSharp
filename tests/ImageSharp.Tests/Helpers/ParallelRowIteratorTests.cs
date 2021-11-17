@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -361,7 +360,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                     in operation);
 
                 // Assert:
-                TestImageExtensions.CompareBuffers(expected.GetSingleSpan(), actual.GetSingleSpan());
+                TestImageExtensions.CompareBuffers(expected.DangerousGetSingleSpan(), actual.DangerousGetSingleSpan());
             }
         }
 

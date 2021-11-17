@@ -10,12 +10,12 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Tga")]
     public class TgaDecoderTests
     {

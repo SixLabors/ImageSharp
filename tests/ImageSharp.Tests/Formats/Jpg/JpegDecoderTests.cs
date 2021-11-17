@@ -6,12 +6,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -21,10 +21,11 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
+    [Collection("RunSerial")]
     [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
-        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
+        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;
 
         private const float BaselineTolerance = 0.001F / 100;
 
@@ -61,10 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             return !TestEnvironment.Is64BitProcess && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);
         }
 
-        public JpegDecoderTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public JpegDecoderTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -76,8 +74,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using var ms = new MemoryStream(bytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-            decoder.ParseStream(bufferedStream);
+            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
             // I don't know why these numbers are different. All I know is that the decoder works
             // and spectral data is exactly correct also.
@@ -86,6 +84,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
+
+        [Fact]
+        public void Decode_NonGeneric_CreatesRgb24Image()
+        {
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var image = Image.Load(file);
+            Assert.IsType<Image<Rgb24>>(image);
+        }
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes)]
@@ -117,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
-        public async Task DecodeAsnc_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+        public async Task DecodeAsync_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
@@ -127,60 +133,79 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 0)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 15)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 30)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 15)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 30)]
-        public async Task Decode_IsCancellable(string fileName, int cancellationDelayMs)
+        [InlineData(0)]
+        [InlineData(0.5)]
+        [InlineData(0.9)]
+        public async Task DecodeAsync_IsCancellable(int percentageOfStreamReadToCancel)
         {
-            // Decoding these huge files took 300ms on i7-8650U in 2020. 30ms should be safe for cancellation delay.
-            string hugeFile = Path.Combine(
-                TestEnvironment.InputImagesDirectoryFullPath,
-                fileName);
-
-            const int NumberOfRuns = 5;
-
-            for (int i = 0; i < NumberOfRuns; i++)
+            var cts = new CancellationTokenSource();
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var pausedStream = new PausedStream(file);
+            pausedStream.OnWaiting(s =>
             {
-                var cts = new CancellationTokenSource();
-                if (cancellationDelayMs == 0)
+                if (s.Position >= s.Length * percentageOfStreamReadToCancel)
                 {
                     cts.Cancel();
+                    pausedStream.Release();
                 }
                 else
                 {
-                    cts.CancelAfter(cancellationDelayMs);
+                    // allows this/next wait to unblock
+                    pausedStream.Next();
                 }
+            });
 
-                try
-                {
-                    using var image = await Image.LoadAsync(hugeFile, cts.Token);
-                }
-                catch (TaskCanceledException)
-                {
-                    // Succesfully observed a cancellation
-                    return;
-                }
-            }
-
-            throw new Exception($"No cancellation happened out of {NumberOfRuns} runs!");
+            var config = Configuration.CreateDefaultInstance();
+            config.FileSystem = new SingleStreamFileSystem(pausedStream);
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            {
+                using Image image = await Image.LoadAsync(config, "someFakeFile", cts.Token);
+            });
         }
 
-        [Theory(Skip = "Identify is too fast, doesn't work reliably.")]
-        [InlineData(TestImages.Jpeg.Baseline.Exif)]
-        [InlineData(TestImages.Jpeg.Progressive.Bad.ExifUndefType)]
-        public async Task Identify_IsCancellable(string fileName)
+        [Fact]
+        public async Task Identify_IsCancellable()
         {
-            string file = Path.Combine(
-                TestEnvironment.InputImagesDirectoryFullPath,
-                fileName);
-
             var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromTicks(1));
-            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(file, cts.Token));
+
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using var pausedStream = new PausedStream(file);
+            pausedStream.OnWaiting(s =>
+            {
+                cts.Cancel();
+                pausedStream.Release();
+            });
+
+            var config = Configuration.CreateDefaultInstance();
+            config.FileSystem = new SingleStreamFileSystem(pausedStream);
+
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(config, "someFakeFile", cts.Token));
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCoding, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingProgressive, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Baseline.Lossless, PixelTypes.Rgba32)]
+        public void ThrowsNotSupported_WithUnsupportedJpegs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            });
+        }
+
+        // https://github.com/SixLabors/ImageSharp/pull/1732
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.WrongColorSpace, PixelTypes.Rgba32)]
+        public void Issue1732_DecodesWithRgbColorSpace<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
         }
 
         // DEBUG ONLY!

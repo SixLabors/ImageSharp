@@ -116,6 +116,36 @@ namespace SixLabors.ImageSharp.Memory
                 : this.GetRowMemorySlow(y).Span;
         }
 
+        internal bool TryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
+        {
+            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
+            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+
+            int stride = this.Width + padding;
+            if (this.cachedMemory.Length > 0)
+            {
+                paddedSpan = this.cachedMemory.Span.Slice(y * this.Width);
+                if (paddedSpan.Length < stride)
+                {
+                    return false;
+                }
+
+                paddedSpan = paddedSpan.Slice(0, stride);
+                return true;
+            }
+
+            Memory<T> memory = this.FastMemoryGroup.GetRemainingSliceOfBuffer(y * (long)this.Width);
+
+            if (memory.Length < stride)
+            {
+                paddedSpan = default;
+                return false;
+            }
+
+            paddedSpan = memory.Span.Slice(0, stride);
+            return true;
+        }
+
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ref T GetElementUnsafe(int x, int y)
         {
@@ -168,10 +198,10 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal Span<T> GetSingleSpan()
+        internal Span<T> DangerousGetSingleSpan()
         {
             // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : this.GetSingleSpanSlow();
+            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : this.DangerousGetSingleSpanSlow();
         }
 
         /// <summary>
@@ -183,10 +213,10 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal Memory<T> GetSingleMemory()
+        internal Memory<T> DangerousGetSingleMemory()
         {
             // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory : this.GetSingleMemorySlow();
+            return this.cachedMemory.Length != 0 ? this.cachedMemory : this.DangerousGetSingleMemorySlow();
         }
 
         /// <summary>
@@ -203,10 +233,10 @@ namespace SixLabors.ImageSharp.Memory
         private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private Memory<T> GetSingleMemorySlow() => this.FastMemoryGroup.Single();
+        private Memory<T> DangerousGetSingleMemorySlow() => this.FastMemoryGroup.Single();
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private Span<T> GetSingleSpanSlow() => this.FastMemoryGroup.Single().Span;
+        private Span<T> DangerousGetSingleSpanSlow() => this.FastMemoryGroup.Single().Span;
 
         [MethodImpl(InliningOptions.ColdPath)]
         private ref T GetElementSlow(int x, int y)

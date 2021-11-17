@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     public class EncodeTga
     {
         private MagickImage tgaMagick;
-        private Image<Rgba32> tgaCore;
+        private Image<Rgba32> tga;
 
         private string TestImageFullPath
             => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
@@ -24,9 +24,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [GlobalSetup]
         public void ReadImages()
         {
-            if (this.tgaCore == null)
+            if (this.tga == null)
             {
-                this.tgaCore = Image.Load<Rgba32>(this.TestImageFullPath);
+                this.tga = Image.Load<Rgba32>(this.TestImageFullPath);
                 this.tgaMagick = new MagickImage(this.TestImageFullPath);
             }
         }
@@ -34,23 +34,23 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [GlobalCleanup]
         public void Cleanup()
         {
-            this.tgaCore.Dispose();
-            this.tgaCore = null;
+            this.tga.Dispose();
+            this.tga = null;
             this.tgaMagick.Dispose();
         }
 
         [Benchmark(Baseline = true, Description = "Magick Tga")]
-        public void BmpImageMagick()
+        public void MagickTga()
         {
             using var memoryStream = new MemoryStream();
             this.tgaMagick.Write(memoryStream, MagickFormat.Tga);
         }
 
         [Benchmark(Description = "ImageSharp Tga")]
-        public void BmpImageSharp()
+        public void ImageSharpTga()
         {
             using var memoryStream = new MemoryStream();
-            this.tgaCore.SaveAsBmp(memoryStream);
+            this.tga.SaveAsTga(memoryStream);
         }
     }
 }

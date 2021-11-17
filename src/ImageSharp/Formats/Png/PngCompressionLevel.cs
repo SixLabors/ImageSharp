@@ -1,11 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// Provides enumeration of available PNG compression levels.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public enum PngCompressionLevel
     {
         /// <summary>

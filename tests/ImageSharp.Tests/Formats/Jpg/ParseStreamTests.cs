@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Text;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var expectedColorSpace = (JpegColorSpace)expectedColorSpaceValue;
 
-            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
+            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile, metaDataOnly: true))
             {
                 Assert.Equal(expectedColorSpace, decoder.ColorSpace);
             }
@@ -43,12 +42,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(TestImages.Jpeg.Baseline.Jpeg400))
             {
-                Assert.Equal(1, decoder.ComponentCount);
+                Assert.Equal(1, decoder.Frame.ComponentCount);
                 Assert.Equal(1, decoder.Components.Length);
 
-                Size expectedSizeInBlocks = decoder.ImageSizeInPixels.DivideRoundUp(8);
+                Size expectedSizeInBlocks = decoder.Frame.PixelSize.DivideRoundUp(8);
 
-                Assert.Equal(expectedSizeInBlocks, decoder.ImageSizeInMCU);
+                Assert.Equal(expectedSizeInBlocks, decoder.Frame.McuSize);
 
                 var uniform1 = new Size(1, 1);
                 JpegComponent c0 = decoder.Components[0];
@@ -70,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
             {
                 sb.AppendLine(imageFile);
-                sb.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.ImageSizeInMCU}");
+                sb.AppendLine($"Size:{decoder.Frame.PixelSize} MCU:{decoder.Frame.McuSize}");
                 JpegComponent c0 = decoder.Components[0];
                 JpegComponent c1 = decoder.Components[1];
 
@@ -106,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
             {
-                Assert.Equal(componentCount, decoder.ComponentCount);
+                Assert.Equal(componentCount, decoder.Frame.ComponentCount);
                 Assert.Equal(componentCount, decoder.Components.Length);
 
                 JpegComponent c0 = decoder.Components[0];
@@ -115,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 var uniform1 = new Size(1, 1);
 
-                Size expectedLumaSizeInBlocks = decoder.ImageSizeInMCU.MultiplyBy(fLuma);
+                Size expectedLumaSizeInBlocks = decoder.Frame.McuSize.MultiplyBy(fLuma);
 
                 Size divisor = fLuma.DivideBy(fChroma);
 

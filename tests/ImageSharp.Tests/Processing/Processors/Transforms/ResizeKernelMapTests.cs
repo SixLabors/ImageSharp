@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Text;
-
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -13,6 +12,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    [Trait("Category", "Processors")]
     public partial class ResizeKernelMapTests
     {
         private ITestOutputHelper Output { get; }
@@ -79,6 +79,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { KnownResamplers.Bicubic, 1680, 1200 },
             { KnownResamplers.Box, 13, 299 },
             { KnownResamplers.Lanczos5, 3032, 600 },
+
+            // Large number. https://github.com/SixLabors/ImageSharp/issues/1616
+            { KnownResamplers.Bicubic, 207773, 51943 }
         };
 
         public static TheoryData<string, int, int> GeneratedImageResizeData =
@@ -208,15 +211,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     1920, 3032, 2008, 3072, 2304, 3264, 2448
                 };
 
-            IOrderedEnumerable<(int s, int d)> source2Dest = dimensionVals
+            IOrderedEnumerable<(int S, int D)> source2Dest = dimensionVals
                 .SelectMany(s => dimensionVals.Select(d => (s, d)))
                 .OrderBy(x => x.s + x.d);
 
             foreach (string resampler in resamplerNames)
             {
-                foreach ((int s, int d) x in source2Dest)
+                foreach ((int S, int D) x in source2Dest)
                 {
-                    result.Add(resampler, x.s, x.d);
+                    result.Add(resampler, x.S, x.D);
                 }
             }
 

@@ -10,6 +10,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
     // ReSharper disable InconsistentNaming
+    [Trait("Category", "Processors")]
     public class HistogramEqualizationTests
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
@@ -17,10 +18,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [Theory]
         [InlineData(256)]
         [InlineData(65536)]
-        public void GlobalHistogramEqualization_WithDifferentLumanceLevels(int luminanceLevels)
+        public void GlobalHistogramEqualization_WithDifferentLuminanceLevels(int luminanceLevels)
         {
             // Arrange
-            var pixels = new byte[]
+            byte[] pixels =
             {
                 52,  55,  61,  59,  70,  61,  76,  61,
                 62,  59,  55, 104,  94,  85,  59,  71,
@@ -43,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     }
                 }
 
-                var expected = new byte[]
+                byte[] expected =
                 {
                     0,    12,   53,   32,  146,   53,  174,   53,
                     57,   32,   12,  227,  219,  202,   32,  154,
@@ -140,6 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         /// See: https://github.com/SixLabors/ImageSharp/pull/984
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <param name="provider">The test image provider.</param>
         [Theory]
         [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
         [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]
@@ -149,17 +151,55 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new HistogramEqualizationOptions()
-                              {
-                                  Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
-                                  LuminanceLevels = 256,
-                                  ClipHistogram = true,
-                                  ClipLimit = 5,
-                                  NumberOfTiles = 10
-                              };
+                {
+                    Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                    LuminanceLevels = 256,
+                    ClipHistogram = true,
+                    ClipLimit = 5,
+                    NumberOfTiles = 10
+                };
                 image.Mutate(x => x.HistogramEqualization(options));
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
+        }
+
+        [Theory]
+        [WithTestPatternImages(5120, 9234, PixelTypes.L16)]
+        public unsafe void Issue1640<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            // https://github.com/SixLabors/ImageSharp/discussions/1640
+            // Test using isolated memory to ensure clean buffers for reference
+            provider.Configuration = Configuration.CreateDefaultInstance();
+            var options = new HistogramEqualizationOptions
+            {
+                Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                LuminanceLevels = 4096,
+                ClipHistogram = false,
+                ClipLimit = 350,
+                NumberOfTiles = 8
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> referenceResult = image.Clone(ctx =>
+            {
+                ctx.HistogramEqualization(options);
+                ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
+            });
+
+            using Image<TPixel> processed = image.Clone(ctx =>
+            {
+                ctx.HistogramEqualization(options);
+                ctx.Resize(image.Width / 4, image.Height / 4, KnownResamplers.Bicubic);
+            });
+
+            ValidatorComparer.VerifySimilarity(referenceResult, processed);
         }
     }
 }

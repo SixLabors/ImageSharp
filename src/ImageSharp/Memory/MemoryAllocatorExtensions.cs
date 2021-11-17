@@ -67,21 +67,21 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Allocates padded buffers for BMP encoder/decoder. (Replacing old PixelRow/PixelArea).
+        /// Allocates padded buffers. Generally used by encoder/decoders.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         /// <param name="width">Pixel count in the row</param>
         /// <param name="pixelSizeInBytes">The pixel size in bytes, eg. 3 for RGB.</param>
         /// <param name="paddingInBytes">The padding.</param>
-        /// <returns>A <see cref="IManagedByteBuffer"/>.</returns>
-        internal static IManagedByteBuffer AllocatePaddedPixelRowBuffer(
+        /// <returns>A <see cref="IMemoryOwner{Byte}"/>.</returns>
+        internal static IMemoryOwner<byte> AllocatePaddedPixelRowBuffer(
             this MemoryAllocator memoryAllocator,
             int width,
             int pixelSizeInBytes,
             int paddingInBytes)
         {
             int length = (width * pixelSizeInBytes) + paddingInBytes;
-            return memoryAllocator.AllocateManagedByteBuffer(length);
+            return memoryAllocator.Allocate<byte>(length);
         }
 
         /// <summary>

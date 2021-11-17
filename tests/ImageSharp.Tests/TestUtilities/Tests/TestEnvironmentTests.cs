@@ -3,14 +3,14 @@
 
 using System;
 using System.IO;
+using Microsoft.DotNet.RemoteExecutor;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
 using Xunit;
 using Xunit.Abstractions;
 
@@ -57,6 +57,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
         {
             if (!TestEnvironment.IsWindows)
@@ -73,6 +74,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)
         {
             if (!TestEnvironment.IsWindows)
@@ -85,10 +87,11 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("lol/foo.png", typeof(PngEncoder))]
+        [InlineData("lol/foo.png", typeof(ImageSharpPngEncoderWithDefaultConfiguration))]
         [InlineData("lol/Rofl.bmp", typeof(BmpEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Linux(string fileName, Type expectedEncoderType)
         {
             if (!TestEnvironment.IsLinux)
@@ -105,6 +108,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(MagickReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
+        [InlineData("lol/foobar.webp", typeof(WebpDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Linux(string fileName, Type expectedDecoderType)
         {
             if (!TestEnvironment.IsLinux)
@@ -114,6 +118,21 @@ namespace SixLabors.ImageSharp.Tests
 
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
             Assert.IsType(expectedDecoderType, decoder);
+        }
+
+        // RemoteExecutor does not work with "dotnet xunit" used to run tests on 32 bit .NET Framework:
+        // https://github.com/SixLabors/ImageSharp/blob/381dff8640b721a34b1227c970fcf6ad6c5e3e72/ci-test.ps1#L30
+        public static bool IsNot32BitNetFramework = !TestEnvironment.IsFramework || TestEnvironment.Is64BitProcess;
+
+        [ConditionalFact(nameof(IsNot32BitNetFramework))]
+        public void RemoteExecutor_FailingRemoteTestShouldFailLocalTest()
+        {
+            static void FailingCode()
+            {
+                Assert.False(true);
+            }
+
+            Assert.ThrowsAny<RemoteExecutionException>(() => RemoteExecutor.Invoke(FailingCode).Dispose());
         }
     }
 }

@@ -4,8 +4,6 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -30,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream)
-            => this.Decode<Rgba32>(configuration, stream);
+            => this.Decode<Rgb24>(configuration, stream);
 
         /// <inheritdoc/>
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)

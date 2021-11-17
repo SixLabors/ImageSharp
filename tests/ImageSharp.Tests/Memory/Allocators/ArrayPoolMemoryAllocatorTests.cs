@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
+    [Collection("RunSerial")]
     public class ArrayPoolMemoryAllocatorTests
     {
         private const int MaxPooledBufferSizeInBytes = 2048;
@@ -56,19 +57,14 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             [Fact]
             public void When_PoolSelectorThresholdInBytes_IsGreaterThan_MaxPooledBufferSizeInBytes_ExceptionIsThrown()
-            {
-                Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(100, 200));
-            }
+                => Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(100, 200));
         }
 
         [Theory]
         [InlineData(32)]
         [InlineData(512)]
         [InlineData(MaxPooledBufferSizeInBytes - 1)]
-        public void SmallBuffersArePooled_OfByte(int size)
-        {
-            Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<byte>(size));
-        }
+        public void SmallBuffersArePooled_OfByte(int size) => Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<byte>(size));
 
         [Theory]
         [InlineData(128 * 1024 * 1024)]
@@ -115,6 +111,23 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             {
                 int expected = options == AllocationOptions.Clean ? 0 : 666;
                 Assert.Equal(expected, BufferExtensions.GetSpan(secondAlloc)[0]);
+            }
+        }
+
+        [Fact]
+        public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
+        {
+            ArrayPoolMemoryAllocator allocator = this.LocalFixture.MemoryAllocator;
+            using IMemoryOwner<byte> memoryOwner = allocator.Allocate<byte>(100);
+
+            using (MemoryHandle pin = memoryOwner.Memory.Pin())
+            {
+                Assert.NotEqual(IntPtr.Zero, (IntPtr)pin.Pointer);
+            }
+
+            using (MemoryHandle pin = memoryOwner.Memory.Pin())
+            {
+                Assert.NotEqual(IntPtr.Zero, (IntPtr)pin.Pointer);
             }
         }
 
@@ -221,19 +234,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         {
             using IMemoryOwner<int> buffer = this.LocalFixture.MemoryAllocator.Allocate<int>(0);
             Assert.Equal(0, buffer.Memory.Length);
-        }
-
-        [Theory]
-        [InlineData(101)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) - 1)]
-        [InlineData(int.MaxValue / SizeOfLargeStruct)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 137)]
-        public void Allocate_OverCapacity_Throws_InvalidMemoryOperationException(int length)
-        {
-            this.LocalFixture.MemoryAllocator.BufferCapacityInBytes = 100 * SizeOfLargeStruct;
-            Assert.Throws<InvalidMemoryOperationException>(() =>
-                this.LocalFixture.MemoryAllocator.Allocate<LargeStruct>(length));
         }
 
         [Theory]

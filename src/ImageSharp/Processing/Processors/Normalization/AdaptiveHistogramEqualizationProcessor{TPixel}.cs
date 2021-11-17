@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             {
                 cdfData.CalculateLookupTables(source, this);
 
-                var tileYStartPositions = new List<(int y, int cdfY)>();
+                var tileYStartPositions = new List<(int Y, int CdfY)>();
                 int cdfY = 0;
                 int yStart = halfTileHeight;
                 for (int tile = 0; tile < tileCount - 1; tile++)
@@ -367,7 +367,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly CdfTileData cdfData;
-            private readonly List<(int y, int cdfY)> tileYStartPositions;
+            private readonly List<(int Y, int CdfY)> tileYStartPositions;
             private readonly int tileWidth;
             private readonly int tileHeight;
             private readonly int tileCount;
@@ -380,7 +380,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
                 CdfTileData cdfData,
-                List<(int y, int cdfY)> tileYStartPositions,
+                List<(int Y, int CdfY)> tileYStartPositions,
                 int tileWidth,
                 int tileHeight,
                 int tileCount,
@@ -406,9 +406,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             {
                 for (int index = rows.Min; index < rows.Max; index++)
                 {
-                    (int y, int cdfY) tileYStartPosition = this.tileYStartPositions[index];
-                    int y = tileYStartPosition.y;
-                    int cdfYY = tileYStartPosition.cdfY;
+                    (int Y, int CdfY) tileYStartPosition = this.tileYStartPositions[index];
+                    int y = tileYStartPosition.Y;
+                    int cdfYY = tileYStartPosition.CdfY;
 
                     int cdfX = 0;
                     int x = this.halfTileWidth;
@@ -459,17 +459,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             private readonly Configuration configuration;
             private readonly MemoryAllocator memoryAllocator;
 
-            // Used for storing the minimum value for each CDF entry.
+            /// <summary>
+            /// Used for storing the minimum value for each CDF entry.
+            /// </summary>
             private readonly Buffer2D<int> cdfMinBuffer2D;
 
-            // Used for storing the LUT for each CDF entry.
+            /// <summary>
+            /// Used for storing the LUT for each CDF entry.
+            /// </summary>
             private readonly Buffer2D<int> cdfLutBuffer2D;
             private readonly int pixelsInTile;
             private readonly int sourceWidth;
             private readonly int tileWidth;
             private readonly int tileHeight;
             private readonly int luminanceLevels;
-            private readonly List<(int y, int cdfY)> tileYStartPositions;
+            private readonly List<(int Y, int CdfY)> tileYStartPositions;
 
             public CdfTileData(
                 Configuration configuration,
@@ -492,7 +496,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 this.pixelsInTile = tileWidth * tileHeight;
 
                 // Calculate the start positions and rent buffers.
-                this.tileYStartPositions = new List<(int y, int cdfY)>();
+                this.tileYStartPositions = new List<(int Y, int CdfY)>();
                 int cdfY = 0;
                 for (int y = 0; y < sourceHeight; y += tileHeight)
                 {
@@ -552,7 +556,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 private readonly MemoryAllocator allocator;
                 private readonly Buffer2D<int> cdfMinBuffer2D;
                 private readonly Buffer2D<int> cdfLutBuffer2D;
-                private readonly List<(int y, int cdfY)> tileYStartPositions;
+                private readonly List<(int Y, int CdfY)> tileYStartPositions;
                 private readonly int tileWidth;
                 private readonly int tileHeight;
                 private readonly int luminanceLevels;
@@ -566,7 +570,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     MemoryAllocator allocator,
                     Buffer2D<int> cdfMinBuffer2D,
                     Buffer2D<int> cdfLutBuffer2D,
-                    List<(int y, int cdfY)> tileYStartPositions,
+                    List<(int Y, int CdfY)> tileYStartPositions,
                     int tileWidth,
                     int tileHeight,
                     int luminanceLevels,
@@ -592,10 +596,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     for (int index = rows.Min; index < rows.Max; index++)
                     {
                         int cdfX = 0;
-                        int cdfY = this.tileYStartPositions[index].cdfY;
-                        int y = this.tileYStartPositions[index].y;
+                        int cdfY = this.tileYStartPositions[index].CdfY;
+                        int y = this.tileYStartPositions[index].Y;
                         int endY = Math.Min(y + this.tileHeight, this.sourceHeight);
                         Span<int> cdfMinSpan = this.cdfMinBuffer2D.GetRowSpan(cdfY);
+                        cdfMinSpan.Clear();
 
                         using IMemoryOwner<int> histogramBuffer = this.allocator.Allocate<int>(this.luminanceLevels);
                         Span<int> histogram = histogramBuffer.GetSpan();

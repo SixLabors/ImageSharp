@@ -532,11 +532,12 @@ namespace SixLabors.ImageSharp
             /// <summary>
             /// Performs a multiplication and an addition of the <see cref="Vector256{T}"/>.
             /// </summary>
+            /// <remarks>ret = (vm0 * vm1) + va</remarks>
             /// <param name="va">The vector to add to the intermediate result.</param>
             /// <param name="vm0">The first vector to multiply.</param>
             /// <param name="vm1">The second vector to multiply.</param>
             /// <returns>The <see cref="Vector256{T}"/>.</returns>
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(InliningOptions.AlwaysInline)]
             public static Vector256<float> MultiplyAdd(
                 in Vector256<float> va,
                 in Vector256<float> vm0,
@@ -549,6 +550,30 @@ namespace SixLabors.ImageSharp
                 else
                 {
                     return Avx.Add(Avx.Multiply(vm0, vm1), va);
+                }
+            }
+
+            /// <summary>
+            /// Performs a multiplication and a substraction of the <see cref="Vector256{T}"/>.
+            /// </summary>
+            /// <remarks>ret = (vm0 * vm1) - vs</remarks>
+            /// <param name="vs">The vector to substract from the intermediate result.</param>
+            /// <param name="vm0">The first vector to multiply.</param>
+            /// <param name="vm1">The second vector to multiply.</param>
+            /// <returns>The <see cref="Vector256{T}"/>.</returns>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static Vector256<float> MultiplySubstract(
+                in Vector256<float> vs,
+                in Vector256<float> vm0,
+                in Vector256<float> vm1)
+            {
+                if (Fma.IsSupported)
+                {
+                    return Fma.MultiplySubtract(vm1, vm0, vs);
+                }
+                else
+                {
+                    return Avx.Subtract(Avx.Multiply(vm0, vm1), vs);
                 }
             }
 
@@ -597,90 +622,89 @@ namespace SixLabors.ImageSharp
                 ReadOnlySpan<byte> source,
                 Span<float> dest)
             {
-                if (Avx2.IsSupported)
+                fixed (byte* sourceBase = source)
                 {
-                    VerifySpanInput(source, dest, Vector256<byte>.Count);
-
-                    int n = dest.Length / Vector256<byte>.Count;
-
-                    byte* sourceBase = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(source));
-
-                    ref Vector256<float> destBase =
-                        ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
-
-                    var scale = Vector256.Create(1 / (float)byte.MaxValue);
-
-                    for (int i = 0; i < n; i++)
+                    if (Avx2.IsSupported)
                     {
-                        int si = Vector256<byte>.Count * i;
-                        Vector256<int> i0 = Avx2.ConvertToVector256Int32(sourceBase + si);
-                        Vector256<int> i1 = Avx2.ConvertToVector256Int32(sourceBase + si + Vector256<int>.Count);
-                        Vector256<int> i2 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 2));
-                        Vector256<int> i3 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 3));
+                        VerifySpanInput(source, dest, Vector256<byte>.Count);
 
-                        Vector256<float> f0 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i0));
-                        Vector256<float> f1 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i1));
-                        Vector256<float> f2 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i2));
-                        Vector256<float> f3 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i3));
+                        int n = dest.Length / Vector256<byte>.Count;
 
-                        ref Vector256<float> d = ref Unsafe.Add(ref destBase, i * 4);
+                        ref Vector256<float> destBase =
+                            ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
 
-                        d = f0;
-                        Unsafe.Add(ref d, 1) = f1;
-                        Unsafe.Add(ref d, 2) = f2;
-                        Unsafe.Add(ref d, 3) = f3;
+                        var scale = Vector256.Create(1 / (float)byte.MaxValue);
+
+                        for (int i = 0; i < n; i++)
+                        {
+                            int si = Vector256<byte>.Count * i;
+                            Vector256<int> i0 = Avx2.ConvertToVector256Int32(sourceBase + si);
+                            Vector256<int> i1 = Avx2.ConvertToVector256Int32(sourceBase + si + Vector256<int>.Count);
+                            Vector256<int> i2 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 2));
+                            Vector256<int> i3 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 3));
+
+                            Vector256<float> f0 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i0));
+                            Vector256<float> f1 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i1));
+                            Vector256<float> f2 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i2));
+                            Vector256<float> f3 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i3));
+
+                            ref Vector256<float> d = ref Unsafe.Add(ref destBase, i * 4);
+
+                            d = f0;
+                            Unsafe.Add(ref d, 1) = f1;
+                            Unsafe.Add(ref d, 2) = f2;
+                            Unsafe.Add(ref d, 3) = f3;
+                        }
                     }
-                }
-                else
-                {
-                    // Sse
-                    VerifySpanInput(source, dest, Vector128<byte>.Count);
-
-                    int n = dest.Length / Vector128<byte>.Count;
-
-                    byte* sourceBase = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(source));
-
-                    ref Vector128<float> destBase =
-                        ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
-
-                    var scale = Vector128.Create(1 / (float)byte.MaxValue);
-                    Vector128<byte> zero = Vector128<byte>.Zero;
-
-                    for (int i = 0; i < n; i++)
+                    else
                     {
-                        int si = Vector128<byte>.Count * i;
+                        // Sse
+                        VerifySpanInput(source, dest, Vector128<byte>.Count);
 
-                        Vector128<int> i0, i1, i2, i3;
-                        if (Sse41.IsSupported)
+                        int n = dest.Length / Vector128<byte>.Count;
+
+                        ref Vector128<float> destBase =
+                            ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
+
+                        var scale = Vector128.Create(1 / (float)byte.MaxValue);
+                        Vector128<byte> zero = Vector128<byte>.Zero;
+
+                        for (int i = 0; i < n; i++)
                         {
-                            i0 = Sse41.ConvertToVector128Int32(sourceBase + si);
-                            i1 = Sse41.ConvertToVector128Int32(sourceBase + si + Vector128<int>.Count);
-                            i2 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 2));
-                            i3 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 3));
+                            int si = Vector128<byte>.Count * i;
+
+                            Vector128<int> i0, i1, i2, i3;
+                            if (Sse41.IsSupported)
+                            {
+                                i0 = Sse41.ConvertToVector128Int32(sourceBase + si);
+                                i1 = Sse41.ConvertToVector128Int32(sourceBase + si + Vector128<int>.Count);
+                                i2 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 2));
+                                i3 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 3));
+                            }
+                            else
+                            {
+                                Vector128<byte> b = Sse2.LoadVector128(sourceBase + si);
+                                Vector128<short> s0 = Sse2.UnpackLow(b, zero).AsInt16();
+                                Vector128<short> s1 = Sse2.UnpackHigh(b, zero).AsInt16();
+
+                                i0 = Sse2.UnpackLow(s0, zero.AsInt16()).AsInt32();
+                                i1 = Sse2.UnpackHigh(s0, zero.AsInt16()).AsInt32();
+                                i2 = Sse2.UnpackLow(s1, zero.AsInt16()).AsInt32();
+                                i3 = Sse2.UnpackHigh(s1, zero.AsInt16()).AsInt32();
+                            }
+
+                            Vector128<float> f0 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i0));
+                            Vector128<float> f1 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i1));
+                            Vector128<float> f2 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i2));
+                            Vector128<float> f3 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i3));
+
+                            ref Vector128<float> d = ref Unsafe.Add(ref destBase, i * 4);
+
+                            d = f0;
+                            Unsafe.Add(ref d, 1) = f1;
+                            Unsafe.Add(ref d, 2) = f2;
+                            Unsafe.Add(ref d, 3) = f3;
                         }
-                        else
-                        {
-                            Vector128<byte> b = Sse2.LoadVector128(sourceBase + si);
-                            Vector128<short> s0 = Sse2.UnpackLow(b, zero).AsInt16();
-                            Vector128<short> s1 = Sse2.UnpackHigh(b, zero).AsInt16();
-
-                            i0 = Sse2.UnpackLow(s0, zero.AsInt16()).AsInt32();
-                            i1 = Sse2.UnpackHigh(s0, zero.AsInt16()).AsInt32();
-                            i2 = Sse2.UnpackLow(s1, zero.AsInt16()).AsInt32();
-                            i3 = Sse2.UnpackHigh(s1, zero.AsInt16()).AsInt32();
-                        }
-
-                        Vector128<float> f0 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i0));
-                        Vector128<float> f1 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i1));
-                        Vector128<float> f2 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i2));
-                        Vector128<float> f3 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i3));
-
-                        ref Vector128<float> d = ref Unsafe.Add(ref destBase, i * 4);
-
-                        d = f0;
-                        Unsafe.Add(ref d, 1) = f1;
-                        Unsafe.Add(ref d, 2) = f2;
-                        Unsafe.Add(ref d, 3) = f3;
                     }
                 }
             }

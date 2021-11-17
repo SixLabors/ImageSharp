@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Bmp;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
@@ -18,12 +16,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24 };
+            var meta = new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
             var clone = (BmpMetadata)meta.DeepClone();
 
             clone.BitsPerPixel = BmpBitsPerPixel.Pixel32;
+            clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;
 
             Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));
+            Assert.False(meta.InfoHeaderType.Equals(clone.InfoHeaderType));
         }
 
         [Theory]

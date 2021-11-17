@@ -8,20 +8,45 @@
     <Prefer32Bit>false</Prefer32Bit>
     <RootNamespace>SixLabors.ImageSharp.Tests.ProfilingSandbox</RootNamespace>
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
-    <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
     <StartupObject>SixLabors.ImageSharp.Tests.ProfilingSandbox.Program</StartupObject>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
     <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime>
+    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
+
+  <Choose>
+    <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
+      <PropertyGroup>
+        <TargetFrameworks>net6.0;net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+      </PropertyGroup>
+    </When>
+    <When Condition="$(Configuration.EndsWith('InnerLoop')) == true">
+      <PropertyGroup>
+        <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
 
   <ItemGroup>
     <Compile Remove="..\ImageSharp.Tests\IO\LocalFileSystem.cs" />
+    <Compile Include="..\ImageSharp.Benchmarks\LoadResizeSave\LoadResizeSaveStressRunner.cs" Link="LoadResizeSaveStressRunner.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="NetVips" />
+    <PackageReference Include="NetVips.Native" />
+    <PackageReference Include="PhotoSauce.MagicScaler"/>
+    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 

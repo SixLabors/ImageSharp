@@ -67,9 +67,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 int count = redChannel.Length;
-                Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
-                Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
-                Guard.IsTrue(destination.Length > count, nameof(destination), "'destination' span should not be shorter than the source channels!");
+                GuardPackFromRgbPlanes(greenChannel, blueChannel, destination, count);
 
                 SimdUtils.PackFromRgbPlanes(configuration, redChannel, greenChannel, blueChannel, destination);
             }

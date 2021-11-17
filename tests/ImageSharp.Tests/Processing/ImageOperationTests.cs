@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-
 using Moq;
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -171,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
         private static void CheckThrowsCorrectObjectDisposedException(Action action)
         {
-            var ex = Assert.Throws<ObjectDisposedException>(action);
+            ObjectDisposedException ex = Assert.Throws<ObjectDisposedException>(action);
             Assert.Equal(ExpectedExceptionMessage, ex.Message);
         }
     }

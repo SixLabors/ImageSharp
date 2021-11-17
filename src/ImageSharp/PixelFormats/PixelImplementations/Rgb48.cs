@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.R / Max, this.G / Max, this.B / Max, 1F);
+        public readonly Vector4 ToVector4() => new(this.R / Max, this.G / Max, this.B / Max, 1F);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

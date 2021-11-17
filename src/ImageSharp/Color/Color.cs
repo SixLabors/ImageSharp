@@ -4,8 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -22,6 +20,7 @@ namespace SixLabors.ImageSharp
     public readonly partial struct Color : IEquatable<Color>
     {
         private readonly Rgba64 data;
+        private readonly IPixel boxedHighPrecisionPixel;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private Color(byte r, byte g, byte b, byte a)
@@ -31,6 +30,8 @@ namespace SixLabors.ImageSharp
                 ColorNumerics.UpscaleFrom8BitTo16Bit(g),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(b),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(a));
+
+            this.boxedHighPrecisionPixel = null;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -41,6 +42,15 @@ namespace SixLabors.ImageSharp
                 ColorNumerics.UpscaleFrom8BitTo16Bit(g),
                 ColorNumerics.UpscaleFrom8BitTo16Bit(b),
                 ushort.MaxValue);
+
+            this.boxedHighPrecisionPixel = null;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private Color(IPixel pixel)
+        {
+            this.boxedHighPrecisionPixel = pixel;
+            this.data = default;
         }
 
         /// <summary>
@@ -53,13 +63,10 @@ namespace SixLabors.ImageSharp
         /// otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(Color left, Color right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(Color left, Color right) => left.Equals(right);
 
         /// <summary>
-        /// Checks whether two <see cref="Color"/> structures are equal.
+        /// Checks whether two <see cref="Color"/> structures are not equal.
         /// </summary>
         /// <param name="left">The left hand <see cref="Color"/> operand.</param>
         /// <param name="right">The right hand <see cref="Color"/> operand.</param>
@@ -68,10 +75,7 @@ namespace SixLabors.ImageSharp
         /// otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(Color left, Color right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(Color left, Color right) => !left.Equals(right);
 
         /// <summary>
         /// Creates a <see cref="Color"/> from RGBA bytes.
@@ -82,7 +86,7 @@ namespace SixLabors.ImageSharp
         /// <param name="a">The alpha component (0-255).</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(r, g, b, a);
+        public static Color FromRgba(byte r, byte g, byte b, byte a) => new(r, g, b, a);
 
         /// <summary>
         /// Creates a <see cref="Color"/> from RGB bytes.
@@ -92,7 +96,46 @@ namespace SixLabors.ImageSharp
         /// <param name="b">The blue component (0-255).</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Color FromRgb(byte r, byte g, byte b) => new Color(r, g, b);
+        public static Color FromRgb(byte r, byte g, byte b) => new(r, g, b);
+
+        /// <summary>
+        /// Creates a <see cref="Color"/> from the given <typeparamref name="TPixel"/>.
+        /// </summary>
+        /// <param name="pixel">The pixel to convert from.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Color FromPixel<TPixel>(TPixel pixel)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Avoid boxing in case we can convert to Rgba64 safely and efficently
+            if (typeof(TPixel) == typeof(Rgba64))
+            {
+                return new((Rgba64)(object)pixel);
+            }
+            else if (typeof(TPixel) == typeof(Rgb48))
+            {
+                return new((Rgb48)(object)pixel);
+            }
+            else if (typeof(TPixel) == typeof(La32))
+            {
+                return new((La32)(object)pixel);
+            }
+            else if (typeof(TPixel) == typeof(L16))
+            {
+                return new((L16)(object)pixel);
+            }
+            else if (Unsafe.SizeOf<TPixel>() <= Unsafe.SizeOf<Rgba32>())
+            {
+                Rgba32 p = default;
+                pixel.ToRgba32(ref p);
+                return new(p);
+            }
+            else
+            {
+                return new(pixel);
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="Color"/> struct
@@ -214,7 +257,7 @@ namespace SixLabors.ImageSharp
         public override string ToString() => this.ToHex();
 
         /// <summary>
-        /// Converts the color instance to a specified <see cref="IPixel{TSelf}"/> type.
+        /// Converts the color instance to a specified <typeparamref name="TPixel"/> type.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
         /// <returns>The pixel value.</returns>
@@ -222,13 +265,18 @@ namespace SixLabors.ImageSharp
         public TPixel ToPixel<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            TPixel pixel = default;
+            if (this.boxedHighPrecisionPixel is TPixel pixel)
+            {
+                return pixel;
+            }
+
+            pixel = default;
             pixel.FromRgba64(this.data);
             return pixel;
         }
 
         /// <summary>
-        /// Bulk converts a span of <see cref="Color"/> to a span of a specified <see cref="IPixel{TSelf}"/> type.
+        /// Bulk converts a span of <see cref="Color"/> to a span of a specified <typeparamref name="TPixel"/> type.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
         /// <param name="configuration">The configuration.</param>
@@ -241,28 +289,38 @@ namespace SixLabors.ImageSharp
             Span<TPixel> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
-            PixelOperations<TPixel>.Instance.FromRgba64(configuration, rgba64Span, destination);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            for (int i = 0; i < source.Length; i++)
+            {
+                destination[i] = source[i].ToPixel<TPixel>();
+            }
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Color other)
         {
-            return this.data.PackedValue == other.data.PackedValue;
+            if (this.boxedHighPrecisionPixel is null && other.boxedHighPrecisionPixel is null)
+            {
+                return this.data.PackedValue == other.data.PackedValue;
+            }
+
+            return this.boxedHighPrecisionPixel?.Equals(other.boxedHighPrecisionPixel) == true;
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is Color other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is Color other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
-            return this.data.PackedValue.GetHashCode();
+            if (this.boxedHighPrecisionPixel is null)
+            {
+                return this.data.PackedValue.GetHashCode();
+            }
+
+            return this.boxedHighPrecisionPixel.GetHashCode();
         }
     }
 }

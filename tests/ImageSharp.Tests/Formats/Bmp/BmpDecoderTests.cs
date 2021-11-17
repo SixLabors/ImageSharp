@@ -14,12 +14,12 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
-
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
+    [Collection("RunSerial")]
     [Trait("Format", "Bmp")]
     public class BmpDecoderTests
     {
@@ -54,7 +54,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        [WithFile(Car, PixelTypes.Rgba32)]
+        [WithFile(F, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_MiscellaneousBitmaps_WithLimitedAllocatorBufferCapacity(
             TestImageProvider<Rgba32> provider)
         {
@@ -138,12 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(BmpDecoder))
             {
                 image.DebugSave(provider);
-
-                // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider);
-                }
+                image.CompareToOriginal(provider);
             }
         }
 
@@ -202,15 +198,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
+            RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = skippedPixelHandling }))
             {
                 image.DebugSave(provider);
-
-                // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider);
-                }
+                image.CompareToOriginal(provider);
             }
         }
 
@@ -219,15 +211,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
+            RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = skippedPixelHandling }))
             {
                 image.DebugSave(provider);
-
-                // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider);
-                }
+                image.CompareToOriginal(provider);
             }
         }
 

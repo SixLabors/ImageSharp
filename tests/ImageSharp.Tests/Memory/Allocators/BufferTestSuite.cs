@@ -60,24 +60,24 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        public static readonly TheoryData<int> LenthValues = new TheoryData<int> { 0, 1, 7, 1023, 1024 };
+        public static readonly TheoryData<int> LengthValues = new TheoryData<int> { 0, 1, 7, 1023, 1024 };
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void HasCorrectLength_byte(int desiredLength)
         {
             this.TestHasCorrectLength<byte>(desiredLength);
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void HasCorrectLength_float(int desiredLength)
         {
             this.TestHasCorrectLength<float>(desiredLength);
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void HasCorrectLength_CustomStruct(int desiredLength)
         {
             this.TestHasCorrectLength<CustomStruct>(desiredLength);
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void CanAllocateCleanBuffer_byte(int desiredLength)
         {
             this.TestCanAllocateCleanBuffer<byte>(desiredLength, false);
@@ -101,14 +101,14 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void CanAllocateCleanBuffer_double(int desiredLength)
         {
             this.TestCanAllocateCleanBuffer<double>(desiredLength);
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void CanAllocateCleanBuffer_CustomStruct(int desiredLength)
         {
             this.TestCanAllocateCleanBuffer<CustomStruct>(desiredLength);
@@ -145,14 +145,14 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void SpanPropertyIsAlwaysTheSame_int(int desiredLength)
         {
             this.TestSpanPropertyIsAlwaysTheSame<int>(desiredLength);
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void SpanPropertyIsAlwaysTheSame_byte(int desiredLength)
         {
             this.TestSpanPropertyIsAlwaysTheSame<byte>(desiredLength, false);
@@ -174,18 +174,18 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void WriteAndReadElements_float(int desiredLength)
         {
-            this.TestWriteAndReadElements<float>(desiredLength, x => x * 1.2f);
+            this.TestWriteAndReadElements(desiredLength, x => x * 1.2f);
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void WriteAndReadElements_byte(int desiredLength)
         {
-            this.TestWriteAndReadElements<byte>(desiredLength, x => (byte)(x + 1), false);
-            this.TestWriteAndReadElements<byte>(desiredLength, x => (byte)(x + 1), true);
+            this.TestWriteAndReadElements(desiredLength, x => (byte)(x + 1), false);
+            this.TestWriteAndReadElements(desiredLength, x => (byte)(x + 1), true);
         }
 
         private void TestWriteAndReadElements<T>(int desiredLength, Func<int, T> getExpectedValue, bool testManagedByteBuffer = false)
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         {
             using (IMemoryOwner<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None, testManagedByteBuffer))
             {
-                T[] expectedVals = new T[buffer.Length()];
+                var expectedVals = new T[buffer.Length()];
 
                 for (int i = 0; i < buffer.Length(); i++)
                 {
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void IndexingSpan_WhenOutOfRange_Throws_byte(int desiredLength)
         {
             this.TestIndexOutOfRangeShouldThrow<byte>(desiredLength, false);
@@ -219,14 +219,14 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void IndexingSpan_WhenOutOfRange_Throws_long(int desiredLength)
         {
             this.TestIndexOutOfRangeShouldThrow<long>(desiredLength);
         }
 
         [Theory]
-        [MemberData(nameof(LenthValues))]
+        [MemberData(nameof(LengthValues))]
         public void IndexingSpan_WhenOutOfRange_Throws_CustomStruct(int desiredLength)
         {
             this.TestIndexOutOfRangeShouldThrow<CustomStruct>(desiredLength);

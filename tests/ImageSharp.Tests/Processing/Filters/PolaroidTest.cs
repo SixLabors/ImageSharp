@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
+    [Trait("Category", "Processors")]
     public class PolaroidTest : BaseImageOperationsExtensionTest
     {
         [Fact]

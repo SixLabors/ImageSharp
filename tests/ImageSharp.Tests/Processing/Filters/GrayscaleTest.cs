@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
@@ -12,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
+    [Trait("Category", "Processors")]
     public class GrayscaleTest : BaseImageOperationsExtensionTest
     {
         public static IEnumerable<object[]> ModeTheoryData = new[]

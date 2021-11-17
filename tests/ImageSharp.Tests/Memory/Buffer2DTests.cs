@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
 
 using Xunit;
@@ -65,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
                 Assert.Equal(0, buffer.FastMemoryGroup.TotalLength);
-                Assert.Equal(0, buffer.GetSingleSpan().Length);
+                Assert.Equal(0, buffer.DangerousGetSingleSpan().Length);
             }
         }
 
@@ -87,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, AllocationOptions.Clean))
             {
-                Span<int> span = buffer.GetSingleSpan();
+                Span<int> span = buffer.DangerousGetSingleSpan();
                 for (int j = 0; j < span.Length; j++)
                 {
                     Assert.Equal(0, span[j]);
@@ -115,6 +114,32 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 int expectedSubBufferOffset = (width * y) - (expectedBufferIndex * buffer.FastMemoryGroup.BufferLength);
                 Assert.SpanPointsTo(span, buffer.FastMemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
+            }
+        }
+
+        [Theory]
+        [InlineData(10, 0, 0, 0)]
+        [InlineData(10, 0, 2, 0)]
+        [InlineData(10, 1, 2, 0)]
+        [InlineData(10, 1, 3, 0)]
+        [InlineData(10, 1, 5, -1)]
+        [InlineData(10, 2, 2, -1)]
+        [InlineData(10, 3, 2, 1)]
+        [InlineData(10, 4, 2, -1)]
+        [InlineData(30, 3, 2, 0)]
+        [InlineData(30, 4, 1, -1)]
+        public void TryGetPaddedRowSpanY(int bufferCapacity, int y, int padding, int expectedBufferIndex)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
+            using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(3, 5);
+
+            bool expectSuccess = expectedBufferIndex >= 0;
+            bool success = buffer.TryGetPaddedRowSpan(y, padding, out Span<byte> paddedSpan);
+            Xunit.Assert.Equal(expectSuccess, success);
+            if (success)
+            {
+                int expectedSubBufferOffset = (3 * y) - (expectedBufferIndex * buffer.FastMemoryGroup.BufferLength);
+                Assert.SpanPointsTo(paddedSpan, buffer.FastMemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
             }
         }
 
@@ -249,9 +274,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
             var rnd = new Random(123);
             using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
             {
-                rnd.RandomFill(b.GetSingleSpan(), 0, 1);
+                rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);
 
-                b.CopyColumns(startIndex, destIndex, columnCount);
+                b.DangerousCopyColumns(startIndex, destIndex, columnCount);
 
                 for (int y = 0; y < b.Height; y++)
                 {
@@ -271,10 +296,10 @@ namespace SixLabors.ImageSharp.Tests.Memory
             var rnd = new Random(123);
             using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
             {
-                rnd.RandomFill(b.GetSingleSpan(), 0, 1);
+                rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);
 
-                b.CopyColumns(0, 50, 22);
-                b.CopyColumns(0, 50, 22);
+                b.DangerousCopyColumns(0, 50, 22);
+                b.DangerousCopyColumns(0, 50, 22);
 
                 for (int y = 0; y < b.Height; y++)
                 {

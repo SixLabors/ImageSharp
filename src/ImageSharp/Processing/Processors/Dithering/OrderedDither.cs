@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -25,6 +24,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public OrderedDither(uint length)
         {
+            Guard.MustBeGreaterThan(length, 0, nameof(length));
+
             DenseMatrix<uint> ditherMatrix = OrderedDitherFactory.CreateDitherMatrix(length);
 
             // Create a new matrix to run against, that pre-thresholds the values.
@@ -110,17 +111,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var ditherOperation = new QuantizeDitherRowOperation<TFrameQuantizer, TPixel>(
-                ref quantizer,
-                in Unsafe.AsRef(this),
-                source,
-                destination,
-                bounds);
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
 
-            ParallelRowIterator.IterateRows(
-                quantizer.Configuration,
-                bounds,
-                in ditherOperation);
+            int spread = CalculatePaletteSpread(destination.Palette.Length);
+            float scale = quantizer.Options.DitherScale;
+
+            for (int y = bounds.Top; y < bounds.Bottom; y++)
+            {
+                ReadOnlySpan<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(bounds.X, bounds.Width);
+                Span<byte> destRow = destination.GetWritablePixelRowSpanUnsafe(y - bounds.Y).Slice(0, sourceRow.Length);
+
+                for (int x = 0; x < sourceRow.Length; x++)
+                {
+                    TPixel dithered = this.Dither(sourceRow[x], x, y, spread, scale);
+                    destRow[x] = quantizer.GetQuantizedColor(dithered, out TPixel _);
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -132,16 +141,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var ditherOperation = new PaletteDitherRowOperation<TPaletteDitherImageProcessor, TPixel>(
-                in processor,
-                in Unsafe.AsRef(this),
-                source,
-                bounds);
+            if (this == default)
+            {
+                ThrowDefaultInstance();
+            }
 
-            ParallelRowIterator.IterateRows(
-                processor.Configuration,
-                bounds,
-                in ditherOperation);
+            int spread = CalculatePaletteSpread(processor.Palette.Length);
+            float scale = processor.DitherScale;
+
+            for (int y = bounds.Top; y < bounds.Bottom; y++)
+            {
+                Span<TPixel> row = source.GetPixelRowSpan(y).Slice(bounds.X, bounds.Width);
+
+                for (int x = 0; x < row.Length; x++)
+                {
+                    ref TPixel sourcePixel = ref row[x];
+                    TPixel dithered = this.Dither(sourcePixel, x, y, spread, scale);
+                    sourcePixel = processor.GetPaletteColor(dithered);
+                }
+            }
         }
 
         // Spread assumes an even colorspace distribution and precision.
@@ -196,94 +214,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public override int GetHashCode()
             => HashCode.Combine(this.thresholdMatrix, this.modulusX, this.modulusY);
 
-        private readonly struct QuantizeDitherRowOperation<TFrameQuantizer, TPixel> : IRowOperation
-            where TFrameQuantizer : struct, IQuantizer<TPixel>
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            private readonly TFrameQuantizer quantizer;
-            private readonly OrderedDither dither;
-            private readonly ImageFrame<TPixel> source;
-            private readonly IndexedImageFrame<TPixel> destination;
-            private readonly Rectangle bounds;
-            private readonly int spread;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public QuantizeDitherRowOperation(
-                ref TFrameQuantizer quantizer,
-                in OrderedDither dither,
-                ImageFrame<TPixel> source,
-                IndexedImageFrame<TPixel> destination,
-                Rectangle bounds)
-            {
-                this.quantizer = quantizer;
-                this.dither = dither;
-                this.source = source;
-                this.destination = destination;
-                this.bounds = bounds;
-                this.spread = CalculatePaletteSpread(destination.Palette.Length);
-            }
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
-            {
-                ref TFrameQuantizer quantizer = ref Unsafe.AsRef(this.quantizer);
-                int spread = this.spread;
-                float scale = this.quantizer.Options.DitherScale;
-
-                ReadOnlySpan<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-                Span<byte> destRow =
-                    this.destination.GetWritablePixelRowSpanUnsafe(y - this.bounds.Y).Slice(0, sourceRow.Length);
-
-                for (int x = 0; x < sourceRow.Length; x++)
-                {
-                    TPixel dithered = this.dither.Dither(sourceRow[x], x, y, spread, scale);
-                    destRow[x] = quantizer.GetQuantizedColor(dithered, out TPixel _);
-                }
-            }
-        }
-
-        private readonly struct PaletteDitherRowOperation<TPaletteDitherImageProcessor, TPixel> : IRowOperation
-            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            private readonly TPaletteDitherImageProcessor processor;
-            private readonly OrderedDither dither;
-            private readonly ImageFrame<TPixel> source;
-            private readonly Rectangle bounds;
-            private readonly float scale;
-            private readonly int spread;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public PaletteDitherRowOperation(
-                in TPaletteDitherImageProcessor processor,
-                in OrderedDither dither,
-                ImageFrame<TPixel> source,
-                Rectangle bounds)
-            {
-                this.processor = processor;
-                this.dither = dither;
-                this.source = source;
-                this.bounds = bounds;
-                this.scale = processor.DitherScale;
-                this.spread = CalculatePaletteSpread(processor.Palette.Length);
-            }
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
-            {
-                ref TPaletteDitherImageProcessor processor = ref Unsafe.AsRef(this.processor);
-                int spread = this.spread;
-                float scale = this.scale;
-
-                Span<TPixel> row = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-
-                for (int x = 0; x < row.Length; x++)
-                {
-                    ref TPixel sourcePixel = ref row[x];
-                    TPixel dithered = this.dither.Dither(sourcePixel, x, y, spread, scale);
-                    sourcePixel = processor.GetPaletteColor(dithered);
-                }
-            }
-        }
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowDefaultInstance()
+            => throw new ImageProcessingException("Cannot use the default value type instance to dither.");
     }
 }

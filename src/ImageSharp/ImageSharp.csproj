@@ -12,12 +12,28 @@
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Tga NetCore</PackageTags>
     <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
+    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--Bump to V2 prior to tagged release.-->
+    <MinVerMinimumMajorMinor>2.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <Choose>
+    <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
+      <PropertyGroup>
+        <TargetFrameworks>net6.0;net5.0;netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
+      </PropertyGroup>
+    </When>
     <When Condition="$(SIXLABORS_TESTING) == true">
       <PropertyGroup>
         <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
+      </PropertyGroup>
+    </When>
+    <When Condition="$(Configuration.EndsWith('InnerLoop')) == true">
+      <PropertyGroup>
+        <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>

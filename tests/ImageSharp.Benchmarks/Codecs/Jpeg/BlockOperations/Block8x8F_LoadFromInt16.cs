@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;

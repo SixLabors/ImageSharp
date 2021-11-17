@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.IO;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -71,12 +70,6 @@ namespace SixLabors.ImageSharp
                 ArrayPool<byte>.Shared.Return(buffer);
             }
         }
-
-        public static void Read(this Stream stream, IManagedByteBuffer buffer)
-            => stream.Read(buffer.Array, 0, buffer.Length());
-
-        public static void Write(this Stream stream, IManagedByteBuffer buffer)
-            => stream.Write(buffer.Array, 0, buffer.Length());
 
 #if !SUPPORTS_SPAN_STREAM
         // This is a port of the CoreFX implementation and is MIT Licensed:

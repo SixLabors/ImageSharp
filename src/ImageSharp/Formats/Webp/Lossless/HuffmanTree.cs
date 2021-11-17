@@ -49,14 +49,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 return -1;
             }
-            else if (t1.TotalCount < t2.TotalCount)
+
+            if (t1.TotalCount < t2.TotalCount)
             {
                 return 1;
             }
-            else
-            {
-                return t1.Value < t2.Value ? -1 : 1;
-            }
+
+            return t1.Value < t2.Value ? -1 : 1;
         }
 
         public IDeepCloneable DeepClone() => new HuffmanTree(this);

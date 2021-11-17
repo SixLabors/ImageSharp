@@ -152,10 +152,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static int HistogramCopyAndAnalyze(List<Vp8LHistogram> origHistograms, List<Vp8LHistogram> histograms, ushort[] histogramSymbols)
         {
+            var stats = new Vp8LStreaks();
+            var bitsEntropy = new Vp8LBitEntropy();
             for (int clusterId = 0, i = 0; i < origHistograms.Count; i++)
             {
                 Vp8LHistogram origHistogram = origHistograms[i];
-                origHistogram.UpdateHistogramCost();
+                origHistogram.UpdateHistogramCost(stats, bitsEntropy);
 
                 // Skip the histogram if it is completely empty, which can happen for tiles with no information (when they are skipped because of LZ77).
                 if (!origHistogram.IsUsed[0] && !origHistogram.IsUsed[1] && !origHistogram.IsUsed[2] && !origHistogram.IsUsed[3] && !origHistogram.IsUsed[4])
@@ -175,7 +177,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return numUsed;
         }
 
-        private static void HistogramCombineEntropyBin(List<Vp8LHistogram> histograms, ushort[] clusters, ushort[] clusterMappings, Vp8LHistogram curCombo, ushort[] binMap, int numBins, double combineCostFactor)
+        private static void HistogramCombineEntropyBin(
+            List<Vp8LHistogram> histograms,
+            ushort[] clusters,
+            ushort[] clusterMappings,
+            Vp8LHistogram curCombo,
+            ushort[] binMap,
+            int numBins,
+            double combineCostFactor)
         {
             var binInfo = new HistogramBinInfo[BinSize];
             for (int idx = 0; idx < numBins; idx++)
@@ -191,6 +200,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             var indicesToRemove = new List<int>();
+            var stats = new Vp8LStreaks();
+            var bitsEntropy = new Vp8LBitEntropy();
             for (int idx = 0; idx < histograms.Count; idx++)
             {
                 if (histograms[idx] == null)
@@ -209,7 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // Try to merge #idx into #first (both share the same binId)
                     double bitCost = histograms[idx].BitCost;
                     double bitCostThresh = -bitCost * combineCostFactor;
-                    double currCostDiff = histograms[first].AddEval(histograms[idx], bitCostThresh, curCombo);
+                    double currCostDiff = histograms[first].AddEval(histograms[idx], stats, bitsEntropy, bitCostThresh, curCombo);
 
                     if (currCostDiff < bitCostThresh)
                     {
@@ -276,7 +287,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Create a mapping from a cluster id to its minimal version.
             int clusterMax = 0;
-            clusterMappingsTmp.AsSpan().Fill(0);
+            clusterMappingsTmp.AsSpan().Clear();
 
             // Re-map the ids.
             for (int i = 0; i < symbols.Length; i++)
@@ -308,6 +319,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int numUsed = histograms.Count(h => h != null);
             int outerIters = numUsed;
             int numTriesNoSuccess = outerIters / 2;
+            var stats = new Vp8LStreaks();
+            var bitsEntropy = new Vp8LBitEntropy();
 
             if (numUsed < minClusterSize)
             {
@@ -354,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     idx2 = mappings[idx2];
 
                     // Calculate cost reduction on combination.
-                    double currCost = HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, idx2, bestCost);
+                    double currCost = HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, idx2, bestCost, stats, bitsEntropy);
 
                     // Found a better pair?
                     if (currCost < 0)
@@ -428,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     if (doEval)
                     {
                         // Re-evaluate the cost of an updated pair.
-                        HistoListUpdatePair(histograms[p.Idx1], histograms[p.Idx2], 0.0d, p);
+                        HistoListUpdatePair(histograms[p.Idx1], histograms[p.Idx2], stats, bitsEntropy, 0.0d, p);
                         if (p.CostDiff >= 0.0d)
                         {
                             histoPriorityList[j] = histoPriorityList[histoPriorityList.Count - 1];
@@ -456,6 +469,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Priority list of histogram pairs.
             var histoPriorityList = new List<HistogramPair>();
             int maxSize = histoSize * histoSize;
+            var stats = new Vp8LStreaks();
+            var bitsEntropy = new Vp8LBitEntropy();
 
             for (int i = 0; i < histoSize; i++)
             {
@@ -471,7 +486,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         continue;
                     }
 
-                    HistoPriorityListPush(histoPriorityList, maxSize, histograms, i, j, 0.0d);
+                    HistoPriorityListPush(histoPriorityList, maxSize, histograms, i, j, 0.0d, stats, bitsEntropy);
                 }
             }
 
@@ -510,7 +525,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         continue;
                     }
 
-                    HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, i, 0.0d);
+                    HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, i, 0.0d, stats, bitsEntropy);
                 }
             }
         }
@@ -519,6 +534,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             int inSize = input.Count;
             int outSize = output.Count;
+            var stats = new Vp8LStreaks();
+            var bitsEntropy = new Vp8LBitEntropy();
             if (outSize > 1)
             {
                 for (int i = 0; i < inSize; i++)
@@ -534,7 +551,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     double bestBits = double.MaxValue;
                     for (int k = 0; k < outSize; k++)
                     {
-                        double curBits = output[k].AddThresh(input[i], bestBits);
+                        double curBits = output[k].AddThresh(input[i], stats, bitsEntropy, bestBits);
                         if (k == 0 || curBits < bestBits)
                         {
                             bestBits = curBits;
@@ -577,7 +594,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Create a pair from indices "idx1" and "idx2" provided its cost is inferior to "threshold", a negative entropy.
         /// </summary>
         /// <returns>The cost of the pair, or 0 if it superior to threshold.</returns>
-        private static double HistoPriorityListPush(List<HistogramPair> histoList, int maxSize, List<Vp8LHistogram> histograms, int idx1, int idx2, double threshold)
+        private static double HistoPriorityListPush(List<HistogramPair> histoList, int maxSize, List<Vp8LHistogram> histograms, int idx1, int idx2, double threshold, Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy)
         {
             var pair = new HistogramPair();
 
@@ -598,7 +615,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Vp8LHistogram h1 = histograms[idx1];
             Vp8LHistogram h2 = histograms[idx2];
 
-            HistoListUpdatePair(h1, h2, threshold, pair);
+            HistoListUpdatePair(h1, h2, stats, bitsEntropy, threshold, pair);
 
             // Do not even consider the pair if it does not improve the entropy.
             if (pair.CostDiff >= threshold)
@@ -616,11 +633,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Update the cost diff and combo of a pair of histograms. This needs to be called when the the histograms have been merged with a third one.
         /// </summary>
-        private static void HistoListUpdatePair(Vp8LHistogram h1, Vp8LHistogram h2, double threshold, HistogramPair pair)
+        private static void HistoListUpdatePair(Vp8LHistogram h1, Vp8LHistogram h2, Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy, double threshold, HistogramPair pair)
         {
             double sumCost = h1.BitCost + h2.BitCost;
             pair.CostCombo = 0.0d;
-            h1.GetCombinedHistogramEntropy(h2, sumCost + threshold, costInitial: pair.CostCombo, out double cost);
+            h1.GetCombinedHistogramEntropy(h2, stats, bitsEntropy, sumCost + threshold, costInitial: pair.CostCombo, out double cost);
             pair.CostCombo = cost;
             pair.CostDiff = pair.CostCombo - sumCost;
         }

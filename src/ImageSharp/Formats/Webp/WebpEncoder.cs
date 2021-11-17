@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public bool UseAlphaCompression { get; set; }
 
         /// <inheritdoc/>
-        public int EntropyPasses { get; set; }
+        public int EntropyPasses { get; set; } = 1;
 
         /// <inheritdoc/>
         public int SpatialNoiseShaping { get; set; } = 50;

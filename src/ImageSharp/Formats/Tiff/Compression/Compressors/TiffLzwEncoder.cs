@@ -256,8 +256,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 
         private void ResetTables()
         {
-            this.children.GetSpan().Fill(0);
-            this.siblings.GetSpan().Fill(0);
+            this.children.GetSpan().Clear();
+            this.siblings.GetSpan().Clear();
             this.bitsPerCode = MinBits;
             this.maxCode = MaxValue(this.bitsPerCode);
             this.nextValidCode = EoiCode + 1;

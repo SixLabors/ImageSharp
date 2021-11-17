@@ -157,29 +157,30 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Estimate how many bits the combined entropy of literals and distance approximately maps to.
         /// </summary>
         /// <returns>Estimated bits.</returns>
-        public double EstimateBits()
+        public double EstimateBits(Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy)
         {
             uint notUsed = 0;
             return
-                PopulationCost(this.Literal, this.NumCodes(), ref notUsed, ref this.IsUsed[0])
-                + PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[1])
-                + PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[2])
-                + PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[3])
-                + PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4])
+                PopulationCost(this.Literal, this.NumCodes(), ref notUsed, ref this.IsUsed[0], stats, bitsEntropy)
+                + PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[1], stats, bitsEntropy)
+                + PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[2], stats, bitsEntropy)
+                + PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[3], stats, bitsEntropy)
+                + PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4], stats, bitsEntropy)
                 + ExtraCost(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes)
                 + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
         }
 
-        public void UpdateHistogramCost()
+        public void UpdateHistogramCost(Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy)
         {
             uint alphaSym = 0, redSym = 0, blueSym = 0;
             uint notUsed = 0;
-            double alphaCost = PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref alphaSym, ref this.IsUsed[3]);
-            double distanceCost = PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4]) + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
+
+            double alphaCost = PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref alphaSym, ref this.IsUsed[3], stats, bitsEntropy);
+            double distanceCost = PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4], stats, bitsEntropy) + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
             int numCodes = this.NumCodes();
-            this.LiteralCost = PopulationCost(this.Literal, numCodes, ref notUsed, ref this.IsUsed[0]) + ExtraCost(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes);
-            this.RedCost = PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref redSym, ref this.IsUsed[1]);
-            this.BlueCost = PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref blueSym, ref this.IsUsed[2]);
+            this.LiteralCost = PopulationCost(this.Literal, numCodes, ref notUsed, ref this.IsUsed[0], stats, bitsEntropy) + ExtraCost(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes);
+            this.RedCost = PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref redSym, ref this.IsUsed[1], stats, bitsEntropy);
+            this.BlueCost = PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref blueSym, ref this.IsUsed[2], stats, bitsEntropy);
             this.BitCost = this.LiteralCost + this.RedCost + this.BlueCost + alphaCost + distanceCost;
             if ((alphaSym | redSym | blueSym) == NonTrivialSym)
             {
@@ -198,11 +199,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Since the previous score passed is 'costThreshold', we only need to compare
         /// the partial cost against 'costThreshold + C(a) + C(b)' to possibly bail-out early.
         /// </summary>
-        public double AddEval(Vp8LHistogram b, double costThreshold, Vp8LHistogram output)
+        public double AddEval(Vp8LHistogram b, Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy, double costThreshold, Vp8LHistogram output)
         {
             double sumCost = this.BitCost + b.BitCost;
             costThreshold += sumCost;
-            if (this.GetCombinedHistogramEntropy(b, costThreshold, costInitial: 0, out double cost))
+            if (this.GetCombinedHistogramEntropy(b, stats, bitsEntropy, costThreshold, costInitial: 0, out double cost))
             {
                 this.Add(b, output);
                 output.BitCost = cost;
@@ -212,10 +213,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return cost - sumCost;
         }
 
-        public double AddThresh(Vp8LHistogram b, double costThreshold)
+        public double AddThresh(Vp8LHistogram b, Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy, double costThreshold)
         {
             double costInitial = -this.BitCost;
-            this.GetCombinedHistogramEntropy(b, costThreshold, costInitial, out double cost);
+            this.GetCombinedHistogramEntropy(b, stats, bitsEntropy, costThreshold, costInitial, out double cost);
             return cost;
         }
 
@@ -239,12 +240,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 : NonTrivialSym;
         }
 
-        public bool GetCombinedHistogramEntropy(Vp8LHistogram b, double costThreshold, double costInitial, out double cost)
+        public bool GetCombinedHistogramEntropy(Vp8LHistogram b, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy, double costThreshold, double costInitial, out double cost)
         {
             bool trivialAtEnd = false;
             cost = costInitial;
 
-            cost += GetCombinedEntropy(this.Literal, b.Literal, this.NumCodes(), this.IsUsed[0], b.IsUsed[0], false);
+            cost += GetCombinedEntropy(this.Literal, b.Literal, this.NumCodes(), this.IsUsed[0], b.IsUsed[0], false, stats, bitEntropy);
 
             cost += ExtraCostCombined(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), b.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes);
 
@@ -267,25 +268,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
 
-            cost += GetCombinedEntropy(this.Red, b.Red, WebpConstants.NumLiteralCodes, this.IsUsed[1], b.IsUsed[1], trivialAtEnd);
+            cost += GetCombinedEntropy(this.Red, b.Red, WebpConstants.NumLiteralCodes, this.IsUsed[1], b.IsUsed[1], trivialAtEnd, stats, bitEntropy);
             if (cost > costThreshold)
             {
                 return false;
             }
 
-            cost += GetCombinedEntropy(this.Blue, b.Blue, WebpConstants.NumLiteralCodes, this.IsUsed[2], b.IsUsed[2], trivialAtEnd);
+            cost += GetCombinedEntropy(this.Blue, b.Blue, WebpConstants.NumLiteralCodes, this.IsUsed[2], b.IsUsed[2], trivialAtEnd, stats, bitEntropy);
             if (cost > costThreshold)
             {
                 return false;
             }
 
-            cost += GetCombinedEntropy(this.Alpha, b.Alpha, WebpConstants.NumLiteralCodes, this.IsUsed[3], b.IsUsed[3], trivialAtEnd);
+            cost += GetCombinedEntropy(this.Alpha, b.Alpha, WebpConstants.NumLiteralCodes, this.IsUsed[3], b.IsUsed[3], trivialAtEnd, stats, bitEntropy);
             if (cost > costThreshold)
             {
                 return false;
             }
 
-            cost += GetCombinedEntropy(this.Distance, b.Distance, WebpConstants.NumDistanceCodes, this.IsUsed[4], b.IsUsed[4], false);
+            cost += GetCombinedEntropy(this.Distance, b.Distance, WebpConstants.NumDistanceCodes, this.IsUsed[4], b.IsUsed[4], false, stats, bitEntropy);
             if (cost > costThreshold)
             {
                 return false;
@@ -319,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Literal.AsSpan(0, literalSize).Fill(0);
+                output.Literal.AsSpan(0, literalSize).Clear();
             }
         }
 
@@ -342,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Red.AsSpan(0, size).Fill(0);
+                output.Red.AsSpan(0, size).Clear();
             }
         }
 
@@ -365,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Blue.AsSpan(0, size).Fill(0);
+                output.Blue.AsSpan(0, size).Clear();
             }
         }
 
@@ -388,7 +389,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Alpha.AsSpan(0, size).Fill(0);
+                output.Alpha.AsSpan(0, size).Clear();
             }
         }
 
@@ -411,13 +412,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Distance.AsSpan(0, size).Fill(0);
+                output.Distance.AsSpan(0, size).Clear();
             }
         }
 
-        private static double GetCombinedEntropy(uint[] x, uint[] y, int length, bool isXUsed, bool isYUsed, bool trivialAtEnd)
+        private static double GetCombinedEntropy(uint[] x, uint[] y, int length, bool isXUsed, bool isYUsed, bool trivialAtEnd, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
         {
-            var stats = new Vp8LStreaks();
+            stats.Clear();
+            bitEntropy.Init();
             if (trivialAtEnd)
             {
                 // This configuration is due to palettization that transforms an indexed
@@ -435,7 +437,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return stats.FinalHuffmanCost();
             }
 
-            var bitEntropy = new Vp8LBitEntropy();
             if (isXUsed)
             {
                 if (isYUsed)
@@ -479,10 +480,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Get the symbol entropy for the distribution 'population'.
         /// </summary>
-        private static double PopulationCost(uint[] population, int length, ref uint trivialSym, ref bool isUsed)
+        private static double PopulationCost(uint[] population, int length, ref uint trivialSym, ref bool isUsed, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
         {
-            var bitEntropy = new Vp8LBitEntropy();
-            var stats = new Vp8LStreaks();
+            bitEntropy.Init();
+            stats.Clear();
             bitEntropy.BitsEntropyUnrefined(population, length, stats);
 
             trivialSym = (bitEntropy.NoneZeros == 1) ? bitEntropy.NoneZeroCode : NonTrivialSym;

@@ -40,8 +40,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void ColorSpaceTransform_WithBikeImage_WithoutSSE41_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+
+        [Fact]
+        public void ColorSpaceTransform_WithBikeImage_WithoutAvx2_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableAVX2);
 #endif
 
+        // Test image: Input\Webp\peak.png
         private static void RunColorSpaceTransformTestWithPeakImage()
         {
             // arrange
@@ -90,14 +95,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
             uint[] transformData = new uint[transformWidth * transformHeight];
+            int[] scratch = new int[256];
 
             // act
-            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData);
+            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData, scratch);
 
             // assert
             Assert.Equal(expectedData, transformData);
         }
 
+        // Test image: Input\Png\Bike.png
         private static void RunColorSpaceTransformTestWithBikeImage()
         {
             // arrange
@@ -119,9 +126,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
             uint[] transformData = new uint[transformWidth * transformHeight];
+            int[] scratch = new int[256];
 
             // act
-            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData);
+            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData, scratch);
 
             // assert
             Assert.Equal(expectedData, transformData);

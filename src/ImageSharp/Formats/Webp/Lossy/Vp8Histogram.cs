@@ -8,6 +8,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     internal class Vp8Histogram
     {
+        private readonly int[] scratch = new int[16];
+
+        private readonly short[] output = new short[16];
+
+        private readonly int[] distribution = new int[MaxCoeffThresh + 1];
+
         /// <summary>
         /// Size of histogram used by CollectHistogram.
         /// </summary>
@@ -40,23 +46,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public void CollectHistogram(Span<byte> reference, Span<byte> pred, int startBlock, int endBlock)
         {
             int j;
-            int[] distribution = new int[MaxCoeffThresh + 1];
+            this.distribution.AsSpan().Clear();
             for (j = startBlock; j < endBlock; j++)
             {
-                short[] output = new short[16];
-
-                this.Vp8FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), output);
+                this.Vp8FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), this.output);
 
                 // Convert coefficients to bin.
                 for (int k = 0; k < 16; ++k)
                 {
-                    int v = Math.Abs(output[k]) >> 3;
+                    int v = Math.Abs(this.output[k]) >> 3;
                     int clippedValue = ClipMax(v, MaxCoeffThresh);
-                    ++distribution[clippedValue];
+                    ++this.distribution[clippedValue];
                 }
             }
 
-            this.SetHistogramData(distribution);
+            this.SetHistogramData(this.distribution);
         }
 
         public void Merge(Vp8Histogram other)
@@ -97,7 +101,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private void Vp8FTransform(Span<byte> src, Span<byte> reference, Span<short> output)
         {
             int i;
-            int[] tmp = new int[16];
+            Span<int> tmp = this.scratch;
+            tmp.Clear();
+
             for (i = 0; i < 4; i++)
             {
                 int d0 = src[0] - reference[0];   // 9bit dynamic range ([-255,255])

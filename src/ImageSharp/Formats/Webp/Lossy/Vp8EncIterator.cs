@@ -81,6 +81,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.I4Boundary = new byte[37];
             this.BitCount = new long[4, 3];
             this.Scratch = new byte[WebpConstants.Bps * 16];
+            this.Scratch2 = new short[17 * 16];
+            this.Scratch3 = new int[16];
 
             // To match the C initial values of the reference implementation, initialize all with 204.
             byte defaultInitVal = 204;
@@ -216,9 +218,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public int CountDown { get; set; }
 
         /// <summary>
-        /// Gets the scratch buffer.
+        /// Gets the byte scratch buffer.
         /// </summary>
         public byte[] Scratch { get; }
+
+        /// <summary>
+        /// Gets the short scratch buffer.
+        /// </summary>
+        public short[] Scratch2 { get; }
+
+        /// <summary>
+        /// Gets the int scratch buffer.
+        /// </summary>
+        public int[] Scratch3 { get; }
 
         public Vp8MacroBlockInfo CurrentMacroBlockInfo => this.Mb[this.currentMbIdx];
 
@@ -345,15 +357,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q = quality;
             int kThreshold = 8 + ((17 - 8) * q / 100);
             int k;
-            uint[] dc = new uint[16];
+            Span<uint> dc = stackalloc uint[16];
+            Span<ushort> tmp = stackalloc ushort[16];
             uint m;
             uint m2;
             for (k = 0; k < 16; k += 4)
             {
-                this.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.AsSpan(k));
+                LossyUtils.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.Slice(k, 4));
             }
 
-            for (m = 0, m2 = 0, k = 0; k < 16; ++k)
+            for (m = 0, m2 = 0, k = 0; k < 16; k++)
             {
                 m += dc[k];
                 m2 += dc[k] * dc[k];
@@ -380,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int bestMode = 0;
 
             this.MakeLuma16Preds();
-            for (mode = 0; mode < maxMode; ++mode)
+            for (mode = 0; mode < maxMode; mode++)
             {
                 var histo = new Vp8Histogram();
                 histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]), 0, 16);
@@ -499,9 +512,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.CurrentMacroBlockInfo.MacroBlockType = Vp8MacroBlockType.I4X4;
         }
 
-        public int GetCostLuma16(Vp8ModeScore rd, Vp8EncProba proba)
+        public int GetCostLuma16(Vp8ModeScore rd, Vp8EncProba proba, Vp8Residual res)
         {
-            var res = new Vp8Residual();
             int r = 0;
 
             // re-import the non-zero context.
@@ -539,11 +551,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return WebpLookupTables.Vp8FixedCostsI4[top, left];
         }
 
-        public int GetCostLuma4(short[] levels, Vp8EncProba proba)
+        public int GetCostLuma4(Span<short> levels, Vp8EncProba proba, Vp8Residual res)
         {
             int x = this.I4 & 3;
             int y = this.I4 >> 2;
-            var res = new Vp8Residual();
             int r = 0;
 
             res.Init(0, 3, proba);
@@ -553,9 +564,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return r;
         }
 
-        public int GetCostUv(Vp8ModeScore rd, Vp8EncProba proba)
+        public int GetCostUv(Vp8ModeScore rd, Vp8EncProba proba, Vp8Residual res)
         {
-            var res = new Vp8Residual();
             int r = 0;
 
             // re-import the non-zero context.
@@ -741,7 +751,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vp8Encoding.EncPredChroma8(this.YuvP, left, top);
         }
 
-        public void MakeIntra4Preds() => Vp8Encoding.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx);
+        public void MakeIntra4Preds() => Vp8Encoding.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx, this.Scratch.AsSpan(0, 4));
 
         public void SwapOut()
         {
@@ -812,24 +822,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             nz |= (uint)((leftNz[4] << 17) | (leftNz[6] << 21));
 
             this.Nz[this.nzIdx] = nz;
-        }
-
-        private void Mean16x4(Span<byte> input, Span<uint> dc)
-        {
-            for (int k = 0; k < 4; k++)
-            {
-                uint avg = 0;
-                for (int y = 0; y < 4; y++)
-                {
-                    for (int x = 0; x < 4; x++)
-                    {
-                        avg += input[x + (y * WebpConstants.Bps)];
-                    }
-                }
-
-                dc[k] = avg;
-                input = input.Slice(4);   // go to next 4x4 block.
-            }
         }
 
         private void ImportBlock(Span<byte> src, int srcStride, Span<byte> dst, int w, int h, int size)
@@ -919,7 +911,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             this.LeftNz[8] = 0;
 
-            this.LeftDerr.AsSpan().Fill(0);
+            this.LeftDerr.AsSpan().Clear();
         }
 
         private void InitTop()
@@ -927,14 +919,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int topSize = this.mbw * 16;
             this.YTop.AsSpan(0, topSize).Fill(127);
             this.UvTop.AsSpan().Fill(127);
-            this.Nz.AsSpan().Fill(0);
+            this.Nz.AsSpan().Clear();
 
             int predsW = (4 * this.mbw) + 1;
             int predsH = (4 * this.mbh) + 1;
             int predsSize = predsW * predsH;
-            this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Fill(0);
+            this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Clear();
 
-            this.TopDerr.AsSpan().Fill(0);
+            this.TopDerr.AsSpan().Clear();
         }
 
         private int Bit(uint nz, int n) => (nz & (1 << n)) != 0 ? 1 : 0;

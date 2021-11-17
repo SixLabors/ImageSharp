@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public int CoeffType { get; set; }
 
-        public short[] Coeffs { get; set; }
+        public short[] Coeffs { get; } = new short[16];
 
         public Vp8BandProbas[] Prob { get; set; }
 
@@ -31,6 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Prob = prob.Coeffs[this.CoeffType];
             this.Stats = prob.Stats[this.CoeffType];
             this.Costs = prob.RemappedCosts[this.CoeffType];
+            this.Coeffs.AsSpan().Clear();
         }
 
         public void SetCoeffs(Span<short> coeffs)
@@ -46,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
 
-            this.Coeffs = coeffs.Slice(0, 16).ToArray();
+            coeffs.Slice(0, 16).CopyTo(this.Coeffs);
         }
 
         // Simulate block coding, but only record statistics.
@@ -150,6 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return cost;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int LevelCost(Span<ushort> table, int level)
             => WebpLookupTables.Vp8LevelFixedCosts[level] + table[level > WebpConstants.MaxVariableLevel ? WebpConstants.MaxVariableLevel : level];
 

@@ -70,6 +70,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         private int uvAlpha;
 
+        /// <summary>
+        /// Scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly int[] scratch = new int[16];
+
         private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
 
         private const int NumMbSegments = 4;
@@ -317,22 +322,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
             // TODO: EncodeAlpha();
+            bool hasAlpha = false;
+
             // Stats-collection loop.
             this.StatLoop(width, height, yStride, uvStride);
             it.Init();
             it.InitFilter();
+            var info = new Vp8ModeScore();
+            var residual = new Vp8Residual();
             do
             {
                 bool dontUseSkip = !this.Proba.UseSkipProba;
-
-                var info = new Vp8ModeScore();
+                info.Clear();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
 
                 // Warning! order is important: first call VP8Decimate() and
                 // *then* decide how to code the skip decision if there's one.
                 if (!this.Decimate(it, ref info, this.rdOptLevel) || dontUseSkip)
                 {
-                    this.CodeResiduals(it, info);
+                    this.CodeResiduals(it, info, residual);
                 }
                 else
                 {
@@ -348,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // Write bytes from the bitwriter buffer to the stream.
             image.Metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height);
+            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height, hasAlpha);
         }
 
         /// <inheritdoc/>
@@ -447,9 +455,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             it.Init();
             this.SetLoopParams(stats.Q);
+            var info = new Vp8ModeScore();
             do
             {
-                var info = new Vp8ModeScore();
+                info.Clear();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
                 if (this.Decimate(it, ref info, rdOpt))
                 {
@@ -493,7 +502,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.ResetStats();
         }
 
-        private void AdjustFilterStrength()
+        private unsafe void AdjustFilterStrength()
         {
             if (this.filterStrength > 0)
             {
@@ -537,7 +546,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int predsW = (4 * this.Mbw) + 1;
             int predsH = (4 * this.Mbh) + 1;
             int predsSize = predsW * predsH;
-            this.Preds.AsSpan(predsSize + this.PredsWidth - 4, 4).Fill(0);
+            this.Preds.AsSpan(predsSize + this.PredsWidth - 4, 4).Clear();
 
             this.Nz[0] = 0;   // constant
         }
@@ -797,17 +806,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             proba.NbSkip = 0;
         }
 
-        private void SetupMatrices(Vp8SegmentInfo[] dqm)
+        private unsafe void SetupMatrices(Vp8SegmentInfo[] dqm)
         {
             int tlambdaScale = this.method >= WebpEncodingMethod.Default ? this.spatialNoiseShaping : 0;
             for (int i = 0; i < dqm.Length; i++)
             {
                 Vp8SegmentInfo m = dqm[i];
                 int q = m.Quant;
-
-                m.Y1 = new Vp8Matrix();
-                m.Y2 = new Vp8Matrix();
-                m.Uv = new Vp8Matrix();
 
                 m.Y1.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqY1Dc, 0, 127)];
                 m.Y1.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q, 0, 127)];
@@ -930,10 +935,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return isSkipped;
         }
 
-        private void CodeResiduals(Vp8EncIterator it, Vp8ModeScore rd)
+        private void CodeResiduals(Vp8EncIterator it, Vp8ModeScore rd, Vp8Residual residual)
         {
             int x, y, ch;
-            var residual = new Vp8Residual();
             bool i16 = it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
             int segment = it.CurrentMacroBlockInfo.Segment;
 

@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static void CreateHuffmanTree(uint[] histogram, int treeDepthLimit, bool[] bufRle, HuffmanTree[] huffTree, HuffmanTreeCode huffCode)
         {
             int numSymbols = huffCode.NumSymbols;
-            bufRle.AsSpan().Fill(false);
+            bufRle.AsSpan().Clear();
             OptimizeHuffmanForRle(numSymbols, bufRle, histogram);
             GenerateOptimalTree(huffTree, histogram, numSymbols, treeDepthLimit, huffCode.CodeLengths);
 
@@ -202,9 +202,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
 
                 // Build the Huffman tree.
-                HuffmanTree[] treeCopy = tree.AsSpan().Slice(0, treeSize).ToArray();
+#if NET5_0_OR_GREATER
+                Span<HuffmanTree> treeSlice = tree.AsSpan(0, treeSize);
+                treeSlice.Sort(HuffmanTree.Compare);
+#else
+                HuffmanTree[] treeCopy = tree.AsSpan(0, treeSize).ToArray();
                 Array.Sort(treeCopy, HuffmanTree.Compare);
                 treeCopy.AsSpan().CopyTo(tree);
+#endif
 
                 if (treeSize > 1)
                 {

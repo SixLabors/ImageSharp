@@ -57,13 +57,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private static readonly Vector128<byte> PlanarTo24Shuffle4 = Vector128.Create(5, 255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255, 10);
 
-        private static readonly Vector128<byte> PlanarTo24Shuffle5 = Vector128.Create(255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 24, 255, 255, 15, 255);
+        private static readonly Vector128<byte> PlanarTo24Shuffle5 = Vector128.Create(255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15, 255);
 
         private static readonly Vector128<byte> PlanarTo24Shuffle6 = Vector128.Create(255, 255, 0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255);
 
         private static readonly Vector128<byte> PlanarTo24Shuffle7 = Vector128.Create(255, 5, 255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255);
 
-        private static readonly Vector128<byte> PlanarTo24Shuffle8 = Vector128.Create(10, 255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 24, 255, 255, 15);
+        private static readonly Vector128<byte> PlanarTo24Shuffle8 = Vector128.Create(10, 255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15);
 #endif
 
         // UpSample from YUV to RGB.
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 UpSample32Pixels(topU.Slice(uvPos), curU.Slice(uvPos), ru);
                 UpSample32Pixels(topV.Slice(uvPos), curV.Slice(uvPos), rv);
-                ConvertToBgrSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
+                ConvertYuvToBgrSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
             }
 
             // Process last block.
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 UpSampleLastBlock(topU.Slice(uvPos), curU.Slice(uvPos), leftOver, ru);
                 UpSampleLastBlock(topV.Slice(uvPos), curV.Slice(uvPos), leftOver, rv);
                 topY.Slice(pos, len - pos).CopyTo(tmpTop);
-                ConvertToBgrSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
+                ConvertYuvToBgrSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
                 tmpTopDst.Slice(0, (len - pos) * xStep).CopyTo(topDst.Slice(pos * xStep));
                 if (bottomY != null)
                 {
@@ -576,7 +576,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
 #if SUPPORTS_RUNTIME_INTRINSICS
 
-        private static void ConvertToBgrSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topDst, Span<byte> bottomDst, Span<byte> ru, Span<byte> rv, int curX, int step)
+        private static void ConvertYuvToBgrSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topDst, Span<byte> bottomDst, Span<byte> ru, Span<byte> rv, int curX, int step)
         {
             YuvToBgrSse41(topY.Slice(curX), ru, rv, topDst.Slice(curX * step));
 

@@ -67,6 +67,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #endif
 
         // UpSample from YUV to RGB.
+        // Given samples laid out in a square as:
+        //  [a b]
+        //  [c d]
+        // we interpolate u/v as:
+        //  ([9*a + 3*b + 3*c +   d    3*a + 9*b + 3*c +   d] + [8 8]) / 16
+        //  ([3*a +   b + 9*c + 3*d      a + 3*b + 3*c + 9*d]   [8 8]) / 16
         public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -171,11 +177,32 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
 
             // For UpSample32Pixels, 17 u/v values must be read-able for each block.
-            for (int pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
+            int pos;
+            int uvPos;
+            for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
                 UpSample32Pixels(topU.Slice(uvPos), curU.Slice(uvPos), ru);
                 UpSample32Pixels(topV.Slice(uvPos), curV.Slice(uvPos), rv);
                 ConvertToBgrSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
+            }
+
+            // Process last block.
+            if (len > 1)
+            {
+                int leftOver = ((len + 1) >> 1) - (pos >> 1);
+                Span<byte> tmpTopDst = ru.Slice(4 * 32);
+                Span<byte> tmpBottomDst = tmpTopDst.Slice(4 * 32);
+                Span<byte> tmpTop = tmpBottomDst.Slice(4 * 32);
+                Span<byte> tmpBottom = (bottomY == null) ? null : tmpTop.Slice(32);
+                UpSampleLastBlock(topU.Slice(uvPos), curU.Slice(uvPos), leftOver, ru);
+                UpSampleLastBlock(topV.Slice(uvPos), curV.Slice(uvPos), leftOver, rv);
+                topY.Slice(pos, len - pos).CopyTo(tmpTop);
+                ConvertToBgrSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
+                tmpTopDst.Slice(0, (len - pos) * xStep).CopyTo(topDst.Slice(pos * xStep));
+                if (bottomY != null)
+                {
+                    tmpBottomDst.Slice(0, (len - pos) * xStep).CopyTo(bottomDst.Slice(pos * xStep));
+                }
             }
         }
 
@@ -207,6 +234,24 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Pack the alternate pixels.
             PackAndStore(a, b, diag1, diag2, output); // store top.
             PackAndStore(c, d, diag2, diag1, output.Slice(2 * 32));
+        }
+
+        private static void UpSampleLastBlock(Span<byte> tb, Span<byte> bb, int numPixels, Span<byte> output)
+        {
+            Span<byte> r1 = stackalloc byte[17];
+            Span<byte> r2 = stackalloc byte[17];
+            tb.Slice(0, numPixels).CopyTo(r1);
+            bb.Slice(0, numPixels).CopyTo(r2);
+
+            // Replicate last byte.
+            int length = 17 - numPixels;
+            if (length > 0)
+            {
+                r1.Slice(numPixels, length).Fill(r1[numPixels - 1]);
+                r2.Slice(numPixels, length).Fill(r2[numPixels - 1]);
+            }
+
+            UpSample32Pixels(r1, r2, output);
         }
 
         // Computes out = (k + in + 1) / 2 - ((ij & (s^t)) | (k^in)) & 1

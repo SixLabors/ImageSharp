@@ -196,7 +196,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Span<byte> tmpBottom = (bottomY == null) ? null : tmpTop.Slice(32);
                 UpSampleLastBlock(topU.Slice(uvPos), curU.Slice(uvPos), leftOver, ru);
                 UpSampleLastBlock(topV.Slice(uvPos), curV.Slice(uvPos), leftOver, rv);
+
                 topY.Slice(pos, len - pos).CopyTo(tmpTop);
+                if (bottomY != null)
+                {
+                    bottomY.Slice(pos, len - pos).CopyTo(tmpBottom);
+                }
+
                 ConvertYuvToBgrSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
                 tmpTopDst.Slice(0, (len - pos) * xStep).CopyTo(topDst.Slice(pos * xStep));
                 if (bottomY != null)

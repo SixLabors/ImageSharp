@@ -396,6 +396,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
+                    Numerics.Premultiply(sourceBuffer);
+
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                     ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
                     ref Vector4 targetStart = ref targetBase;

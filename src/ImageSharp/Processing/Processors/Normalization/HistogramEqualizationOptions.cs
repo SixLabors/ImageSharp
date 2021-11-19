@@ -9,11 +9,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     public class HistogramEqualizationOptions
     {
         /// <summary>
-        /// Gets the default <see cref="HistogramEqualizationOptions"/> instance.
-        /// </summary>
-        public static HistogramEqualizationOptions Default { get; } = new HistogramEqualizationOptions();
-
-        /// <summary>
         /// Gets or sets the histogram equalization method to use. Defaults to global histogram equalization.
         /// </summary>
         public HistogramEqualizationMethod Method { get; set; } = HistogramEqualizationMethod.Global;

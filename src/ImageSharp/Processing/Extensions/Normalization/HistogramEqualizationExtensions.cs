@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext HistogramEqualization(this IImageProcessingContext source) =>
-            HistogramEqualization(source, HistogramEqualizationOptions.Default);
+            HistogramEqualization(source, new HistogramEqualizationOptions());
 
         /// <summary>
         /// Equalizes the histogram of an image to increases the contrast.

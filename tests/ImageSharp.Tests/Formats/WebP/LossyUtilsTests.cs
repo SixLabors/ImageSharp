@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             int actual = LossyUtils.Vp8_Sse4X4(a, b);
 
             Assert.Equal(expected, actual);
-		}
+        }
 
         private static void RunMean16x4Test()
         {

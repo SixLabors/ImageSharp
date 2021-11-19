@@ -179,10 +179,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // For UpSample32Pixels, 17 u/v values must be read-able for each block.
             int pos;
             int uvPos;
+            ref byte topURef = ref MemoryMarshal.GetReference(topU);
+            ref byte topVRef = ref MemoryMarshal.GetReference(topV);
+            ref byte curURef = ref MemoryMarshal.GetReference(curU);
+            ref byte curVRef = ref MemoryMarshal.GetReference(curV);
             for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
-                UpSample32Pixels(topU.Slice(uvPos), curU.Slice(uvPos), ru);
-                UpSample32Pixels(topV.Slice(uvPos), curV.Slice(uvPos), rv);
+                UpSample32Pixels(ref Unsafe.Add(ref topURef, uvPos), ref Unsafe.Add(ref curURef, uvPos), ru);
+                UpSample32Pixels(ref Unsafe.Add(ref topVRef, uvPos), ref Unsafe.Add(ref curVRef, uvPos), rv);
                 ConvertYuvToBgrSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
             }
 
@@ -213,13 +217,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         // Loads 17 pixels each from rows r1 and r2 and generates 32 pixels.
-        private static void UpSample32Pixels(Span<byte> r1, Span<byte> r2, Span<byte> output)
+        private static void UpSample32Pixels(ref byte r1, ref byte r2, Span<byte> output)
         {
             // Load inputs.
-            Vector128<byte> a = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(r1));
-            Vector128<byte> b = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(r1), 1));
-            Vector128<byte> c = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(r2));
-            Vector128<byte> d = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(r2), 1));
+            Vector128<byte> a = Unsafe.As<byte, Vector128<byte>>(ref r1);
+            Vector128<byte> b = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref r1, 1));
+            Vector128<byte> c = Unsafe.As<byte, Vector128<byte>>(ref r2);
+            Vector128<byte> d = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref r2, 1));
 
             Vector128<byte> s = Sse2.Average(a, d); // s = (a + d + 1) / 2
             Vector128<byte> t = Sse2.Average(b, c); // t = (b + c + 1) / 2
@@ -257,7 +261,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 r2.Slice(numPixels, length).Fill(r2[numPixels - 1]);
             }
 
-            UpSample32Pixels(r1, r2, output);
+            ref byte r1Ref = ref MemoryMarshal.GetReference(r1);
+            ref byte r2Ref = ref MemoryMarshal.GetReference(r2);
+            UpSample32Pixels(ref r1Ref, ref r2Ref, output);
         }
 
         // Computes out = (k + in + 1) / 2 - ((ij & (s^t)) | (k^in)) & 1

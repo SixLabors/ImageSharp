@@ -22,6 +22,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private Rgba32[] rgbaPalette;
+
+        // Do not make this readonly! Struct value would be always copied on non-readonly method calls.
         private ColorDistanceCache cache;
         private readonly Configuration configuration;
 

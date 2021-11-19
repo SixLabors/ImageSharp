@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             uint uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
             YuvToBgr(topY[0], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst);
 
-            if (bottomY != null)
+            if (bottomY != default)
             {
                 uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
                 YuvToBgr(bottomY[0], (int)uv0 & 0xff, (int)(uv0 >> 16), bottomDst);
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
                 YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
 
-                if (bottomY != null)
+                if (bottomY != default)
                 {
                     uv0 = (diag03 + luv) >> 1;
                     uv1 = (diag12 + uv) >> 1;
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
                 YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
-                if (bottomY != null)
+                if (bottomY != default)
                 {
                     uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
                     YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int u0t = (topU[0] + uDiag) >> 1;
             int v0t = (topV[0] + vDiag) >> 1;
             YuvToBgr(topY[0], u0t, v0t, topDst);
-            if (bottomY != null)
+            if (bottomY != default)
             {
                 int u0b = (curU[0] + uDiag) >> 1;
                 int v0b = (curV[0] + vDiag) >> 1;
@@ -198,14 +198,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 UpSampleLastBlock(topV.Slice(uvPos), curV.Slice(uvPos), leftOver, rv);
 
                 topY.Slice(pos, len - pos).CopyTo(tmpTop);
-                if (bottomY != null)
+                if (bottomY != default)
                 {
                     bottomY.Slice(pos, len - pos).CopyTo(tmpBottom);
                 }
 
                 ConvertYuvToBgrSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
                 tmpTopDst.Slice(0, (len - pos) * xStep).CopyTo(topDst.Slice(pos * xStep));
-                if (bottomY != null)
+                if (bottomY != default)
                 {
                     tmpBottomDst.Slice(0, (len - pos) * xStep).CopyTo(bottomDst.Slice(pos * xStep));
                 }

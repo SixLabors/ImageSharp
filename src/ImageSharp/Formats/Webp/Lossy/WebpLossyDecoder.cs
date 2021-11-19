@@ -696,7 +696,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (y == 0)
             {
                 // First line is special cased. We mirror the u/v samples at boundary.
-                YuvConversion.UpSample(curY, null, curU, curV, curU, curV, dst, null, mbw);
+                YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst, default, mbw);
             }
             else
             {
@@ -736,7 +736,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // Process the very last row of even-sized picture.
                 if ((yEnd & 1) == 0)
                 {
-                    YuvConversion.UpSample(curY, null, curU, curV, curU, curV, dst.Slice(bufferStride), null, mbw);
+                    YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst.Slice(bufferStride), default, mbw);
                 }
             }
 

@@ -322,5 +322,55 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 g1.First().Span[0] = 42;
             }
         }
+
+        [ConditionalTheory(nameof(IsWindows))]
+        [InlineData(300)]
+        [InlineData(600)]
+        [InlineData(1200)]
+        public void MemoryOwnerFinalizer_ReturnsToPool(int length)
+        {
+            RunTest(length.ToString());
+            // RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
+
+            static void RunTest(string lengthStr)
+            {
+                var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(512, 1024, 16 * 1024, 1024);
+                int lengthInner = int.Parse(lengthStr);
+
+                AllocateSingleAndForget(allocator, lengthInner);
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                AllocateSingleAndForget(allocator, lengthInner, true);
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                using IMemoryOwner<byte> g = allocator.Allocate<byte>(lengthInner);
+                Assert.Equal(42, g.GetSpan()[0]);
+            }
+        }
+
+        private static void AllocateSingleAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length, bool check = false)
+        {
+            IMemoryOwner<byte> g = allocator.Allocate<byte>(length);
+            if (check)
+            {
+                Assert.Equal(42, g.GetSpan()[0]);
+            }
+
+            g.GetSpan()[0] = 42;
+
+            if (length < 512)
+            {
+                // For ArrayPool.Shared, first array will be returned to the TLS storage of the finalizer thread,
+                // repeat rental to make sure per-core buckets are also utilized.
+                IMemoryOwner<byte> g1 = allocator.Allocate<byte>(length);
+                g1.GetSpan()[0] = 42;
+            }
+        }
     }
 }

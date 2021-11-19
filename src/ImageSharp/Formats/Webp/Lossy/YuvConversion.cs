@@ -719,13 +719,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> v0 = LoadHigh(v);
 
             Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), K19077.AsUInt16());
-
             Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), K26149.AsUInt16());
+            Vector128<ushort> g0 = Sse2.MultiplyHigh(u0.AsUInt16(), K6419.AsUInt16());
+            Vector128<ushort> g1 = Sse2.MultiplyHigh(v0.AsUInt16(), K13320.AsUInt16());
+            
             Vector128<ushort> r1 = Sse2.Subtract(y1.AsUInt16(), K14234.AsUInt16());
             Vector128<ushort> r2 = Sse2.Add(r1, r0);
 
-            Vector128<ushort> g0 = Sse2.MultiplyHigh(u0.AsUInt16(), K6419.AsUInt16());
-            Vector128<ushort> g1 = Sse2.MultiplyHigh(v0.AsUInt16(), K13320.AsUInt16());
             Vector128<ushort> g2 = Sse2.Add(y1.AsUInt16(), K8708.AsUInt16());
             Vector128<ushort> g3 = Sse2.Add(g0, g1);
             Vector128<ushort> g4 = Sse2.Subtract(g2, g3);

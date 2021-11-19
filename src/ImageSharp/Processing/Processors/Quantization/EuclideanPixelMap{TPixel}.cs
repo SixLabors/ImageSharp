@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private Rgba32[] rgbaPalette;
-        private readonly ColorDistanceCache cache;
+        private ColorDistanceCache cache;
         private readonly Configuration configuration;
 
         /// <summary>

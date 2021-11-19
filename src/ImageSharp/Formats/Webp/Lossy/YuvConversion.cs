@@ -73,12 +73,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // we interpolate u/v as:
         //  ([9*a + 3*b + 3*c +   d    3*a + 9*b + 3*c +   d] + [8 8]) / 16
         //  ([3*a +   b + 9*c + 3*d      a + 3*b + 3*c + 9*d]   [8 8]) / 16
-        public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
+        public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
-                UpSampleSse41(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len);
+                UpSampleSse41(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len, uvBuffer);
             }
             else
 #endif
@@ -156,10 +156,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         //
         // Then m can be written as
         // m = (k + t + 1) / 2 - (((b^c) & (s^t)) | (k^t)) & 1
-        public static void UpSampleSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
+        public static void UpSampleSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
         {
             const int xStep = 3;
-            byte[] uvBuffer = new byte[(14 * 32) + 15];
+            Array.Clear(uvBuffer, 0, uvBuffer.Length);
             Span<byte> ru = uvBuffer.AsSpan(15);
             Span<byte> rv = ru.Slice(32);
 

@@ -692,16 +692,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int mbw = io.MbW;
             int uvw = (mbw + 1) / 2;
             int y = io.MbY;
+            byte[] uvBuffer = new byte[(14 * 32) + 15];
 
             if (y == 0)
             {
                 // First line is special cased. We mirror the u/v samples at boundary.
-                YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst, default, mbw);
+                YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst, default, mbw, uvBuffer);
             }
             else
             {
                 // We can finish the left-over line from previous call.
-                YuvConversion.UpSample(tmpYBuffer, curY, topU, topV, curU, curV, buf.Slice(dstStartIdx - bufferStride), dst, mbw);
+                YuvConversion.UpSample(tmpYBuffer, curY, topU, topV, curU, curV, buf.Slice(dstStartIdx - bufferStride), dst, mbw, uvBuffer);
                 numLinesOut++;
             }
 
@@ -714,7 +715,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 topV = curV;
                 curU = curU.Slice(io.UvStride);
                 curV = curV.Slice(io.UvStride);
-                YuvConversion.UpSample(curY.Slice(io.YStride), curY.Slice(ioStride2), topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(bufferStride2), mbw);
+                YuvConversion.UpSample(curY.Slice(io.YStride), curY.Slice(ioStride2), topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(bufferStride2), mbw, uvBuffer);
                 curY = curY.Slice(ioStride2);
                 dst = dst.Slice(bufferStride2);
             }
@@ -736,7 +737,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // Process the very last row of even-sized picture.
                 if ((yEnd & 1) == 0)
                 {
-                    YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst.Slice(bufferStride), default, mbw);
+                    YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst.Slice(bufferStride), default, mbw, uvBuffer);
                 }
             }
 

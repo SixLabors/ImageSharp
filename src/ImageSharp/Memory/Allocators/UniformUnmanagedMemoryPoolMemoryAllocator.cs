@@ -98,10 +98,14 @@ namespace SixLabors.ImageSharp.Memory
 
             if (lengthInBytes <= this.poolBufferSizeInBytes)
             {
-                UnmanagedMemoryHandle array = this.pool.Rent(options);
+                UnmanagedMemoryHandle array = this.pool.Rent();
                 if (array != null)
                 {
-                    return new UniformUnmanagedMemoryPool.FinalizableBuffer<T>(this.pool, array, length);
+                    var buffer = new UniformUnmanagedMemoryPool.FinalizableBuffer<T>(this.pool, array, length);
+                    if (options.Has(AllocationOptions.Clean))
+                    {
+                        buffer.Clear();
+                    }
                 }
             }
 
@@ -124,10 +128,15 @@ namespace SixLabors.ImageSharp.Memory
             if (totalLengthInBytes <= this.poolBufferSizeInBytes)
             {
                 // Optimized path renting single array from the pool
-                UnmanagedMemoryHandle array = this.pool.Rent(options);
+                UnmanagedMemoryHandle array = this.pool.Rent();
                 if (array != null)
                 {
                     var buffer = new UniformUnmanagedMemoryPool.FinalizableBuffer<T>(this.pool, array, (int)totalLength);
+                    if (options.Has(AllocationOptions.Clean))
+                    {
+                        buffer.Clear();
+                    }
+
                     return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
                 }
             }

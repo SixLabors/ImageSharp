@@ -30,8 +30,8 @@ namespace SixLabors.ImageSharp.Memory
                 this.View = new MemoryGroupView<T>(this);
             }
 
-            public Owned(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle[] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer)
-                : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer), bufferLength, totalLength, true)
+            public Owned(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle[] pooledArrays, int bufferLength, long totalLength, int sizeOfLastBuffer, AllocationOptions options)
+                : this(CreateBuffers(pool, pooledArrays, bufferLength, sizeOfLastBuffer, options), bufferLength, totalLength, true)
             {
                 this.pooledHandles = pooledArrays;
                 this.unmanagedMemoryPool = pool;
@@ -66,16 +66,29 @@ namespace SixLabors.ImageSharp.Memory
                 UniformUnmanagedMemoryPool pool,
                 UnmanagedMemoryHandle[] pooledBuffers,
                 int bufferLength,
-                int sizeOfLastBuffer)
+                int sizeOfLastBuffer,
+                AllocationOptions options)
             {
                 var result = new IMemoryOwner<T>[pooledBuffers.Length];
                 for (int i = 0; i < pooledBuffers.Length - 1; i++)
                 {
                     pooledBuffers[i].AssignedToNewOwner();
-                    result[i] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[i], bufferLength);
+                    var currentBuffer = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[i], bufferLength);
+                    if (options.Has(AllocationOptions.Clean))
+                    {
+                        currentBuffer.Clear();
+                    }
+
+                    result[i] = currentBuffer;
                 }
 
-                result[result.Length - 1] = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer);
+                var lastBuffer = new UniformUnmanagedMemoryPool.Buffer<T>(pool, pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer);
+                if (options.Has(AllocationOptions.Clean))
+                {
+                    lastBuffer.Clear();
+                }
+
+                result[result.Length - 1] = lastBuffer;
                 return result;
             }
 

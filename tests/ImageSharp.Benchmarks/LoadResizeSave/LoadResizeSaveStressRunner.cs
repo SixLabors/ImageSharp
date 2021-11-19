@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
 using SkiaSharp;
@@ -52,6 +53,9 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public JpegKind Filter { get; set; } = JpegKind.Any;
 
         public int ThumbnailSize { get; set; } = 150;
+
+        // Inject leaking memory allocation requests to ImageSharp processing code to stress-test finalizer behavior.
+        public bool EmulateLeakedAllocations { get; set; }
 
         private static readonly string[] ProgressiveFiles =
         {
@@ -180,6 +184,12 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using var image = ImageSharpImage.Load(input);
             this.IncreaseTotalMegapixels(image.Width, image.Height);
 
+            if (this.EmulateLeakedAllocations)
+            {
+                _ = Configuration.Default.MemoryAllocator.Allocate<long>(image.Width * image.Height);
+                _ = Configuration.Default.MemoryAllocator.Allocate<byte>(1 << 21);
+            }
+
             image.Mutate(i => i.Resize(new ResizeOptions
             {
                 Size = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize),
@@ -191,6 +201,11 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
             // Save the results
             image.Save(output, this.imageSharpJpegEncoder);
+
+            if (this.EmulateLeakedAllocations)
+            {
+                _ = Configuration.Default.MemoryAllocator.Allocate2D<long>(image.Width, image.Height);
+            }
         }
 
         public void MagickResize(string input)

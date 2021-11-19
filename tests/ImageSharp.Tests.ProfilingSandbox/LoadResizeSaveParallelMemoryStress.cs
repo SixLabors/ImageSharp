@@ -58,6 +58,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                     MemoryAllocator.Default = Configuration.Default.MemoryAllocator = options.CreateMemoryAllocator();
                 }
 
+                lrs.Benchmarks.EmulateLeakedAllocations = options.LeakAllocations;
+
                 timer = Stopwatch.StartNew();
                 try
                 {
@@ -235,6 +237,9 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('t', "trim-period", Required = false, Default = null, HelpText = "Trim period for the pool in seconds")]
             public int? TrimTimeSeconds { get; set; }
 
+            [Option('l', "leak-allocations", Required = false, Default = false, HelpText = "Inject leaking memory allocation requests to stress-test finalizer behavior.")]
+            public bool LeakAllocations { get; set; }
+
             public static CommandLineOptions Parse(string[] args)
             {
                 CommandLineOptions result = null;
@@ -252,7 +257,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_d({this.KeepDefaultAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_d({this.KeepDefaultAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd}_l({this.LeakAllocations}))";
 
             public MemoryAllocator CreateMemoryAllocator()
             {
@@ -285,7 +290,22 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private void SystemDrawingBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SystemDrawingResize);
 
-        private void ImageSharpBenchmarkParallel() => this.ForEachImage(this.Benchmarks.ImageSharpResize);
+        private void ImageSharpBenchmarkParallel()
+        {
+            int cnt = 0;
+            this.ForEachImage(f =>
+            {
+                this.Benchmarks.ImageSharpResize(f);
+                if (cnt % 4 == 0 && this.Benchmarks.EmulateLeakedAllocations)
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                }
+
+                cnt++;
+            });
+        }
 
         private void MagickBenchmarkParallel() => this.ForEachImage(this.Benchmarks.MagickResize);
 

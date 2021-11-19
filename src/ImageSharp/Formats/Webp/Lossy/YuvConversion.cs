@@ -722,7 +722,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), K26149.AsUInt16());
             Vector128<ushort> g0 = Sse2.MultiplyHigh(u0.AsUInt16(), K6419.AsUInt16());
             Vector128<ushort> g1 = Sse2.MultiplyHigh(v0.AsUInt16(), K13320.AsUInt16());
-            
+
             Vector128<ushort> r1 = Sse2.Subtract(y1.AsUInt16(), K14234.AsUInt16());
             Vector128<ushort> r2 = Sse2.Add(r1, r0);
 
@@ -734,13 +734,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<ushort> b1 = Sse2.AddSaturate(b0, y1);
             Vector128<ushort> b2 = Sse2.SubtractSaturate(b1, K17685.AsUInt16());
 
-            // use logical shift for B2, which can be larger than 32767
+            // Use logical shift for B2, which can be larger than 32767.
             r = Sse2.ShiftRightArithmetic(r2.AsInt16(), 6); // range: [-14234, 30815]
             g = Sse2.ShiftRightArithmetic(g4.AsInt16(), 6); // range: [-10953, 27710]
             b = Sse2.ShiftRightLogical(b2.AsInt16(), 6); // range: [0, 34238]
         }
 
         // Load the bytes into the *upper* part of 16b words. That's "<< 8", basically.
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector128<byte> LoadHigh(Span<byte> src)
         {
             Vector64<byte> tmp = Unsafe.As<byte, Vector64<byte>>(ref MemoryMarshal.GetReference(src));

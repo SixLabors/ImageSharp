@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void UpSampleScalar(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
+        private static void UpSampleScalar(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
         {
             int xStep = 3;
             int lastPixelPair = (len - 1) >> 1;
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         //
         // Then m can be written as
         // m = (k + t + 1) / 2 - (((b^c) & (s^t)) | (k^t)) & 1
-        public static void UpSampleSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
+        private static void UpSampleSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
         {
             const int xStep = 3;
             Array.Clear(uvBuffer, 0, uvBuffer.Length);
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         // Loads 17 pixels each from rows r1 and r2 and generates 32 pixels.
-        public static void UpSample32Pixels(Span<byte> r1, Span<byte> r2, Span<byte> output)
+        private static void UpSample32Pixels(Span<byte> r1, Span<byte> r2, Span<byte> output)
         {
             // Load inputs.
             Vector128<byte> a = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(r1));
@@ -592,7 +592,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        public static void YuvToBgrSse41(Span<byte> y, Span<byte> u, Span<byte> v, Span<byte> dst)
+        private static void YuvToBgrSse41(Span<byte> y, Span<byte> u, Span<byte> v, Span<byte> dst)
         {
             ConvertYuv444ToRgbSse41(y, u, v, out Vector128<short> r0, out Vector128<short> g0, out Vector128<short> b0);
             ConvertYuv444ToRgbSse41(y.Slice(8), u.Slice(8), v.Slice(8), out Vector128<short> r1, out Vector128<short> g1, out Vector128<short> b1);

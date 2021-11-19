@@ -157,6 +157,8 @@ namespace SixLabors.ImageSharp.Memory
                     {
                         ((UniformUnmanagedMemoryPool.Buffer<T>)memoryOwner).MarkDisposed();
                     }
+
+                    GC.SuppressFinalize(this);
                 }
                 else if (disposing)
                 {

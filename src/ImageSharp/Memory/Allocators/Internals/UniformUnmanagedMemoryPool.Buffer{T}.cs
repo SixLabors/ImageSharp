@@ -65,6 +65,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 }
 
                 base.Dispose(disposing);
+                GC.SuppressFinalize(this);
             }
         }
     }

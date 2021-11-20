@@ -329,8 +329,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(1200)]
         public void MemoryOwnerFinalizer_ReturnsToPool(int length)
         {
-            RunTest(length.ToString());
-            // RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
+            // RunTest(length.ToString());
+            RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
 
             static void RunTest(string lengthStr)
             {

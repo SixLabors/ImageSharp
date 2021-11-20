@@ -106,6 +106,8 @@ namespace SixLabors.ImageSharp.Memory
                     {
                         buffer.Clear();
                     }
+
+                    return buffer;
                 }
             }
 

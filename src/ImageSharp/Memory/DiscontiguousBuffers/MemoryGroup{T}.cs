@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Memory
                 return null;
             }
 
-            return new Owned(pool, arrays, bufferLength, totalLengthInElements, sizeOfLastBuffer);
+            return new Owned(pool, arrays, bufferLength, totalLengthInElements, sizeOfLastBuffer, options);
         }
 
         public static MemoryGroup<T> Wrap(params Memory<T>[] source)

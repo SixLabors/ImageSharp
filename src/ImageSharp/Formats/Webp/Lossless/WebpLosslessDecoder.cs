@@ -65,14 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             FixedTableSize + 2704
         };
 
-        private static readonly byte[] CodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-
         private static readonly int NumCodeLengthCodes = CodeLengthCodeOrder.Length;
-
-        private static readonly byte[] LiteralMap =
-        {
-            0, 1, 1, 1, 0
-        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebpLosslessDecoder"/> class.
@@ -86,6 +79,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
         }
+
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> CodeLengthCodeOrder => new byte[] { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> LiteralMap => new byte[] { 0, 1, 1, 1, 0 };
 
         /// <summary>
         /// Decodes the image from the stream using the bitreader.

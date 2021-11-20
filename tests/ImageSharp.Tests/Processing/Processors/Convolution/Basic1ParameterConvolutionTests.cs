@@ -17,10 +17,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public static readonly TheoryData<int> Values = new TheoryData<int> { 3, 5 };
 
         public static readonly string[] InputImages =
-            {
-                TestImages.Bmp.Car,
-                TestImages.Png.CalliphoraPartial
-            };
+        {
+            TestImages.Bmp.Car,
+            TestImages.Png.CalliphoraPartial,
+            TestImages.Png.Blur
+        };
 
         [Theory]
         [WithFileCollection(nameof(InputImages), nameof(Values), PixelTypes.Rgba32)]

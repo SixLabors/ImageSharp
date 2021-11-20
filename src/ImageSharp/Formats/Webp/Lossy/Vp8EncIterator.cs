@@ -357,15 +357,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int q = quality;
             int kThreshold = 8 + ((17 - 8) * q / 100);
             int k;
-            uint[] dc = new uint[16];
+            Span<uint> dc = stackalloc uint[16];
+            Span<ushort> tmp = stackalloc ushort[16];
             uint m;
             uint m2;
             for (k = 0; k < 16; k += 4)
             {
-                this.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.AsSpan(k));
+                LossyUtils.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.Slice(k, 4));
             }
 
-            for (m = 0, m2 = 0, k = 0; k < 16; ++k)
+            for (m = 0, m2 = 0, k = 0; k < 16; k++)
             {
                 m += dc[k];
                 m2 += dc[k] * dc[k];
@@ -823,24 +824,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Nz[this.nzIdx] = nz;
         }
 
-        private void Mean16x4(Span<byte> input, Span<uint> dc)
-        {
-            for (int k = 0; k < 4; k++)
-            {
-                uint avg = 0;
-                for (int y = 0; y < 4; y++)
-                {
-                    for (int x = 0; x < 4; x++)
-                    {
-                        avg += input[x + (y * WebpConstants.Bps)];
-                    }
-                }
-
-                dc[k] = avg;
-                input = input.Slice(4);   // go to next 4x4 block.
-            }
-        }
-
         private void ImportBlock(Span<byte> src, int srcStride, Span<byte> dst, int w, int h, int size)
         {
             int dstIdx = 0;
@@ -928,7 +911,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             this.LeftNz[8] = 0;
 
-            this.LeftDerr.AsSpan().Fill(0);
+            this.LeftDerr.AsSpan().Clear();
         }
 
         private void InitTop()
@@ -936,14 +919,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int topSize = this.mbw * 16;
             this.YTop.AsSpan(0, topSize).Fill(127);
             this.UvTop.AsSpan().Fill(127);
-            this.Nz.AsSpan().Fill(0);
+            this.Nz.AsSpan().Clear();
 
             int predsW = (4 * this.mbw) + 1;
             int predsH = (4 * this.mbh) + 1;
             int predsSize = predsW * predsH;
-            this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Fill(0);
+            this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Clear();
 
-            this.TopDerr.AsSpan().Fill(0);
+            this.TopDerr.AsSpan().Clear();
         }
 
         private int Bit(uint nz, int n) => (nz & (1 << n)) != 0 ? 1 : 0;

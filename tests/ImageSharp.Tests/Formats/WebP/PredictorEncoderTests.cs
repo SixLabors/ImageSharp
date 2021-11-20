@@ -40,8 +40,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void ColorSpaceTransform_WithBikeImage_WithoutSSE41_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+
+        [Fact]
+        public void ColorSpaceTransform_WithBikeImage_WithoutAvx2_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableAVX2);
 #endif
 
+        // Test image: Input\Webp\peak.png
         private static void RunColorSpaceTransformTestWithPeakImage()
         {
             // arrange
@@ -99,6 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.Equal(expectedData, transformData);
         }
 
+        // Test image: Input\Png\Bike.png
         private static void RunColorSpaceTransformTestWithBikeImage()
         {
             // arrange

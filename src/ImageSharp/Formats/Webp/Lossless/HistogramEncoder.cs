@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Create a mapping from a cluster id to its minimal version.
             int clusterMax = 0;
-            clusterMappingsTmp.AsSpan().Fill(0);
+            clusterMappingsTmp.AsSpan().Clear();
 
             // Re-map the ids.
             for (int i = 0; i < symbols.Length; i++)

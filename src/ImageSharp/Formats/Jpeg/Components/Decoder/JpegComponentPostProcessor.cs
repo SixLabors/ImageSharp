@@ -70,15 +70,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void Dispose() => this.ColorBuffer.Dispose();
 
         /// <summary>
-        /// Convert next MCU row of raw spectral data to color data.
-        /// </summary>
-        public void CopyBlocksToColorBuffer()
-        {
-            this.CopyBlocksToColorBuffer(this.currentComponentRowInBlocks);
-            this.currentComponentRowInBlocks += this.BlockRowsPerStep;
-        }
-
-        /// <summary>
         /// Convert raw spectral data to color data for a specified MCU row.
         /// </summary>
         /// <param name="mcuRow">MCU row to convert.</param>

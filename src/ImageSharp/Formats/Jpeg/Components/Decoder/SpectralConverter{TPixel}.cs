@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Linq;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Memory;
@@ -29,8 +30,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private Buffer2D<TPixel> pixelBuffer;
 
-        private int blockRowsPerStep;
-
         private int pixelRowsPerStep;
 
         private int pixelRowCounter;
@@ -40,12 +39,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.configuration = configuration;
             this.cancellationToken = cancellationToken;
         }
-
-        /// <summary>
-        /// Gets a value indicating whether this converter has converted spectral
-        /// data of the current image or not.
-        /// </summary>
-        private bool Converted => this.pixelRowCounter >= this.pixelBuffer.Height;
 
         /// <summary>
         /// Returns converted pixel buffer of target pixel type.
@@ -139,18 +132,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
 
             // iteration data
-            JpegComponent c0 = frame.Components[0];
+            int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);
+            int majorVerticalSamplingFactor = frame.Components.Max((component) => component.SamplingFactors.Height);
 
             const int blockPixelHeight = 8;
-            this.blockRowsPerStep = c0.SamplingFactors.Height;
-            this.pixelRowsPerStep = this.blockRowsPerStep * blockPixelHeight;
+            this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelHeight;
 
             // pixel buffer for resulting image
             this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight);
             this.paddedProxyPixelRow = allocator.Allocate<TPixel>(frame.PixelWidth + 3);
 
             // component processors from spectral to Rgba32
-            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.pixelRowsPerStep);
+            const int blockPixelWidth = 8;
+            var postProcessorBufferSize = new Size(majorBlockWidth * blockPixelWidth, this.pixelRowsPerStep);
             this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {

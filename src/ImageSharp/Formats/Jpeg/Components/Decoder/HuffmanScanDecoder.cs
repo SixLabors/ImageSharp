@@ -220,6 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     // It is very likely that some spectral data was decoded before we encountered EOI marker
                                     // so we need to decode what's left and return (or maybe throw?)
                                     this.spectralConverter.ConvertStrideBaseline();
+                                    this.spectralConverter.CommitConversion();
                                     return;
                                 }
 
@@ -243,6 +244,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // convert from spectral to actual pixels via given converter
                 this.spectralConverter.ConvertStrideBaseline();
             }
+
+            this.spectralConverter.CommitConversion();
         }
 
         private void ParseBaselineDataNonInterleaved()

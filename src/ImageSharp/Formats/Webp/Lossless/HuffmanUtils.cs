@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
@@ -307,9 +308,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         public static int BuildHuffmanTable(Span<HuffmanCode> table, int rootBits, int[] codeLengths, int codeLengthsSize)
         {
-            Guard.MustBeGreaterThan(rootBits, 0, nameof(rootBits));
-            Guard.NotNull(codeLengths, nameof(codeLengths));
-            Guard.MustBeGreaterThan(codeLengthsSize, 0, nameof(codeLengthsSize));
+            DebugGuard.MustBeGreaterThan(rootBits, 0, nameof(rootBits));
+            DebugGuard.NotNull(codeLengths, nameof(codeLengths));
+            DebugGuard.MustBeGreaterThan(codeLengthsSize, 0, nameof(codeLengthsSize));
 
             // sorted[codeLengthsSize] is a pre-allocated array for sorting symbols by code length.
             int[] sorted = new int[codeLengthsSize];
@@ -467,27 +468,27 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                     break;
                 }
-                else if (repetitions < 11)
+
+                if (repetitions < 11)
                 {
                     tokens[pos].Code = 17;
                     tokens[pos].ExtraBits = (byte)(repetitions - 3);
                     pos++;
                     break;
                 }
-                else if (repetitions < 139)
+
+                if (repetitions < 139)
                 {
                     tokens[pos].Code = 18;
                     tokens[pos].ExtraBits = (byte)(repetitions - 11);
                     pos++;
                     break;
                 }
-                else
-                {
-                    tokens[pos].Code = 18;
-                    tokens[pos].ExtraBits = 0x7f;  // 138 repeated 0s
-                    pos++;
-                    repetitions -= 138;
-                }
+
+                tokens[pos].Code = 18;
+                tokens[pos].ExtraBits = 0x7f;  // 138 repeated 0s
+                pos++;
+                repetitions -= 138;
             }
 
             return pos;
@@ -519,20 +520,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                     break;
                 }
-                else if (repetitions < 7)
+
+                if (repetitions < 7)
                 {
                     tokens[pos].Code = 16;
                     tokens[pos].ExtraBits = (byte)(repetitions - 3);
                     pos++;
                     break;
                 }
-                else
-                {
-                    tokens[pos].Code = 16;
-                    tokens[pos].ExtraBits = 3;
-                    pos++;
-                    repetitions -= 6;
-                }
+
+                tokens[pos].Code = 16;
+                tokens[pos].ExtraBits = 3;
+                pos++;
+                repetitions -= 6;
             }
 
             return pos;
@@ -541,7 +541,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Get the actual bit values for a tree of bit depths.
         /// </summary>
-        /// <param name="tree">The hiffman tree.</param>
+        /// <param name="tree">The huffman tree.</param>
         private static void ConvertBitDepthsToSymbols(HuffmanTreeCode tree)
         {
             // 0 bit-depth means that the symbol does not exist.
@@ -628,7 +628,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private static void ReplicateValue(Span<HuffmanCode> table, int step, int end, HuffmanCode code)
         {
-            Guard.IsTrue(end % step == 0, nameof(end), "end must be a multiple of step");
+            DebugGuard.IsTrue(end % step == 0, nameof(end), "end must be a multiple of step");
 
             do
             {
@@ -656,6 +656,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <summary>
         /// Heuristics for selecting the stride ranges to collapse.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static bool ValuesShouldBeCollapsedToStrideAverage(int a, int b) => Math.Abs(a - b) < 4;
     }
 }

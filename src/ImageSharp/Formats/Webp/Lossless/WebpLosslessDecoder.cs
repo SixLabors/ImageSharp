@@ -834,10 +834,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private void BuildPackedTable(HTreeGroup hTreeGroup)
         {
-            for (uint code = 0; code < HuffmanUtils.HuffmanPackedTableSize; ++code)
+            for (uint code = 0; code < HuffmanUtils.HuffmanPackedTableSize; code++)
             {
                 uint bits = code;
-                HuffmanCode huff = hTreeGroup.PackedTable[bits];
+                ref HuffmanCode huff = ref hTreeGroup.PackedTable[bits];
                 HuffmanCode hCode = hTreeGroup.HTrees[HuffIndex.Green][bits];
                 if (hCode.Value >= WebpConstants.NumLiteralCodes)
                 {
@@ -848,10 +848,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     huff.BitsUsed = 0;
                     huff.Value = 0;
-                    bits >>= AccumulateHCode(hCode, 8, huff);
-                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Red][bits], 16, huff);
-                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Blue][bits], 0, huff);
-                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Alpha][bits], 24, huff);
+                    bits >>= AccumulateHCode(hCode, 8, ref huff);
+                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Red][bits], 16, ref huff);
+                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Blue][bits], 0, ref huff);
+                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Alpha][bits], 24, ref huff);
                 }
             }
         }
@@ -992,7 +992,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int AccumulateHCode(HuffmanCode hCode, int shift, HuffmanCode huff)
+        private static int AccumulateHCode(HuffmanCode hCode, int shift, ref HuffmanCode huff)
         {
             huff.BitsUsed += hCode.BitsUsed;
             huff.Value |= hCode.Value << shift;

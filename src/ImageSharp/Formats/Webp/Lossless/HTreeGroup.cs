@@ -19,10 +19,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             this.HTrees = new List<HuffmanCode[]>(WebpConstants.HuffmanCodesPerMetaCode);
             this.PackedTable = new HuffmanCode[packedTableSize];
-            for (int i = 0; i < packedTableSize; i++)
-            {
-                this.PackedTable[i] = new HuffmanCode();
-            }
         }
 
         /// <summary>

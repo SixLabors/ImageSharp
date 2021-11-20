@@ -85,9 +85,7 @@ namespace SixLabors.ImageSharp.Memory
             int bufferAlignmentInElements,
             AllocationOptions options = AllocationOptions.None)
         {
-            int bufferCapacityInBytes = options.Has(AllocationOptions.Contiguous) ?
-                int.MaxValue :
-                allocator.GetBufferCapacityInBytes();
+            int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
             Guard.NotNull(allocator, nameof(allocator));
             Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
             Guard.MustBeGreaterThanOrEqualTo(bufferAlignmentInElements, 0, nameof(bufferAlignmentInElements));
@@ -151,11 +149,12 @@ namespace SixLabors.ImageSharp.Memory
             return new Owned(buffers, length, length, true);
         }
 
-        public static MemoryGroup<T> Allocate(
+        public static bool TryAllocate(
             UniformUnmanagedMemoryPool pool,
             long totalLengthInElements,
             int bufferAlignmentInElements,
-            AllocationOptions options = AllocationOptions.None)
+            AllocationOptions options,
+            out MemoryGroup<T> memoryGroup)
         {
             Guard.NotNull(pool, nameof(pool));
             Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
@@ -165,7 +164,8 @@ namespace SixLabors.ImageSharp.Memory
 
             if (bufferAlignmentInElements > blockCapacityInElements)
             {
-                return null;
+                memoryGroup = null;
+                return false;
             }
 
             if (totalLengthInElements == 0)
@@ -197,10 +197,12 @@ namespace SixLabors.ImageSharp.Memory
             if (arrays == null)
             {
                 // Pool is full
-                return null;
+                memoryGroup = null;
+                return false;
             }
 
-            return new Owned(pool, arrays, bufferLength, totalLengthInElements, sizeOfLastBuffer, options);
+            memoryGroup = new Owned(pool, arrays, bufferLength, totalLengthInElements, sizeOfLastBuffer, options);
+            return true;
         }
 
         public static MemoryGroup<T> Wrap(params Memory<T>[] source)

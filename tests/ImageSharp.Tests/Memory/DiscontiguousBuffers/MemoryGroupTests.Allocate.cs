@@ -93,10 +93,11 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 var pool = new UniformUnmanagedMemoryPool(bufferCapacity, expectedNumberOfBuffers);
 
                 // Act:
-                using var g = MemoryGroup<T>.Allocate(pool, totalLength, bufferAlignment);
+                Assert.True(MemoryGroup<T>.TryAllocate(pool, totalLength, bufferAlignment, AllocationOptions.None, out MemoryGroup<T> g));
 
                 // Assert:
                 ValidateAllocateMemoryGroup(expectedNumberOfBuffers, expectedBufferSize, expectedSizeOfLastBuffer, g);
+                g.Dispose();
             }
 
             private static unsafe Span<byte> GetSpan(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle h) =>
@@ -116,38 +117,42 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
                 pool.Return(buffers);
 
-                using var g = MemoryGroup<byte>.Allocate(pool, 50, 10, options);
+                Assert.True(MemoryGroup<byte>.TryAllocate(pool, 50, 10, options, out MemoryGroup<byte> g));
                 Span<byte> expected = stackalloc byte[10];
                 expected.Fill((byte)(options == AllocationOptions.Clean ? 0 : 42));
                 foreach (Memory<byte> memory in g)
                 {
                     Assert.True(expected.SequenceEqual(memory.Span));
                 }
+
+                g.Dispose();
             }
 
             [Theory]
-            [InlineData(64, 4, 60, 240, false)]
-            [InlineData(64, 4, 60, 244, true)]
+            [InlineData(64, 4, 60, 240, true)]
+            [InlineData(64, 4, 60, 244, false)]
             public void Allocate_FromPool_AroundLimit(
                 int bufferCapacityBytes,
                 int poolCapacity,
                 int alignmentBytes,
                 int requestBytes,
-                bool shouldReturnNull)
+                bool shouldSucceed)
             {
                 var pool = new UniformUnmanagedMemoryPool(bufferCapacityBytes, poolCapacity);
                 int alignmentElements = alignmentBytes / Unsafe.SizeOf<S4>();
                 int requestElements = requestBytes / Unsafe.SizeOf<S4>();
 
-                using var g = MemoryGroup<S4>.Allocate(pool, requestElements, alignmentElements);
-                if (shouldReturnNull)
-                {
-                    Assert.Null(g);
-                }
-                else
+                Assert.Equal(shouldSucceed, MemoryGroup<S4>.TryAllocate(pool, requestElements, alignmentElements, AllocationOptions.None, out MemoryGroup<S4> g));
+                if (shouldSucceed)
                 {
                     Assert.NotNull(g);
                 }
+                else
+                {
+                    Assert.Null(g);
+                }
+
+                g?.Dispose();
             }
 
             internal static void ValidateAllocateMemoryGroup<T>(
@@ -217,19 +222,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
                 Assert.Equal(expectedBlockCount, this.MemoryAllocator.ReturnLog.Count);
                 Assert.True(bufferHashes.SetEquals(this.MemoryAllocator.ReturnLog.Select(l => l.HashCodeOfBuffer)));
-            }
-
-            [Theory]
-            [InlineData(128)]
-            [InlineData(1024)]
-            public void Allocate_OptionsContiguous_AllocatesContiguousBuffer(int lengthInBytes)
-            {
-                this.MemoryAllocator.BufferCapacityInBytes = 256;
-                int length = lengthInBytes / Unsafe.SizeOf<S4>();
-                using var g = MemoryGroup<S4>.Allocate(this.MemoryAllocator, length, 32, AllocationOptions.Contiguous);
-                Assert.Equal(length, g.BufferLength);
-                Assert.Equal(length, g.TotalLength);
-                Assert.Equal(1, g.Count);
             }
         }
     }

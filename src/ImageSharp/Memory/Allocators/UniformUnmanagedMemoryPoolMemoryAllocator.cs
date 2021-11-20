@@ -144,10 +144,12 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             // Attempt to rent the whole group from the pool, allocate a group of unmanaged buffers if the attempt fails:
-            MemoryGroup<T> poolGroup = options.Has(AllocationOptions.Contiguous) ?
-                null :
-                MemoryGroup<T>.Allocate(this.pool, totalLength, bufferAlignment, options);
-            return poolGroup ?? MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLength, bufferAlignment, options);
+            if (MemoryGroup<T>.TryAllocate(this.pool, totalLength, bufferAlignment, options, out MemoryGroup<T> poolGroup))
+            {
+                return poolGroup;
+            }
+
+            return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLength, bufferAlignment, options);
         }
 
         public override void ReleaseRetainedResources()

@@ -111,25 +111,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        [Theory]
-        [InlineData(512)]
-        [InlineData(2048)]
-        [InlineData(8192)]
-        [InlineData(65536)]
-        public void AllocateGroup_OptionsContiguous_AllocatesContiguousBuffer(int lengthInBytes)
-        {
-            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
-                128,
-                1024,
-                2048,
-                4096);
-            int length = lengthInBytes / Unsafe.SizeOf<S4>();
-            using MemoryGroup<S4> g = allocator.AllocateGroup<S4>(length, 32, AllocationOptions.Contiguous);
-            Assert.Equal(length, g.BufferLength);
-            Assert.Equal(length, g.TotalLength);
-            Assert.Equal(1, g.Count);
-        }
-
         [Fact]
         public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
         {

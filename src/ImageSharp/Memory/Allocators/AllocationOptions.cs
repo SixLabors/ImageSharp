@@ -19,12 +19,6 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Indicates that the allocated buffer should be cleaned following allocation.
         /// </summary>
-        Clean = 1,
-
-        /// <summary>
-        /// Affects only group allocations.
-        /// Indicates that the requested <see cref="MemoryGroup{T}"/> or <see cref="Buffer2D{T}"/> should be made of contiguous blocks up to <see cref="int.MaxValue"/>.
-        /// </summary>
-        Contiguous = 2
+        Clean = 1
     }
 }

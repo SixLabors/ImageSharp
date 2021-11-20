@@ -3,10 +3,11 @@
 
 using System;
 using System.Collections.Generic;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
-    internal class BackwardReferenceEncoder
+    internal static class BackwardReferenceEncoder
     {
         /// <summary>
         /// Maximum bit length.
@@ -41,6 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int quality,
             int lz77TypesToTry,
             ref int cacheBits,
+            MemoryAllocator memoryAllocator,
             Vp8LHashChain hashChain,
             Vp8LBackwardRefs best,
             Vp8LBackwardRefs worst)
@@ -69,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         BackwardReferencesLz77(width, height, bgra, 0, hashChain, worst);
                         break;
                     case Vp8LLz77Type.Lz77Box:
-                        hashChainBox = new Vp8LHashChain(width * height);
+                        hashChainBox = new Vp8LHashChain(memoryAllocator, width * height);
                         BackwardReferencesLz77Box(width, height, bgra, 0, hashChain, hashChainBox, worst);
                         break;
                 }
@@ -617,7 +619,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
 
-            hashChain.OffsetLength[0] = 0;
+            Span<uint> hashChainOffsetLength = hashChain.OffsetLength.GetSpan();
+            hashChainOffsetLength[0] = 0;
             for (i = 1; i < pixelCount; i++)
             {
                 int ind;
@@ -695,19 +698,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (bestLength <= MinLength)
                 {
-                    hashChain.OffsetLength[i] = 0;
+                    hashChainOffsetLength[i] = 0;
                     bestOffsetPrev = 0;
                     bestLengthPrev = 0;
                 }
                 else
                 {
-                    hashChain.OffsetLength[i] = (uint)((bestOffset << MaxLengthBits) | bestLength);
+                    hashChainOffsetLength[i] = (uint)((bestOffset << MaxLengthBits) | bestLength);
                     bestOffsetPrev = bestOffset;
                     bestLengthPrev = bestLength;
                 }
             }
 
-            hashChain.OffsetLength[0] = 0;
+            hashChainOffsetLength[0] = 0;
             BackwardReferencesLz77(xSize, ySize, bgra, cacheBits, hashChain, refs);
         }
 

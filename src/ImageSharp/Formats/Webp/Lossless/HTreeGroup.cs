@@ -13,12 +13,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     ///  - UsePackedTable: few enough literal symbols, so all the bit codes can fit into a small look-up table PackedTable[]
     /// The common literal base, if applicable, is stored in 'LiteralArb'.
     /// </summary>
-    internal class HTreeGroup
+    internal struct HTreeGroup
     {
         public HTreeGroup(uint packedTableSize)
         {
             this.HTrees = new List<HuffmanCode[]>(WebpConstants.HuffmanCodesPerMetaCode);
             this.PackedTable = new HuffmanCode[packedTableSize];
+            this.IsTrivialCode = false;
+            this.IsTrivialLiteral = false;
+            this.LiteralArb = 0;
+            this.UsePackedTable = false;
         }
 
         /// <summary>

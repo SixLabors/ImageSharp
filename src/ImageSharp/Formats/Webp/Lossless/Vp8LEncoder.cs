@@ -137,6 +137,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
+        // RFC 1951 will calm you down if you are worried about this funny sequence.
+        // This sequence is tuned from that, but more weighted for lower symbol count,
+        // and more spiking histograms.
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> StorageOrder => new byte[] { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
         // This uses C#'s compiler optimization to refer to assembly's static data directly.
         private static ReadOnlySpan<byte> Order => new byte[] { 1, 2, 0, 3 };
 
@@ -942,16 +948,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private void StoreHuffmanTreeOfHuffmanTreeToBitMask(byte[] codeLengthBitDepth)
         {
-            // RFC 1951 will calm you down if you are worried about this funny sequence.
-            // This sequence is tuned from that, but more weighted for lower symbol count,
-            // and more spiking histograms.
-            byte[] storageOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-
             // Throw away trailing zeros:
             int codesToStore = WebpConstants.CodeLengthCodes;
             for (; codesToStore > 4; codesToStore--)
             {
-                if (codeLengthBitDepth[storageOrder[codesToStore - 1]] != 0)
+                if (codeLengthBitDepth[StorageOrder[codesToStore - 1]] != 0)
                 {
                     break;
                 }
@@ -960,7 +961,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.bitWriter.PutBits((uint)codesToStore - 4, 4);
             for (int i = 0; i < codesToStore; i++)
             {
-                this.bitWriter.PutBits(codeLengthBitDepth[storageOrder[i]], 3);
+                this.bitWriter.PutBits(codeLengthBitDepth[StorageOrder[i]], 3);
             }
         }
 

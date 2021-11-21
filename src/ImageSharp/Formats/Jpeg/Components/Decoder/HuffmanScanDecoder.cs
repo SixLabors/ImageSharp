@@ -151,6 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             if (this.componentsCount == this.frame.ComponentCount)
             {
                 this.ParseBaselineDataInterleaved();
+                this.spectralConverter.CommitConversion();
             }
             else
             {

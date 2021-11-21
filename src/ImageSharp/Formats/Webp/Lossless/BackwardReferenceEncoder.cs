@@ -114,6 +114,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             BackwardReferences2DLocality(width, best);
 
+            hashChainBox?.Dispose();
+
             return best;
         }
 
@@ -281,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             costModel.Build(xSize, cacheBits, refs);
-            var costManager = new CostManager(memoryAllocator, distArrayBuffer, pixCount, costModel);
+            using var costManager = new CostManager(memoryAllocator, distArrayBuffer, pixCount, costModel);
             Span<float> costManagerCosts = costManager.Costs.GetSpan();
             Span<ushort> distArray = distArrayBuffer.GetSpan();
 

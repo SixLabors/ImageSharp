@@ -2,9 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -12,149 +9,147 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal static partial class FastFloatingPointDCT
     {
-#pragma warning disable SA1310, SA1311, IDE1006 // naming rules violation warnings
+#pragma warning disable SA1310, SA1311, IDE1006 // naming rule violation warnings
         private static readonly Vector256<float> mm256_F_0_7071 = Vector256.Create(0.707106781f);
         private static readonly Vector256<float> mm256_F_0_3826 = Vector256.Create(0.382683433f);
         private static readonly Vector256<float> mm256_F_0_5411 = Vector256.Create(0.541196100f);
         private static readonly Vector256<float> mm256_F_1_3065 = Vector256.Create(1.306562965f);
 
-        private static readonly Vector256<float> mm256_F_1_1758 = Vector256.Create(1.175876f);
-        private static readonly Vector256<float> mm256_F_n1_9615 = Vector256.Create(-1.961570560f);
-        private static readonly Vector256<float> mm256_F_n0_3901 = Vector256.Create(-0.390180644f);
-        private static readonly Vector256<float> mm256_F_n0_8999 = Vector256.Create(-0.899976223f);
-        private static readonly Vector256<float> mm256_F_n2_5629 = Vector256.Create(-2.562915447f);
-        private static readonly Vector256<float> mm256_F_0_2986 = Vector256.Create(0.298631336f);
-        private static readonly Vector256<float> mm256_F_2_0531 = Vector256.Create(2.053119869f);
-        private static readonly Vector256<float> mm256_F_3_0727 = Vector256.Create(3.072711026f);
-        private static readonly Vector256<float> mm256_F_1_5013 = Vector256.Create(1.501321110f);
-        private static readonly Vector256<float> mm256_F_n1_8477 = Vector256.Create(-1.847759065f);
-        private static readonly Vector256<float> mm256_F_0_7653 = Vector256.Create(0.765366865f);
+        private static readonly Vector256<float> mm256_F_1_4142 = Vector256.Create(1.414213562f);
+        private static readonly Vector256<float> mm256_F_1_8477 = Vector256.Create(1.847759065f);
+        private static readonly Vector256<float> mm256_F_n1_0823 = Vector256.Create(-1.082392200f);
+        private static readonly Vector256<float> mm256_F_n2_6131 = Vector256.Create(-2.613125930f);
 #pragma warning restore SA1310, SA1311, IDE1006
 
         /// <summary>
         /// Apply floating point FDCT inplace using simd operations.
         /// </summary>
-        /// <param name="block">Input matrix.</param>
-        private static void ForwardTransform_Avx(ref Block8x8F block)
+        /// <param name="block">Input block.</param>
+        private static void FDCT8x8_Avx(ref Block8x8F block)
         {
             DebugGuard.IsTrue(Avx.IsSupported, "Avx support is required to execute this operation.");
 
             // First pass - process rows
             block.TransposeInplace();
-            FDCT8x8_Avx(ref block);
+            FDCT8x8_1D_Avx(ref block);
 
             // Second pass - process columns
             block.TransposeInplace();
-            FDCT8x8_Avx(ref block);
+            FDCT8x8_1D_Avx(ref block);
+
+            // Applies 1D floating point FDCT inplace
+            static void FDCT8x8_1D_Avx(ref Block8x8F block)
+            {
+                Vector256<float> tmp0 = Avx.Add(block.V0, block.V7);
+                Vector256<float> tmp7 = Avx.Subtract(block.V0, block.V7);
+                Vector256<float> tmp1 = Avx.Add(block.V1, block.V6);
+                Vector256<float> tmp6 = Avx.Subtract(block.V1, block.V6);
+                Vector256<float> tmp2 = Avx.Add(block.V2, block.V5);
+                Vector256<float> tmp5 = Avx.Subtract(block.V2, block.V5);
+                Vector256<float> tmp3 = Avx.Add(block.V3, block.V4);
+                Vector256<float> tmp4 = Avx.Subtract(block.V3, block.V4);
+
+                // Even part
+                Vector256<float> tmp10 = Avx.Add(tmp0, tmp3);
+                Vector256<float> tmp13 = Avx.Subtract(tmp0, tmp3);
+                Vector256<float> tmp11 = Avx.Add(tmp1, tmp2);
+                Vector256<float> tmp12 = Avx.Subtract(tmp1, tmp2);
+
+                block.V0 = Avx.Add(tmp10, tmp11);
+                block.V4 = Avx.Subtract(tmp10, tmp11);
+
+                Vector256<float> z1 = Avx.Multiply(Avx.Add(tmp12, tmp13), mm256_F_0_7071);
+                block.V2 = Avx.Add(tmp13, z1);
+                block.V6 = Avx.Subtract(tmp13, z1);
+
+                // Odd part
+                tmp10 = Avx.Add(tmp4, tmp5);
+                tmp11 = Avx.Add(tmp5, tmp6);
+                tmp12 = Avx.Add(tmp6, tmp7);
+
+                Vector256<float> z5 = Avx.Multiply(Avx.Subtract(tmp10, tmp12), mm256_F_0_3826);
+                Vector256<float> z2 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, mm256_F_0_5411, tmp10);
+                Vector256<float> z4 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, mm256_F_1_3065, tmp12);
+                Vector256<float> z3 = Avx.Multiply(tmp11, mm256_F_0_7071);
+
+                Vector256<float> z11 = Avx.Add(tmp7, z3);
+                Vector256<float> z13 = Avx.Subtract(tmp7, z3);
+
+                block.V5 = Avx.Add(z13, z2);
+                block.V3 = Avx.Subtract(z13, z2);
+                block.V1 = Avx.Add(z11, z4);
+                block.V7 = Avx.Subtract(z11, z4);
+            }
         }
 
         /// <summary>
-        /// Apply 1D floating point FDCT inplace using AVX operations on 8x8 matrix.
+        /// Apply floating point IDCT inplace using simd operations.
         /// </summary>
-        /// <remarks>
-        /// Requires Avx support.
-        /// </remarks>
-        /// <param name="block">Input matrix.</param>
-        public static void FDCT8x8_Avx(ref Block8x8F block)
+        /// <param name="transposedBlock">Transposed input block.</param>
+        private static void IDCT8x8_Avx(ref Block8x8F transposedBlock)
         {
             DebugGuard.IsTrue(Avx.IsSupported, "Avx support is required to execute this operation.");
 
-            Vector256<float> tmp0 = Avx.Add(block.V0, block.V7);
-            Vector256<float> tmp7 = Avx.Subtract(block.V0, block.V7);
-            Vector256<float> tmp1 = Avx.Add(block.V1, block.V6);
-            Vector256<float> tmp6 = Avx.Subtract(block.V1, block.V6);
-            Vector256<float> tmp2 = Avx.Add(block.V2, block.V5);
-            Vector256<float> tmp5 = Avx.Subtract(block.V2, block.V5);
-            Vector256<float> tmp3 = Avx.Add(block.V3, block.V4);
-            Vector256<float> tmp4 = Avx.Subtract(block.V3, block.V4);
+            // First pass - process columns
+            IDCT8x8_1D_Avx(ref transposedBlock);
 
-            // Even part
-            Vector256<float> tmp10 = Avx.Add(tmp0, tmp3);
-            Vector256<float> tmp13 = Avx.Subtract(tmp0, tmp3);
-            Vector256<float> tmp11 = Avx.Add(tmp1, tmp2);
-            Vector256<float> tmp12 = Avx.Subtract(tmp1, tmp2);
+            // Second pass - process rows
+            transposedBlock.TransposeInplace();
+            IDCT8x8_1D_Avx(ref transposedBlock);
 
-            block.V0 = Avx.Add(tmp10, tmp11);
-            block.V4 = Avx.Subtract(tmp10, tmp11);
+            // Applies 1D floating point FDCT inplace
+            static void IDCT8x8_1D_Avx(ref Block8x8F block)
+            {
+                // Even part
+                Vector256<float> tmp0 = block.V0;
+                Vector256<float> tmp1 = block.V2;
+                Vector256<float> tmp2 = block.V4;
+                Vector256<float> tmp3 = block.V6;
 
-            Vector256<float> z1 = Avx.Multiply(Avx.Add(tmp12, tmp13), mm256_F_0_7071);
-            block.V2 = Avx.Add(tmp13, z1);
-            block.V6 = Avx.Subtract(tmp13, z1);
+                Vector256<float> z5 = tmp0;
+                Vector256<float> tmp10 = Avx.Add(z5, tmp2);
+                Vector256<float> tmp11 = Avx.Subtract(z5, tmp2);
 
-            // Odd part
-            tmp10 = Avx.Add(tmp4, tmp5);
-            tmp11 = Avx.Add(tmp5, tmp6);
-            tmp12 = Avx.Add(tmp6, tmp7);
+                Vector256<float> tmp13 = Avx.Add(tmp1, tmp3);
+                Vector256<float> tmp12 = SimdUtils.HwIntrinsics.MultiplySubstract(tmp13, Avx.Subtract(tmp1, tmp3), mm256_F_1_4142);
 
-            Vector256<float> z5 = Avx.Multiply(Avx.Subtract(tmp10, tmp12), mm256_F_0_3826);
-            Vector256<float> z2 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, mm256_F_0_5411, tmp10);
-            Vector256<float> z4 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, mm256_F_1_3065, tmp12);
-            Vector256<float> z3 = Avx.Multiply(tmp11, mm256_F_0_7071);
+                tmp0 = Avx.Add(tmp10, tmp13);
+                tmp3 = Avx.Subtract(tmp10, tmp13);
+                tmp1 = Avx.Add(tmp11, tmp12);
+                tmp2 = Avx.Subtract(tmp11, tmp12);
 
-            Vector256<float> z11 = Avx.Add(tmp7, z3);
-            Vector256<float> z13 = Avx.Subtract(tmp7, z3);
+                // Odd part
+                Vector256<float> tmp4 = block.V1;
+                Vector256<float> tmp5 = block.V3;
+                Vector256<float> tmp6 = block.V5;
+                Vector256<float> tmp7 = block.V7;
 
-            block.V5 = Avx.Add(z13, z2);
-            block.V3 = Avx.Subtract(z13, z2);
-            block.V1 = Avx.Add(z11, z4);
-            block.V7 = Avx.Subtract(z11, z4);
-        }
+                Vector256<float> z13 = Avx.Add(tmp6, tmp5);
+                Vector256<float> z10 = Avx.Subtract(tmp6, tmp5);
+                Vector256<float> z11 = Avx.Add(tmp4, tmp7);
+                Vector256<float> z12 = Avx.Subtract(tmp4, tmp7);
 
-        /// <summary>
-        /// Combined operation of <see cref="IDCT8x4_LeftPart(ref Block8x8F, ref Block8x8F)"/> and <see cref="IDCT8x4_RightPart(ref Block8x8F, ref Block8x8F)"/>
-        /// using AVX commands.
-        /// </summary>
-        /// <param name="s">Source</param>
-        /// <param name="d">Destination</param>
-        public static void IDCT8x8_Avx(ref Block8x8F s, ref Block8x8F d)
-        {
-            Debug.Assert(Avx.IsSupported, "AVX is required to execute this method");
+                tmp7 = Avx.Add(z11, z13);
+                tmp11 = Avx.Multiply(Avx.Subtract(z11, z13), mm256_F_1_4142);
 
-            Vector256<float> my1 = s.V1;
-            Vector256<float> my7 = s.V7;
-            Vector256<float> mz0 = Avx.Add(my1, my7);
+                z5 = Avx.Multiply(Avx.Add(z10, z12), mm256_F_1_8477);
 
-            Vector256<float> my3 = s.V3;
-            Vector256<float> mz2 = Avx.Add(my3, my7);
-            Vector256<float> my5 = s.V5;
-            Vector256<float> mz1 = Avx.Add(my3, my5);
-            Vector256<float> mz3 = Avx.Add(my1, my5);
+                tmp10 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, z12, mm256_F_n1_0823);
+                tmp12 = SimdUtils.HwIntrinsics.MultiplyAdd(z5, z10, mm256_F_n2_6131);
 
-            Vector256<float> mz4 = Avx.Multiply(Avx.Add(mz0, mz1), mm256_F_1_1758);
+                tmp6 = Avx.Subtract(tmp12, tmp7);
+                tmp5 = Avx.Subtract(tmp11, tmp6);
+                tmp4 = Avx.Subtract(tmp10, tmp5);
 
-            mz2 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, mz2, mm256_F_n1_9615);
-            mz3 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, mz3, mm256_F_n0_3901);
-            mz0 = Avx.Multiply(mz0, mm256_F_n0_8999);
-            mz1 = Avx.Multiply(mz1, mm256_F_n2_5629);
-
-            Vector256<float> mb3 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz0, my7, mm256_F_0_2986), mz2);
-            Vector256<float> mb2 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz1, my5, mm256_F_2_0531), mz3);
-            Vector256<float> mb1 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz1, my3, mm256_F_3_0727), mz2);
-            Vector256<float> mb0 = Avx.Add(SimdUtils.HwIntrinsics.MultiplyAdd(mz0, my1, mm256_F_1_5013), mz3);
-
-            Vector256<float> my2 = s.V2;
-            Vector256<float> my6 = s.V6;
-            mz4 = Avx.Multiply(Avx.Add(my2, my6), mm256_F_0_5411);
-            Vector256<float> my0 = s.V0;
-            Vector256<float> my4 = s.V4;
-            mz0 = Avx.Add(my0, my4);
-            mz1 = Avx.Subtract(my0, my4);
-            mz2 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, my6, mm256_F_n1_8477);
-            mz3 = SimdUtils.HwIntrinsics.MultiplyAdd(mz4, my2, mm256_F_0_7653);
-
-            my0 = Avx.Add(mz0, mz3);
-            my3 = Avx.Subtract(mz0, mz3);
-            my1 = Avx.Add(mz1, mz2);
-            my2 = Avx.Subtract(mz1, mz2);
-
-            d.V0 = Avx.Add(my0, mb0);
-            d.V7 = Avx.Subtract(my0, mb0);
-            d.V1 = Avx.Add(my1, mb1);
-            d.V6 = Avx.Subtract(my1, mb1);
-            d.V2 = Avx.Add(my2, mb2);
-            d.V5 = Avx.Subtract(my2, mb2);
-            d.V3 = Avx.Add(my3, mb3);
-            d.V4 = Avx.Subtract(my3, mb3);
+                block.V0 = Avx.Add(tmp0, tmp7);
+                block.V7 = Avx.Subtract(tmp0, tmp7);
+                block.V1 = Avx.Add(tmp1, tmp6);
+                block.V6 = Avx.Subtract(tmp1, tmp6);
+                block.V2 = Avx.Add(tmp2, tmp5);
+                block.V5 = Avx.Subtract(tmp2, tmp5);
+                block.V3 = Avx.Add(tmp3, tmp4);
+                block.V4 = Avx.Subtract(tmp3, tmp4);
+            }
         }
     }
 }

@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int refsBlockSize = ((pixelCount - 1) / MaxRefsBlockPerImage) + 1;
             for (int i = 0; i < this.Refs.Length; i++)
             {
-                this.Refs[i] = new Vp8LBackwardRefs
+                this.Refs[i] = new Vp8LBackwardRefs(pixelCount)
                 {
                     BlockSize = refsBlockSize < MinBlockSize ? MinBlockSize : refsBlockSize
                 };

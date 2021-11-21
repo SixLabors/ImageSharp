@@ -759,28 +759,147 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <returns>Shanon entropy.</returns>
         public static float CombinedShannonEntropy(Span<int> x, Span<int> y)
         {
-            double retVal = 0.0d;
-            uint sumX = 0, sumXY = 0;
-            for (int i = 0; i < 256; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse41.IsSupported)
             {
-                uint xi = (uint)x[i];
-                if (xi != 0)
+                double retVal = 0.0d;
+                Span<int> tmp = stackalloc int[4];
+                ref int xRef = ref MemoryMarshal.GetReference(x);
+                ref int yRef = ref MemoryMarshal.GetReference(y);
+                Vector128<int> sumXY128 = Vector128<int>.Zero;
+                Vector128<int> sumX128 = Vector128<int>.Zero;
+                ref int tmpRef = ref MemoryMarshal.GetReference(tmp);
+                for (int i = 0; i < 256; i += 4)
                 {
-                    uint xy = xi + (uint)y[i];
-                    sumX += xi;
-                    retVal -= FastSLog2(xi);
-                    sumXY += xy;
-                    retVal -= FastSLog2(xy);
+                    Vector128<int> xVec = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref xRef, i));
+                    Vector128<int> yVec = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref yRef, i));
+
+                    // Check if any X is non-zero: this actually provides a speedup as X is usually sparse.
+                    if (Sse2.MoveMask(Sse2.CompareEqual(xVec, Vector128<int>.Zero).AsByte()) != 0xFFFF)
+                    {
+                        Vector128<int> xy128 = Sse2.Add(xVec, yVec);
+                        sumXY128 = Sse2.Add(sumXY128, xy128);
+                        sumX128 = Sse2.Add(sumX128, xVec);
+
+                        // Analyze the different X + Y.
+                        Unsafe.As<int, Vector128<int>>(ref tmpRef) = xy128;
+                        if (tmp[0] != 0)
+                        {
+                            retVal -= FastSLog2((uint)tmp[0]);
+                            if (x[i + 0] != 0)
+                            {
+                                retVal -= FastSLog2((uint)x[i + 0]);
+                            }
+                        }
+
+                        if (tmp[1] != 0)
+                        {
+                            retVal -= FastSLog2((uint)tmp[1]);
+                            if (x[i + 1] != 0)
+                            {
+                                retVal -= FastSLog2((uint)x[i + 1]);
+                            }
+                        }
+
+                        if (tmp[2] != 0)
+                        {
+                            retVal -= FastSLog2((uint)tmp[2]);
+                            if (x[i + 2] != 0)
+                            {
+                                retVal -= FastSLog2((uint)x[i + 2]);
+                            }
+                        }
+
+                        if (tmp[3] != 0)
+                        {
+                            retVal -= FastSLog2((uint)tmp[3]);
+                            if (x[i + 3] != 0)
+                            {
+                                retVal -= FastSLog2((uint)x[i + 3]);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // X is fully 0, so only deal with Y.
+                        sumXY128 = Sse2.Add(sumXY128, yVec);
+
+                        if (y[i] != 0)
+                        {
+                            retVal -= FastSLog2((uint)y[i]);
+                        }
+
+                        if (y[i + 1] != 0)
+                        {
+                            retVal -= FastSLog2((uint)y[i + 1]);
+                        }
+
+                        if (y[i + 2] != 0)
+                        {
+                            retVal -= FastSLog2((uint)y[i + 2]);
+                        }
+
+                        if (y[i + 3] != 0)
+                        {
+                            retVal -= FastSLog2((uint)y[i + 3]);
+                        }
+                    }
                 }
-                else if (y[i] != 0)
+
+                // Sum up sumX_128 to get sumX and sum up sumXY_128 to get sumXY.
+                // note: not using here Numerics.ReduceSum, because grouping the same methods together should be slightly faster.
+                Vector128<int> haddSumX = Ssse3.HorizontalAdd(sumX128, sumX128);
+                Vector128<int> haddSumXY = Ssse3.HorizontalAdd(sumXY128, sumXY128);
+                Vector128<int> swappedSumX = Sse2.Shuffle(haddSumX, 0x1);
+                Vector128<int> swappedSumXY = Sse2.Shuffle(haddSumXY, 0x1);
+                Vector128<int> tmpSumX = Sse2.Add(haddSumX, swappedSumX);
+                Vector128<int> tmpSumXY = Sse2.Add(haddSumXY, swappedSumXY);
+                int sumX = Sse2.ConvertToInt32(tmpSumX);
+                int sumXY = Sse2.ConvertToInt32(tmpSumXY);
+
+                retVal += FastSLog2((uint)sumX) + FastSLog2((uint)sumXY);
+
+                return (float)retVal;
+            }
+            else
+#endif
+            {
+                double retVal = 0.0d;
+                uint sumX = 0, sumXY = 0;
+                for (int i = 0; i < 256; i++)
                 {
-                    sumXY += (uint)y[i];
-                    retVal -= FastSLog2((uint)y[i]);
+                    uint xi = (uint)x[i];
+                    if (xi != 0)
+                    {
+                        uint xy = xi + (uint)y[i];
+                        sumX += xi;
+                        retVal -= FastSLog2(xi);
+                        sumXY += xy;
+                        retVal -= FastSLog2(xy);
+                    }
+                    else if (y[i] != 0)
+                    {
+                        sumXY += (uint)y[i];
+                        retVal -= FastSLog2((uint)y[i]);
+                    }
+                }
+
+                retVal += FastSLog2(sumX) + FastSLog2(sumXY);
+                return (float)retVal;
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void AnalyzeXy(Span<int> tmp, Span<int> x, int i, int pos, ref double retVal)
+        {
+            if (tmp[pos] != 0)
+            {
+                retVal -= FastSLog2((uint)tmp[pos]);
+                if (x[i + pos] != 0)
+                {
+                    retVal -= FastSLog2((uint)x[i + pos]);
                 }
             }
-
-            retVal += FastSLog2(sumX) + FastSLog2(sumXY);
-            return (float)retVal;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -836,6 +955,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static float FastSLog2Slow(uint v)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo<uint>(v, LogLookupIdxMax, nameof(v));
+
             if (v < ApproxLogWithCorrectionMax)
             {
                 int logCnt = 0;
@@ -865,7 +985,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static float FastLog2Slow(uint v)
         {
-            Guard.MustBeGreaterThanOrEqualTo(v, LogLookupIdxMax, nameof(v));
+            DebugGuard.MustBeGreaterThanOrEqualTo<uint>(v, LogLookupIdxMax, nameof(v));
 
             if (v < ApproxLogWithCorrectionMax)
             {

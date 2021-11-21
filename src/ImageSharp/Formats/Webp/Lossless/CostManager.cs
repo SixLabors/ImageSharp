@@ -14,6 +14,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     {
         private CostInterval head;
 
+        private const int FreeIntervalsStartCount = 25;
+
+        private readonly Stack<CostInterval> freeIntervals = new(FreeIntervalsStartCount);
+
         public CostManager(ushort[] distArray, int pixCount, CostModel costModel)
         {
             int costCacheSize = pixCount > BackwardReferenceEncoder.MaxLength ? BackwardReferenceEncoder.MaxLength : pixCount;
@@ -23,6 +27,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.Costs = new float[pixCount];
             this.DistArray = distArray;
             this.Count = 0;
+
+            for (int i = 0; i < FreeIntervalsStartCount; i++)
+            {
+                this.freeIntervals.Push(new CostInterval());
+            }
 
             // Fill in the cost cache.
             this.CacheIntervalsSize++;
@@ -201,10 +210,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             this.InsertInterval(interval, interval.Cost, interval.Index, end, endOriginal);
                             break;
                         }
-                        else
-                        {
-                            interval.End = start;
-                        }
+
+                        interval.End = start;
                     }
                 }
 
@@ -226,6 +233,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             this.ConnectIntervals(interval.Previous, interval.Next);
             this.Count--;
+
+            interval.Next = null;
+            interval.Previous = null;
+            this.freeIntervals.Push(interval);
         }
 
         private void InsertInterval(CostInterval intervalIn, float cost, int position, int start, int end)
@@ -236,13 +247,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // TODO: should we use COST_CACHE_INTERVAL_SIZE_MAX?
-            var intervalNew = new CostInterval()
+            CostInterval intervalNew;
+            if (this.freeIntervals.Count > 0)
             {
-                Cost = cost,
-                Start = start,
-                End = end,
-                Index = position
-            };
+                intervalNew = this.freeIntervals.Pop();
+                intervalNew.Cost = cost;
+                intervalNew.Start = start;
+                intervalNew.End = end;
+                intervalNew.Index = position;
+            }
+            else
+            {
+                intervalNew = new CostInterval() { Cost = cost, Start = start, End = end, Index = position };
+            }
 
             this.PositionOrphanInterval(intervalNew, intervalIn);
             this.Count++;

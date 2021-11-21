@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Memory;
 
@@ -102,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if ((lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard || lz77TypeBest == (int)Vp8LLz77Type.Lz77Box) && quality >= 25)
             {
                 Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox;
-                BackwardReferencesTraceBackwards(width, height, bgra, cacheBits, hashChainTmp, best, worst);
+                BackwardReferencesTraceBackwards(width, height, memoryAllocator, bgra, cacheBits, hashChainTmp, best, worst);
                 var histo = new Vp8LHistogram(worst, cacheBits);
                 double bitCostTrace = histo.EstimateBits(stats, bitsEntropy);
                 if (bitCostTrace < bitCostBest)
@@ -236,6 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static void BackwardReferencesTraceBackwards(
             int xSize,
             int ySize,
+            MemoryAllocator memoryAllocator,
             ReadOnlySpan<uint> bgra,
             int cacheBits,
             Vp8LHashChain hashChain,
@@ -243,22 +245,24 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Vp8LBackwardRefs refsDst)
         {
             int distArraySize = xSize * ySize;
-            ushort[] distArray = new ushort[distArraySize];
+            using IMemoryOwner<ushort> distArrayBuffer = memoryAllocator.Allocate<ushort>(distArraySize);
+            Span<ushort> distArray = distArrayBuffer.GetSpan();
 
-            BackwardReferencesHashChainDistanceOnly(xSize, ySize, bgra, cacheBits, hashChain, refsSrc, distArray);
+            BackwardReferencesHashChainDistanceOnly(xSize, ySize, memoryAllocator, bgra, cacheBits, hashChain, refsSrc, distArrayBuffer);
             int chosenPathSize = TraceBackwards(distArray, distArraySize);
-            Span<ushort> chosenPath = distArray.AsSpan(distArraySize - chosenPathSize);
+            Span<ushort> chosenPath = distArray.Slice(distArraySize - chosenPathSize);
             BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
         }
 
         private static void BackwardReferencesHashChainDistanceOnly(
             int xSize,
             int ySize,
+            MemoryAllocator memoryAllocator,
             ReadOnlySpan<uint> bgra,
             int cacheBits,
             Vp8LHashChain hashChain,
             Vp8LBackwardRefs refs,
-            ushort[] distArray)
+            IMemoryOwner<ushort> distArrayBuffer)
         {
             int pixCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
@@ -277,22 +281,24 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             costModel.Build(xSize, cacheBits, refs);
-            var costManager = new CostManager(distArray, pixCount, costModel);
+            var costManager = new CostManager(memoryAllocator, distArrayBuffer, pixCount, costModel);
+            Span<float> costManagerCosts = costManager.Costs.GetSpan();
+            Span<ushort> distArray = distArrayBuffer.GetSpan();
 
             // We loop one pixel at a time, but store all currently best points to non-processed locations from this point.
             distArray[0] = 0;
 
             // Add first pixel as literal.
-            AddSingleLiteralWithCostModel(bgra, colorCache, costModel, 0, useColorCache, 0.0f, costManager.Costs, distArray);
+            AddSingleLiteralWithCostModel(bgra, colorCache, costModel, 0, useColorCache, 0.0f, costManagerCosts, distArray);
 
             for (int i = 1; i < pixCount; i++)
             {
-                float prevCost = costManager.Costs[i - 1];
+                float prevCost = costManagerCosts[i - 1];
                 int offset = hashChain.FindOffset(i);
                 int len = hashChain.FindLength(i);
 
                 // Try adding the pixel as a literal.
-                AddSingleLiteralWithCostModel(bgra, colorCache, costModel, i, useColorCache, prevCost, costManager.Costs, distArray);
+                AddSingleLiteralWithCostModel(bgra, colorCache, costModel, i, useColorCache, prevCost, costManagerCosts, distArray);
 
                 // If we are dealing with a non-literal.
                 if (len >= 2)
@@ -336,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             costManager.UpdateCostAtIndex(j - 1, false);
                             costManager.UpdateCostAtIndex(j, false);
 
-                            costManager.PushInterval(costManager.Costs[j - 1] + offsetCost, j, lenJ);
+                            costManager.PushInterval(costManagerCosts[j - 1] + offsetCost, j, lenJ);
                             reach = j + lenJ - 1;
                         }
                     }
@@ -348,7 +354,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private static int TraceBackwards(ushort[] distArray, int distArraySize)
+        private static int TraceBackwards(Span<ushort> distArray, int distArraySize)
         {
             int chosenPathSize = 0;
             int pathPos = distArraySize;
@@ -428,8 +434,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int idx,
             bool useColorCache,
             float prevCost,
-            float[] cost,
-            ushort[] distArray)
+            Span<float> cost,
+            Span<ushort> distArray)
         {
             double costVal = prevCost;
             uint color = bgra[idx];

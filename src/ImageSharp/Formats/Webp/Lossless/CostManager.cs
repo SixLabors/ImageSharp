@@ -1,7 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
 using System.Collections.Generic;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
@@ -10,21 +13,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// It caches the different CostCacheInterval, caches the different
     /// GetLengthCost(costModel, k) in costCache and the CostInterval's.
     /// </summary>
-    internal class CostManager
+    internal class CostManager : IDisposable
     {
+        private bool disposed;
+
         private CostInterval head;
 
         private const int FreeIntervalsStartCount = 25;
 
         private readonly Stack<CostInterval> freeIntervals = new(FreeIntervalsStartCount);
 
-        public CostManager(ushort[] distArray, int pixCount, CostModel costModel)
+        public CostManager(MemoryAllocator memoryAllocator, IMemoryOwner<ushort> distArray, int pixCount, CostModel costModel)
         {
             int costCacheSize = pixCount > BackwardReferenceEncoder.MaxLength ? BackwardReferenceEncoder.MaxLength : pixCount;
 
             this.CacheIntervals = new List<CostCacheInterval>();
             this.CostCache = new List<double>();
-            this.Costs = new float[pixCount];
+            this.Costs = memoryAllocator.Allocate<float>(pixCount);
             this.DistArray = distArray;
             this.Count = 0;
 
@@ -73,10 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Set the initial costs high for every pixel as we will keep the minimum.
-            for (int i = 0; i < pixCount; i++)
-            {
-                this.Costs[i] = 1e38f;
-            }
+            this.Costs.GetSpan().Fill(1e38f);
         }
 
         /// <summary>
@@ -91,9 +93,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         public int CacheIntervalsSize { get; }
 
-        public float[] Costs { get; }
+        public IMemoryOwner<float> Costs { get; }
 
-        public ushort[] DistArray { get; }
+        public IMemoryOwner<ushort> DistArray { get; }
 
         public List<CostCacheInterval> CacheIntervals { get; }
 
@@ -137,6 +139,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // interval logic, just serialize it right away. This constant is empirical.
             int skipDistance = 10;
 
+            Span<float> costs = this.Costs.GetSpan();
+            Span<ushort> distArray = this.DistArray.GetSpan();
             if (len < skipDistance)
             {
                 for (int j = position; j < position + len; j++)
@@ -144,10 +148,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     int k = j - position;
                     float costTmp = (float)(distanceCost + this.CostCache[k]);
 
-                    if (this.Costs[j] > costTmp)
+                    if (costs[j] > costTmp)
                     {
-                        this.Costs[j] = costTmp;
-                        this.DistArray[j] = (ushort)(k + 1);
+                        costs[j] = costTmp;
+                        distArray[j] = (ushort)(k + 1);
                     }
                 }
 
@@ -314,12 +318,35 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private void UpdateCost(int i, int position, float cost)
         {
+            Span<float> costs = this.Costs.GetSpan();
+            Span<ushort> distArray = this.DistArray.GetSpan();
             int k = i - position;
-            if (this.Costs[i] > cost)
+            if (costs[i] > cost)
             {
-                this.Costs[i] = cost;
-                this.DistArray[i] = (ushort)(k + 1);
+                costs[i] = cost;
+                distArray[i] = (ushort)(k + 1);
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposed)
+            {
+                if (disposing)
+                {
+                    this.Costs.Dispose();
+                }
+
+                this.disposed = true;
+            }
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            this.Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

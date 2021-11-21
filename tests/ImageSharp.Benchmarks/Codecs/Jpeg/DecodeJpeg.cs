@@ -66,16 +66,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
 
 /*
-BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042.1288 (20H2/October2020Update)
+BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042.1348 (20H2/October2020Update)
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 .NET SDK=6.0.100-preview.3.21202.5
   [Host]     : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
   DefaultJob : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
 
+
 |                              Method |      Mean |     Error |    StdDev |
 |------------------------------------ |----------:|----------:|----------:|
-|        'Baseline 4:4:4 Interleaved' | 11.781 ms | 0.0737 ms | 0.0654 ms |
-|        'Baseline 4:2:0 Interleaved' |  8.688 ms | 0.0345 ms | 0.0306 ms |
-|        'Baseline 4:0:0 (grayscale)' |  1.643 ms | 0.0092 ms | 0.0086 ms |
-| 'Progressive 4:2:0 Non-Interleaved' | 13.770 ms | 0.0928 ms | 0.0823 ms |
+|        'Baseline 4:4:4 Interleaved' | 11.532 ms | 0.0530 ms | 0.0496 ms |
+|        'Baseline 4:2:0 Interleaved' |  8.458 ms | 0.0289 ms | 0.0256 ms |
+|        'Baseline 4:0:0 (grayscale)' |  1.550 ms | 0.0050 ms | 0.0044 ms |
+| 'Progressive 4:2:0 Non-Interleaved' | 13.220 ms | 0.0449 ms | 0.0398 ms |
 */

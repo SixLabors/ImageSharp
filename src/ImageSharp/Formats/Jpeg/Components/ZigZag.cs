@@ -36,6 +36,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             63, 63, 63, 63, 63, 63, 63, 63
         };
 
+        /// <summary>
+        /// Gets span of zig-zag with fused transpose step ordering indices.
+        /// </summary>
+        /// <remarks>
+        /// When reading corrupted data, the Huffman decoders could attempt
+        /// to reference an entry beyond the end of this array (if the decoded
+        /// zero run length reaches past the end of the block).  To prevent
+        /// wild stores without adding an inner-loop test, we put some extra
+        /// "63"s after the real entries.  This will cause the extra coefficient
+        /// to be stored in location 63 of the block, not somewhere random.
+        /// The worst case would be a run-length of 15, which means we need 16
+        /// fake entries.
+        /// </remarks>
         public static ReadOnlySpan<byte> TransposingOrder => new byte[]
         {
             0,  8,  1,  2,  9,  16, 24, 17,

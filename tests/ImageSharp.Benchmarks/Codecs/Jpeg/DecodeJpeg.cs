@@ -71,7 +71,7 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 .NET SDK=6.0.100-preview.3.21202.5
   [Host]     : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
   DefaultJob : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
-MASTER
+
 |                              Method |      Mean |     Error |    StdDev |
 |------------------------------------ |----------:|----------:|----------:|
 |        'Baseline 4:4:4 Interleaved' | 12.710 ms | 0.1120 ms | 0.0990 ms |

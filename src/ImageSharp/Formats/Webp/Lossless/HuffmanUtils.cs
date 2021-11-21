@@ -219,8 +219,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     while (treeSize > 1)
                     {
                         // Finish when we have only one root.
-                        treePool[treePoolSize++] = (HuffmanTree)tree[treeSize - 1].DeepClone();
-                        treePool[treePoolSize++] = (HuffmanTree)tree[treeSize - 2].DeepClone();
+                        treePool[treePoolSize++] = tree[treeSize - 1];
+                        treePool[treePoolSize++] = tree[treeSize - 2];
                         int count = treePool[treePoolSize - 1].TotalCount + treePool[treePoolSize - 2].TotalCount;
                         treeSize -= 2;
 
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         int startIdx = endIdx + num - 1;
                         for (int i = startIdx; i >= endIdx; i--)
                         {
-                            tree[i] = (HuffmanTree)tree[i - 1].DeepClone();
+                            tree[i] = tree[i - 1];
                         }
 
                         tree[k].TotalCount = count;

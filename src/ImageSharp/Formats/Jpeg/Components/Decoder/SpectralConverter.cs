@@ -45,9 +45,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <remarks>
         /// This must be called only for baseline interleaved jpeg's.
         /// </remarks>
-        public void CommitConvertion()
+        public void CommitConversion()
         {
-            DebugGuard.IsFalse(this.Converted, nameof(this.Converted), $"{nameof(this.CommitConvertion)} must be called only once");
+            DebugGuard.IsFalse(this.Converted, nameof(this.Converted), $"{nameof(this.CommitConversion)} must be called only once");
 
             this.Converted = true;
         }

@@ -14,6 +14,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal abstract class SpectralConverter
     {
         /// <summary>
+        /// Gets a value indicating whether this converter has converted spectral
+        /// data of the current image or not.
+        /// </summary>
+        protected bool Converted { get; private set; }
+
+        /// <summary>
         /// Injects jpeg image decoding metadata.
         /// </summary>
         /// <remarks>
@@ -32,6 +38,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Actual stride height depends on the subsampling factor of the given component.
         /// </remarks>
         public abstract void ConvertStrideBaseline();
+
+        /// <summary>
+        /// Marks current converter state as 'converted'.
+        /// </summary>
+        /// <remarks>
+        /// This must be called only for baseline interleaved jpeg's.
+        /// </remarks>
+        public void CommitConvertion()
+        {
+            DebugGuard.IsFalse(this.Converted, nameof(this.Converted), $"{nameof(this.CommitConvertion)} must be called only once");
+
+            this.Converted = true;
+        }
 
         /// <summary>
         /// Gets the color converter.

@@ -821,6 +821,21 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Reduces elements of the vector into one sum.
+        /// </summary>
+        /// <param name="accumulator">The accumulator to reduce.</param>
+        /// <returns>The sum of all elements.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ReduceSum(Vector256<int> accumulator)
+        {
+            Vector128<int> vec0 = Avx2.ExtractVector128(accumulator, 0);
+            Vector128<int> vec1 = Avx2.ExtractVector128(accumulator, 1);
+            Vector128<int> sum128 = Sse2.Add(vec0, vec1);
+
+            return ReduceSum(sum128);
+        }
+
+        /// <summary>
         /// Reduces even elements of the vector into one sum.
         /// </summary>
         /// <param name="accumulator">The accumulator to reduce.</param>

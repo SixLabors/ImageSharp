@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 #if SUPPORTS_RUNTIME_INTRINSICS
+using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -706,7 +707,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int colorMapLength4 = 4 * newColorMap.Length;
             for (; i < colorMapLength4; i++)
             {
-                newData[i] = 0;  // black tail.
+                newData[i] = 0; // black tail.
             }
         }
 
@@ -760,102 +761,44 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static float CombinedShannonEntropy(Span<int> x, Span<int> y)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse41.IsSupported)
+            if (Sse2.IsSupported)
             {
                 double retVal = 0.0d;
-                Span<int> tmp = stackalloc int[4];
                 ref int xRef = ref MemoryMarshal.GetReference(x);
                 ref int yRef = ref MemoryMarshal.GetReference(y);
-                Vector128<int> sumXY128 = Vector128<int>.Zero;
-                Vector128<int> sumX128 = Vector128<int>.Zero;
-                ref int tmpRef = ref MemoryMarshal.GetReference(tmp);
-                for (int i = 0; i < 256; i += 4)
+
+                int sumXY = 0;
+                int sumX = 0;
+                for (int i = 0; i < 256; i += 16)
                 {
-                    Vector128<int> xVec = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref xRef, i));
-                    Vector128<int> yVec = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref yRef, i));
-
-                    // Check if any X is non-zero: this actually provides a speedup as X is usually sparse.
-                    if (Sse2.MoveMask(Sse2.CompareEqual(xVec, Vector128<int>.Zero).AsByte()) != 0xFFFF)
+                    Vector128<int> x0 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref xRef, i));
+                    Vector128<int> y0 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref yRef, i));
+                    Vector128<int> x1 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref xRef, i + 4));
+                    Vector128<int> y1 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref yRef, i + 4));
+                    Vector128<int> x2 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref xRef, i + 8));
+                    Vector128<int> y2 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref yRef, i + 8));
+                    Vector128<int> x3 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref xRef, i + 12));
+                    Vector128<int> y3 = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref yRef, i + 12));
+                    Vector128<sbyte> x4 = Sse2.PackSignedSaturate(Sse2.PackSignedSaturate(x0, x1), Sse2.PackSignedSaturate(x2, x3));
+                    Vector128<sbyte> y4 = Sse2.PackSignedSaturate(Sse2.PackSignedSaturate(y0, y1), Sse2.PackSignedSaturate(y2, y3));
+                    int mx = Sse2.MoveMask(Sse2.CompareGreaterThan(x4, Vector128<sbyte>.Zero).AsByte());
+                    int my = Sse2.MoveMask(Sse2.CompareGreaterThan(y4, Vector128<sbyte>.Zero).AsByte()) | mx;
+                    while (my != 0)
                     {
-                        Vector128<int> xy128 = Sse2.Add(xVec, yVec);
-                        sumXY128 = Sse2.Add(sumXY128, xy128);
-                        sumX128 = Sse2.Add(sumX128, xVec);
-
-                        // Analyze the different X + Y.
-                        Unsafe.As<int, Vector128<int>>(ref tmpRef) = xy128;
-                        if (tmpRef != 0)
+                        int j = BitOperations.TrailingZeroCount(my);
+                        if (((mx >> j) & 1) != 0)
                         {
-                            retVal -= FastSLog2((uint)tmpRef);
-                            if (Unsafe.Add(ref xRef, i) != 0)
-                            {
-                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i));
-                            }
+                            int xij = Unsafe.Add(ref xRef, i + j);
+                            sumXY += xij;
+                            retVal -= FastSLog2((uint)xij);
                         }
 
-                        if (Unsafe.Add(ref tmpRef, 1) != 0)
-                        {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 1));
-                            if (Unsafe.Add(ref xRef, i + 1) != 0)
-                            {
-                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 1));
-                            }
-                        }
-
-                        if (Unsafe.Add(ref tmpRef, 2) != 0)
-                        {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 2));
-                            if (Unsafe.Add(ref xRef, i + 2) != 0)
-                            {
-                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 2));
-                            }
-                        }
-
-                        if (Unsafe.Add(ref tmpRef, 3) != 0)
-                        {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 3));
-                            if (Unsafe.Add(ref xRef, i + 3) != 0)
-                            {
-                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 3));
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // X is fully 0, so only deal with Y.
-                        sumXY128 = Sse2.Add(sumXY128, yVec);
-
-                        if (Unsafe.Add(ref yRef, i) != 0)
-                        {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i));
-                        }
-
-                        if (Unsafe.Add(ref yRef, i + 1) != 0)
-                        {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 1));
-                        }
-
-                        if (Unsafe.Add(ref yRef, i + 2) != 0)
-                        {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 2));
-                        }
-
-                        if (Unsafe.Add(ref yRef, i + 3) != 0)
-                        {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 3));
-                        }
+                        int xy = Unsafe.Add(ref xRef, i + j) + Unsafe.Add(ref yRef, i + j);
+                        sumX += xy;
+                        retVal -= FastSLog2((uint)xy);
+                        my &= my - 1;
                     }
                 }
-
-                // Sum up sumX_128 to get sumX and sum up sumXY_128 to get sumXY.
-                // note: not using here Numerics.ReduceSum, because grouping the same methods together should be slightly faster.
-                Vector128<int> haddSumX = Ssse3.HorizontalAdd(sumX128, sumX128);
-                Vector128<int> haddSumXY = Ssse3.HorizontalAdd(sumXY128, sumXY128);
-                Vector128<int> swappedSumX = Sse2.Shuffle(haddSumX, 0x1);
-                Vector128<int> swappedSumXY = Sse2.Shuffle(haddSumXY, 0x1);
-                Vector128<int> tmpSumX = Sse2.Add(haddSumX, swappedSumX);
-                Vector128<int> tmpSumXY = Sse2.Add(haddSumXY, swappedSumXY);
-                int sumX = Sse2.ConvertToInt32(tmpSumX);
-                int sumXY = Sse2.ConvertToInt32(tmpSumXY);
 
                 retVal += FastSLog2((uint)sumX) + FastSLog2((uint)sumXY);
 

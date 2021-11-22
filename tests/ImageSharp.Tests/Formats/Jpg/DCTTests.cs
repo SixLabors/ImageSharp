@@ -52,16 +52,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // Part of the IDCT calculations is fused into the quantization step
                 // We must multiply input block with adjusted no-quantization matrix
                 // before applying IDCT
+                // Dequantization using unit matrix - no values are upscaled
                 Block8x8F dequantMatrix = CreateBlockFromScalar(1);
 
-                // Dequantization using unit matrix - no values are upscaled
-                // as quant matrix is all 1's
                 // This step is needed to apply adjusting multipliers to the input block
                 FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
-                srcBlock.MultiplyInPlace(ref dequantMatrix);
 
                 // IDCT implementation tranforms blocks after transposition
                 srcBlock.TransposeInplace();
+                srcBlock.MultiplyInPlace(ref dequantMatrix);
 
                 // IDCT calculation
                 FastFloatingPointDCT.TransformIDCT(ref srcBlock);
@@ -86,16 +85,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // Part of the IDCT calculations is fused into the quantization step
                 // We must multiply input block with adjusted no-quantization matrix
                 // before applying IDCT
+                // Dequantization using unit matrix - no values are upscaled
                 Block8x8F dequantMatrix = CreateBlockFromScalar(1);
 
-                // Dequantization using unit matrix - no values are upscaled
-                // as quant matrix is all 1's
                 // This step is needed to apply adjusting multipliers to the input block
                 FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
-                srcBlock.MultiplyInPlace(ref dequantMatrix);
 
                 // IDCT implementation tranforms blocks after transposition
                 srcBlock.TransposeInplace();
+                srcBlock.MultiplyInPlace(ref dequantMatrix);
 
                 // IDCT calculation
                 FastFloatingPointDCT.TransformIDCT(ref srcBlock);

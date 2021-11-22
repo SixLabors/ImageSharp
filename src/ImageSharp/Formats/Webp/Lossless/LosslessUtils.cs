@@ -783,39 +783,39 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                         // Analyze the different X + Y.
                         Unsafe.As<int, Vector128<int>>(ref tmpRef) = xy128;
-                        if (tmp[0] != 0)
+                        if (tmpRef != 0)
                         {
-                            retVal -= FastSLog2((uint)tmp[0]);
-                            if (x[i + 0] != 0)
+                            retVal -= FastSLog2((uint)tmpRef);
+                            if (Unsafe.Add(ref xRef, i) != 0)
                             {
-                                retVal -= FastSLog2((uint)x[i + 0]);
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i));
                             }
                         }
 
-                        if (tmp[1] != 0)
+                        if (Unsafe.Add(ref tmpRef, 1) != 0)
                         {
-                            retVal -= FastSLog2((uint)tmp[1]);
-                            if (x[i + 1] != 0)
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 1));
+                            if (Unsafe.Add(ref xRef, i + 1) != 0)
                             {
-                                retVal -= FastSLog2((uint)x[i + 1]);
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 1));
                             }
                         }
 
-                        if (tmp[2] != 0)
+                        if (Unsafe.Add(ref tmpRef, 2) != 0)
                         {
-                            retVal -= FastSLog2((uint)tmp[2]);
-                            if (x[i + 2] != 0)
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 2));
+                            if (Unsafe.Add(ref xRef, i + 2) != 0)
                             {
-                                retVal -= FastSLog2((uint)x[i + 2]);
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 2));
                             }
                         }
 
-                        if (tmp[3] != 0)
+                        if (Unsafe.Add(ref tmpRef, 3) != 0)
                         {
-                            retVal -= FastSLog2((uint)tmp[3]);
-                            if (x[i + 3] != 0)
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 3));
+                            if (Unsafe.Add(ref xRef, i + 3) != 0)
                             {
-                                retVal -= FastSLog2((uint)x[i + 3]);
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 3));
                             }
                         }
                     }
@@ -824,24 +824,24 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         // X is fully 0, so only deal with Y.
                         sumXY128 = Sse2.Add(sumXY128, yVec);
 
-                        if (y[i] != 0)
+                        if (Unsafe.Add(ref yRef, i) != 0)
                         {
-                            retVal -= FastSLog2((uint)y[i]);
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i));
                         }
 
-                        if (y[i + 1] != 0)
+                        if (Unsafe.Add(ref yRef, i + 1) != 0)
                         {
-                            retVal -= FastSLog2((uint)y[i + 1]);
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 1));
                         }
 
-                        if (y[i + 2] != 0)
+                        if (Unsafe.Add(ref yRef, i + 2) != 0)
                         {
-                            retVal -= FastSLog2((uint)y[i + 2]);
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 2));
                         }
 
-                        if (y[i + 3] != 0)
+                        if (Unsafe.Add(ref yRef, i + 3) != 0)
                         {
-                            retVal -= FastSLog2((uint)y[i + 3]);
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 3));
                         }
                     }
                 }
@@ -886,19 +886,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 retVal += FastSLog2(sumX) + FastSLog2(sumXY);
                 return (float)retVal;
-            }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void AnalyzeXy(Span<int> tmp, Span<int> x, int i, int pos, ref double retVal)
-        {
-            if (tmp[pos] != 0)
-            {
-                retVal -= FastSLog2((uint)tmp[pos]);
-                if (x[i + pos] != 0)
-                {
-                    retVal -= FastSLog2((uint)x[i + pos]);
-                }
             }
         }
 

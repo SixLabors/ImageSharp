@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
-    internal class Vp8LHashChain : IDisposable
+    internal sealed class Vp8LHashChain : IDisposable
     {
         private const uint HashMultiplierHi = 0xc6a4a793u;
 
@@ -29,8 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private const int WindowSize = (1 << WindowSizeBits) - 120;
 
         private readonly MemoryAllocator memoryAllocator;
-
-        private bool disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LHashChain"/> class.
@@ -288,24 +286,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return maxWindowSize > WindowSize ? WindowSize : maxWindowSize;
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.disposed)
-            {
-                if (disposing)
-                {
-                    this.OffsetLength.Dispose();
-                }
-
-                this.disposed = true;
-            }
-        }
-
         /// <inheritdoc />
-        public void Dispose()
-        {
-            this.Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() => this.OffsetLength.Dispose();
     }
 }

@@ -13,10 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// It caches the different CostCacheInterval, caches the different
     /// GetLengthCost(costModel, k) in costCache and the CostInterval's.
     /// </summary>
-    internal class CostManager : IDisposable
+    internal sealed class CostManager : IDisposable
     {
-        private bool disposed;
-
         private CostInterval head;
 
         private const int FreeIntervalsStartCount = 25;
@@ -328,25 +326,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.disposed)
-            {
-                if (disposing)
-                {
-                    this.Costs.Dispose();
-                }
-
-                this.disposed = true;
-            }
-        }
-
         /// <inheritdoc />
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            this.Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() => this.Costs.Dispose();
     }
 }

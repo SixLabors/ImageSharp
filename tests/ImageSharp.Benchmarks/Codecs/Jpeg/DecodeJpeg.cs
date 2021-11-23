@@ -75,7 +75,7 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 
 |                              Method |      Mean |     Error |    StdDev |
 |------------------------------------ |----------:|----------:|----------:|
-|        'Baseline 4:4:4 Interleaved' | 11.532 ms | 0.0530 ms | 0.0496 ms |
+|        'Baseline 4:4:4 Interleaved' | 11.127 ms | 0.0659 ms | 0.0550 ms |
 |        'Baseline 4:2:0 Interleaved' |  8.458 ms | 0.0289 ms | 0.0256 ms |
 |        'Baseline 4:0:0 (grayscale)' |  1.550 ms | 0.0050 ms | 0.0044 ms |
 | 'Progressive 4:2:0 Non-Interleaved' | 13.220 ms | 0.0449 ms | 0.0398 ms |

@@ -124,18 +124,24 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);
             this.Palette = memoryAllocator.Allocate<uint>(WebpConstants.MaxPaletteSize);
             this.Refs = new Vp8LBackwardRefs[3];
-            this.HashChain = new Vp8LHashChain(pixelCount);
+            this.HashChain = new Vp8LHashChain(memoryAllocator, pixelCount);
 
             // We round the block size up, so we're guaranteed to have at most MaxRefsBlockPerImage blocks used:
             int refsBlockSize = ((pixelCount - 1) / MaxRefsBlockPerImage) + 1;
             for (int i = 0; i < this.Refs.Length; i++)
             {
-                this.Refs[i] = new Vp8LBackwardRefs
+                this.Refs[i] = new Vp8LBackwardRefs(pixelCount)
                 {
                     BlockSize = refsBlockSize < MinBlockSize ? MinBlockSize : refsBlockSize
                 };
             }
         }
+
+        // RFC 1951 will calm you down if you are worried about this funny sequence.
+        // This sequence is tuned from that, but more weighted for lower symbol count,
+        // and more spiking histograms.
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        private static ReadOnlySpan<byte> StorageOrder => new byte[] { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
         // This uses C#'s compiler optimization to refer to assembly's static data directly.
         private static ReadOnlySpan<byte> Order => new byte[] { 1, 2, 0, 3 };
@@ -515,7 +521,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Calculate backward references from BGRA image.
-            this.HashChain.Fill(this.memoryAllocator, bgra, this.quality, width, height, lowEffort);
+            this.HashChain.Fill(bgra, this.quality, width, height, lowEffort);
 
             Vp8LBitWriter bitWriterBest = config.SubConfigs.Count > 1 ? this.bitWriter.Clone() : this.bitWriter;
             Vp8LBitWriter bwInit = this.bitWriter;
@@ -529,6 +535,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     this.quality,
                     subConfig.Lz77,
                     ref cacheBits,
+                    this.memoryAllocator,
                     this.HashChain,
                     this.Refs[0],
                     this.Refs[1]);
@@ -735,7 +742,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Calculate backward references from the image pixels.
-            hashChain.Fill(this.memoryAllocator, bgra, quality, width, height, lowEffort);
+            hashChain.Fill(bgra, quality, width, height, lowEffort);
 
             Vp8LBackwardRefs refs = BackwardReferenceEncoder.GetBackwardReferences(
                 width,
@@ -744,6 +751,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 quality,
                 (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle,
                 ref cacheBits,
+                this.memoryAllocator,
                 hashChain,
                 refsTmp1,
                 refsTmp2);
@@ -940,16 +948,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private void StoreHuffmanTreeOfHuffmanTreeToBitMask(byte[] codeLengthBitDepth)
         {
-            // RFC 1951 will calm you down if you are worried about this funny sequence.
-            // This sequence is tuned from that, but more weighted for lower symbol count,
-            // and more spiking histograms.
-            byte[] storageOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-
             // Throw away trailing zeros:
             int codesToStore = WebpConstants.CodeLengthCodes;
             for (; codesToStore > 4; codesToStore--)
             {
-                if (codeLengthBitDepth[storageOrder[codesToStore - 1]] != 0)
+                if (codeLengthBitDepth[StorageOrder[codesToStore - 1]] != 0)
                 {
                     break;
                 }
@@ -958,7 +961,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.bitWriter.PutBits((uint)codesToStore - 4, 4);
             for (int i = 0; i < codesToStore; i++)
             {
-                this.bitWriter.PutBits(codeLengthBitDepth[storageOrder[i]], 3);
+                this.bitWriter.PutBits(codeLengthBitDepth[StorageOrder[i]], 3);
             }
         }
 
@@ -1802,6 +1805,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.BgraScratch.Dispose();
             this.Palette.Dispose();
             this.TransformData.Dispose();
+            this.HashChain.Dispose();
         }
     }
 }

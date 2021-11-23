@@ -81,7 +81,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             int matchLen = 0;
 
-            while (matchLen < length && array1[matchLen] == array2[matchLen])
+            ref uint array1Ref = ref MemoryMarshal.GetReference(array1);
+            ref uint array2Ref = ref MemoryMarshal.GetReference(array2);
+            while (matchLen < length && Unsafe.Add(ref array1Ref, matchLen) == Unsafe.Add(ref array2Ref, matchLen))
             {
                 matchLen++;
             }

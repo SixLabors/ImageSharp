@@ -70,8 +70,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref float multipliersRef = ref MemoryMarshal.GetReference<float>(AdjustmentCoefficients);
             for (nint i = 0; i < Block8x8F.Size; i++)
             {
-                tableRef = ref Unsafe.Add(ref tableRef, i);
                 tableRef = 0.125f * tableRef * Unsafe.Add(ref multipliersRef, i);
+                tableRef = ref Unsafe.Add(ref tableRef, 1);
             }
 
             // Spectral macroblocks are transposed before quantization
@@ -89,8 +89,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref float multipliersRef = ref MemoryMarshal.GetReference<float>(AdjustmentCoefficients);
             for (nint i = 0; i < Block8x8F.Size; i++)
             {
-                tableRef = ref Unsafe.Add(ref tableRef, i);
                 tableRef = 0.125f / (tableRef * Unsafe.Add(ref multipliersRef, i));
+                tableRef = ref Unsafe.Add(ref tableRef, 1);
             }
         }
 

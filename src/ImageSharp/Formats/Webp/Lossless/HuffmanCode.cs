@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// A classic way to do entropy coding where a smaller number of bits are used for more frequent codes.
     /// </summary>
     [DebuggerDisplay("BitsUsed: {BitsUsed}, Value: {Value}")]
-    internal class HuffmanCode
+    internal struct HuffmanCode
     {
         /// <summary>
         /// Gets or sets the number of bits used for this symbol.

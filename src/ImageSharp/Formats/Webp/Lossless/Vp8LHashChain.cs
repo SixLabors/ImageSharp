@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
-    internal class Vp8LHashChain
+    internal sealed class Vp8LHashChain : IDisposable
     {
         private const uint HashMultiplierHi = 0xc6a4a793u;
 
@@ -28,14 +28,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private const int WindowSize = (1 << WindowSizeBits) - 120;
 
+        private readonly MemoryAllocator memoryAllocator;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LHashChain"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="size">The size off the chain.</param>
-        public Vp8LHashChain(int size)
+        public Vp8LHashChain(MemoryAllocator memoryAllocator, int size)
         {
-            this.OffsetLength = new uint[size];
-            this.OffsetLength.AsSpan().Fill(0xcdcdcdcd);
+            this.memoryAllocator = memoryAllocator;
+            this.OffsetLength = this.memoryAllocator.Allocate<uint>(size, AllocationOptions.Clean);
             this.Size = size;
         }
 
@@ -45,16 +48,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// These 20 bits are the limit defined by GetWindowSizeForHashChain (through WindowSize = 1 &lt;&lt; 20).
         /// The lower 12 bits contain the length of the match.
         /// </summary>
-        public uint[] OffsetLength { get; }
+        public IMemoryOwner<uint> OffsetLength { get; }
 
         /// <summary>
         /// Gets the size of the hash chain.
-        /// This is the maximum size of the hash_chain that can be constructed.
+        /// This is the maximum size of the hashchain that can be constructed.
         /// Typically this is the pixel count (width x height) for a given image.
         /// </summary>
         public int Size { get; }
 
-        public void Fill(MemoryAllocator memoryAllocator, ReadOnlySpan<uint> bgra, int quality, int xSize, int ySize, bool lowEffort)
+        public void Fill(ReadOnlySpan<uint> bgra, int quality, int xSize, int ySize, bool lowEffort)
         {
             int size = xSize * ySize;
             int iterMax = GetMaxItersForQuality(quality);
@@ -63,20 +66,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             if (size <= 2)
             {
-                this.OffsetLength[0] = 0;
+                this.OffsetLength.GetSpan()[0] = 0;
                 return;
             }
 
-            using IMemoryOwner<int> hashToFirstIndexBuffer = memoryAllocator.Allocate<int>(HashSize);
+            using IMemoryOwner<int> hashToFirstIndexBuffer = this.memoryAllocator.Allocate<int>(HashSize);
+            using IMemoryOwner<int> chainBuffer = this.memoryAllocator.Allocate<int>(size, AllocationOptions.Clean);
             Span<int> hashToFirstIndex = hashToFirstIndexBuffer.GetSpan();
+            Span<int> chain = chainBuffer.GetSpan();
 
             // Initialize hashToFirstIndex array to -1.
             hashToFirstIndex.Fill(-1);
 
-            int[] chain = new int[size];
-
             // Fill the chain linking pixels with the same hash.
             bool bgraComp = bgra.Length > 1 && bgra[0] == bgra[1];
+            Span<uint> tmp = stackalloc uint[2];
             for (pos = 0; pos < size - 2;)
             {
                 uint hashCode;
@@ -85,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     // Consecutive pixels with the same color will share the same hash.
                     // We therefore use a different hash: the color and its repetition length.
-                    uint[] tmp = new uint[2];
+                    tmp.Clear();
                     uint len = 1;
                     tmp[0] = bgra[pos];
 
@@ -134,7 +138,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Find the best match interval at each pixel, defined by an offset to the
             // pixel and a length. The right-most pixel cannot match anything to the right
             // (hence a best length of 0) and the left-most pixel nothing to the left (hence an offset of 0).
-            this.OffsetLength[0] = this.OffsetLength[size - 1] = 0;
+            Span<uint> offsetLength = this.OffsetLength.GetSpan();
+            offsetLength[0] = offsetLength[size - 1] = 0;
             for (int basePosition = size - 2; basePosition > 0;)
             {
                 int maxLen = LosslessUtils.MaxFindCopyLength(size - 1 - basePosition);
@@ -208,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 uint maxBasePosition = (uint)basePosition;
                 while (true)
                 {
-                    this.OffsetLength[basePosition] = (bestDistance << BackwardReferenceEncoder.MaxLengthBits) | (uint)bestLength;
+                    offsetLength[basePosition] = (bestDistance << BackwardReferenceEncoder.MaxLengthBits) | (uint)bestLength;
                     --basePosition;
 
                     // Stop if we don't have a match or if we are out of bounds.
@@ -242,10 +247,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int FindLength(int basePosition) => (int)(this.OffsetLength[basePosition] & ((1U << BackwardReferenceEncoder.MaxLengthBits) - 1));
+        public int FindLength(int basePosition) => (int)(this.OffsetLength.GetSpan()[basePosition] & ((1U << BackwardReferenceEncoder.MaxLengthBits) - 1));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int FindOffset(int basePosition) => (int)(this.OffsetLength[basePosition] >> BackwardReferenceEncoder.MaxLengthBits);
+        public int FindOffset(int basePosition) => (int)(this.OffsetLength.GetSpan()[basePosition] >> BackwardReferenceEncoder.MaxLengthBits);
 
         /// <summary>
         /// Calculates the hash for a pixel pair.
@@ -280,5 +285,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             return maxWindowSize > WindowSize ? WindowSize : maxWindowSize;
         }
+
+        /// <inheritdoc />
+        public void Dispose() => this.OffsetLength.Dispose();
     }
 }

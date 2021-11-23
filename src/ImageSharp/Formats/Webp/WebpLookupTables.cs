@@ -239,7 +239,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
         };
 
-        public static readonly byte[] Norm =
+        // This uses C#'s compiler optimization to refer to assembly's static data directly.
+        public static ReadOnlySpan<byte> Norm => new byte[]
         {
             // renorm_sizes[i] = 8 - log2(i)
             7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,

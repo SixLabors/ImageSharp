@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -65,9 +66,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="quantTable">Quantization table to adjust.</param>
         public static void AdjustToIDCT(ref Block8x8F quantTable)
         {
-            for (int i = 0; i < Block8x8F.Size; i++)
+            ref float tableRef = ref Unsafe.As<Block8x8F, float>(ref quantTable);
+            ref float multipliersRef = ref MemoryMarshal.GetReference<float>(AdjustmentCoefficients);
+            for (nint i = 0; i < Block8x8F.Size; i++)
             {
-                quantTable[i] = quantTable[i] * AdjustmentCoefficients[i] * 0.125f;
+                tableRef = ref Unsafe.Add(ref tableRef, i);
+                tableRef = 0.125f * tableRef * Unsafe.Add(ref multipliersRef, i);
             }
 
             // Spectral macroblocks are transposed before quantization
@@ -81,9 +85,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="quantTable">Quantization table to adjust.</param>
         public static void AdjustToFDCT(ref Block8x8F quantTable)
         {
-            for (int i = 0; i < Block8x8F.Size; i++)
+            ref float tableRef = ref Unsafe.As<Block8x8F, float>(ref quantTable);
+            ref float multipliersRef = ref MemoryMarshal.GetReference<float>(AdjustmentCoefficients);
+            for (nint i = 0; i < Block8x8F.Size; i++)
             {
-                quantTable[i] = 0.125f / (quantTable[i] * AdjustmentCoefficients[i]);
+                tableRef = ref Unsafe.Add(ref tableRef, i);
+                tableRef = 0.125f / (tableRef * Unsafe.Add(ref multipliersRef, i));
             }
         }
 

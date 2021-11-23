@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
-    internal class Vp8Histogram
+    internal sealed class Vp8Histogram
     {
         private readonly int[] scratch = new int[16];
 

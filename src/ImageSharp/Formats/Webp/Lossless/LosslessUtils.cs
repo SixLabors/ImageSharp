@@ -80,15 +80,72 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static int VectorMismatch(ReadOnlySpan<uint> array1, ReadOnlySpan<uint> array2, int length)
         {
             int matchLen = 0;
-
             ref uint array1Ref = ref MemoryMarshal.GetReference(array1);
             ref uint array2Ref = ref MemoryMarshal.GetReference(array2);
-            while (matchLen < length && Unsafe.Add(ref array1Ref, matchLen) == Unsafe.Add(ref array2Ref, matchLen))
-            {
-                matchLen++;
-            }
 
-            return matchLen;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                if (length >= 12)
+                {
+                    Vector128<uint> a0 = Unsafe.As<uint, Vector128<uint>>(ref array1Ref);
+                    Vector128<uint> a1 = Unsafe.As<uint, Vector128<uint>>(ref array2Ref);
+
+                    do
+                    {
+                        // Loop unrolling and early load both provide a speedup.
+                        Vector128<uint> cmpA = Sse2.CompareEqual(a0, a1);
+                        Vector128<uint> b0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref array1Ref, matchLen + 4));
+                        Vector128<uint> b1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref array2Ref, matchLen + 4));
+                        if (Sse2.MoveMask(cmpA.AsByte()) != 0xffff)
+                        {
+                            break;
+                        }
+
+                        matchLen += 4;
+
+                        Vector128<uint> cmpB = Sse2.CompareEqual(b0, b1);
+                        a0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref array1Ref, matchLen + 4));
+                        a1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref array2Ref, matchLen + 4));
+                        if (Sse2.MoveMask(cmpB.AsByte()) != 0xffff)
+                        {
+                            break;
+                        }
+
+                        matchLen += 4;
+                    }
+                    while (matchLen + 12 < length);
+                }
+                else
+                {
+                    // Unroll the potential first two loops.
+                    if (length >= 4
+                        && Sse2.MoveMask(
+                            Sse2.CompareEqual(
+                                Unsafe.As<uint, Vector128<uint>>(ref array1Ref),
+                                Unsafe.As<uint, Vector128<uint>>(ref array2Ref)).AsByte()) == 0xffff)
+                    {
+                        matchLen = 4;
+                        if (length >= 8
+                            && Sse2.MoveMask(
+                                Sse2.CompareEqual(
+                                    Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref array1Ref, 4)),
+                                    Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref array2Ref, 4))).AsByte()) == 0xffff)
+                        {
+                            matchLen = 8;
+                        }
+                    }
+                }
+            }
+#endif
+            {
+                while (matchLen < length && Unsafe.Add(ref array1Ref, matchLen) == Unsafe.Add(ref array2Ref, matchLen))
+                {
+                    matchLen++;
+                }
+
+                return matchLen;
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

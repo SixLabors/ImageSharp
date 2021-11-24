@@ -136,6 +136,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
                         image.SaveAsJpeg(output);
                     }
 
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.pbm")))
+                    {
+                        image.SaveAsPbm(output);
+                    }
+
                     using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
                     {
                         image.SaveAsPng(output);
@@ -183,6 +188,10 @@ namespace SixLabors.ImageSharp.Tests.Formats
         }
 
         [Theory]
+        [InlineData(10, 10, "pbm")]
+        [InlineData(100, 100, "pbm")]
+        [InlineData(100, 10, "pbm")]
+        [InlineData(10, 100, "pbm")]
         [InlineData(10, 10, "png")]
         [InlineData(100, 100, "png")]
         [InlineData(100, 10, "png")]

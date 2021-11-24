@@ -828,11 +828,16 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ReduceSum(Vector256<int> accumulator)
         {
-            Vector128<int> vec0 = Avx2.ExtractVector128(accumulator, 0);
-            Vector128<int> vec1 = Avx2.ExtractVector128(accumulator, 1);
-            Vector128<int> sum128 = Sse2.Add(vec0, vec1);
+            // Add upper lane to lower lane.
+            Vector128<int> vsum = Sse2.Add(accumulator.GetLower(), accumulator.GetUpper());
 
-            return ReduceSum(sum128);
+            // Add odd to even.
+            vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_11_01_01));
+
+            // Add high to low.
+            vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));
+
+            return Sse2.ConvertToInt32(vsum);
         }
 
         /// <summary>

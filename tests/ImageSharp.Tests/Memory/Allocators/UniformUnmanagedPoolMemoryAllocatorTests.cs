@@ -253,6 +253,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
+        [Theory]
         [InlineData(300)]
         [InlineData(600)]
         [InlineData(1200)]
@@ -302,6 +303,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
+        [Theory]
         [InlineData(300)]
         [InlineData(600)]
         public void MemoryOwnerFinalizer_ReturnsToPool(int length)

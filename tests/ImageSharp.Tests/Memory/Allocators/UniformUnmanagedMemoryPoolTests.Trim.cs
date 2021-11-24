@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                     UnmanagedMemoryHandle[] b = pool.Rent(64);
                     pool.Return(a);
                     Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                    Thread.Sleep(15_000);
+                    Thread.Sleep(20_000);
 
                     // We expect at least 2 Trim actions, first trim 32, then 16 arrays.
                     // 128 - 32 - 16 = 80
@@ -70,10 +70,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                     GC.WaitForPendingFinalizers();
                     Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
 
-                    Thread.Sleep(15_000);
+                    Thread.Sleep(20_000);
                     Assert.True(
                         UnmanagedMemoryHandle.TotalOutstandingHandles <= 64,
-                        $"UnmanagedMemoryHandle.TotalOutstandingHandles={UnmanagedMemoryHandle.TotalOutstandingHandles} > 80");
+                        $"UnmanagedMemoryHandle.TotalOutstandingHandles={UnmanagedMemoryHandle.TotalOutstandingHandles} > 64");
                 }
 
                 [MethodImpl(MethodImplOptions.NoInlining)]

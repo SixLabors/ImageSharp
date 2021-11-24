@@ -183,11 +183,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             ref byte topVRef = ref MemoryMarshal.GetReference(topV);
             ref byte curURef = ref MemoryMarshal.GetReference(curU);
             ref byte curVRef = ref MemoryMarshal.GetReference(curV);
-            for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
+            if (bottomY != null)
             {
-                UpSample32Pixels(ref Unsafe.Add(ref topURef, uvPos), ref Unsafe.Add(ref curURef, uvPos), ru);
-                UpSample32Pixels(ref Unsafe.Add(ref topVRef, uvPos), ref Unsafe.Add(ref curVRef, uvPos), rv);
-                ConvertYuvToBgrSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
+                for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
+                {
+                    UpSample32Pixels(ref Unsafe.Add(ref topURef, uvPos), ref Unsafe.Add(ref curURef, uvPos), ru);
+                    UpSample32Pixels(ref Unsafe.Add(ref topVRef, uvPos), ref Unsafe.Add(ref curVRef, uvPos), rv);
+                    ConvertYuvToBgrWithBottomYSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
+                }
+            }
+            else
+            {
+                for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
+                {
+                    UpSample32Pixels(ref Unsafe.Add(ref topURef, uvPos), ref Unsafe.Add(ref curURef, uvPos), ru);
+                    UpSample32Pixels(ref Unsafe.Add(ref topVRef, uvPos), ref Unsafe.Add(ref curVRef, uvPos), rv);
+                    ConvertYuvToBgrSse41(topY, topDst, ru, rv, pos, xStep);
+                }
             }
 
             // Process last block.
@@ -205,9 +217,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 if (bottomY != default)
                 {
                     bottomY.Slice(pos, len - pos).CopyTo(tmpBottom);
+                    ConvertYuvToBgrWithBottomYSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
+                }
+                else
+                {
+                    ConvertYuvToBgrSse41(tmpTop, tmpTopDst, ru, rv, 0, xStep);
                 }
 
-                ConvertYuvToBgrSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
                 tmpTopDst.Slice(0, (len - pos) * xStep).CopyTo(topDst.Slice(pos * xStep));
                 if (bottomY != default)
                 {
@@ -588,14 +604,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
 #if SUPPORTS_RUNTIME_INTRINSICS
 
-        private static void ConvertYuvToBgrSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topDst, Span<byte> bottomDst, Span<byte> ru, Span<byte> rv, int curX, int step)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void ConvertYuvToBgrSse41(Span<byte> topY, Span<byte> topDst, Span<byte> ru, Span<byte> rv, int curX, int step) => YuvToBgrSse41(topY.Slice(curX), ru, rv, topDst.Slice(curX * step));
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void ConvertYuvToBgrWithBottomYSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topDst, Span<byte> bottomDst, Span<byte> ru, Span<byte> rv, int curX, int step)
         {
             YuvToBgrSse41(topY.Slice(curX), ru, rv, topDst.Slice(curX * step));
-
-            if (bottomY != null)
-            {
-                YuvToBgrSse41(bottomY.Slice(curX), ru.Slice(64), rv.Slice(64), bottomDst.Slice(curX * step));
-            }
+            YuvToBgrSse41(bottomY.Slice(curX), ru.Slice(64), rv.Slice(64), bottomDst.Slice(curX * step));
         }
 
         private static void YuvToBgrSse41(Span<byte> y, Span<byte> u, Span<byte> v, Span<byte> dst)

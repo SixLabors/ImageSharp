@@ -2,19 +2,24 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
     internal partial class UniformUnmanagedMemoryPool
     {
+        private static int minTrimPeriodMilliseconds = int.MaxValue;
+        private static readonly List<WeakReference<UniformUnmanagedMemoryPool>> AllPools = new();
+        private static Timer trimTimer;
+
         private static readonly Stopwatch Stopwatch = Stopwatch.StartNew();
 
         private readonly TrimSettings trimSettings;
-        private UnmanagedMemoryHandle[] buffers;
+        private readonly UnmanagedMemoryHandle[] buffers;
         private int index;
-        private Timer trimTimer;
         private long lastTrimTimestamp;
 
         public UniformUnmanagedMemoryPool(int bufferLength, int capacity)
@@ -31,16 +36,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
             if (trimSettings.Enabled)
             {
-                // Invoke the timer callback more frequently, than trimSettings.TrimPeriodMilliseconds,
-                // and also invoke it on Gen 2 GC.
-                // We are checking in the callback if enough time passed since the last trimming. If not, we do nothing.
-                var weakPoolRef = new WeakReference<UniformUnmanagedMemoryPool>(this);
-                this.trimTimer = new Timer(
-                    s => TimerCallback((WeakReference<UniformUnmanagedMemoryPool>)s),
-                    weakPoolRef,
-                    this.trimSettings.TrimPeriodMilliseconds / 4,
-                    this.trimSettings.TrimPeriodMilliseconds / 4);
-
+                UpdateTimer(trimSettings, this);
 #if NETCORE31COMPATIBLE
                 Gen2GcCallback.Register(s => ((UniformUnmanagedMemoryPool)s).Trim(), this);
 #endif
@@ -52,31 +48,33 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         public int Capacity { get; }
 
+        /// <summary>
+        /// Rent a single buffer or return <see cref="UnmanagedMemoryHandle.NullHandle"/> if the pool is full.
+        /// </summary>
         public UnmanagedMemoryHandle Rent()
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
 
-            // Avoid taking the lock if the pool is released or is over limit:
-            if (buffersLocal == null || this.index == buffersLocal.Length)
+            // Avoid taking the lock if the pool is is over it's limit:
+            if (this.index == buffersLocal.Length)
             {
-                return null;
+                return UnmanagedMemoryHandle.NullHandle;
             }
 
             UnmanagedMemoryHandle buffer;
-
             lock (buffersLocal)
             {
                 // Check again after taking the lock:
-                if (this.buffers == null || this.index == buffersLocal.Length)
+                if (this.index == buffersLocal.Length)
                 {
-                    return null;
+                    return UnmanagedMemoryHandle.NullHandle;
                 }
 
                 buffer = buffersLocal[this.index];
-                buffersLocal[this.index++] = null;
+                buffersLocal[this.index++] = default;
             }
 
-            if (buffer == null)
+            if (buffer.IsInvalid)
             {
                 buffer = UnmanagedMemoryHandle.Allocate(this.BufferLength);
             }
@@ -84,12 +82,15 @@ namespace SixLabors.ImageSharp.Memory.Internals
             return buffer;
         }
 
-        public UnmanagedMemoryHandle[] Rent(int bufferCount, AllocationOptions allocationOptions = AllocationOptions.None)
+        /// <summary>
+        /// Rent <paramref name="bufferCount"/> buffers or return 'null' if the pool is full.
+        /// </summary>
+        public UnmanagedMemoryHandle[] Rent(int bufferCount)
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
 
-            // Avoid taking the lock if the pool is released or is over limit:
-            if (buffersLocal == null || this.index + bufferCount >= buffersLocal.Length + 1)
+            // Avoid taking the lock if the pool is is over it's limit:
+            if (this.index + bufferCount >= buffersLocal.Length + 1)
             {
                 return null;
             }
@@ -98,7 +99,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             lock (buffersLocal)
             {
                 // Check again after taking the lock:
-                if (this.buffers == null || this.index + bufferCount >= buffersLocal.Length + 1)
+                if (this.index + bufferCount >= buffersLocal.Length + 1)
                 {
                     return null;
                 }
@@ -107,106 +108,83 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 for (int i = 0; i < bufferCount; i++)
                 {
                     result[i] = buffersLocal[this.index];
-                    buffersLocal[this.index++] = null;
+                    buffersLocal[this.index++] = UnmanagedMemoryHandle.NullHandle;
                 }
             }
 
             for (int i = 0; i < result.Length; i++)
             {
-                if (result[i] == null)
+                if (result[i].IsInvalid)
                 {
                     result[i] = UnmanagedMemoryHandle.Allocate(this.BufferLength);
-                }
-
-                if (allocationOptions.Has(AllocationOptions.Clean))
-                {
-                    this.GetSpan(result[i]).Clear();
                 }
             }
 
             return result;
         }
 
-        public void Return(UnmanagedMemoryHandle buffer)
+        public void Return(UnmanagedMemoryHandle bufferHandle)
         {
-            UnmanagedMemoryHandle[] buffersLocal = this.buffers;
-            if (buffersLocal == null)
-            {
-                buffer.Dispose();
-                return;
-            }
-
-            lock (buffersLocal)
+            Guard.IsTrue(bufferHandle.IsValid, nameof(bufferHandle), "Returning NullHandle to the pool is not allowed.");
+            lock (this.buffers)
             {
                 // Check again after taking the lock:
-                if (this.buffers == null)
-                {
-                    buffer.Dispose();
-                    return;
-                }
-
                 if (this.index == 0)
                 {
                     ThrowReturnedMoreBuffersThanRented(); // DEBUG-only exception
-                    buffer.Dispose();
+                    bufferHandle.Free();
                     return;
                 }
 
-                this.buffers[--this.index] = buffer;
+                this.buffers[--this.index] = bufferHandle;
             }
         }
 
-        public void Return(Span<UnmanagedMemoryHandle> buffers)
+        public void Return(Span<UnmanagedMemoryHandle> bufferHandles)
         {
-            UnmanagedMemoryHandle[] buffersLocal = this.buffers;
-            if (buffersLocal == null)
+            lock (this.buffers)
             {
-                DisposeAll(buffers);
-                return;
-            }
-
-            lock (buffersLocal)
-            {
-                // Check again after taking the lock:
-                if (this.buffers == null)
-                {
-                    DisposeAll(buffers);
-                    return;
-                }
-
-                if (this.index - buffers.Length + 1 <= 0)
+                if (this.index - bufferHandles.Length + 1 <= 0)
                 {
                     ThrowReturnedMoreBuffersThanRented();
-                    DisposeAll(buffers);
+                    DisposeAll(bufferHandles);
                     return;
                 }
 
-                for (int i = buffers.Length - 1; i >= 0; i--)
+                for (int i = bufferHandles.Length - 1; i >= 0; i--)
                 {
-                    buffersLocal[--this.index] = buffers[i];
+                    ref UnmanagedMemoryHandle h = ref bufferHandles[i];
+                    Guard.IsTrue(h.IsValid, nameof(bufferHandles), "Returning NullHandle to the pool is not allowed.");
+                    this.buffers[--this.index] = bufferHandles[i];
                 }
             }
         }
 
         public void Release()
         {
-            this.trimTimer?.Dispose();
-            this.trimTimer = null;
-            UnmanagedMemoryHandle[] oldBuffers = Interlocked.Exchange(ref this.buffers, null);
-            DebugGuard.NotNull(oldBuffers, nameof(oldBuffers));
-            DisposeAll(oldBuffers);
+            lock (this.buffers)
+            {
+                for (int i = this.index; i < this.buffers.Length; i++)
+                {
+                    UnmanagedMemoryHandle buffer = this.buffers[i];
+                    if (buffer.IsInvalid)
+                    {
+                        break;
+                    }
+
+                    buffer.Free();
+                    this.buffers[i] = UnmanagedMemoryHandle.NullHandle;
+                }
+            }
         }
 
         private static void DisposeAll(Span<UnmanagedMemoryHandle> buffers)
         {
             foreach (UnmanagedMemoryHandle handle in buffers)
             {
-                handle?.Dispose();
+                handle.Free();
             }
         }
-
-        private unsafe Span<byte> GetSpan(UnmanagedMemoryHandle h) =>
-            new Span<byte>((byte*)h.DangerousGetHandle(), this.BufferLength);
 
         // This indicates a bug in the library, however Return() might be called from a finalizer,
         // therefore we should never throw here in production.
@@ -214,21 +192,54 @@ namespace SixLabors.ImageSharp.Memory.Internals
         private static void ThrowReturnedMoreBuffersThanRented() =>
             throw new InvalidMemoryOperationException("Returned more buffers then rented");
 
-        private static void TimerCallback(WeakReference<UniformUnmanagedMemoryPool> weakPoolRef)
+        private static void UpdateTimer(TrimSettings settings, UniformUnmanagedMemoryPool pool)
         {
-            if (weakPoolRef.TryGetTarget(out UniformUnmanagedMemoryPool pool))
+            lock (AllPools)
             {
-                pool.Trim();
+                AllPools.Add(new WeakReference<UniformUnmanagedMemoryPool>(pool));
+
+                // Invoke the timer callback more frequently, than trimSettings.TrimPeriodMilliseconds.
+                // We are checking in the callback if enough time passed since the last trimming. If not, we do nothing.
+                int period = settings.TrimPeriodMilliseconds / 4;
+                if (trimTimer == null)
+                {
+                    trimTimer = new Timer(_ => TimerCallback(), null, period, period);
+                }
+                else if (settings.TrimPeriodMilliseconds < minTrimPeriodMilliseconds)
+                {
+                    trimTimer.Change(period, period);
+                }
+
+                minTrimPeriodMilliseconds = Math.Min(minTrimPeriodMilliseconds, settings.TrimPeriodMilliseconds);
+            }
+        }
+
+        private static void TimerCallback()
+        {
+            lock (AllPools)
+            {
+                // Remove lost references from the list:
+                for (int i = AllPools.Count - 1; i >= 0; i--)
+                {
+                    if (!AllPools[i].TryGetTarget(out _))
+                    {
+                        AllPools.RemoveAt(i);
+                    }
+                }
+
+                foreach (WeakReference<UniformUnmanagedMemoryPool> weakPoolRef in AllPools)
+                {
+                    if (weakPoolRef.TryGetTarget(out UniformUnmanagedMemoryPool pool))
+                    {
+                        pool.Trim();
+                    }
+                }
             }
         }
 
         private bool Trim()
         {
             UnmanagedMemoryHandle[] buffersLocal = this.buffers;
-            if (buffersLocal == null)
-            {
-                return false;
-            }
 
             bool isHighPressure = this.IsHighMemoryPressure();
 
@@ -250,16 +261,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             lock (buffersLocal)
             {
-                if (this.buffers == null)
-                {
-                    return false;
-                }
-
                 // Trim all:
-                for (int i = this.index; i < buffersLocal.Length && buffersLocal[i] != null; i++)
+                for (int i = this.index; i < buffersLocal.Length && buffersLocal[i].IsValid; i++)
                 {
-                    buffersLocal[i].Dispose();
-                    buffersLocal[i] = null;
+                    buffersLocal[i].Free();
+                    buffersLocal[i] = UnmanagedMemoryHandle.NullHandle;
                 }
             }
 
@@ -270,14 +276,9 @@ namespace SixLabors.ImageSharp.Memory.Internals
         {
             lock (buffersLocal)
             {
-                if (this.buffers == null)
-                {
-                    return false;
-                }
-
                 // Count the buffers in the pool:
                 int retainedCount = 0;
-                for (int i = this.index; i < buffersLocal.Length && buffersLocal[i] != null; i++)
+                for (int i = this.index; i < buffersLocal.Length && buffersLocal[i].IsValid; i++)
                 {
                     retainedCount++;
                 }
@@ -288,8 +289,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 int trimStop = this.index + retainedCount - trimCount;
                 for (int i = trimStart; i >= trimStop; i--)
                 {
-                    buffersLocal[i].Dispose();
-                    buffersLocal[i] = null;
+                    buffersLocal[i].Free();
+                    buffersLocal[i] = UnmanagedMemoryHandle.NullHandle;
                 }
 
                 this.lastTrimTimestamp = Stopwatch.ElapsedMilliseconds;

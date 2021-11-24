@@ -98,15 +98,10 @@ namespace SixLabors.ImageSharp.Memory
 
             if (lengthInBytes <= this.poolBufferSizeInBytes)
             {
-                UnmanagedMemoryHandle array = this.pool.Rent();
-                if (array != null)
+                UnmanagedMemoryHandle mem = this.pool.Rent();
+                if (mem.IsValid)
                 {
-                    var buffer = new UniformUnmanagedMemoryPool.FinalizableBuffer<T>(this.pool, array, length);
-                    if (options.Has(AllocationOptions.Clean))
-                    {
-                        buffer.Clear();
-                    }
-
+                    UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options);
                     return buffer;
                 }
             }
@@ -130,15 +125,10 @@ namespace SixLabors.ImageSharp.Memory
             if (totalLengthInBytes <= this.poolBufferSizeInBytes)
             {
                 // Optimized path renting single array from the pool
-                UnmanagedMemoryHandle array = this.pool.Rent();
-                if (array != null)
+                UnmanagedMemoryHandle mem = this.pool.Rent();
+                if (mem.IsValid)
                 {
-                    var buffer = new UniformUnmanagedMemoryPool.FinalizableBuffer<T>(this.pool, array, (int)totalLength);
-                    if (options.Has(AllocationOptions.Clean))
-                    {
-                        buffer.Clear();
-                    }
-
+                    UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, (int)totalLength, options);
                     return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
                 }
             }
@@ -152,13 +142,7 @@ namespace SixLabors.ImageSharp.Memory
             return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLength, bufferAlignment, options);
         }
 
-        public override void ReleaseRetainedResources()
-        {
-            UniformUnmanagedMemoryPool oldPool = Interlocked.Exchange(
-                ref this.pool,
-                new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity, this.trimSettings));
-            oldPool.Release();
-        }
+        public override void ReleaseRetainedResources() => this.pool.Release();
 
         private static long GetDefaultMaxPoolSizeBytes()
         {

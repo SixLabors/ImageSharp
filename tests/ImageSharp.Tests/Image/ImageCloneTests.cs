@@ -134,7 +134,6 @@ namespace SixLabors.ImageSharp.Tests
                     }
                 }
             });
-
         }
     }
 }

@@ -61,8 +61,6 @@ namespace SixLabors.ImageSharp.Tests
                     }
                 });
 
-
-
                 return result;
             }
 

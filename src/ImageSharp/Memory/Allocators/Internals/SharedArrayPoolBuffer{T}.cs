@@ -3,29 +3,25 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
-    internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>
+    internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
         where T : struct
     {
         private readonly int lengthInBytes;
         private byte[] array;
+        private LifetimeGuard lifetimeGuard;
 
         public SharedArrayPoolBuffer(int lengthInElements)
         {
             this.lengthInBytes = lengthInElements * Unsafe.SizeOf<T>();
             this.array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
+            this.lifetimeGuard = new LifetimeGuard(this.array);
         }
-
-        // The worst thing that could happen is that a VERY poorly written user code holding a Span<TPixel> on the stack,
-        // while loosing the reference to Image<TPixel> (or disposing it) may write to an unrelated ArrayPool array.
-        // This is an unlikely scenario we mitigate by a warning in DangerousGetRowSpan(i) APIs.
-#pragma warning disable CA2015 // Adding a finalizer to a type derived from MemoryManager<T> may permit memory to be freed while it is still in use by a Span<T>
-        ~SharedArrayPoolBuffer() => this.Dispose(false);
-#pragma warning restore
 
         protected override void Dispose(bool disposing)
         {
@@ -34,12 +30,51 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 return;
             }
 
-            ArrayPool<byte>.Shared.Return(this.array);
+            this.lifetimeGuard.Dispose();
             this.array = null;
         }
 
-        public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.array.AsSpan(0, this.lengthInBytes));
+        public override Span<T> GetSpan()
+        {
+            this.CheckDisposed();
+            return MemoryMarshal.Cast<byte, T>(this.array.AsSpan(0, this.lengthInBytes));
+        }
 
         protected override object GetPinnableObject() => this.array;
+
+        public void AddRef()
+        {
+            this.CheckDisposed();
+            this.lifetimeGuard.AddRef();
+        }
+
+        public void ReleaseRef() => this.lifetimeGuard.ReleaseRef();
+
+        [Conditional("DEBUG")]
+        private void CheckDisposed()
+        {
+            if (this.array == null)
+            {
+                throw new ObjectDisposedException("SharedArrayPoolBuffer");
+            }
+        }
+
+        private class LifetimeGuard : RefCountedLifetimeGuard
+        {
+            private byte[] array;
+
+            public LifetimeGuard(byte[] array) => this.array = array;
+
+            protected override void Release()
+            {
+                // If this is called by a finalizer, we will end storing the first array of this bucket
+                // on the thread local storage of the finalizer thread.
+                // This is not ideal, but subsequent leaks will end up returning arrays to per-cpu buckets,
+                // meaning likely a different bucket than it was rented from,
+                // but this is PROBABLY better than not returning the arrays at all.
+                ArrayPool<byte>.Shared.Return(this.array);
+                this.array = null;
+            }
+        }
     }
 }

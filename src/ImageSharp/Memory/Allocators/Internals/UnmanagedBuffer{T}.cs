@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
@@ -13,58 +14,67 @@ namespace SixLabors.ImageSharp.Memory.Internals
     /// access to unmanaged buffers allocated by <see cref="Marshal.AllocHGlobal(int)"/>.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    internal unsafe class UnmanagedBuffer<T> : MemoryManager<T>
+    internal sealed unsafe class UnmanagedBuffer<T> : MemoryManager<T>, IRefCounted
         where T : struct
     {
         private readonly int lengthInElements;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UnmanagedBuffer{T}"/> class.
-        /// </summary>
-        /// <param name="lengthInElements">The number of elements to allocate.</param>
-        public UnmanagedBuffer(int lengthInElements)
-            : this(UnmanagedMemoryHandle.Allocate(lengthInElements * Unsafe.SizeOf<T>()), lengthInElements)
-        {
-        }
+        private readonly UnmanagedBufferLifetimeGuard lifetimeGuard;
 
-        protected UnmanagedBuffer(UnmanagedMemoryHandle bufferHandle, int lengthInElements)
+        private int disposed;
+
+        public UnmanagedBuffer(int lengthInElements, UnmanagedBufferLifetimeGuard lifetimeGuard)
         {
+            DebugGuard.NotNull(lifetimeGuard, nameof(lifetimeGuard));
+
             this.lengthInElements = lengthInElements;
-            this.BufferHandle = bufferHandle;
+            this.lifetimeGuard = lifetimeGuard;
         }
 
-        public UnmanagedMemoryHandle BufferHandle { get; protected set; }
+        private void* Pointer => this.lifetimeGuard.Handle.Pointer;
 
-        private void* Pointer => (void*)this.BufferHandle.DangerousGetHandle();
-
-        public override Span<T> GetSpan() => new(this.Pointer, this.lengthInElements);
+        public override Span<T> GetSpan()
+        {
+            DebugGuard.NotDisposed(this.disposed == 1, this.GetType().Name);
+            DebugGuard.NotDisposed(this.lifetimeGuard.IsDisposed, this.lifetimeGuard.GetType().Name);
+            return new(this.Pointer, this.lengthInElements);
+        }
 
         /// <inheritdoc />
         public override MemoryHandle Pin(int elementIndex = 0)
         {
+            DebugGuard.NotDisposed(this.disposed == 1, this.GetType().Name);
+            DebugGuard.NotDisposed(this.lifetimeGuard.IsDisposed, this.lifetimeGuard.GetType().Name);
+
             // Will be released in Unpin
-            bool unused = false;
-            this.BufferHandle.DangerousAddRef(ref unused);
+            this.lifetimeGuard.AddRef();
 
             void* pbData = Unsafe.Add<T>(this.Pointer, elementIndex);
             return new MemoryHandle(pbData, pinnable: this);
         }
 
         /// <inheritdoc />
-        public override void Unpin() => this.BufferHandle.DangerousRelease();
-
-        /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
-            if (this.BufferHandle.IsInvalid)
+            DebugGuard.IsTrue(disposing, nameof(disposing), "Unmanaged buffers should not have finalizer!");
+
+            if (Interlocked.Exchange(ref this.disposed, 1) == 1)
             {
+                // Already disposed
                 return;
             }
 
-            if (disposing)
-            {
-                this.BufferHandle.Dispose();
-            }
+            this.lifetimeGuard.Dispose();
         }
+
+        /// <inheritdoc />
+        public override void Unpin() => this.lifetimeGuard.ReleaseRef();
+
+        public void AddRef() => this.lifetimeGuard.AddRef();
+
+        public void ReleaseRef() => this.lifetimeGuard.ReleaseRef();
+
+        public static UnmanagedBuffer<T> Allocate(int lengthInElements) =>
+            new(lengthInElements, new UnmanagedBufferLifetimeGuard.FreeHandle(UnmanagedMemoryHandle.Allocate(lengthInElements * Unsafe.SizeOf<T>())));
     }
 }

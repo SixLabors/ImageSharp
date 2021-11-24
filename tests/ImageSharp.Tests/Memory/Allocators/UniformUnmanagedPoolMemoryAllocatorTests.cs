@@ -247,6 +247,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 Assert.Equal(5, UnmanagedMemoryHandle.TotalOutstandingHandles);
                 b.Dispose();
                 g.Dispose();
+                Assert.Equal(5, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                allocator.ReleaseRetainedResources();
                 Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
             }
         }
@@ -307,7 +309,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [ConditionalTheory(nameof(IsWindows))]
         [InlineData(300)]
         [InlineData(600)]
-        [InlineData(1200)]
         public void MemoryOwnerFinalizer_ReturnsToPool(int length)
         {
             // RunTest(length.ToString());
@@ -332,9 +333,11 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
                 using IMemoryOwner<byte> g = allocator.Allocate<byte>(lengthInner);
                 Assert.Equal(42, g.GetSpan()[0]);
+                GC.KeepAlive(allocator);
             }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private static void AllocateSingleAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length, bool check = false)
         {
             IMemoryOwner<byte> g = allocator.Allocate<byte>(length);

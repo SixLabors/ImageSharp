@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Memory
                 bufferCount++;
             }
 
-            UnmanagedMemoryHandle[] arrays = pool.Rent(bufferCount, options);
+            UnmanagedMemoryHandle[] arrays = pool.Rent(bufferCount);
 
             if (arrays == null)
             {

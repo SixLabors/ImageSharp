@@ -19,8 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
         public class Allocate : MemoryGroupTestsBase
         {
 #pragma warning disable SA1509
-            public static TheoryData<object, int, int, long, int, int, int> AllocateData =
-                new TheoryData<object, int, int, long, int, int, int>()
+            public static TheoryData<object, int, int, long, int, int, int> AllocateData = new()
                 {
                     { default(S5), 22, 4, 4, 1, 4, 4 },
                     { default(S5), 22, 4, 7, 2, 4, 3 },
@@ -100,9 +99,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 g.Dispose();
             }
 
-            private static unsafe Span<byte> GetSpan(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle h) =>
-                new Span<byte>((void*)h.DangerousGetHandle(), pool.BufferLength);
-
             [Theory]
             [InlineData(AllocationOptions.None)]
             [InlineData(AllocationOptions.Clean)]
@@ -112,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 UnmanagedMemoryHandle[] buffers = pool.Rent(5);
                 foreach (UnmanagedMemoryHandle b in buffers)
                 {
-                    GetSpan(pool, b).Fill(42);
+                    b.GetSpan().Fill(42);
                 }
 
                 pool.Return(buffers);

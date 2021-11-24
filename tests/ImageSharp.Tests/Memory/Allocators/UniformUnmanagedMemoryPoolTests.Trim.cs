@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
@@ -13,14 +15,14 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
     public partial class UniformUnmanagedMemoryPoolTests
     {
-        [CollectionDefinition(nameof(NonParallelTests), DisableParallelization = true)]
-        public class NonParallelTests
-        {
-        }
-
         [Collection(nameof(NonParallelTests))]
         public class Trim
         {
+            [CollectionDefinition(nameof(NonParallelTests), DisableParallelization = true)]
+            public class NonParallelTests
+            {
+            }
+
             [Fact]
             public void TrimPeriodElapsed_TrimsHalfOfUnusedArrays()
             {
@@ -45,18 +47,56 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 }
             }
 
+            [Fact]
+            public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
+            {
+                RemoteExecutor.Invoke(RunTest).Dispose();
+
+                static void RunTest()
+                {
+                    var trimSettings1 = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 6_000 };
+                    var pool1 = new UniformUnmanagedMemoryPool(128, 256, trimSettings1);
+                    Thread.Sleep(8_000); // Let some callbacks fire already
+                    var trimSettings2 = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 3_000 };
+                    var pool2 = new UniformUnmanagedMemoryPool(128, 256, trimSettings2);
+
+                    pool1.Return(pool1.Rent(64));
+                    pool2.Return(pool2.Rent(64));
+                    Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
+
+                    // This exercises pool weak reference list trimming:
+                    LeakPoolInstance();
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
+
+                    Thread.Sleep(15_000);
+                    Assert.True(
+                        UnmanagedMemoryHandle.TotalOutstandingHandles <= 64,
+                        $"UnmanagedMemoryHandle.TotalOutstandingHandles={UnmanagedMemoryHandle.TotalOutstandingHandles} > 80");
+                }
+
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static void LeakPoolInstance()
+                {
+                    var trimSettings = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 4_000 };
+                    _ = new UniformUnmanagedMemoryPool(128, 256, trimSettings);
+                }
+            }
+
 #if NETCORE31COMPATIBLE
             public static readonly bool Is32BitProcess = !Environment.Is64BitProcess;
-            private static readonly List<byte[]> PressureArrays = new List<byte[]>();
+            private static readonly List<byte[]> PressureArrays = new();
 
             [ConditionalFact(nameof(Is32BitProcess))]
             public static void GC_Collect_OnHighLoad_TrimsEntirePool()
             {
                 RemoteExecutor.Invoke(RunTest).Dispose();
+
                 static void RunTest()
                 {
                     Assert.False(Environment.Is64BitProcess);
-                    const int OneMb = 1024 * 1024;
+                    const int OneMb = 1 << 20;
 
                     var trimSettings = new UniformUnmanagedMemoryPool.TrimSettings { HighPressureThresholdRate = 0.2f };
 
@@ -81,6 +121,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                     GC.WaitForPendingFinalizers(); // The pool should be fully trimmed after this point
 
                     Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
+
+                    // Prevent eager collection of the pool:
+                    GC.KeepAlive(pool);
 
                     static void TouchPage(byte[] b)
                     {

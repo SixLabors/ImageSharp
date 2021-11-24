@@ -2,19 +2,19 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.Win32.SafeHandles;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
-    internal sealed class UnmanagedMemoryHandle : SafeHandle
+    /// <summary>
+    /// Encapsulates the functionality around allocating and releasing unmanaged memory. NOT a <see cref="SafeHandle"/>.
+    /// </summary>
+    internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
     {
-        // Number of allocation re-attempts when OutOfMemoryException is thrown.
+        // Number of allocation re-attempts when detecting OutOfMemoryException.
         private const int MaxAllocationAttempts = 1000;
-
-        private readonly int lengthInBytes;
-        private bool resurrected;
 
         // Track allocations for testing purposes:
         private static int totalOutstandingHandles;
@@ -24,10 +24,16 @@ namespace SixLabors.ImageSharp.Memory.Internals
         // A Monitor to wait/signal when we are low on memory.
         private static object lowMemoryMonitor;
 
+        public static readonly UnmanagedMemoryHandle NullHandle = default;
+
+        private IntPtr handle;
+        private readonly int lengthInBytes;
+
         private UnmanagedMemoryHandle(IntPtr handle, int lengthInBytes)
-            : base(handle, true)
         {
+            this.handle = handle;
             this.lengthInBytes = lengthInBytes;
+
             if (lengthInBytes > 0)
             {
                 GC.AddMemoryPressure(lengthInBytes);
@@ -35,6 +41,14 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
             Interlocked.Increment(ref totalOutstandingHandles);
         }
+
+        public IntPtr Handle => this.handle;
+
+        public bool IsInvalid => this.Handle == IntPtr.Zero;
+
+        public bool IsValid => this.Handle != IntPtr.Zero;
+
+        public unsafe void* Pointer => (void*)this.Handle;
 
         /// <summary>
         /// Gets the total outstanding handle allocations for testing purposes.
@@ -46,36 +60,34 @@ namespace SixLabors.ImageSharp.Memory.Internals
         /// </summary>
         internal static long TotalOomRetries => totalOomRetries;
 
-        /// <inheritdoc />
-        public override bool IsInvalid => this.handle == IntPtr.Zero;
+        public static bool operator ==(UnmanagedMemoryHandle a, UnmanagedMemoryHandle b) => a.Equals(b);
 
-        protected override bool ReleaseHandle()
+        public static bool operator !=(UnmanagedMemoryHandle a, UnmanagedMemoryHandle b) => !a.Equals(b);
+
+        [MethodImpl(InliningOptions.HotPath)]
+        public unsafe Span<byte> GetSpan()
         {
             if (this.IsInvalid)
             {
-                return false;
+                ThrowDisposed();
             }
 
-            Marshal.FreeHGlobal(this.handle);
-            if (this.lengthInBytes > 0)
-            {
-                GC.RemoveMemoryPressure(this.lengthInBytes);
-            }
-
-            if (lowMemoryMonitor != null)
-            {
-                // We are low on memory. Signal all threads waiting in AllocateHandle().
-                Monitor.Enter(lowMemoryMonitor);
-                Monitor.PulseAll(lowMemoryMonitor);
-                Monitor.Exit(lowMemoryMonitor);
-            }
-
-            this.handle = IntPtr.Zero;
-            Interlocked.Decrement(ref totalOutstandingHandles);
-            return true;
+            return new Span<byte>(this.Pointer, this.lengthInBytes);
         }
 
-        internal static UnmanagedMemoryHandle Allocate(int lengthInBytes)
+        [MethodImpl(InliningOptions.HotPath)]
+        public unsafe Span<byte> GetSpan(int lengthInBytes)
+        {
+            DebugGuard.MustBeLessThanOrEqualTo(lengthInBytes, this.lengthInBytes, nameof(lengthInBytes));
+            if (this.IsInvalid)
+            {
+                ThrowDisposed();
+            }
+
+            return new Span<byte>(this.Pointer, lengthInBytes);
+        }
+
+        public static UnmanagedMemoryHandle Allocate(int lengthInBytes)
         {
             IntPtr handle = AllocateHandle(lengthInBytes);
             return new UnmanagedMemoryHandle(handle, lengthInBytes);
@@ -115,26 +127,38 @@ namespace SixLabors.ImageSharp.Memory.Internals
             return handle;
         }
 
-        /// <summary>
-        /// UnmanagedMemoryHandle's finalizer would release the underlying handle returning the memory to the OS.
-        /// We want to prevent this when a finalizable owner (buffer or MemoryGroup) is returning the handle to
-        /// <see cref="UniformUnmanagedMemoryPool"/> in it's finalizer.
-        /// Since UnmanagedMemoryHandle is CriticalFinalizable, it is guaranteed that the owner's finalizer is called first.
-        /// </summary>
-        internal void Resurrect()
+        public void Free()
         {
-            GC.SuppressFinalize(this);
-            this.resurrected = true;
-        }
+            IntPtr h = Interlocked.Exchange(ref this.handle, IntPtr.Zero);
 
-        internal void AssignedToNewOwner()
-        {
-            if (this.resurrected)
+            if (h == IntPtr.Zero)
             {
-                // The handle has been resurrected
-                GC.ReRegisterForFinalize(this);
-                this.resurrected = false;
+                return;
+            }
+
+            Marshal.FreeHGlobal(h);
+            Interlocked.Decrement(ref totalOutstandingHandles);
+            if (this.lengthInBytes > 0)
+            {
+                GC.RemoveMemoryPressure(this.lengthInBytes);
+            }
+
+            if (Volatile.Read(ref lowMemoryMonitor) != null)
+            {
+                // We are low on memory. Signal all threads waiting in AllocateHandle().
+                Monitor.Enter(lowMemoryMonitor);
+                Monitor.PulseAll(lowMemoryMonitor);
+                Monitor.Exit(lowMemoryMonitor);
             }
         }
+
+        public bool Equals(UnmanagedMemoryHandle other) => this.handle.Equals(other.handle);
+
+        public override bool Equals(object obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
+
+        public override int GetHashCode() => this.handle.GetHashCode();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowDisposed() => throw new ObjectDisposedException(nameof(UnmanagedMemoryHandle));
     }
 }

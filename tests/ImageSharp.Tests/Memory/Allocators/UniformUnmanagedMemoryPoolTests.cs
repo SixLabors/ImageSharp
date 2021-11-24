@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.DotNet.RemoteExecutor;
@@ -17,13 +18,42 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
     {
         private readonly ITestOutputHelper output;
 
-        public UniformUnmanagedMemoryPoolTests(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
+        public UniformUnmanagedMemoryPoolTests(ITestOutputHelper output) => this.output = output;
 
-        private static unsafe Span<byte> GetSpan(UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle h) =>
-            new Span<byte>((void*)h.DangerousGetHandle(), pool.BufferLength);
+        private class CleanupUtil : IDisposable
+        {
+            private readonly UniformUnmanagedMemoryPool pool;
+            private readonly List<UnmanagedMemoryHandle> handlesToDestroy = new();
+            private readonly List<IntPtr> ptrsToDestroy = new();
+
+            public CleanupUtil(UniformUnmanagedMemoryPool pool)
+            {
+                this.pool = pool;
+            }
+
+            public void Register(UnmanagedMemoryHandle handle) => this.handlesToDestroy.Add(handle);
+
+            public void Register(IEnumerable<UnmanagedMemoryHandle> handles) => this.handlesToDestroy.AddRange(handles);
+
+            public void Register(IntPtr memoryPtr) => this.ptrsToDestroy.Add(memoryPtr);
+
+            public void Register(IEnumerable<IntPtr> memoryPtrs) => this.ptrsToDestroy.AddRange(memoryPtrs);
+
+            public void Dispose()
+            {
+                foreach (UnmanagedMemoryHandle handle in this.handlesToDestroy)
+                {
+                    handle.Free();
+                }
+
+                this.pool.Release();
+
+                foreach (IntPtr ptr in this.ptrsToDestroy)
+                {
+                    Marshal.FreeHGlobal(ptr);
+                }
+            }
+        }
 
         [Theory]
         [InlineData(3, 11)]
@@ -41,10 +71,13 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public void Rent_SingleBuffer_ReturnsCorrectBuffer(int length, int capacity)
         {
             var pool = new UniformUnmanagedMemoryPool(length, capacity);
+            using var cleanup = new CleanupUtil(pool);
+
             for (int i = 0; i < capacity; i++)
             {
                 UnmanagedMemoryHandle h = pool.Rent();
                 CheckBuffer(length, pool, h);
+                cleanup.Register(h);
             }
         }
 
@@ -68,9 +101,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
         private static void CheckBuffer(int length, UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle h)
         {
-            Assert.NotNull(h);
-            Assert.False(h.IsClosed);
-            Span<byte> span = GetSpan(pool, h);
+            Assert.False(h.IsInvalid);
+            Span<byte> span = h.GetSpan();
             span.Fill(123);
 
             byte[] expected = new byte[length];
@@ -86,7 +118,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public void Rent_MultiBuffer_ReturnsCorrectBuffers(int length, int bufferCount)
         {
             var pool = new UniformUnmanagedMemoryPool(length, 10);
+            using var cleanup = new CleanupUtil(pool);
             UnmanagedMemoryHandle[] handles = pool.Rent(bufferCount);
+            cleanup.Register(handles);
+
             Assert.NotNull(handles);
             Assert.Equal(bufferCount, handles.Length);
 
@@ -100,12 +135,15 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public void Rent_MultipleTimesWithoutReturn_ReturnsDifferentHandles()
         {
             var pool = new UniformUnmanagedMemoryPool(128, 10);
+            using var cleanup = new CleanupUtil(pool);
             UnmanagedMemoryHandle[] a = pool.Rent(2);
+            cleanup.Register(a);
             UnmanagedMemoryHandle b = pool.Rent();
+            cleanup.Register(b);
 
-            Assert.NotEqual(a[0].DangerousGetHandle(), a[1].DangerousGetHandle());
-            Assert.NotEqual(a[0].DangerousGetHandle(), b.DangerousGetHandle());
-            Assert.NotEqual(a[1].DangerousGetHandle(), b.DangerousGetHandle());
+            Assert.NotEqual(a[0].Handle, a[1].Handle);
+            Assert.NotEqual(a[0].Handle, b.Handle);
+            Assert.NotEqual(a[1].Handle, b.Handle);
         }
 
         [Theory]
@@ -115,6 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public void RentReturnRent_SameBuffers(int totalCount, int rentUnit, int capacity)
         {
             var pool = new UniformUnmanagedMemoryPool(128, capacity);
+            using var cleanup = new CleanupUtil(pool);
             var allHandles = new HashSet<UnmanagedMemoryHandle>();
             var handleUnits = new List<UnmanagedMemoryHandle[]>();
 
@@ -128,6 +167,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 {
                     allHandles.Add(array);
                 }
+
+                // Allocate some memory, so potential new pool allocation wouldn't allocated the same memory:
+                cleanup.Register(Marshal.AllocHGlobal(128));
             }
 
             foreach (UnmanagedMemoryHandle[] arrayUnit in handleUnits)
@@ -151,14 +193,20 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             {
                 Assert.Contains(array, allHandles);
             }
+
+            cleanup.Register(allHandles);
         }
 
         [Fact]
-        public void Rent_SingleBuffer_OverCapacity_ReturnsNull()
+        public void Rent_SingleBuffer_OverCapacity_ReturnsInvalidBuffer()
         {
             var pool = new UniformUnmanagedMemoryPool(7, 1000);
-            Assert.NotNull(pool.Rent(1000));
-            Assert.Null(pool.Rent());
+            using var cleanup = new CleanupUtil(pool);
+            UnmanagedMemoryHandle[] initial = pool.Rent(1000);
+            Assert.NotNull(initial);
+            cleanup.Register(initial);
+            UnmanagedMemoryHandle b1 = pool.Rent();
+            Assert.True(b1.IsInvalid);
         }
 
         [Theory]
@@ -168,8 +216,12 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public void Rent_MultiBuffer_OverCapacity_ReturnsNull(int initialRent, int attempt, int capacity)
         {
             var pool = new UniformUnmanagedMemoryPool(128, capacity);
-            Assert.NotNull(pool.Rent(initialRent));
-            Assert.Null(pool.Rent(attempt));
+            using var cleanup = new CleanupUtil(pool);
+            UnmanagedMemoryHandle[] initial = pool.Rent(initialRent);
+            Assert.NotNull(initial);
+            cleanup.Register(initial);
+            UnmanagedMemoryHandle[] b1 = pool.Rent(attempt);
+            Assert.Null(b1);
         }
 
         [Theory]
@@ -180,56 +232,49 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         public void Rent_MultiBuff_BelowCapacity_Succeeds(int initialRent, int attempt, int capacity)
         {
             var pool = new UniformUnmanagedMemoryPool(128, capacity);
-            Assert.NotNull(pool.Rent(initialRent));
-            Assert.NotNull(pool.Rent(attempt));
+            using var cleanup = new CleanupUtil(pool);
+            UnmanagedMemoryHandle[] b0 = pool.Rent(initialRent);
+            Assert.NotNull(b0);
+            cleanup.Register(b0);
+            UnmanagedMemoryHandle[] b1 = pool.Rent(attempt);
+            Assert.NotNull(b1);
+            cleanup.Register(b1);
         }
 
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void Release_SubsequentRentReturnsNull(bool multiple)
+        public void RentReturnRelease_SubsequentRentReturnsDifferentHandles(bool multiple)
         {
             var pool = new UniformUnmanagedMemoryPool(16, 16);
-            pool.Rent(); // Dummy rent
+            using var cleanup = new CleanupUtil(pool);
+            UnmanagedMemoryHandle b0 = pool.Rent();
+            IntPtr h0 = b0.Handle;
+            UnmanagedMemoryHandle b1 = pool.Rent();
+            IntPtr h1 = b1.Handle;
+            pool.Return(b0);
+            pool.Return(b1);
             pool.Release();
+
+            // Do some unmanaged allocations to make sure new pool buffers are different:
+            IntPtr[] dummy = Enumerable.Range(0, 100).Select(_ => Marshal.AllocHGlobal(16)).ToArray();
+            cleanup.Register(dummy);
+
             if (multiple)
             {
                 UnmanagedMemoryHandle b = pool.Rent();
-                Assert.Null(b);
+                cleanup.Register(b);
+                Assert.NotEqual(h0, b.Handle);
+                Assert.NotEqual(h1, b.Handle);
             }
             else
             {
                 UnmanagedMemoryHandle[] b = pool.Rent(2);
-                Assert.Null(b);
-            }
-        }
-
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Release_SubsequentReturnClosesHandle(bool multiple)
-        {
-            var pool = new UniformUnmanagedMemoryPool(16, 16);
-            if (multiple)
-            {
-                UnmanagedMemoryHandle[] b = pool.Rent(2);
-                pool.Release();
-
-                Assert.False(b[0].IsClosed);
-                Assert.False(b[1].IsClosed);
-
-                pool.Return(b);
-
-                Assert.True(b[0].IsClosed);
-                Assert.True(b[1].IsClosed);
-            }
-            else
-            {
-                UnmanagedMemoryHandle b = pool.Rent();
-                pool.Release();
-                Assert.False(b.IsClosed);
-                pool.Return(b);
-                Assert.True(b.IsClosed);
+                cleanup.Register(b);
+                Assert.NotEqual(h0, b[0].Handle);
+                Assert.NotEqual(h1, b[0].Handle);
+                Assert.NotEqual(h0, b[1].Handle);
+                Assert.NotEqual(h1, b[1].Handle);
             }
         }
 
@@ -257,6 +302,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         {
             int count = Environment.ProcessorCount * 200;
             var pool = new UniformUnmanagedMemoryPool(8, count);
+            using var cleanup = new CleanupUtil(pool);
             var rnd = new Random(0);
 
             Parallel.For(0, Environment.ProcessorCount, (int i) =>
@@ -267,8 +313,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 {
                     UnmanagedMemoryHandle[] data = pool.Rent(2);
 
-                    GetSpan(pool, data[0]).Fill((byte)i);
-                    GetSpan(pool, data[1]).Fill((byte)i);
+                    data[0].GetSpan().Fill((byte)i);
+                    data[1].GetSpan().Fill((byte)i);
                     allArrays.Add(data[0]);
                     allArrays.Add(data[1]);
 
@@ -283,7 +329,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
                 foreach (UnmanagedMemoryHandle array in allArrays)
                 {
-                    Assert.True(expected.SequenceEqual(GetSpan(pool, array)));
+                    Assert.True(expected.SequenceEqual(array.GetSpan()));
                     pool.Return(new[] { array });
                 }
             });

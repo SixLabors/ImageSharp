@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
-            var buffer = new UnmanagedBuffer<T>(length);
+            var buffer = UnmanagedBuffer<T>.Allocate(length);
             if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();

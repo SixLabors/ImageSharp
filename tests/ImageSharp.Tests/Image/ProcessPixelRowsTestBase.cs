@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Tests
             static void RunTest(string testTypeName, string throwExceptionStr)
             {
                 bool throwExceptionInner = bool.Parse(throwExceptionStr);
-                var buffer = new UnmanagedBuffer<L8>(100);
+                var buffer = UnmanagedBuffer<L8>.Allocate(100);
                 var allocator = new MockUnmanagedMemoryAllocator<L8>(buffer);
                 Configuration.Default.MemoryAllocator = allocator;
 
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     GetTest(testTypeName).ProcessPixelRowsImpl(image, _ =>
                     {
-                        buffer.BufferHandle.Dispose();
+                        ((IDisposable)buffer).Dispose();
                         Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
                         if (throwExceptionInner)
                         {
@@ -218,8 +218,8 @@ namespace SixLabors.ImageSharp.Tests
             static void RunTest(string testTypeName, string throwExceptionStr)
             {
                 bool throwExceptionInner = bool.Parse(throwExceptionStr);
-                var buffer1 = new UnmanagedBuffer<L8>(100);
-                var buffer2 = new UnmanagedBuffer<L8>(100);
+                var buffer1 = UnmanagedBuffer<L8>.Allocate(100);
+                var buffer2 = UnmanagedBuffer<L8>.Allocate(100);
                 var allocator = new MockUnmanagedMemoryAllocator<L8>(buffer1, buffer2);
                 Configuration.Default.MemoryAllocator = allocator;
 
@@ -231,8 +231,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     GetTest(testTypeName).ProcessPixelRowsImpl(image1, image2, (_, _) =>
                     {
-                        buffer1.BufferHandle.Dispose();
-                        buffer2.BufferHandle.Dispose();
+                        ((IDisposable)buffer1).Dispose();
+                        ((IDisposable)buffer2).Dispose();
                         Assert.Equal(2, UnmanagedMemoryHandle.TotalOutstandingHandles);
                         if (throwExceptionInner)
                         {
@@ -258,9 +258,9 @@ namespace SixLabors.ImageSharp.Tests
             static void RunTest(string testTypeName, string throwExceptionStr)
             {
                 bool throwExceptionInner = bool.Parse(throwExceptionStr);
-                var buffer1 = new UnmanagedBuffer<L8>(100);
-                var buffer2 = new UnmanagedBuffer<L8>(100);
-                var buffer3 = new UnmanagedBuffer<L8>(100);
+                var buffer1 = UnmanagedBuffer<L8>.Allocate(100);
+                var buffer2 = UnmanagedBuffer<L8>.Allocate(100);
+                var buffer3 = UnmanagedBuffer<L8>.Allocate(100);
                 var allocator = new MockUnmanagedMemoryAllocator<L8>(buffer1, buffer2, buffer3);
                 Configuration.Default.MemoryAllocator = allocator;
 
@@ -273,9 +273,9 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     GetTest(testTypeName).ProcessPixelRowsImpl(image1, image2, image3, (_, _, _) =>
                     {
-                        buffer1.BufferHandle.Dispose();
-                        buffer2.BufferHandle.Dispose();
-                        buffer3.BufferHandle.Dispose();
+                        ((IDisposable)buffer1).Dispose();
+                        ((IDisposable)buffer2).Dispose();
+                        ((IDisposable)buffer3).Dispose();
                         Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
                         if (throwExceptionInner)
                         {
@@ -317,7 +317,7 @@ namespace SixLabors.ImageSharp.Tests
             protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
 
             public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None) =>
-                (IMemoryOwner<T>)this.buffers.Pop();
+                this.buffers.Pop() as IMemoryOwner<T>;
         }
     }
 }

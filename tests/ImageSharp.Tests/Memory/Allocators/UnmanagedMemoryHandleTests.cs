@@ -14,10 +14,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [Fact]
         public unsafe void Allocate_AllocatesReadWriteMemory()
         {
-            using var h = UnmanagedMemoryHandle.Allocate(128);
-            Assert.False(h.IsClosed);
+            var h = UnmanagedMemoryHandle.Allocate(128);
             Assert.False(h.IsInvalid);
-            byte* ptr = (byte*)h.DangerousGetHandle();
+            Assert.True(h.IsValid);
+            byte* ptr = (byte*)h.Handle;
             for (int i = 0; i < 128; i++)
             {
                 ptr[i] = (byte)i;
@@ -27,21 +27,23 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             {
                 Assert.Equal((byte)i, ptr[i]);
             }
+
+            h.Free();
         }
 
         [Fact]
-        public void Dispose_ClosesHandle()
+        public void Free_ClosesHandle()
         {
             var h = UnmanagedMemoryHandle.Allocate(128);
-            h.Dispose();
-            Assert.True(h.IsClosed);
+            h.Free();
             Assert.True(h.IsInvalid);
+            Assert.Equal(IntPtr.Zero, h.Handle);
         }
 
         [Theory]
         [InlineData(1)]
         [InlineData(13)]
-        public void CreateDispose_TracksAllocations(int count)
+        public void Create_Free_AllocationsAreTracked(int count)
         {
             RemoteExecutor.Invoke(RunTest, count.ToString()).Dispose();
 
@@ -60,125 +62,39 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 for (int i = 0; i < countInner; i++)
                 {
                     Assert.Equal(countInner - i, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                    l[i].Dispose();
+                    l[i].Free();
                     Assert.Equal(countInner - i - 1, UnmanagedMemoryHandle.TotalOutstandingHandles);
                 }
             }
         }
 
-        [Theory]
-        [InlineData(2)]
-        [InlineData(12)]
-        public void CreateFinalize_TracksAllocations(int count)
+        [Fact]
+        public void Equality_WhenTrue()
         {
-            RemoteExecutor.Invoke(RunTest, count.ToString()).Dispose();
+            var h1 = UnmanagedMemoryHandle.Allocate(10);
+            UnmanagedMemoryHandle h2 = h1;
 
-            static void RunTest(string countStr)
-            {
-                int countInner = int.Parse(countStr);
-                List<UnmanagedMemoryHandle> l = FillList(countInner);
-
-                l.RemoveRange(0, l.Count / 2);
-
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-
-                Assert.Equal(countInner / 2, l.Count); // This is here to prevent eager finalization of the list's elements
-                Assert.Equal(countInner / 2, UnmanagedMemoryHandle.TotalOutstandingHandles);
-            }
-
-            static List<UnmanagedMemoryHandle> FillList(int countInner)
-            {
-                var l = new List<UnmanagedMemoryHandle>();
-                for (int i = 0; i < countInner; i++)
-                {
-                    var h = UnmanagedMemoryHandle.Allocate(42);
-                    l.Add(h);
-                }
-
-                return l;
-            }
+            Assert.True(h1.Equals(h2));
+            Assert.True(h2.Equals(h1));
+            Assert.True(h1 == h2);
+            Assert.False(h1 != h2);
+            Assert.True(h1.GetHashCode() == h2.GetHashCode());
+            h1.Free();
         }
 
         [Fact]
-        public void Resurrect_PreventsFinalization()
+        public void Equality_WhenFalse()
         {
-            RemoteExecutor.Invoke(RunTest).Dispose();
+            var h1 = UnmanagedMemoryHandle.Allocate(10);
+            var h2 = UnmanagedMemoryHandle.Allocate(10);
 
-            static void RunTest()
-            {
-                AllocateResurrect();
-                Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
-            }
+            Assert.False(h1.Equals(h2));
+            Assert.False(h2.Equals(h1));
+            Assert.False(h1 == h2);
+            Assert.True(h1 != h2);
 
-            static void AllocateResurrect()
-            {
-                var h = UnmanagedMemoryHandle.Allocate(42);
-                h.Resurrect();
-            }
-        }
-
-        private static UnmanagedMemoryHandle resurrectedHandle;
-
-        private class HandleOwner
-        {
-            private UnmanagedMemoryHandle handle;
-
-            public HandleOwner(UnmanagedMemoryHandle handle) => this.handle = handle;
-
-            ~HandleOwner()
-            {
-                resurrectedHandle = this.handle;
-                this.handle.Resurrect();
-            }
-        }
-
-        [Fact]
-        public void AssignedToNewOwner_ReRegistersForFinalization()
-        {
-            RemoteExecutor.Invoke(RunTest).Dispose();
-
-            static void RunTest()
-            {
-                AllocateAndForget();
-                Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                VerifyResurrectedHandle(true);
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                VerifyResurrectedHandle(false);
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-
-                Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
-            }
-
-            static void AllocateAndForget()
-            {
-                _ = new HandleOwner(UnmanagedMemoryHandle.Allocate(42));
-            }
-
-            static void VerifyResurrectedHandle(bool reAssign)
-            {
-                Assert.NotNull(resurrectedHandle);
-                Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                Assert.False(resurrectedHandle.IsClosed);
-                Assert.False(resurrectedHandle.IsInvalid);
-                resurrectedHandle.AssignedToNewOwner();
-                if (reAssign)
-                {
-                    _ = new HandleOwner(resurrectedHandle);
-                }
-
-                resurrectedHandle = null;
-            }
+            h1.Free();
+            h2.Free();
         }
     }
 }

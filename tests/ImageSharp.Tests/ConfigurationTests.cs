@@ -156,17 +156,14 @@ namespace SixLabors.ImageSharp.Tests
 
             static void RunTest()
             {
-                MemoryAllocator allocator = new TestMemoryAllocator();
-                MemoryAllocator.Default = allocator;
-
                 var c1 = new Configuration();
                 var c2 = new Configuration(new MockConfigurationModule());
                 var c3 = Configuration.CreateDefaultInstance();
 
-                Assert.Same(allocator, Configuration.Default.MemoryAllocator);
-                Assert.Same(allocator, c1.MemoryAllocator);
-                Assert.Same(allocator, c2.MemoryAllocator);
-                Assert.Same(allocator, c3.MemoryAllocator);
+                Assert.Same(MemoryAllocator.Default, Configuration.Default.MemoryAllocator);
+                Assert.Same(MemoryAllocator.Default, c1.MemoryAllocator);
+                Assert.Same(MemoryAllocator.Default, c2.MemoryAllocator);
+                Assert.Same(MemoryAllocator.Default, c3.MemoryAllocator);
             }
         }
 

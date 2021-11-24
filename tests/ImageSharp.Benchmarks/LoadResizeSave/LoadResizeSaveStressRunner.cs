@@ -44,6 +44,8 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         public double TotalProcessedMegapixels { get; private set; }
 
+        public Size LastProcessedImageSize { get; private set; }
+
         private string outputDirectory;
 
         public int ImageCount { get; set; } = int.MaxValue;
@@ -53,9 +55,6 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public JpegKind Filter { get; set; } = JpegKind.Any;
 
         public int ThumbnailSize { get; set; } = 150;
-
-        // Inject leaking memory allocation requests to ImageSharp processing code to stress-test finalizer behavior.
-        public bool EmulateLeakedAllocations { get; set; }
 
         private static readonly string[] ProgressiveFiles =
         {
@@ -125,8 +124,9 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             new ParallelOptions { MaxDegreeOfParallelism = this.MaxDegreeOfParallelism },
             action);
 
-        private void IncreaseTotalMegapixels(int width, int height)
+        private void LogImageProcessed(int width, int height)
         {
+            this.LastProcessedImageSize = new Size(width, height);
             double pixels = width * (double)height;
             this.TotalProcessedMegapixels += pixels / 1_000_000.0;
         }
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void SystemDrawingResize(string input)
         {
             using var image = SystemDrawingImage.FromFile(input, true);
-            this.IncreaseTotalMegapixels(image.Width, image.Height);
+            this.LogImageProcessed(image.Width, image.Height);
 
             (int Width, int Height) scaled = this.ScaledSize(image.Width, image.Height, this.ThumbnailSize);
             var resized = new Bitmap(scaled.Width, scaled.Height);
@@ -182,13 +182,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
             // Resize it to fit a 150x150 square
             using var image = ImageSharpImage.Load(input);
-            this.IncreaseTotalMegapixels(image.Width, image.Height);
-
-            if (this.EmulateLeakedAllocations)
-            {
-                _ = Configuration.Default.MemoryAllocator.Allocate<long>(image.Width * image.Height);
-                _ = Configuration.Default.MemoryAllocator.Allocate<byte>(1 << 21);
-            }
+            this.LogImageProcessed(image.Width, image.Height);
 
             image.Mutate(i => i.Resize(new ResizeOptions
             {
@@ -201,17 +195,12 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
             // Save the results
             image.Save(output, this.imageSharpJpegEncoder);
-
-            if (this.EmulateLeakedAllocations)
-            {
-                _ = Configuration.Default.MemoryAllocator.Allocate2D<long>(image.Width, image.Height);
-            }
         }
 
         public void MagickResize(string input)
         {
             using var image = new MagickImage(input);
-            this.IncreaseTotalMegapixels(image.Width, image.Height);
+            this.LogImageProcessed(image.Width, image.Height);
 
             // Resize it to fit a 150x150 square
             image.Resize(this.ThumbnailSize, this.ThumbnailSize);
@@ -246,7 +235,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void SkiaCanvasResize(string input)
         {
             using var original = SKBitmap.Decode(input);
-            this.IncreaseTotalMegapixels(original.Width, original.Height);
+            this.LogImageProcessed(original.Width, original.Height);
             (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
             using var surface = SKSurface.Create(new SKImageInfo(scaled.Width, scaled.Height, original.ColorType, original.AlphaType));
             using var paint = new SKPaint() { FilterQuality = SKFilterQuality.High };
@@ -264,7 +253,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public void SkiaBitmapResize(string input)
         {
             using var original = SKBitmap.Decode(input);
-            this.IncreaseTotalMegapixels(original.Width, original.Height);
+            this.LogImageProcessed(original.Width, original.Height);
             (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
             using var resized = original.Resize(new SKImageInfo(scaled.Width, scaled.Height), SKFilterQuality.High);
             if (resized == null)
@@ -283,7 +272,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using var codec = SKCodec.Create(input);
 
             SKImageInfo info = codec.Info;
-            this.IncreaseTotalMegapixels(info.Width, info.Height);
+            this.LogImageProcessed(info.Width, info.Height);
             (int Width, int Height) scaled = this.ScaledSize(info.Width, info.Height, this.ThumbnailSize);
             SKSizeI supportedScale = codec.GetScaledDimensions((float)scaled.Width / info.Width);
 

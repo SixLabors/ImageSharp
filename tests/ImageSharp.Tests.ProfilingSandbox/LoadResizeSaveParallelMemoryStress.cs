@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using CommandLine;
@@ -27,13 +28,19 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             this.Benchmarks.Init();
         }
 
+        private int gcFrequency;
+
+        private int leakFrequency;
+
+        private int imageCounter;
+
         public LoadResizeSaveStressRunner Benchmarks { get; }
 
         public static void Run(string[] args)
         {
             Console.WriteLine($"Running: {typeof(LoadResizeSaveParallelMemoryStress).Assembly.Location}");
             Console.WriteLine($"64 bit: {Environment.Is64BitProcess}");
-            var options = args.Length > 0 ? CommandLineOptions.Parse(args) : null;
+            CommandLineOptions options = args.Length > 0 ? CommandLineOptions.Parse(args) : null;
 
             var lrs = new LoadResizeSaveParallelMemoryStress();
             if (options != null)
@@ -55,10 +62,12 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
                 if (!options.KeepDefaultAllocator)
                 {
-                    MemoryAllocator.Default = Configuration.Default.MemoryAllocator = options.CreateMemoryAllocator();
+                    Configuration.Default.MemoryAllocator = options.CreateMemoryAllocator();
                 }
 
-                lrs.Benchmarks.EmulateLeakedAllocations = options.LeakAllocations;
+                lrs.leakFrequency = options.LeakFrequency;
+                lrs.gcFrequency = options.GcFrequency;
+
 
                 timer = Stopwatch.StartNew();
                 try
@@ -80,16 +89,23 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                     Configuration.Default.MemoryAllocator.ReleaseRetainedResources();
                 }
 
-                for (int i = 0; i < options.FinalGcCount; i++)
+                int finalGcCount = -Math.Min(0, options.GcFrequency);
+
+                if (finalGcCount > 0)
                 {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    Thread.Sleep(1000);
+                    Console.WriteLine($"TotalOutstandingHandles: {UnmanagedMemoryHandle.TotalOutstandingHandles}");
+                    Console.WriteLine($"GC x {finalGcCount}, with 3 seconds wait.");
+                    for (int i = 0; i < finalGcCount; i++)
+                    {
+                        Thread.Sleep(3000);
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+                    }
                 }
             }
 
             var stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
-            Console.WriteLine($"Total Megapixels: {stats.TotalMegapixels}, TotalOomRetries: {UnmanagedMemoryHandle.TotalOomRetries}");
+            Console.WriteLine($"Total Megapixels: {stats.TotalMegapixels}, TotalOomRetries: {UnmanagedMemoryHandle.TotalOomRetries}, TotalOutstandingHandles: {UnmanagedMemoryHandle.TotalOutstandingHandles}, Total Gen2 GC count: {GC.CollectionCount(2)}");
             Console.WriteLine(stats.GetMarkdown());
             if (options?.FileOutput != null)
             {
@@ -121,8 +137,9 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 2. ImageSharp
 3. MagicScaler
 4. SkiaSharp
-5. NetVips
-6. ImageMagick
+5. SkiaSharp - Decode to target size
+6. NetVips
+7. ImageMagick
 ");
 
             ConsoleKey key = Console.ReadKey().Key;
@@ -149,9 +166,12 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                     lrs.SkiaBitmapBenchmarkParallel();
                     break;
                 case ConsoleKey.D5:
-                    lrs.NetVipsBenchmarkParallel();
+                    lrs.SkiaBitmapDecodeToTargetSizeBenchmarkParallel();
                     break;
                 case ConsoleKey.D6:
+                    lrs.NetVipsBenchmarkParallel();
+                    break;
+                case ConsoleKey.D7:
                     lrs.MagickBenchmarkParallel();
                     break;
             }
@@ -222,8 +242,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('r', "repeat-count", Required = false, Default = 1, HelpText = "Times to run the whole benchmark")]
             public int RepeatCount { get; set; } = 1;
 
-            [Option('g', "final-gc-count", Required = false, Default = 0, HelpText = "How many times to GC.Collect after execution")]
-            public int FinalGcCount { get; set; }
+            [Option('g', "gc-frequency", Required = false, Default = 0, HelpText = "Positive number: call GC every 'g'-th resize. Negative number: call GC '-g' times in the end.")]
+            public int GcFrequency { get; set; }
 
             [Option('e', "release-at-end", Required = false, Default = false, HelpText = "Specify to run ReleaseRetainedResources() after execution")]
             public bool ReleaseRetainedResourcesAtEnd { get; set; }
@@ -237,8 +257,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             [Option('t', "trim-period", Required = false, Default = null, HelpText = "Trim period for the pool in seconds")]
             public int? TrimTimeSeconds { get; set; }
 
-            [Option('l', "leak-allocations", Required = false, Default = false, HelpText = "Inject leaking memory allocation requests to stress-test finalizer behavior.")]
-            public bool LeakAllocations { get; set; }
+            [Option('l', "leak-frequency", Required = false, Default = 0, HelpText = "Inject leaking memory allocations after every 'l'-th resize to stress test finalizer behavior.")]
+            public int LeakFrequency { get; set; }
 
             public static CommandLineOptions Parse(string[] args)
             {
@@ -257,7 +277,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_d({this.KeepDefaultAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.FinalGcCount})_e({this.ReleaseRetainedResourcesAtEnd}_l({this.LeakAllocations}))";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_d({this.KeepDefaultAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.GcFrequency})_e({this.ReleaseRetainedResourcesAtEnd})_l({this.LeakFrequency})";
 
             public MemoryAllocator CreateMemoryAllocator()
             {
@@ -290,28 +310,32 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private void SystemDrawingBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SystemDrawingResize);
 
-        private void ImageSharpBenchmarkParallel()
-        {
-            int cnt = 0;
+        private void ImageSharpBenchmarkParallel() =>
             this.ForEachImage(f =>
             {
+                int cnt = Interlocked.Increment(ref this.imageCounter);
                 this.Benchmarks.ImageSharpResize(f);
-                if (cnt % 4 == 0 && this.Benchmarks.EmulateLeakedAllocations)
+                if (this.leakFrequency > 0 && cnt % this.leakFrequency == 0)
+                {
+                    _ = Configuration.Default.MemoryAllocator.Allocate<byte>(1 << 16);
+                    Size size = this.Benchmarks.LastProcessedImageSize;
+                    _ = new Image<ImageSharp.PixelFormats.Rgba64>(size.Width, size.Height);
+                }
+
+                if (this.gcFrequency > 0 && cnt % this.gcFrequency == 0)
                 {
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
                     GC.Collect();
                 }
-
-                cnt++;
             });
-        }
 
         private void MagickBenchmarkParallel() => this.ForEachImage(this.Benchmarks.MagickResize);
 
         private void MagicScalerBenchmarkParallel() => this.ForEachImage(this.Benchmarks.MagicScalerResize);
 
         private void SkiaBitmapBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SkiaBitmapResize);
+        private void SkiaBitmapDecodeToTargetSizeBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SkiaBitmapDecodeToTargetSize);
 
         private void NetVipsBenchmarkParallel() => this.ForEachImage(this.Benchmarks.NetVipsResize);
     }

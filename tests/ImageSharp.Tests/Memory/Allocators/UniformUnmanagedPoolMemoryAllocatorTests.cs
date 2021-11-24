@@ -253,10 +253,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        public static bool IsWindows => TestEnvironment.IsWindows;
-
-        // TODO: This doesn't seem to work on Unix. Open an issue & investigate.
-        [ConditionalTheory(nameof(IsWindows))]
         [InlineData(300)]
         [InlineData(600)]
         [InlineData(1200)]
@@ -306,7 +302,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        [ConditionalTheory(nameof(IsWindows))]
         [InlineData(300)]
         [InlineData(600)]
         public void MemoryOwnerFinalizer_ReturnsToPool(int length)

@@ -329,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             LossyUtils.TransformWht(dcTmp, tmp, scratch);
             for (n = 0; n < 16; n += 2)
             {
-                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8Scan[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8Scan[n]), true, scratch);
+                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8Scan[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8Scan[n]), scratch);
             }
 
             return nz;
@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<int> scratch = it.Scratch3.AsSpan(0, 16);
             Vp8Encoding.FTransform(src, reference, tmp, scratch);
             int nz = QuantizeBlock(tmp, levels, ref dqm.Y1);
-            Vp8Encoding.ITransform(reference, tmp, yuvOut, false, scratch);
+            Vp8Encoding.ITransformOne(reference, tmp, yuvOut, scratch);
 
             return nz;
         }
@@ -375,7 +375,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             for (n = 0; n < 8; n += 2)
             {
-                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8ScanUv[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8ScanUv[n]), true, scratch);
+                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8ScanUv[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8ScanUv[n]), scratch);
             }
 
             return nz << 16;

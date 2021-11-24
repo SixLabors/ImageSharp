@@ -276,5 +276,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed,
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
+
+        [Fact]
+        public void TransposeInplace()
+        {
+            static void RunTest()
+            {
+                short[] expected = Create8x8ShortData();
+                ReferenceImplementations.Transpose8x8(expected);
+
+                var block8x8 = default(Block8x8);
+                block8x8.LoadFrom(Create8x8ShortData());
+
+                block8x8.TransposeInplace();
+
+                short[] actual = new short[64];
+                block8x8.CopyTo(actual);
+
+                Assert.Equal(expected, actual);
+            }
+
+            // This method has only 1 implementation:
+            // 1. Scalar
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.DisableHWIntrinsic);
+        }
     }
 }

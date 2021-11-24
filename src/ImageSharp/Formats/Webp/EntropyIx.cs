@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// These five modes are evaluated and their respective entropy is computed.
     /// </summary>
-    internal enum EntropyIx
+    internal enum EntropyIx : byte
     {
         Direct = 0,
 

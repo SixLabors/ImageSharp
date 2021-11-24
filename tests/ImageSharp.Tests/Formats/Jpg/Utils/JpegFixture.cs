@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             bool failed = false;
 
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 float expected = a[i];
                 float actual = b[i];

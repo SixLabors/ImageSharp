@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using Xunit;
 
@@ -9,8 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public class ZigZagTests
     {
-        [Fact]
-        public void ZigZagCanHandleAllPossibleCoefficients()
+        private static void CanHandleAllPossibleCoefficients(ReadOnlySpan<byte> order)
         {
             // Mimic the behaviour of the huffman scan decoder using all possible byte values
             short[] block = new short[64];
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     if (s != 0)
                     {
                         i += r;
-                        block[ZigZag.ZigZagOrder[i++]] = (short)s;
+                        block[order[i++]] = (short)s;
                     }
                     else
                     {
@@ -40,5 +40,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
         }
+
+        [Fact]
+        public static void ZigZagCanHandleAllPossibleCoefficients() =>
+            CanHandleAllPossibleCoefficients(ZigZag.ZigZagOrder);
+
+        [Fact]
+        public static void TrasposingZigZagCanHandleAllPossibleCoefficients() =>
+            CanHandleAllPossibleCoefficients(ZigZag.TransposingOrder);
     }
 }

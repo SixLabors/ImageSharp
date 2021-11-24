@@ -320,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Literal.AsSpan(0, literalSize).Fill(0);
+                output.Literal.AsSpan(0, literalSize).Clear();
             }
         }
 
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Red.AsSpan(0, size).Fill(0);
+                output.Red.AsSpan(0, size).Clear();
             }
         }
 
@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Blue.AsSpan(0, size).Fill(0);
+                output.Blue.AsSpan(0, size).Clear();
             }
         }
 
@@ -389,7 +389,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Alpha.AsSpan(0, size).Fill(0);
+                output.Alpha.AsSpan(0, size).Clear();
             }
         }
 
@@ -412,7 +412,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Distance.AsSpan(0, size).Fill(0);
+                output.Distance.AsSpan(0, size).Clear();
             }
         }
 

@@ -48,6 +48,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public short MaxVal { get; private set; } = short.MinValue;
 
+            internal void MakeBlock(Block8x8 block, int y, int x)
+            {
+                block.TransposeInplace();
+                this.MakeBlock(block.ToArray(), y, x);
+            }
+
             internal void MakeBlock(short[] data, int y, int x)
             {
                 this.MinVal = Math.Min(this.MinVal, data.Min());
@@ -66,11 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     Span<Block8x8> blockRow = data.DangerousGetRowSpan(y - startIndex);
                     for (int x = 0; x < this.WidthInBlocks; x++)
                     {
-                        short[] block = blockRow[x].ToArray();
-
-                        // x coordinate stays the same - we load entire stride
-                        // y coordinate is tricky as we load single stride to full buffer - offset is needed
-                        this.MakeBlock(block, y, x);
+                        this.MakeBlock(blockRow[x], y, x);
                     }
                 }
             }
@@ -83,8 +85,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     Span<Block8x8> blockRow = data.DangerousGetRowSpan(y);
                     for (int x = 0; x < this.WidthInBlocks; x++)
                     {
-                        short[] block = blockRow[x].ToArray();
-                        this.MakeBlock(block, y, x);
+                        this.MakeBlock(blockRow[x], y, x);
                     }
                 }
             }

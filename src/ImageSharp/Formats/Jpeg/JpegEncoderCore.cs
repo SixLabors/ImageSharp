@@ -288,8 +288,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="componentCount">The number of components to write.</param>
         private void WriteDefineHuffmanTables(int componentCount)
         {
+            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
+            // and doesn't incur any allocation at all.
             // Table identifiers.
-            ReadOnlySpan<byte> headers = stackalloc byte[]
+            ReadOnlySpan<byte> headers = new byte[]
             {
                 0x00,
                 0x10,

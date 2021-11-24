@@ -616,10 +616,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private static void YuvToBgrSse41(Span<byte> y, Span<byte> u, Span<byte> v, Span<byte> dst)
         {
-            ConvertYuv444ToRgbSse41(y, u, v, out Vector128<short> r0, out Vector128<short> g0, out Vector128<short> b0);
-            ConvertYuv444ToRgbSse41(y.Slice(8), u.Slice(8), v.Slice(8), out Vector128<short> r1, out Vector128<short> g1, out Vector128<short> b1);
-            ConvertYuv444ToRgbSse41(y.Slice(16), u.Slice(16), v.Slice(16), out Vector128<short> r2, out Vector128<short> g2, out Vector128<short> b2);
-            ConvertYuv444ToRgbSse41(y.Slice(24), u.Slice(24), v.Slice(24), out Vector128<short> r3, out Vector128<short> g3, out Vector128<short> b3);
+            ref byte yRef = ref MemoryMarshal.GetReference(y);
+            ref byte uRef = ref MemoryMarshal.GetReference(u);
+            ref byte vRef = ref MemoryMarshal.GetReference(v);
+            ConvertYuv444ToBgrSse41(ref yRef, ref uRef, ref vRef, out Vector128<short> r0, out Vector128<short> g0, out Vector128<short> b0);
+            ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 8), ref Unsafe.Add(ref uRef, 8), ref Unsafe.Add(ref vRef, 8), out Vector128<short> r1, out Vector128<short> g1, out Vector128<short> b1);
+            ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 16), ref Unsafe.Add(ref uRef, 16), ref Unsafe.Add(ref vRef, 16), out Vector128<short> r2, out Vector128<short> g2, out Vector128<short> b2);
+            ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 24), ref Unsafe.Add(ref uRef, 24), ref Unsafe.Add(ref vRef, 24), out Vector128<short> r3, out Vector128<short> g3, out Vector128<short> b3);
 
             // Cast to 8b and store as BBBBGGGGRRRR.
             Vector128<byte> bgr0 = Sse2.PackUnsignedSaturate(b0, b1);
@@ -733,12 +736,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             output5 = Ssse3.Shuffle(input1, shuffle2);
         }
 
-        // Convert 32 samples of YUV444 to R/G/B
-        private static void ConvertYuv444ToRgbSse41(Span<byte> y, Span<byte> u, Span<byte> v, out Vector128<short> r, out Vector128<short> g, out Vector128<short> b)
+        // Convert 32 samples of YUV444 to B/G/R
+        private static void ConvertYuv444ToBgrSse41(ref byte y, ref byte u, ref byte v, out Vector128<short> r, out Vector128<short> g, out Vector128<short> b)
         {
-            Vector128<byte> y0 = LoadHigh(ref MemoryMarshal.GetReference(y));
-            Vector128<byte> u0 = LoadHigh(ref MemoryMarshal.GetReference(u));
-            Vector128<byte> v0 = LoadHigh(ref MemoryMarshal.GetReference(v));
+            Vector128<byte> y0 = LoadHigh(ref y);
+            Vector128<byte> u0 = LoadHigh(ref u);
+            Vector128<byte> v0 = LoadHigh(ref v);
 
             Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), K19077.AsUInt16());
             Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), K26149.AsUInt16());

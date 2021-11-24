@@ -10,24 +10,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class LosslessUtilsTests
     {
-        private static void RunVectorMismatchTest()
-        {
-            uint[] array1 = { 4278193152, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896 };
-            uint[] array2 = { 4278193152, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896, 4278192896 };
-            int expected1 = 18;
-
-            // Test unroll first two loops path also.
-            uint[] array3 = { 4279238656, 4278714368, 4279238656, 4279238656, 4279238656, 4279238656, 4279238896, 4279238896, 4279238884 };
-            uint[] array4 = { 4279238656, 4278714368, 4279238656, 4279238656, 4278190080, 4278190080, 4278190080, 4278190080, 4278190080 };
-            int expected2 = 4;
-
-            int actual1 = LosslessUtils.VectorMismatch(array1, array2, 18);
-            int actual2 = LosslessUtils.VectorMismatch(array3, array4, 9);
-
-            Assert.Equal(expected1, actual1);
-            Assert.Equal(expected2, actual2);
-        }
-
         private static void RunSubtractGreenTest()
         {
             uint[] pixelData =
@@ -212,9 +194,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Fact]
-        public void VectorMismatch_Works() => RunVectorMismatchTest();
-
-        [Fact]
         public void Predictor11_Works() => RunPredictor11Test();
 
         [Fact]
@@ -236,12 +215,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void TransformColorInverse_Works() => RunTransformColorInverseTest();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        [Fact]
-        public void VectorMismatch_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVectorMismatchTest, HwIntrinsics.AllowAll);
-
-        [Fact]
-        public void VectorMismatch_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVectorMismatchTest, HwIntrinsics.DisableSSE2);
-
+        
         [Fact]
         public void Predictor11_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor11Test, HwIntrinsics.AllowAll);
 

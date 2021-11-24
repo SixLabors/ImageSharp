@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Webp
 {
-    internal enum HistoIx
+    internal enum HistoIx : byte
     {
         HistoAlpha = 0,
 

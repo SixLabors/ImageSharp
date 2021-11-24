@@ -41,6 +41,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         }
 
         /// <summary>
+        /// Transpose 8x8 block stored linearly in a <see cref="Span{T}"/> (inplace)
+        /// </summary>
+        internal static void Transpose8x8(Span<short> data)
+        {
+            for (int i = 1; i < 8; i++)
+            {
+                int i8 = i * 8;
+                for (int j = 0; j < i; j++)
+                {
+                    short tmp = data[i8 + j];
+                    data[i8 + j] = data[(j * 8) + i];
+                    data[(j * 8) + i] = tmp;
+                }
+            }
+        }
+
+        /// <summary>
         /// Transpose 8x8 block stored linearly in a  <see cref="Span{T}"/>
         /// </summary>
         internal static void Transpose8x8(Span<float> src, Span<float> dest)

@@ -764,12 +764,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (Avx2.IsSupported)
             {
                 double retVal = 0.0d;
-                Span<int> tmp = stackalloc int[8];
+                Vector256<int> tmp = Vector256<int>.Zero;    // has the size of the scratch space of sizeof(int) * 8
                 ref int xRef = ref MemoryMarshal.GetReference(x);
                 ref int yRef = ref MemoryMarshal.GetReference(y);
                 Vector256<int> sumXY256 = Vector256<int>.Zero;
                 Vector256<int> sumX256 = Vector256<int>.Zero;
-                ref int tmpRef = ref MemoryMarshal.GetReference(tmp);
+                ref int tmpRef = ref Unsafe.As<Vector256<int>, int>(ref tmp);
                 for (nint i = 0; i < 256; i += 8)
                 {
                     Vector256<int> xVec = Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref xRef, i));

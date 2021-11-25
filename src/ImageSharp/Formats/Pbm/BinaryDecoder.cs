@@ -176,6 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                             {
                                 stream.Seek(-1, System.IO.SeekOrigin.Current);
                             }
+
                             break;
                         }
                     }

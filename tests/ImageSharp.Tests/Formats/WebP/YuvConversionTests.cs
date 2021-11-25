@@ -2,10 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.IO;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
@@ -13,6 +17,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class YuvConversionTests
     {
+        private static WebpDecoder WebpDecoder => new();
+
+        private static MagickReferenceDecoder ReferenceDecoder => new();
+
+        private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Webp.Lossy.NoFilter06);
+
+        public static void RunUpSampleYuvToRgbTest()
+        {
+            var provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
+            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Fact]
+        public void UpSampleYuvToRgb_Works() => RunUpSampleYuvToRgbTest();
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void UpSampleYuvToRgb_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void UpSampleYuvToRgb_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.DisableSSE2);
+
+#endif
+
         [Theory]
         [WithFile(TestImages.Webp.Yuv, PixelTypes.Rgba32)]
         public void ConvertRgbToYuv_Works<TPixel>(TestImageProvider<TPixel> provider)

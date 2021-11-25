@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Defines options for creating the default <see cref="MemoryAllocator"/>.
     /// </summary>
-    public class MemoryAllocatorSettings
+    public struct MemoryAllocatorSettings
     {
         private int? maximumPoolSizeMegabytes;
 

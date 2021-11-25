@@ -119,6 +119,14 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
             Assert.True(group[0].Span.SequenceEqual(data0));
             Assert.True(group[1].Span.SequenceEqual(data1));
             Assert.True(group[2].Span.SequenceEqual(data2));
+
+            int cnt = 0;
+            int[][] allData = { data0, data1, data2 };
+            foreach (Memory<int> memory in group)
+            {
+                Assert.True(memory.Span.SequenceEqual(allData[cnt]));
+                cnt++;
+            }
         }
 
         public static TheoryData<long, int, long, int> GetBoundedSlice_SuccessData = new TheoryData<long, int, long, int>()

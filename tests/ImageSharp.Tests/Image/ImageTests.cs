@@ -5,7 +5,9 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -322,6 +324,26 @@ namespace SixLabors.ImageSharp.Tests
 
                 // Image
                 Assert.Throws<ObjectDisposedException>(() => { var res = genericImage.CloneAs<Rgba32>(this.configuration); });
+            }
+        }
+
+        public class DetectEncoder
+        {
+            [Fact]
+            public void KnownExtension_ReturnsEncoder()
+            {
+                using var image = new Image<L8>(1, 1);
+                IImageEncoder encoder = image.DetectEncoder("dummy.png");
+                Assert.NotNull(encoder);
+                Assert.IsType<PngEncoder>(encoder);
+            }
+
+            [Fact]
+            public void UnknownExtension_ReturnsNull()
+            {
+                using var image = new Image<L8>(1, 1);
+                IImageEncoder encoder = image.DetectEncoder("dummy.yolo");
+                Assert.Null(encoder);
             }
         }
     }

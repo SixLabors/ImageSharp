@@ -4,10 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
 using Xunit;
 using Xunit.Abstractions;
@@ -102,13 +104,15 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         private static void CheckBuffer(int length, UniformUnmanagedMemoryPool pool, UnmanagedMemoryHandle h)
         {
             Assert.False(h.IsInvalid);
-            Span<byte> span = h.GetSpan();
+            Span<byte> span = GetSpan(h, pool.BufferLength);
             span.Fill(123);
 
             byte[] expected = new byte[length];
             expected.AsSpan().Fill(123);
             Assert.True(span.SequenceEqual(expected));
         }
+
+        private static unsafe Span<byte> GetSpan(UnmanagedMemoryHandle h, int length) => new Span<byte>(h.Pointer, length);
 
         [Theory]
         [InlineData(1, 1)]
@@ -307,16 +311,16 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             Parallel.For(0, Environment.ProcessorCount, (int i) =>
             {
-                var allArrays = new List<UnmanagedMemoryHandle>();
+                var allHandles = new List<UnmanagedMemoryHandle>();
                 int pauseAt = rnd.Next(100);
                 for (int j = 0; j < 100; j++)
                 {
                     UnmanagedMemoryHandle[] data = pool.Rent(2);
 
-                    data[0].GetSpan().Fill((byte)i);
-                    data[1].GetSpan().Fill((byte)i);
-                    allArrays.Add(data[0]);
-                    allArrays.Add(data[1]);
+                    GetSpan(data[0], pool.BufferLength).Fill((byte)i);
+                    GetSpan(data[1], pool.BufferLength).Fill((byte)i);
+                    allHandles.Add(data[0]);
+                    allHandles.Add(data[1]);
 
                     if (j == pauseAt)
                     {
@@ -327,12 +331,46 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 Span<byte> expected = new byte[8];
                 expected.Fill((byte)i);
 
-                foreach (UnmanagedMemoryHandle array in allArrays)
+                foreach (UnmanagedMemoryHandle h in allHandles)
                 {
-                    Assert.True(expected.SequenceEqual(array.GetSpan()));
-                    pool.Return(new[] { array });
+                    Assert.True(expected.SequenceEqual(GetSpan(h, pool.BufferLength)));
+                    pool.Return(new[] { h });
                 }
             });
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LeakPool_FinalizerShouldFreeRetainedHandles(bool withGuardedBuffers)
+        {
+            RemoteExecutor.Invoke(RunTest, withGuardedBuffers.ToString()).Dispose();
+
+            static void RunTest(string withGuardedBuffersInner)
+            {
+                LeakPoolInstance(bool.Parse(withGuardedBuffersInner));
+                Assert.Equal(20, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Assert.Equal(0, UnmanagedMemoryHandle.TotalOutstandingHandles);
+            }
+
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static void LeakPoolInstance(bool withGuardedBuffers)
+            {
+                var pool = new UniformUnmanagedMemoryPool(16, 128);
+                if (withGuardedBuffers)
+                {
+                    UnmanagedMemoryHandle h = pool.Rent();
+                    _ = pool.CreateGuardedBuffer<byte>(h, 10, false);
+                    UnmanagedMemoryHandle[] g = pool.Rent(19);
+                    _ = pool.CreateGroupLifetimeGuard(g);
+                }
+                else
+                {
+                    pool.Return(pool.Rent(20));
+                }
+            }
         }
     }
 }

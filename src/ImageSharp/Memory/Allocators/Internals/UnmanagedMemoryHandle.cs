@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public static readonly UnmanagedMemoryHandle NullHandle = default;
 
         private IntPtr handle;
-        private readonly int lengthInBytes;
+        private int lengthInBytes;
 
         private UnmanagedMemoryHandle(IntPtr handle, int lengthInBytes)
         {
@@ -63,29 +63,6 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public static bool operator ==(UnmanagedMemoryHandle a, UnmanagedMemoryHandle b) => a.Equals(b);
 
         public static bool operator !=(UnmanagedMemoryHandle a, UnmanagedMemoryHandle b) => !a.Equals(b);
-
-        [MethodImpl(InliningOptions.HotPath)]
-        public unsafe Span<byte> GetSpan()
-        {
-            if (this.IsInvalid)
-            {
-                ThrowDisposed();
-            }
-
-            return new Span<byte>(this.Pointer, this.lengthInBytes);
-        }
-
-        [MethodImpl(InliningOptions.HotPath)]
-        public unsafe Span<byte> GetSpan(int lengthInBytes)
-        {
-            DebugGuard.MustBeLessThanOrEqualTo(lengthInBytes, this.lengthInBytes, nameof(lengthInBytes));
-            if (this.IsInvalid)
-            {
-                ThrowDisposed();
-            }
-
-            return new Span<byte>(this.Pointer, lengthInBytes);
-        }
 
         public static UnmanagedMemoryHandle Allocate(int lengthInBytes)
         {
@@ -150,6 +127,8 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 Monitor.PulseAll(lowMemoryMonitor);
                 Monitor.Exit(lowMemoryMonitor);
             }
+
+            this.lengthInBytes = 0;
         }
 
         public bool Equals(UnmanagedMemoryHandle other) => this.handle.Equals(other.handle);
@@ -157,8 +136,5 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public override bool Equals(object obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
 
         public override int GetHashCode() => this.handle.GetHashCode();
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void ThrowDisposed() => throw new ObjectDisposedException(nameof(UnmanagedMemoryHandle));
     }
 }

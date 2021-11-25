@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         protected UnmanagedBufferLifetimeGuard(UnmanagedMemoryHandle handle) => this.handle = handle;
 
-        public UnmanagedMemoryHandle Handle => this.handle;
+        public ref UnmanagedMemoryHandle Handle => ref this.handle;
 
         public sealed class FreeHandle : UnmanagedBufferLifetimeGuard
         {
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             {
             }
 
-            protected override void Release() => this.handle.Free();
+            protected override void Release() => this.Handle.Free();
         }
     }
 }

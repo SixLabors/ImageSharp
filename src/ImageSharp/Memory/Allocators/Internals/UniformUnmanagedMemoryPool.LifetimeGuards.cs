@@ -8,11 +8,11 @@ namespace SixLabors.ImageSharp.Memory.Internals
         public UnmanagedBuffer<T> CreateGuardedBuffer<T>(
             UnmanagedMemoryHandle handle,
             int lengthInElements,
-            AllocationOptions options)
+            bool clear)
             where T : struct
         {
             var buffer = new UnmanagedBuffer<T>(lengthInElements, new ReturnToPoolBufferLifetimeGuard(this, handle));
-            if (options.Has(AllocationOptions.Clean))
+            if (clear)
             {
                 buffer.Clear();
             }
@@ -33,7 +33,16 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 this.handles = handles;
             }
 
-            protected override void Release() => this.pool.Return(this.handles);
+            protected override void Release()
+            {
+                if (!this.pool.Return(this.handles))
+                {
+                    foreach (UnmanagedMemoryHandle handle in this.handles)
+                    {
+                        handle.Free();
+                    }
+                }
+            }
         }
 
         private sealed class ReturnToPoolBufferLifetimeGuard : UnmanagedBufferLifetimeGuard
@@ -44,7 +53,13 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 : base(handle) =>
                 this.pool = pool;
 
-            protected override void Release() => this.pool.Return(this.Handle);
+            protected override void Release()
+            {
+                if (!this.pool.Return(this.Handle))
+                {
+                    this.Handle.Free();
+                }
+            }
         }
     }
 }

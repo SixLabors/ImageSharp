@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Memory
                 UnmanagedMemoryHandle mem = this.pool.Rent();
                 if (mem.IsValid)
                 {
-                    UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options);
+                    UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
                     return buffer;
                 }
             }
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Memory
                 UnmanagedMemoryHandle mem = this.pool.Rent();
                 if (mem.IsValid)
                 {
-                    UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, (int)totalLength, options);
+                    UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, (int)totalLength, options.Has(AllocationOptions.Clean));
                     return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
                 }
             }

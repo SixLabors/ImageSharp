@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
-    public class RefCountingLifetimeGuardTests
+    public class RefCountedLifetimeGuardTests
     {
         [Theory]
         [InlineData(1)]
@@ -88,6 +88,16 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             guard.ReleaseRef();
 
             Assert.Equal(1, guard.ReleaseInvocationCount);
+        }
+
+        [Fact]
+        public void UnmanagedBufferLifetimeGuard_Handle_IsReturnedByRef()
+        {
+            var h = UnmanagedMemoryHandle.Allocate(10);
+            using var guard = new UnmanagedBufferLifetimeGuard.FreeHandle(h);
+            Assert.True(guard.Handle.IsValid);
+            guard.Handle.Free();
+            Assert.False(guard.Handle.IsValid);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

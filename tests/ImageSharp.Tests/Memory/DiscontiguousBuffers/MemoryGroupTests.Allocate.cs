@@ -102,13 +102,13 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
             [Theory]
             [InlineData(AllocationOptions.None)]
             [InlineData(AllocationOptions.Clean)]
-            public void Allocate_FromPool_AllocationOptionsAreApplied(AllocationOptions options)
+            public unsafe void Allocate_FromPool_AllocationOptionsAreApplied(AllocationOptions options)
             {
                 var pool = new UniformUnmanagedMemoryPool(10, 5);
                 UnmanagedMemoryHandle[] buffers = pool.Rent(5);
                 foreach (UnmanagedMemoryHandle b in buffers)
                 {
-                    b.GetSpan().Fill(42);
+                    new Span<byte>(b.Pointer, pool.BufferLength).Fill(42);
                 }
 
                 pool.Return(buffers);

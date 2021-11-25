@@ -129,9 +129,9 @@ namespace SixLabors.ImageSharp.Memory
                 return this.memoryOwners.Select(mo => mo.Memory).GetEnumerator();
             }
 
-            protected override void Dispose(bool disposing)
+            public override void Dispose()
             {
-                if (this.IsDisposed || !disposing)
+                if (this.IsDisposed)
                 {
                     return;
                 }
@@ -193,7 +193,9 @@ namespace SixLabors.ImageSharp.Memory
                 b.View = new MemoryGroupView<T>(b);
             }
 
-            // No-ownership
+            // When the MemoryGroup points to multiple buffers via `groupLifetimeGuard`,
+            // the lifetime of the individual buffers is managed by the guard.
+            // Group buffer IMemoryOwner<T>-s d not manage ownership.
             private sealed class ObservedBuffer : MemoryManager<T>
             {
                 private readonly UnmanagedMemoryHandle handle;

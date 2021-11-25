@@ -50,13 +50,7 @@ namespace SixLabors.ImageSharp.Memory
                 return ((IList<Memory<T>>)this.source).GetEnumerator();
             }
 
-            protected override void Dispose(bool disposing)
-            {
-                if (disposing)
-                {
-                    this.View.Invalidate();
-                }
-            }
+            public override void Dispose() => this.View.Invalidate();
         }
     }
 }

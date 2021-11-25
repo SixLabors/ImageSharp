@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 {
     internal partial class UniformUnmanagedMemoryPool
 #if !NETSTANDARD1_3
-        // In case UniformUnmanagedMemoryPool is finalized, we prefer to run it's finalizer after the guard finalizers,
+        // In case UniformUnmanagedMemoryPool is finalized, we prefer to run its finalizer after the guard finalizers,
         // but we should not rely on this.
         : System.Runtime.ConstrainedExecution.CriticalFinalizerObject
 #endif

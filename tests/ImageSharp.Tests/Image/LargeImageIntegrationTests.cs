@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void PreferContiguousImageBuffers_CreateImage_MaximumPoolSizeMegabytes()
+        public void PreferContiguousImageBuffers_CreateImage_BufferIsContiguous()
         {
             // Run remotely to avoid large allocation in the test process:
             RemoteExecutor.Invoke(RunTest).Dispose();

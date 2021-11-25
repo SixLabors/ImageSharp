@@ -511,8 +511,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return cost;
         }
 
-        private static void AddVector(Span<uint> a, Span<uint> b, Span<uint> output, int size)
+        private static void AddVector(Span<uint> a, Span<uint> b, Span<uint> output, int count)
         {
+            DebugGuard.MustBeGreaterThanOrEqualTo(a.Length, count, nameof(a.Length));
+            DebugGuard.MustBeGreaterThanOrEqualTo(b.Length, count, nameof(b.Length));
+            DebugGuard.MustBeGreaterThanOrEqualTo(output.Length, count, nameof(output.Length));
+
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
@@ -521,7 +525,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 ref uint outputRef = ref MemoryMarshal.GetReference(output);
                 int i;
 
-                for (i = 0; i + 32 <= size; i += 32)
+                for (i = 0; i + 32 <= count; i += 32)
                 {
                     // Load values.
                     Vector256<uint> a0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i));
@@ -534,14 +538,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     Vector256<uint> b3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i + 24));
 
                     // Note we are adding uint32_t's as *signed* int32's (using _mm_add_epi32). But
-                    // that's ok since the histogram values are less than 1<<28 (max picture size).
+                    // that's ok since the histogram values are less than 1<<28 (max picture count).
                     Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i)) = Avx2.Add(a0, b0);
                     Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 8)) = Avx2.Add(a1, b1);
                     Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 16)) = Avx2.Add(a2, b2);
                     Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 24)) = Avx2.Add(a3, b3);
                 }
 
-                for (; i < size; i++)
+                for (; i < count; i++)
                 {
                     output[i] = a[i] + b[i];
                 }
@@ -549,7 +553,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             else
 #endif
             {
-                for (int i = 0; i < size; i++)
+                for (int i = 0; i < count; i++)
                 {
                     output[i] = a[i] + b[i];
                 }

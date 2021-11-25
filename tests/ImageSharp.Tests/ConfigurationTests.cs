@@ -150,6 +150,21 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
+        public void MemoryAllocator_Setter_Roundtrips()
+        {
+            MemoryAllocator customAllocator = new SimpleGcMemoryAllocator();
+            var config = new Configuration() { MemoryAllocator = customAllocator };
+            Assert.Same(customAllocator, config.MemoryAllocator);
+        }
+
+        [Fact]
+        public void MemoryAllocator_SetNull_ThrowsArgumentNullException()
+        {
+            var config = new Configuration();
+            Assert.Throws<ArgumentNullException>(() => config.MemoryAllocator = null);
+        }
+
+        [Fact]
         public void InheritsDefaultMemoryAllocatorInstance()
         {
             RemoteExecutor.Invoke(RunTest).Dispose();

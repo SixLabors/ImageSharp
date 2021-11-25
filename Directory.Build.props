@@ -13,6 +13,9 @@
   <PropertyGroup>
     <!-- This MUST be defined before importing props. -->
     <SixLaborsSolutionDirectory>$(MSBuildThisFileDirectory)</SixLaborsSolutionDirectory>
+
+    <!-- For some reason Debug-InnerLoop doesn't define DEBUG by default. -->
+    <DefineConstants Condition="'$(Configuration)' == 'Debug-InnerLoop'">$(DefineConstants);DEBUG</DefineConstants>
   </PropertyGroup>
 
   <!-- Import the shared global .props file -->

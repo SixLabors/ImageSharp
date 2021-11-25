@@ -739,9 +739,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Convert 32 samples of YUV444 to B/G/R
         private static void ConvertYuv444ToBgrSse41(ref byte y, ref byte u, ref byte v, out Vector128<short> r, out Vector128<short> g, out Vector128<short> b)
         {
-            Vector128<byte> y0 = LoadHigh(ref y);
-            Vector128<byte> u0 = LoadHigh(ref u);
-            Vector128<byte> v0 = LoadHigh(ref v);
+            // Load the bytes into the *upper* part of 16b words. That's "<< 8", basically.
+            Vector128<byte> y0 = Unsafe.As<byte, Vector128<byte>>(ref y);
+            Vector128<byte> u0 = Unsafe.As<byte, Vector128<byte>>(ref u);
+            Vector128<byte> v0 = Unsafe.As<byte, Vector128<byte>>(ref v);
+            y0 = Sse2.UnpackLow(Vector128<byte>.Zero, y0);
+            u0 = Sse2.UnpackLow(Vector128<byte>.Zero, u0);
+            v0 = Sse2.UnpackLow(Vector128<byte>.Zero, v0);
 
             Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), K19077.AsUInt16());
             Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), K26149.AsUInt16());
@@ -765,13 +769,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             b = Sse2.ShiftRightLogical(b2.AsInt16(), 6); // range: [0, 34238]
         }
 
-        // Load the bytes into the *upper* part of 16b words. That's "<< 8", basically.
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector128<byte> LoadHigh(ref byte src)
-        {
-            Vector128<byte> tmp = Unsafe.As<byte, Vector128<byte>>(ref src);
-            return Sse2.UnpackLow(Vector128<byte>.Zero, tmp);
-        }
 #endif
 
         [MethodImpl(InliningOptions.ShortMethod)]

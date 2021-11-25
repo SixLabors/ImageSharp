@@ -215,6 +215,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void TransformColorInverse_Works() => RunTransformColorInverseTest();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        
         [Fact]
         public void Predictor11_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor11Test, HwIntrinsics.AllowAll);
 

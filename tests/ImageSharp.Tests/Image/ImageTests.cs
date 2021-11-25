@@ -339,11 +339,22 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void UnknownExtension_ReturnsNull()
+            public void UnknownExtension_ThrowsNotSupportedException()
             {
                 using var image = new Image<L8>(1, 1);
-                IImageEncoder encoder = image.DetectEncoder("dummy.yolo");
-                Assert.Null(encoder);
+                Assert.Throws<NotSupportedException>(() => image.DetectEncoder("dummy.yolo"));
+            }
+
+            [Fact]
+            public void NoDetectorRegisteredForKnownExtension_ThrowsNotSupportedException()
+            {
+                var configuration = new Configuration();
+                var format = new TestFormat();
+                configuration.ImageFormatsManager.AddImageFormat(format);
+                configuration.ImageFormatsManager.AddImageFormatDetector(new MockImageFormatDetector(format));
+
+                using var image = new Image<L8>(configuration, 1, 1);
+                Assert.Throws<NotSupportedException>(() => image.DetectEncoder($"dummy.{format.Extension}"));
             }
         }
     }

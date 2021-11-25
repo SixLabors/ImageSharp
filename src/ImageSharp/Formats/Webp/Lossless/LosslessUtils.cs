@@ -81,8 +81,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public static int VectorMismatch(ReadOnlySpan<uint> array1, ReadOnlySpan<uint> array2, int length)
         {
             int matchLen = 0;
+            ref uint array1Ref = ref MemoryMarshal.GetReference(array1);
+            ref uint array2Ref = ref MemoryMarshal.GetReference(array2);
 
-            while (matchLen < length && array1[matchLen] == array2[matchLen])
+            while (matchLen < length && Unsafe.Add(ref array1Ref, matchLen) == Unsafe.Add(ref array2Ref, matchLen))
             {
                 matchLen++;
             }

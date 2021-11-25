@@ -692,16 +692,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int mbw = io.MbW;
             int uvw = (mbw + 1) / 2;
             int y = io.MbY;
+            byte[] uvBuffer = new byte[(14 * 32) + 15];
 
             if (y == 0)
             {
                 // First line is special cased. We mirror the u/v samples at boundary.
-                this.UpSample(curY, null, curU, curV, curU, curV, dst, null, mbw);
+                YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst, default, mbw, uvBuffer);
             }
             else
             {
                 // We can finish the left-over line from previous call.
-                this.UpSample(tmpYBuffer, curY, topU, topV, curU, curV, buf.Slice(dstStartIdx - bufferStride), dst, mbw);
+                YuvConversion.UpSample(tmpYBuffer, curY, topU, topV, curU, curV, buf.Slice(dstStartIdx - bufferStride), dst, mbw, uvBuffer);
                 numLinesOut++;
             }
 
@@ -714,7 +715,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 topV = curV;
                 curU = curU.Slice(io.UvStride);
                 curV = curV.Slice(io.UvStride);
-                this.UpSample(curY.Slice(io.YStride), curY.Slice(ioStride2), topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(bufferStride2), mbw);
+                YuvConversion.UpSample(curY.Slice(io.YStride), curY.Slice(ioStride2), topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(bufferStride2), mbw, uvBuffer);
                 curY = curY.Slice(ioStride2);
                 dst = dst.Slice(bufferStride2);
             }
@@ -736,65 +737,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // Process the very last row of even-sized picture.
                 if ((yEnd & 1) == 0)
                 {
-                    this.UpSample(curY, null, curU, curV, curU, curV, dst.Slice(bufferStride), null, mbw);
+                    YuvConversion.UpSample(curY, default, curU, curV, curU, curV, dst.Slice(bufferStride), default, mbw, uvBuffer);
                 }
             }
 
             return numLinesOut;
-        }
-
-        private void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
-        {
-            int xStep = 3;
-            int lastPixelPair = (len - 1) >> 1;
-            uint tluv = YuvConversion.LoadUv(topU[0], topV[0]); // top-left sample
-            uint luv = YuvConversion.LoadUv(curU[0], curV[0]); // left-sample
-            uint uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
-            YuvConversion.YuvToBgr(topY[0], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst);
-
-            if (bottomY != null)
-            {
-                uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
-                YuvConversion.YuvToBgr(bottomY[0], (int)uv0 & 0xff, (int)(uv0 >> 16), bottomDst);
-            }
-
-            for (int x = 1; x <= lastPixelPair; x++)
-            {
-                uint tuv = YuvConversion.LoadUv(topU[x], topV[x]); // top sample
-                uint uv = YuvConversion.LoadUv(curU[x], curV[x]); // sample
-
-                // Precompute invariant values associated with first and second diagonals.
-                uint avg = tluv + tuv + luv + uv + 0x00080008u;
-                uint diag12 = (avg + (2 * (tuv + luv))) >> 3;
-                uint diag03 = (avg + (2 * (tluv + uv))) >> 3;
-                uv0 = (diag12 + tluv) >> 1;
-                uint uv1 = (diag03 + tuv) >> 1;
-                int xMul2 = x * 2;
-                YuvConversion.YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
-                YuvConversion.YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
-
-                if (bottomY != null)
-                {
-                    uv0 = (diag03 + luv) >> 1;
-                    uv1 = (diag12 + uv) >> 1;
-                    YuvConversion.YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((xMul2 - 1) * xStep));
-                    YuvConversion.YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice((xMul2 + 0) * xStep));
-                }
-
-                tluv = tuv;
-                luv = uv;
-            }
-
-            if ((len & 1) == 0)
-            {
-                uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
-                YuvConversion.YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
-                if (bottomY != null)
-                {
-                    uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
-                    YuvConversion.YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
-                }
-            }
         }
 
         private void DoTransform(uint bits, Span<short> src, Span<byte> dst, Span<int> scratch)

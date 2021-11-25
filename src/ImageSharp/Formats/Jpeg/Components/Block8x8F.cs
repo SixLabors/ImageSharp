@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -98,58 +97,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             set => this[(y * 8) + x] = value;
         }
 
-        public static Block8x8F operator *(Block8x8F block, float value)
-        {
-            Block8x8F result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                float val = result[i];
-                val *= value;
-                result[i] = val;
-            }
-
-            return result;
-        }
-
-        public static Block8x8F operator /(Block8x8F block, float value)
-        {
-            Block8x8F result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                float val = result[i];
-                val /= value;
-                result[i] = val;
-            }
-
-            return result;
-        }
-
-        public static Block8x8F operator +(Block8x8F block, float value)
-        {
-            Block8x8F result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                float val = result[i];
-                val += value;
-                result[i] = val;
-            }
-
-            return result;
-        }
-
-        public static Block8x8F operator -(Block8x8F block, float value)
-        {
-            Block8x8F result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                float val = result[i];
-                val -= value;
-                result[i] = val;
-            }
-
-            return result;
-        }
-
         public static Block8x8F Load(Span<float> data)
         {
             Block8x8F result = default;
@@ -178,15 +125,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Load raw 32bit floating point data from source.
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="source">Source</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static unsafe void LoadFrom(Block8x8F* blockPtr, Span<float> source)
-            => blockPtr->LoadFrom(source);
-
-        /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
         /// <param name="source">Source</param>
@@ -203,44 +141,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Copy raw 32bit floating point data to dest,
-        /// </summary>
-        /// <param name="dest">Destination</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ScaledCopyTo(Span<float> dest)
-        {
-            ref byte d = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(dest));
-            ref byte s = ref Unsafe.As<Block8x8F, byte>(ref this);
-
-            Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));
-        }
-
-        /// <summary>
-        /// Convert scalars to byte-s and copy to dest,
-        /// </summary>
-        /// <param name="blockPtr">Pointer to block</param>
-        /// <param name="dest">Destination</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static unsafe void ScaledCopyTo(Block8x8F* blockPtr, Span<byte> dest)
-        {
-            float* fPtr = (float*)blockPtr;
-            for (int i = 0; i < Size; i++)
-            {
-                dest[i] = (byte)*fPtr;
-                fPtr++;
-            }
-        }
-
-        /// <summary>
-        /// Copy raw 32bit floating point data to dest.
-        /// </summary>
-        /// <param name="blockPtr">The block pointer.</param>
-        /// <param name="dest">The destination.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static unsafe void ScaledCopyTo(Block8x8F* blockPtr, Span<float> dest)
-            => blockPtr->ScaledCopyTo(dest);
-
-        /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>
         /// <param name="dest">Destination</param>
@@ -250,22 +150,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             fixed (void* ptr = &this.V0L)
             {
                 Marshal.Copy((IntPtr)ptr, dest, 0, Size);
-            }
-        }
-
-        /// <summary>
-        /// Copy raw 32bit floating point data to dest
-        /// </summary>
-        /// <param name="dest">Destination</param>
-        public unsafe void ScaledCopyTo(Span<int> dest)
-        {
-            fixed (Vector4* ptr = &this.V0L)
-            {
-                var fp = (float*)ptr;
-                for (int i = 0; i < Size; i++)
-                {
-                    dest[i] = (int)fp[i];
-                }
             }
         }
 

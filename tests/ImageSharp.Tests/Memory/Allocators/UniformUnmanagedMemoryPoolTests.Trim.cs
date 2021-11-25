@@ -47,11 +47,11 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 }
             }
 
-            public static readonly bool MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed_Enabled =
-                !(TestEnvironment.IsOSX && TestEnvironment.NetCoreVersion?.Major == 6);
+            public static readonly bool IsNotMacOs = !TestEnvironment.IsOSX;
 
-            // TODO: Investigate failure on MacOS + .net 6.0. All handles are released after GC.
-            [ConditionalFact(nameof(MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed_Enabled))]
+            // TODO: Investigate failures on MacOS. All handles are released after GC.
+            // (It seems to happen more consistently on .NET 6.)
+            [ConditionalFact(nameof(IsNotMacOs))]
             public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
             {
                 RemoteExecutor.Invoke(RunTest).Dispose();

@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             if (trimSettings.Enabled)
             {
                 UpdateTimer(trimSettings, this);
-#if NETCOREAPP3_1_OR_GREATER || NETFRAMEWORK
+#if NETCOREAPP3_1_OR_GREATER
                 Gen2GcCallback.Register(s => ((UniformUnmanagedMemoryPool)s).Trim(), this);
 #endif
                 this.lastTrimTimestamp = Stopwatch.ElapsedMilliseconds;

@@ -407,59 +407,56 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-#pragma warning disable SA1503 // Braces should not be omitted
-                fixed (byte* srcRef = src)
-                fixed (byte* referenceRef = reference)
-                {
-                    // Load src.
-                    Vector128<ulong> src0 = Sse2.LoadScalarVector128((ulong*)srcRef);
-                    Vector128<ulong> src1 = Sse2.LoadScalarVector128((ulong*)(srcRef + WebpConstants.Bps));
-                    Vector128<ulong> src2 = Sse2.LoadScalarVector128((ulong*)(srcRef + (WebpConstants.Bps * 2)));
-                    Vector128<ulong> src3 = Sse2.LoadScalarVector128((ulong*)(srcRef + (WebpConstants.Bps * 3)));
+                ref byte srcRef = ref MemoryMarshal.GetReference(src);
+                ref byte referenceRef = ref MemoryMarshal.GetReference(reference);
 
-                    // Load ref.
-                    Vector128<ulong> ref0 = Sse2.LoadScalarVector128((ulong*)referenceRef);
-                    Vector128<ulong> ref1 = Sse2.LoadScalarVector128((ulong*)(referenceRef + WebpConstants.Bps));
-                    Vector128<ulong> ref2 = Sse2.LoadScalarVector128((ulong*)(referenceRef + (WebpConstants.Bps * 2)));
-                    Vector128<ulong> ref3 = Sse2.LoadScalarVector128((ulong*)(referenceRef + (+WebpConstants.Bps * 3)));
+                // Load src.
+                var src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
+                var src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
+                var src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
+                var src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
 
-                    // Convert both to 16 bit.
-                    Vector128<byte> srcLow0 = Sse2.UnpackLow(src0.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> srcLow1 = Sse2.UnpackLow(src1.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> srcLow2 = Sse2.UnpackLow(src2.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> srcLow3 = Sse2.UnpackLow(src3.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> refLow0 = Sse2.UnpackLow(ref0.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> refLow1 = Sse2.UnpackLow(ref1.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> refLow2 = Sse2.UnpackLow(ref2.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> refLow3 = Sse2.UnpackLow(ref3.AsByte(), Vector128<byte>.Zero);
+                // Load ref.
+                var ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
+                var ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
+                var ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
+                var ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
-                    // Compute difference. -> 00 01 02 03  00' 01' 02' 03'
-                    Vector128<short> diff0 = Sse2.Subtract(srcLow0.AsInt16(), refLow0.AsInt16());
-                    Vector128<short> diff1 = Sse2.Subtract(srcLow1.AsInt16(), refLow1.AsInt16());
-                    Vector128<short> diff2 = Sse2.Subtract(srcLow2.AsInt16(), refLow2.AsInt16());
-                    Vector128<short> diff3 = Sse2.Subtract(srcLow3.AsInt16(), refLow3.AsInt16());
+                // Convert both to 16 bit.
+                Vector128<byte> srcLow0 = Sse2.UnpackLow(src0.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> srcLow1 = Sse2.UnpackLow(src1.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> srcLow2 = Sse2.UnpackLow(src2.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> srcLow3 = Sse2.UnpackLow(src3.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> refLow0 = Sse2.UnpackLow(ref0.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> refLow1 = Sse2.UnpackLow(ref1.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> refLow2 = Sse2.UnpackLow(ref2.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> refLow3 = Sse2.UnpackLow(ref3.AsByte(), Vector128<byte>.Zero);
 
-                    // Unpack and shuffle.
-                    // 00 01 02 03   0 0 0 0
-                    // 10 11 12 13   0 0 0 0
-                    // 20 21 22 23   0 0 0 0
-                    // 30 31 32 33   0 0 0 0
-                    Vector128<int> shuf01l = Sse2.UnpackLow(diff0.AsInt32(), diff1.AsInt32());
-                    Vector128<int> shuf23l = Sse2.UnpackLow(diff2.AsInt32(), diff3.AsInt32());
-                    Vector128<int> shuf01h = Sse2.UnpackHigh(diff0.AsInt32(), diff1.AsInt32());
-                    Vector128<int> shuf23h = Sse2.UnpackHigh(diff2.AsInt32(), diff3.AsInt32());
+                // Compute difference. -> 00 01 02 03  00' 01' 02' 03'
+                Vector128<short> diff0 = Sse2.Subtract(srcLow0.AsInt16(), refLow0.AsInt16());
+                Vector128<short> diff1 = Sse2.Subtract(srcLow1.AsInt16(), refLow1.AsInt16());
+                Vector128<short> diff2 = Sse2.Subtract(srcLow2.AsInt16(), refLow2.AsInt16());
+                Vector128<short> diff3 = Sse2.Subtract(srcLow3.AsInt16(), refLow3.AsInt16());
 
-                    // First pass.
-                    FTransformPass1SSE2(shuf01l.AsInt16(), shuf23l.AsInt16(), out Vector128<int> v01l, out Vector128<int> v32l);
-                    FTransformPass1SSE2(shuf01h.AsInt16(), shuf23h.AsInt16(), out Vector128<int> v01h, out Vector128<int> v32h);
+                // Unpack and shuffle.
+                // 00 01 02 03   0 0 0 0
+                // 10 11 12 13   0 0 0 0
+                // 20 21 22 23   0 0 0 0
+                // 30 31 32 33   0 0 0 0
+                Vector128<int> shuf01l = Sse2.UnpackLow(diff0.AsInt32(), diff1.AsInt32());
+                Vector128<int> shuf23l = Sse2.UnpackLow(diff2.AsInt32(), diff3.AsInt32());
+                Vector128<int> shuf01h = Sse2.UnpackHigh(diff0.AsInt32(), diff1.AsInt32());
+                Vector128<int> shuf23h = Sse2.UnpackHigh(diff2.AsInt32(), diff3.AsInt32());
 
-                    // Second pass.
-                    FTransformPass2SSE2(v01l, v32l, output);
-                    FTransformPass2SSE2(v01h, v32h, output2);
-                }
+                // First pass.
+                FTransformPass1SSE2(shuf01l.AsInt16(), shuf23l.AsInt16(), out Vector128<int> v01l, out Vector128<int> v32l);
+                FTransformPass1SSE2(shuf01h.AsInt16(), shuf23h.AsInt16(), out Vector128<int> v01h, out Vector128<int> v32h);
+
+                // Second pass.
+                FTransformPass2SSE2(v01l, v32l, output);
+                FTransformPass2SSE2(v01h, v32h, output2);
             }
             else
-#pragma warning restore SA1503 // Braces should not be omitted
 #endif
             {
                 FTransform(src, reference, output, scratch);
@@ -472,52 +469,49 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-#pragma warning disable SA1503 // Braces should not be omitted
-                fixed (byte* srcRef = src)
-                fixed (byte* referenceRef = reference)
-                {
-                    // Load src.
-                    Vector128<ulong> src0 = Sse2.LoadScalarVector128((ulong*)srcRef);
-                    Vector128<ulong> src1 = Sse2.LoadScalarVector128((ulong*)(srcRef + WebpConstants.Bps));
-                    Vector128<ulong> src2 = Sse2.LoadScalarVector128((ulong*)(srcRef + (WebpConstants.Bps * 2)));
-                    Vector128<ulong> src3 = Sse2.LoadScalarVector128((ulong*)(srcRef + (WebpConstants.Bps * 3)));
+                ref byte srcRef = ref MemoryMarshal.GetReference(src);
+                ref byte referenceRef = ref MemoryMarshal.GetReference(reference);
 
-                    // Load ref.
-                    Vector128<ulong> ref0 = Sse2.LoadScalarVector128((ulong*)referenceRef);
-                    Vector128<ulong> ref1 = Sse2.LoadScalarVector128((ulong*)(referenceRef + WebpConstants.Bps));
-                    Vector128<ulong> ref2 = Sse2.LoadScalarVector128((ulong*)(referenceRef + (WebpConstants.Bps * 2)));
-                    Vector128<ulong> ref3 = Sse2.LoadScalarVector128((ulong*)(referenceRef + (+WebpConstants.Bps * 3)));
+                // Load src.
+                var src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
+                var src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
+                var src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
+                var src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
 
-                    // 00 01 02 03 *
-                    // 10 11 12 13 *
-                    // 20 21 22 23 *
-                    // 30 31 32 33 *
-                    // Shuffle.
-                    Vector128<short> srcLow0 = Sse2.UnpackLow(src0.AsInt16(), src1.AsInt16());
-                    Vector128<short> srcLow1 = Sse2.UnpackLow(src2.AsInt16(), src3.AsInt16());
-                    Vector128<short> refLow0 = Sse2.UnpackLow(ref0.AsInt16(), ref1.AsInt16());
-                    Vector128<short> refLow1 = Sse2.UnpackLow(ref2.AsInt16(), ref3.AsInt16());
+                // Load ref.
+                var ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
+                var ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
+                var ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
+                var ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
-                    // 00 01 10 11 02 03 12 13 * * ...
-                    // 20 21 30 31 22 22 32 33 * * ...
+                // 00 01 02 03 *
+                // 10 11 12 13 *
+                // 20 21 22 23 *
+                // 30 31 32 33 *
+                // Shuffle.
+                Vector128<short> srcLow0 = Sse2.UnpackLow(src0.AsInt16(), src1.AsInt16());
+                Vector128<short> srcLow1 = Sse2.UnpackLow(src2.AsInt16(), src3.AsInt16());
+                Vector128<short> refLow0 = Sse2.UnpackLow(ref0.AsInt16(), ref1.AsInt16());
+                Vector128<short> refLow1 = Sse2.UnpackLow(ref2.AsInt16(), ref3.AsInt16());
 
-                    // Convert both to 16 bit.
-                    Vector128<byte> src0_16b = Sse2.UnpackLow(srcLow0.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> src1_16b = Sse2.UnpackLow(srcLow1.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> ref0_16b = Sse2.UnpackLow(refLow0.AsByte(), Vector128<byte>.Zero);
-                    Vector128<byte> ref1_16b = Sse2.UnpackLow(refLow1.AsByte(), Vector128<byte>.Zero);
+                // 00 01 10 11 02 03 12 13 * * ...
+                // 20 21 30 31 22 22 32 33 * * ...
 
-                    // Compute the difference.
-                    Vector128<short> row01 = Sse2.Subtract(src0_16b.AsInt16(), ref0_16b.AsInt16());
-                    Vector128<short> row23 = Sse2.Subtract(src1_16b.AsInt16(), ref1_16b.AsInt16());
+                // Convert both to 16 bit.
+                Vector128<byte> src0_16b = Sse2.UnpackLow(srcLow0.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> src1_16b = Sse2.UnpackLow(srcLow1.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> ref0_16b = Sse2.UnpackLow(refLow0.AsByte(), Vector128<byte>.Zero);
+                Vector128<byte> ref1_16b = Sse2.UnpackLow(refLow1.AsByte(), Vector128<byte>.Zero);
 
-                    // First pass
-                    FTransformPass1SSE2(row01, row23, out Vector128<int> v01, out Vector128<int> v32);
+                // Compute the difference.
+                Vector128<short> row01 = Sse2.Subtract(src0_16b.AsInt16(), ref0_16b.AsInt16());
+                Vector128<short> row23 = Sse2.Subtract(src1_16b.AsInt16(), ref1_16b.AsInt16());
 
-                    // Second pass
-                    FTransformPass2SSE2(v01, v32, output);
-                }
-#pragma warning restore SA1503 // Braces should not be omitted
+                // First pass.
+                FTransformPass1SSE2(row01, row23, out Vector128<int> v01, out Vector128<int> v32);
+
+                // Second pass.
+                FTransformPass2SSE2(v01, v32, output);
             }
             else
 #endif

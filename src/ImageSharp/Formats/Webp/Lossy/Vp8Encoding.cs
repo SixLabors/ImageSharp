@@ -404,8 +404,66 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void FTransform2(Span<byte> src, Span<byte> reference, Span<short> output, Span<short> output2, Span<int> scratch)
         {
-            FTransform(src, reference, output, scratch);
-            FTransform(src.Slice(4), reference.Slice(4), output2, scratch);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+#pragma warning disable SA1503 // Braces should not be omitted
+                fixed (byte* srcRef = src)
+                fixed (byte* referenceRef = reference)
+                {
+                    // Load src.
+                    Vector128<ulong> src0 = Sse2.LoadScalarVector128((ulong*)srcRef);
+                    Vector128<ulong> src1 = Sse2.LoadScalarVector128((ulong*)(srcRef + WebpConstants.Bps));
+                    Vector128<ulong> src2 = Sse2.LoadScalarVector128((ulong*)(srcRef + (WebpConstants.Bps * 2)));
+                    Vector128<ulong> src3 = Sse2.LoadScalarVector128((ulong*)(srcRef + (WebpConstants.Bps * 3)));
+
+                    // Load ref.
+                    Vector128<ulong> ref0 = Sse2.LoadScalarVector128((ulong*)referenceRef);
+                    Vector128<ulong> ref1 = Sse2.LoadScalarVector128((ulong*)(referenceRef + WebpConstants.Bps));
+                    Vector128<ulong> ref2 = Sse2.LoadScalarVector128((ulong*)(referenceRef + (WebpConstants.Bps * 2)));
+                    Vector128<ulong> ref3 = Sse2.LoadScalarVector128((ulong*)(referenceRef + (+WebpConstants.Bps * 3)));
+
+                    // Convert both to 16 bit.
+                    Vector128<byte> srcLow0 = Sse2.UnpackLow(src0.AsByte(), Vector128<byte>.Zero);
+                    Vector128<byte> srcLow1 = Sse2.UnpackLow(src1.AsByte(), Vector128<byte>.Zero);
+                    Vector128<byte> srcLow2 = Sse2.UnpackLow(src2.AsByte(), Vector128<byte>.Zero);
+                    Vector128<byte> srcLow3 = Sse2.UnpackLow(src3.AsByte(), Vector128<byte>.Zero);
+                    Vector128<byte> refLow0 = Sse2.UnpackLow(ref0.AsByte(), Vector128<byte>.Zero);
+                    Vector128<byte> refLow1 = Sse2.UnpackLow(ref1.AsByte(), Vector128<byte>.Zero);
+                    Vector128<byte> refLow2 = Sse2.UnpackLow(ref2.AsByte(), Vector128<byte>.Zero);
+                    Vector128<byte> refLow3 = Sse2.UnpackLow(ref3.AsByte(), Vector128<byte>.Zero);
+
+                    // Compute difference. -> 00 01 02 03  00' 01' 02' 03'
+                    Vector128<short> diff0 = Sse2.Subtract(srcLow0.AsInt16(), refLow0.AsInt16());
+                    Vector128<short> diff1 = Sse2.Subtract(srcLow1.AsInt16(), refLow1.AsInt16());
+                    Vector128<short> diff2 = Sse2.Subtract(srcLow2.AsInt16(), refLow2.AsInt16());
+                    Vector128<short> diff3 = Sse2.Subtract(srcLow3.AsInt16(), refLow3.AsInt16());
+
+                    // Unpack and shuffle.
+                    // 00 01 02 03   0 0 0 0
+                    // 10 11 12 13   0 0 0 0
+                    // 20 21 22 23   0 0 0 0
+                    // 30 31 32 33   0 0 0 0
+                    Vector128<int> shuf01l = Sse2.UnpackLow(diff0.AsInt32(), diff1.AsInt32());
+                    Vector128<int> shuf23l = Sse2.UnpackLow(diff2.AsInt32(), diff3.AsInt32());
+                    Vector128<int> shuf01h = Sse2.UnpackHigh(diff0.AsInt32(), diff1.AsInt32());
+                    Vector128<int> shuf23h = Sse2.UnpackHigh(diff2.AsInt32(), diff3.AsInt32());
+
+                    // First pass.
+                    FTransformPass1SSE2(shuf01l.AsInt16(), shuf23l.AsInt16(), out Vector128<int> v01l, out Vector128<int> v32l);
+                    FTransformPass1SSE2(shuf01h.AsInt16(), shuf23h.AsInt16(), out Vector128<int> v01h, out Vector128<int> v32h);
+
+                    // Second pass.
+                    FTransformPass2SSE2(v01l, v32l, output);
+                    FTransformPass2SSE2(v01h, v32h, output2);
+                }
+            }
+            else
+#endif
+            {
+                FTransform(src, reference, output, scratch);
+                FTransform(src.Slice(4), reference.Slice(4), output2, scratch);
+            }
         }
 
         public static void FTransform(Span<byte> src, Span<byte> reference, Span<short> output, Span<int> scratch)
@@ -567,7 +625,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // a0 = v0 + v3
             // a1 = v1 + v2
-            Vector128<int> a01 = Sse2.Add(v01, v32);
+            Vector128<short> a01 = Sse2.Add(v01.AsInt16(), v32.AsInt16());
             Vector128<short> a01Plus7 = Sse2.Add(a01.AsInt16(), Seven);
             Vector128<short> a11 = Sse2.UnpackHigh(a01.AsInt64(), a01.AsInt64()).AsInt16();
             Vector128<short> c0 = Sse2.Add(a01Plus7, a11);

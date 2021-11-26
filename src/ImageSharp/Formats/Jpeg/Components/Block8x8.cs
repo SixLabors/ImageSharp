@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     // ReSharper disable once InconsistentNaming
     [StructLayout(LayoutKind.Explicit)]
-    internal unsafe struct Block8x8 : IEquatable<Block8x8>
+    internal unsafe partial struct Block8x8 : IEquatable<Block8x8>
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
@@ -35,34 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [FieldOffset(0)]
         private fixed short data[Size];
 #pragma warning restore IDE0051
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [FieldOffset(0)]
-        public Vector128<short> V0;
-        [FieldOffset(16)]
-        public Vector128<short> V1;
-        [FieldOffset(32)]
-        public Vector128<short> V2;
-        [FieldOffset(48)]
-        public Vector128<short> V3;
-        [FieldOffset(64)]
-        public Vector128<short> V4;
-        [FieldOffset(80)]
-        public Vector128<short> V5;
-        [FieldOffset(96)]
-        public Vector128<short> V6;
-        [FieldOffset(112)]
-        public Vector128<short> V7;
-
-        [FieldOffset(0)]
-        public Vector256<short> V01;
-        [FieldOffset(32)]
-        public Vector256<short> V23;
-        [FieldOffset(64)]
-        public Vector256<short> V45;
-        [FieldOffset(96)]
-        public Vector256<short> V67;
-#endif
 
         /// <summary>
         /// Gets or sets a <see cref="short"/> value at the given index

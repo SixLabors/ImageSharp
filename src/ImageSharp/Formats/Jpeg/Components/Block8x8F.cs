@@ -104,13 +104,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             return result;
         }
 
-        public static Block8x8F Load(Span<int> data)
-        {
-            Block8x8F result = default;
-            result.LoadFrom(data);
-            return result;
-        }
-
         /// <summary>
         /// Load raw 32bit floating point data from source.
         /// </summary>

@@ -2,16 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-using System;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
-
-    internal unsafe partial struct Block8x8 : IEquatable<Block8x8>
+    internal unsafe partial struct Block8x8
     {
         [FieldOffset(0)]
         public Vector128<short> V0;

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     // ReSharper disable once InconsistentNaming
     [StructLayout(LayoutKind.Explicit)]
-    internal unsafe partial struct Block8x8 : IEquatable<Block8x8>
+    internal unsafe partial struct Block8x8
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
@@ -163,26 +163,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             sb.Append(']');
             return sb.ToString();
         }
-
-        /// <inheritdoc />
-        public bool Equals(Block8x8 other)
-        {
-            for (int i = 0; i < Size; i++)
-            {
-                if (this[i] != other[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Block8x8 other && this.Equals(other);
-
-        /// <inheritdoc />
-        public override int GetHashCode() => (this[0] * 31) + this[1];
 
         /// <summary>
         /// Returns index of the last non-zero element in given matrix.

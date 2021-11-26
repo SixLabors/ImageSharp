@@ -45,7 +45,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         void IImageProcessor<TPixel>.Execute()
         {
-            // TODO: Try-catch logic temporarily removed, put it back.
             this.BeforeImageApply();
 
             foreach (ImageFrame<TPixel> sourceFrame in this.Source.Frames)
@@ -62,22 +61,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="source">the source image.</param>
         public void Apply(ImageFrame<TPixel> source)
         {
-            try
-            {
-                this.BeforeFrameApply(source);
-                this.OnFrameApply(source);
-                this.AfterFrameApply(source);
-            }
-#if DEBUG
-            catch (Exception)
-            {
-                throw;
-#else
-            catch (Exception ex)
-            {
-                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
-#endif
-            }
+            this.BeforeFrameApply(source);
+            this.OnFrameApply(source);
+            this.AfterFrameApply(source);
         }
 
         /// <inheritdoc/>

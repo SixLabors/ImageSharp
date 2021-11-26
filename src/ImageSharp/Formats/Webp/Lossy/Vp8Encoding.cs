@@ -66,11 +66,39 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static readonly int[] Vp8I4ModeOffsets = { I4DC4, I4TM4, I4VE4, I4HE4, I4RD4, I4VR4, I4LD4, I4VL4, I4HD4, I4HU4 };
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        public static readonly Vector128<short> K1 = Vector128.Create((short)20091).AsInt16();
+#pragma warning disable SA1310 // Field names should not contain underscore
+        private static readonly Vector128<short> K1 = Vector128.Create((short)20091).AsInt16();
 
-        public static readonly Vector128<short> K2 = Vector128.Create((short)-30068).AsInt16();
+        private static readonly Vector128<short> K2 = Vector128.Create((short)-30068).AsInt16();
 
-        public static readonly Vector128<short> Four = Vector128.Create((short)4);
+        private static readonly Vector128<short> Four = Vector128.Create((short)4);
+
+        private static readonly Vector128<short> Seven = Vector128.Create((short)7);
+
+        private static readonly Vector128<short> K88p = Vector128.Create(8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0).AsInt16();
+
+        private static readonly Vector128<short> K88m = Vector128.Create(8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255).AsInt16();
+
+        private static readonly Vector128<short> K5352_2217p = Vector128.Create(232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8).AsInt16();
+
+        private static readonly Vector128<short> K5352_2217m = Vector128.Create(169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235).AsInt16();
+
+        private static readonly Vector128<int> K937 = Vector128.Create(937);
+
+        private static readonly Vector128<int> K1812 = Vector128.Create(1812);
+
+        private static readonly Vector128<short> K5352_2217 = Vector128.Create(169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20).AsInt16();
+
+        private static readonly Vector128<short> K2217_5352 = Vector128.Create(24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8).AsInt16();
+
+        private static readonly Vector128<int> K12000PlusOne = Vector128.Create(12000 + (1 << 16));
+
+        private static readonly Vector128<int> K51000 = Vector128.Create(51000);
+
+        private static readonly byte MmShuffle2301 = SimdUtils.Shuffle.MmShuffle(2, 3, 0, 1);
+
+        private static readonly byte MmShuffle1032 = SimdUtils.Shuffle.MmShuffle(1, 0, 3, 2);
+#pragma warning restore SA1310 // Field names should not contain underscore
 #endif
 
         static Vp8Encoding()
@@ -476,17 +504,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
         public static void FTransformPass1SSE2(Vector128<short> row01, Vector128<short> row23, out Vector128<int> out01, out Vector128<int> out32)
         {
-            var k937 = Vector128.Create(937);
-            var k1812 = Vector128.Create(1812);
-            Vector128<short> k88p = Vector128.Create(8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0).AsInt16();
-            Vector128<short> k88m = Vector128.Create(8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255).AsInt16();
-            Vector128<short> k5352_2217p = Vector128.Create(232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8).AsInt16();
-            Vector128<short> k5352_2217m = Vector128.Create(169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235).AsInt16();
-
             // *in01 = 00 01 10 11 02 03 12 13
             // *in23 = 20 21 30 31 22 23 32 33
-            Vector128<short> shuf01_p = Sse2.ShuffleHigh(row01.AsInt16(), SimdUtils.Shuffle.MmShuffle(2, 3, 0, 1));
-            Vector128<short> shuf32_p = Sse2.ShuffleHigh(row23.AsInt16(), SimdUtils.Shuffle.MmShuffle(2, 3, 0, 1));
+            Vector128<short> shuf01_p = Sse2.ShuffleHigh(row01, MmShuffle2301);
+            Vector128<short> shuf32_p = Sse2.ShuffleHigh(row23, MmShuffle2301);
 
             // 00 01 10 11 03 02 13 12
             // 20 21 30 31 23 22 33 32
@@ -500,12 +521,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // [d0 + d3 | d1 + d2 | ...] = [a0 a1 | a0' a1' | ... ]
             // [d0 - d3 | d1 - d2 | ...] = [a3 a2 | a3' a2' | ... ]
-            Vector128<int> tmp0 = Sse2.MultiplyAddAdjacent(a01, k88p); // [ (a0 + a1) << 3, ... ]
-            Vector128<int> tmp2 = Sse2.MultiplyAddAdjacent(a01, k88m); // [ (a0 - a1) << 3, ... ]
-            Vector128<int> tmp11 = Sse2.MultiplyAddAdjacent(a32, k5352_2217p);
-            Vector128<int> tmp31 = Sse2.MultiplyAddAdjacent(a32, k5352_2217m);
-            Vector128<int> tmp12 = Sse2.Add(tmp11, k1812);
-            Vector128<int> tmp32 = Sse2.Add(tmp31, k937);
+            Vector128<int> tmp0 = Sse2.MultiplyAddAdjacent(a01, K88p); // [ (a0 + a1) << 3, ... ]
+            Vector128<int> tmp2 = Sse2.MultiplyAddAdjacent(a01, K88m); // [ (a0 - a1) << 3, ... ]
+            Vector128<int> tmp11 = Sse2.MultiplyAddAdjacent(a32, K5352_2217p);
+            Vector128<int> tmp31 = Sse2.MultiplyAddAdjacent(a32, K5352_2217m);
+            Vector128<int> tmp12 = Sse2.Add(tmp11, K1812);
+            Vector128<int> tmp32 = Sse2.Add(tmp31, K937);
             Vector128<int> tmp1 = Sse2.ShiftRightArithmetic(tmp12, 9);
             Vector128<int> tmp3 = Sse2.ShiftRightArithmetic(tmp32, 9);
             Vector128<short> s03 = Sse2.PackSignedSaturate(tmp0, tmp2);
@@ -514,17 +535,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<short> shi = Sse2.UnpackHigh(s03, s12); // 2 3 2 3 2 3
             Vector128<int> v23 = Sse2.UnpackHigh(slo.AsInt32(), shi.AsInt32());
             out01 = Sse2.UnpackLow(slo.AsInt32(), shi.AsInt32());
-            out32 = Sse2.Shuffle(v23, SimdUtils.Shuffle.MmShuffle(1, 0, 3, 2));
+            out32 = Sse2.Shuffle(v23, MmShuffle1032);
         }
 
         public static void FTransformPass2SSE2(Vector128<int> v01, Vector128<int> v32, Span<short> output)
         {
-            var seven = Vector128.Create((short)7);
-            Vector128<short> k5352_2217 = Vector128.Create(169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20).AsInt16();
-            Vector128<short> k2217_5352 = Vector128.Create(24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8).AsInt16();
-            var k12000PlusOne = Vector128.Create(12000 + (1 << 16));
-            var k51000 = Vector128.Create(51000);
-
             // Same operations are done on the (0,3) and (1,2) pairs.
             // a3 = v0 - v3
             // a2 = v1 - v2
@@ -532,10 +547,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<long> a22 = Sse2.UnpackHigh(a32.AsInt64(), a32.AsInt64());
 
             Vector128<short> b23 = Sse2.UnpackLow(a22.AsInt16(), a32.AsInt16());
-            Vector128<int> c1 = Sse2.MultiplyAddAdjacent(b23, k5352_2217);
-            Vector128<int> c3 = Sse2.MultiplyAddAdjacent(b23, k2217_5352);
-            Vector128<int> d1 = Sse2.Add(c1, k12000PlusOne);
-            Vector128<int> d3 = Sse2.Add(c3, k51000);
+            Vector128<int> c1 = Sse2.MultiplyAddAdjacent(b23, K5352_2217);
+            Vector128<int> c3 = Sse2.MultiplyAddAdjacent(b23, K2217_5352);
+            Vector128<int> d1 = Sse2.Add(c1, K12000PlusOne);
+            Vector128<int> d3 = Sse2.Add(c3, K51000);
             Vector128<int> e1 = Sse2.ShiftRightArithmetic(d1, 16);
             Vector128<int> e3 = Sse2.ShiftRightArithmetic(d3, 16);
 
@@ -553,7 +568,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // a0 = v0 + v3
             // a1 = v1 + v2
             Vector128<int> a01 = Sse2.Add(v01, v32);
-            Vector128<short> a01Plus7 = Sse2.Add(a01.AsInt16(), seven);
+            Vector128<short> a01Plus7 = Sse2.Add(a01.AsInt16(), Seven);
             Vector128<short> a11 = Sse2.UnpackHigh(a01.AsInt64(), a01.AsInt64()).AsInt16();
             Vector128<short> c0 = Sse2.Add(a01Plus7, a11);
             Vector128<short> c2 = Sse2.Subtract(a01Plus7, a11);

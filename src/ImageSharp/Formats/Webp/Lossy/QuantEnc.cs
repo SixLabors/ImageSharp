@@ -744,19 +744,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static bool IsFlat(Span<short> levels, int numBlocks, int thresh)
         {
             int score = 0;
+            ref short levelsRef = ref MemoryMarshal.GetReference(levels);
+            int offset = 0;
             while (numBlocks-- > 0)
             {
                 for (int i = 1; i < 16; i++)
                 {
                     // omit DC, we're only interested in AC
-                    score += levels[i] != 0 ? 1 : 0;
+                    score += Unsafe.Add(ref levelsRef, offset) != 0 ? 1 : 0;
                     if (score > thresh)
                     {
                         return false;
                     }
                 }
 
-                levels = levels.Slice(16);
+                offset += 16;
             }
 
             return true;

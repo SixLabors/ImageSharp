@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Memory
 
         private static long GetDefaultMaxPoolSizeBytes()
         {
-#if NETCORE31COMPATIBLE
+#if NETCOREAPP3_1_OR_GREATER
             // On 64 bit .NET Core 3.1+, set the pool size to a portion of the total available memory.
             // There is a bug in GC.GetGCMemoryInfo() on .NET 5 + 32 bit, making TotalAvailableMemoryBytes unreliable:
             // https://github.com/dotnet/runtime/issues/55126#issuecomment-876779327

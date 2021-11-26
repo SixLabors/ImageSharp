@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             if (trimSettings.Enabled)
             {
                 UpdateTimer(trimSettings, this);
-#if NETCORE31COMPATIBLE
+#if NETCOREAPP3_1_OR_GREATER || NETFRAMEWORK
                 Gen2GcCallback.Register(s => ((UniformUnmanagedMemoryPool)s).Trim(), this);
 #endif
                 this.lastTrimTimestamp = Stopwatch.ElapsedMilliseconds;
@@ -328,7 +328,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         private bool IsHighMemoryPressure()
         {
-#if NETCORE31COMPATIBLE
+#if NETCOREAPP3_1_OR_GREATER
             GCMemoryInfo memoryInfo = GC.GetGCMemoryInfo();
             return memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * this.trimSettings.HighPressureThresholdRate;
 #else

@@ -7,7 +7,6 @@
     <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
-    <DefineConstants Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','netcoreapp3.1'))">$(DefineConstants);NETCORE31COMPATIBLE</DefineConstants>
   </PropertyGroup>
 
   <Choose>

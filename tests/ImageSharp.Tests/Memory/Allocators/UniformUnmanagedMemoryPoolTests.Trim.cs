@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 }
             }
 
-#if NETCORE31COMPATIBLE
+#if NETCOREAPP3_1_OR_GREATER
             public static readonly bool Is32BitProcess = !Environment.Is64BitProcess;
             private static readonly List<byte[]> PressureArrays = new();
 

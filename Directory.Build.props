@@ -33,8 +33,4 @@
   <PropertyGroup Condition="$(Configuration.StartsWith('Release')) == true">
     <Optimize>true</Optimize>
   </PropertyGroup>
-
-  <PropertyGroup>
-    <DefineConstants Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','netcoreapp3.1'))">$(DefineConstants);NETCORE31COMPATIBLE</DefineConstants>
-  </PropertyGroup>
 </Project>

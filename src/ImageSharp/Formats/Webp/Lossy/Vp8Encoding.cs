@@ -459,6 +459,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
             else
+#pragma warning restore SA1503 // Braces should not be omitted
 #endif
             {
                 FTransform(src, reference, output, scratch);

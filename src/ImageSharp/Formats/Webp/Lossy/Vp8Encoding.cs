@@ -523,18 +523,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 int refIdx = 0;
                 for (i = 0; i < 4; i++)
                 {
-                    int d0 = src[srcIdx] - reference[refIdx]; // 9bit dynamic range ([-255,255])
-                    int d1 = src[srcIdx + 1] - reference[refIdx + 1];
-                    int d2 = src[srcIdx + 2] - reference[refIdx + 2];
                     int d3 = src[srcIdx + 3] - reference[refIdx + 3];
+                    int d2 = src[srcIdx + 2] - reference[refIdx + 2];
+                    int d1 = src[srcIdx + 1] - reference[refIdx + 1];
+                    int d0 = src[srcIdx] - reference[refIdx]; // 9bit dynamic range ([-255,255])
                     int a0 = d0 + d3; // 10b                      [-510,510]
                     int a1 = d1 + d2;
                     int a2 = d1 - d2;
                     int a3 = d0 - d3;
-                    tmp[0 + (i * 4)] = (a0 + a1) * 8; // 14b                      [-8160,8160]
-                    tmp[1 + (i * 4)] = ((a2 * 2217) + (a3 * 5352) + 1812) >> 9; // [-7536,7542]
-                    tmp[2 + (i * 4)] = (a0 - a1) * 8;
                     tmp[3 + (i * 4)] = ((a3 * 2217) - (a2 * 5352) + 937) >> 9;
+                    tmp[2 + (i * 4)] = (a0 - a1) * 8;
+                    tmp[1 + (i * 4)] = ((a2 * 2217) + (a3 * 5352) + 1812) >> 9; // [-7536,7542]
+                    tmp[0 + (i * 4)] = (a0 + a1) * 8; // 14b                      [-8160,8160]
 
                     srcIdx += WebpConstants.Bps;
                     refIdx += WebpConstants.Bps;
@@ -652,10 +652,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 int a1 = input[inputIdx + (1 * 16)] + input[inputIdx + (3 * 16)];
                 int a2 = input[inputIdx + (1 * 16)] - input[inputIdx + (3 * 16)];
                 int a3 = input[inputIdx + (0 * 16)] - input[inputIdx + (2 * 16)];
-                tmp[0 + (i * 4)] = a0 + a1;   // 14b
-                tmp[1 + (i * 4)] = a3 + a2;
-                tmp[2 + (i * 4)] = a3 - a2;
                 tmp[3 + (i * 4)] = a0 - a1;
+                tmp[2 + (i * 4)] = a3 - a2;
+                tmp[1 + (i * 4)] = a3 + a2;
+                tmp[0 + (i * 4)] = a0 + a1;   // 14b
 
                 inputIdx += 64;
             }

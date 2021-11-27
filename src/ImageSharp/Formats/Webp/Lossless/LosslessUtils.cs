@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -761,28 +762,184 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <returns>Shanon entropy.</returns>
         public static float CombinedShannonEntropy(Span<int> x, Span<int> y)
         {
-            double retVal = 0.0d;
-            uint sumX = 0, sumXY = 0;
-            for (int i = 0; i < 256; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
             {
-                uint xi = (uint)x[i];
-                if (xi != 0)
+                double retVal = 0.0d;
+                Vector256<int> tmp = Vector256<int>.Zero;    // has the size of the scratch space of sizeof(int) * 8
+                ref int xRef = ref MemoryMarshal.GetReference(x);
+                ref int yRef = ref MemoryMarshal.GetReference(y);
+                Vector256<int> sumXY256 = Vector256<int>.Zero;
+                Vector256<int> sumX256 = Vector256<int>.Zero;
+                ref int tmpRef = ref Unsafe.As<Vector256<int>, int>(ref tmp);
+                for (nint i = 0; i < 256; i += 8)
                 {
-                    uint xy = xi + (uint)y[i];
-                    sumX += xi;
-                    retVal -= FastSLog2(xi);
-                    sumXY += xy;
-                    retVal -= FastSLog2(xy);
-                }
-                else if (y[i] != 0)
-                {
-                    sumXY += (uint)y[i];
-                    retVal -= FastSLog2((uint)y[i]);
-                }
-            }
+                    Vector256<int> xVec = Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref xRef, i));
+                    Vector256<int> yVec = Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref yRef, i));
 
-            retVal += FastSLog2(sumX) + FastSLog2(sumXY);
-            return (float)retVal;
+                    // Check if any X is non-zero: this actually provides a speedup as X is usually sparse.
+                    int mask = Avx2.MoveMask(Avx2.CompareEqual(xVec, Vector256<int>.Zero).AsByte());
+                    if (mask != -1)
+                    {
+                        Vector256<int> xy256 = Avx2.Add(xVec, yVec);
+                        sumXY256 = Avx2.Add(sumXY256, xy256);
+                        sumX256 = Avx2.Add(sumX256, xVec);
+
+                        // Analyze the different X + Y.
+                        Unsafe.As<int, Vector256<int>>(ref tmpRef) = xy256;
+                        if (tmpRef != 0)
+                        {
+                            retVal -= FastSLog2((uint)tmpRef);
+                            if (Unsafe.Add(ref xRef, i) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i));
+                            }
+                        }
+
+                        if (Unsafe.Add(ref tmpRef, 1) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 1));
+                            if (Unsafe.Add(ref xRef, i + 1) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 1));
+                            }
+                        }
+
+                        if (Unsafe.Add(ref tmpRef, 2) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 2));
+                            if (Unsafe.Add(ref xRef, i + 2) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 2));
+                            }
+                        }
+
+                        if (Unsafe.Add(ref tmpRef, 3) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 3));
+                            if (Unsafe.Add(ref xRef, i + 3) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 3));
+                            }
+                        }
+
+                        if (Unsafe.Add(ref tmpRef, 4) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 4));
+                            if (Unsafe.Add(ref xRef, i + 4) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 4));
+                            }
+                        }
+
+                        if (Unsafe.Add(ref tmpRef, 5) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 5));
+                            if (Unsafe.Add(ref xRef, i + 5) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 5));
+                            }
+                        }
+
+                        if (Unsafe.Add(ref tmpRef, 6) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 6));
+                            if (Unsafe.Add(ref xRef, i + 6) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 6));
+                            }
+                        }
+
+                        if (Unsafe.Add(ref tmpRef, 7) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 7));
+                            if (Unsafe.Add(ref xRef, i + 7) != 0)
+                            {
+                                retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 7));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // X is fully 0, so only deal with Y.
+                        sumXY256 = Avx2.Add(sumXY256, yVec);
+
+                        if (Unsafe.Add(ref yRef, i) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i));
+                        }
+
+                        if (Unsafe.Add(ref yRef, i + 1) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 1));
+                        }
+
+                        if (Unsafe.Add(ref yRef, i + 2) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 2));
+                        }
+
+                        if (Unsafe.Add(ref yRef, i + 3) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 3));
+                        }
+
+                        if (Unsafe.Add(ref yRef, i + 4) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 4));
+                        }
+
+                        if (Unsafe.Add(ref yRef, i + 5) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 5));
+                        }
+
+                        if (Unsafe.Add(ref yRef, i + 6) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 6));
+                        }
+
+                        if (Unsafe.Add(ref yRef, i + 7) != 0)
+                        {
+                            retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 7));
+                        }
+                    }
+                }
+
+                // Sum up sumX256 to get sumX and sum up sumXY256 to get sumXY.
+                int sumX = Numerics.ReduceSum(sumX256);
+                int sumXY = Numerics.ReduceSum(sumXY256);
+
+                retVal += FastSLog2((uint)sumX) + FastSLog2((uint)sumXY);
+
+                return (float)retVal;
+            }
+            else
+#endif
+            {
+                double retVal = 0.0d;
+                uint sumX = 0, sumXY = 0;
+                for (int i = 0; i < 256; i++)
+                {
+                    uint xi = (uint)x[i];
+                    if (xi != 0)
+                    {
+                        uint xy = xi + (uint)y[i];
+                        sumX += xi;
+                        retVal -= FastSLog2(xi);
+                        sumXY += xy;
+                        retVal -= FastSLog2(xy);
+                    }
+                    else if (y[i] != 0)
+                    {
+                        sumXY += (uint)y[i];
+                        retVal -= FastSLog2((uint)y[i]);
+                    }
+                }
+
+                retVal += FastSLog2(sumX) + FastSLog2(sumXY);
+                return (float)retVal;
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -838,6 +995,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static float FastSLog2Slow(uint v)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo<uint>(v, LogLookupIdxMax, nameof(v));
+
             if (v < ApproxLogWithCorrectionMax)
             {
                 int logCnt = 0;
@@ -867,7 +1025,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static float FastLog2Slow(uint v)
         {
-            Guard.MustBeGreaterThanOrEqualTo(v, LogLookupIdxMax, nameof(v));
+            DebugGuard.MustBeGreaterThanOrEqualTo<uint>(v, LogLookupIdxMax, nameof(v));
 
             if (v < ApproxLogWithCorrectionMax)
             {

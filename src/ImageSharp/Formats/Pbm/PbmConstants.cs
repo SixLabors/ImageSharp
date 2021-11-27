@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <summary>
         /// The list of mimetypes that equate to a ppm.
         /// </summary>
-        public static readonly IEnumerable<string> MimeTypes = new[] { "image/x-portable-pixmap", "image/x-portable-anymap", "image/x-portable-arbitrarymap" };
+        public static readonly IEnumerable<string> MimeTypes = new[] { "image/x-portable-pixmap", "image/x-portable-anymap" };
 
         /// <summary>
         /// The list of file extensions that equate to a ppm.
         /// </summary>
-        public static readonly IEnumerable<string> FileExtensions = new[] { "ppm", "pbm", "pgm", "pam" };
+        public static readonly IEnumerable<string> FileExtensions = new[] { "ppm", "pbm", "pgm" };
     }
 }

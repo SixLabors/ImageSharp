@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Text;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -19,6 +20,14 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private const byte Space = 0x20;
         private const byte Zero = 0x30;
         private const byte One = 0x31;
+
+        private const int MaxCharsPerPixelBlackAndWhite = 2;
+        private const int MaxCharsPerPixelGrayscale = 4;
+        private const int MaxCharsPerPixelGrayscaleWide = 6;
+        private const int MaxCharsPerPixelRgb = 4 * 3;
+        private const int MaxCharsPerPixelRgbWide = 6 * 3;
+
+        private static readonly StandardFormat DecimalFormat = StandardFormat.Parse("D");
 
         /// <summary>
         /// Decode pixels into the PBM plain encoding.
@@ -63,12 +72,12 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void WriteGrayscale<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = image.Size().Width;
-            int height = image.Size().Height;
-            int bytesWritten = -1;
+            int width = image.Width;
+            int height = image.Height;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
+            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelGrayscale];
 
             for (int y = 0; y < height; y++)
             {
@@ -78,23 +87,28 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     pixelSpan,
                     rowSpan);
 
+                int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].PackedValue);
+                    Utf8Formatter.TryFormat(rowSpan[x].PackedValue, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
                 }
+
+                plainSpan[written - 1] = NewLine;
+                stream.Write(plainSpan, 0, written);
             }
         }
 
         private static void WriteWideGrayscale<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = image.Size().Width;
-            int height = image.Size().Height;
-            int bytesWritten = -1;
+            int width = image.Width;
+            int height = image.Height;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L16> row = allocator.Allocate<L16>(width);
             Span<L16> rowSpan = row.GetSpan();
+            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelGrayscaleWide];
 
             for (int y = 0; y < height; y++)
             {
@@ -104,23 +118,28 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     pixelSpan,
                     rowSpan);
 
+                int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].PackedValue);
+                    Utf8Formatter.TryFormat(rowSpan[x].PackedValue, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
                 }
+
+                plainSpan[written - 1] = NewLine;
+                stream.Write(plainSpan, 0, written);
             }
         }
 
         private static void WriteRgb<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = image.Size().Width;
-            int height = image.Size().Height;
-            int bytesWritten = -1;
+            int width = image.Width;
+            int height = image.Height;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<Rgb24> row = allocator.Allocate<Rgb24>(width);
             Span<Rgb24> rowSpan = row.GetSpan();
+            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelRgb];
 
             for (int y = 0; y < height; y++)
             {
@@ -130,27 +149,34 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     pixelSpan,
                     rowSpan);
 
+                int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].R);
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].G);
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].B);
+                    Utf8Formatter.TryFormat(rowSpan[x].R, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
+                    Utf8Formatter.TryFormat(rowSpan[x].G, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
+                    Utf8Formatter.TryFormat(rowSpan[x].B, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
                 }
+
+                plainSpan[written - 1] = NewLine;
+                stream.Write(plainSpan, 0, written);
             }
         }
 
         private static void WriteWideRgb<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = image.Size().Width;
-            int height = image.Size().Height;
-            int bytesWritten = -1;
+            int width = image.Width;
+            int height = image.Height;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<Rgb48> row = allocator.Allocate<Rgb48>(width);
             Span<Rgb48> rowSpan = row.GetSpan();
+            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelRgbWide];
 
             for (int y = 0; y < height; y++)
             {
@@ -160,27 +186,34 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     pixelSpan,
                     rowSpan);
 
+                int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].R);
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].G);
-                    WriteWhitespace(stream, ref bytesWritten);
-                    bytesWritten += stream.WriteDecimal(rowSpan[x].B);
+                    Utf8Formatter.TryFormat(rowSpan[x].R, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
+                    Utf8Formatter.TryFormat(rowSpan[x].G, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
+                    Utf8Formatter.TryFormat(rowSpan[x].B, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    written += bytesWritten;
+                    plainSpan[written++] = Space;
                 }
+
+                plainSpan[written - 1] = NewLine;
+                stream.Write(plainSpan, 0, written);
             }
         }
 
         private static void WriteBlackAndWhite<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = image.Size().Width;
-            int height = image.Size().Height;
-            int bytesWritten = -1;
+            int width = image.Width;
+            int height = image.Height;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
+            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelBlackAndWhite];
 
             for (int y = 0; y < height; y++)
             {
@@ -190,38 +223,16 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     pixelSpan,
                     rowSpan);
 
+                int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    WriteWhitespace(stream, ref bytesWritten);
-                    if (rowSpan[x].PackedValue > 127)
-                    {
-                        stream.WriteByte(Zero);
-                    }
-                    else
-                    {
-                        stream.WriteByte(One);
-                    }
-
-                    bytesWritten++;
+                    byte value = (rowSpan[x].PackedValue > 127) ? Zero : One;
+                    plainSpan[written++] = value;
+                    plainSpan[written++] = Space;
                 }
-            }
-        }
 
-        private static void WriteWhitespace(Stream stream, ref int bytesWritten)
-        {
-            if (bytesWritten > MaxLineLength)
-            {
-                stream.WriteByte(NewLine);
-                bytesWritten = 1;
-            }
-            else if (bytesWritten == -1)
-            {
-                bytesWritten = 0;
-            }
-            else
-            {
-                stream.WriteByte(Space);
-                bytesWritten++;
+                plainSpan[written - 1] = NewLine;
+                stream.Write(plainSpan, 0, written);
             }
         }
     }

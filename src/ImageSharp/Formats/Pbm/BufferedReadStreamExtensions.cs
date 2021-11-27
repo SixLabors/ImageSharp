@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             while (true)
             {
                 int current = stream.ReadByte() - 0x30;
-                if (current < 0 || current > 9)
+                if ((uint)current > 9)
                 {
                     break;
                 }

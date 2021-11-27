@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
+using System.Buffers.Text;
 using System.IO;
-using System.Text;
 using System.Threading;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Pbm
@@ -17,7 +15,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </summary>
     internal sealed class PbmEncoderCore : IImageEncoderInternals
     {
-        private const char NewLine = '\n';
+        private const byte NewLine = (byte)'\n';
+        private const byte Space = (byte)' ';
+        private const byte P = (byte)'P';
 
         /// <summary>
         /// The global configuration.
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
             this.DeduceOptions(image);
 
-            string signature = this.DeduceSignature();
+            byte signature = this.DeduceSignature();
             this.WriteHeader(stream, signature, image.Size());
 
             this.WritePixels(stream, image.Frames.RootFrame);
@@ -91,29 +91,29 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             }
         }
 
-        private string DeduceSignature()
+        private byte DeduceSignature()
         {
-            string signature;
+            byte signature;
             if (this.colorType == PbmColorType.BlackAndWhite)
             {
                 if (this.encoding == PbmEncoding.Plain)
                 {
-                    signature = "P1";
+                    signature = (byte)'1';
                 }
                 else
                 {
-                    signature = "P4";
+                    signature = (byte)'4';
                 }
             }
             else if (this.colorType == PbmColorType.Grayscale)
             {
                 if (this.encoding == PbmEncoding.Plain)
                 {
-                    signature = "P2";
+                    signature = (byte)'2';
                 }
                 else
                 {
-                    signature = "P5";
+                    signature = (byte)'5';
                 }
             }
             else
@@ -121,35 +121,41 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 // RGB ColorType
                 if (this.encoding == PbmEncoding.Plain)
                 {
-                    signature = "P3";
+                    signature = (byte)'3';
                 }
                 else
                 {
-                    signature = "P6";
+                    signature = (byte)'6';
                 }
             }
 
             return signature;
         }
 
-        private void WriteHeader(Stream stream, string signature, Size pixelSize)
+        private void WriteHeader(Stream stream, byte signature, Size pixelSize)
         {
-            var builder = new StringBuilder(20);
-            builder.Append(signature);
-            builder.Append(NewLine);
-            builder.Append(pixelSize.Width.ToString());
-            builder.Append(NewLine);
-            builder.Append(pixelSize.Height.ToString());
-            builder.Append(NewLine);
+            Span<byte> buffer = stackalloc byte[128];
+
+            int written = 3;
+            buffer[0] = P;
+            buffer[1] = signature;
+            buffer[2] = NewLine;
+
+            Utf8Formatter.TryFormat(pixelSize.Width, buffer.Slice(written), out int bytesWritten);
+            written += bytesWritten;
+            buffer[written++] = Space;
+            Utf8Formatter.TryFormat(pixelSize.Height, buffer.Slice(written), out bytesWritten);
+            written += bytesWritten;
+            buffer[written++] = NewLine;
+
             if (this.colorType != PbmColorType.BlackAndWhite)
             {
-                builder.Append(this.maxPixelValue.ToString());
-                builder.Append(NewLine);
+                Utf8Formatter.TryFormat(this.maxPixelValue, buffer.Slice(written), out bytesWritten);
+                written += bytesWritten;
+                buffer[written++] = NewLine;
             }
 
-            string headerStr = builder.ToString();
-            byte[] headerBytes = Encoding.ASCII.GetBytes(headerStr);
-            stream.Write(headerBytes, 0, headerBytes.Length);
+            stream.Write(buffer, 0, written);
         }
 
         /// <summary>

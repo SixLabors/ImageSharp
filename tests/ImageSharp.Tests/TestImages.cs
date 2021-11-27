@@ -874,8 +874,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string GrayscaleBinary = "Pbm/rings.pgm";
             public const string GrayscaleBinaryWide = "Pbm/Gene-UP WebSocket RunImageMask.pgm";
             public const string GrayscalePlain = "Pbm/grayscale_plain.pgm";
+            public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
             public const string RgbBinary = "Pbm/00000_00000.ppm";
             public const string RgbPlain = "Pbm/rgb_plain.ppm";
+            public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
         }
     }
 }

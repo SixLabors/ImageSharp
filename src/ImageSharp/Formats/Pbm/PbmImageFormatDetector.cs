@@ -22,9 +22,12 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
-            if (header.Length >= this.HeaderSize)
+#pragma warning disable SA1131 // Use readable conditions
+            if (1 < (uint)header.Length)
+#pragma warning restore SA1131 // Use readable conditions
             {
-                return header[0] == P && header[1] > Zero && header[1] < Seven;
+                // Signature should be between P1 and P6.
+                return header[0] == P && (uint)(header[1] - Zero - 1) < (Seven - Zero - 1);
             }
 
             return false;

@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                         x++;
                         if (x == width)
                         {
-                            startBit = (bit + 1) % 8;
+                            startBit = (bit + 1) & 7; // Round off to below 8.
                             if (startBit != 0)
                             {
                                 stream.Seek(-1, System.IO.SeekOrigin.Current);

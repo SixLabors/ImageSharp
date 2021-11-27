@@ -82,9 +82,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <param name="stream">The input stream.</param>
         private void ProcessHeader(BufferedReadStream stream)
         {
-            byte[] buffer = new byte[2];
+            Span<byte> buffer = stackalloc byte[2];
 
-            int bytesRead = stream.Read(buffer, 0, 2);
+            int bytesRead = stream.Read(buffer);
             if (bytesRead != 2 || buffer[0] != 'P')
             {
                 // Empty or not an PPM image.

@@ -5,7 +5,6 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
-    /// <inheritdoc />
     /// <summary>
     /// Represents decompressed, unprocessed jpeg data with spectral space <see cref="IJpegComponent" />-s.
     /// </summary>

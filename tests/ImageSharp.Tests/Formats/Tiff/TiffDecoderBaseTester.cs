@@ -8,8 +8,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
-using Xunit;
-
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     public abstract class TiffDecoderBaseTester

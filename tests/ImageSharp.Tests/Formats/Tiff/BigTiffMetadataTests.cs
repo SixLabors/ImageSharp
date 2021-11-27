@@ -123,10 +123,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 { new ExifTag<uint[]>((ExifTagValue)0xdd08), (ExifDataType.Long, new uint[] { 0, 1, uint.MaxValue }) },
                 { new ExifTag<short>((ExifTagValue)0xdd09), (ExifDataType.SignedShort, (short)-1234) },
                 { new ExifTag<ushort>((ExifTagValue)0xdd10), (ExifDataType.Short, (ushort)1234) },
-                ////{ new ExifTag<ulong>((ExifTagValue)0xdd11), (ExifDataType.Long8, ulong.MaxValue) },
-                ////{ new ExifTag<long>((ExifTagValue)0xdd12), (ExifDataType.SignedLong8, long.MaxValue) },
-                ////{ new ExifTag<ulong[]>((ExifTagValue)0xdd13), (ExifDataType.Long8, new ulong[] { 0, 1234, 56789UL, ulong.MaxValue }) },
-                ////{ new ExifTag<long[]>((ExifTagValue)0xdd14), (ExifDataType.SignedLong8, new long[] { -1234, 56789L, long.MaxValue }) },
             };
 
             // arrange
@@ -164,12 +160,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Fact]
-        public void NotCoveredTags64()
+        public void NotCoveredTags64bit()
         {
             var testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
             {
                 { new ExifTag<ulong>((ExifTagValue)0xdd11), (ExifDataType.Long8, ulong.MaxValue) },
                 { new ExifTag<long>((ExifTagValue)0xdd12), (ExifDataType.SignedLong8, long.MaxValue) },
+                //// WriteIfdTags64Bit: arrays aren't support
                 ////{ new ExifTag<ulong[]>((ExifTagValue)0xdd13), (ExifDataType.Long8, new ulong[] { 0, 1234, 56789UL, ulong.MaxValue }) },
                 ////{ new ExifTag<long[]>((ExifTagValue)0xdd14), (ExifDataType.SignedLong8, new long[] { -1234, 56789L, long.MaxValue }) },
             };
@@ -184,7 +181,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
 
             // act
-            byte[] inputBytes = WriteIfd64(values);
+            byte[] inputBytes = WriteIfdTags64Bit(values);
             Configuration config = Configuration.Default;
             var reader = new EntryReader(
                 new MemoryStream(inputBytes),
@@ -209,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
         }
 
-        private static byte[] WriteIfd64(List<IExifValue> values)
+        private static byte[] WriteIfdTags64Bit(List<IExifValue> values)
         {
             byte[] buffer = new byte[8];
             var ms = new MemoryStream();

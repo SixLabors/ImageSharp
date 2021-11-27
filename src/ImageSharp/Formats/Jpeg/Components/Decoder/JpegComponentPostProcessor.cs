@@ -89,10 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);
                 Span<Block8x8> blockRow = spectralBuffer.GetRowSpan(yBlockStart + y);
 
-                // see: https://github.com/SixLabors/ImageSharp/issues/824
-                int widthInBlocks = Math.Min(spectralBuffer.Width, this.SizeInBlocks.Width);
-
-                for (int xBlock = 0; xBlock < widthInBlocks; xBlock++)
+                for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
                     // Integer to float
                     workspaceBlock.LoadFrom(ref blockRow[xBlock]);

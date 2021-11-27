@@ -76,13 +76,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
 
-            var blockPp = new JpegBlockPostProcessor(this.RawJpeg, this.Component);
-
             float maximumValue = this.frame.MaxColorChannelValue;
 
             int destAreaStride = this.ColorBuffer.Width;
 
             int yBlockStart = step * this.BlockRowsPerStep;
+
+            Size subSamplingDivisors = this.Component.SubSamplingDivisors;
+
+            Block8x8F dequantTable = this.RawJpeg.QuantizationTables[this.Component.QuantizationTableIndex];
+            Block8x8F workspaceBlock = default;
 
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
@@ -103,11 +106,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int xBlock = 0; xBlock < widthInBlocks; xBlock++)
                 {
-                    ref Block8x8 block = ref blockRow[xBlock];
                     int xBuffer = xBlock * this.blockAreaSize.Width;
                     ref float destAreaOrigin = ref colorBufferRow[xBuffer];
 
-                    blockPp.ProcessBlockColorsInto(ref block, ref destAreaOrigin, destAreaStride, maximumValue);
+                    workspaceBlock.LoadFrom(ref blockRow[xBlock]);
+
+                    // Dequantize
+                    workspaceBlock.MultiplyInPlace(ref dequantTable);
+
+                    // Convert from spectral to color
+                    FastFloatingPointDCT.TransformIDCT(ref workspaceBlock);
+
+                    // To conform better to libjpeg we actually NEED TO loose precision here.
+                    // This is because they store blocks as Int16 between all the operations.
+                    // To be "more accurate", we need to emulate this by rounding!
+                    workspaceBlock.NormalizeColorsAndRoundInPlace(maximumValue);
+
+                    // Write to color buffer acording to sampling factors
+                    workspaceBlock.ScaledCopyTo(
+                        ref destAreaOrigin,
+                        destAreaStride,
+                        subSamplingDivisors.Width,
+                        subSamplingDivisors.Height);
                 }
             }
         }

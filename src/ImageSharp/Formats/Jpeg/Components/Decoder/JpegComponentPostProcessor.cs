@@ -12,11 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal class JpegComponentPostProcessor : IDisposable
     {
         /// <summary>
-        /// Points to the current row in <see cref="Component"/>.
-        /// </summary>
-        private int currentComponentRowInBlocks;
-
-        /// <summary>
         /// The size of the area in <see cref="ColorBuffer"/> corresponding to one 8x8 Jpeg block
         /// </summary>
         private readonly Size blockAreaSize;
@@ -70,9 +65,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void Dispose() => this.ColorBuffer.Dispose();
 
         /// <summary>
-        /// Invoke <see cref="JpegBlockPostProcessor"/> for <see cref="BlockRowsPerStep"/> block rows, copy the result into <see cref="ColorBuffer"/>.
+        /// Convert raw spectral DCT data to color data and copy it to the color buffer <see cref="ColorBuffer"/>.
         /// </summary>
-        public void CopyBlocksToColorBuffer(int step)
+        public void CopyBlocksToColorBuffer(int spectralStep)
         {
             Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
 
@@ -80,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             int destAreaStride = this.ColorBuffer.Width;
 
-            int yBlockStart = step * this.BlockRowsPerStep;
+            int yBlockStart = spectralStep * this.BlockRowsPerStep;
 
             Size subSamplingDivisors = this.Component.SubSamplingDivisors;
 
@@ -89,26 +84,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
-                int yBlock = yBlockStart + y;
-
-                if (yBlock >= spectralBuffer.Height)
-                {
-                    break;
-                }
-
                 int yBuffer = y * this.blockAreaSize.Height;
 
                 Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);
-                Span<Block8x8> blockRow = spectralBuffer.GetRowSpan(yBlock);
+                Span<Block8x8> blockRow = spectralBuffer.GetRowSpan(yBlockStart + y);
 
                 // see: https://github.com/SixLabors/ImageSharp/issues/824
                 int widthInBlocks = Math.Min(spectralBuffer.Width, this.SizeInBlocks.Width);
 
                 for (int xBlock = 0; xBlock < widthInBlocks; xBlock++)
                 {
-                    int xBuffer = xBlock * this.blockAreaSize.Width;
-                    ref float destAreaOrigin = ref colorBufferRow[xBuffer];
-
+                    // Integer to float
                     workspaceBlock.LoadFrom(ref blockRow[xBlock]);
 
                     // Dequantize
@@ -123,8 +109,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     workspaceBlock.NormalizeColorsAndRoundInPlace(maximumValue);
 
                     // Write to color buffer acording to sampling factors
+                    int xColorBufferStart = xBlock * this.blockAreaSize.Width;
                     workspaceBlock.ScaledCopyTo(
-                        ref destAreaOrigin,
+                        ref colorBufferRow[xColorBufferStart],
                         destAreaStride,
                         subSamplingDivisors.Width,
                         subSamplingDivisors.Height);
@@ -139,12 +126,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 spectralBlocks.GetRowSpan(i).Clear();
             }
-        }
-
-        public void CopyBlocksToColorBuffer()
-        {
-            this.CopyBlocksToColorBuffer(this.currentComponentRowInBlocks);
-            this.currentComponentRowInBlocks += this.BlockRowsPerStep;
         }
     }
 }

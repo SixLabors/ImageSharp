@@ -1,10 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
@@ -100,6 +105,65 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.True(long8.TrySetValue(new[] { -1L, 2L, long.MinValue, 4L }));
             Assert.Equal(new[] { -1L, 2L, long.MinValue, 4L }, long8.GetValue());
             Assert.Equal(ExifDataType.SignedLong8, long8.DataType);
+        }
+
+        [Theory]
+        [WithFile(RgbUncompressed, PixelTypes.Rgb24)]
+        public void ExifTags<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> input = provider.GetImage();
+
+            var testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
+            {
+                { new ExifTag<float[]>((ExifTagValue)0xdd01), (ExifDataType.SingleFloat, new float[] { 1.2f, 2.3f, 4.5f }) },
+                { new ExifTag<double[]>((ExifTagValue)0xdd02), (ExifDataType.DoubleFloat, new double[] { 4.5, 6.7 }) },
+                { new ExifTag<double>((ExifTagValue)0xdd03), (ExifDataType.DoubleFloat, 8.903) },
+                { new ExifTag<sbyte>((ExifTagValue)0xdd04), (ExifDataType.SignedByte, (sbyte)-3) },
+                { new ExifTag<sbyte[]>((ExifTagValue)0xdd05), (ExifDataType.SignedByte, new sbyte[] { -3, 0, 5 }) },
+                { new ExifTag<int[]>((ExifTagValue)0xdd06), (ExifDataType.SignedLong, new int[] { int.MinValue, 1, int.MaxValue }) },
+                { new ExifTag<uint[]>((ExifTagValue)0xdd07), (ExifDataType.Long, new uint[] { 0, 1, uint.MaxValue }) },
+                { new ExifTag<ushort>((ExifTagValue)0xdd08), (ExifDataType.Short, (ushort)1234) },
+                //{ new ExifTag<ulong>((ExifTagValue)0xdd09), (ExifDataType.Long8, ulong.MaxValue) },
+            };
+
+            // arrange
+            var values = new List<IExifValue>();
+            foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
+            {
+                ExifValue newExifValue = ExifValues.Create((ExifTagValue)(ushort)tag.Key, tag.Value.DataType, tag.Value.Value is Array);
+
+                Assert.True(newExifValue.TrySetValue(tag.Value.Value));
+                values.Add(newExifValue);
+            }
+
+            input.Frames.RootFrame.Metadata.ExifProfile = new ExifProfile(values, Array.Empty<ExifTag>());
+
+            // act
+            var encoder = new TiffEncoder();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, encoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            ImageFrameMetadata loadedFrameMetadata = output.Frames.RootFrame.Metadata;
+            foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
+            {
+                IExifValue exifValue = loadedFrameMetadata.ExifProfile.GetValueInternal(tag.Key);
+                Assert.NotNull(exifValue);
+                object value = exifValue.GetValue();
+
+                Assert.Equal(tag.Value.DataType, exifValue.DataType);
+                if (value is Array array)
+                {
+                    Assert.Equal(array, tag.Value.Value as Array);
+                }
+                else
+                {
+                    Assert.Equal(value, tag.Value.Value);
+                }
+            }
         }
     }
 }

@@ -2,22 +2,21 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Writers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
-using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     [Trait("Format", "Tiff")]
     public class BigTiffMetadataTests
     {
-        private static TiffDecoder TiffDecoder => new TiffDecoder();
-
         [Fact]
         public void ExifLong8()
         {
@@ -107,24 +106,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(ExifDataType.SignedLong8, long8.DataType);
         }
 
-        [Theory]
-        [WithFile(RgbUncompressed, PixelTypes.Rgb24)]
-        public void ExifTags<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        [Fact]
+        public void NotCoveredTags()
         {
-            using Image<TPixel> input = provider.GetImage();
+            using var input = new Image<Rgba32>(10, 10);
 
             var testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
             {
                 { new ExifTag<float[]>((ExifTagValue)0xdd01), (ExifDataType.SingleFloat, new float[] { 1.2f, 2.3f, 4.5f }) },
-                { new ExifTag<double[]>((ExifTagValue)0xdd02), (ExifDataType.DoubleFloat, new double[] { 4.5, 6.7 }) },
-                { new ExifTag<double>((ExifTagValue)0xdd03), (ExifDataType.DoubleFloat, 8.903) },
-                { new ExifTag<sbyte>((ExifTagValue)0xdd04), (ExifDataType.SignedByte, (sbyte)-3) },
-                { new ExifTag<sbyte[]>((ExifTagValue)0xdd05), (ExifDataType.SignedByte, new sbyte[] { -3, 0, 5 }) },
-                { new ExifTag<int[]>((ExifTagValue)0xdd06), (ExifDataType.SignedLong, new int[] { int.MinValue, 1, int.MaxValue }) },
-                { new ExifTag<uint[]>((ExifTagValue)0xdd07), (ExifDataType.Long, new uint[] { 0, 1, uint.MaxValue }) },
-                { new ExifTag<ushort>((ExifTagValue)0xdd08), (ExifDataType.Short, (ushort)1234) },
-                //{ new ExifTag<ulong>((ExifTagValue)0xdd09), (ExifDataType.Long8, ulong.MaxValue) },
+                { new ExifTag<float>((ExifTagValue)0xdd02), (ExifDataType.SingleFloat, 2.345f) },
+                { new ExifTag<double[]>((ExifTagValue)0xdd03), (ExifDataType.DoubleFloat, new double[] { 4.5, 6.7 }) },
+                { new ExifTag<double>((ExifTagValue)0xdd04), (ExifDataType.DoubleFloat, 8.903) },
+                { new ExifTag<sbyte>((ExifTagValue)0xdd05), (ExifDataType.SignedByte, (sbyte)-3) },
+                { new ExifTag<sbyte[]>((ExifTagValue)0xdd06), (ExifDataType.SignedByte, new sbyte[] { -3, 0, 5 }) },
+                { new ExifTag<int[]>((ExifTagValue)0xdd07), (ExifDataType.SignedLong, new int[] { int.MinValue, 1, int.MaxValue }) },
+                { new ExifTag<uint[]>((ExifTagValue)0xdd08), (ExifDataType.Long, new uint[] { 0, 1, uint.MaxValue }) },
+                { new ExifTag<short>((ExifTagValue)0xdd09), (ExifDataType.SignedShort, (short)-1234) },
+                { new ExifTag<ushort>((ExifTagValue)0xdd10), (ExifDataType.Short, (ushort)1234) },
+                ////{ new ExifTag<ulong>((ExifTagValue)0xdd11), (ExifDataType.Long8, ulong.MaxValue) },
+                ////{ new ExifTag<long>((ExifTagValue)0xdd12), (ExifDataType.SignedLong8, long.MaxValue) },
+                ////{ new ExifTag<ulong[]>((ExifTagValue)0xdd13), (ExifDataType.Long8, new ulong[] { 0, 1234, 56789UL, ulong.MaxValue }) },
+                ////{ new ExifTag<long[]>((ExifTagValue)0xdd14), (ExifDataType.SignedLong8, new long[] { -1234, 56789L, long.MaxValue }) },
             };
 
             // arrange
@@ -155,15 +157,107 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 object value = exifValue.GetValue();
 
                 Assert.Equal(tag.Value.DataType, exifValue.DataType);
-                if (value is Array array)
-                {
-                    Assert.Equal(array, tag.Value.Value as Array);
-                }
-                else
                 {
                     Assert.Equal(value, tag.Value.Value);
                 }
             }
+        }
+
+        [Fact]
+        public void NotCoveredTags64()
+        {
+            var testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
+            {
+                { new ExifTag<ulong>((ExifTagValue)0xdd11), (ExifDataType.Long8, ulong.MaxValue) },
+                { new ExifTag<long>((ExifTagValue)0xdd12), (ExifDataType.SignedLong8, long.MaxValue) },
+                ////{ new ExifTag<ulong[]>((ExifTagValue)0xdd13), (ExifDataType.Long8, new ulong[] { 0, 1234, 56789UL, ulong.MaxValue }) },
+                ////{ new ExifTag<long[]>((ExifTagValue)0xdd14), (ExifDataType.SignedLong8, new long[] { -1234, 56789L, long.MaxValue }) },
+            };
+
+            var values = new List<IExifValue>();
+            foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
+            {
+                ExifValue newExifValue = ExifValues.Create((ExifTagValue)(ushort)tag.Key, tag.Value.DataType, tag.Value.Value is Array);
+
+                Assert.True(newExifValue.TrySetValue(tag.Value.Value));
+                values.Add(newExifValue);
+            }
+
+            // act
+            byte[] inputBytes = WriteIfd64(values);
+            Configuration config = Configuration.Default;
+            var reader = new EntryReader(
+                new MemoryStream(inputBytes),
+                BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian,
+                config.MemoryAllocator);
+
+            reader.ReadTags(true, 0);
+
+            List<IExifValue> outputTags = reader.Values;
+
+            // assert
+            foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
+            {
+                IExifValue exifValue = outputTags.Find(t => t.Tag == tag.Key);
+                Assert.NotNull(exifValue);
+                object value = exifValue.GetValue();
+
+                Assert.Equal(tag.Value.DataType, exifValue.DataType);
+                {
+                    Assert.Equal(value, tag.Value.Value);
+                }
+            }
+        }
+
+        private static byte[] WriteIfd64(List<IExifValue> values)
+        {
+            byte[] buffer = new byte[8];
+            var ms = new MemoryStream();
+            var writer = new TiffStreamWriter(ms);
+            WriteLong8(writer, buffer, (ulong)values.Count);
+
+            foreach (IExifValue entry in values)
+            {
+                writer.Write((ushort)entry.Tag);
+                writer.Write((ushort)entry.DataType);
+                WriteLong8(writer, buffer, ExifWriter.GetNumberOfComponents(entry));
+
+                uint length = ExifWriter.GetLength(entry);
+
+                Assert.True(length <= 8);
+
+                if (length <= 8)
+                {
+                    int sz = ExifWriter.WriteValue(entry, buffer, 0);
+                    DebugGuard.IsTrue(sz == length, "Incorrect number of bytes written");
+
+                    // write padded
+                    writer.BaseStream.Write(buffer.AsSpan(0, sz));
+                    int d = sz % 8;
+                    if (d != 0)
+                    {
+                        writer.BaseStream.Write(new byte[d]);
+                    }
+                }
+            }
+
+            WriteLong8(writer, buffer, 0);
+
+            return ms.ToArray();
+        }
+
+        private static void WriteLong8(TiffStreamWriter writer, byte[] buffer, ulong value)
+        {
+            if (writer.IsLittleEndian)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt64BigEndian(buffer, value);
+            }
+
+            writer.BaseStream.Write(buffer);
         }
     }
 }

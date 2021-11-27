@@ -436,6 +436,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
 
             var typed = (ExifNumber)value;
             Assert.Equal(expected, typed.Value);
+
+            typed.Value = ushort.MaxValue + 1;
+            Assert.True(expected < typed.Value);
         }
 
         [Theory]

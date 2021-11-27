@@ -183,9 +183,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expected, actual);
             }
 
+            // This method has only 2 implementations:
+            // 1. AVX
+            // 2. Scalar
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
         }
 
         private static float[] Create8x8ColorCropTestData()

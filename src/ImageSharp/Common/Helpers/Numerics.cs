@@ -821,6 +821,26 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Reduces elements of the vector into one sum.
+        /// </summary>
+        /// <param name="accumulator">The accumulator to reduce.</param>
+        /// <returns>The sum of all elements.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ReduceSum(Vector256<int> accumulator)
+        {
+            // Add upper lane to lower lane.
+            Vector128<int> vsum = Sse2.Add(accumulator.GetLower(), accumulator.GetUpper());
+
+            // Add odd to even.
+            vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_11_01_01));
+
+            // Add high to low.
+            vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));
+
+            return Sse2.ConvertToInt32(vsum);
+        }
+
+        /// <summary>
         /// Reduces even elements of the vector into one sum.
         /// </summary>
         /// <param name="accumulator">The accumulator to reduce.</param>

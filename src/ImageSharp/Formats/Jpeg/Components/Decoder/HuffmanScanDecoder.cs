@@ -151,6 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             if (this.componentsCount == this.frame.ComponentCount)
             {
                 this.ParseBaselineDataInterleaved();
+                this.spectralConverter.CommitConversion();
             }
             else
             {
@@ -501,7 +502,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     i += r;
                     s = buffer.Receive(s);
-                    Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i++]) = (short)s;
+                    Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[i++]) = (short)s;
                 }
                 else
                 {
@@ -570,7 +571,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     if (s != 0)
                     {
                         s = buffer.Receive(s);
-                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i]) = (short)(s << low);
+                        Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[i]) = (short)(s << low);
                     }
                     else
                     {
@@ -646,7 +647,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     do
                     {
-                        ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
+                        ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]);
                         if (coef != 0)
                         {
                             buffer.CheckBits();
@@ -672,7 +673,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     if ((s != 0) && (k < 64))
                     {
-                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]) = (short)s;
+                        Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]) = (short)s;
                     }
                 }
             }
@@ -681,7 +682,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 for (; k <= end; k++)
                 {
-                    ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
+                    ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]);
 
                     if (coef != 0)
                     {

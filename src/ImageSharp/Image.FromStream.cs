@@ -44,27 +44,29 @@ namespace SixLabors.ImageSharp
         /// By reading the header on the provided stream this calculates the images format type.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation or null if none is found.</returns>
-        public static Task<IImageFormat> DetectFormatAsync(Stream stream)
-            => DetectFormatAsync(Configuration.Default, stream);
+        public static Task<IImageFormat> DetectFormatAsync(Stream stream, CancellationToken cancellationToken = default)
+            => DetectFormatAsync(Configuration.Default, stream, cancellationToken);
 
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format type.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
-        public static Task<IImageFormat> DetectFormatAsync(Configuration configuration, Stream stream)
+        public static Task<IImageFormat> DetectFormatAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
                 (s, _) => InternalDetectFormatAsync(s, configuration),
-                default);
+                cancellationToken);
 
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
@@ -83,6 +85,7 @@ namespace SixLabors.ImageSharp
         /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
@@ -90,8 +93,8 @@ namespace SixLabors.ImageSharp
         /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
         /// a suitable detector is not found.
         /// </returns>
-        public static Task<IImageInfo> IdentifyAsync(Stream stream)
-            => IdentifyAsync(Configuration.Default, stream);
+        public static Task<IImageInfo> IdentifyAsync(Stream stream, CancellationToken cancellationToken = default)
+            => IdentifyAsync(Configuration.Default, stream, cancellationToken);
 
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
@@ -227,13 +230,14 @@ namespace SixLabors.ImageSharp
         /// The pixel format is selected by the decoder.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
-        public static Task<(Image Image, IImageFormat Format)> LoadWithFormatAsync(Stream stream)
-            => LoadWithFormatAsync(Configuration.Default, stream);
+        public static Task<(Image Image, IImageFormat Format)> LoadWithFormatAsync(Stream stream, CancellationToken cancellationToken = default)
+            => LoadWithFormatAsync(Configuration.Default, stream, cancellationToken);
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -252,12 +256,14 @@ namespace SixLabors.ImageSharp
         /// The pixel format is selected by the decoder.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image> LoadAsync(Stream stream) => LoadAsync(Configuration.Default, stream);
+        public static Task<Image> LoadAsync(Stream stream, CancellationToken cancellationToken = default)
+            => LoadAsync(Configuration.Default, stream, cancellationToken);
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -280,14 +286,15 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image> LoadAsync(Stream stream, IImageDecoder decoder)
-            => LoadAsync(Configuration.Default, stream, decoder);
+        public static Task<Image> LoadAsync(Stream stream, IImageDecoder decoder, CancellationToken cancellationToken = default)
+            => LoadAsync(Configuration.Default, stream, decoder, cancellationToken);
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -388,15 +395,16 @@ namespace SixLabors.ImageSharp
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image<TPixel>> LoadAsync<TPixel>(Stream stream)
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(Stream stream, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
-            => LoadAsync<TPixel>(Configuration.Default, stream);
+            => LoadAsync<TPixel>(Configuration.Default, stream, cancellationToken);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -417,15 +425,16 @@ namespace SixLabors.ImageSharp
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
-        public static async Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Stream stream)
+        public static async Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Stream stream, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
-            => await LoadWithFormatAsync<TPixel>(Configuration.Default, stream).ConfigureAwait(false);
+            => await LoadWithFormatAsync<TPixel>(Configuration.Default, stream, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.

@@ -542,14 +542,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 for (i = 0; i < 4; i++)
                 {
-                    int a0 = tmp[0 + i] + tmp[12 + i]; // 15b
-                    int a1 = tmp[4 + i] + tmp[8 + i];
-                    int a2 = tmp[4 + i] - tmp[8 + i];
-                    int a3 = tmp[0 + i] - tmp[12 + i];
-                    output[0 + i] = (short)((a0 + a1 + 7) >> 4); // 12b
-                    output[4 + i] = (short)((((a2 * 2217) + (a3 * 5352) + 12000) >> 16) + (a3 != 0 ? 1 : 0));
-                    output[8 + i] = (short)((a0 - a1 + 7) >> 4);
+                    int t12 = tmp[12 + i]; // 15b
+                    int t8 = tmp[8 + i];
+
+                    int a1 = tmp[4 + i] + t8;
+                    int a2 = tmp[4 + i] - t8;
+                    int a0 = tmp[0 + i] + t12; // 15b
+                    int a3 = tmp[0 + i] - t12;
+
                     output[12 + i] = (short)(((a3 * 2217) - (a2 * 5352) + 51000) >> 16);
+                    output[8 + i] = (short)((a0 - a1 + 7) >> 4);
+                    output[4 + i] = (short)((((a2 * 2217) + (a3 * 5352) + 12000) >> 16) + (a3 != 0 ? 1 : 0));
+                    output[0 + i] = (short)((a0 + a1 + 7) >> 4); // 12b
                 }
             }
         }
@@ -648,9 +652,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int inputIdx = 0;
             for (i = 0; i < 4; i++)
             {
-                int a0 = input[inputIdx + (0 * 16)] + input[inputIdx + (2 * 16)];  // 13b
                 int a1 = input[inputIdx + (1 * 16)] + input[inputIdx + (3 * 16)];
                 int a2 = input[inputIdx + (1 * 16)] - input[inputIdx + (3 * 16)];
+                int a0 = input[inputIdx + (0 * 16)] + input[inputIdx + (2 * 16)];  // 13b
                 int a3 = input[inputIdx + (0 * 16)] - input[inputIdx + (2 * 16)];
                 tmp[3 + (i * 4)] = a0 - a1;
                 tmp[2 + (i * 4)] = a3 - a2;
@@ -662,18 +666,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             for (i = 0; i < 4; i++)
             {
-                int a0 = tmp[0 + i] + tmp[8 + i];  // 15b
-                int a1 = tmp[4 + i] + tmp[12 + i];
-                int a2 = tmp[4 + i] - tmp[12 + i];
-                int a3 = tmp[0 + i] - tmp[8 + i];
+                int t12 = tmp[12 + i];
+                int t8 = tmp[8 + i];
+
+                int a1 = tmp[4 + i] + t12;
+                int a2 = tmp[4 + i] - t12;
+                int a0 = tmp[0 + i] + t8;  // 15b
+                int a3 = tmp[0 + i] - t8;
+
                 int b0 = a0 + a1;    // 16b
                 int b1 = a3 + a2;
                 int b2 = a3 - a2;
                 int b3 = a0 - a1;
-                output[0 + i] = (short)(b0 >> 1);     // 15b
-                output[4 + i] = (short)(b1 >> 1);
-                output[8 + i] = (short)(b2 >> 1);
+
                 output[12 + i] = (short)(b3 >> 1);
+                output[8 + i] = (short)(b2 >> 1);
+                output[4 + i] = (short)(b1 >> 1);
+                output[0 + i] = (short)(b0 >> 1);     // 15b
             }
         }
 

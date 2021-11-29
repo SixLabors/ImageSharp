@@ -795,7 +795,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             uint v = src[0] * 0x01010101u;
             Span<byte> vSpan = BitConverter.GetBytes(v).AsSpan();
-            for (int i = 0; i < 16; i++)
+            for (nint i = 0; i < 16; i++)
             {
                 if (!src.Slice(0, 4).SequenceEqual(vSpan) || !src.Slice(4, 4).SequenceEqual(vSpan) ||
                     !src.Slice(8, 4).SequenceEqual(vSpan) || !src.Slice(12, 4).SequenceEqual(vSpan))
@@ -813,19 +813,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static bool IsFlat(Span<short> levels, int numBlocks, int thresh)
         {
             int score = 0;
+            ref short levelsRef = ref MemoryMarshal.GetReference(levels);
+            int offset = 0;
             while (numBlocks-- > 0)
             {
-                for (int i = 1; i < 16; i++)
+                for (nint i = 1; i < 16; i++)
                 {
                     // omit DC, we're only interested in AC
-                    score += levels[i] != 0 ? 1 : 0;
+                    score += Unsafe.Add(ref levelsRef, offset) != 0 ? 1 : 0;
                     if (score > thresh)
                     {
                         return false;
                     }
                 }
 
-                levels = levels.Slice(16);
+                offset += 16;
             }
 
             return true;

@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         // Transforms (Paragraph 14.4)
         // Does two inverse transforms.
-        public static void ITransform(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
+        public static void ITransformTwo(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)

@@ -3,6 +3,7 @@
 
 using System.IO;
 using System.Linq;
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
@@ -43,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
             // Decoding
-            using var converter = new SpectralConverter<TPixel>(Configuration.Default, cancellationToken: default);
+            using var converter = new SpectralConverter<TPixel>(Configuration.Default);
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, converter, cancellationToken: default);
             decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             provider.Utility.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
             // Comparison
-            using (Image<TPixel> image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(), new ImageMetadata()))
+            using (Image<TPixel> image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(CancellationToken.None), new ImageMetadata()))
             using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
             {
                 ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);

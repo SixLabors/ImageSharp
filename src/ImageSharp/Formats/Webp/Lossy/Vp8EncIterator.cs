@@ -358,7 +358,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int kThreshold = 8 + ((17 - 8) * q / 100);
             int k;
             Span<uint> dc = stackalloc uint[16];
-            Span<ushort> tmp = stackalloc ushort[16];
             uint m;
             uint m2;
             for (k = 0; k < 16; k += 4)

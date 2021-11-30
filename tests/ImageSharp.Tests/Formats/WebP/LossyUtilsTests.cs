@@ -104,7 +104,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void Vp8Sse4X4_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void Vp8Sse4X4_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableHWIntrinsic);
+        public void Vp8Sse4X4_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void Vp8Sse4X4_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableAVX2);
 
         [Fact]
         public void Mean16x4_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.AllowAll);

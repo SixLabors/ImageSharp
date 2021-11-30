@@ -124,6 +124,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
+        internal PngDecoderCore(Configuration configuration, bool ignoreMetadata)
+        {
+            this.Configuration = configuration ?? Configuration.Default;
+            this.memoryAllocator = this.Configuration.MemoryAllocator;
+            this.ignoreMetadata = ignoreMetadata;
+        }
+
         /// <inheritdoc/>
         public Configuration Configuration { get; }
 
@@ -168,12 +175,12 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                                 break;
                             case PngChunkType.Palette:
-                                var pal = new byte[chunk.Length];
+                                byte[] pal = new byte[chunk.Length];
                                 chunk.Data.GetSpan().CopyTo(pal);
                                 this.palette = pal;
                                 break;
                             case PngChunkType.Transparency:
-                                var alpha = new byte[chunk.Length];
+                                byte[] alpha = new byte[chunk.Length];
                                 chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
@@ -190,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
-                                    var exifData = new byte[chunk.Length];
+                                    byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
                                     metadata.ExifProfile = new ExifProfile(exifData);
                                 }
@@ -263,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
-                                    var exifData = new byte[chunk.Length];
+                                    byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
                                     metadata.ExifProfile = new ExifProfile(exifData);
                                 }
@@ -364,11 +371,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pngMetadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
         private void ReadGammaChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
-        {
+
             // The value is encoded as a 4-byte unsigned integer, representing gamma times 100000.
             // For example, a gamma of 1/2.2 would be stored as 45455.
-            pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) / 100_000F;
-        }
+            => pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) / 100_000F;
 
         /// <summary>
         /// Initializes the image and various buffers needed for processing
@@ -477,19 +483,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
-            {
-                deframeStream.AllocateNewBytes(chunk.Length, true);
-                DeflateStream dataStream = deframeStream.CompressedStream;
+            using var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk);
+            deframeStream.AllocateNewBytes(chunk.Length, true);
+            DeflateStream dataStream = deframeStream.CompressedStream;
 
-                if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
-                {
-                    this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
-                }
-                else
-                {
-                    this.DecodePixelData(dataStream, image, pngMetadata);
-                }
+            if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
+            {
+                this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
+            }
+            else
+            {
+                this.DecodePixelData(dataStream, image, pngMetadata);
             }
         }
 

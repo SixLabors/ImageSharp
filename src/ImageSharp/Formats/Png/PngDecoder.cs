@@ -20,12 +20,25 @@ namespace SixLabors.ImageSharp.Formats.Png
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new PngDecoderCore(configuration, this);
+            PngDecoderCore decoder = new(configuration, this);
             return decoder.Decode<TPixel>(configuration, stream);
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+        public Image Decode(Configuration configuration, Stream stream)
+        {
+            PngDecoderCore decoder = new(configuration, true);
+            IImageInfo info = decoder.Identify(configuration, stream);
+            stream.Position = 0;
+
+            switch (info.Metadata.GetPngMetadata().ColorType)
+            {
+                default:
+                    break;
+            }
+
+            return this.Decode<Rgba32>(configuration, stream);
+        }
 
         /// <inheritdoc/>
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)

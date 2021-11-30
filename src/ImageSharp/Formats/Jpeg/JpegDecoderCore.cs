@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration);
 
             var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
@@ -185,7 +185,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
 
-            return new Image<TPixel>(this.Configuration, spectralConverter.GetPixelBuffer(), this.Metadata);
+            return new Image<TPixel>(
+                this.Configuration,
+                spectralConverter.GetPixelBuffer(cancellationToken),
+                this.Metadata);
         }
 
         /// <inheritdoc/>

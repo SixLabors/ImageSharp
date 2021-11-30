@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     // ReSharper disable once InconsistentNaming
     [StructLayout(LayoutKind.Explicit)]
-    internal unsafe struct Block8x8 : IEquatable<Block8x8>
+    internal unsafe partial struct Block8x8
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
@@ -35,34 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [FieldOffset(0)]
         private fixed short data[Size];
 #pragma warning restore IDE0051
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [FieldOffset(0)]
-        public Vector128<short> V0;
-        [FieldOffset(16)]
-        public Vector128<short> V1;
-        [FieldOffset(32)]
-        public Vector128<short> V2;
-        [FieldOffset(48)]
-        public Vector128<short> V3;
-        [FieldOffset(64)]
-        public Vector128<short> V4;
-        [FieldOffset(80)]
-        public Vector128<short> V5;
-        [FieldOffset(96)]
-        public Vector128<short> V6;
-        [FieldOffset(112)]
-        public Vector128<short> V7;
-
-        [FieldOffset(0)]
-        public Vector256<short> V01;
-        [FieldOffset(32)]
-        public Vector256<short> V23;
-        [FieldOffset(64)]
-        public Vector256<short> V45;
-        [FieldOffset(96)]
-        public Vector256<short> V67;
-#endif
 
         /// <summary>
         /// Gets or sets a <see cref="short"/> value at the given index
@@ -100,74 +72,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             get => this[(y * 8) + x];
             set => this[(y * 8) + x] = value;
-        }
-
-        public static bool operator ==(Block8x8 left, Block8x8 right) => left.Equals(right);
-
-        public static bool operator !=(Block8x8 left, Block8x8 right) => !left.Equals(right);
-
-        /// <summary>
-        /// Multiply all elements by a given <see cref="int"/>
-        /// </summary>
-        public static Block8x8 operator *(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val *= value;
-                result[i] = (short)val;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Divide all elements by a given <see cref="int"/>
-        /// </summary>
-        public static Block8x8 operator /(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val /= value;
-                result[i] = (short)val;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Add an <see cref="int"/> to all elements
-        /// </summary>
-        public static Block8x8 operator +(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val += value;
-                result[i] = (short)val;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Subtract an <see cref="int"/> from all elements
-        /// </summary>
-        public static Block8x8 operator -(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val -= value;
-                result[i] = (short)val;
-            }
-
-            return result;
         }
 
         public static Block8x8 Load(Span<short> data)
@@ -259,26 +163,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             sb.Append(']');
             return sb.ToString();
         }
-
-        /// <inheritdoc />
-        public bool Equals(Block8x8 other)
-        {
-            for (int i = 0; i < Size; i++)
-            {
-                if (this[i] != other[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Block8x8 other && this.Equals(other);
-
-        /// <inheritdoc />
-        public override int GetHashCode() => (this[0] * 31) + this[1];
 
         /// <summary>
         /// Returns index of the last non-zero element in given matrix.

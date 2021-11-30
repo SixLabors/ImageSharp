@@ -21,7 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// This Spectral converter will always convert the pixel data to RGB color.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
         public RgbJpegSpectralConverter(Configuration configuration)
             : base(configuration)
         {

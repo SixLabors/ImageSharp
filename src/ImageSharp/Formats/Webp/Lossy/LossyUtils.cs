@@ -39,15 +39,48 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static int Vp8_Sse4X4(Span<byte> a, Span<byte> b)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                // Load values.
+                ref byte aRef = ref MemoryMarshal.GetReference(a);
+                ref byte bRef = ref MemoryMarshal.GetReference(b);
+                var a0 = Vector256.Create(
+                    Unsafe.As<byte, Vector128<byte>>(ref aRef),
+                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps)));
+                var a1 = Vector256.Create(
+                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 2)),
+                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 3)));
+                var b0 = Vector256.Create(
+                    Unsafe.As<byte, Vector128<byte>>(ref bRef),
+                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps)));
+                var b1 = Vector256.Create(
+                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 2)),
+                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 3)));
+
+                // Combine pair of lines.
+                Vector256<int> a01 = Avx2.UnpackLow(a0.AsInt32(), a1.AsInt32());
+                Vector256<int> b01 = Avx2.UnpackLow(b0.AsInt32(), b1.AsInt32());
+
+                // Convert to 16b.
+                Vector256<byte> a01s = Avx2.UnpackLow(a01.AsByte(), Vector256<byte>.Zero);
+                Vector256<byte> b01s = Avx2.UnpackLow(b01.AsByte(), Vector256<byte>.Zero);
+
+                // subtract, square and accumulate.
+                Vector256<byte> d0 = Avx2.SubtractSaturate(a01s, b01s);
+                Vector256<int> e0 = Avx2.MultiplyAddAdjacent(d0.AsInt16(), d0.AsInt16());
+
+                return Numerics.ReduceSum(e0);
+            }
+
             if (Sse2.IsSupported)
             {
                 // Load values.
                 ref byte aRef = ref MemoryMarshal.GetReference(a);
+                ref byte bRef = ref MemoryMarshal.GetReference(b);
                 Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref aRef);
                 Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps));
                 Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 2));
                 Vector128<byte> a3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 3));
-                ref byte bRef = ref MemoryMarshal.GetReference(b);
                 Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref bRef);
                 Vector128<byte> b1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps));
                 Vector128<byte> b2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 2));
@@ -74,7 +107,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 return Numerics.ReduceSum(sum);
             }
-            else
 #endif
             {
                 return Vp8_SseNxN(a, b, 4, 4);

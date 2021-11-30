@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -28,7 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <inheritdoc/>
         protected override void BeforeImageApply()
         {
-            OrientationMode orientation = GetExifOrientation(this.Source);
+            // Rotate/flip the image according to the EXIF orientation metadata
+            OrientationMode orientation = this.Source.Metadata.GetOrientation();
             Size size = this.SourceRectangle.Size;
             switch (orientation)
             {
@@ -68,6 +68,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     break;
             }
 
+            // Reset the orientation to top/left
+            if (orientation != OrientationMode.Unknown)
+            {
+                this.Source.Metadata.ExifProfile ??= new ExifProfile();
+                this.Source.Metadata.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationMode.TopLeft);
+            }
+
             base.BeforeImageApply();
         }
 
@@ -75,40 +82,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         protected override void OnFrameApply(ImageFrame<TPixel> sourceBase)
         {
             // All processing happens at the image level within BeforeImageApply();
-        }
-
-        /// <summary>
-        /// Returns the current EXIF orientation
-        /// </summary>
-        /// <param name="source">The image to auto rotate.</param>
-        /// <returns>The <see cref="OrientationMode"/></returns>
-        private static OrientationMode GetExifOrientation(Image<TPixel> source)
-        {
-            if (source.Metadata.ExifProfile is null)
-            {
-                return OrientationMode.Unknown;
-            }
-
-            IExifValue<ushort> value = source.Metadata.ExifProfile.GetValue(ExifTag.Orientation);
-            if (value is null)
-            {
-                return OrientationMode.Unknown;
-            }
-
-            OrientationMode orientation;
-            if (value.DataType == ExifDataType.Short)
-            {
-                orientation = (OrientationMode)value.Value;
-            }
-            else
-            {
-                orientation = (OrientationMode)Convert.ToUInt16(value.Value);
-                source.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
-            }
-
-            source.Metadata.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationMode.TopLeft);
-
-            return orientation;
         }
     }
 }

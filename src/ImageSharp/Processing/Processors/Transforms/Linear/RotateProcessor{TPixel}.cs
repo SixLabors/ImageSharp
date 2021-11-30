@@ -41,26 +41,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             base.OnFrameApply(source, destination);
         }
 
-        /// <inheritdoc/>
-        protected override void AfterImageApply(Image<TPixel> destination)
-        {
-            ExifProfile profile = destination.Metadata.ExifProfile;
-            if (profile is null)
-            {
-                return;
-            }
-
-            if (MathF.Abs(WrapDegrees(this.degrees)) < Constants.Epsilon)
-            {
-                // No need to do anything so return.
-                return;
-            }
-
-            profile.RemoveValue(ExifTag.Orientation);
-
-            base.AfterImageApply(destination);
-        }
-
         /// <summary>
         /// Wraps a given angle in degrees so that it falls withing the 0-360 degree range
         /// </summary>

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing
@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Enumerates the available orientation values supplied by EXIF metadata.
     /// </summary>
-    internal enum OrientationMode : ushort
+    public enum OrientationMode : ushort
     {
         /// <summary>
         /// Unknown rotation.

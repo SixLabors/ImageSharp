@@ -16,8 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     {
         private readonly Configuration configuration;
 
-        private readonly CancellationToken cancellationToken;
-
         private JpegComponentPostProcessor[] componentProcessors;
 
         private JpegColorConverter colorConverter;
@@ -32,13 +30,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private int pixelRowCounter;
 
-        public SpectralConverter(Configuration configuration, CancellationToken cancellationToken)
-        {
+        public SpectralConverter(Configuration configuration) =>
             this.configuration = configuration;
-            this.cancellationToken = cancellationToken;
-        }
 
-        public Buffer2D<TPixel> GetPixelBuffer()
+        public Buffer2D<TPixel> GetPixelBuffer(CancellationToken cancellationToken)
         {
             if (!this.Converted)
             {
@@ -46,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int step = 0; step < steps; step++)
                 {
-                    this.cancellationToken.ThrowIfCancellationRequested();
+                    cancellationToken.ThrowIfCancellationRequested();
                     this.ConvertStride(step);
                 }
             }

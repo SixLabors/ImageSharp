@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public RgbJpegSpectralConverter(Configuration configuration, CancellationToken cancellationToken)
-            : base(configuration, cancellationToken)
+        public RgbJpegSpectralConverter(Configuration configuration)
+            : base(configuration)
         {
         }
 

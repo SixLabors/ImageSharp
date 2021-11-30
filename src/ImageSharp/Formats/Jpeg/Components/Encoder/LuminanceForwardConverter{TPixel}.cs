@@ -22,11 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private const int PixelsPerSample = 8 * 8;
 
         /// <summary>
-        /// <see cref="Size"/> of sampling area from given frame pixel buffer.
-        /// </summary>
-        private static readonly Size SampleSize = new Size(8, 8);
-
-        /// <summary>
         /// The Y component
         /// </summary>
         public Block8x8F Y;
@@ -61,6 +56,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.samplingAreaSize = new Size(frame.Width, frame.Height);
             this.config = frame.GetConfiguration();
         }
+
+        /// <summary>
+        /// Gets size of sampling area from given frame pixel buffer.
+        /// </summary>
+        private static Size SampleSize => new(8, 8);
 
         /// <summary>
         /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>)

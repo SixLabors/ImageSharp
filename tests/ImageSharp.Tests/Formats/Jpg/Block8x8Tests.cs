@@ -71,20 +71,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void Equality_WhenTrue()
-        {
-            short[] data = Create8x8ShortData();
-            var block1 = Block8x8.Load(data);
-            var block2 = Block8x8.Load(data);
-
-            block1[0] = 42;
-            block2[0] = 42;
-
-            Assert.Equal(block1, block2);
-            Assert.Equal(block1.GetHashCode(), block2.GetHashCode());
-        }
-
-        [Fact]
         public void Equality_WhenFalse()
         {
             short[] data = Create8x8ShortData();

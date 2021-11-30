@@ -200,6 +200,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <summary>
             /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
             /// </summary>
+            /// <param name="componentProcessors">The 1-4 sized list of component post processors.</param>
+            /// <param name="row">The row to convert</param>
+            public ComponentValues(IReadOnlyList<JpegComponentPostProcessor> componentProcessors, int row)
+            {
+                this.ComponentCount = componentProcessors.Count;
+
+                this.Component0 = componentProcessors[0].GetColorBufferRowSpan(row);
+
+                // In case of grayscale, Component1 and Component2 point to Component0 memory area
+                this.Component1 = this.ComponentCount > 1 ? componentProcessors[1].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? componentProcessors[2].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? componentProcessors[3].GetColorBufferRowSpan(row) : Span<float>.Empty;
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
+            /// </summary>
             /// <param name="componentBuffers">The 1-4 sized list of component buffers.</param>
             /// <param name="row">The row to convert</param>
             public ComponentValues(IReadOnlyList<Buffer2D<float>> componentBuffers, int row)

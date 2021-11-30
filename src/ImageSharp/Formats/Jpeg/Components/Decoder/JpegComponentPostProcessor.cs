@@ -122,5 +122,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 spectralBlocks.GetRowSpan(i).Clear();
             }
         }
+
+        public Span<float> GetColorBufferRowSpan(int row) =>
+            this.ColorBuffer.GetRowSpan(row);
     }
 }

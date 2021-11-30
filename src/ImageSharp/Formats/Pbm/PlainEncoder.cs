@@ -15,7 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </summary>
     internal class PlainEncoder
     {
-        private const int MaxLineLength = 70;
         private const byte NewLine = 0x0a;
         private const byte Space = 0x20;
         private const byte Zero = 0x30;
@@ -77,7 +76,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
-            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelGrayscale];
+            IMemoryOwner<byte> plainMemory = allocator.Allocate<byte>(width * MaxCharsPerPixelGrayscale);
+            Span<byte> plainSpan = plainMemory.GetSpan();
 
             for (int y = 0; y < height; y++)
             {
@@ -108,7 +108,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L16> row = allocator.Allocate<L16>(width);
             Span<L16> rowSpan = row.GetSpan();
-            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelGrayscaleWide];
+            IMemoryOwner<byte> plainMemory = allocator.Allocate<byte>(width * MaxCharsPerPixelGrayscaleWide);
+            Span<byte> plainSpan = plainMemory.GetSpan();
 
             for (int y = 0; y < height; y++)
             {
@@ -139,7 +140,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<Rgb24> row = allocator.Allocate<Rgb24>(width);
             Span<Rgb24> rowSpan = row.GetSpan();
-            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelRgb];
+            IMemoryOwner<byte> plainMemory = allocator.Allocate<byte>(width * MaxCharsPerPixelRgb);
+            Span<byte> plainSpan = plainMemory.GetSpan();
 
             for (int y = 0; y < height; y++)
             {
@@ -176,7 +178,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<Rgb48> row = allocator.Allocate<Rgb48>(width);
             Span<Rgb48> rowSpan = row.GetSpan();
-            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelRgbWide];
+            IMemoryOwner<byte> plainMemory = allocator.Allocate<byte>(width * MaxCharsPerPixelRgbWide);
+            Span<byte> plainSpan = plainMemory.GetSpan();
 
             for (int y = 0; y < height; y++)
             {
@@ -213,7 +216,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
-            Span<byte> plainSpan = stackalloc byte[width * MaxCharsPerPixelBlackAndWhite];
+            IMemoryOwner<byte> plainMemory = allocator.Allocate<byte>(width * MaxCharsPerPixelBlackAndWhite);
+            Span<byte> plainSpan = plainMemory.GetSpan();
 
             for (int y = 0; y < height; y++)
             {

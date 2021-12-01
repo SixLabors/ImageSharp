@@ -88,6 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             if (this.colorType != PbmColorType.BlackAndWhite)
             {
                 this.maxPixelValue = this.options.MaxPixelValue ?? metadata.MaxPixelValue;
+                this.maxPixelValue = Math.Max(this.maxPixelValue, PbmConstants.MaxLength);
             }
         }
 

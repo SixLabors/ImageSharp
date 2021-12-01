@@ -11,8 +11,28 @@ using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 {
     [Trait("Format", "Pbm")]
-    public class RoundTripTests
+    public class PbmRoundTripTests
     {
+        [Theory]
+        [InlineData(BlackAndWhiteBinary)]
+        [InlineData(GrayscalePlain)]
+        [InlineData(GrayscaleBinary)]
+        public void PbmGrayscaleImageCanRoundTrip(string imagePath)
+        {
+            // Arrange
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+
+            // Act
+            using var originalImage = Image.Load(stream);
+            Image<Rgb24> colorImage = originalImage.CloneAs<Rgb24>();
+            using Image<Rgb24> encodedImage = this.RoundTrip(colorImage);
+
+            // Assert
+            Assert.NotNull(encodedImage);
+            ImageComparer.Exact.VerifySimilarity(colorImage, encodedImage);
+        }
+
         [Theory]
         [InlineData(RgbPlain)]
         [InlineData(RgbBinary)]
@@ -37,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
             using var decodedStream = new MemoryStream();
             originalImage.SaveAsPbm(decodedStream);
             decodedStream.Seek(0, SeekOrigin.Begin);
-            var encodedImage = (Image<TPixel>)Image.Load(decodedStream);
+            var encodedImage = Image.Load<TPixel>(decodedStream);
             return encodedImage;
         }
     }

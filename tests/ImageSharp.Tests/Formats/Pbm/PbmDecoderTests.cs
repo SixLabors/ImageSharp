@@ -84,6 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
 
             image.CompareToReferenceOutput(provider, grayscale: isGrayscale);
         }

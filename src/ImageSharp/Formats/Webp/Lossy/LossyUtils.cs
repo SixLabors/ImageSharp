@@ -967,13 +967,27 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void SimpleHFilter16(Span<byte> p, int offset, int stride, int thresh)
         {
-            int thresh2 = (2 * thresh) + 1;
-            int end = offset + (16 * stride);
-            for (int i = offset; i < end; i += stride)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                if (NeedsFilter(p, i, 1, thresh2))
+                // beginning of p1
+                p = p.Slice(offset - 2);
+
+                Load16x4Sse2(p, p.Slice(8 * stride), stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1);
+                DoFilter2Sse2(ref p1, ref p0, ref q0, ref q1, thresh);
+                Store16x4Sse2(p1, p0, q0, q1, p, p.Slice(8 * stride), stride);
+            }
+            else
+#endif
+            {
+                int thresh2 = (2 * thresh) + 1;
+                int end = offset + (16 * stride);
+                for (int i = offset; i < end; i += stride)
                 {
-                    DoFilter2(p, i, 1);
+                    if (NeedsFilter(p, i, 1, thresh2))
+                    {
+                        DoFilter2(p, i, 1);
+                    }
                 }
             }
         }
@@ -1355,6 +1369,113 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> t7 = Sse2.SubtractSaturate(t6, mthresh.AsByte()); // mask <= m_thresh
 
             return Sse2.CompareEqual(t7, Vector128<byte>.Zero);
+        }
+
+        private static void Load16x4Sse2(Span<byte> r0, Span<byte> r8, int stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1)
+        {
+            // Assume the pixels around the edge (|) are numbered as follows
+            //                00 01 | 02 03
+            //                10 11 | 12 13
+            //                 ...  |  ...
+            //                e0 e1 | e2 e3
+            //                f0 f1 | f2 f3
+            //
+            // r0 is pointing to the 0th row (00)
+            // r8 is pointing to the 8th row (80)
+
+            // Load
+            // p1 = 71 61 51 41 31 21 11 01 70 60 50 40 30 20 10 00
+            // q0 = 73 63 53 43 33 23 13 03 72 62 52 42 32 22 12 02
+            // p0 = f1 e1 d1 c1 b1 a1 91 81 f0 e0 d0 c0 b0 a0 90 80
+            // q1 = f3 e3 d3 c3 b3 a3 93 83 f2 e2 d2 c2 b2 a2 92 82
+            Load8x4Sse2(r0, stride, out Vector128<byte> t1, out Vector128<byte> t2);
+            Load8x4Sse2(r8, stride, out p0, out q1);
+
+            // p1 = f0 e0 d0 c0 b0 a0 90 80 70 60 50 40 30 20 10 00
+            // p0 = f1 e1 d1 c1 b1 a1 91 81 71 61 51 41 31 21 11 01
+            // q0 = f2 e2 d2 c2 b2 a2 92 82 72 62 52 42 32 22 12 02
+            // q1 = f3 e3 d3 c3 b3 a3 93 83 73 63 53 43 33 23 13 03
+            p1 = Sse2.UnpackLow(t1.AsInt64(), p0.AsInt64()).AsByte();
+            p0 = Sse2.UnpackHigh(t1.AsInt64(), p0.AsInt64()).AsByte();
+            q0 = Sse2.UnpackLow(t2.AsInt64(), q1.AsInt64()).AsByte();
+            q1 = Sse2.UnpackHigh(t2.AsInt64(), q1.AsInt64()).AsByte();
+        }
+
+        // Reads 8 rows across a vertical edge.
+        private static void Load8x4Sse2(Span<byte> b, int stride, out Vector128<byte> p, out Vector128<byte> q)
+        {
+            // A0 = 63 62 61 60 23 22 21 20 43 42 41 40 03 02 01 00
+            // A1 = 73 72 71 70 33 32 31 30 53 52 51 50 13 12 11 10
+            ref byte bRef = ref MemoryMarshal.GetReference(b);
+            uint a00 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 6 * stride));
+            uint a01 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 2 * stride));
+            uint a02 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 4 * stride));
+            uint a03 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 0 * stride));
+            Vector128<byte> a0 = Vector128.Create(a03, a02, a01, a00).AsByte();
+            uint a10 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 7 * stride));
+            uint a11 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 3 * stride));
+            uint a12 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 5 * stride));
+            uint a13 = Unsafe.As<byte, uint>(ref Unsafe.Add(ref bRef, 1 * stride));
+            Vector128<byte> a1 = Vector128.Create(a13, a12, a11, a10).AsByte();
+
+            // B0 = 53 43 52 42 51 41 50 40 13 03 12 02 11 01 10 00
+            // B1 = 73 63 72 62 71 61 70 60 33 23 32 22 31 21 30 20
+            Vector128<byte> b0 = Sse2.UnpackLow(a0, a1);
+            Vector128<byte> b1 = Sse2.UnpackHigh(a0, a1);
+
+            // C0 = 33 23 13 03 32 22 12 02 31 21 11 01 30 20 10 00
+            // C1 = 73 63 53 43 72 62 52 42 71 61 51 41 70 60 50 40
+            Vector128<short> c0 = Sse2.UnpackLow(b0.AsInt16(), b1.AsInt16());
+            Vector128<short> c1 = Sse2.UnpackHigh(b0.AsInt16(), b1.AsInt16());
+
+            // *p = 71 61 51 41 31 21 11 01 70 60 50 40 30 20 10 00
+            // *q = 73 63 53 43 33 23 13 03 72 62 52 42 32 22 12 02
+            p = Sse2.UnpackLow(c0.AsInt32(), c1.AsInt32()).AsByte();
+            q = Sse2.UnpackHigh(c0.AsInt32(), c1.AsInt32()).AsByte();
+        }
+
+        // Transpose back and store
+        private static void Store16x4Sse2(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, Span<byte> r0, Span<byte> r8, int stride)
+        {
+            // p0 = 71 70 61 60 51 50 41 40 31 30 21 20 11 10 01 00
+            // p1 = f1 f0 e1 e0 d1 d0 c1 c0 b1 b0 a1 a0 91 90 81 80
+            Vector128<byte> p0s = Sse2.UnpackLow(p1, p0);
+            Vector128<byte> p1s = Sse2.UnpackHigh(p1, p0);
+
+            // q0 = 73 72 63 62 53 52 43 42 33 32 23 22 13 12 03 02
+            // q1 = f3 f2 e3 e2 d3 d2 c3 c2 b3 b2 a3 a2 93 92 83 82
+            Vector128<byte> q0s = Sse2.UnpackLow(q0, q1);
+            Vector128<byte> q1s = Sse2.UnpackHigh(q0, q1);
+
+            // p0 = 33 32 31 30 23 22 21 20 13 12 11 10 03 02 01 00
+            // q0 = 73 72 71 70 63 62 61 60 53 52 51 50 43 42 41 40
+            Vector128<byte> t1 = p0s;
+            p0s = Sse2.UnpackLow(t1.AsInt16(), q0s.AsInt16()).AsByte();
+            q0s = Sse2.UnpackHigh(t1.AsInt16(), q0s.AsInt16()).AsByte();
+
+            // p1 = b3 b2 b1 b0 a3 a2 a1 a0 93 92 91 90 83 82 81 80
+            // q1 = f3 f2 f1 f0 e3 e2 e1 e0 d3 d2 d1 d0 c3 c2 c1 c0
+            t1 = p1s;
+            p1s = Sse2.UnpackLow(t1.AsInt16(), q1s.AsInt16()).AsByte();
+            q1s = Sse2.UnpackHigh(t1.AsInt16(), q1s.AsInt16()).AsByte();
+
+            Store4x4Sse2(p0s, r0, stride);
+            Store4x4Sse2(q0s, r0.Slice(4 * stride), stride);
+
+            Store4x4Sse2(p1s, r8, stride);
+            Store4x4Sse2(q1s, r8.Slice(4 * stride), stride);
+        }
+
+        private static void Store4x4Sse2(Vector128<byte> x, Span<byte> dst, int stride)
+        {
+            int offset = 0;
+            ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+            for (int i = 0; i < 4; i++)
+            {
+                Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, offset)) = Sse2.ConvertToInt32(x.AsInt32());
+                x = Sse2.ShiftRightLogical128BitLane(x, 4);
+                offset += stride;
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -374,7 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // The value is encoded as a 4-byte unsigned integer, representing gamma times 100000.
             // For example, a gamma of 1/2.2 would be stored as 45455.
-            => pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) / 100_000F;
+            => pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) * 1e-5F;
 
         /// <summary>
         /// Initializes the image and various buffers needed for processing

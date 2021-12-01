@@ -34,26 +34,48 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngMetadata meta = info.Metadata.GetPngMetadata();
             PngColorType color = meta.ColorType.GetValueOrDefault();
             PngBitDepth bits = meta.BitDepth.GetValueOrDefault();
-            return color switch
+            switch (color)
             {
-                PngColorType.Grayscale => (bits == PngBitDepth.Bit16)
-                ? this.Decode<L16>(configuration, stream)
-                : this.Decode<L8>(configuration, stream),
+                case PngColorType.Grayscale:
+                    if (bits == PngBitDepth.Bit16)
+                    {
+                        return !meta.HasTransparency
+                            ? this.Decode<L16>(configuration, stream)
+                            : this.Decode<La32>(configuration, stream);
+                    }
 
-                PngColorType.Rgb => this.Decode<Rgb24>(configuration, stream),
+                    return !meta.HasTransparency
+                        ? this.Decode<L8>(configuration, stream)
+                        : this.Decode<La16>(configuration, stream);
 
-                PngColorType.Palette => this.Decode<Rgba32>(configuration, stream),
+                case PngColorType.Rgb:
+                    if (bits == PngBitDepth.Bit16)
+                    {
+                        return !meta.HasTransparency
+                            ? this.Decode<Rgb48>(configuration, stream)
+                            : this.Decode<Rgba64>(configuration, stream);
+                    }
 
-                PngColorType.GrayscaleWithAlpha => (bits == PngBitDepth.Bit16)
-                ? this.Decode<La32>(configuration, stream)
-                : this.Decode<La16>(configuration, stream),
+                    return !meta.HasTransparency
+                        ? this.Decode<Rgb24>(configuration, stream)
+                        : this.Decode<Rgba32>(configuration, stream);
 
-                PngColorType.RgbWithAlpha => (bits == PngBitDepth.Bit16)
-                ? this.Decode<Rgba64>(configuration, stream)
-                : this.Decode<Rgba32>(configuration, stream),
+                case PngColorType.Palette:
+                    return this.Decode<Rgba32>(configuration, stream);
 
-                _ => this.Decode<Rgba32>(configuration, stream),
-            };
+                case PngColorType.GrayscaleWithAlpha:
+                    return (bits == PngBitDepth.Bit16)
+                    ? this.Decode<La32>(configuration, stream)
+                    : this.Decode<La16>(configuration, stream);
+
+                case PngColorType.RgbWithAlpha:
+                    return (bits == PngBitDepth.Bit16)
+                    ? this.Decode<Rgba64>(configuration, stream)
+                    : this.Decode<Rgba32>(configuration, stream);
+
+                default:
+                    return this.Decode<Rgba32>(configuration, stream);
+            }
         }
 
         /// <inheritdoc/>
@@ -74,26 +96,48 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngMetadata meta = info.Metadata.GetPngMetadata();
             PngColorType color = meta.ColorType.GetValueOrDefault();
             PngBitDepth bits = meta.BitDepth.GetValueOrDefault();
-            return color switch
+            switch (color)
             {
-                PngColorType.Grayscale => (bits == PngBitDepth.Bit16)
-                ? await this.DecodeAsync<L16>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                : await this.DecodeAsync<L8>(configuration, stream, cancellationToken).ConfigureAwait(false),
+                case PngColorType.Grayscale:
+                    if (bits == PngBitDepth.Bit16)
+                    {
+                        return !meta.HasTransparency
+                            ? await this.DecodeAsync<L16>(configuration, stream, cancellationToken).ConfigureAwait(false)
+                            : await this.DecodeAsync<La32>(configuration, stream, cancellationToken).ConfigureAwait(false);
+                    }
 
-                PngColorType.Rgb => await this.DecodeAsync<Rgb24>(configuration, stream, cancellationToken).ConfigureAwait(false),
+                    return !meta.HasTransparency
+                        ? await this.DecodeAsync<L8>(configuration, stream, cancellationToken).ConfigureAwait(false)
+                        : await this.DecodeAsync<La16>(configuration, stream, cancellationToken).ConfigureAwait(false);
 
-                PngColorType.Palette => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false),
+                case PngColorType.Rgb:
+                    if (bits == PngBitDepth.Bit16)
+                    {
+                        return !meta.HasTransparency
+                            ? await this.DecodeAsync<Rgb48>(configuration, stream, cancellationToken).ConfigureAwait(false)
+                            : await this.DecodeAsync<Rgba64>(configuration, stream, cancellationToken).ConfigureAwait(false);
+                    }
 
-                PngColorType.GrayscaleWithAlpha => (bits == PngBitDepth.Bit16)
-                ? await this.DecodeAsync<La32>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                : await this.DecodeAsync<La16>(configuration, stream, cancellationToken).ConfigureAwait(false),
+                    return !meta.HasTransparency
+                        ? await this.DecodeAsync<Rgb24>(configuration, stream, cancellationToken).ConfigureAwait(false)
+                        : await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
 
-                PngColorType.RgbWithAlpha => (bits == PngBitDepth.Bit16)
-                ? await this.DecodeAsync<Rgba64>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                : await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false),
+                case PngColorType.Palette:
+                    return await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
 
-                _ => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false),
-            };
+                case PngColorType.GrayscaleWithAlpha:
+                    return (bits == PngBitDepth.Bit16)
+                        ? await this.DecodeAsync<La32>(configuration, stream, cancellationToken).ConfigureAwait(false)
+                        : await this.DecodeAsync<La16>(configuration, stream, cancellationToken).ConfigureAwait(false);
+
+                case PngColorType.RgbWithAlpha:
+                    return (bits == PngBitDepth.Bit16)
+                        ? await this.DecodeAsync<Rgba64>(configuration, stream, cancellationToken).ConfigureAwait(false)
+                        : await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
+
+                default:
+                    return await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         /// <inheritdoc/>

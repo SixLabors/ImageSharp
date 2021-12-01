@@ -258,6 +258,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                             case PngChunkType.Data:
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
+                            case PngChunkType.Transparency:
+                                byte[] alpha = new byte[chunk.Length];
+                                chunk.Data.GetSpan().CopyTo(alpha);
+                                this.paletteAlpha = alpha;
+                                this.AssignTransparentMarkers(alpha, pngMetadata);
+                                break;
                             case PngChunkType.Text:
                                 this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;

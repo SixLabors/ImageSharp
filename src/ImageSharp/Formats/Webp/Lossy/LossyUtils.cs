@@ -1194,9 +1194,37 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-            int offsetPlus4 = offset + 4;
-            FilterLoop24(u, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
-            FilterLoop24(v, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Load16x4(u.Slice(offset), v.Slice(offset), stride,  out Vector128<byte> t2, out Vector128<byte> t1, out Vector128<byte> p1, out Vector128<byte> p0);
+
+                Vector128<byte> mask = Abs(p1, p0);
+                mask = Sse2.Max(mask, Abs(t2, t1));
+                mask = Sse2.Max(mask, Abs(t1, p1));
+
+                // Beginning of q0.
+                offset += 4;
+
+                Load16x4(u.Slice(offset), v.Slice(offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out t1, out t2);
+                mask = Sse2.Max(mask, Abs(q1, q0));
+                mask = Sse2.Max(mask, Abs(t2, t1));
+                mask = Sse2.Max(mask, Abs(t1, q1));
+
+                ComplexMask(p1, p0, q0, q1, thresh, ithresh, ref mask);
+                DoFilter4Sse2(ref p1, ref p0, ref q0, ref q1, mask, hevThresh);
+
+                // Beginning of p1.
+                offset -= 2;
+                Store16x4(p1, p0, q0, q1, u.Slice(offset), v.Slice(offset), stride);
+            }
+            else
+#endif
+            {
+                int offsetPlus4 = offset + 4;
+                FilterLoop24(u, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
+                FilterLoop24(v, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
+            }
         }
 
         public static void Mean16x4(Span<byte> input, Span<uint> dc)
@@ -1447,7 +1475,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private static Vector128<byte> GetNotHev(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int hevThresh)
         {
-            Vector128<byte> t1 = Abs(p1, q0);
+            Vector128<byte> t1 = Abs(p1, p0);
             Vector128<byte> t2 = Abs(q1, q0);
 
             var h = Vector128.Create((byte)hevThresh);
@@ -1460,6 +1488,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 #endif
 
+        // Applies filter on 4 pixels (p1, p0, q0 and q1)
         private static void DoFilter4(Span<byte> p, int offset, int step)
         {
             // 4 pixels in, 4 pixels out.
@@ -1478,6 +1507,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             p[offset + step] = WebpLookupTables.Clip1(q1 - a3);
         }
 
+        // Applies filter on 6 pixels (p2, p1, p0, q0, q1 and q2)
         private static void DoFilter6(Span<byte> p, int offset, int step)
         {
             // 6 pixels in, 6 pixels out.

@@ -1028,10 +1028,59 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void VFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-            for (int k = 3; k > 0; k--)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                offset += 4 * stride;
-                FilterLoop24(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
+                ref byte pRef = ref MemoryMarshal.GetReference(p);
+                Vector128<byte> p3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset));
+                Vector128<byte> p2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + stride));
+                Vector128<byte> p1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (2 * stride)));
+                Vector128<byte> p0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (3 * stride)));
+
+                for (int k = 3; k > 0; k--)
+                {
+                    // Beginning of p1.
+                    Span<byte> b = p.Slice(offset + (2 * stride));
+                    offset += 4 * stride;
+
+                    Vector128<byte> mask = Abs(p0, p1);
+                    mask = Sse2.Max(mask, Abs(p3, p2));
+                    mask = Sse2.Max(mask, Abs(p2, p1));
+
+                    p3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset));
+                    p2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + stride));
+                    Vector128<byte> tmp1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (2 * stride)));
+                    Vector128<byte> tmp2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (3 * stride)));
+
+                    mask = Sse2.Max(mask, Abs(tmp1, tmp2));
+                    mask = Sse2.Max(mask, Abs(p3, p2));
+                    mask = Sse2.Max(mask, Abs(p2, tmp1));
+
+                    // p3 and p2 are not just temporary variables here: they will be
+                    // re-used for next span. And q2/q3 will become p1/p0 accordingly.
+                    ComplexMask(p1, p0, p3, p2, thresh, ithresh, ref mask);
+                    DoFilter4Sse2(ref p1, ref p0, ref p3, ref p2, mask, hevThresh);
+
+                    // Store.
+                    ref byte outputRef = ref MemoryMarshal.GetReference(b);
+                    Unsafe.As<byte, Vector128<int>>(ref outputRef) = p1.AsInt32();
+                    Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, stride)) = p0.AsInt32();
+                    Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, stride * 2)) = p3.AsInt32();
+                    Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, stride * 3)) = p2.AsInt32();
+
+                    // Rotate samples.
+                    p1 = tmp1;
+                    p0 = tmp2;
+                }
+            }
+            else
+#endif
+            {
+                for (int k = 3; k > 0; k--)
+                {
+                    offset += 4 * stride;
+                    FilterLoop24(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
+                }
             }
         }
 

@@ -1148,9 +1148,47 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-            int offset4mulstride = offset + (4 * stride);
-            FilterLoop24(u, offset4mulstride, stride, 1, 8, thresh, ithresh, hevThresh);
-            FilterLoop24(v, offset4mulstride, stride, 1, 8, thresh, ithresh, hevThresh);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                // load uv h-edges.
+                ref byte uRef = ref MemoryMarshal.GetReference(u);
+                ref byte vRef = ref MemoryMarshal.GetReference(v);
+                Vector128<byte> t2 = LoadUvEdge(ref uRef, ref vRef, offset);
+                Vector128<byte> t1 = LoadUvEdge(ref uRef, ref vRef, offset + stride);
+                Vector128<byte> p1 = LoadUvEdge(ref uRef, ref vRef, offset + (stride * 2));
+                Vector128<byte> p0 = LoadUvEdge(ref uRef, ref vRef, offset + (stride * 3));
+
+                Vector128<byte> mask = Abs(p1, p0);
+                mask = Sse2.Max(mask, Abs(t2, t1));
+                mask = Sse2.Max(mask, Abs(t1, p1));
+
+                offset += 4 * stride;
+
+                Vector128<byte> q0 = LoadUvEdge(ref uRef, ref vRef, offset);
+                Vector128<byte> q1 = LoadUvEdge(ref uRef, ref vRef, offset + stride);
+                t1 = LoadUvEdge(ref uRef, ref vRef, offset + (stride * 2));
+                t2 = LoadUvEdge(ref uRef, ref vRef, offset + (stride * 3));
+                mask = Sse2.Max(mask, Abs(q1, q0));
+                mask = Sse2.Max(mask, Abs(t2, t1));
+                mask = Sse2.Max(mask, Abs(t1, q1));
+
+                ComplexMask(p1, p0, q0, q1, thresh, ithresh, ref mask);
+                DoFilter4Sse2(ref p1, ref p0, ref q0, ref q1, mask, hevThresh);
+
+                // Store.
+                StoreUv(p1, ref uRef, ref vRef, offset + (-2 * stride));
+                StoreUv(p0, ref uRef, ref vRef, offset + (-1 * stride));
+                StoreUv(q1, ref uRef, ref vRef, offset);
+                StoreUv(q1, ref uRef, ref vRef, offset + stride);
+            }
+            else
+#endif
+            {
+                int offset4mulstride = offset + (4 * stride);
+                FilterLoop24(u, offset4mulstride, stride, 1, 8, thresh, ithresh, hevThresh);
+                FilterLoop24(v, offset4mulstride, stride, 1, 8, thresh, ithresh, hevThresh);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1648,6 +1686,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return Sse2.PackSignedSaturate(low1, high1);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void ComplexMask(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh, int ithresh, ref Vector128<byte> mask)
         {
             var it = Vector128.Create((byte)ithresh);
@@ -1656,6 +1695,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> filterMask = NeedsFilter(p1, p0, q0, q1, thresh);
 
             mask = Sse2.And(threshMask, filterMask);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static Vector128<byte> LoadUvEdge(ref byte uRef, ref byte vRef, int offset)
+        {
+            var uVec = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref uRef, offset)), 0);
+            var vVec = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref vRef, offset)), 0);
+            return Sse2.UnpackLow(uVec, vVec).AsByte();
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void StoreUv(Vector128<byte> x, ref byte uRef, ref byte vRef, int offset)
+        {
+            Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref uRef, offset)) = x.GetLower();
+            Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref vRef, offset)) = x.GetUpper();
         }
 
         // Compute abs(p - q) = subs(p - q) OR subs(q - p)

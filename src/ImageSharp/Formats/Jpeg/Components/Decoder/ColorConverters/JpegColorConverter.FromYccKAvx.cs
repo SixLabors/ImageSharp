@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var bCbMult = Vector256.Create(FromYCbCrScalar.BCbMult);
 
                 // Walking 8 elements at one step:
-                nint n = values.Component0.Length / 8;
+                nint n = values.Component0.Length / Vector256<float>.Count;
                 for (nint i = 0; i < n; i++)
                 {
                     // y = yVals[i];

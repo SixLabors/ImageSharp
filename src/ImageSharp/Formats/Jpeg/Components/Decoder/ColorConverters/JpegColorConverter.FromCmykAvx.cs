@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 // Used for the color conversion
                 var scale = Vector256.Create(1 / this.MaximumValue);
 
-                nint n = values.Component0.Length / 8;
+                nint n = values.Component0.Length / Vector256<float>.Count;
                 for (nint i = 0; i < n; i++)
                 {
                     ref Vector256<float> c = ref Unsafe.Add(ref c0Base, i);

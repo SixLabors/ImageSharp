@@ -70,6 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrAvx2(int inputBufferLength, int resultBufferLength, int seed)
@@ -87,6 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 resultBufferLength,
                 seed);
         }
+#endif
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -130,6 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void FromCmykAvx2(int inputBufferLength, int resultBufferLength, int seed)
@@ -147,6 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 resultBufferLength,
                 seed);
         }
+#endif
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -172,6 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void FromGrayscaleAvx2(int inputBufferLength, int resultBufferLength, int seed)
@@ -189,6 +194,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 resultBufferLength,
                 seed);
         }
+#endif
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -232,6 +238,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void FromRgbAvx2(int inputBufferLength, int resultBufferLength, int seed)
@@ -249,6 +256,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 resultBufferLength,
                 seed);
         }
+#endif
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -292,6 +300,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void FromYccKAvx2(int inputBufferLength, int resultBufferLength, int seed)
@@ -309,6 +318,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 resultBufferLength,
                 seed);
         }
+#endif
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]

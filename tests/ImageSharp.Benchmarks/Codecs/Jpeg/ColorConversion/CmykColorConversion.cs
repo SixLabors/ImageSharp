@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromCmykBasic(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromCmykScalar(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
@@ -30,12 +30,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             new JpegColorConverterBase.FromCmykVector8(8).ConvertToRgbInplace(values);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
-        public void SimdVectorAvx2()
+        public void SimdVectorAvx()
         {
             var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromCmykAvx2(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromCmykAvx(8).ConvertToRgbInplace(values);
         }
+#endif
     }
 }

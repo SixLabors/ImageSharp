@@ -26,11 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private const int RgbSpanByteSize = PixelsPerSample * 3;
 
         /// <summary>
-        /// <see cref="Size"/> of sampling area from given frame pixel buffer
-        /// </summary>
-        private static readonly Size SampleSize = new Size(16, 8);
-
-        /// <summary>
         /// The left Y component
         /// </summary>
         public Block8x8F YLeft;
@@ -101,6 +96,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 this.colorTables = default;
             }
         }
+
+        /// <summary>
+        /// Gets size of sampling area from given frame pixel buffer.
+        /// </summary>
+        private static Size SampleSize => new(16, 8);
 
         public void Convert(int x, int y, ref RowOctet<TPixel> currentRows, int idx)
         {

@@ -17,25 +17,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true)]
         public void Scalar()
         {
-            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
+            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromCmykBasic(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromCmykBasic(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
         public void SimdVector8()
         {
-            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
+            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromCmykVector8(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromCmykVector8(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
         public void SimdVectorAvx2()
         {
-            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
+            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromCmykAvx2(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromCmykAvx2(8).ConvertToRgbInplace(values);
         }
     }
 }

@@ -1,16 +1,15 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
-    internal abstract partial class JpegColorConverter
+    internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromYccKBasic : BasicJpegColorConverter
+        internal sealed class FromYccKScalar : ScalarJpegColorConverter
         {
-            public FromYccKBasic(int precision)
+            public FromYccKScalar(int precision)
                 : base(JpegColorSpace.Ycck, precision)
             {
             }
@@ -25,9 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 Span<float> c2 = values.Component2;
                 Span<float> c3 = values.Component3;
 
-                var v = new Vector4(0, 0, 0, 1F);
-
-                var scale = 1 / (maxValue * maxValue);
+                float scale = 1 / (maxValue * maxValue);
 
                 for (int i = 0; i < values.Component0.Length; i++)
                 {

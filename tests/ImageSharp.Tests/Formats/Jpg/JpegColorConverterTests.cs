@@ -45,25 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromYCbCrBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromYCbCrBasic(8),
-                3,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCrVector4(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            if (!SimdUtils.HasVector4)
-            {
-                this.Output.WriteLine("No SSE present, skipping test!");
-                return;
-            }
-
-            ValidateConversion(
-                new JpegColorConverter.FromYCbCrVector4(8),
+                new JpegColorConverterBase.FromYCbCrScalar(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -81,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromYCbCrVector8(8),
+                new JpegColorConverterBase.FromYCbCrVector8(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -99,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromYCbCrAvx2(8),
+                new JpegColorConverterBase.FromYCbCrAvx(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -123,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromCmykBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromCmykBasic(8),
+                new JpegColorConverterBase.FromCmykScalar(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -141,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromCmykVector8(8),
+                new JpegColorConverterBase.FromCmykVector8(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -159,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromCmykAvx2(8),
+                new JpegColorConverterBase.FromCmykAvx(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -183,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromGrayscaleBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromGrayscaleBasic(8),
+                new JpegColorConverterBase.FromGrayscaleScalar(8),
                 1,
                 inputBufferLength,
                 resultBufferLength,
@@ -201,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromGrayscaleAvx2(8),
+                new JpegColorConverterBase.FromGrayscaleAvx(8),
                 1,
                 inputBufferLength,
                 resultBufferLength,
@@ -225,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromRgbBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromRgbBasic(8),
+                new JpegColorConverterBase.FromRgbScalar(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -243,7 +225,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromRgbVector8(8),
+                new JpegColorConverterBase.FromRgbVector8(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -261,7 +243,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromRgbAvx2(8),
+                new JpegColorConverterBase.FromRgbAvx(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -285,7 +267,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromYccKBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
-                new JpegColorConverter.FromYccKBasic(8),
+                new JpegColorConverterBase.FromYccKScalar(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -303,7 +285,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromYccKVector8(8),
+                new JpegColorConverterBase.FromYccKVector8(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -321,7 +303,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             ValidateConversion(
-                new JpegColorConverter.FromYccKAvx2(8),
+                new JpegColorConverterBase.FromYccKAvx(8),
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -340,7 +322,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
-        private static JpegColorConverter.ComponentValues CreateRandomValues(
+        private static JpegColorConverterBase.ComponentValues CreateRandomValues(
             int componentCount,
             int inputBufferLength,
             int seed,
@@ -365,7 +347,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 buffers[i] = new Buffer2D<float>(source, values.Length, 1);
             }
 
-            return new JpegColorConverter.ComponentValues(buffers, 0);
+            return new JpegColorConverterBase.ComponentValues(buffers, 0);
         }
 
         private static void ValidateConversion(
@@ -376,7 +358,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int seed)
         {
             ValidateConversion(
-                JpegColorConverter.GetConverter(colorSpace, 8),
+                JpegColorConverterBase.GetConverter(colorSpace, 8),
                 componentCount,
                 inputBufferLength,
                 resultBufferLength,
@@ -384,14 +366,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         private static void ValidateConversion(
-            JpegColorConverter converter,
+            JpegColorConverterBase converter,
             int componentCount,
             int inputBufferLength,
             int resultBufferLength,
             int seed)
         {
-            JpegColorConverter.ComponentValues original = CreateRandomValues(componentCount, inputBufferLength, seed);
-            JpegColorConverter.ComponentValues values = Copy(original);
+            JpegColorConverterBase.ComponentValues original = CreateRandomValues(componentCount, inputBufferLength, seed);
+            JpegColorConverterBase.ComponentValues values = Copy(original);
 
             converter.ConvertToRgbInplace(values);
 
@@ -400,20 +382,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Validate(converter.ColorSpace, original, values, i);
             }
 
-            static JpegColorConverter.ComponentValues Copy(JpegColorConverter.ComponentValues values)
+            static JpegColorConverterBase.ComponentValues Copy(JpegColorConverterBase.ComponentValues values)
             {
                 Span<float> c0 = values.Component0.ToArray();
                 Span<float> c1 = values.ComponentCount > 1 ? values.Component1.ToArray().AsSpan() : c0;
                 Span<float> c2 = values.ComponentCount > 2 ? values.Component2.ToArray().AsSpan() : c0;
                 Span<float> c3 = values.ComponentCount > 3 ? values.Component3.ToArray().AsSpan() : Span<float>.Empty;
-                return new JpegColorConverter.ComponentValues(values.ComponentCount, c0, c1, c2, c3);
+                return new JpegColorConverterBase.ComponentValues(values.ComponentCount, c0, c1, c2, c3);
             }
         }
 
         private static void Validate(
             JpegColorSpace colorSpace,
-            in JpegColorConverter.ComponentValues original,
-            in JpegColorConverter.ComponentValues result,
+            in JpegColorConverterBase.ComponentValues original,
+            in JpegColorConverterBase.ComponentValues result,
             int i)
         {
             switch (colorSpace)
@@ -439,7 +421,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
-        private static void ValidateYCbCr(in JpegColorConverter.ComponentValues values, in JpegColorConverter.ComponentValues result, int i)
+        private static void ValidateYCbCr(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
             float y = values.Component0[i];
             float cb = values.Component1[i];
@@ -452,7 +434,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
-        private static void ValidateCyyK(in JpegColorConverter.ComponentValues values, in JpegColorConverter.ComponentValues result, int i)
+        private static void ValidateCyyK(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
             var v = new Vector4(0, 0, 0, 1F);
             var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
@@ -477,7 +459,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
-        private static void ValidateRgb(in JpegColorConverter.ComponentValues values, in JpegColorConverter.ComponentValues result, int i)
+        private static void ValidateRgb(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
             float r = values.Component0[i];
             float g = values.Component1[i];
@@ -489,7 +471,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
-        private static void ValidateGrayScale(in JpegColorConverter.ComponentValues values, in JpegColorConverter.ComponentValues result, int i)
+        private static void ValidateGrayScale(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
             float y = values.Component0[i];
             var actual = new Rgb(result.Component0[i], result.Component0[i], result.Component0[i]);
@@ -498,7 +480,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
-        private static void ValidateCmyk(in JpegColorConverter.ComponentValues values, in JpegColorConverter.ComponentValues result, int i)
+        private static void ValidateCmyk(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
             var v = new Vector4(0, 0, 0, 1F);
             var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);

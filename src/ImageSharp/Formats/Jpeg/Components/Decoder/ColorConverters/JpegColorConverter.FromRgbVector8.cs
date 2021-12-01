@@ -1,17 +1,15 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
-    internal abstract partial class JpegColorConverter
+    internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromRgbVector8 : Vector8JpegColorConverter
+        internal sealed class FromRgbVector8 : VectorizedJpegColorConverter
         {
             public FromRgbVector8(int precision)
                 : base(JpegColorSpace.RGB, precision)
@@ -29,7 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                 var scale = new Vector<float>(1 / this.MaximumValue);
 
-                // Walking 8 elements at one step:
                 nint n = values.Component0.Length / 8;
                 for (nint i = 0; i < n; i++)
                 {
@@ -43,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromRgbBasic.ConvertCoreInplace(values, this.MaximumValue);
+                FromRgbScalar.ConvertCoreInplace(values, this.MaximumValue);
         }
     }
 }

@@ -1,27 +1,36 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
-    internal abstract partial class JpegColorConverter
+    internal abstract partial class JpegColorConverterBase
     {
-        internal abstract class VectorizedJpegColorConverter : JpegColorConverter
+        /// <summary>
+        /// <see cref="JpegColorConverterBase"/> abstract base for implementations
+        /// based on <see cref="System.Numerics.Vector"/> API.
+        /// </summary>
+        /// <remarks>
+        /// Converters of this family can work with data of any size.
+        /// Even though real life data is guaranteed to be of size
+        /// divisible by 8 newer SIMD instructions like AVX512 won't work with
+        /// such data out of the box. These converters have fallback code
+        /// for 'remainder' data.
+        /// </remarks>
+        internal abstract class VectorizedJpegColorConverter : JpegColorConverterBase
         {
-            private readonly int vectorSize;
-
-            protected VectorizedJpegColorConverter(JpegColorSpace colorSpace, int precision, int vectorSize)
+            protected VectorizedJpegColorConverter(JpegColorSpace colorSpace, int precision)
                 : base(colorSpace, precision)
             {
-                this.vectorSize = vectorSize;
             }
+
+            protected sealed override bool IsAvailable => SimdUtils.HasVector8;
 
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
                 int length = values.Component0.Length;
-                int remainder = values.Component0.Length % this.vectorSize;
+                int remainder = values.Component0.Length % 8;
                 int simdCount = length - remainder;
                 if (simdCount > 0)
                 {

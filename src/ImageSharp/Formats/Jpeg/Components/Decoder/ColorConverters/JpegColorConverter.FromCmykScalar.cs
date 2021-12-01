@@ -1,16 +1,15 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
-    internal abstract partial class JpegColorConverter
+    internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromCmykBasic : BasicJpegColorConverter
+        internal sealed class FromCmykScalar : ScalarJpegColorConverter
         {
-            public FromCmykBasic(int precision)
+            public FromCmykScalar(int precision)
                 : base(JpegColorSpace.Cmyk, precision)
             {
             }

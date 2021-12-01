@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Color converter from jpeg color space to target pixel color space.
         /// </summary>
-        private JpegColorConverter colorConverter;
+        private JpegColorConverterBase colorConverter;
 
         /// <summary>
         /// Intermediate buffer of RGB components used in color conversion.
@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 int y = yy - this.pixelRowCounter;
 
-                var values = new JpegColorConverter.ComponentValues(this.componentProcessors, y);
+                var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
 
                 this.colorConverter.ConvertToRgbInplace(values);
                 values = values.Slice(0, width); // slice away Jpeg padding

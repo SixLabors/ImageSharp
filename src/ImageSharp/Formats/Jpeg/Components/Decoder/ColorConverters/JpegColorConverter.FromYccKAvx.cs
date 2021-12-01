@@ -1,30 +1,26 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
+#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using static SixLabors.ImageSharp.SimdUtils;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
-    internal abstract partial class JpegColorConverter
+    internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromYccKAvx2 : Avx2JpegColorConverter
+        internal sealed class FromYccKAvx : AvxColorConverter
         {
-            public FromYccKAvx2(int precision)
+            public FromYccKAvx(int precision)
                 : base(JpegColorSpace.Ycck, precision)
             {
             }
 
-            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            public override void ConvertToRgbInplace(in ComponentValues values)
             {
-#if SUPPORTS_RUNTIME_INTRINSICS
                 ref Vector256<float> c0Base =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
                 ref Vector256<float> c1Base =
@@ -38,10 +34,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var chromaOffset = Vector256.Create(-this.HalfValue);
                 var scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
                 var max = Vector256.Create(this.MaximumValue);
-                var rCrMult = Vector256.Create(1.402F);
-                var gCbMult = Vector256.Create(-0.344136F);
-                var gCrMult = Vector256.Create(-0.714136F);
-                var bCbMult = Vector256.Create(1.772F);
+                var rCrMult = Vector256.Create(FromYCbCrScalar.RCrMult);
+                var gCbMult = Vector256.Create(-FromYCbCrScalar.GCbMult);
+                var gCrMult = Vector256.Create(-FromYCbCrScalar.GCrMult);
+                var bCbMult = Vector256.Create(FromYCbCrScalar.BCbMult);
 
                 // Walking 8 elements at one step:
                 nint n = values.Component0.Length / 8;
@@ -62,7 +58,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     // r = y + (1.402F * cr);
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
                     // b = y + (1.772F * cb);
-                    // Adding & multiplying 8 elements at one time:
                     Vector256<float> r = HwIntrinsics.MultiplyAdd(y, cr, rCrMult);
                     Vector256<float> g =
                         HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(y, cb, gCbMult), cr, gCrMult);
@@ -80,11 +75,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     c1 = g;
                     c2 = b;
                 }
-#endif
             }
-
-            protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromYccKBasic.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
         }
     }
 }
+#endif

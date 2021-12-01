@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// Gets a value indicating whether this <see cref="JpegColorConverterBase"/> is available
         /// on the current runtime and CPU architecture.
         /// </summary>
-        protected abstract bool IsAvailable { get; }
+        public abstract bool IsAvailable { get; }
 
         /// <summary>
         /// Gets the <see cref="JpegColorSpace"/> of this converter.

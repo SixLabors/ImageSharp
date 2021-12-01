@@ -75,14 +75,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            var converter = new JpegColorConverterBase.FromYCbCrAvx(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromYCbCrAvx(8),
+                converter,
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -137,14 +140,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromCmykAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            var converter = new JpegColorConverterBase.FromCmykAvx(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromCmykAvx(8),
+                converter,
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -181,14 +187,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromGrayscaleAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            var converter = new JpegColorConverterBase.FromGrayscaleAvx(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromGrayscaleAvx(8),
+                converter,
                 1,
                 inputBufferLength,
                 resultBufferLength,
@@ -243,14 +252,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromRgbAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            var converter = new JpegColorConverterBase.FromRgbAvx(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromRgbAvx(8),
+                converter,
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -305,14 +317,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYccKAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasAvx2)
+            var converter = new JpegColorConverterBase.FromYccKAvx(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromYccKAvx(8),
+                converter,
                 4,
                 inputBufferLength,
                 resultBufferLength,

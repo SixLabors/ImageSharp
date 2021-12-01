@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected override bool IsAvailable => Avx.IsSupported;
+            public override bool IsAvailable => Avx.IsSupported;
         }
     }
 }

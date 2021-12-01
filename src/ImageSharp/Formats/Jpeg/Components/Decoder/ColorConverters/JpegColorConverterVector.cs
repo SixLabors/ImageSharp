@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected sealed override bool IsAvailable => SimdUtils.HasVector8;
+            public sealed override bool IsAvailable => SimdUtils.HasVector8;
 
             public override void ConvertToRgbInplace(in ComponentValues values)
             {

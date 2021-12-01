@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected override bool IsAvailable => true;
+            public override bool IsAvailable => true;
         }
     }
 }

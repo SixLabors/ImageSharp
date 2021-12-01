@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
             // Act
             using var originalImage = Image.Load(stream);
-            Image<Rgb24> colorImage = originalImage.CloneAs<Rgb24>();
+            using Image<Rgb24> colorImage = originalImage.CloneAs<Rgb24>();
             using Image<Rgb24> encodedImage = this.RoundTrip(colorImage);
 
             // Assert

@@ -978,12 +978,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-                // beginning of p1
+                // Beginning of p1
                 p = p.Slice(offset - 2);
 
-                Load16x4Sse2(p, p.Slice(8 * stride), stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1);
+                Load16x4(p, p.Slice(8 * stride), stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1);
                 DoFilter2Sse2(ref p1, ref p0, ref q0, ref q1, thresh);
-                Store16x4Sse2(p1, p0, q0, q1, p, p.Slice(8 * stride), stride);
+                Store16x4(p1, p0, q0, q1, p, p.Slice(8 * stride), stride);
             }
             else
 #endif
@@ -1002,7 +1002,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void SimpleVFilter16i(Span<byte> p, int offset, int stride, int thresh)
         {
-            for (int k = 3; k > 0; --k)
+            for (int k = 3; k > 0; k--)
             {
                 offset += 4 * stride;
                 SimpleVFilter16(p, offset, stride, thresh);
@@ -1011,7 +1011,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void SimpleHFilter16i(Span<byte> p, int offset, int stride, int thresh)
         {
-            for (int k = 3; k > 0; --k)
+            for (int k = 3; k > 0; k--)
             {
                 offset += 4;
                 SimpleHFilter16(p, offset, stride, thresh);
@@ -1028,7 +1028,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void VFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-            for (int k = 3; k > 0; --k)
+            for (int k = 3; k > 0; k--)
             {
                 offset += 4 * stride;
                 FilterLoop24(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
@@ -1037,10 +1037,47 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void HFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-            for (int k = 3; k > 0; --k)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                offset += 4;
-                FilterLoop24(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
+                Load16x4(p.Slice(offset), p.Slice(offset + (8 * stride)), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+
+                Vector128<byte> mask;
+                for (int k = 3; k > 0; k--)
+                {
+                    // Beginning of p1.
+                    Span<byte> b = p.Slice(offset + 2);
+
+                    // Beginning of q0 (and next span).
+                    offset += 4;
+
+                    // Compute partial mask.
+                    mask = Abs(p1, p0);
+                    mask = Sse2.Max(mask, Abs(p3, p2));
+                    mask = Sse2.Max(mask, Abs(p2, p1));
+
+                    Load16x4(p.Slice(offset), p.Slice(offset + (8 * stride)), stride, out p3, out p2, out Vector128<byte> tmp1, out Vector128<byte> tmp2);
+                    mask = Sse2.Max(mask, Abs(tmp1, tmp2));
+                    mask = Sse2.Max(mask, Abs(p3, p2));
+                    mask = Sse2.Max(mask, Abs(p2, tmp1));
+
+                    ComplexMask(p1, p0, p3, p2, thresh, ithresh, ref mask);
+                    DoFilter4Sse2(ref p1, ref p0, ref p3, ref p2, mask, hevThresh);
+                    Store16x4(p1, p0, p3, p2, b, b.Slice(8 * stride), stride);
+
+                    // Rotate samples.
+                    p1 = tmp1;
+                    p0 = tmp2;
+                }
+            }
+            else
+#endif
+            {
+                for (int k = 3; k > 0; k--)
+                {
+                    offset += 4;
+                    FilterLoop24(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
+                }
             }
         }
 
@@ -1248,16 +1285,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Applies filter on 2 pixels (p0 and q0)
         private static void DoFilter2Sse2(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int thresh)
         {
-            // Convert p1/q1 to byte (for GetBaseDeltaSse2).
+            // Convert p1/q1 to byte (for GetBaseDelta).
             Vector128<byte> p1s = Sse2.Xor(p1, SignBit);
             Vector128<byte> q1s = Sse2.Xor(q1, SignBit);
-            Vector128<byte> mask = NeedsFilterSse2(p1, p0, q0, q1, thresh);
+            Vector128<byte> mask = NeedsFilter(p1, p0, q0, q1, thresh);
 
             // Flip sign.
             p0 = Sse2.Xor(p0, SignBit);
             q0 = Sse2.Xor(q0, SignBit);
 
-            Vector128<byte> a = GetBaseDeltaSse2(p1s.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1s.AsSByte()).AsByte();
+            Vector128<byte> a = GetBaseDelta(p1s.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1s.AsSByte()).AsByte();
 
             // Mask filter values we don't care about.
             a = Sse2.And(a, mask);
@@ -1281,33 +1318,33 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             q0 = Sse2.Xor(q0, SignBit);
             q1 = Sse2.Xor(q1, SignBit);
 
-            Vector128<byte> t1 = Sse2.SubtractSaturate(p1, q1); // p1 - q1
-            Vector128<byte> t2 = Sse2.AndNot(notHev, t1); // hev(p1 - q1)
-            Vector128<byte> t3 = Sse2.SubtractSaturate(q0, p0); // q0 - p0
+            Vector128<sbyte> t1 = Sse2.SubtractSaturate(p1.AsSByte(), q1.AsSByte()); // p1 - q1
+            t1 = Sse2.AndNot(notHev, t1.AsByte()).AsSByte(); // hev(p1 - q1)
+            Vector128<sbyte> t2 = Sse2.SubtractSaturate(q0.AsSByte(), p0.AsSByte()); // q0 - p0
             t1 = Sse2.AddSaturate(t1, t2); // hev(p1 - q1) + 1 * (q0 - p0)
             t1 = Sse2.AddSaturate(t1, t2); // hev(p1 - q1) + 2 * (q0 - p0)
             t1 = Sse2.AddSaturate(t1, t2); // hev(p1 - q1) + 3 * (q0 - p0)
-            t1 = Sse2.Add(t1, mask); // mask filter values we don't care about.
+            t1 = Sse2.And(t1.AsByte(), mask).AsSByte(); // mask filter values we don't care about.
 
-            t2 = Sse2.AddSaturate(t1.AsSByte(), Three).AsByte(); // 3 * (q0 - p0) + hev(p1 - q1) + 3
-            t3 = Sse2.AddSaturate(t1.AsSByte(), Four).AsByte(); // 3 * (q0 - p0) + hev(p1 - q1) + 4
-            Vector128<sbyte> t2SignedShift = SignedShift8bSse2(t2); // (3 * (q0 - p0) + hev(p1 - q1) + 3) >> 3
-            Vector128<sbyte> t3SignedShift = SignedShift8bSse2(t3); // (3 * (q0 - p0) + hev(p1 - q1) + 4) >> 3
-            p0 = Sse2.AddSaturate(p0.AsSByte(), t2SignedShift).AsByte(); // p0 += t2
-            q0 = Sse2.SubtractSaturate(q0.AsSByte(), t3SignedShift).AsByte(); // q0 -= t3
+            t2 = Sse2.AddSaturate(t1, Three); // 3 * (q0 - p0) + hev(p1 - q1) + 3
+            Vector128<sbyte> t3 = Sse2.AddSaturate(t1, Four); // 3 * (q0 - p0) + hev(p1 - q1) + 4
+            t2 = SignedShift8b(t2.AsByte()); // (3 * (q0 - p0) + hev(p1 - q1) + 3) >> 3
+            t3 = SignedShift8b(t3.AsByte()); // (3 * (q0 - p0) + hev(p1 - q1) + 4) >> 3
+            p0 = Sse2.AddSaturate(p0.AsSByte(), t2).AsByte(); // p0 += t2
+            q0 = Sse2.SubtractSaturate(q0.AsSByte(), t3).AsByte(); // q0 -= t3
             p0 = Sse2.Xor(p0, SignBit);
             q0 = Sse2.Xor(q0, SignBit);
 
             // This is equivalent to signed (a + 1) >> 1 calculation.
-            t2 = Sse2.Add(t3.AsByte(), SignBit);
-            t3 = Sse2.Average(t2, Vector128<byte>.Zero);
-            t3 = Sse2.Subtract(t3.AsSByte(), SixtyFour).AsByte();
+            t2 = Sse2.Add(t3, SignBit.AsSByte());
+            t3 = Sse2.Average(t2.AsByte(), Vector128<byte>.Zero).AsSByte();
+            t3 = Sse2.Subtract(t3, SixtyFour);
 
-            t3 = Sse2.And(notHev, t3); // if !hev
-            q1 = Sse2.SubtractSaturate(q1, t3); // q1 -= t3
-            p1 = Sse2.AddSaturate(p1, t3); // p1 += t3
-            p1 = Sse2.Xor(p1, SignBit);
-            q1 = Sse2.Xor(q1, SignBit);
+            t3 = Sse2.And(notHev, t3.AsByte()).AsSByte(); // if !hev
+            q1 = Sse2.SubtractSaturate(q1.AsSByte(), t3).AsByte(); // q1 -= t3
+            p1 = Sse2.AddSaturate(p1.AsSByte(), t3).AsByte(); // p1 += t3
+            p1 = Sse2.Xor(p1.AsByte(), SignBit);
+            q1 = Sse2.Xor(q1.AsByte(), SignBit);
         }
 
         private static void DoSimpleFilterSse2(ref Vector128<byte> p0, ref Vector128<byte> q0, Vector128<byte> fl)
@@ -1315,8 +1352,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<sbyte> v3 = Sse2.AddSaturate(fl.AsSByte(), Three);
             Vector128<sbyte> v4 = Sse2.AddSaturate(fl.AsSByte(), Four);
 
-            v4 = SignedShift8bSse2(v4.AsByte()).AsSByte(); // v4 >> 3
-            v3 = SignedShift8bSse2(v3.AsByte()).AsSByte(); // v3 >> 3
+            v4 = SignedShift8b(v4.AsByte()).AsSByte(); // v4 >> 3
+            v3 = SignedShift8b(v3.AsByte()).AsSByte(); // v3 >> 3
             q0 = Sse2.SubtractSaturate(q0.AsSByte(), v4).AsByte(); // q0 -= v4
             p0 = Sse2.AddSaturate(p0.AsSByte(), v3).AsByte(); // p0 += v3
         }
@@ -1413,7 +1450,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        private static Vector128<byte> NeedsFilterSse2(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh)
+        private static Vector128<byte> NeedsFilter(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh)
         {
             var mthresh = Vector128.Create((byte)thresh);
             Vector128<byte> t1 = Abs(p1, q1); // abs(p1 - q1)
@@ -1430,7 +1467,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return Sse2.CompareEqual(t7, Vector128<byte>.Zero);
         }
 
-        private static void Load16x4Sse2(Span<byte> r0, Span<byte> r8, int stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1)
+        private static void Load16x4(Span<byte> r0, Span<byte> r8, int stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1)
         {
             // Assume the pixels around the edge (|) are numbered as follows
             //                00 01 | 02 03
@@ -1447,8 +1484,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // q0 = 73 63 53 43 33 23 13 03 72 62 52 42 32 22 12 02
             // p0 = f1 e1 d1 c1 b1 a1 91 81 f0 e0 d0 c0 b0 a0 90 80
             // q1 = f3 e3 d3 c3 b3 a3 93 83 f2 e2 d2 c2 b2 a2 92 82
-            Load8x4Sse2(r0, stride, out Vector128<byte> t1, out Vector128<byte> t2);
-            Load8x4Sse2(r8, stride, out p0, out q1);
+            Load8x4(r0, stride, out Vector128<byte> t1, out Vector128<byte> t2);
+            Load8x4(r8, stride, out p0, out q1);
 
             // p1 = f0 e0 d0 c0 b0 a0 90 80 70 60 50 40 30 20 10 00
             // p0 = f1 e1 d1 c1 b1 a1 91 81 71 61 51 41 31 21 11 01
@@ -1461,7 +1498,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         // Reads 8 rows across a vertical edge.
-        private static void Load8x4Sse2(Span<byte> b, int stride, out Vector128<byte> p, out Vector128<byte> q)
+        private static void Load8x4(Span<byte> b, int stride, out Vector128<byte> p, out Vector128<byte> q)
         {
             // A0 = 63 62 61 60 23 22 21 20 43 42 41 40 03 02 01 00
             // A1 = 73 72 71 70 33 32 31 30 53 52 51 50 13 12 11 10
@@ -1494,7 +1531,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         // Transpose back and store
-        private static void Store16x4Sse2(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, Span<byte> r0, Span<byte> r8, int stride)
+        private static void Store16x4(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, Span<byte> r0, Span<byte> r8, int stride)
         {
             // p0 = 71 70 61 60 51 50 41 40 31 30 21 20 11 10 01 00
             // p1 = f1 f0 e1 e0 d1 d0 c1 c0 b1 b0 a1 a0 91 90 81 80
@@ -1518,14 +1555,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             p1s = Sse2.UnpackLow(t1.AsInt16(), q1s.AsInt16()).AsByte();
             q1s = Sse2.UnpackHigh(t1.AsInt16(), q1s.AsInt16()).AsByte();
 
-            Store4x4Sse2(p0s, r0, stride);
-            Store4x4Sse2(q0s, r0.Slice(4 * stride), stride);
+            Store4x4(p0s, r0, stride);
+            Store4x4(q0s, r0.Slice(4 * stride), stride);
 
-            Store4x4Sse2(p1s, r8, stride);
-            Store4x4Sse2(q1s, r8.Slice(4 * stride), stride);
+            Store4x4(p1s, r8, stride);
+            Store4x4(q1s, r8.Slice(4 * stride), stride);
         }
 
-        private static void Store4x4Sse2(Vector128<byte> x, Span<byte> dst, int stride)
+        private static void Store4x4(Vector128<byte> x, Span<byte> dst, int stride)
         {
             int offset = 0;
             ref byte dstRef = ref MemoryMarshal.GetReference(dst);
@@ -1538,7 +1575,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector128<sbyte> GetBaseDeltaSse2(Vector128<sbyte> p1, Vector128<sbyte> p0, Vector128<sbyte> q0, Vector128<sbyte> q1)
+        private static Vector128<sbyte> GetBaseDelta(Vector128<sbyte> p1, Vector128<sbyte> p0, Vector128<sbyte> q0, Vector128<sbyte> q1)
         {
             // Beware of addition order, for saturation!
             Vector128<sbyte> p1q1 = Sse2.SubtractSaturate(p1, q1); // p1 - q1
@@ -1550,8 +1587,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return s3;
         }
 
+        // Shift each byte of "x" by 3 bits while preserving by the sign bit.
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector128<sbyte> SignedShift8bSse2(Vector128<byte> x)
+        private static Vector128<sbyte> SignedShift8b(Vector128<byte> x)
         {
             Vector128<byte> low0 = Sse2.UnpackLow(Vector128<byte>.Zero, x);
             Vector128<byte> high0 = Sse2.UnpackHigh(Vector128<byte>.Zero, x);
@@ -1561,9 +1599,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return Sse2.PackSignedSaturate(low1, high1);
         }
 
+        private static void ComplexMask(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh, int ithresh, ref Vector128<byte> mask)
+        {
+            var it = Vector128.Create((byte)ithresh);
+            Vector128<byte> diff = Sse2.SubtractSaturate(mask, it);
+            Vector128<byte> threshMask = Sse2.CompareEqual(diff, Vector128<byte>.Zero);
+            Vector128<byte> filterMask = NeedsFilter(p1, p0, q0, q1, thresh);
+
+            mask = Sse2.And(threshMask, filterMask);
+        }
+
         // Compute abs(p - q) = subs(p - q) OR subs(q - p)
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector128<byte> Abs(Vector128<byte> p, Vector128<byte> q) => Sse2.Or(Sse2.SubtractSaturate(q, p), Sse2.SubtractSaturate(p, q));
+        private static Vector128<byte> Abs(Vector128<byte> p, Vector128<byte> q)
+            => Sse2.Or(Sse2.SubtractSaturate(q, p), Sse2.SubtractSaturate(p, q));
 #endif
 
         [MethodImpl(InliningOptions.ShortMethod)]

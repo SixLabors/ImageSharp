@@ -17,6 +17,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     {
 #if SUPPORTS_RUNTIME_INTRINSICS
         private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
+
+        private static readonly Vector128<byte> SignBit = Vector128.Create((byte)0x80);
+
+        private static readonly Vector128<sbyte> Three = Vector128.Create((byte)3).AsSByte();
+
+        private static readonly Vector128<sbyte> Four = Vector128.Create((byte)4).AsSByte();
+
+        private static readonly Vector128<sbyte> SixtyFour = Vector128.Create((byte)64).AsSByte();
 #endif
 
         // Note: method name in libwebp reference implementation is called VP8SSE16x16.
@@ -1240,16 +1248,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Applies filter on 2 pixels (p0 and q0)
         private static void DoFilter2Sse2(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int thresh)
         {
-            var signBit = Vector128.Create((byte)0x80);
-
             // Convert p1/q1 to byte (for GetBaseDeltaSse2).
-            Vector128<byte> p1s = Sse2.Xor(p1, signBit);
-            Vector128<byte> q1s = Sse2.Xor(q1, signBit);
+            Vector128<byte> p1s = Sse2.Xor(p1, SignBit);
+            Vector128<byte> q1s = Sse2.Xor(q1, SignBit);
             Vector128<byte> mask = NeedsFilterSse2(p1, p0, q0, q1, thresh);
 
             // Flip sign.
-            p0 = Sse2.Xor(p0, signBit);
-            q0 = Sse2.Xor(q0, signBit);
+            p0 = Sse2.Xor(p0, SignBit);
+            q0 = Sse2.Xor(q0, SignBit);
 
             Vector128<byte> a = GetBaseDeltaSse2(p1s.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1s.AsSByte()).AsByte();
 
@@ -1259,21 +1265,74 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             DoSimpleFilterSse2(ref p0, ref q0, a);
 
             // Flip sign.
-            p0 = Sse2.Xor(p0, signBit);
-            q0 = Sse2.Xor(q0, signBit);
+            p0 = Sse2.Xor(p0, SignBit);
+            q0 = Sse2.Xor(q0, SignBit);
+        }
+
+        // Applies filter on 4 pixels (p1, p0, q0 and q1)
+        private static void DoFilter4Sse2(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, Vector128<byte> mask, int tresh)
+        {
+            // Compute hev mask.
+            Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
+
+            // Convert to signed values.
+            p1 = Sse2.Xor(p1, SignBit);
+            p0 = Sse2.Xor(p0, SignBit);
+            q0 = Sse2.Xor(q0, SignBit);
+            q1 = Sse2.Xor(q1, SignBit);
+
+            Vector128<byte> t1 = Sse2.SubtractSaturate(p1, q1); // p1 - q1
+            Vector128<byte> t2 = Sse2.AndNot(notHev, t1); // hev(p1 - q1)
+            Vector128<byte> t3 = Sse2.SubtractSaturate(q0, p0); // q0 - p0
+            t1 = Sse2.AddSaturate(t1, t2); // hev(p1 - q1) + 1 * (q0 - p0)
+            t1 = Sse2.AddSaturate(t1, t2); // hev(p1 - q1) + 2 * (q0 - p0)
+            t1 = Sse2.AddSaturate(t1, t2); // hev(p1 - q1) + 3 * (q0 - p0)
+            t1 = Sse2.Add(t1, mask); // mask filter values we don't care about.
+
+            t2 = Sse2.AddSaturate(t1.AsSByte(), Three).AsByte(); // 3 * (q0 - p0) + hev(p1 - q1) + 3
+            t3 = Sse2.AddSaturate(t1.AsSByte(), Four).AsByte(); // 3 * (q0 - p0) + hev(p1 - q1) + 4
+            Vector128<sbyte> t2SignedShift = SignedShift8bSse2(t2); // (3 * (q0 - p0) + hev(p1 - q1) + 3) >> 3
+            Vector128<sbyte> t3SignedShift = SignedShift8bSse2(t3); // (3 * (q0 - p0) + hev(p1 - q1) + 4) >> 3
+            p0 = Sse2.AddSaturate(p0.AsSByte(), t2SignedShift).AsByte(); // p0 += t2
+            q0 = Sse2.SubtractSaturate(q0.AsSByte(), t3SignedShift).AsByte(); // q0 -= t3
+            p0 = Sse2.Xor(p0, SignBit);
+            q0 = Sse2.Xor(q0, SignBit);
+
+            // This is equivalent to signed (a + 1) >> 1 calculation.
+            t2 = Sse2.Add(t3.AsByte(), SignBit);
+            t3 = Sse2.Average(t2, Vector128<byte>.Zero);
+            t3 = Sse2.Subtract(t3.AsSByte(), SixtyFour).AsByte();
+
+            t3 = Sse2.And(notHev, t3); // if !hev
+            q1 = Sse2.SubtractSaturate(q1, t3); // q1 -= t3
+            p1 = Sse2.AddSaturate(p1, t3); // p1 += t3
+            p1 = Sse2.Xor(p1, SignBit);
+            q1 = Sse2.Xor(q1, SignBit);
         }
 
         private static void DoSimpleFilterSse2(ref Vector128<byte> p0, ref Vector128<byte> q0, Vector128<byte> fl)
         {
-            Vector128<sbyte> three = Vector128.Create((byte)3).AsSByte();
-            Vector128<sbyte> four = Vector128.Create((byte)4).AsSByte();
-            Vector128<sbyte> v3 = Sse2.AddSaturate(fl.AsSByte(), three);
-            Vector128<sbyte> v4 = Sse2.AddSaturate(fl.AsSByte(), four);
+            Vector128<sbyte> v3 = Sse2.AddSaturate(fl.AsSByte(), Three);
+            Vector128<sbyte> v4 = Sse2.AddSaturate(fl.AsSByte(), Four);
 
             v4 = SignedShift8bSse2(v4.AsByte()).AsSByte(); // v4 >> 3
             v3 = SignedShift8bSse2(v3.AsByte()).AsSByte(); // v3 >> 3
             q0 = Sse2.SubtractSaturate(q0.AsSByte(), v4).AsByte(); // q0 -= v4
             p0 = Sse2.AddSaturate(p0.AsSByte(), v3).AsByte(); // p0 += v3
+        }
+
+        private static Vector128<byte> GetNotHev(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int hevThresh)
+        {
+            Vector128<byte> t1 = Abs(p1, q0);
+            Vector128<byte> t2 = Abs(q1, q0);
+
+            var h = Vector128.Create((byte)hevThresh);
+            Vector128<byte> tMax = Sse2.Max(t1, t2);
+
+            Vector128<byte> tMaxH = Sse2.SubtractSaturate(tMax, h);
+
+            // not_hev <= t1 && not_hev <= t2
+            return Sse2.CompareEqual(tMaxH, Vector128<byte>.Zero);
         }
 #endif
 

@@ -1186,6 +1186,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                     ComplexMask(p1, p0, p3, p2, thresh, ithresh, ref mask);
                     DoFilter4Sse2(ref p1, ref p0, ref p3, ref p2, mask, hevThresh);
+
                     Store16x4(p1, p0, p3, p2, b, b.Slice(8 * stride), stride);
 
                     // Rotate samples.
@@ -1254,8 +1255,35 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-            FilterLoop26(u, offset, 1, stride, 8, thresh, ithresh, hevThresh);
-            FilterLoop26(v, offset, 1, stride, 8, thresh, ithresh, hevThresh);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Span<byte> tu = u.Slice(offset - 4);
+                Span<byte> tv = v.Slice(offset - 4);
+                Load16x4(tu, tv, stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+
+                Vector128<byte> mask = Abs(p1, p0);
+                mask = Sse2.Max(mask, Abs(p3, p2));
+                mask = Sse2.Max(mask, Abs(p2, p1));
+
+                Load16x4(u.Slice(offset), v.Slice(offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
+
+                mask = Sse2.Max(mask, Abs(q1, q0));
+                mask = Sse2.Max(mask, Abs(q3, q2));
+                mask = Sse2.Max(mask, Abs(q2, q1));
+
+                ComplexMask(p1, p0, q0, q1, thresh, ithresh, ref mask);
+                DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+
+                Store16x4(p3, p2, p1, p0, tu, tv, stride);
+                Store16x4(q0, p1, q2, q3, u.Slice(offset), v.Slice(offset), stride);
+            }
+            else
+#endif
+            {
+                FilterLoop26(u, offset, 1, stride, 8, thresh, ithresh, hevThresh);
+                FilterLoop26(v, offset, 1, stride, 8, thresh, ithresh, hevThresh);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             int[] scratch = new int[16];
 
             // act
-            Vp8Encoding.ITransform(reference, input, dst, scratch);
+            Vp8Encoding.ITransformTwo(reference, input, dst, scratch);
 
             // assert
             Assert.True(dst.SequenceEqual(expected));

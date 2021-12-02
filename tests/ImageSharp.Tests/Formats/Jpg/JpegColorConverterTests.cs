@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -64,6 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var converter = JpegColorConverterBase.GetConverter(colorSpace, precision);
 
             Assert.NotNull(converter);
+            Assert.True(converter.IsAvailable);
             Assert.Equal(colorSpace, converter.ColorSpace);
             Assert.Equal(precision, converter.Precision);
         }
@@ -76,8 +77,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(JpegColorSpace.YCbCr, 3)]
         internal void ConvertWithSelectedConverter(JpegColorSpace colorSpace, int componentCount)
         {
+            var converter = JpegColorConverterBase.GetConverter(colorSpace, 8);
             ValidateConversion(
-                colorSpace,
+                converter,
                 componentCount,
                 1);
         }
@@ -105,10 +107,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            ValidateConversion(
-                converter,
-                3,
-                seed);
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+
+            static void RunTest(string arg) =>
+                ValidateConversion(
+                    new JpegColorConverterBase.FromYCbCrVector(8),
+                    3,
+                    FeatureTestRunner.Deserialize<int>(arg));
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -155,10 +163,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            ValidateConversion(
-                converter,
-                4,
-                seed);
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+
+            static void RunTest(string arg) =>
+                ValidateConversion(
+                    new JpegColorConverterBase.FromCmykVector(8),
+                    4,
+                    FeatureTestRunner.Deserialize<int>(arg));
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -205,10 +219,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            ValidateConversion(
-                converter,
-                1,
-                seed);
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+
+            static void RunTest(string arg) =>
+                ValidateConversion(
+                    new JpegColorConverterBase.FromGrayScaleVector(8),
+                    1,
+                    FeatureTestRunner.Deserialize<int>(arg));
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -255,10 +275,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            ValidateConversion(
-                converter,
-                3,
-                seed);
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+
+            static void RunTest(string arg) =>
+                ValidateConversion(
+                    new JpegColorConverterBase.FromRgbVector(8),
+                    3,
+                    FeatureTestRunner.Deserialize<int>(arg));
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -305,10 +331,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            ValidateConversion(
-                converter,
-                4,
-                seed);
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                seed,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+
+            static void RunTest(string arg) =>
+                ValidateConversion(
+                    new JpegColorConverterBase.FromYccKVector(8),
+                    4,
+                    FeatureTestRunner.Deserialize<int>(arg));
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -359,17 +391,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             return new JpegColorConverterBase.ComponentValues(buffers, 0);
-        }
-
-        private static void ValidateConversion(
-            JpegColorSpace colorSpace,
-            int componentCount,
-            int seed)
-        {
-            ValidateConversion(
-                JpegColorConverterBase.GetConverter(colorSpace, 8),
-                componentCount,
-                seed);
         }
 
         private static void ValidateConversion(

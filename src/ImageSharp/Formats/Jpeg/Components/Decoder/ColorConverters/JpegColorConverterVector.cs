@@ -40,8 +40,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 int simdCount = length - remainder;
                 this.ConvertCoreVectorizedInplace(values.Slice(0, simdCount));
 
-                // There's actually a lot of image/photo resolutions which won't have
-                // a remainder so it's better to check here than spend useless virtual call
+                // Jpeg images width is always divisible by 8 without a remainder
+                // so it's safe to say SSE/AVX implementations would never have
+                // 'remainder' pixels
+                // But some exotic simd implementations e.g. AVX-512 can have
+                // remainder pixels
                 if (remainder > 0)
                 {
                     this.ConvertCoreInplace(values.Slice(simdCount, remainder));

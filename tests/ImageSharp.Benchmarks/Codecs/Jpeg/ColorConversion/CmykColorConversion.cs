@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromCmykVector8(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromCmykVector(8).ConvertToRgbInplace(values);
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS

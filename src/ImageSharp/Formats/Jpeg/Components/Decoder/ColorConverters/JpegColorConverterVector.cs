@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -9,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         /// <summary>
         /// <see cref="JpegColorConverterBase"/> abstract base for implementations
-        /// based on <see cref="System.Numerics.Vector"/> API.
+        /// based on <see cref="Vector"/> API.
         /// </summary>
         /// <remarks>
         /// Converters of this family can work with data of any size.
@@ -25,27 +26,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public sealed override bool IsAvailable => SimdUtils.HasVector8;
+            public sealed override bool IsAvailable => Vector<float>.Count % 4 == 0;
 
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
+                DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware");
+
                 int length = values.Component0.Length;
-                int remainder = values.Component0.Length % 8;
+                int remainder = values.Component0.Length % Vector<float>.Count;
+
+                // Jpeg images are guaranteed to have pixel strides at least 8 pixels wide
+                // Thus there's no need to check whether simdCount is greater than zero
                 int simdCount = length - remainder;
-                if (simdCount > 0)
+                this.ConvertCoreVectorizedInplace(values.Slice(0, simdCount));
+
+                // There's actually a lot of image/photo resolutions which won't have
+                // a remainder so it's better to check here than spend useless virtual call
+                if (remainder > 0)
                 {
-                    // This implementation is actually AVX specific.
-                    // An AVX register is capable of storing 8 float-s.
-                    if (!this.IsAvailable)
-                    {
-                        throw new InvalidOperationException(
-                            "This converter can be used only on architecture having 256 byte floating point SIMD registers!");
-                    }
-
-                    this.ConvertCoreVectorizedInplace(values.Slice(0, simdCount));
+                    this.ConvertCoreInplace(values.Slice(simdCount, remainder));
                 }
-
-                this.ConvertCoreInplace(values.Slice(simdCount, remainder));
             }
 
             protected virtual void ConvertCoreVectorizedInplace(in ComponentValues values) => throw new NotImplementedException();

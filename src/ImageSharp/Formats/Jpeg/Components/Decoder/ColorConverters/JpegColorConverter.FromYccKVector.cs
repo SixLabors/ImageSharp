@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromYccKVector8 : VectorizedJpegColorConverter
+        internal sealed class FromYccKVector : VectorizedJpegColorConverter
         {
-            public FromYccKVector8(int precision)
+            public FromYccKVector(int precision)
                 : base(JpegColorSpace.Ycck, precision)
             {
             }
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var gCrMult = new Vector<float>(-FromYCbCrScalar.GCrMult);
                 var bCbMult = new Vector<float>(FromYCbCrScalar.BCbMult);
 
-                nint n = values.Component0.Length / 8;
+                nint n = values.Component0.Length / Vector<float>.Count;
                 for (nint i = 0; i < n; i++)
                 {
                     // y = yVals[i];

@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromYCbCrAvx(precision);
 #endif
-            yield return new FromYCbCrVector8(precision);
+            yield return new FromYCbCrVector(precision);
             yield return new FromYCbCrScalar(precision);
         }
 
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromYccKAvx(precision);
 #endif
-            yield return new FromYccKVector8(precision);
+            yield return new FromYccKVector(precision);
             yield return new FromYccKScalar(precision);
         }
 
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromCmykAvx(precision);
 #endif
-            yield return new FromCmykVector8(precision);
+            yield return new FromCmykVector(precision);
             yield return new FromCmykScalar(precision);
         }
 
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromGrayscaleAvx(precision);
 #endif
-            yield return new FromGrayScaleVector8(precision);
+            yield return new FromGrayScaleVector(precision);
             yield return new FromGrayscaleScalar(precision);
         }
 
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromRgbAvx(precision);
 #endif
-            yield return new FromRgbVector8(precision);
+            yield return new FromRgbVector(precision);
             yield return new FromRgbScalar(precision);
         }
 

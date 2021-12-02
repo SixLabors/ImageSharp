@@ -40,6 +40,55 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
+        [Fact]
+        public void GetConverterThrowsExceptionOnInvalidColorSpace()
+        {
+            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.Undefined, 8));
+        }
+
+        [Fact]
+        public void GetConverterThrowsExceptionOnInvalidPrecision()
+        {
+            // Valid precisions: 8 & 12 bit
+            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, 9));
+        }
+
+        [Theory]
+        [InlineData(JpegColorSpace.Grayscale, 8)]
+        [InlineData(JpegColorSpace.Grayscale, 12)]
+        [InlineData(JpegColorSpace.Ycck, 8)]
+        [InlineData(JpegColorSpace.Ycck, 12)]
+        [InlineData(JpegColorSpace.Cmyk, 8)]
+        [InlineData(JpegColorSpace.Cmyk, 12)]
+        [InlineData(JpegColorSpace.RGB, 8)]
+        [InlineData(JpegColorSpace.RGB, 12)]
+        [InlineData(JpegColorSpace.YCbCr, 8)]
+        [InlineData(JpegColorSpace.YCbCr, 12)]
+        internal void GetConverterReturnsValidConverter(JpegColorSpace colorSpace, int precision)
+        {
+            var converter = JpegColorConverterBase.GetConverter(colorSpace, precision);
+
+            Assert.NotNull(converter);
+            Assert.Equal(colorSpace, converter.ColorSpace);
+            Assert.Equal(precision, converter.Precision);
+        }
+
+        [Theory]
+        [InlineData(JpegColorSpace.Grayscale, 1)]
+        [InlineData(JpegColorSpace.Ycck, 4)]
+        [InlineData(JpegColorSpace.Cmyk, 4)]
+        [InlineData(JpegColorSpace.RGB, 3)]
+        [InlineData(JpegColorSpace.YCbCr, 3)]
+        internal void ConvertWithSelectedConverter(JpegColorSpace colorSpace, int componentCount)
+        {
+            ValidateConversion(
+                colorSpace,
+                componentCount,
+                40,
+                40,
+                1);
+        }
+
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrBasic(int inputBufferLength, int resultBufferLength, int seed)
@@ -95,18 +144,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 #endif
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCr_WithDefaultConverter(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            ValidateConversion(
-                JpegColorSpace.YCbCr,
-                3,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -166,18 +203,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromCmyk_WithDefaultConverter(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            ValidateConversion(
-                JpegColorSpace.Cmyk,
-                4,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
         public void FromGrayscaleBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
@@ -231,18 +256,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 #endif
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
-        public void FromGraysacle_WithDefaultConverter(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            ValidateConversion(
-                JpegColorSpace.Grayscale,
-                1,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -302,18 +315,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromRgb_WithDefaultConverter(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            ValidateConversion(
-                JpegColorSpace.RGB,
-                3,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
         public void FromYccKBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateConversion(
@@ -367,18 +368,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 #endif
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
-        public void FromYcck_WithDefaultConverter(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            ValidateConversion(
-                JpegColorSpace.Ycck,
-                4,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
 
         private static JpegColorConverterBase.ComponentValues CreateRandomValues(
             int componentCount,

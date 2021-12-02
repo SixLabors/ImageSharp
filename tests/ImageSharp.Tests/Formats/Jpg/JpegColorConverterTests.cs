@@ -54,16 +54,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCrVector8(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYCbCrVector(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasVector8)
+            var converter = new JpegColorConverterBase.FromYCbCrVector(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromYCbCrVector(8),
+                converter,
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -119,16 +122,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromCmykVector8(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromCmykVector(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasVector8)
+            var converter = new JpegColorConverterBase.FromCmykVector(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromCmykVector(8),
+                converter,
                 4,
                 inputBufferLength,
                 resultBufferLength,
@@ -176,6 +182,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             ValidateConversion(
                 new JpegColorConverterBase.FromGrayscaleScalar(8),
+                1,
+                inputBufferLength,
+                resultBufferLength,
+                seed);
+        }
+
+        [Theory]
+        [MemberData(nameof(CommonConversionData))]
+        public void FromGrayscaleVector(int inputBufferLength, int resultBufferLength, int seed)
+        {
+            var converter = new JpegColorConverterBase.FromGrayScaleVector(8);
+
+            if (!converter.IsAvailable)
+            {
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
+                return;
+            }
+
+            ValidateConversion(
+                converter,
                 1,
                 inputBufferLength,
                 resultBufferLength,
@@ -231,16 +258,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromRgbVector8(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromRgbVector(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasVector8)
+            var converter = new JpegColorConverterBase.FromRgbVector(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromRgbVector(8),
+                converter,
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -296,16 +326,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYccKVector8(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYccKVector(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.HasVector8)
+            var converter = new JpegColorConverterBase.FromYccKVector(8);
+
+            if (!converter.IsAvailable)
             {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
+                this.Output.WriteLine(
+                    $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
                 return;
             }
 
             ValidateConversion(
-                new JpegColorConverterBase.FromYccKVector(8),
+                converter,
                 4,
                 inputBufferLength,
                 resultBufferLength,

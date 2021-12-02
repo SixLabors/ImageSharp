@@ -24,17 +24,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 Span<float> c2 = values.Component2;
                 Span<float> c3 = values.Component3;
 
-                float scale = 1 / maxValue;
+                float scale = 1 / (maxValue * maxValue);
                 for (int i = 0; i < c0.Length; i++)
                 {
                     float c = c0[i];
                     float m = c1[i];
                     float y = c2[i];
-                    float k = c3[i] / maxValue;
+                    float k = c3[i];
 
-                    c0[i] = c * k * scale;
-                    c1[i] = m * k * scale;
-                    c2[i] = y * k * scale;
+                    k *= scale;
+                    c0[i] = c * k;
+                    c1[i] = m * k;
+                    c2[i] = y * k;
                 }
             }
         }

@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
                 // Used for the color conversion
-                var scale = Vector256.Create(1 / this.MaximumValue);
+                var scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
 
                 nint n = values.Component0.Length / Vector256<float>.Count;
                 for (nint i = 0; i < n; i++)
@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     Vector256<float> k = Unsafe.Add(ref c3Base, i);
 
                     k = Avx.Multiply(k, scale);
-                    c = Avx.Multiply(Avx.Multiply(c, k), scale);
-                    m = Avx.Multiply(Avx.Multiply(m, k), scale);
-                    y = Avx.Multiply(Avx.Multiply(y, k), scale);
+                    c = Avx.Multiply(c, k);
+                    m = Avx.Multiply(m, k);
+                    y = Avx.Multiply(y, k);
                 }
             }
         }

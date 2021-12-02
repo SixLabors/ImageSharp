@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private static readonly Vector128<sbyte> Nine = Vector128.Create((short)0x0900).AsSByte();
 
-        private static readonly Vector128<sbyte> SixtyThree = Vector128.Create((byte)63).AsSByte();
+        private static readonly Vector128<sbyte> SixtyThree = Vector128.Create((short)63).AsSByte();
 
         private static readonly Vector128<sbyte> SixtyFour = Vector128.Create((byte)64).AsSByte();
 #endif
@@ -1080,7 +1080,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 mask = Sse2.Max(mask, Abs(p3, p2));
                 mask = Sse2.Max(mask, Abs(p2, p1));
 
-                Load16x4(p.Slice(offset), p.Slice(offset + 8), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
+                Load16x4(p.Slice(offset), p.Slice(offset + (8 * stride)), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
 
                 mask = Sse2.Max(mask, Abs(q1, q0));
                 mask = Sse2.Max(mask, Abs(q3, q2));
@@ -1614,8 +1614,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             p0 = Sse2.Xor(p0, SignBit);
             q0 = Sse2.Xor(q0, SignBit);
             q1 = Sse2.Xor(q1, SignBit);
-            q0 = Sse2.Xor(p2, SignBit);
-            q1 = Sse2.Xor(q2, SignBit);
+            p2 = Sse2.Xor(p2, SignBit);
+            q2 = Sse2.Xor(q2, SignBit);
 
             Vector128<sbyte> a = GetBaseDelta(p1.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1.AsSByte());
 
@@ -1818,8 +1818,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // B0 = 53 43 52 42 51 41 50 40 13 03 12 02 11 01 10 00
             // B1 = 73 63 72 62 71 61 70 60 33 23 32 22 31 21 30 20
-            Vector128<byte> b0 = Sse2.UnpackLow(a0, a1);
-            Vector128<byte> b1 = Sse2.UnpackHigh(a0, a1);
+            Vector128<sbyte> b0 = Sse2.UnpackLow(a0.AsSByte(), a1.AsSByte());
+            Vector128<sbyte> b1 = Sse2.UnpackHigh(a0.AsSByte(), a1.AsSByte());
 
             // C0 = 33 23 13 03 32 22 12 02 31 21 11 01 30 20 10 00
             // C1 = 73 63 53 43 72 62 52 42 71 61 51 41 70 60 50 40
@@ -1923,7 +1923,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<sbyte> delta = Sse2.PackSignedSaturate(a1Low, a1High);
             pi = Sse2.AddSaturate(pi.AsSByte(), delta).AsByte();
             qi = Sse2.SubtractSaturate(qi.AsSByte(), delta).AsByte();
-            pi = Sse2.Xor(pi, SixtyFour.AsByte());
+            pi = Sse2.Xor(pi, SignBit.AsByte());
             qi = Sse2.Xor(qi, SignBit.AsByte());
         }
 

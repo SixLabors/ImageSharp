@@ -1040,7 +1040,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 mask = Sse2.Max(mask, Abs(p2, p1));
 
                 Vector128<byte> q0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset));
-                Vector128<byte> q1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (1 * stride)));
+                Vector128<byte> q1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + stride));
                 Vector128<byte> q2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (2 * stride)));
                 t1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (3 * stride)));
 
@@ -1069,7 +1069,35 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
-            => FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Span<byte> b = p.Slice(offset - 4);
+                Load16x4(b, b.Slice(8 * stride), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+
+                Vector128<byte> mask = Abs(p1, p0);
+                mask = Sse2.Max(mask, Abs(p3, p2));
+                mask = Sse2.Max(mask, Abs(p2, p1));
+
+                Load16x4(p.Slice(offset), p.Slice(offset + 8), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
+
+                mask = Sse2.Max(mask, Abs(q1, q0));
+                mask = Sse2.Max(mask, Abs(q3, q2));
+                mask = Sse2.Max(mask, Abs(q2, q1));
+
+                ComplexMask(p1, p0, q0, q1, thresh, ithresh, ref mask);
+                DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+
+                Store16x4(p3, p2, p1, p0, b, b.Slice(8 * stride), stride);
+                Store16x4(q3, q2, q1, q0, p, p.Slice(8 * stride), stride);
+            }
+            else
+#endif
+            {
+                FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
+            }
+        }
 
         public static void VFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {

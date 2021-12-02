@@ -24,6 +24,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private static readonly Vector128<sbyte> Four = Vector128.Create((byte)4).AsSByte();
 
+        private static readonly Vector128<sbyte> Nine = Vector128.Create((short)0x0900).AsSByte();
+
+        private static readonly Vector128<sbyte> SixtyThree = Vector128.Create((byte)63).AsSByte();
+
         private static readonly Vector128<sbyte> SixtyFour = Vector128.Create((byte)64).AsSByte();
 #endif
 
@@ -1462,6 +1466,50 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             q1 = Sse2.Xor(q1.AsByte(), SignBit);
         }
 
+        // Applies filter on 6 pixels (p2, p1, p0, q0, q1 and q2)
+        private static void DoFilter6Sse2(ref Vector128<byte> p2, ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, ref Vector128<byte> q2, Vector128<byte> mask, int tresh)
+        {
+            // Compute hev mask.
+            Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
+
+            // Convert to signed values.
+            p1 = Sse2.Xor(p1, SignBit);
+            p0 = Sse2.Xor(p0, SignBit);
+            q0 = Sse2.Xor(q0, SignBit);
+            q1 = Sse2.Xor(q1, SignBit);
+            q0 = Sse2.Xor(p2, SignBit);
+            q1 = Sse2.Xor(q2, SignBit);
+
+            Vector128<sbyte> a = GetBaseDelta(p1.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1.AsSByte());
+
+            // Do simple filter on pixels with hev.
+            Vector128<byte> m = Sse2.AndNot(notHev, mask);
+            Vector128<byte> f = Sse2.And(a.AsByte(), m);
+            DoSimpleFilterSse2(ref p0, ref q0, f);
+
+            // Do strong filter on pixels with not hev.
+            m = Sse2.And(notHev, mask);
+            f = Sse2.And(a.AsByte(), m);
+            Vector128<byte> flow = Sse2.UnpackLow(Vector128<byte>.Zero, f);
+            Vector128<byte> fhigh = Sse2.UnpackHigh(Vector128<byte>.Zero, f);
+
+            Vector128<short> f9High = Sse2.MultiplyHigh(flow.AsInt16(), Nine.AsInt16()); // Filter (lo) * 9
+            Vector128<short> f9Low = Sse2.MultiplyLow(fhigh.AsInt16(), Nine.AsInt16()); // Filter (hi) * 9
+
+            Vector128<short> a2Low = Sse2.Add(f9Low, SixtyThree.AsInt16()); // Filter * 9 + 63
+            Vector128<short> a2High = Sse2.Add(f9High, SixtyThree.AsInt16()); // Filter * 9 + 63
+
+            Vector128<short> a1Low = Sse2.Add(a2Low, f9Low); // Filter * 18 + 63
+            Vector128<short> a1High = Sse2.Add(a2High, f9High); // // Filter * 18 + 63
+
+            Vector128<short> a0Low = Sse2.Add(a1Low, f9Low); // Filter * 27 + 63
+            Vector128<short> a0High = Sse2.Add(a1High, f9High); // Filter * 27 + 63
+
+            Update2Pixels(ref p2, ref q2, a2Low, a2High);
+            Update2Pixels(ref p1, ref q1, a1Low, a1High);
+            Update2Pixels(ref p0, ref q0, a0Low, a0High);
+        }
+
         private static void DoSimpleFilterSse2(ref Vector128<byte> p0, ref Vector128<byte> q0, Vector128<byte> fl)
         {
             Vector128<sbyte> v3 = Sse2.AddSaturate(fl.AsSByte(), Three);
@@ -1725,6 +1773,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> filterMask = NeedsFilter(p1, p0, q0, q1, thresh);
 
             mask = Sse2.And(threshMask, filterMask);
+        }
+
+        // Updates values of 2 pixels at MB edge during complex filtering.
+        // Update operations:
+        // q = q - delta and p = p + delta; where delta = [(a_hi >> 7), (a_lo >> 7)]
+        // Pixels 'pi' and 'qi' are int8_t on input, uint8_t on output (sign flip).
+        private static void Update2Pixels(ref Vector128<byte> pi, ref Vector128<byte> qi, Vector128<short> a0Low, Vector128<short> a0High)
+        {
+            Vector128<short> a1Low = Sse2.ShiftRightArithmetic(a0Low, 7);
+            Vector128<short> a1High = Sse2.ShiftRightArithmetic(a0High, 7);
+            Vector128<sbyte> delta = Sse2.PackSignedSaturate(a1Low, a1High);
+            pi = Sse2.AddSaturate(pi.AsSByte(), delta).AsByte();
+            qi = Sse2.SubtractSaturate(qi.AsSByte(), delta).AsByte();
+            pi = Sse2.Xor(pi, SixtyFour.AsByte());
+            qi = Sse2.Xor(qi, SignBit.AsByte());
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -1179,6 +1179,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     mask = Sse2.Max(mask, Abs(p2, p1));
 
                     Load16x4(p.Slice(offset), p.Slice(offset + (8 * stride)), stride, out p3, out p2, out Vector128<byte> tmp1, out Vector128<byte> tmp2);
+
                     mask = Sse2.Max(mask, Abs(tmp1, tmp2));
                     mask = Sse2.Max(mask, Abs(p3, p2));
                     mask = Sse2.Max(mask, Abs(p2, tmp1));
@@ -1207,8 +1208,47 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-            FilterLoop26(u, offset, stride, 1, 8, thresh, ithresh, hevThresh);
-            FilterLoop26(v, offset, stride, 1, 8, thresh, ithresh, hevThresh);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                // Load uv h-edges.
+                ref byte uRef = ref MemoryMarshal.GetReference(u);
+                ref byte vRef = ref MemoryMarshal.GetReference(v);
+                Vector128<byte> t1 = LoadUvEdge(ref uRef, ref vRef, offset - (4 * stride));
+                Vector128<byte> p2 = LoadUvEdge(ref uRef, ref vRef, offset - (3 * stride));
+                Vector128<byte> p1 = LoadUvEdge(ref uRef, ref vRef, offset - (2 * stride));
+                Vector128<byte> p0 = LoadUvEdge(ref uRef, ref vRef, offset - stride);
+
+                Vector128<byte> mask = Abs(p1, p0);
+                mask = Sse2.Max(mask, Abs(t1, p2));
+                mask = Sse2.Max(mask, Abs(p2, p1));
+
+                Vector128<byte> q0 = LoadUvEdge(ref uRef, ref vRef, offset);
+                Vector128<byte> q1 = LoadUvEdge(ref uRef, ref vRef, offset + stride);
+                Vector128<byte> q2 = LoadUvEdge(ref uRef, ref vRef, offset + (2 * stride));
+                t1 = LoadUvEdge(ref uRef, ref vRef, offset + (3 * stride));
+
+                mask = Sse2.Max(mask, Abs(q1, q0));
+                mask = Sse2.Max(mask, Abs(t1, q2));
+                mask = Sse2.Max(mask, Abs(q2, q1));
+
+                ComplexMask(p1, p0, q0, q1, thresh, ithresh, ref mask);
+                DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+
+                // Store.
+                StoreUv(p2, ref uRef, ref vRef, offset - (3 * stride));
+                StoreUv(p1, ref uRef, ref vRef, offset - (2 * stride));
+                StoreUv(p0, ref uRef, ref vRef, offset - stride);
+                StoreUv(q0, ref uRef, ref vRef, offset);
+                StoreUv(q1, ref uRef, ref vRef, offset + (1 * stride));
+                StoreUv(p2, ref uRef, ref vRef, offset + (2 * stride));
+            }
+            else
+#endif
+            {
+                FilterLoop26(u, offset, stride, 1, 8, thresh, ithresh, hevThresh);
+                FilterLoop26(v, offset, stride, 1, 8, thresh, ithresh, hevThresh);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1224,7 +1264,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-                // load uv h-edges.
+                // Load uv h-edges.
                 ref byte uRef = ref MemoryMarshal.GetReference(u);
                 ref byte vRef = ref MemoryMarshal.GetReference(v);
                 Vector128<byte> t2 = LoadUvEdge(ref uRef, ref vRef, offset);

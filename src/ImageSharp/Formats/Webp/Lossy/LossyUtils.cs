@@ -1022,9 +1022,50 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
+        // On macroblock edges.
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
-            => FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                ref byte pRef = ref MemoryMarshal.GetReference(p);
+                Vector128<byte> t1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset - (4 * stride)));
+                Vector128<byte> p2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset - (3 * stride)));
+                Vector128<byte> p1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset - (2 * stride)));
+                Vector128<byte> p0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset - stride));
+
+                Vector128<byte> mask = Abs(p1, p0);
+                mask = Sse2.Max(mask, Abs(t1, p2));
+                mask = Sse2.Max(mask, Abs(p2, p1));
+
+                Vector128<byte> q0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset));
+                Vector128<byte> q1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (1 * stride)));
+                Vector128<byte> q2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (2 * stride)));
+                t1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, offset + (3 * stride)));
+
+                mask = Sse2.Max(mask, Abs(q1, q0));
+                mask = Sse2.Max(mask, Abs(t1, q2));
+                mask = Sse2.Max(mask, Abs(q2, q1));
+
+                ComplexMask(p1, p0, q0, q1, thresh, ithresh, ref mask);
+                DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+
+                // Store.
+                ref byte outputRef = ref MemoryMarshal.GetReference(p);
+                Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, offset - (3 * stride))) = p0.AsInt32();
+                Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, offset - (2 * stride))) = p0.AsInt32();
+                Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, offset - stride)) = p0.AsInt32();
+                Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, offset)) = p0.AsInt32();
+                Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, offset + stride)) = p0.AsInt32();
+                Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, offset + (2 * stride))) = p0.AsInt32();
+            }
+            else
+#endif
+            {
+                FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
+            }
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)

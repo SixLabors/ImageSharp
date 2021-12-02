@@ -47,12 +47,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             benchmarks.EncodeJpeg_SingleMidSize();
         }
 
-        private static void RunJpegColorProfilingTests()
-        {
-            new JpegColorConverterTests(new ConsoleOutput()).BenchmarkYCbCr(false);
-            new JpegColorConverterTests(new ConsoleOutput()).BenchmarkYCbCr(true);
-        }
-
         private static void RunResizeProfilingTest()
         {
             var test = new ResizeProfilingBenchmarks(new ConsoleOutput());

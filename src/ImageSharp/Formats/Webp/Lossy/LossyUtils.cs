@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static readonly Vector128<sbyte> SixtyThree = Vector128.Create((short)63).AsSByte();
 
         private static readonly Vector128<sbyte> SixtyFour = Vector128.Create((byte)64).AsSByte();
+
+        private static readonly Vector128<short> K1 = Vector128.Create((short)20091);
+
+        private static readonly Vector128<short> K2 = Vector128.Create((short)-30068);
+
 #endif
 
         // Note: method name in libwebp reference implementation is called VP8SSE16x16.
@@ -832,57 +837,325 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 #endif
 
+        // Transforms (Paragraph 14.4).
+        // Does two transforms.
         public static void TransformTwo(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-            TransformOne(src, dst, scratch);
-            TransformOne(src.Slice(16), dst.Slice(4), scratch);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                // This implementation makes use of 16-bit fixed point versions of two
+                // multiply constants:
+                //    K1 = sqrt(2) * cos (pi/8) ~= 85627 / 2^16
+                //    K2 = sqrt(2) * sin (pi/8) ~= 35468 / 2^16
+                //
+                // To be able to use signed 16-bit integers, we use the following trick to
+                // have constants within range:
+                // - Associated constants are obtained by subtracting the 16-bit fixed point
+                //   version of one:
+                //      k = K - (1 << 16)  =>  K = k + (1 << 16)
+                //      K1 = 85267  =>  k1 =  20091
+                //      K2 = 35468  =>  k2 = -30068
+                // - The multiplication of a variable by a constant become the sum of the
+                //   variable and the multiplication of that variable by the associated
+                //   constant:
+                //      (x * K) >> 16 = (x * (k + (1 << 16))) >> 16 = ((x * k ) >> 16) + x
+
+                // Load and concatenate the transform coefficients (we'll do two transforms
+                // in parallel).
+                ref short srcRef = ref MemoryMarshal.GetReference(src);
+                var in0 = Vector128.Create(Unsafe.As<short, long>(ref srcRef), 0);
+                var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 4)), 0);
+                var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 8)), 0);
+                var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 12)), 0);
+
+                // a00 a10 a20 a30   x x x x
+                // a01 a11 a21 a31   x x x x
+                // a02 a12 a22 a32   x x x x
+                // a03 a13 a23 a33   x x x x
+                var inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 16)), 0);
+                var inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 20)), 0);
+                var inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 24)), 0);
+                var inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 28)), 0);
+
+                in0 = Sse2.UnpackLow(in0, inb0);
+                in1 = Sse2.UnpackLow(in1, inb1);
+                in2 = Sse2.UnpackLow(in2, inb2);
+                in3 = Sse2.UnpackLow(in3, inb3);
+
+                // a00 a10 a20 a30   b00 b10 b20 b30
+                // a01 a11 a21 a31   b01 b11 b21 b31
+                // a02 a12 a22 a32   b02 b12 b22 b32
+                // a03 a13 a23 a33   b03 b13 b23 b33
+
+                // Vertical pass and subsequent transpose.
+                // First pass, c and d calculations are longer because of the "trick" multiplications.
+                Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
+                Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
+
+                // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
+                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2);
+                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1);
+                Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
+                Vector128<short> c4 = Sse2.Subtract(c1, c2);
+                Vector128<short> c = Sse2.Add(c3.AsInt16(), c4);
+
+                // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
+                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1);
+                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2);
+                Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
+                Vector128<short> d4 = Sse2.Add(d1, d2);
+                Vector128<short> d = Sse2.Add(d3, d4);
+
+                // Second pass.
+                Vector128<short> tmp0 = Sse2.Add(a.AsInt16(), d);
+                Vector128<short> tmp1 = Sse2.Add(b.AsInt16(), c);
+                Vector128<short> tmp2 = Sse2.Subtract(b.AsInt16(), c);
+                Vector128<short> tmp3 = Sse2.Subtract(a.AsInt16(), d);
+
+                // Transpose the two 4x4.
+                Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+
+                // Horizontal pass and subsequent transpose.
+                // First pass, c and d calculations are longer because of the "trick" multiplications.
+                Vector128<short> dc = Sse2.Add(t0.AsInt16(), Four.AsInt16());
+                a = Sse2.Add(dc, t2.AsInt16());
+                b = Sse2.Subtract(dc, t2.AsInt16());
+
+                // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
+                c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
+                c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
+                c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
+                c4 = Sse2.Subtract(c1, c2);
+                c = Sse2.Add(c3, c4);
+
+                // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
+                d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
+                d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
+                d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
+                d4 = Sse2.Add(d1, d2);
+                d = Sse2.Add(d3, d4);
+
+                // Second pass.
+                tmp0 = Sse2.Add(a, d);
+                tmp1 = Sse2.Add(b, c);
+                tmp2 = Sse2.Subtract(b, c);
+                tmp3 = Sse2.Subtract(a, d);
+                Vector128<short> shifted0 = Sse2.ShiftRightArithmetic(tmp0, 3);
+                Vector128<short> shifted1 = Sse2.ShiftRightArithmetic(tmp1, 3);
+                Vector128<short> shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
+                Vector128<short> shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
+
+                // Transpose the two 4x4.
+                Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
+
+                // Add inverse transform to 'dst' and store.
+                // Load the reference(s).
+                // Load eight bytes/pixels per line.
+                ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+                Vector128<byte> dst0 = Vector128.Create(Unsafe.As<byte, long>(ref dstRef), 0).AsByte();
+                Vector128<byte> dst1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps)), 0).AsByte();
+                Vector128<byte> dst2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 2)), 0).AsByte();
+                Vector128<byte> dst3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 3)), 0).AsByte();
+
+                // Convert to 16b.
+                dst0 = Sse2.UnpackLow(dst0, Vector128<byte>.Zero);
+                dst1 = Sse2.UnpackLow(dst1, Vector128<byte>.Zero);
+                dst2 = Sse2.UnpackLow(dst2, Vector128<byte>.Zero);
+                dst3 = Sse2.UnpackLow(dst3, Vector128<byte>.Zero);
+
+                // Add the inverse transform(s).
+                dst0 = Sse2.Add(dst0.AsInt16(), t0.AsInt16()).AsByte();
+                dst1 = Sse2.Add(dst1.AsInt16(), t1.AsInt16()).AsByte();
+                dst2 = Sse2.Add(dst2.AsInt16(), t2.AsInt16()).AsByte();
+                dst3 = Sse2.Add(dst3.AsInt16(), t3.AsInt16()).AsByte();
+
+                // Unsigned saturate to 8b.
+                dst0 = Sse2.PackUnsignedSaturate(dst0.AsInt16(), dst0.AsInt16());
+                dst1 = Sse2.PackUnsignedSaturate(dst1.AsInt16(), dst1.AsInt16());
+                dst2 = Sse2.PackUnsignedSaturate(dst2.AsInt16(), dst2.AsInt16());
+                dst3 = Sse2.PackUnsignedSaturate(dst3.AsInt16(), dst3.AsInt16());
+
+                // Store the results.
+                // Store eight bytes/pixels per line.
+                ref byte outputRef = ref MemoryMarshal.GetReference(dst);
+                Unsafe.As<byte, Vector64<byte>>(ref outputRef) = dst0.GetLower();
+                Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = dst1.GetLower();
+                Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = dst2.GetLower();
+                Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = dst3.GetLower();
+            }
+            else
+#endif
+            {
+                TransformOne(src, dst, scratch);
+                TransformOne(src.Slice(16), dst.Slice(4), scratch);
+            }
         }
 
         public static void TransformOne(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-            Span<int> tmp = scratch.Slice(0, 16);
-            int tmpOffset = 0;
-            for (int srcOffset = 0; srcOffset < 4; srcOffset++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                // vertical pass
-                int srcOffsetPlus4 = srcOffset + 4;
-                int srcOffsetPlus8 = srcOffset + 8;
-                int srcOffsetPlus12 = srcOffset + 12;
-                int a = src[srcOffset] + src[srcOffsetPlus8];
-                int b = src[srcOffset] - src[srcOffsetPlus8];
-                int c = Mul2(src[srcOffsetPlus4]) - Mul1(src[srcOffsetPlus12]);
-                int d = Mul1(src[srcOffsetPlus4]) + Mul2(src[srcOffsetPlus12]);
-                tmp[tmpOffset++] = a + d;
-                tmp[tmpOffset++] = b + c;
-                tmp[tmpOffset++] = b - c;
-                tmp[tmpOffset++] = a - d;
+                // Load and concatenate the transform coefficients.
+                ref short srcRef = ref MemoryMarshal.GetReference(src);
+                var in0 = Vector128.Create(Unsafe.As<short, long>(ref srcRef), 0);
+                var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 4)), 0);
+                var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 8)), 0);
+                var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 12)), 0);
+
+                // a00 a10 a20 a30   x x x x
+                // a01 a11 a21 a31   x x x x
+                // a02 a12 a22 a32   x x x x
+                // a03 a13 a23 a33   x x x x
+
+                // Vertical pass and subsequent transpose.
+                // First pass, c and d calculations are longer because of the "trick" multiplications.
+                Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
+                Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
+
+                // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
+                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2);
+                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1);
+                Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
+                Vector128<short> c4 = Sse2.Subtract(c1, c2);
+                Vector128<short> c = Sse2.Add(c3.AsInt16(), c4);
+
+                // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
+                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1);
+                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2);
+                Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
+                Vector128<short> d4 = Sse2.Add(d1, d2);
+                Vector128<short> d = Sse2.Add(d3, d4);
+
+                // Second pass.
+                Vector128<short> tmp0 = Sse2.Add(a.AsInt16(), d);
+                Vector128<short> tmp1 = Sse2.Add(b.AsInt16(), c);
+                Vector128<short> tmp2 = Sse2.Subtract(b.AsInt16(), c);
+                Vector128<short> tmp3 = Sse2.Subtract(a.AsInt16(), d);
+
+                // Transpose the two 4x4.
+                Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+
+                // Horizontal pass and subsequent transpose.
+                // First pass, c and d calculations are longer because of the "trick" multiplications.
+                Vector128<short> dc = Sse2.Add(t0.AsInt16(), Four.AsInt16());
+                a = Sse2.Add(dc, t2.AsInt16());
+                b = Sse2.Subtract(dc, t2.AsInt16());
+
+                // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
+                c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
+                c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
+                c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
+                c4 = Sse2.Subtract(c1, c2);
+                c = Sse2.Add(c3, c4);
+
+                // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
+                d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
+                d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
+                d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
+                d4 = Sse2.Add(d1, d2);
+                d = Sse2.Add(d3, d4);
+
+                // Second pass.
+                tmp0 = Sse2.Add(a, d);
+                tmp1 = Sse2.Add(b, c);
+                tmp2 = Sse2.Subtract(b, c);
+                tmp3 = Sse2.Subtract(a, d);
+                Vector128<short> shifted0 = Sse2.ShiftRightArithmetic(tmp0, 3);
+                Vector128<short> shifted1 = Sse2.ShiftRightArithmetic(tmp1, 3);
+                Vector128<short> shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
+                Vector128<short> shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
+
+                // Transpose the two 4x4.
+                Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
+
+                // Add inverse transform to 'dst' and store.
+                // Load the reference(s).
+                // Load four bytes/pixels per line.
+                ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+                Vector128<byte> dst0 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref dstRef)).AsByte();
+                Vector128<byte> dst1 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps))).AsByte();
+                Vector128<byte> dst2 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 2))).AsByte();
+                Vector128<byte> dst3 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 3))).AsByte();
+
+                // Convert to 16b.
+                dst0 = Sse2.UnpackLow(dst0, Vector128<byte>.Zero);
+                dst1 = Sse2.UnpackLow(dst1, Vector128<byte>.Zero);
+                dst2 = Sse2.UnpackLow(dst2, Vector128<byte>.Zero);
+                dst3 = Sse2.UnpackLow(dst3, Vector128<byte>.Zero);
+
+                // Add the inverse transform(s).
+                dst0 = Sse2.Add(dst0.AsInt16(), t0.AsInt16()).AsByte();
+                dst1 = Sse2.Add(dst1.AsInt16(), t1.AsInt16()).AsByte();
+                dst2 = Sse2.Add(dst2.AsInt16(), t2.AsInt16()).AsByte();
+                dst3 = Sse2.Add(dst3.AsInt16(), t3.AsInt16()).AsByte();
+
+                // Unsigned saturate to 8b.
+                dst0 = Sse2.PackUnsignedSaturate(dst0.AsInt16(), dst0.AsInt16());
+                dst1 = Sse2.PackUnsignedSaturate(dst1.AsInt16(), dst1.AsInt16());
+                dst2 = Sse2.PackUnsignedSaturate(dst2.AsInt16(), dst2.AsInt16());
+                dst3 = Sse2.PackUnsignedSaturate(dst3.AsInt16(), dst3.AsInt16());
+
+                // Store the results.
+                // Store four bytes/pixels per line.
+                ref byte outputRef = ref MemoryMarshal.GetReference(dst);
+                int output0 = Sse2.ConvertToInt32(dst0.AsInt32());
+                int output1 = Sse2.ConvertToInt32(dst1.AsInt32());
+                int output2 = Sse2.ConvertToInt32(dst2.AsInt32());
+                int output3 = Sse2.ConvertToInt32(dst3.AsInt32());
+                Unsafe.As<byte, int>(ref outputRef) = output0;
+                Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = output1;
+                Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = output2;
+                Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = output3;
             }
-
-            // Each pass is expanding the dynamic range by ~3.85 (upper bound).
-            // The exact value is (2. + (20091 + 35468) / 65536).
-            // After the second pass, maximum interval is [-3794, 3794], assuming
-            // an input in [-2048, 2047] interval. We then need to add a dst value in the [0, 255] range.
-            // In the worst case scenario, the input to clip_8b() can be as large as [-60713, 60968].
-            tmpOffset = 0;
-            int dstOffset = 0;
-            for (int i = 0; i < 4; i++)
+            else
+#endif
             {
-                // horizontal pass
-                int tmpOffsetPlus4 = tmpOffset + 4;
-                int tmpOffsetPlus8 = tmpOffset + 8;
-                int tmpOffsetPlus12 = tmpOffset + 12;
-                int dc = tmp[tmpOffset] + 4;
-                int a = dc + tmp[tmpOffsetPlus8];
-                int b = dc - tmp[tmpOffsetPlus8];
-                int c = Mul2(tmp[tmpOffsetPlus4]) - Mul1(tmp[tmpOffsetPlus12]);
-                int d = Mul1(tmp[tmpOffsetPlus4]) + Mul2(tmp[tmpOffsetPlus12]);
-                Store(dst.Slice(dstOffset), 0, 0, a + d);
-                Store(dst.Slice(dstOffset), 1, 0, b + c);
-                Store(dst.Slice(dstOffset), 2, 0, b - c);
-                Store(dst.Slice(dstOffset), 3, 0, a - d);
-                tmpOffset++;
+                Span<int> tmp = scratch.Slice(0, 16);
+                int tmpOffset = 0;
+                for (int srcOffset = 0; srcOffset < 4; srcOffset++)
+                {
+                    // vertical pass
+                    int srcOffsetPlus4 = srcOffset + 4;
+                    int srcOffsetPlus8 = srcOffset + 8;
+                    int srcOffsetPlus12 = srcOffset + 12;
+                    int a = src[srcOffset] + src[srcOffsetPlus8];
+                    int b = src[srcOffset] - src[srcOffsetPlus8];
+                    int c = Mul2(src[srcOffsetPlus4]) - Mul1(src[srcOffsetPlus12]);
+                    int d = Mul1(src[srcOffsetPlus4]) + Mul2(src[srcOffsetPlus12]);
+                    tmp[tmpOffset++] = a + d;
+                    tmp[tmpOffset++] = b + c;
+                    tmp[tmpOffset++] = b - c;
+                    tmp[tmpOffset++] = a - d;
+                }
 
-                dstOffset += WebpConstants.Bps;
+                // Each pass is expanding the dynamic range by ~3.85 (upper bound).
+                // The exact value is (2. + (20091 + 35468) / 65536).
+                // After the second pass, maximum interval is [-3794, 3794], assuming
+                // an input in [-2048, 2047] interval. We then need to add a dst value in the [0, 255] range.
+                // In the worst case scenario, the input to clip_8b() can be as large as [-60713, 60968].
+                tmpOffset = 0;
+                int dstOffset = 0;
+                for (int i = 0; i < 4; i++)
+                {
+                    // horizontal pass
+                    int tmpOffsetPlus4 = tmpOffset + 4;
+                    int tmpOffsetPlus8 = tmpOffset + 8;
+                    int tmpOffsetPlus12 = tmpOffset + 12;
+                    int dc = tmp[tmpOffset] + 4;
+                    int a = dc + tmp[tmpOffsetPlus8];
+                    int b = dc - tmp[tmpOffsetPlus8];
+                    int c = Mul2(tmp[tmpOffsetPlus4]) - Mul1(tmp[tmpOffsetPlus12]);
+                    int d = Mul1(tmp[tmpOffsetPlus4]) + Mul2(tmp[tmpOffsetPlus12]);
+                    Store(dst.Slice(dstOffset), 0, 0, a + d);
+                    Store(dst.Slice(dstOffset), 1, 0, b + c);
+                    Store(dst.Slice(dstOffset), 2, 0, b - c);
+                    Store(dst.Slice(dstOffset), 3, 0, a - d);
+                    tmpOffset++;
+
+                    dstOffset += WebpConstants.Bps;
+                }
             }
         }
 

@@ -454,7 +454,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
             var expected = ColorSpaceConverter.ToRgb(ycbcr);
 
-            Assert.Equal(expected, actual, ColorSpaceComparer);
+            bool equal = ColorSpaceComparer.Equals(expected, actual);
+            Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
         }
 
         private static void ValidateCyyK(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
@@ -479,7 +480,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
             var expected = new Rgb(v.X, v.Y, v.Z);
 
-            Assert.Equal(expected, actual, ColorSpaceComparer);
+            bool equal = ColorSpaceComparer.Equals(expected, actual);
+            Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
         }
 
         private static void ValidateRgb(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
@@ -491,7 +493,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
             var expected = new Rgb(r / 255F, g / 255F, b / 255F);
 
-            Assert.Equal(expected, actual, ColorSpaceComparer);
+            bool equal = ColorSpaceComparer.Equals(expected, actual);
+            Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
         }
 
         private static void ValidateGrayScale(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
@@ -500,7 +503,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(result.Component0[i], result.Component0[i], result.Component0[i]);
             var expected = new Rgb(y / 255F, y / 255F, y / 255F);
 
-            Assert.Equal(expected, actual, ColorSpaceComparer);
+            bool equal = ColorSpaceComparer.Equals(expected, actual);
+            Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
         }
 
         private static void ValidateCmyk(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
@@ -523,7 +527,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
             var expected = new Rgb(v.X, v.Y, v.Z);
 
-            Assert.Equal(expected, actual, ColorSpaceComparer);
+            bool equal = ColorSpaceComparer.Equals(expected, actual);
+            Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
         }
     }
 }

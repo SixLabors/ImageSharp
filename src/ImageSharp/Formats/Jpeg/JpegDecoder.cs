@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc />
         public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
+            => await this.DecodeAsync<Rgb24>(configuration, stream, cancellationToken)
             .ConfigureAwait(false);
 
         /// <inheritdoc/>

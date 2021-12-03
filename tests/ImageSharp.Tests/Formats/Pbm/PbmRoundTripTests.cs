@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         [InlineData(BlackAndWhitePlain)]
         [InlineData(BlackAndWhiteBinary)]
         [InlineData(GrayscalePlain)]
+        [InlineData(GrayscalePlainNormalized)]
         [InlineData(GrayscaleBinary)]
         public void PbmGrayscaleImageCanRoundTrip(string imagePath)
         {
@@ -36,6 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
         [Theory]
         [InlineData(RgbPlain)]
+        [InlineData(RgbPlainNormalized)]
         [InlineData(RgbBinary)]
         public void PbmColorImageCanRoundTrip(string imagePath)
         {

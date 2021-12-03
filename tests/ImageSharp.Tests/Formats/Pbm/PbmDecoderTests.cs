@@ -74,10 +74,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         }
 
         [Theory]
+        [WithFile(BlackAndWhitePlain, PixelTypes.L8, true)]
         [WithFile(BlackAndWhiteBinary, PixelTypes.L8, true)]
+        [WithFile(GrayscalePlain, PixelTypes.L8, true)]
         [WithFile(GrayscalePlainNormalized, PixelTypes.L8, true)]
         [WithFile(GrayscaleBinary, PixelTypes.L8, true)]
         [WithFile(GrayscaleBinaryWide, PixelTypes.L16, true)]
+        [WithFile(RgbPlain, PixelTypes.Rgb24, false)]
         [WithFile(RgbPlainNormalized, PixelTypes.Rgb24, false)]
         [WithFile(RgbBinary, PixelTypes.Rgb24, false)]
         public void DecodeReferenceImage<TPixel>(TestImageProvider<TPixel> provider, bool isGrayscale)

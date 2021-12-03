@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly EntropyCropProcessor definition;
+        private readonly float threshold;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EntropyCropProcessor{TPixel}"/> class.
@@ -28,9 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public EntropyCropProcessor(Configuration configuration, EntropyCropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.threshold = definition.Threshold;
 
         /// <inheritdoc/>
         protected override void BeforeImageApply()
@@ -47,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 new EdgeDetector2DProcessor(KnownEdgeDetectorKernels.Sobel, false).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor(this.definition.Threshold).Execute(this.Configuration, temp, this.SourceRectangle);
+                new BinaryThresholdProcessor(this.threshold).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Search for the first white pixels
                 rectangle = GetFilteredBoundingRectangle(temp.Frames.RootFrame, 0);

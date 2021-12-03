@@ -399,22 +399,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int seed)
         {
             JpegColorConverterBase.ComponentValues original = CreateRandomValues(TestBufferLength, componentCount, seed);
-            JpegColorConverterBase.ComponentValues values = Copy(original);
+            JpegColorConverterBase.ComponentValues values = new(
+                    original.ComponentCount,
+                    original.Component0,
+                    original.Component1,
+                    original.Component2,
+                    original.Component3);
 
             converter.ConvertToRgbInplace(values);
 
             for (int i = 0; i < TestBufferLength; i++)
             {
                 Validate(converter.ColorSpace, original, values, i);
-            }
-
-            static JpegColorConverterBase.ComponentValues Copy(JpegColorConverterBase.ComponentValues values)
-            {
-                Span<float> c0 = values.Component0.ToArray();
-                Span<float> c1 = values.ComponentCount > 1 ? values.Component1.ToArray().AsSpan() : c0;
-                Span<float> c2 = values.ComponentCount > 2 ? values.Component2.ToArray().AsSpan() : c0;
-                Span<float> c3 = values.ComponentCount > 3 ? values.Component3.ToArray().AsSpan() : Span<float>.Empty;
-                return new JpegColorConverterBase.ComponentValues(values.ComponentCount, c0, c1, c2, c3);
             }
         }
 
@@ -441,8 +437,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 case JpegColorSpace.YCbCr:
                     ValidateYCbCr(original, result, i);
                     break;
+                case JpegColorSpace.Undefined:
                 default:
-                    Assert.True(false, $"Colorspace {colorSpace} not supported!");
+                    Assert.True(false, $"Invalid Colorspace enum value: {colorSpace}.");
                     break;
             }
         }

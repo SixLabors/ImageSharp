@@ -174,8 +174,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
-            var white = new L8(0);
-            var black = new L8(255);
+            var white = new L8(255);
+            var black = new L8(0);
 
             for (int y = 0; y < height; y++)
             {

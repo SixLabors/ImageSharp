@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
     public class PbmRoundTripTests
     {
         [Theory]
+        [InlineData(BlackAndWhitePlain)]
         [InlineData(BlackAndWhiteBinary)]
         [InlineData(GrayscalePlain)]
         [InlineData(GrayscaleBinary)]

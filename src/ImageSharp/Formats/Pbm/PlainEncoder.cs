@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    byte value = (rowSpan[x].PackedValue > 127) ? Zero : One;
+                    byte value = (rowSpan[x].PackedValue < 128) ? One : Zero;
                     plainSpan[written++] = value;
                     plainSpan[written++] = Space;
                 }

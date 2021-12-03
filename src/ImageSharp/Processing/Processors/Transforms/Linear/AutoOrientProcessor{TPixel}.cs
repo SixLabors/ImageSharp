@@ -13,23 +13,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly AutoOrientMode autoOrientMode;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="definition">The <see cref="AutoOrientProcessor"/>.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public AutoOrientProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+        public AutoOrientProcessor(Configuration configuration, AutoOrientProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-        }
+            => this.autoOrientMode = definition.AutoOrientMode;
 
         /// <inheritdoc/>
         protected override void BeforeImageApply()
         {
             // Rotate/flip the image according to the EXIF orientation metadata
             OrientationMode orientation = this.Source.Metadata.GetOrientation();
-            Size size = this.SourceRectangle.Size;
             switch (orientation)
             {
                 case OrientationMode.TopRight:
@@ -37,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     break;
 
                 case OrientationMode.BottomRight:
-                    new RotateProcessor((int)RotateMode.Rotate180, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate180, this.SourceRectangle.Size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomLeft:
@@ -45,34 +46,36 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     break;
 
                 case OrientationMode.LeftTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, this.SourceRectangle.Size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     new FlipProcessor(FlipMode.Horizontal).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, this.SourceRectangle.Size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightBottom:
                     new FlipProcessor(FlipMode.Vertical).Execute(this.Configuration, this.Source, this.SourceRectangle);
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, this.SourceRectangle.Size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftBottom:
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
-                    break;
-
-                case OrientationMode.Unknown:
-                case OrientationMode.TopLeft:
-                default:
+                    new RotateProcessor((int)RotateMode.Rotate270, this.SourceRectangle.Size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
             }
 
-            // Reset the orientation to top/left
-            if (orientation != OrientationMode.Unknown)
+            if (this.Source.Metadata.ExifProfile is not null)
             {
-                this.Source.Metadata.ExifProfile ??= new ExifProfile();
-                this.Source.Metadata.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationMode.TopLeft);
+                switch (this.autoOrientMode)
+                {
+                    case AutoOrientMode.ResetExifValue:
+                        this.Source.Metadata.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationMode.TopLeft);
+                        break;
+
+                    case AutoOrientMode.RemoveExifValue:
+                        this.Source.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
+                        break;
+                }
             }
 
             base.BeforeImageApply();

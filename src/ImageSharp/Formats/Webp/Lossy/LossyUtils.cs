@@ -1281,10 +1281,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void SimpleVFilter16i(Span<byte> p, int offset, int stride, int thresh)
         {
-            for (int k = 3; k > 0; k--)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                offset += 4 * stride;
-                SimpleVFilter16(p, offset, stride, thresh);
+                for (int k = 3; k > 0; k--)
+                {
+                    offset += 4 * stride;
+                    SimpleVFilter16(p, offset, stride, thresh);
+                }
+            }
+            else
+#endif
+            {
+                for (int k = 3; k > 0; k--)
+                {
+                    offset += 4 * stride;
+                    SimpleVFilter16(p, offset, stride, thresh);
+                }
             }
         }
 

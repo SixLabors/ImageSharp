@@ -14,42 +14,42 @@ namespace SixLabors.ImageSharp.Processing
         Unknown = 0,
 
         /// <summary>
-        /// The 0th row at the top, the 0th column on the left.
+        /// Horizontal (normal) - the 0th row at the top, the 0th column on the left.
         /// </summary>
         TopLeft = 1,
 
         /// <summary>
-        /// The 0th row at the top, the 0th column on the right.
+        /// Mirror horizontal - the 0th row at the top, the 0th column on the right.
         /// </summary>
         TopRight = 2,
 
         /// <summary>
-        /// The 0th row at the bottom, the 0th column on the right.
+        /// Rotate 180 - the 0th row at the bottom, the 0th column on the right.
         /// </summary>
         BottomRight = 3,
 
         /// <summary>
-        /// The 0th row at the bottom, the 0th column on the left.
+        /// Mirror vertical - the 0th row at the bottom, the 0th column on the left.
         /// </summary>
         BottomLeft = 4,
 
         /// <summary>
-        /// The 0th row on the left, the 0th column at the top.
+        /// Mirror horizontal and rotate 270 CW - the 0th row on the left, the 0th column at the top.
         /// </summary>
         LeftTop = 5,
 
         /// <summary>
-        /// The 0th row at the right, the 0th column at the top.
+        /// Rotate 90 CW - the 0th row at the right, the 0th column at the top.
         /// </summary>
         RightTop = 6,
 
         /// <summary>
-        /// The 0th row on the right, the 0th column at the bottom.
+        /// Mirror horizontal and rotate 90 CW - the 0th row on the right, the 0th column at the bottom.
         /// </summary>
         RightBottom = 7,
 
         /// <summary>
-        /// The 0th row on the left, the 0th column at the bottom.
+        /// Rotate 270 CW - the 0th row on the left, the 0th column at the bottom.
         /// </summary>
         LeftBottom = 8
     }

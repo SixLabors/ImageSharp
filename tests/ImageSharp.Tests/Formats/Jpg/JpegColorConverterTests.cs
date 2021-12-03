@@ -18,11 +18,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public class JpegColorConverterTests
     {
+        private static readonly float MaxColorChannelValue = 255f;
+
         private const float Precision = 0.1F / 255;
 
         private const int TestBufferLength = 40;
 
-        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(Precision);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(epsilon: Precision);
 
         public static readonly TheoryData<int> Seeds = new() { 1, 2, 3 };
 
@@ -369,9 +371,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int componentCount,
             int seed)
         {
-            const float minVal = 0f;
-            const float maxVal = Precision;
-
             var rnd = new Random(seed);
 
             var buffers = new Buffer2D<float>[componentCount];
@@ -381,7 +380,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 for (int j = 0; j < values.Length; j++)
                 {
-                    values[j] = ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
+                    values[j] = (float)rnd.NextDouble() * MaxColorChannelValue;
                 }
 
                 // no need to dispose when buffer is not array owner
@@ -401,10 +400,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             JpegColorConverterBase.ComponentValues original = CreateRandomValues(TestBufferLength, componentCount, seed);
             JpegColorConverterBase.ComponentValues values = new(
                     original.ComponentCount,
-                    original.Component0,
-                    original.Component1,
-                    original.Component2,
-                    original.Component3);
+                    original.Component0.ToArray(),
+                    original.Component1.ToArray(),
+                    original.Component2.ToArray(),
+                    original.Component3.ToArray());
 
             converter.ConvertToRgbInplace(values);
 
@@ -449,10 +448,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float y = values.Component0[i];
             float cb = values.Component1[i];
             float cr = values.Component2[i];
-            var ycbcr = new YCbCr(y, cb, cr);
-
+            var expected = ColorSpaceConverter.ToRgb(new YCbCr(y, cb, cr));
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
-            var expected = ColorSpaceConverter.ToRgb(ycbcr);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
             Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -460,8 +457,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static void ValidateCyyK(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
-            var v = new Vector4(0, 0, 0, 1F);
-            var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
+            Vector4 v = Vector4.Zero;
 
             float y = values.Component0[i];
             float cb = values.Component1[i] - 128F;
@@ -475,10 +471,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             v.Z = (255F - (float)Math.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
             v.W = 1F;
 
-            v *= scale;
-
-            var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
+            v /= new Vector4(MaxColorChannelValue, MaxColorChannelValue, MaxColorChannelValue, 1f);
             var expected = new Rgb(v.X, v.Y, v.Z);
+            var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
             Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -489,9 +484,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float r = values.Component0[i];
             float g = values.Component1[i];
             float b = values.Component2[i];
-
+            var expected = new Rgb(new Vector3(r, g, b) / new Vector3(MaxColorChannelValue));
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
-            var expected = new Rgb(r / 255F, g / 255F, b / 255F);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
             Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -500,8 +494,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private static void ValidateGrayScale(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
             float y = values.Component0[i];
+            var expected = new Rgb(new Vector3(y) / new Vector3(MaxColorChannelValue));
             var actual = new Rgb(result.Component0[i], result.Component0[i], result.Component0[i]);
-            var expected = new Rgb(y / 255F, y / 255F, y / 255F);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
             Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -509,8 +503,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static void ValidateCmyk(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
-            var v = new Vector4(0, 0, 0, 1F);
-            var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
+            Vector4 v = Vector4.Zero;
 
             float c = values.Component0[i];
             float m = values.Component1[i];
@@ -522,10 +515,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             v.Z = y * k;
             v.W = 1F;
 
-            v *= scale;
-
-            var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
+            v /= new Vector4(MaxColorChannelValue, MaxColorChannelValue, MaxColorChannelValue, 1f);
             var expected = new Rgb(v.X, v.Y, v.Z);
+            var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
             Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");

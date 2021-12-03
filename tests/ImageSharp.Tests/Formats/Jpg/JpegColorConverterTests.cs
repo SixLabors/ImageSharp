@@ -449,6 +449,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float cb = values.Component1[i];
             float cr = values.Component2[i];
             var expected = ColorSpaceConverter.ToRgb(new YCbCr(y, cb, cr));
+
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
@@ -469,10 +470,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 y - (0.344136F * cb) - (0.714136F * cr),
                 MidpointRounding.AwayFromZero)) * k;
             v.Z = (255F - (float)Math.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
-            v.W = 1F;
 
-            v /= new Vector4(MaxColorChannelValue, MaxColorChannelValue, MaxColorChannelValue, 1f);
-            var expected = new Rgb(v.X, v.Y, v.Z);
+            float r = v.X / MaxColorChannelValue;
+            float g = v.Y / MaxColorChannelValue;
+            float b = v.Z / MaxColorChannelValue;
+            var expected = new Rgb(r, g, b);
+
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
@@ -481,10 +484,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static void ValidateRgb(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
-            float r = values.Component0[i];
-            float g = values.Component1[i];
-            float b = values.Component2[i];
-            var expected = new Rgb(new Vector3(r, g, b) / new Vector3(MaxColorChannelValue));
+            float r = values.Component0[i] / MaxColorChannelValue;
+            float g = values.Component1[i] / MaxColorChannelValue;
+            float b = values.Component2[i] / MaxColorChannelValue;
+            var expected = new Rgb(r, g, b);
+
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
@@ -493,8 +497,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static void ValidateGrayScale(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
         {
-            float y = values.Component0[i];
-            var expected = new Rgb(new Vector3(y) / new Vector3(MaxColorChannelValue));
+            float y = values.Component0[i] / MaxColorChannelValue;
+            var expected = new Rgb(y, y, y);
+
             var actual = new Rgb(result.Component0[i], result.Component0[i], result.Component0[i]);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);
@@ -510,13 +515,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float y = values.Component2[i];
             float k = values.Component3[i] / 255F;
 
-            v.X = c * k;
-            v.Y = m * k;
-            v.Z = y * k;
-            v.W = 1F;
+            float r = c * k / MaxColorChannelValue;
+            float g = m * k / MaxColorChannelValue;
+            float b = y * k / MaxColorChannelValue;
+            var expected = new Rgb(r, g, b);
 
-            v /= new Vector4(MaxColorChannelValue, MaxColorChannelValue, MaxColorChannelValue, 1f);
-            var expected = new Rgb(v.X, v.Y, v.Z);
             var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
 
             bool equal = ColorSpaceComparer.Equals(expected, actual);

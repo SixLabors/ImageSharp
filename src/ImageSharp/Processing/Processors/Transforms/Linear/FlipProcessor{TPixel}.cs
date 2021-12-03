@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class FlipProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly FlipProcessor definition;
+        private readonly FlipMode flipMode;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FlipProcessor{TPixel}"/> class.
@@ -27,14 +27,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public FlipProcessor(Configuration configuration, FlipProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.flipMode = definition.FlipMode;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            switch (this.definition.FlipMode)
+            switch (this.flipMode)
             {
                 // No default needed as we have already set the pixels.
                 case FlipMode.Vertical:

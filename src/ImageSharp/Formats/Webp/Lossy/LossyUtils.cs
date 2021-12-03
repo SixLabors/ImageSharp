@@ -2295,14 +2295,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Memset(Span<byte> dst, byte value, int startIdx, int count)
-        {
-            int end = startIdx + count;
-            for (int i = startIdx; i < end; i++)
-            {
-                dst[i] = value;
-            }
-        }
+        private static void Memset(Span<byte> dst, byte value, int startIdx, int count) => dst.Slice(startIdx, count).Fill(value);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Clamp255(int x) => x < 0 ? 0 : x > 255 ? 255 : x;

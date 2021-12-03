@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Provides enumeration over how a image should be flipped.
+    /// Provides an enumeration over how an image should be flipped.
     /// </summary>
     public enum FlipMode
     {
@@ -21,6 +21,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Flip the image vertically.
         /// </summary>
-        Vertical,
+        Vertical
     }
 }

@@ -26,14 +26,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public sealed override bool IsAvailable => Vector<float>.Count % 4 == 0;
+            public sealed override bool IsAvailable => Vector.IsHardwareAccelerated && Vector<float>.Count % 4 == 0;
 
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
-                DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware");
+                DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
                 int length = values.Component0.Length;
-                int remainder = values.Component0.Length % Vector<float>.Count;
+                int remainder = length % Vector<float>.Count;
 
                 // Jpeg images are guaranteed to have pixel strides at least 8 pixels wide
                 // Thus there's no need to check whether simdCount is greater than zero

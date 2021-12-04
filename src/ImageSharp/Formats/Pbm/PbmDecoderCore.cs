@@ -94,8 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             int bytesRead = stream.Read(buffer);
             if (bytesRead != 2 || buffer[0] != 'P')
             {
-                // Empty or not an PPM image.
-                throw new InvalidImageContentException("TODO");
+                throw new InvalidImageContentException("Empty or not an PPM image.");
             }
 
             switch ((char)buffer[1])
@@ -134,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 // PAM image: sequence of images.
                 // Not implemented yet
                 default:
-                    throw new NotImplementedException("TODO");
+                    throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
             }
 
             stream.SkipWhitespaceAndComments();

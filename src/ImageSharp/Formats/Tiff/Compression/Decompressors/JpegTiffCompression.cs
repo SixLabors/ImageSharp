@@ -55,17 +55,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             {
                 using var jpegDecoder = new JpegDecoderCore(this.configuration, new JpegDecoder());
 
-                // TODO: Should we pass through the CancellationToken from the tiff decoder?
                 // If the PhotometricInterpretation is YCbCr we explicitly assume the JPEG data is in RGB color space.
                 // There seems no other way to determine that the JPEG data is RGB colorspace (no APP14 marker, componentId's are not RGB).
                 using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
-                    new RgbJpegSpectralConverter<Rgb24>(this.configuration, CancellationToken.None) : new SpectralConverter<Rgb24>(this.configuration, CancellationToken.None);
+                    new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
                 var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
                 jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                 scanDecoder.ResetInterval = 0;
                 jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
 
-                CopyImageBytesToBuffer(buffer, spectralConverter.GetPixelBuffer());
+                // TODO: Should we pass through the CancellationToken from the tiff decoder?
+                CopyImageBytesToBuffer(buffer, spectralConverter.GetPixelBuffer(CancellationToken.None));
             }
             else
             {

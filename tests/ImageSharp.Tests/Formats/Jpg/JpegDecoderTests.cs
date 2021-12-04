@@ -93,6 +93,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.IsType<Image<Rgb24>>(image);
         }
 
+        [Fact]
+        public async Task DecodeAsync_NonGeneric_CreatesRgb24Image()
+        {
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using Image image = await Image.LoadAsync(file);
+            Assert.IsType<Image<Rgb24>>(image);
+        }
+
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes)]
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)

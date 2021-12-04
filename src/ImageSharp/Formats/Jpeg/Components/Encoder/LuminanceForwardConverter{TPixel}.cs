@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,38 +17,62 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
+        /// Number of pixels processed per single <see cref="Convert(int, int, ref RowOctet{TPixel})"/> call
+        /// </summary>
+        private const int PixelsPerSample = 8 * 8;
+
+        /// <summary>
         /// The Y component
         /// </summary>
         public Block8x8F Y;
 
         /// <summary>
-        /// Temporal 8x8 block to hold TPixel data
+        /// Temporal 64-pixel span to hold unconverted TPixel data.
         /// </summary>
-        private GenericBlock8x8<TPixel> pixelBlock;
+        private readonly Span<TPixel> pixelSpan;
 
         /// <summary>
-        /// Temporal RGB block
+        /// Temporal 64-byte span to hold converted <see cref="L8"/> data.
         /// </summary>
-        private GenericBlock8x8<L8> l8Block;
+        private readonly Span<L8> l8Span;
 
-        public static LuminanceForwardConverter<TPixel> Create()
+        /// <summary>
+        /// Sampled pixel buffer size.
+        /// </summary>
+        private readonly Size samplingAreaSize;
+
+        /// <summary>
+        /// <see cref="Configuration"/> for internal operations.
+        /// </summary>
+        private readonly Configuration config;
+
+        public LuminanceForwardConverter(ImageFrame<TPixel> frame)
         {
-            var result = default(LuminanceForwardConverter<TPixel>);
-            return result;
+            this.Y = default;
+
+            this.pixelSpan = new TPixel[PixelsPerSample].AsSpan();
+            this.l8Span = new L8[PixelsPerSample].AsSpan();
+
+            this.samplingAreaSize = new Size(frame.Width, frame.Height);
+            this.config = frame.GetConfiguration();
         }
+
+        /// <summary>
+        /// Gets size of sampling area from given frame pixel buffer.
+        /// </summary>
+        private static Size SampleSize => new(8, 8);
 
         /// <summary>
         /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>)
         /// </summary>
-        public void Convert(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows)
+        public void Convert(int x, int y, ref RowOctet<TPixel> currentRows)
         {
-            this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, ref currentRows);
+            YCbCrForwardConverter<TPixel>.LoadAndStretchEdges(currentRows, this.pixelSpan, new Point(x, y), SampleSize, this.samplingAreaSize);
 
-            Span<L8> l8Span = this.l8Block.AsSpanUnsafe();
-            PixelOperations<TPixel>.Instance.ToL8(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), l8Span);
+            PixelOperations<TPixel>.Instance.ToL8(this.config, this.pixelSpan, this.l8Span);
 
             ref Block8x8F yBlock = ref this.Y;
-            ref L8 l8Start = ref l8Span[0];
+            ref L8 l8Start = ref MemoryMarshal.GetReference(this.l8Span);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {

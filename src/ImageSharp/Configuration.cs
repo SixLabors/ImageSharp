@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <remarks>
         /// It's possible to reduce allocator footprint by assigning a custom instance created with
-        /// <see cref="Memory.MemoryAllocator.Create(MemoryAllocatorSettings)"/>, but note that since the default pooling
+        /// <see cref="Memory.MemoryAllocator.Create(MemoryAllocatorOptions)"/>, but note that since the default pooling
         /// allocators are expensive, it is strictly recommended to use a single process-wide allocator.
         /// You can ensure this by altering the allocator of <see cref="Default"/>, or by implementing custom application logic that
         /// manages allocator lifetime.

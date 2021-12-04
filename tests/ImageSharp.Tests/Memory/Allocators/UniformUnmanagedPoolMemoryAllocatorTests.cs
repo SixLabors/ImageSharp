@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 
             static void RunTest()
             {
-                var allocator = MemoryAllocator.Create(new MemoryAllocatorSettings()
+                var allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
                 {
                     MaximumPoolSizeMegabytes = 8
                 });

@@ -270,8 +270,15 @@ namespace SixLabors.ImageSharp
                 return pixel;
             }
 
+            if (this.boxedHighPrecisionPixel is null)
+            {
+                pixel = default;
+                pixel.FromRgba64(this.data);
+                return pixel;
+            }
+
             pixel = default;
-            pixel.FromRgba64(this.data);
+            pixel.FromScaledVector4(this.boxedHighPrecisionPixel.ToScaledVector4());
             return pixel;
         }
 

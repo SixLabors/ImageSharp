@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         // Transforms (Paragraph 14.4)
         // Does two inverse transforms.
-        public static void ITransform(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
+        public static void ITransformTwo(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
@@ -208,10 +208,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 ref2 = Sse2.PackUnsignedSaturate(ref2InvAdded, ref2InvAdded);
                 ref3 = Sse2.PackUnsignedSaturate(ref3InvAdded, ref3InvAdded);
 
-                // Unsigned saturate to 8b.
-                ref byte outputRef = ref MemoryMarshal.GetReference(dst);
-
                 // Store eight bytes/pixels per line.
+                ref byte outputRef = ref MemoryMarshal.GetReference(dst);
                 Unsafe.As<byte, Vector64<byte>>(ref outputRef) = ref0.GetLower();
                 Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = ref1.GetLower();
                 Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = ref2.GetLower();

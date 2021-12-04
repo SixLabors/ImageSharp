@@ -53,22 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <inheritdoc/>
         Size IImageDecoderInternals.Dimensions => this.PixelSize;
 
-        private bool NeedsUpscaling
-        {
-            get
-            {
-                bool needsUpscaling = false;
-                if (this.ColorType != PbmColorType.BlackAndWhite)
-                {
-                    if (this.MaxPixelValue is not 255 and not 65535)
-                    {
-                        needsUpscaling = true;
-                    }
-                }
-
-                return needsUpscaling;
-            }
-        }
+        private bool NeedsUpscaling => this.ColorType != PbmColorType.BlackAndWhite && this.MaxPixelValue is not 255 and not 65535;
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)

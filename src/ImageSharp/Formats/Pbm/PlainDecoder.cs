@@ -14,6 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </summary>
     internal class PlainDecoder
     {
+        private static L8 white = new L8(255);
+        private static L8 black = new L8(0);
+
         /// <summary>
         /// Decode the specified pixels.
         /// </summary>
@@ -174,8 +177,6 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
-            var white = new L8(255);
-            var black = new L8(0);
 
             for (int y = 0; y < height; y++)
             {

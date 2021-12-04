@@ -83,9 +83,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void WriteWideGrayscale<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            const int bytesPerPixel = 2;
             int width = image.Width;
             int height = image.Height;
-            int bytesPerPixel = 2;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
             Span<byte> rowSpan = row.GetSpan();
@@ -107,9 +107,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void WriteRgb<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            const int bytesPerPixel = 3;
             int width = image.Width;
             int height = image.Height;
-            int bytesPerPixel = 3;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
             Span<byte> rowSpan = row.GetSpan();
@@ -131,9 +131,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void WriteWideRgb<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            const int bytesPerPixel = 6;
             int width = image.Width;
             int height = image.Height;
-            int bytesPerPixel = 6;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
             Span<byte> rowSpan = row.GetSpan();

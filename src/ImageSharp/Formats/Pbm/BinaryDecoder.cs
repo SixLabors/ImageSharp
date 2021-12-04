@@ -14,6 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </summary>
     internal class BinaryDecoder
     {
+        private static L8 white = new L8(255);
+        private static L8 black = new L8(0);
+
         /// <summary>
         /// Decode the specified pixels.
         /// </summary>
@@ -60,9 +63,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void ProcessGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            const int bytesPerPixel = 1;
             int width = pixels.Width;
             int height = pixels.Height;
-            int bytesPerPixel = 1;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
             Span<byte> rowSpan = row.GetSpan();
@@ -82,9 +85,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void ProcessWideGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            const int bytesPerPixel = 2;
             int width = pixels.Width;
             int height = pixels.Height;
-            int bytesPerPixel = 2;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
             Span<byte> rowSpan = row.GetSpan();
@@ -104,9 +107,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void ProcessRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            const int bytesPerPixel = 3;
             int width = pixels.Width;
             int height = pixels.Height;
-            int bytesPerPixel = 3;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
             Span<byte> rowSpan = row.GetSpan();
@@ -126,9 +129,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         private static void ProcessWideRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            const int bytesPerPixel = 6;
             int width = pixels.Width;
             int height = pixels.Height;
-            int bytesPerPixel = 6;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
             Span<byte> rowSpan = row.GetSpan();
@@ -154,8 +157,6 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
-            var white = new L8(255);
-            var black = new L8(0);
 
             for (int y = 0; y < height; y++)
             {

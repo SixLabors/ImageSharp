@@ -47,46 +47,58 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 }
             }
 
-            public static readonly bool IsNotMacOs = !TestEnvironment.IsOSX;
-
-            // TODO: Investigate failures on MacOS. All handles are released after GC.
-            // (It seems to happen more consistently on .NET 6.)
-            [ConditionalFact(nameof(IsNotMacOs))]
-            public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
+            // Complicated Xunit ceremony to disable parallel execution of an individual test,
+            // MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed,
+            // which is strongly timing-sensitive, and might be flaky under high load.
+            [CollectionDefinition(nameof(NonParallelCollection), DisableParallelization = true)]
+            public class NonParallelCollection
             {
-                RemoteExecutor.Invoke(RunTest).Dispose();
+            }
 
-                static void RunTest()
+            [Collection(nameof(NonParallelCollection))]
+            public class NonParallel
+            {
+                public static readonly bool IsNotMacOs = !TestEnvironment.IsOSX;
+
+                // TODO: Investigate failures on MacOS. All handles are released after GC.
+                // (It seems to happen more consistently on .NET 6.)
+                [ConditionalFact(nameof(IsNotMacOs))]
+                public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
                 {
-                    var trimSettings1 = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 6_000 };
-                    var pool1 = new UniformUnmanagedMemoryPool(128, 256, trimSettings1);
-                    Thread.Sleep(8_000); // Let some callbacks fire already
-                    var trimSettings2 = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 3_000 };
-                    var pool2 = new UniformUnmanagedMemoryPool(128, 256, trimSettings2);
+                    RemoteExecutor.Invoke(RunTest).Dispose();
 
-                    pool1.Return(pool1.Rent(64));
-                    pool2.Return(pool2.Rent(64));
-                    Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                    static void RunTest()
+                    {
+                        var trimSettings1 = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 6_000 };
+                        var pool1 = new UniformUnmanagedMemoryPool(128, 256, trimSettings1);
+                        Thread.Sleep(8_000); // Let some callbacks fire already
+                        var trimSettings2 = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 3_000 };
+                        var pool2 = new UniformUnmanagedMemoryPool(128, 256, trimSettings2);
 
-                    // This exercises pool weak reference list trimming:
-                    LeakPoolInstance();
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
+                        pool1.Return(pool1.Rent(64));
+                        pool2.Return(pool2.Rent(64));
+                        Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
 
-                    Thread.Sleep(15_000);
-                    Assert.True(
-                        UnmanagedMemoryHandle.TotalOutstandingHandles <= 64,
-                        $"UnmanagedMemoryHandle.TotalOutstandingHandles={UnmanagedMemoryHandle.TotalOutstandingHandles} > 64");
-                    GC.KeepAlive(pool1);
-                    GC.KeepAlive(pool2);
-                }
+                        // This exercises pool weak reference list trimming:
+                        LeakPoolInstance();
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+                        Assert.Equal(128, UnmanagedMemoryHandle.TotalOutstandingHandles);
 
-                [MethodImpl(MethodImplOptions.NoInlining)]
-                static void LeakPoolInstance()
-                {
-                    var trimSettings = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 4_000 };
-                    _ = new UniformUnmanagedMemoryPool(128, 256, trimSettings);
+                        Thread.Sleep(15_000);
+                        Assert.True(
+                            UnmanagedMemoryHandle.TotalOutstandingHandles <= 64,
+                            $"UnmanagedMemoryHandle.TotalOutstandingHandles={UnmanagedMemoryHandle.TotalOutstandingHandles} > 64");
+                        GC.KeepAlive(pool1);
+                        GC.KeepAlive(pool2);
+                    }
+
+                    [MethodImpl(MethodImplOptions.NoInlining)]
+                    static void LeakPoolInstance()
+                    {
+                        var trimSettings = new UniformUnmanagedMemoryPool.TrimSettings { TrimPeriodMilliseconds = 4_000 };
+                        _ = new UniformUnmanagedMemoryPool(128, 256, trimSettings);
+                    }
                 }
             }
 

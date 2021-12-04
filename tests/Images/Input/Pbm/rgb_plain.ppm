@@ -1,8 +1,3 @@
-P3
-# example from the man page
-4 4
-15
- 0  0  0    0  0  0    0  0  0   15  0 15
- 0  0  0    0 15  7    0  0  0    0  0  0
- 0  0  0    0  0  0    0 15  7    0  0  0
-15  0 15    0  0  0    0  0  0    0  0  0
+version https://git-lfs.github.com/spec/v1
+oid sha256:895cd889f6723a5357936e852308cff25b74ead01618bf8efa0f876a86dc18c1
+size 205

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromYCbCrVector : VectorizedJpegColorConverter
+        internal sealed class FromYCbCrVector : JpegColorConverterVector
         {
             public FromYCbCrVector(int precision)
                 : base(JpegColorSpace.YCbCr, precision)

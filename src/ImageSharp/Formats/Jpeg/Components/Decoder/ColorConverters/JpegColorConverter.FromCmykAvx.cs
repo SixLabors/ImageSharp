@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromCmykAvx : AvxColorConverter
+        internal sealed class FromCmykAvx : JpegColorConverterAvx
         {
             public FromCmykAvx(int precision)
                 : base(JpegColorSpace.Cmyk, precision)

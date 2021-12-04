@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// such data out of the box. These converters have fallback code
         /// for 'remainder' data.
         /// </remarks>
-        internal abstract class VectorizedJpegColorConverter : JpegColorConverterBase
+        internal abstract class JpegColorConverterVector : JpegColorConverterBase
         {
-            protected VectorizedJpegColorConverter(JpegColorSpace colorSpace, int precision)
+            protected JpegColorConverterVector(JpegColorSpace colorSpace, int precision)
                 : base(colorSpace, precision)
             {
             }
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
                 int length = values.Component0.Length;
-                int remainder = length % Vector<float>.Count;
+                int remainder = (int)((uint)length % (uint)Vector<float>.Count);
 
                 // Jpeg images are guaranteed to have pixel strides at least 8 pixels wide
                 // Thus there's no need to check whether simdCount is greater than zero

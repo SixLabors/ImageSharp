@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <see cref="JpegColorConverterBase"/> abstract base for implementations
         /// based on scalar instructions.
         /// </summary>
-        internal abstract class ScalarJpegColorConverter : JpegColorConverterBase
+        internal abstract class JpegColorConverterScalar : JpegColorConverterBase
         {
-            protected ScalarJpegColorConverter(JpegColorSpace colorSpace, int precision)
+            protected JpegColorConverterScalar(JpegColorSpace colorSpace, int precision)
                 : base(colorSpace, precision)
             {
             }

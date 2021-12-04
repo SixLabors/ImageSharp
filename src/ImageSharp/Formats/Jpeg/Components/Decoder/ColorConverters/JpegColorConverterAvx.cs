@@ -18,9 +18,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// DO NOT pass test data of invalid size to these converters as they
         /// potentially won't do a bound check and return a false positive result.
         /// </remarks>
-        internal abstract class AvxColorConverter : JpegColorConverterBase
+        internal abstract class JpegColorConverterAvx : JpegColorConverterBase
         {
-            protected AvxColorConverter(JpegColorSpace colorSpace, int precision)
+            protected JpegColorConverterAvx(JpegColorSpace colorSpace, int precision)
                 : base(colorSpace, precision)
             {
             }

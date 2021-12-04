@@ -74,6 +74,7 @@ namespace SixLabors.ImageSharp.Advanced
 
                 Seed<A8>();
                 Seed<Argb32>();
+                Seed<Abgr32>();
                 Seed<Bgr24>();
                 Seed<Bgr565>();
                 Seed<Bgra32>();
@@ -148,6 +149,7 @@ namespace SixLabors.ImageSharp.Advanced
             Image<TPixel> img = default;
             img.CloneAs<A8>(default);
             img.CloneAs<Argb32>(default);
+            img.CloneAs<Abgr32>(default);
             img.CloneAs<Bgr24>(default);
             img.CloneAs<Bgr565>(default);
             img.CloneAs<Bgra32>(default);

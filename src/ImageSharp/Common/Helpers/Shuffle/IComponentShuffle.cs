@@ -194,4 +194,74 @@ namespace SixLabors.ImageSharp
             }
         }
     }
+
+    internal readonly struct XWZYShuffle4 : IShuffle4
+    {
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(1, 2, 3, 0);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+        {
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
+
+            for (int i = 0; i < n; i++)
+            {
+                uint packed = Unsafe.Add(ref sBase, i);
+
+                // packed              = [W Z Y X]
+                // tmp1                = [0 Z 0 X]
+                // tmp2                = [W 0 Y 0]
+                // tmp3=ROTL(16, tmp2) = [Y 0 W 0]
+                // tmp1 + tmp3         = [Y Z W X]
+                uint tmp1 = packed & 0xFF00FF00;
+                uint tmp2 = packed & 0x00FF00FF;
+                uint tmp3 = (tmp2 << 16) | (tmp2 >> 16);
+
+                Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
+            }
+        }
+    }
+
+    internal readonly struct XZWYShuffle4 : IShuffle4
+    {
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(1, 3, 2, 0);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+        {
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
+
+            for (int i = 0; i < n; i++)
+            {
+                uint packed = Unsafe.Add(ref sBase, i);
+
+                // packed              = [W Z Y X]
+                // tmp1                = [0 0 0 X]
+                // tmp2                = [W Z 0 0]
+                // tmp3                = [0 0 Y 0]
+                // tmp4=ROTR(8, tmp2)  = [0 W Z 0]
+                // tmp5=ROTL(16, tmp3) = [Y 0 0 0]
+                // tmp1+ tmp3 + tmp4   = [Y W Z X]
+                uint tmp1 = packed & 0x000000FF;
+                uint tmp2 = packed & 0xFFFF0000;
+                uint tmp3 = packed & 0x0000FF00;
+                uint tmp4 = tmp2 >> 8;
+                uint tmp5 = tmp3 << 16;
+
+                Unsafe.Add(ref dBase, i) = tmp1 + tmp4 + tmp5;
+            }
+        }
+    }
 }

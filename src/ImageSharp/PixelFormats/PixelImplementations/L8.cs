@@ -85,6 +85,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromAbgr32(Abgr32 source) => this.PackedValue = ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>

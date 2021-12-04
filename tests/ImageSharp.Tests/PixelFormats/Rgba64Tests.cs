@@ -184,6 +184,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void ConstructFrom_Abgr32()
+        {
+            var expected = new Rgba64(5140, 9766, 19532, 29555);
+            var source = new Abgr32(20, 38, 76, 115);
+            var actual = new Rgba64(source);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void ConstructFrom_Rgb24()
         {
             var expected = new Rgba64(5140, 9766, 19532, ushort.MaxValue);
@@ -252,6 +262,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             var actual = source.ToArgb32();
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void ToAbgr32_Retval()
+        {
+            // arrange
+            var source = new Rgba64(5140, 9766, 19532, 29555);
+            var expected = new Abgr32(20, 38, 76, 115);
+
+            // act
+            var actual = source.ToAbgr32();
 
             // assert
             Assert.Equal(expected, actual);

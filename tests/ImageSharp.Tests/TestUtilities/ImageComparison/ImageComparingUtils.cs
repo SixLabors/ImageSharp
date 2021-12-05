@@ -5,12 +5,11 @@ using System;
 using System.IO;
 using ImageMagick;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tga
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
-    public static class TgaTestUtils
+    public static class ImageComparingUtils
     {
         public static void CompareWithReferenceDecoder<TPixel>(
             TestImageProvider<TPixel> provider,

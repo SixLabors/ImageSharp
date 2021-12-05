@@ -4,7 +4,6 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 
@@ -18,9 +17,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         [InlineData(BlackAndWhitePlain, PbmColorType.BlackAndWhite)]
         [InlineData(BlackAndWhiteBinary, PbmColorType.BlackAndWhite)]
         [InlineData(GrayscalePlain, PbmColorType.Grayscale)]
+        [InlineData(GrayscalePlainMagick, PbmColorType.Grayscale)]
         [InlineData(GrayscaleBinary, PbmColorType.Grayscale)]
         [InlineData(GrayscaleBinaryWide, PbmColorType.Grayscale)]
         [InlineData(RgbPlain, PbmColorType.Rgb)]
+        [InlineData(RgbPlainMagick, PbmColorType.Rgb)]
         [InlineData(RgbBinary, PbmColorType.Rgb)]
         public void ImageLoadCanDecode(string imagePath, PbmColorType expectedColorType)
         {
@@ -42,6 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         [InlineData(BlackAndWhitePlain)]
         [InlineData(BlackAndWhiteBinary)]
         [InlineData(GrayscalePlain)]
+        [InlineData(GrayscalePlainMagick)]
         [InlineData(GrayscaleBinary)]
         [InlineData(GrayscaleBinaryWide)]
         public void ImageLoadL8CanDecode(string imagePath)
@@ -59,6 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
         [Theory]
         [InlineData(RgbPlain)]
+        [InlineData(RgbPlainMagick)]
         [InlineData(RgbBinary)]
         public void ImageLoadRgb24CanDecode(string imagePath)
         {

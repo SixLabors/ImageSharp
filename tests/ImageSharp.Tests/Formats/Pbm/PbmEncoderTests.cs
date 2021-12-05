@@ -93,24 +93,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         public void PbmEncoder_P4_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestPbmEncoderCore(provider, PbmColorType.BlackAndWhite, PbmEncoding.Binary);
 
-        /* Disabled as Magick throws an error reading the input image
         [Theory]
-        [WithFile(GrayscalePlain, PixelTypes.Rgb24)]
+        [WithFile(GrayscalePlainMagick, PixelTypes.Rgb24)]
         public void PbmEncoder_P2_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestPbmEncoderCore(provider, PbmColorType.Grayscale, PbmEncoding.Plain);
-        */
 
         [Theory]
         [WithFile(GrayscaleBinary, PixelTypes.Rgb24)]
         public void PbmEncoder_P5_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestPbmEncoderCore(provider, PbmColorType.Grayscale, PbmEncoding.Binary);
 
-        /* Disabled as Magick throws an error reading the input image
         [Theory]
-        [WithFile(RgbPlain, PixelTypes.Rgb24)]
+        [WithFile(RgbPlainMagick, PixelTypes.Rgb24)]
         public void PbmEncoder_P3_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestPbmEncoderCore(provider, PbmColorType.Rgb, PbmEncoding.Plain);
-        */
 
         [Theory]
         [WithFile(RgbBinary, PixelTypes.Rgb24)]

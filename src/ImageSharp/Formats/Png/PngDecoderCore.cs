@@ -113,6 +113,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private PngChunk? nextChunk;
 
         /// <summary>
+        /// "Exif" and two zero bytes. Used for the legacy exif parsing.
+        /// </summary>
+        private static readonly byte[] ExifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -182,7 +187,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
                                 this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
@@ -192,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 {
                                     var exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
@@ -255,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
                                 this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
@@ -265,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 {
                                     var exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
@@ -937,9 +942,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads the compressed text chunk. Contains a uncompressed keyword and a compressed text string.
         /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object.</param>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadCompressedTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadCompressedTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -970,6 +976,94 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed))
             {
                 metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
+            }
+
+            if (name.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase))
+            {
+                this.ReadLegacyExifTextChunk(baseMetadata, uncompressed);
+            }
+        }
+
+        /// <summary>
+        /// Reads exif data encoded into a text chunk with the name "raw profile type exif".
+        /// This method was used by ImageMagick, exiftool, exiv2, digiKam, etc, before the
+        /// 2017 update to png that allowed a true exif chunk. We load 
+        /// </summary>
+        /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
+        /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>
+        private void ReadLegacyExifTextChunk(ImageMetadata metadata, string data)
+        {
+            ReadOnlySpan<char> dataSpan = data.AsSpan();
+            dataSpan = dataSpan.TrimStart();
+
+            if (!dataSpan.Slice(0, 4).ToString().Equals("exif", StringComparison.OrdinalIgnoreCase))
+            {
+                // "exif" identifier is missing from the beginning of the text chunk
+                return;
+            }
+
+            // Skip to the data length
+            dataSpan = dataSpan.Slice(4).TrimStart();
+            int dataLengthEnd = dataSpan.IndexOf('\n');
+            int dataLength = int.Parse(dataSpan.Slice(0, dataSpan.IndexOf('\n')).ToString());
+
+            // Skip to the hex-encoded data
+            dataSpan = dataSpan.Slice(dataLengthEnd).Trim();
+            string dataSpanString = dataSpan.ToString().Replace("\n", string.Empty);
+            if (dataSpanString.Length != (dataLength * 2))
+            {
+                // Invalid length
+                return;
+            }
+
+            // Parse the hex-encoded data into the byte array we are going to hand off to ExifProfile
+            byte[] dataBlob = new byte[dataLength - ExifHeader.Length];
+            for (int i = 0; i < dataLength; i++)
+            {
+                byte parsed = Convert.ToByte(dataSpanString.Substring(i * 2, 2), 16);
+                if (i < ExifHeader.Length)
+                {
+                    if (parsed != ExifHeader[i])
+                    {
+                        // Invalid exif header in the actual data blob
+                        return;
+                    }
+                }
+                else
+                {
+                    dataBlob[i - ExifHeader.Length] = parsed;
+                }
+            }
+
+            this.MergeOrSetExifProfile(metadata, new ExifProfile(dataBlob), replaceExistingKeys: false);
+        }
+
+        /// <summary>
+        /// Sets the <see cref="ExifProfile"/> in <paramref name="metadata"/> to <paramref name="newProfile"/>,
+        /// or copies exif tags if <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>.
+        /// </summary>
+        /// <param name="metadata">The <see cref="ImageMetadata"/> to store the exif data in.</param>
+        /// <param name="newProfile">The <see cref="ExifProfile"/> to copy exif tags from.</param>
+        /// <param name="replaceExistingKeys">If <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>,
+        /// controls whether existing exif tags in <paramref name="metadata"/> will be overwritten with any conflicting
+        /// tags from <paramref name="newProfile"/>.</param>
+        private void MergeOrSetExifProfile(ImageMetadata metadata, ExifProfile newProfile, bool replaceExistingKeys)
+        {
+            if (metadata.ExifProfile is null)
+            {
+                // No exif metadata was loaded yet, so just assign it
+                metadata.ExifProfile = newProfile;
+            }
+            else
+            {
+                // Try to merge existing keys with the ones from the new profile
+                foreach (IExifValue newKey in newProfile.Values)
+                {
+                    if (replaceExistingKeys || metadata.ExifProfile.GetValueInternal(newKey.Tag) is null)
+                    {
+                        metadata.ExifProfile.SetValueInternal(newKey.Tag, newKey.GetValue());
+                    }
+                }
             }
         }
 

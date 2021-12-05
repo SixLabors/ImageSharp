@@ -4,7 +4,6 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.Formats.Tga;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
     public class PbmEncoderTests
     {
         public static readonly TheoryData<PbmColorType> ColorType =
-            new TheoryData<PbmColorType>
+            new()
             {
                 PbmColorType.BlackAndWhite,
                 PbmColorType.Grayscale,
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
             };
 
         public static readonly TheoryData<string, PbmColorType> PbmColorTypeFiles =
-            new TheoryData<string, PbmColorType>
+            new()
             {
                 { BlackAndWhiteBinary, PbmColorType.BlackAndWhite },
                 { BlackAndWhitePlain, PbmColorType.BlackAndWhite },
@@ -67,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
                 Encoding = PbmEncoding.Plain
             };
 
-            TestFile testFile = TestFile.Create(imagePath);
+            var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())

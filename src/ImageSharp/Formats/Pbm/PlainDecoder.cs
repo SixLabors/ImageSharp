@@ -14,8 +14,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </summary>
     internal class PlainDecoder
     {
-        private static L8 white = new L8(255);
-        private static L8 black = new L8(0);
+        private static readonly L8 White = new(255);
+        private static readonly L8 Black = new(0);
 
         /// <summary>
         /// Decode the specified pixels.
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 {
                     int value = stream.ReadDecimal();
                     stream.SkipWhitespaceAndComments();
-                    rowSpan[x] = value == 0 ? white : black;
+                    rowSpan[x] = value == 0 ? White : Black;
                 }
 
                 Span<TPixel> pixelSpan = pixels.GetRowSpan(y);

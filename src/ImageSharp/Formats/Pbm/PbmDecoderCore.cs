@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     this.Encoding = PbmEncoding.Plain;
                     break;
                 case '4':
-                    // Binary PBM format: 1 component per pixel, 8 picels per byte.
+                    // Binary PBM format: 1 component per pixel, 8 pixels per byte.
                     this.ColorType = PbmColorType.BlackAndWhite;
                     this.Encoding = PbmEncoding.Binary;
                     break;

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <summary>
         /// Gets the current instance.
         /// </summary>
-        public static PbmFormat Instance { get; } = new PbmFormat();
+        public static PbmFormat Instance { get; } = new();
 
         /// <inheritdoc/>
         public string Name => "PBM";

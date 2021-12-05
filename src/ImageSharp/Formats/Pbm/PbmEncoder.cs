@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// Image encoder for writing an image to a stream as PGM, PBM or PPM bitmap. These images are from
     /// the family of PNM images.
     /// <para>
-    /// The PNM formats are a faily simple image format. They share a plain text header, consisting of:
+    /// The PNM formats are a fairly simple image format. They share a plain text header, consisting of:
     /// signature, width, height and max_pixel_value only. The pixels follow thereafter and can be in
-    /// plain text decimals seperated by spaces, or binary encoded.
+    /// plain text decimals separated by spaces, or binary encoded.
     /// <list type="bullet">
     /// <item>
     /// <term>PBM</term>

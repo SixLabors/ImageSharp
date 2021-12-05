@@ -11,10 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <summary>
         /// Initializes a new instance of the <see cref="PbmMetadata"/> class.
         /// </summary>
-        public PbmMetadata()
-        {
-            this.MaxPixelValue = this.ColorType == PbmColorType.BlackAndWhite ? 1 : 255;
-        }
+        public PbmMetadata() => this.MaxPixelValue = this.ColorType == PbmColorType.BlackAndWhite ? 1 : 255;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PbmMetadata"/> class.

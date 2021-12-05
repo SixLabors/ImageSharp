@@ -987,7 +987,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads exif data encoded into a text chunk with the name "raw profile type exif".
         /// This method was used by ImageMagick, exiftool, exiv2, digiKam, etc, before the
-        /// 2017 update to png that allowed a true exif chunk. We load 
+        /// 2017 update to png that allowed a true exif chunk.
         /// </summary>
         /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
         /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>

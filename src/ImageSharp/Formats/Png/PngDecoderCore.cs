@@ -997,7 +997,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<char> dataSpan = data.AsSpan();
             dataSpan = dataSpan.TrimStart();
 
-            if (!dataSpan.Slice(0, 4).ToString().Equals("exif", StringComparison.OrdinalIgnoreCase))
+            if (!StringEquals(dataSpan.Slice(0, 4), "exif".AsSpan(), StringComparison.OrdinalIgnoreCase))
             {
                 // "exif" identifier is missing from the beginning of the text chunk
                 return;
@@ -1006,37 +1006,143 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Skip to the data length
             dataSpan = dataSpan.Slice(4).TrimStart();
             int dataLengthEnd = dataSpan.IndexOf('\n');
-            int dataLength = int.Parse(dataSpan.Slice(0, dataSpan.IndexOf('\n')).ToString());
+            int dataLength = ParseInt32(dataSpan.Slice(0, dataSpan.IndexOf('\n')));
 
             // Skip to the hex-encoded data
             dataSpan = dataSpan.Slice(dataLengthEnd).Trim();
-            string dataSpanString = dataSpan.ToString().Replace("\n", string.Empty);
-            if (dataSpanString.Length != (dataLength * 2))
+
+            if (dataLength < ExifHeader.Length)
             {
-                // Invalid length
+                // Not enough room for the required exif header, this data couldn't possibly be valid
                 return;
             }
 
             // Parse the hex-encoded data into the byte array we are going to hand off to ExifProfile
-            byte[] dataBlob = new byte[dataLength - ExifHeader.Length];
-            for (int i = 0; i < dataLength; i++)
+            byte[] exifBlob = new byte[dataLength - ExifHeader.Length];
+
+            try
             {
-                byte parsed = Convert.ToByte(dataSpanString.Substring(i * 2, 2), 16);
-                if ((uint)i < (uint)ExifHeader.Length)
+                // Check for the presence of the exif header in the hex-encoded binary data
+                byte[] tempExifBuf = exifBlob;
+                if (exifBlob.Length < ExifHeader.Length)
                 {
-                    if (parsed != ExifHeader[i])
+                    // Need to allocate a temporary array, this should be an extremely uncommon (TODO: impossible?) case
+                    tempExifBuf = new byte[ExifHeader.Length];
+                }
+
+                HexStringToBytes(dataSpan.Slice(0, ExifHeader.Length * 2), tempExifBuf.AsSpan());
+                if (!tempExifBuf.AsSpan().Slice(0, ExifHeader.Length).SequenceEqual(ExifHeader))
+                {
+                    // Exif header in the hex data is not valid
+                    return;
+                }
+
+                // Skip over the exif header we just tested
+                dataSpan = dataSpan.Slice(ExifHeader.Length * 2);
+                dataLength -= ExifHeader.Length;
+
+                // Load the hex-encoded data, one line at a time
+                for (int i = 0; i < dataLength;)
+                {
+                    ReadOnlySpan<char> lineSpan = dataSpan;
+
+                    int newlineIndex = dataSpan.IndexOf('\n');
+                    if (newlineIndex != -1)
                     {
-                        // Invalid exif header in the actual data blob
-                        return;
+                        lineSpan = dataSpan.Slice(0, newlineIndex);
                     }
+
+                    i += HexStringToBytes(lineSpan, exifBlob.AsSpan().Slice(i));
+
+                    dataSpan = dataSpan.Slice(newlineIndex + 1);
+                }
+            }
+            catch
+            {
+                return;
+            }
+
+            this.MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
+        }
+
+        private static bool StringEquals(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2, StringComparison comparisonType)
+        {
+#pragma warning disable IDE0022 // Use expression body for methods
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+            return span1.Equals(span2, comparisonType);
+#else
+            return span1.ToString().Equals(span2.ToString(), comparisonType);
+#endif
+#pragma warning restore IDE0022 // Use expression body for methods
+        }
+
+        /// <summary>
+        /// int.Parse() a ReadOnlySpan&lt;char&gt;, with a fallback for older frameworks.
+        /// </summary>
+        /// <param name="span">The <see cref="int"/> to parse.</param>
+        /// <param name="style">The <see cref="System.Globalization.NumberStyles"/> of the integer to parse.</param>
+        /// <param name="provider">The <see cref="IFormatProvider"/> to use when parsing the integer.</param>
+        /// <returns>The parsed <see cref="int"/>.</returns>
+        private static int ParseInt32(
+            ReadOnlySpan<char> span,
+            System.Globalization.NumberStyles style = System.Globalization.NumberStyles.Integer,
+            IFormatProvider provider = null)
+        {
+#pragma warning disable IDE0022 // Use expression body for methods
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+            return int.Parse(span, style, provider);
+#else
+            return int.Parse(span.ToString(), style, provider);
+#endif
+#pragma warning restore IDE0022 // Use expression body for methods
+        }
+
+        /// <summary>
+        /// Parses a hexadecimal string into a byte array without allocations.
+        /// Adapted from https://stackoverflow.com/a/9995303/871842
+        /// </summary>
+        /// <param name="hexString">The hexadecimal string to parse.</param>
+        /// <param name="outputBytes">The destination for the parsed bytes. Must be at least <paramref name="hexString"/>.Length / 2 bytes long.</param>
+        /// <returns>The number of bytes written to <paramref name="outputBytes"/>.</returns>
+        private static int HexStringToBytes(ReadOnlySpan<char> hexString, Span<byte> outputBytes)
+        {
+            if ((hexString.Length % 2) != 0)
+            {
+                throw new ArgumentException("Input string length must be a multiple of 2", nameof(hexString));
+            }
+
+            if ((outputBytes.Length * 2) < hexString.Length)
+            {
+                throw new ArgumentException("Output span must be at least half the length of the input string");
+            }
+
+            static int GetHexVal(char hexChar)
+            {
+                if (hexChar >= '0' && hexChar <= '9')
+                {
+                    return hexChar - '0';
+                }
+                else if (hexChar >= 'A' && hexChar <= 'F')
+                {
+                    return 10 + (hexChar - 'A');
+                }
+                else if (hexChar >= 'a' && hexChar <= 'f')
+                {
+                    return 10 + (hexChar - 'a');
                 }
                 else
                 {
-                    dataBlob[i - ExifHeader.Length] = parsed;
+                    throw new ArgumentException($"Invalid hexadecimal value {hexChar}");
                 }
             }
 
-            this.MergeOrSetExifProfile(metadata, new ExifProfile(dataBlob), replaceExistingKeys: false);
+            int inputByteCount = hexString.Length / 2;
+            for (int i = 0; i < inputByteCount; i++)
+            {
+                outputBytes[i] = (byte)((GetHexVal(hexString[i * 2]) << 4) + GetHexVal(hexString[(i * 2) + 1]));
+            }
+
+            return inputByteCount;
         }
 
         /// <summary>

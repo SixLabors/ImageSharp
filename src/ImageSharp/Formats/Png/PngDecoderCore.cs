@@ -115,7 +115,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// "Exif" and two zero bytes. Used for the legacy exif parsing.
         /// </summary>
-        private static readonly byte[] ExifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+        // This uses C# compiler's optimization to refer to the static data directly, no intermediate array allocations happen.
+        private static ReadOnlySpan<byte> ExifHeader => new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.

@@ -444,24 +444,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     "Disco")
                 .Dispose();
         }
-
-        [Theory]
-        [WithFile(TestImages.Png.Issue1875, PixelTypes.Rgba32)]
-        public void PngDecoder_CanDecode_LegacyTextExifChunk(TestImageProvider<Rgba32> provider)
-        {
-            using Image<Rgba32> image = provider.GetImage(PngDecoder);
-
-            Assert.Equal(0, image.Metadata.ExifProfile.InvalidTags.Count);
-            Assert.Equal(3, image.Metadata.ExifProfile.Values.Count);
-
-            Assert.Equal(
-                "A colorful tiling of blue, red, yellow, and green 4x4 pixel blocks.",
-                image.Metadata.ExifProfile.GetValue(ImageSharp.Metadata.Profiles.Exif.ExifTag.ImageDescription).Value);
-            Assert.Equal(
-                "Duplicated from basn3p02.png, then image metadata modified with exiv2",
-                image.Metadata.ExifProfile.GetValue(ImageSharp.Metadata.Profiles.Exif.ExifTag.ImageHistory).Value);
-
-            Assert.Equal(42, (int)image.Metadata.ExifProfile.GetValue(ImageSharp.Metadata.Profiles.Exif.ExifTag.ImageNumber).Value);
-        }
     }
 }

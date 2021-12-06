@@ -1022,7 +1022,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             for (int i = 0; i < dataLength; i++)
             {
                 byte parsed = Convert.ToByte(dataSpanString.Substring(i * 2, 2), 16);
-                if (i < ExifHeader.Length)
+                if ((uint)i < (uint)ExifHeader.Length)
                 {
                     if (parsed != ExifHeader[i])
                     {

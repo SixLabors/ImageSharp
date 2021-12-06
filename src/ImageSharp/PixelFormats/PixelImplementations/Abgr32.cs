@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromAbgr32(Abgr32 source) => this.PackedValue = source.PackedValue;
+        public void FromAbgr32(Abgr32 source) => this = source;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

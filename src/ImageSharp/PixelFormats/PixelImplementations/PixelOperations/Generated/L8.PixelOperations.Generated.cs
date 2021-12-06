@@ -59,6 +59,26 @@ namespace SixLabors.ImageSharp.PixelFormats
                 }
             }
             /// <inheritdoc />
+            public override void ToAbgr32(
+                Configuration configuration,
+                ReadOnlySpan<L8> sourcePixels,
+                Span<Abgr32> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ref L8 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Abgr32 destRef = ref MemoryMarshal.GetReference(destinationPixels);
+
+                for (int i = 0; i < sourcePixels.Length; i++)
+                {
+                    ref L8 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Abgr32 dp = ref Unsafe.Add(ref destRef, i);
+
+                    dp.FromL8(sp);
+                }
+            }
+            /// <inheritdoc />
             public override void ToBgr24(
                 Configuration configuration,
                 ReadOnlySpan<L8> sourcePixels,

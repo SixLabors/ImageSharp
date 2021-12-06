@@ -112,6 +112,33 @@ namespace SixLabors.ImageSharp.PixelFormats
                 PixelConverter.FromArgb32.ToBgr24(source, dest);
             }
             /// <inheritdoc />
+            public override void ToAbgr32(
+                Configuration configuration,
+                ReadOnlySpan<Bgr24> sourcePixels,
+                Span<Abgr32> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Bgr24, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Abgr32, byte>(destinationPixels);
+                PixelConverter.FromBgr24.ToAbgr32(source, dest);
+            }
+
+            /// <inheritdoc />
+            public override void FromAbgr32(
+                Configuration configuration,
+                ReadOnlySpan<Abgr32> sourcePixels,
+                Span<Bgr24> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Abgr32, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Bgr24, byte>(destinationPixels);
+                PixelConverter.FromAbgr32.ToBgr24(source, dest);
+            }
+            /// <inheritdoc />
             public override void ToBgra32(
                 Configuration configuration,
                 ReadOnlySpan<Bgr24> sourcePixels,

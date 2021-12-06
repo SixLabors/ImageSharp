@@ -219,8 +219,8 @@ namespace SixLabors.ImageSharp
                 // tmp2                = [W 0 Y 0]
                 // tmp3=ROTL(16, tmp2) = [Y 0 W 0]
                 // tmp1 + tmp3         = [Y Z W X]
-                uint tmp1 = packed & 0xFF00FF00;
-                uint tmp2 = packed & 0x00FF00FF;
+                uint tmp1 = packed & 0x00FF00FF;
+                uint tmp2 = packed & 0xFF00FF00;
                 uint tmp3 = (tmp2 << 16) | (tmp2 >> 16);
 
                 Unsafe.Add(ref dBase, i) = tmp1 + tmp3;

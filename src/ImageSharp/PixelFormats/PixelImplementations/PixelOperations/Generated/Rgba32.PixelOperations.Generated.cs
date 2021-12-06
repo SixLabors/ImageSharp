@@ -66,6 +66,33 @@ namespace SixLabors.ImageSharp.PixelFormats
                 PixelConverter.FromArgb32.ToRgba32(source, dest);
             }
             /// <inheritdoc />
+            public override void ToAbgr32(
+                Configuration configuration,
+                ReadOnlySpan<Rgba32> sourcePixels,
+                Span<Abgr32> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Rgba32, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Abgr32, byte>(destinationPixels);
+                PixelConverter.FromRgba32.ToAbgr32(source, dest);
+            }
+
+            /// <inheritdoc />
+            public override void FromAbgr32(
+                Configuration configuration,
+                ReadOnlySpan<Abgr32> sourcePixels,
+                Span<Rgba32> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Abgr32, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(destinationPixels);
+                PixelConverter.FromAbgr32.ToRgba32(source, dest);
+            }
+            /// <inheritdoc />
             public override void ToBgra32(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,

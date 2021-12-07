@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -300,8 +301,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 IImageInfo imageInfo = Image.Identify(stream);
                 Assert.NotNull(imageInfo);
                 Assert.NotNull(imageInfo.Metadata.ExifProfile);
-                ExifProfile exif = imageInfo.Metadata.ExifProfile;
 
+                PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
+                Assert.DoesNotContain(meta.TextData, t => t.Keyword.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase));
+
+                ExifProfile exif = imageInfo.Metadata.ExifProfile;
                 Assert.Equal(0, exif.InvalidTags.Count);
                 Assert.Equal(3, exif.Values.Count);
 

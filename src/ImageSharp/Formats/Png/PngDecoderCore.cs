@@ -976,12 +976,16 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed))
             {
-                metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
-            }
-
-            if (name.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase))
-            {
-                this.ReadLegacyExifTextChunk(baseMetadata, uncompressed);
+                if (name.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
+                    this.TryReadLegacyExifTextChunk(baseMetadata, uncompressed))
+                {
+                    // Successfully parsed exif data stored as text in this chunk
+                }
+                else
+                {
+                    // Seems to be regular old text data, or we failed to parse it in any special way
+                    metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
+                }
             }
         }
 
@@ -992,7 +996,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
         /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>
-        private void ReadLegacyExifTextChunk(ImageMetadata metadata, string data)
+        private bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string data)
         {
             ReadOnlySpan<char> dataSpan = data.AsSpan();
             dataSpan = dataSpan.TrimStart();
@@ -1000,7 +1004,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (!StringEquals(dataSpan.Slice(0, 4), "exif".AsSpan(), StringComparison.OrdinalIgnoreCase))
             {
                 // "exif" identifier is missing from the beginning of the text chunk
-                return;
+                return false;
             }
 
             // Skip to the data length
@@ -1014,7 +1018,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (dataLength < ExifHeader.Length)
             {
                 // Not enough room for the required exif header, this data couldn't possibly be valid
-                return;
+                return false;
             }
 
             // Parse the hex-encoded data into the byte array we are going to hand off to ExifProfile
@@ -1034,7 +1038,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 if (!tempExifBuf.AsSpan().Slice(0, ExifHeader.Length).SequenceEqual(ExifHeader))
                 {
                     // Exif header in the hex data is not valid
-                    return;
+                    return false;
                 }
 
                 // Skip over the exif header we just tested
@@ -1059,10 +1063,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             catch
             {
-                return;
+                return false;
             }
 
             this.MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
+            return true;
         }
 
         private static bool StringEquals(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2, StringComparison comparisonType)

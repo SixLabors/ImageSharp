@@ -254,9 +254,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [InlineData(300)]
-        [InlineData(600)]
-        [InlineData(1200)]
+        [InlineData(300)] // Group of single SharedArrayPoolBuffer<T>
+        [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
+        [InlineData(1200)] // Group of two UniformUnmanagedMemoryPool buffers
         public void MemoryGroupFinalizer_ReturnsToPool(int length)
         {
             // RunTest(length.ToString());
@@ -304,8 +304,8 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         }
 
         [Theory]
-        [InlineData(300)]
-        [InlineData(600)]
+        [InlineData(300)] // Group of single SharedArrayPoolBuffer<T>
+        [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
         public void MemoryOwnerFinalizer_ReturnsToPool(int length)
         {
             // RunTest(length.ToString());

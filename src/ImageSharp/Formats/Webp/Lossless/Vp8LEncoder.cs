@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public bool UseCrossColorTransform { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to use the substract green transform.
+        /// Gets or sets a value indicating whether to use the subtract green transform.
         /// </summary>
         public bool UseSubtractGreenTransform { get; set; }
 
@@ -1049,7 +1049,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return EntropyIx.Palette;
             }
 
-            using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256);
+            using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256, AllocationOptions.Clean);
             Span<uint> histo = histoBuffer.Memory.Span;
             uint pixPrev = bgra[0]; // Skip the first pixel.
             ReadOnlySpan<uint> prevRow = null;

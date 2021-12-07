@@ -1001,7 +1001,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<char> dataSpan = data.AsSpan();
             dataSpan = dataSpan.TrimStart();
 
-            if (!StringEquals(dataSpan.Slice(0, 4), "exif".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            if (!StringEqualsInsensitive(dataSpan.Slice(0, 4), "exif".AsSpan()))
             {
                 // "exif" identifier is missing from the beginning of the text chunk
                 return false;
@@ -1070,13 +1070,20 @@ namespace SixLabors.ImageSharp.Formats.Png
             return true;
         }
 
-        private static bool StringEquals(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2, StringComparison comparisonType)
+        /// <summary>
+        /// Compares two ReadOnlySpan&lt;char&gt;s in a case-insensitive method.
+        /// This is only needed because older frameworks are missing the extension method.
+        /// </summary>
+        /// <param name="span1">The first <see cref="Span{T}"/> to compare.</param>
+        /// <param name="span2">The second <see cref="Span{T}"/> to compare.</param>
+        /// <returns>True if the spans were identical, false otherwise.</returns>
+        private static bool StringEqualsInsensitive(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2)
         {
 #pragma warning disable IDE0022 // Use expression body for methods
 #if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-            return span1.Equals(span2, comparisonType);
+            return span1.Equals(span2, StringComparison.OrdinalIgnoreCase);
 #else
-            return span1.ToString().Equals(span2.ToString(), comparisonType);
+            return span1.ToString().Equals(span2.ToString(), StringComparison.OrdinalIgnoreCase);
 #endif
 #pragma warning restore IDE0022 // Use expression body for methods
         }
@@ -1085,19 +1092,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// int.Parse() a ReadOnlySpan&lt;char&gt;, with a fallback for older frameworks.
         /// </summary>
         /// <param name="span">The <see cref="int"/> to parse.</param>
-        /// <param name="style">The <see cref="System.Globalization.NumberStyles"/> of the integer to parse.</param>
-        /// <param name="provider">The <see cref="IFormatProvider"/> to use when parsing the integer.</param>
         /// <returns>The parsed <see cref="int"/>.</returns>
-        private static int ParseInt32(
-            ReadOnlySpan<char> span,
-            System.Globalization.NumberStyles style = System.Globalization.NumberStyles.Integer,
-            IFormatProvider provider = null)
+        private static int ParseInt32(ReadOnlySpan<char> span)
         {
 #pragma warning disable IDE0022 // Use expression body for methods
 #if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-            return int.Parse(span, style, provider);
+            return int.Parse(span);
 #else
-            return int.Parse(span.ToString(), style, provider);
+            return int.Parse(span.ToString());
 #endif
 #pragma warning restore IDE0022 // Use expression body for methods
         }

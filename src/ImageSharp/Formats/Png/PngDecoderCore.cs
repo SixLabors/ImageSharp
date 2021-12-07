@@ -38,6 +38,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly bool ignoreMetadata;
 
         /// <summary>
+        /// Gets or sets a value indicating whether to read the header and trns chunks only.
+        /// </summary>
+        private readonly bool colorMetadataOnly;
+
+        /// <summary>
         /// Used the manage memory allocations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
@@ -124,11 +129,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
-        internal PngDecoderCore(Configuration configuration, bool ignoreMetadata)
+        internal PngDecoderCore(Configuration configuration, bool colorMetadataOnly)
         {
             this.Configuration = configuration ?? Configuration.Default;
             this.memoryAllocator = this.Configuration.MemoryAllocator;
-            this.ignoreMetadata = ignoreMetadata;
+            this.colorMetadataOnly = colorMetadataOnly;
+            this.ignoreMetadata = true;
         }
 
         /// <inheritdoc/>
@@ -137,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
-        public Size Dimensions => new Size(this.header.Width, this.header.Height);
+        public Size Dimensions => new(this.header.Width, this.header.Height);
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -250,9 +256,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Physical:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Gamma:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
@@ -265,15 +283,39 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 if (!this.ignoreMetadata)
                                 {
                                     byte[] exifData = new byte[chunk.Length];
@@ -928,7 +970,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int zeroIndex = data.IndexOf((byte)0);
 
             // Keywords are restricted to 1 to 79 bytes in length.
-            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
+            if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }
@@ -1155,8 +1197,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             PngChunkType type = this.ReadChunkType();
 
-            // NOTE: Reading the chunk data is the responsible of the caller
-            if (type == PngChunkType.Data)
+            // NOTE: Reading the Data chunk is the responsible of the caller
+            // If we're reading color metadata only we're only interested in the Header and Transparancy chunks.
+            // We can skip all other chunk data in the stream for better performance.
+            if (type == PngChunkType.Data || (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency))
             {
                 chunk = new PngChunk(length, type);
 

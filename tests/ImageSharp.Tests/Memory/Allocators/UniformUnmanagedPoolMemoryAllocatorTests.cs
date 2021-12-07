@@ -259,6 +259,13 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(1200)] // Group of two UniformUnmanagedMemoryPool buffers
         public void MemoryGroupFinalizer_ReturnsToPool(int length)
         {
+            if (!TestEnvironment.RunsOnCI)
+            {
+                // This may fail in local runs resulting in high memory load.
+                // Remove the condition for local debugging!
+                return;
+            }
+
             // RunTest(length.ToString());
             RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
 
@@ -308,6 +315,13 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
         public void MemoryOwnerFinalizer_ReturnsToPool(int length)
         {
+            if (!TestEnvironment.RunsOnCI)
+            {
+                // This may fail in local runs resulting in high memory load.
+                // Remove the condition for local debugging!
+                return;
+            }
+
             // RunTest(length.ToString());
             RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
 

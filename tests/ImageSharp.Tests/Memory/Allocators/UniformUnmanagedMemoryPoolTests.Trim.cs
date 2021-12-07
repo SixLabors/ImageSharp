@@ -65,6 +65,13 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 [ConditionalFact(nameof(IsNotMacOs))]
                 public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
                 {
+                    if (!TestEnvironment.RunsOnCI)
+                    {
+                        // This may fail in local runs resulting in high memory load.
+                        // Remove the condition for local debugging!
+                        return;
+                    }
+
                     RemoteExecutor.Invoke(RunTest).Dispose();
 
                     static void RunTest()

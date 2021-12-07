@@ -83,6 +83,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private byte[] paletteAlpha;
 
         /// <summary>
+        /// A value indicating whether the header chunk has been reached.
+        /// </summary>
+        private bool isHeaderChunkReached;
+
+        /// <summary>
         /// A value indicating whether the end chunk has been reached.
         /// </summary>
         private bool isEndChunkReached;
@@ -254,6 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             case PngChunkType.Header:
                                 this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.isHeaderChunkReached = true;
                                 break;
                             case PngChunkType.Physical:
                                 if (this.colorMetadataOnly)
@@ -281,6 +287,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
+
+                                if (this.colorMetadataOnly && this.isHeaderChunkReached)
+                                {
+                                    // Quick exit
+                                    this.isEndChunkReached = true;
+                                }
+
                                 break;
                             case PngChunkType.Text:
                                 if (this.colorMetadataOnly)

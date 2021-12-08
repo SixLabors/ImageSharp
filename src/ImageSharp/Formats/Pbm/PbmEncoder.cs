@@ -46,9 +46,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         public PbmColorType? ColorType { get; set; }
 
         /// <summary>
-        /// Gets or sets the maximum pixel value, per component.
+        /// Gets or sets the data type of the pixels components.
         /// </summary>
-        public int? MaxPixelValue { get; set; }
+        public PbmComponentType? ComponentType { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

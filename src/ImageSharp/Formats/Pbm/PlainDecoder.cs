@@ -25,13 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <param name="pixels">The pixel array to encode into.</param>
         /// <param name="stream">The stream to read the data from.</param>
         /// <param name="colorType">The ColorType to decode.</param>
-        /// <param name="maxPixelValue">The maximum expected pixel value</param>
-        public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, int maxPixelValue)
+        /// <param name="componentType">Data type of the pixles components.</param>
+        public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, PbmComponentType componentType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (colorType == PbmColorType.Grayscale)
             {
-                if (maxPixelValue < 256)
+                if (componentType == PbmComponentType.Byte)
                 {
                     ProcessGrayscale(configuration, pixels, stream);
                 }
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             }
             else if (colorType == PbmColorType.Rgb)
             {
-                if (maxPixelValue < 256)
+                if (componentType == PbmComponentType.Byte)
                 {
                     ProcessRgb(configuration, pixels, stream);
                 }

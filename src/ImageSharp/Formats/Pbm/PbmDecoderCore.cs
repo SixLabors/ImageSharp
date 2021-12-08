@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </summary>
     internal sealed class PbmDecoderCore : IImageDecoderInternals
     {
+        private int maxPixelValue;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.
         /// </summary>
@@ -36,9 +38,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         public Size PixelSize { get; private set; }
 
         /// <summary>
-        /// Gets the maximum pixel value
+        /// Gets the component data type
         /// </summary>
-        public int MaxPixelValue { get; private set; }
+        public PbmComponentType ComponentType { get; private set; }
 
         /// <summary>
         /// Gets the Encoding of pixels
@@ -53,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <inheritdoc/>
         Size IImageDecoderInternals.Dimensions => this.PixelSize;
 
-        private bool NeedsUpscaling => this.ColorType != PbmColorType.BlackAndWhite && this.MaxPixelValue is not 255 and not 65535;
+        private bool NeedsUpscaling => this.ColorType != PbmColorType.BlackAndWhite && this.maxPixelValue is not 255 and not 65535;
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -79,7 +81,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             this.ProcessHeader(stream);
 
-            int bitsPerPixel = this.MaxPixelValue > 255 ? 16 : 8;
+            // BlackAndWhite pixels are encoded into a byte.
+            int bitsPerPixel = this.ComponentType == PbmComponentType.Short ? 16 : 8;
             return new ImageInfo(new PixelTypeInfo(bitsPerPixel), this.PixelSize.Width, this.PixelSize.Height, this.Metadata);
         }
 
@@ -143,12 +146,21 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             stream.SkipWhitespaceAndComments();
             if (this.ColorType != PbmColorType.BlackAndWhite)
             {
-                this.MaxPixelValue = stream.ReadDecimal();
+                this.maxPixelValue = stream.ReadDecimal();
+                if (this.maxPixelValue > 255)
+                {
+                    this.ComponentType = PbmComponentType.Short;
+                }
+                else
+                {
+                    this.ComponentType = PbmComponentType.Byte;
+                }
+
                 stream.SkipWhitespaceAndComments();
             }
             else
             {
-                this.MaxPixelValue = 1;
+                this.ComponentType = PbmComponentType.Bit;
             }
 
             this.PixelSize = new Size(width, height);
@@ -156,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             PbmMetadata meta = this.Metadata.GetPbmMetadata();
             meta.Encoding = this.Encoding;
             meta.ColorType = this.ColorType;
-            meta.MaxPixelValue = this.MaxPixelValue;
+            meta.ComponentType = this.ComponentType;
         }
 
         private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
@@ -164,19 +176,19 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             if (this.Encoding == PbmEncoding.Binary)
             {
-                BinaryDecoder.Process(this.Configuration, pixels, stream, this.ColorType, this.MaxPixelValue);
+                BinaryDecoder.Process(this.Configuration, pixels, stream, this.ColorType, this.ComponentType);
             }
             else
             {
-                PlainDecoder.Process(this.Configuration, pixels, stream, this.ColorType, this.MaxPixelValue);
+                PlainDecoder.Process(this.Configuration, pixels, stream, this.ColorType, this.ComponentType);
             }
         }
 
         private void ProcessUpscaling<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int maxAllocationValue = (this.MaxPixelValue > 255) ? 65535 : 255;
-            float factor = maxAllocationValue / this.MaxPixelValue;
+            int maxAllocationValue = this.ComponentType == PbmComponentType.Short ? 65535 : 255;
+            float factor = maxAllocationValue / this.maxPixelValue;
             image.Mutate(x => x.Brightness(factor));
         }
     }

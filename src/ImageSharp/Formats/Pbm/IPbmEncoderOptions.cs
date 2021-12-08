@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         PbmColorType? ColorType { get; }
 
         /// <summary>
-        /// Gets the maximum pixel value, per component.
+        /// Gets the Data Type of the pixel components.
         /// </summary>
-        int? MaxPixelValue { get; }
+        PbmComponentType? ComponentType { get; }
     }
 }

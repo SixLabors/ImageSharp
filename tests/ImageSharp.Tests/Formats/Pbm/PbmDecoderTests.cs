@@ -14,16 +14,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
     public class PbmDecoderTests
     {
         [Theory]
-        [InlineData(BlackAndWhitePlain, PbmColorType.BlackAndWhite)]
-        [InlineData(BlackAndWhiteBinary, PbmColorType.BlackAndWhite)]
-        [InlineData(GrayscalePlain, PbmColorType.Grayscale)]
-        [InlineData(GrayscalePlainMagick, PbmColorType.Grayscale)]
-        [InlineData(GrayscaleBinary, PbmColorType.Grayscale)]
-        [InlineData(GrayscaleBinaryWide, PbmColorType.Grayscale)]
-        [InlineData(RgbPlain, PbmColorType.Rgb)]
-        [InlineData(RgbPlainMagick, PbmColorType.Rgb)]
-        [InlineData(RgbBinary, PbmColorType.Rgb)]
-        public void ImageLoadCanDecode(string imagePath, PbmColorType expectedColorType)
+        [InlineData(BlackAndWhitePlain, PbmColorType.BlackAndWhite, PbmComponentType.Bit)]
+        [InlineData(BlackAndWhiteBinary, PbmColorType.BlackAndWhite, PbmComponentType.Bit)]
+        [InlineData(GrayscalePlain, PbmColorType.Grayscale, PbmComponentType.Byte)]
+        [InlineData(GrayscalePlainMagick, PbmColorType.Grayscale, PbmComponentType.Byte)]
+        [InlineData(GrayscaleBinary, PbmColorType.Grayscale, PbmComponentType.Byte)]
+        [InlineData(GrayscaleBinaryWide, PbmColorType.Grayscale, PbmComponentType.Short)]
+        [InlineData(RgbPlain, PbmColorType.Rgb, PbmComponentType.Byte)]
+        [InlineData(RgbPlainMagick, PbmColorType.Rgb, PbmComponentType.Byte)]
+        [InlineData(RgbBinary, PbmColorType.Rgb, PbmComponentType.Byte)]
+        public void ImageLoadCanDecode(string imagePath, PbmColorType expectedColorType, PbmComponentType expectedComponentType)
         {
             // Arrange
             var testFile = TestFile.Create(imagePath);
@@ -34,9 +34,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
             // Assert
             Assert.NotNull(image);
-            PbmMetadata bitmapMetadata = image.Metadata.GetPbmMetadata();
-            Assert.NotNull(bitmapMetadata);
-            Assert.Equal(expectedColorType, bitmapMetadata.ColorType);
+            PbmMetadata metadata = image.Metadata.GetPbmMetadata();
+            Assert.NotNull(metadata);
+            Assert.Equal(expectedColorType, metadata.ColorType);
+            Assert.Equal(expectedComponentType, metadata.ComponentType);
         }
 
         [Theory]
@@ -77,21 +78,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         }
 
         [Theory]
-        [WithFile(BlackAndWhitePlain, PixelTypes.L8, true)]
-        [WithFile(BlackAndWhiteBinary, PixelTypes.L8, true)]
-        [WithFile(GrayscalePlain, PixelTypes.L8, true)]
-        [WithFile(GrayscalePlainNormalized, PixelTypes.L8, true)]
-        [WithFile(GrayscaleBinary, PixelTypes.L8, true)]
-        [WithFile(GrayscaleBinaryWide, PixelTypes.L16, true)]
-        [WithFile(RgbPlain, PixelTypes.Rgb24, false)]
-        [WithFile(RgbPlainNormalized, PixelTypes.Rgb24, false)]
-        [WithFile(RgbBinary, PixelTypes.Rgb24, false)]
-        public void DecodeReferenceImage<TPixel>(TestImageProvider<TPixel> provider, bool isGrayscale)
+        [WithFile(BlackAndWhitePlain, PixelTypes.L8, "pbm")]
+        [WithFile(BlackAndWhiteBinary, PixelTypes.L8, "pbm")]
+        [WithFile(GrayscalePlain, PixelTypes.L8, "pgm")]
+        [WithFile(GrayscalePlainNormalized, PixelTypes.L8, "pgm")]
+        [WithFile(GrayscaleBinary, PixelTypes.L8, "pgm")]
+        [WithFile(GrayscaleBinaryWide, PixelTypes.L16, "pgm")]
+        [WithFile(RgbPlain, PixelTypes.Rgb24, "ppm")]
+        [WithFile(RgbPlainNormalized, PixelTypes.Rgb24, "ppm")]
+        [WithFile(RgbBinary, PixelTypes.Rgb24, "ppm")]
+        public void DecodeReferenceImage<TPixel>(TestImageProvider<TPixel> provider, string extension)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage();
-            image.DebugSave(provider);
+            image.DebugSave(provider, extension: extension);
 
+            bool isGrayscale = extension is "pgm" or "pbm";
             image.CompareToReferenceOutput(provider, grayscale: isGrayscale);
         }
     }

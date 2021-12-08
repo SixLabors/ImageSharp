@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <summary>
         /// Gets the maximum pixel value, per component.
         /// </summary>
-        private int maxPixelValue;
+        private PbmComponentType componentType;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PbmEncoderCore"/> class.
@@ -87,8 +87,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             this.colorType = this.options.ColorType ?? metadata.ColorType;
             if (this.colorType != PbmColorType.BlackAndWhite)
             {
-                this.maxPixelValue = this.options.MaxPixelValue ?? metadata.MaxPixelValue;
-                this.maxPixelValue = Math.Max(this.maxPixelValue, PbmConstants.MaxLength);
+                this.componentType = this.options.ComponentType ?? metadata.ComponentType;
+            }
+            else
+            {
+                this.componentType = PbmComponentType.Bit;
             }
         }
 
@@ -151,7 +154,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
             if (this.colorType != PbmColorType.BlackAndWhite)
             {
-                Utf8Formatter.TryFormat(this.maxPixelValue, buffer.Slice(written), out bytesWritten);
+                int maxPixelValue = this.componentType == PbmComponentType.Short ? 65535 : 255;
+                Utf8Formatter.TryFormat(maxPixelValue, buffer.Slice(written), out bytesWritten);
                 written += bytesWritten;
                 buffer[written++] = NewLine;
             }
@@ -172,11 +176,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             if (this.encoding == PbmEncoding.Plain)
             {
-                PlainEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.maxPixelValue);
+                PlainEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.componentType);
             }
             else
             {
-                BinaryEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.maxPixelValue);
+                BinaryEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.componentType);
             }
         }
     }

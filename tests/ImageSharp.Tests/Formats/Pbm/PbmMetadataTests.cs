@@ -20,8 +20,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
             var clone = (PbmMetadata)meta.DeepClone();
 
             clone.ColorType = PbmColorType.Rgb;
+            clone.ComponentType = PbmComponentType.Short;
 
             Assert.False(meta.ColorType.Equals(clone.ColorType));
+            Assert.False(meta.ComponentType.Equals(clone.ComponentType));
         }
 
         [Theory]
@@ -63,14 +65,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         }
 
         [Theory]
-        [InlineData(BlackAndWhitePlain, 1)]
-        [InlineData(BlackAndWhiteBinary, 1)]
-        [InlineData(GrayscaleBinary, 255)]
-        [InlineData(GrayscaleBinaryWide, 65535)]
-        [InlineData(GrayscalePlain, 15)]
-        [InlineData(RgbBinary, 255)]
-        [InlineData(RgbPlain, 15)]
-        public void Identify_DetectsCorrectMaxPixelValue(string imagePath, int expectedMaxPixelValue)
+        [InlineData(BlackAndWhitePlain, PbmComponentType.Bit)]
+        [InlineData(BlackAndWhiteBinary, PbmComponentType.Bit)]
+        [InlineData(GrayscaleBinary, PbmComponentType.Byte)]
+        [InlineData(GrayscaleBinaryWide, PbmComponentType.Short)]
+        [InlineData(GrayscalePlain, PbmComponentType.Byte)]
+        [InlineData(RgbBinary, PbmComponentType.Byte)]
+        [InlineData(RgbPlain, PbmComponentType.Byte)]
+        public void Identify_DetectsCorrectComponentType(string imagePath, PbmComponentType expectedComponentType)
         {
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
@@ -78,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
             Assert.NotNull(imageInfo);
             PbmMetadata bitmapMetadata = imageInfo.Metadata.GetPbmMetadata();
             Assert.NotNull(bitmapMetadata);
-            Assert.Equal(expectedMaxPixelValue, bitmapMetadata.MaxPixelValue);
+            Assert.Equal(expectedComponentType, bitmapMetadata.ComponentType);
         }
     }
 }

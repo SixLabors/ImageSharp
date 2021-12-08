@@ -14,8 +14,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </summary>
     internal class BinaryDecoder
     {
-        private static L8 white = new L8(255);
-        private static L8 black = new L8(0);
+        private static L8 white = new(255);
+        private static L8 black = new(0);
 
         /// <summary>
         /// Decode the specified pixels.
@@ -25,16 +25,16 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <param name="pixels">The pixel array to encode into.</param>
         /// <param name="stream">The stream to read the data from.</param>
         /// <param name="colorType">The ColorType to decode.</param>
-        /// <param name="maxPixelValue">The maximum expected pixel value</param>
+        /// <param name="componentType">Data type of the pixles components.</param>
         /// <exception cref="InvalidImageContentException">
         /// Thrown if an invalid combination of setting is requested.
         /// </exception>
-        public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, int maxPixelValue)
+        public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, PbmComponentType componentType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (colorType == PbmColorType.Grayscale)
             {
-                if (maxPixelValue < 256)
+                if (componentType == PbmComponentType.Byte)
                 {
                     ProcessGrayscale(configuration, pixels, stream);
                 }
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             }
             else if (colorType == PbmColorType.Rgb)
             {
-                if (maxPixelValue < 256)
+                if (componentType == PbmComponentType.Byte)
                 {
                     ProcessRgb(configuration, pixels, stream);
                 }

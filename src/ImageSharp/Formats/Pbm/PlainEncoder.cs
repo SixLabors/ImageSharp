@@ -36,13 +36,13 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <param name="stream">The bytestream to write to.</param>
         /// <param name="image">The input image.</param>
         /// <param name="colorType">The ColorType to use.</param>
-        /// <param name="maxPixelValue">The maximum expected pixel value</param>
-        public static void WritePixels<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image, PbmColorType colorType, int maxPixelValue)
+        /// <param name="componentType">Data type of the pixles components.</param>
+        public static void WritePixels<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image, PbmColorType colorType, PbmComponentType componentType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (colorType == PbmColorType.Grayscale)
             {
-                if (maxPixelValue < 256)
+                if (componentType == PbmComponentType.Byte)
                 {
                     WriteGrayscale(configuration, stream, image);
                 }
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             }
             else if (colorType == PbmColorType.Rgb)
             {
-                if (maxPixelValue < 256)
+                if (componentType == PbmComponentType.Byte)
                 {
                     WriteRgb(configuration, stream, image);
                 }

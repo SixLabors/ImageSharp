@@ -11,7 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// <summary>
         /// Initializes a new instance of the <see cref="PbmMetadata"/> class.
         /// </summary>
-        public PbmMetadata() => this.MaxPixelValue = this.ColorType == PbmColorType.BlackAndWhite ? 1 : 255;
+        public PbmMetadata() =>
+            this.ComponentType = this.ColorType == PbmColorType.BlackAndWhite ? PbmComponentType.Bit : PbmComponentType.Byte;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PbmMetadata"/> class.
@@ -21,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             this.Encoding = other.Encoding;
             this.ColorType = other.ColorType;
-            this.MaxPixelValue = other.MaxPixelValue;
+            this.ComponentType = other.ComponentType;
         }
 
         /// <summary>
@@ -35,9 +36,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         public PbmColorType ColorType { get; set; } = PbmColorType.Grayscale;
 
         /// <summary>
-        /// Gets or sets the maximum pixel value.
+        /// Gets or sets the data type of the pixel components.
         /// </summary>
-        public int MaxPixelValue { get; set; }
+        public PbmComponentType ComponentType { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new PbmMetadata(this);

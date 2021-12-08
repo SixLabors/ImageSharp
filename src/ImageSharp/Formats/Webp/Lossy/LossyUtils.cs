@@ -40,11 +40,33 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         // Note: method name in libwebp reference implementation is called VP8SSE16x16.
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8_Sse16X16(Span<byte> a, Span<byte> b) => Vp8_SseNxN(a, b, 16, 16);
+        public static int Vp8_Sse16X16(Span<byte> a, Span<byte> b)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                return Vp8_Sse16xN_Sse2(a, b, 8);
+            }
+#endif
+            {
+                return Vp8_SseNxN(a, b, 16, 16);
+            }
+        }
 
         // Note: method name in libwebp reference implementation is called VP8SSE16x8.
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Vp8_Sse16X8(Span<byte> a, Span<byte> b) => Vp8_SseNxN(a, b, 16, 8);
+        public static int Vp8_Sse16X8(Span<byte> a, Span<byte> b)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                return Vp8_Sse16xN_Sse2(a, b, 4);
+            }
+#endif
+            {
+                return Vp8_SseNxN(a, b, 16, 8);
+            }
+        }
 
         // Note: method name in libwebp reference implementation is called VP8SSE4x4.
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -145,6 +167,52 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             return count;
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int Vp8_Sse16xN_Sse2(Span<byte> a, Span<byte> b, int numPairs)
+        {
+            Vector128<int> sum = Vector128<int>.Zero;
+            int offset = 0;
+            for (int i = 0; i < numPairs; i++)
+            {
+                // Load values.
+                ref byte aRef = ref MemoryMarshal.GetReference(a);
+                ref byte bRef = ref MemoryMarshal.GetReference(b);
+                Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset));
+                Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset));
+                Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset + WebpConstants.Bps));
+                Vector128<byte> b1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset + WebpConstants.Bps));
+
+                Vector128<int> sum1 = SubtractAndAccumulate(a0, b0);
+                Vector128<int> sum2 = SubtractAndAccumulate(a1, b1);
+                sum = Sse2.Add(sum, Sse2.Add(sum1, sum2));
+
+                offset += 2 * WebpConstants.Bps;
+            }
+
+            return Numerics.ReduceSum(sum);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static Vector128<int> SubtractAndAccumulate(Vector128<byte> a, Vector128<byte> b)
+        {
+            // Take abs(a-b) in 8b.
+            Vector128<byte> ab = Sse2.SubtractSaturate(a, b);
+            Vector128<byte> ba = Sse2.SubtractSaturate(b, a);
+            Vector128<byte> absAb = Sse2.Or(ab, ba);
+
+            // Zero-extend to 16b.
+            Vector128<byte> c0 = Sse2.UnpackLow(absAb, Vector128<byte>.Zero);
+            Vector128<byte> c1 = Sse2.UnpackHigh(absAb, Vector128<byte>.Zero);
+
+            // Multiply with self.
+            Vector128<int> sum1 = Sse2.MultiplyAddAdjacent(c0.AsInt16(), c0.AsInt16());
+            Vector128<int> sum2 = Sse2.MultiplyAddAdjacent(c1.AsInt16(), c1.AsInt16());
+
+            return Sse2.Add(sum1, sum2);
+        }
+#endif
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Vp8Copy4X4(Span<byte> src, Span<byte> dst) => Copy(src, dst, 4, 4);

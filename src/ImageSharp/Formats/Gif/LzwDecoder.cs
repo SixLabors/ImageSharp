@@ -115,14 +115,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int y = 0;
             int x = 0;
             int rowMax = width;
-            ref byte pixelsRowRef = ref MemoryMarshal.GetReference(pixels.GetRowSpan(y));
+            ref byte pixelsRowRef = ref MemoryMarshal.GetReference(pixels.DangerousGetRowSpan(y));
             while (xyz < length)
             {
                 // Reset row reference.
                 if (xyz == rowMax)
                 {
                     x = 0;
-                    pixelsRowRef = ref MemoryMarshal.GetReference(pixels.GetRowSpan(++y));
+                    pixelsRowRef = ref MemoryMarshal.GetReference(pixels.DangerousGetRowSpan(++y));
                     rowMax = (y * width) + width;
                 }
 

@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             var operation = new RowOperation(
                 interest.X,
-                source,
+                source.PixelBuffer,
                 upper,
                 lower,
                 threshold,
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// </summary>
         private readonly struct RowOperation : IRowOperation<Rgb24>
         {
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly byte threshold;
@@ -70,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
                 int startX,
-                ImageFrame<TPixel> source,
+                Buffer2D<TPixel> source,
                 TPixel upper,
                 TPixel lower,
                 byte threshold,
@@ -93,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 TPixel upper = this.upper;
                 TPixel lower = this.lower;
 
-                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
                 PixelOperations<TPixel>.Instance.ToRgb24(this.configuration, rowSpan, span);
 
                 switch (this.mode)

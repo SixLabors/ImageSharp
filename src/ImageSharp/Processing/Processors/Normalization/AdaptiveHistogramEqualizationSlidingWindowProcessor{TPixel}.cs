@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 y = source.Height - diff - 1;
             }
 
-            // Special cases for the left and the right border where GetPixelRowSpan can not be used.
+            // Special cases for the left and the right border where DangerousGetRowSpan can not be used.
             if (x < 0)
             {
                 rowPixels.Clear();
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 return;
             }
 
-            this.CopyPixelRowFast(source, rowPixels, x, y, tileWidth, configuration);
+            this.CopyPixelRowFast(source.PixelBuffer, rowPixels, x, y, tileWidth, configuration);
         }
 
         /// <summary>
@@ -238,13 +238,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="configuration">The configuration.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void CopyPixelRowFast(
-            ImageFrame<TPixel> source,
+            Buffer2D<TPixel> source,
             Span<Vector4> rowPixels,
             int x,
             int y,
             int tileWidth,
             Configuration configuration)
-            => PixelOperations<TPixel>.Instance.ToVector4(configuration, source.GetPixelRowSpan(y).Slice(start: x, length: tileWidth), rowPixels);
+            => PixelOperations<TPixel>.Instance.ToVector4(configuration, source.DangerousGetRowSpan(y).Slice(start: x, length: tileWidth), rowPixels);
 
         /// <summary>
         /// Adds a column of grey values to the histogram.
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     {
                         if (this.useFastPath)
                         {
-                            this.processor.CopyPixelRowFast(this.source, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
+                            this.processor.CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
                         }
                         else
                         {
@@ -390,7 +390,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                         if (this.useFastPath)
                         {
-                            this.processor.CopyPixelRowFast(this.source, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                            this.processor.CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                         }
                         else
                         {
@@ -402,7 +402,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
                         if (this.useFastPath)
                         {
-                            this.processor.CopyPixelRowFast(this.source, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                            this.processor.CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                         }
                         else
                         {

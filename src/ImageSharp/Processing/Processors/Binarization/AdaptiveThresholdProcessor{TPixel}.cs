@@ -52,6 +52,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             // ClusterSize defines the size of cluster to used to check for average. Tweaked to support up to 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
             byte clusterSize = (byte)Math.Truncate((width / 16f) - 1);
 
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+
             // Using pooled 2d buffer for integer image table and temp memory to hold Rgb24 converted pixel data.
             using (Buffer2D<ulong> intImage = this.Configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
             {
@@ -61,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     ulong sum = 0;
                     for (int y = startY; y < endY; y++)
                     {
-                        Span<TPixel> row = source.GetPixelRowSpan(y);
+                        Span<TPixel> row = sourceBuffer.DangerousGetRowSpan(y);
                         ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
                         ref TPixel color = ref Unsafe.Add(ref rowRef, x);
                         color.ToRgba32(ref rgb);
@@ -79,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     }
                 }
 
-                var operation = new RowOperation(intersect, source, intImage, upper, lower, thresholdLimit, clusterSize, startX, endX, startY);
+                var operation = new RowOperation(intersect, source.PixelBuffer, intImage, upper, lower, thresholdLimit, clusterSize, startX, endX, startY);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     intersect,
@@ -90,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         private readonly struct RowOperation : IRowOperation
         {
             private readonly Rectangle bounds;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
             private readonly Buffer2D<ulong> intImage;
             private readonly TPixel upper;
             private readonly TPixel lower;
@@ -103,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
                 Rectangle bounds,
-                ImageFrame<TPixel> source,
+                Buffer2D<TPixel> source,
                 Buffer2D<ulong> intImage,
                 TPixel upper,
                 TPixel lower,
@@ -130,7 +132,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             public void Invoke(int y)
             {
                 Rgba32 rgb = default;
-                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
+                Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
 
                 for (int x = this.startX; x < this.endX; x++)
                 {

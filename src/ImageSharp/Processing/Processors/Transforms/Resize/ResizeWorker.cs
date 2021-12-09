@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
-            => this.transposedFirstPassBuffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);
+            => this.transposedFirstPassBuffer.DangerousGetRowSpan(x).Slice(startY - this.currentWindow.Min);
 
         public void Initialize()
             => this.CalculateFirstPassValues(this.currentWindow);
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
                 }
 
-                Span<TPixel> targetRowSpan = destination.GetRowSpan(y);
+                Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y);
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempColSpan, targetRowSpan, this.conversionModifiers);
             }

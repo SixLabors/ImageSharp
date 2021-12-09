@@ -3,6 +3,7 @@
 
 using System;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 {
@@ -37,9 +38,9 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public int[] ParallelismValues { get; } =
         {
             Environment.ProcessorCount,
-            Environment.ProcessorCount / 2,
-            Environment.ProcessorCount / 4,
-            1
+            // Environment.ProcessorCount / 2,
+            // Environment.ProcessorCount / 4,
+            // 1
         };
 
         [Benchmark]
@@ -48,7 +49,10 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         [Benchmark(Baseline = true)]
         [ArgumentsSource(nameof(ParallelismValues))]
-        public void ImageSharp(int maxDegreeOfParallelism) => this.ForEachImage(this.runner.ImageSharpResize, maxDegreeOfParallelism);
+        public void ImageSharp(int maxDegreeOfParallelism)
+        {
+            this.ForEachImage(this.runner.ImageSharpResize, maxDegreeOfParallelism);
+        }
 
         [Benchmark]
         [ArgumentsSource(nameof(ParallelismValues))]

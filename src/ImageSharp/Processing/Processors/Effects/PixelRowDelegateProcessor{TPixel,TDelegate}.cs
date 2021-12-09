@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            var operation = new RowOperation(interest.X, source, this.Configuration, this.modifiers, this.rowDelegate);
+            var operation = new RowOperation(interest.X, source.PixelBuffer, this.Configuration, this.modifiers, this.rowDelegate);
 
             ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                 this.Configuration,
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         private readonly struct RowOperation : IRowOperation<Vector4>
         {
             private readonly int startX;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
             private readonly Configuration configuration;
             private readonly PixelConversionModifiers modifiers;
             private readonly TDelegate rowProcessor;
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
                 int startX,
-                ImageFrame<TPixel> source,
+                Buffer2D<TPixel> source,
                 Configuration configuration,
                 PixelConversionModifiers modifiers,
                 in TDelegate rowProcessor)
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, this.modifiers);
 
                 // Run the user defined pixel shader to the current row of pixels

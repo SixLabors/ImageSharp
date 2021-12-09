@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
@@ -48,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             Parallel.ForEach(
             range,
             this.Configuration.GetParallelOptions(),
-            new RowOperation(interest, size, source).Invoke);
+            new RowOperation(interest, size, source.PixelBuffer).Invoke);
         }
 
         private readonly struct RowOperation
@@ -60,13 +61,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             private readonly int maxYIndex;
             private readonly int size;
             private readonly int radius;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
                 Rectangle bounds,
                 int size,
-                ImageFrame<TPixel> source)
+                Buffer2D<TPixel> source)
             {
                 this.minX = bounds.X;
                 this.maxX = bounds.Right;
@@ -81,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(Math.Min(y + this.radius, this.maxYIndex));
+                Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(Math.Min(y + this.radius, this.maxYIndex));
 
                 for (int x = this.minX; x < this.maxX; x += this.size)
                 {

@@ -24,14 +24,14 @@ namespace SixLabors.ImageSharp.Tests
 
         private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
-        private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
+        private static readonly Lazy<Version> NetCoreVersionLazy = new Lazy<Version>(GetNetCoreVersion);
 
         static TestEnvironment() => PrepareRemoteExecutor();
 
         /// <summary>
         /// Gets the .NET Core version, if running on .NET Core, otherwise returns an empty string.
         /// </summary>
-        internal static string NetCoreVersion => NetCoreVersionLazy.Value;
+        internal static Version NetCoreVersion => NetCoreVersionLazy.Value;
 
         // ReSharper disable once InconsistentNaming
 
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static bool Is64BitProcess => IntPtr.Size == 8;
 
-        internal static bool IsFramework => string.IsNullOrEmpty(NetCoreVersion);
+        internal static bool IsFramework => NetCoreVersion == null;
 
         /// <summary>
         /// A dummy operation to enforce the execution of the static constructor.
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         private static void PrepareRemoteExecutor()
         {
-            if (!IsFramework)
+            if (!IsFramework || !Environment.Is64BitProcess)
             {
                 return;
             }
@@ -262,17 +262,24 @@ namespace SixLabors.ImageSharp.Tests
         /// Solution borrowed from:
         /// https://github.com/dotnet/BenchmarkDotNet/issues/448#issuecomment-308424100
         /// </summary>
-        private static string GetNetCoreVersion()
+        private static Version GetNetCoreVersion()
         {
             Assembly assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
             string[] assemblyPath = assembly.Location.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
             if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
             {
-                return assemblyPath[netCoreAppIndex + 1];
+                string runtimeFolderStr = assemblyPath[netCoreAppIndex + 1];
+                int previewSuffix = runtimeFolderStr.IndexOf('-');
+                if (previewSuffix > 0)
+                {
+                    runtimeFolderStr = runtimeFolderStr.Substring(0, previewSuffix);
+                }
+
+                return Version.Parse(runtimeFolderStr);
             }
 
-            return string.Empty;
+            return null;
         }
     }
 }

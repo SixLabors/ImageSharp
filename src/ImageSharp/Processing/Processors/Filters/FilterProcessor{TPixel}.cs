@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            var operation = new RowOperation(interest.X, source, this.definition.Matrix, this.Configuration);
+            var operation = new RowOperation(interest.X, source.PixelBuffer, this.definition.Matrix, this.Configuration);
 
             ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                 this.Configuration,
@@ -50,14 +50,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         private readonly struct RowOperation : IRowOperation<Vector4>
         {
             private readonly int startX;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
             private readonly ColorMatrix matrix;
             private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
                 int startX,
-                ImageFrame<TPixel> source,
+                Buffer2D<TPixel> source,
                 ColorMatrix matrix,
                 Configuration configuration)
             {
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
 
                 ColorNumerics.Transform(span, ref Unsafe.AsRef(this.matrix));

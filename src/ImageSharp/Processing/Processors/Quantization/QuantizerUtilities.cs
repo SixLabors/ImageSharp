@@ -122,6 +122,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IDither dither = quantizer.Options.Dither;
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
             if (dither is null)
             {
@@ -130,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                 for (int y = bounds.Y; y < bounds.Height; y++)
                 {
-                    Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                    Span<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y);
                     Span<byte> destinationRow = destination.GetWritablePixelRowSpanUnsafe(y - offsetY);
 
                     for (int x = bounds.Left; x < bounds.Right; x++)

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
@@ -29,11 +30,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             var differences = new List<PixelDifference>();
             Configuration configuration = expected.GetConfiguration();
+            Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
+            Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;
 
             for (int y = 0; y < actual.Height; y++)
             {
-                Span<TPixelA> aSpan = expected.GetPixelRowSpan(y);
-                Span<TPixelB> bSpan = actual.GetPixelRowSpan(y);
+                Span<TPixelA> aSpan = expectedBuffer.DangerousGetRowSpan(y);
+                Span<TPixelB> bSpan = actualBuffer.DangerousGetRowSpan(y);
 
                 PixelOperations<TPixelA>.Instance.ToRgba64(configuration, aSpan, aBuffer);
                 PixelOperations<TPixelB>.Instance.ToRgba64(configuration, bSpan, bBuffer);

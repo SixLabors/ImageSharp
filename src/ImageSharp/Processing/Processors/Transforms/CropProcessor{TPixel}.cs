@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelExecutionSettings parallelSettings =
                 ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            var operation = new RowOperation(bounds, source, destination);
+            var operation = new RowOperation(bounds, source.PixelBuffer, destination.PixelBuffer);
 
             ParallelRowIterator.IterateRows(
                 bounds,
@@ -65,8 +65,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private readonly struct RowOperation : IRowOperation
         {
             private readonly Rectangle bounds;
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel> destination;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="RowOperation"/> struct.
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             /// <param name="source">The source <see cref="Image{TPixel}"/> for the current instance.</param>
             /// <param name="destination">The destination <see cref="Image{TPixel}"/> for the current instance.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowOperation(Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            public RowOperation(Rectangle bounds, Buffer2D<TPixel> source, Buffer2D<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.source = source;
@@ -86,8 +86,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left);
-                Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y - this.bounds.Top);
+                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y).Slice(this.bounds.Left);
+                Span<TPixel> targetRow = this.destination.DangerousGetRowSpan(y - this.bounds.Top);
                 sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
             }
         }

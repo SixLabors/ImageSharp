@@ -16,11 +16,10 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
-        private static TiffDecoder TiffDecoder => new TiffDecoder();
+        private static TiffDecoder TiffDecoder => new();
 
         [Fact]
         public void TiffMetadata_CloneIsDeep()

@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static int Vp8_Sse16xN_Sse2(Span<byte> a, Span<byte> b, int numPairs)
         {
             Vector128<int> sum = Vector128<int>.Zero;
-            int offset = 0;
+            nint offset = 0;
             for (int i = 0; i < numPairs; i++)
             {
                 // Load values.
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static int Vp8_Sse16xN_Avx2(Span<byte> a, Span<byte> b, int numPairs)
         {
             Vector256<int> sum = Vector256<int>.Zero;
-            int offset = 0;
+            nint offset = 0;
             for (int i = 0; i < numPairs; i++)
             {
                 // Load values.

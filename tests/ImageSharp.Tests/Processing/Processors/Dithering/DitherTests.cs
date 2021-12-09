@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Dithering
         /// but it is very different because of floating point inaccuracies.
         /// </summary>
         private static readonly bool SkipAllDitherTests =
-            !TestEnvironment.Is64BitProcess && string.IsNullOrEmpty(TestEnvironment.NetCoreVersion);
+            !TestEnvironment.Is64BitProcess && TestEnvironment.NetCoreVersion == null;
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]

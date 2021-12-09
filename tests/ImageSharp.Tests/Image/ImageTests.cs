@@ -3,8 +3,11 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    Assert.Equal(11 * 23, imageSpan.Length);
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    Assert.Equal(11 * 23, imageMem.Length);
                     image.ComparePixelBufferTo(default(Rgba32));
 
                     Assert.Equal(Configuration.Default, image.GetConfiguration());
@@ -46,8 +49,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    Assert.Equal(11 * 23, imageSpan.Length);
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    Assert.Equal(11 * 23, imageMem.Length);
                     image.ComparePixelBufferTo(default(Rgba32));
 
                     Assert.Equal(configuration, image.GetConfiguration());
@@ -64,8 +67,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    Assert.Equal(11 * 23, imageSpan.Length);
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    Assert.Equal(11 * 23, imageMem.Length);
                     image.ComparePixelBufferTo(color);
 
                     Assert.Equal(configuration, image.GetConfiguration());
@@ -97,12 +100,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             private readonly Configuration configuration = Configuration.CreateDefaultInstance();
 
-            private void LimitBufferCapacity(int bufferCapacityInBytes)
-            {
-                var allocator = ArrayPoolMemoryAllocator.CreateDefault();
-                this.configuration.MemoryAllocator = allocator;
-                allocator.BufferCapacityInBytes = bufferCapacityInBytes;
-            }
+            private void LimitBufferCapacity(int bufferCapacityInBytes) =>
+                this.configuration.MemoryAllocator = new TestMemoryAllocator { BufferCapacityInBytes = bufferCapacityInBytes };
 
             [Theory]
             [InlineData(false)]
@@ -171,6 +170,95 @@ namespace SixLabors.ImageSharp.Tests
                 ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => image[3, y] = default);
                 Assert.Equal("y", ex.ParamName);
             }
+
+            [Theory]
+            [InlineData(false, false)]
+            [InlineData(false, true)]
+            [InlineData(true, false)]
+            [InlineData(true, true)]
+            public void CopyPixelDataTo_Success(bool disco, bool byteSpan)
+            {
+                if (disco)
+                {
+                    this.LimitBufferCapacity(20);
+                }
+
+                using var image = new Image<La16>(this.configuration, 10, 10);
+                if (disco)
+                {
+                    Assert.True(image.GetPixelMemoryGroup().Count > 1);
+                }
+
+                byte[] expected = TestUtils.FillImageWithRandomBytes(image);
+                byte[] actual = new byte[expected.Length];
+                if (byteSpan)
+                {
+                    image.CopyPixelDataTo(actual);
+                }
+                else
+                {
+                    Span<La16> destination = MemoryMarshal.Cast<byte, La16>(actual);
+                    image.CopyPixelDataTo(destination);
+                }
+
+                Assert.True(expected.AsSpan().SequenceEqual(actual));
+            }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void CopyPixelDataTo_DestinationTooShort_Throws(bool byteSpan)
+            {
+                using var image = new Image<La16>(this.configuration, 10, 10);
+
+                Assert.ThrowsAny<ArgumentOutOfRangeException>(() =>
+                {
+                    if (byteSpan)
+                    {
+                        image.CopyPixelDataTo(new byte[199]);
+                    }
+                    else
+                    {
+                        image.CopyPixelDataTo(new La16[99]);
+                    }
+                });
+            }
+        }
+
+        public class ProcessPixelRows : ProcessPixelRowsTestBase
+        {
+            protected override void ProcessPixelRowsImpl<TPixel>(
+                Image<TPixel> image,
+                PixelAccessorAction<TPixel> processPixels) =>
+                image.ProcessPixelRows(processPixels);
+
+            protected override void ProcessPixelRowsImpl<TPixel>(
+                Image<TPixel> image1,
+                Image<TPixel> image2,
+                PixelAccessorAction<TPixel, TPixel> processPixels) =>
+                image1.ProcessPixelRows(image2, processPixels);
+
+            protected override void ProcessPixelRowsImpl<TPixel>(
+                Image<TPixel> image1,
+                Image<TPixel> image2,
+                Image<TPixel> image3,
+                PixelAccessorAction<TPixel, TPixel, TPixel> processPixels) =>
+                image1.ProcessPixelRows(image2, image3, processPixels);
+
+            [Fact]
+            public void NullReference_Throws()
+            {
+                using var img = new Image<Rgb24>(1, 1);
+
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(null));
+
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows((Image<Rgb24>)null, (_, _) => { }));
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(img, img, null));
+
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows((Image<Rgb24>)null, img, (_, _, _) => { }));
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(img, (Image<Rgb24>)null, (_, _, _) => { }));
+                Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(img, img, null));
+            }
         }
 
         public class Dispose
@@ -232,11 +320,41 @@ namespace SixLabors.ImageSharp.Tests
                 // Image<TPixel>
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.Clone(this.configuration); });
                 Assert.Throws<ObjectDisposedException>(() => { var res = image.CloneAs<Rgba32>(this.configuration); });
-                Assert.Throws<ObjectDisposedException>(() => { var res = image.GetPixelRowSpan(default); });
-                Assert.Throws<ObjectDisposedException>(() => { var res = image.TryGetSinglePixelSpan(out var _); });
+                Assert.Throws<ObjectDisposedException>(() => { var res = image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _); });
 
                 // Image
                 Assert.Throws<ObjectDisposedException>(() => { var res = genericImage.CloneAs<Rgba32>(this.configuration); });
+            }
+        }
+
+        public class DetectEncoder
+        {
+            [Fact]
+            public void KnownExtension_ReturnsEncoder()
+            {
+                using var image = new Image<L8>(1, 1);
+                IImageEncoder encoder = image.DetectEncoder("dummy.png");
+                Assert.NotNull(encoder);
+                Assert.IsType<PngEncoder>(encoder);
+            }
+
+            [Fact]
+            public void UnknownExtension_ThrowsNotSupportedException()
+            {
+                using var image = new Image<L8>(1, 1);
+                Assert.Throws<NotSupportedException>(() => image.DetectEncoder("dummy.yolo"));
+            }
+
+            [Fact]
+            public void NoDetectorRegisteredForKnownExtension_ThrowsNotSupportedException()
+            {
+                var configuration = new Configuration();
+                var format = new TestFormat();
+                configuration.ImageFormatsManager.AddImageFormat(format);
+                configuration.ImageFormatsManager.AddImageFormatDetector(new MockImageFormatDetector(format));
+
+                using var image = new Image<L8>(configuration, 1, 1);
+                Assert.Throws<NotSupportedException>(() => image.DetectEncoder($"dummy.{format.Extension}"));
             }
         }
     }

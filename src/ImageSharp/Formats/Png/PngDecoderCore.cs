@@ -565,6 +565,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             int pass = 0;
             int width = this.header.Width;
+            Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
             while (true)
             {
                 int numColumns = Adam7.ComputeColumns(width, pass);
@@ -623,7 +624,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             break;
                     }
 
-                    Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
+                    Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(this.currentRow);
                     this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[pass], Adam7.ColumnIncrement[pass]);
 
                     this.SwapScanlineBuffers();
@@ -656,7 +657,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
+            Span<TPixel> rowSpan = pixels.PixelBuffer.DangerousGetRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);

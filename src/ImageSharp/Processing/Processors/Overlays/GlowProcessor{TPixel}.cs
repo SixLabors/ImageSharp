@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
             rowColors.GetSpan().Fill(glowColor);
 
-            var operation = new RowOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source);
+            var operation = new RowOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
             ParallelRowIterator.IterateRows<RowOperation, float>(
                 configuration,
                 interest,
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             private readonly float maxDistance;
             private readonly float blendPercent;
             private readonly IMemoryOwner<TPixel> colors;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                 Vector2 center,
                 float maxDistance,
                 float blendPercent,
-                ImageFrame<TPixel> source)
+                Buffer2D<TPixel> source)
             {
                 this.configuration = configuration;
                 this.bounds = bounds;
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                     span[i] = Numerics.Clamp(this.blendPercent * (1 - (.95F * (distance / this.maxDistance))), 0, 1F);
                 }
 
-                Span<TPixel> destination = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+                Span<TPixel> destination = this.source.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
                 this.blender.Blend(
                     this.configuration,

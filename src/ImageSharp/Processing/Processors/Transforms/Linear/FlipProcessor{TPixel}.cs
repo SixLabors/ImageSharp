@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 // No default needed as we have already set the pixels.
                 case FlipMode.Vertical:
-                    this.FlipX(source, this.Configuration);
+                    this.FlipX(source.PixelBuffer, this.Configuration);
                     break;
                 case FlipMode.Horizontal:
                     this.FlipY(source, this.Configuration);
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
         /// <param name="configuration">The configuration.</param>
-        private void FlipX(ImageFrame<TPixel> source, Configuration configuration)
+        private void FlipX(Buffer2D<TPixel> source, Configuration configuration)
         {
             int height = source.Height;
             using IMemoryOwner<TPixel> tempBuffer = configuration.MemoryAllocator.Allocate<TPixel>(source.Width);
@@ -60,8 +61,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             for (int yTop = 0; yTop < height / 2; yTop++)
             {
                 int yBottom = height - yTop - 1;
-                Span<TPixel> topRow = source.GetPixelRowSpan(yBottom);
-                Span<TPixel> bottomRow = source.GetPixelRowSpan(yTop);
+                Span<TPixel> topRow = source.DangerousGetRowSpan(yBottom);
+                Span<TPixel> bottomRow = source.DangerousGetRowSpan(yTop);
                 topRow.CopyTo(temp);
                 bottomRow.CopyTo(topRow);
                 temp.CopyTo(bottomRow);
@@ -75,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
-            var operation = new RowOperation(source);
+            var operation = new RowOperation(source.PixelBuffer);
             ParallelRowIterator.IterateRows(
                 configuration,
                 source.Bounds(),
@@ -84,13 +85,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly struct RowOperation : IRowOperation
         {
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowOperation(ImageFrame<TPixel> source) => this.source = source;
+            public RowOperation(Buffer2D<TPixel> source) => this.source = source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y) => this.source.GetPixelRowSpan(y).Reverse();
+            public void Invoke(int y) => this.source.DangerousGetRowSpan(y).Reverse();
         }
     }
 }

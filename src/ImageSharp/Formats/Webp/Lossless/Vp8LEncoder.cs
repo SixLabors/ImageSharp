@@ -407,13 +407,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private bool ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
             bool nonOpaque = false;
             Span<uint> bgra = this.Bgra.GetSpan();
             Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
             int widthBytes = width * 4;
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(y);
                 Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
                 PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, width);
                 if (!nonOpaque)

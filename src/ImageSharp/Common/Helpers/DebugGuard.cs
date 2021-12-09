@@ -27,6 +27,20 @@ namespace SixLabors
         }
 
         /// <summary>
+        /// Verifies whether a condition (indicating disposed state) is met, throwing an ObjectDisposedException if it's true.
+        /// </summary>
+        /// <param name="isDisposed">Whether the object is disposed.</param>
+        /// <param name="objectName">The name of the object.</param>
+        [Conditional("DEBUG")]
+        public static void NotDisposed(bool isDisposed, string objectName)
+        {
+            if (isDisposed)
+            {
+                throw new ObjectDisposedException(objectName);
+            }
+        }
+
+        /// <summary>
         /// Verifies, that the target span is of same size than the 'other' span.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>

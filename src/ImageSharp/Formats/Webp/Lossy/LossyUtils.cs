@@ -184,11 +184,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             Vector128<int> sum = Vector128<int>.Zero;
             nint offset = 0;
+            ref byte aRef = ref MemoryMarshal.GetReference(a);
+            ref byte bRef = ref MemoryMarshal.GetReference(b);
             for (int i = 0; i < numPairs; i++)
             {
                 // Load values.
-                ref byte aRef = ref MemoryMarshal.GetReference(a);
-                ref byte bRef = ref MemoryMarshal.GetReference(b);
                 Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset));
                 Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset));
                 Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset + WebpConstants.Bps));
@@ -209,11 +209,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             Vector256<int> sum = Vector256<int>.Zero;
             nint offset = 0;
+            ref byte aRef = ref MemoryMarshal.GetReference(a);
+            ref byte bRef = ref MemoryMarshal.GetReference(b);
             for (int i = 0; i < numPairs; i++)
             {
                 // Load values.
-                ref byte aRef = ref MemoryMarshal.GetReference(a);
-                ref byte bRef = ref MemoryMarshal.GetReference(b);
                 var a0 = Vector256.Create(
                     Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset)),
                     Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset + WebpConstants.Bps)));

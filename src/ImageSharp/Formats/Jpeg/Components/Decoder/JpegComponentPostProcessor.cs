@@ -84,8 +84,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 int yBuffer = y * this.blockAreaSize.Height;
 
-                Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);
-                Span<Block8x8> blockRow = spectralBuffer.GetRowSpan(yBlockStart + y);
+                Span<float> colorBufferRow = this.ColorBuffer.DangerousGetRowSpan(yBuffer);
+                Span<Block8x8> blockRow = spectralBuffer.DangerousGetRowSpan(yBlockStart + y);
 
                 for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
@@ -119,11 +119,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             Buffer2D<Block8x8> spectralBlocks = this.component.SpectralBlocks;
             for (int i = 0; i < spectralBlocks.Height; i++)
             {
-                spectralBlocks.GetRowSpan(i).Clear();
+                spectralBlocks.DangerousGetRowSpan(i).Clear();
             }
         }
 
         public Span<float> GetColorBufferRowSpan(int row) =>
-            this.ColorBuffer.GetRowSpan(row);
+            this.ColorBuffer.DangerousGetRowSpan(row);
     }
 }

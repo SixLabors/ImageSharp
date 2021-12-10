@@ -117,8 +117,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.GetRowSpan(y));
-                ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.GetRowSpan(y));
+                ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.DangerousGetRowSpan(y));
+                ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.DangerousGetRowSpan(y));
 
                 for (int x = this.minX; x < this.maxX; x++)
                 {

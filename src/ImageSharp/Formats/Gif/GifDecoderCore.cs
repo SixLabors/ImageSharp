@@ -445,7 +445,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
             {
-                ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.GetRowSpan(y - descriptorTop));
+                ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y - descriptorTop));
 
                 // Check if this image is interlaced.
                 int writeY; // the target y offset to write to
@@ -481,7 +481,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     writeY = y;
                 }
 
-                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
 
                 if (!transFlag)
                 {

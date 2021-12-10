@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
@@ -25,20 +26,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            var operation = new OpaqueRowOperation(this.Configuration, source, interest);
+            var operation = new OpaqueRowOperation(this.Configuration, source.PixelBuffer, interest);
             ParallelRowIterator.IterateRows<OpaqueRowOperation, Vector4>(this.Configuration, interest, in operation);
         }
 
         private readonly struct OpaqueRowOperation : IRowOperation<Vector4>
         {
             private readonly Configuration configuration;
-            private readonly ImageFrame<TPixel> target;
+            private readonly Buffer2D<TPixel> target;
             private readonly Rectangle bounds;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public OpaqueRowOperation(
                 Configuration configuration,
-                ImageFrame<TPixel> target,
+                Buffer2D<TPixel> target,
                 Rectangle bounds)
             {
                 this.configuration = configuration;
@@ -50,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> targetRowSpan = this.target.GetPixelRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetRowSpan = this.target.DangerousGetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Scale);
                 ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 

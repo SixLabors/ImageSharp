@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             for (int y = 0; y < indexedPixels.Height; y++)
             {
-                ref byte rowSpanRef = ref MemoryMarshal.GetReference(indexedPixels.GetRowSpan(y));
+                ref byte rowSpanRef = ref MemoryMarshal.GetReference(indexedPixels.DangerousGetRowSpan(y));
                 int offsetX = y == 0 ? 1 : 0;
 
                 for (int x = offsetX; x < indexedPixels.Width; x++)

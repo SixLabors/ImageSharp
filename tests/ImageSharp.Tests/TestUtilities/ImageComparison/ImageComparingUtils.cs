@@ -5,11 +5,12 @@ using System;
 using System.IO;
 using ImageMagick;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
+namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
-    public static class ImageComparingUtils
+    public static class TgaTestUtils
     {
         public static void CompareWithReferenceDecoder<TPixel>(
             TestImageProvider<TPixel> provider,
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             }
 
             var testFile = TestFile.Create(path);
-            using Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(Configuration.Default, new FileInfo(testFile.FullPath));
+            Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(new FileInfo(testFile.FullPath));
             if (useExactComparer)
             {
                 ImageComparer.Exact.VerifySimilarity(magickImage, image);
@@ -36,15 +37,17 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             }
         }
 
-        public static Image<TPixel> DecodeWithMagick<TPixel>(Configuration configuration, FileInfo fileInfo)
+        public static Image<TPixel> DecodeWithMagick<TPixel>(FileInfo fileInfo)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
+            Configuration configuration = Configuration.Default.Clone();
+            configuration.PreferContiguousImageBuffers = true;
             using (var magickImage = new MagickImage(fileInfo))
             {
                 magickImage.AutoOrient();
                 var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
 
-                Assert.True(result.TryGetSinglePixelSpan(out Span<TPixel> resultPixels));
+                Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
 
                 using (IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe())
                 {
@@ -53,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                     PixelOperations<TPixel>.Instance.FromRgba32Bytes(
                         configuration,
                         data,
-                        resultPixels,
+                        resultPixels.Span,
                         resultPixels.Length);
                 }
 

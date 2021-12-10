@@ -44,11 +44,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
             int offsetY = interest.Top;
             int offsetX = interest.Left;
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
             for (int y = interest.Y; y < interest.Height; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                ReadOnlySpan<byte> quantizedRow = quantized.GetPixelRowSpan(y - offsetY);
+                Span<TPixel> row = sourceBuffer.DangerousGetRowSpan(y);
+                ReadOnlySpan<byte> quantizedRow = quantized.DangerousGetRowSpan(y - offsetY);
 
                 for (int x = interest.Left; x < interest.Right; x++)
                 {

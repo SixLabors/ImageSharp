@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             for (int y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
                 int byteCount = pixelRow.Length;
                 PixelOperations<TPixel>.Instance.FromL8Bytes(
                     this.configuration,

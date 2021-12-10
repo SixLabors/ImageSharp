@@ -223,12 +223,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
                 this.ComponentCount = componentBuffers.Count;
 
-                this.Component0 = componentBuffers[0].GetRowSpan(row);
+                this.Component0 = componentBuffers[0].DangerousGetRowSpan(row);
 
                 // In case of grayscale, Component1 and Component2 point to Component0 memory area
-                this.Component1 = this.ComponentCount > 1 ? componentBuffers[1].GetRowSpan(row) : this.Component0;
-                this.Component2 = this.ComponentCount > 2 ? componentBuffers[2].GetRowSpan(row) : this.Component0;
-                this.Component3 = this.ComponentCount > 3 ? componentBuffers[3].GetRowSpan(row) : Span<float>.Empty;
+                this.Component1 = this.ComponentCount > 1 ? componentBuffers[1].DangerousGetRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? componentBuffers[2].DangerousGetRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? componentBuffers[3].DangerousGetRowSpan(row) : Span<float>.Empty;
             }
 
             internal ComponentValues(

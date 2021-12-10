@@ -231,11 +231,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int kernelSize = this.kernel.Length;
 
                 // Clear the target buffer for each row run
-                Span<ComplexVector4> targetBuffer = this.targetValues.GetRowSpan(y);
+                Span<ComplexVector4> targetBuffer = this.targetValues.DangerousGetRowSpan(y);
                 targetBuffer.Clear();
 
                 // Execute the bulk pixel format conversion for the current row
-                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
+                Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
@@ -295,7 +295,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
                 ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
 
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
 
@@ -378,8 +378,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Vector4 low = Vector4.Zero;
                 var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
 
-                Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
+                Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X);
                 ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
                 for (int x = 0; x < this.bounds.Width; x++)
@@ -422,13 +422,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public unsafe void Invoke(int y)
             {
-                Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+                Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
                 ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
                 Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, float.PositiveInfinity);
                 Numerics.CubeRootOnXYZ(sourceRowSpan);
 
-                Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan.Slice(0, this.bounds.Width), targetPixelSpan, PixelConversionModifiers.Premultiply);
             }

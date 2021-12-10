@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc/>
         public override MemoryHandle Pin(int elementIndex = 0)
         {
-            return new MemoryHandle(((T*)this.pointer) + elementIndex);
+            return new MemoryHandle(((T*)this.pointer) + elementIndex, pinnable: this);
         }
 
         /// <inheritdoc/>

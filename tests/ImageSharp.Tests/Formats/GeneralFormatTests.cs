@@ -99,8 +99,6 @@ namespace SixLabors.ImageSharp.Tests.Formats
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
-
             IQuantizer quantizer = GetQuantizer(quantizerName);
 
             using (Image<TPixel> image = provider.GetImage())

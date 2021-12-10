@@ -60,15 +60,17 @@ namespace SixLabors.ImageSharp.Tests
         [WithTestPatternImages(9, 9, PixelTypes.Rgba32)]
         public void CloneAs_ToAbgr32(TestImageProvider<Rgba32> provider)
         {
-            using (Image<Rgba32> image = provider.GetImage())
-            using (Image<Abgr32> clone = image.CloneAs<Abgr32>())
-            {
-                for (int y = 0; y < image.Height; y++)
-                {
-                    Span<Rgba32> row = image.GetPixelRowSpan(y);
-                    Span<Abgr32> rowClone = clone.GetPixelRowSpan(y);
+            using Image<Rgba32> image = provider.GetImage();
+            using Image<Abgr32> clone = image.CloneAs<Abgr32>();
 
-                    for (int x = 0; x < image.Width; x++)
+            image.ProcessPixelRows(clone, static (imageAccessor, cloneAccessor) =>
+            {
+                for (int y = 0; y < imageAccessor.Height; y++)
+                {
+                    Span<Rgba32> row = imageAccessor.GetRowSpan(y);
+                    Span<Abgr32> rowClone = cloneAccessor.GetRowSpan(y);
+
+                    for (int x = 0; x < cloneAccessor.Width; x++)
                     {
                         Rgba32 expected = row[x];
                         Abgr32 actual = rowClone[x];
@@ -76,10 +78,9 @@ namespace SixLabors.ImageSharp.Tests
                         Assert.Equal(expected.R, actual.R);
                         Assert.Equal(expected.G, actual.G);
                         Assert.Equal(expected.B, actual.B);
-                        Assert.Equal(expected.A, actual.A);
                     }
                 }
-            }
+            });
         }
 
         [Theory]

@@ -87,6 +87,7 @@
 *.eot               binary
 *.exe               binary
 *.otf               binary
+*.pbm               binary
 *.pdf               binary
 *.ppt               binary
 *.pptx              binary
@@ -94,6 +95,7 @@
 *.snk               binary
 *.ttc               binary
 *.ttf               binary
+*.wbmp              binary
 *.woff              binary
 *.woff2             binary
 *.xls               binary
@@ -124,9 +126,3 @@
 *.dds               filter=lfs diff=lfs merge=lfs -text
 *.ktx               filter=lfs diff=lfs merge=lfs -text
 *.ktx2              filter=lfs diff=lfs merge=lfs -text
-*.pam               filter=lfs diff=lfs merge=lfs -text
-*.pbm               filter=lfs diff=lfs merge=lfs -text
-*.pgm               filter=lfs diff=lfs merge=lfs -text
-*.ppm               filter=lfs diff=lfs merge=lfs -text
-*.pnm               filter=lfs diff=lfs merge=lfs -text
-*.wbmp              filter=lfs diff=lfs merge=lfs -text

@@ -54,8 +54,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         }
 
         /// <inheritdoc />
-        public Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeAsync(configuration, stream, cancellationToken);
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
+            .ConfigureAwait(false);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)

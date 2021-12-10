@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             for (int y = 0; y < height; y++)
             {
                 stream.Read(rowSpan);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromL8Bytes(
                     configuration,
                     rowSpan,
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             for (int y = 0; y < height; y++)
             {
                 stream.Read(rowSpan);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromL16Bytes(
                     configuration,
                     rowSpan,
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             for (int y = 0; y < height; y++)
             {
                 stream.Read(rowSpan);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromRgb24Bytes(
                     configuration,
                     rowSpan,
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             for (int y = 0; y < height; y++)
             {
                 stream.Read(rowSpan);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromRgb48Bytes(
                     configuration,
                     rowSpan,
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     }
                 }
 
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromL8(
                     configuration,
                     rowSpan,

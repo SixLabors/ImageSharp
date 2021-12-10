@@ -76,6 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             int width = image.Width;
             int height = image.Height;
+            Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
@@ -84,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> pixelSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToL8(
                     configuration,
                     pixelSpan,
@@ -108,6 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             int width = image.Width;
             int height = image.Height;
+            Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L16> row = allocator.Allocate<L16>(width);
             Span<L16> rowSpan = row.GetSpan();
@@ -116,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> pixelSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToL16(
                     configuration,
                     pixelSpan,
@@ -140,6 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             int width = image.Width;
             int height = image.Height;
+            Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<Rgb24> row = allocator.Allocate<Rgb24>(width);
             Span<Rgb24> rowSpan = row.GetSpan();
@@ -148,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> pixelSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToRgb24(
                     configuration,
                     pixelSpan,
@@ -178,6 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             int width = image.Width;
             int height = image.Height;
+            Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<Rgb48> row = allocator.Allocate<Rgb48>(width);
             Span<Rgb48> rowSpan = row.GetSpan();
@@ -186,7 +190,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> pixelSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToRgb48(
                     configuration,
                     pixelSpan,
@@ -216,6 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         {
             int width = image.Width;
             int height = image.Height;
+            Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
             MemoryAllocator allocator = configuration.MemoryAllocator;
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
@@ -224,7 +229,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> pixelSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToL8(
                     configuration,
                     pixelSpan,

@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     rowSpan[x] = new L8(value);
                 }
 
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromL8(
                     configuration,
                     rowSpan,
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     rowSpan[x] = new L16(value);
                 }
 
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromL16(
                     configuration,
                     rowSpan,
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     rowSpan[x] = new Rgb24(red, green, blue);
                 }
 
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromRgb24(
                     configuration,
                     rowSpan,
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     rowSpan[x] = new Rgb48(red, green, blue);
                 }
 
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromRgb48(
                     configuration,
                     rowSpan,
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     rowSpan[x] = value == 0 ? White : Black;
                 }
 
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromL8(
                     configuration,
                     rowSpan,

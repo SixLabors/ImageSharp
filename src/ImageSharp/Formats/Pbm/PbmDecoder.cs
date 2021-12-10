@@ -54,9 +54,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         }
 
         /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
-            .ConfigureAwait(false);
+        public Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => this.DecodeAsync(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
@@ -68,16 +67,12 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         }
 
         /// <inheritdoc/>
-        public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            // The introduction of a local variable that refers to an object the implements
-            // IDisposable means you must use async/await, where the compiler generates the
-            // state machine and a continuation.
             var decoder = new PbmDecoderCore(configuration);
-            return await decoder.IdentifyAsync(configuration, stream, cancellationToken)
-                .ConfigureAwait(false);
+            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

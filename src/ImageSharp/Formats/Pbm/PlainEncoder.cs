@@ -66,6 +66,9 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             {
                 WriteBlackAndWhite(configuration, stream, image);
             }
+
+            // Write EOF indicator, as some encoders expect it.
+            stream.WriteByte(Space);
         }
 
         private static void WriteGrayscale<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)

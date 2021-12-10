@@ -72,7 +72,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
                 using (var memStream = new MemoryStream())
                 {
                     input.Save(memStream, options);
-                    memStream.Position = 0;
+
+                    // EOF indicator for plain is a Space.
+                    memStream.Seek(-1, SeekOrigin.End);
+                    int lastByte = memStream.ReadByte();
+                    Assert.Equal(0x20, lastByte);
+
+                    memStream.Seek(0, SeekOrigin.Begin);
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
                         PbmMetadata meta = output.Metadata.GetPbmMetadata();

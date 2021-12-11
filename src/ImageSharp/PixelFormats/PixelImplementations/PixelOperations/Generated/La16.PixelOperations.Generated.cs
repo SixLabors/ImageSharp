@@ -52,8 +52,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Argb32 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -72,8 +72,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Abgr32 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Abgr32 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -92,8 +92,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Bgr24 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -112,8 +112,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Bgra32 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -132,8 +132,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref L8 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref L8 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -152,8 +152,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref L16 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref L16 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -172,8 +172,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref La32 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref La32 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -192,8 +192,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Rgb24 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb24 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -212,8 +212,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -232,8 +232,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Rgb48 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -252,8 +252,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Rgba64 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }
@@ -272,8 +272,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 for (nint i = 0; i < sourcePixels.Length; i++)
                 {
-                    ref La16 sp = ref Unsafe.Add(ref sourceRef, (int)i);
-                    ref Bgra5551 dp = ref Unsafe.Add(ref destRef, (int)i);
+                    ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Bgra5551 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromLa16(sp);
                 }

@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 
-#if !NETCOREAPP3_1
+#if !NETCOREAPP3_1_OR_GREATER
 namespace SixLabors.ImageSharp.Common.Helpers
 {
     /// <summary>

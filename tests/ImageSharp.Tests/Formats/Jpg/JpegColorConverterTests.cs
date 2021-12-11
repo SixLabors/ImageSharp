@@ -24,11 +24,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private const int TestBufferLength = 40;
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX;
+#else
+        private static readonly HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll;
+#endif
+
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(epsilon: Precision);
 
-        public static readonly TheoryData<int> Seeds = new() { 1, 2, 3 };
-
         private static readonly ColorSpaceConverter ColorSpaceConverter = new();
+
+        public static readonly TheoryData<int> Seeds = new() { 1, 2, 3 };
 
         public JpegColorConverterTests(ITestOutputHelper output)
         {
@@ -107,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+                IntrinsicsConfig);
 
             static void RunTest(string arg) =>
                 ValidateConversion(
@@ -144,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+                IntrinsicsConfig);
 
             static void RunTest(string arg) =>
                 ValidateConversion(
@@ -181,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+                IntrinsicsConfig);
 
             static void RunTest(string arg) =>
                 ValidateConversion(
@@ -218,7 +224,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+                IntrinsicsConfig);
 
             static void RunTest(string arg) =>
                 ValidateConversion(
@@ -255,7 +261,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+                IntrinsicsConfig);
 
             static void RunTest(string arg) =>
                 ValidateConversion(

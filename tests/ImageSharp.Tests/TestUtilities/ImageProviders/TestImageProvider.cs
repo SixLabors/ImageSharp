@@ -21,20 +21,11 @@ namespace SixLabors.ImageSharp.Tests
     public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IXunitSerializable
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Create a Configuration with Configuration.CreateDefaultInstance(),
-        // but use the shared MemoryAllocator from Configuration.Default.MemoryAllocator
-        private static Configuration CreateDefaultConfiguration()
-        {
-            var configuration = Configuration.CreateDefaultInstance();
-            configuration.MemoryAllocator = ImageSharp.Configuration.Default.MemoryAllocator;
-            return configuration;
-        }
-
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();
 
         public virtual string SourceFileOrDescription => string.Empty;
 
-        public Configuration Configuration { get; set; } = CreateDefaultConfiguration();
+        public Configuration Configuration { get; set; } = Configuration.CreateDefaultInstance();
 
         /// <summary>
         /// Gets the utility instance to provide information about the test image & manage input/output.

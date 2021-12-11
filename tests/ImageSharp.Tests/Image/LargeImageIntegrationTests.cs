@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
@@ -19,14 +21,31 @@ namespace SixLabors.ImageSharp.Tests
             image.DebugSave(provider);
         }
 
+        [Fact]
+        public void PreferContiguousImageBuffers_CreateImage_BufferIsContiguous()
+        {
+            // Run remotely to avoid large allocation in the test process:
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                Configuration configuration = Configuration.Default.Clone();
+                configuration.PreferContiguousImageBuffers = true;
+
+                using var image = new Image<Rgba32>(configuration, 8192, 4096);
+                Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
+                Assert.Equal(8192 * 4096, mem.Length);
+            }
+        }
+
         [Theory]
         [WithBasicTestPatternImages(width: 10, height: 10, PixelTypes.Rgba32)]
-        public void GetSingleSpan(TestImageProvider<Rgba32> provider)
+        public void DangerousTryGetSinglePixelMemory_WhenImageTooLarge_ReturnsFalse(TestImageProvider<Rgba32> provider)
         {
             provider.LimitAllocatorBufferCapacity().InPixels(10);
             using Image<Rgba32> image = provider.GetImage();
-            Assert.False(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-            Assert.False(image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> imageFrameSpan));
+            Assert.False(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
+            Assert.False(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _));
         }
     }
 }

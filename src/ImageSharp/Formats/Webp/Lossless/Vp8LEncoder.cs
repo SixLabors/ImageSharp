@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public bool UseCrossColorTransform { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to use the substract green transform.
+        /// Gets or sets a value indicating whether to use the subtract green transform.
         /// </summary>
         public bool UseSubtractGreenTransform { get; set; }
 
@@ -407,13 +407,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private bool ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
             bool nonOpaque = false;
             Span<uint> bgra = this.Bgra.GetSpan();
             Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
             int widthBytes = width * 4;
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(y);
                 Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
                 PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, width);
                 if (!nonOpaque)
@@ -1049,7 +1050,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return EntropyIx.Palette;
             }
 
-            using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256);
+            using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256, AllocationOptions.Clean);
             Span<uint> histo = histoBuffer.Memory.Span;
             uint pixPrev = bgra[0]; // Skip the first pixel.
             ReadOnlySpan<uint> prevRow = null;

@@ -39,25 +39,27 @@ namespace SixLabors.ImageSharp.Tests
             public override Image<TPixel> GetImage()
             {
                 var result = new Image<TPixel>(this.Configuration, this.Width, this.Height);
-
-                int midY = this.Height / 2;
-                int midX = this.Width / 2;
-
-                for (int y = 0; y < midY; y++)
+                result.ProcessPixelRows(accessor =>
                 {
-                    Span<TPixel> row = result.GetPixelRowSpan(y);
+                    int midY = this.Height / 2;
+                    int midX = this.Width / 2;
 
-                    row.Slice(0, midX).Fill(TopLeftColor);
-                    row.Slice(midX, this.Width - midX).Fill(TopRightColor);
-                }
+                    for (int y = 0; y < midY; y++)
+                    {
+                        Span<TPixel> row = accessor.GetRowSpan(y);
 
-                for (int y = midY; y < this.Height; y++)
-                {
-                    Span<TPixel> row = result.GetPixelRowSpan(y);
+                        row.Slice(0, midX).Fill(TopLeftColor);
+                        row.Slice(midX, this.Width - midX).Fill(TopRightColor);
+                    }
 
-                    row.Slice(0, midX).Fill(BottomLeftColor);
-                    row.Slice(midX, this.Width - midX).Fill(BottomRightColor);
-                }
+                    for (int y = midY; y < this.Height; y++)
+                    {
+                        Span<TPixel> row = accessor.GetRowSpan(y);
+
+                        row.Slice(0, midX).Fill(BottomLeftColor);
+                        row.Slice(midX, this.Width - midX).Fill(BottomRightColor);
+                    }
+                });
 
                 return result;
             }

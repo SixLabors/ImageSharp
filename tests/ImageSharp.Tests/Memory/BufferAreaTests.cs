@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             for (int y = 0; y < 13; y++)
             {
-                Span<int> row = buffer.GetRowSpan(y);
+                Span<int> row = buffer.DangerousGetRowSpan(y);
                 Assert.True(row.SequenceEqual(emptyRow));
             }
         }
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             for (int y = region.Rectangle.Y; y < region.Rectangle.Bottom; y++)
             {
-                Span<int> span = buffer.GetRowSpan(y).Slice(region.Rectangle.X, region.Width);
+                Span<int> span = buffer.DangerousGetRowSpan(y).Slice(region.Rectangle.X, region.Width);
                 Assert.True(span.SequenceEqual(new int[region.Width]));
             }
         }

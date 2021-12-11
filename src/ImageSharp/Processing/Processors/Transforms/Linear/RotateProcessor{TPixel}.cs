@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate180(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            var operation = new Rotate180RowOperation(source.Width, source.Height, source, destination);
+            var operation = new Rotate180RowOperation(source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
             ParallelRowIterator.IterateRows(
                 configuration,
                 source.Bounds(),
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate270(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            var operation = new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source, destination);
+            var operation = new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
             ParallelRowIterator.IterateRowIntervals(
                 configuration,
                 source.Bounds(),
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate90(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            var operation = new Rotate90RowOperation(destination.Bounds(), source.Width, source.Height, source, destination);
+            var operation = new Rotate90RowOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
             ParallelRowIterator.IterateRows(
                 configuration,
                 source.Bounds(),
@@ -172,15 +172,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             private readonly int width;
             private readonly int height;
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public Rotate180RowOperation(
                 int width,
                 int height,
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel> destination)
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel> destination)
             {
                 this.width = width;
                 this.height = height;
@@ -191,8 +191,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                Span<TPixel> targetRow = this.destination.GetPixelRowSpan(this.height - y - 1);
+                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
+                Span<TPixel> targetRow = this.destination.DangerousGetRowSpan(this.height - y - 1);
 
                 for (int x = 0; x < this.width; x++)
                 {
@@ -206,16 +206,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly Rectangle bounds;
             private readonly int width;
             private readonly int height;
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public Rotate270RowIntervalOperation(
                 Rectangle bounds,
                 int width,
                 int height,
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel> destination)
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.width = width;
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                    Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
                     for (int x = 0; x < this.width; x++)
                     {
                         int newX = this.height - y - 1;
@@ -250,16 +250,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly Rectangle bounds;
             private readonly int width;
             private readonly int height;
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public Rotate90RowOperation(
                 Rectangle bounds,
                 int width,
                 int height,
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel> destination)
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.width = width;
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
                 int newX = this.height - y - 1;
                 for (int x = 0; x < this.width; x++)
                 {

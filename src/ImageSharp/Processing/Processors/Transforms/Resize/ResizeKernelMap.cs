@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.sourceLength = sourceLength;
             this.DestinationLength = destinationLength;
             this.MaxDiameter = (radius * 2) + 1;
-            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, AllocationOptions.Clean);
+            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, preferContiguosImageBuffers: true, AllocationOptions.Clean);
             this.pinHandle = this.data.DangerousGetSingleMemory().Pin();
             this.kernels = new ResizeKernel[destinationLength];
             this.tempValues = new double[this.MaxDiameter];
@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int length = right - left + 1;
             this.ValidateSizesForCreateKernel(length, dataRowIndex, left, right);
 
-            Span<float> rowSpan = this.data.GetRowSpan(dataRowIndex);
+            Span<float> rowSpan = this.data.DangerousGetRowSpan(dataRowIndex);
 
             ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
             float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);

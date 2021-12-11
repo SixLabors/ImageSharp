@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
             PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
 
-            var operation = new RowOperation(configuration, interest, blender, amount, colors, source);
+            var operation = new RowOperation(configuration, interest, blender, amount, colors, source.PixelBuffer);
             ParallelRowIterator.IterateRows(
                 configuration,
                 interest,
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             private readonly PixelBlender<TPixel> blender;
             private readonly IMemoryOwner<float> amount;
             private readonly IMemoryOwner<TPixel> colors;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                 PixelBlender<TPixel> blender,
                 IMemoryOwner<float> amount,
                 IMemoryOwner<TPixel> colors,
-                ImageFrame<TPixel> source)
+                Buffer2D<TPixel> source)
             {
                 this.configuration = configuration;
                 this.bounds = bounds;
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             public void Invoke(int y)
             {
                 Span<TPixel> destination =
-                    this.source.GetPixelRowSpan(y)
+                    this.source.DangerousGetRowSpan(y)
                         .Slice(this.bounds.X, this.bounds.Width);
 
                 // Switch color & destination in the 2nd and 3rd places because we are

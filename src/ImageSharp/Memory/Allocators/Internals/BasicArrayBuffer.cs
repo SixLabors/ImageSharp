@@ -2,11 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
     /// <summary>
-    /// Wraps an array as an <see cref="IManagedByteBuffer"/> instance.
+    /// Wraps an array as an <see cref="MemoryManager{T}"/> instance.
     /// </summary>
     /// <inheritdoc />
     internal class BasicArrayBuffer<T> : ManagedBufferBase<T>

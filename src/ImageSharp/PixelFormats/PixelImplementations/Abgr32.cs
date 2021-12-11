@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -214,9 +215,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgr24(Bgr24 source)
         {
-            this.R = source.R;
-            this.G = source.G;
-            this.B = source.B;
+            // We can assign the Bgr24 value directly to last three bytes of this instance.
+            ref byte thisRef = ref Unsafe.As<Abgr32, byte>(ref this);
+            ref byte thisRefFromB = ref Unsafe.AddByteOffset(ref thisRef, new IntPtr(1));
+            Unsafe.As<byte, Bgr24>(ref thisRefFromB) = source;
             this.A = byte.MaxValue;
         }
 

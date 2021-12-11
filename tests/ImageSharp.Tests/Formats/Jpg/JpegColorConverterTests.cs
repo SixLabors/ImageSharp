@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public class JpegColorConverterTests
     {
-        private static readonly float MaxColorChannelValue = 255f;
+        private const float MaxColorChannelValue = 255f;
 
         private const float Precision = 0.1F / 255;
 
@@ -122,13 +122,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     FeatureTestRunner.Deserialize<int>(arg));
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [Theory]
-        [MemberData(nameof(Seeds))]
-        public void FromYCbCrAvx2(int seed) =>
-            this.TestConverter(new JpegColorConverterBase.FromYCbCrAvx(8), 3, seed);
-#endif
-
         [Theory]
         [MemberData(nameof(Seeds))]
         public void FromCmykBasic(int seed) =>
@@ -158,13 +151,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     4,
                     FeatureTestRunner.Deserialize<int>(arg));
         }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [Theory]
-        [MemberData(nameof(Seeds))]
-        public void FromCmykAvx2(int seed) =>
-            this.TestConverter(new JpegColorConverterBase.FromCmykAvx(8), 4, seed);
-#endif
 
         [Theory]
         [MemberData(nameof(Seeds))]
@@ -196,13 +182,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     FeatureTestRunner.Deserialize<int>(arg));
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [Theory]
-        [MemberData(nameof(Seeds))]
-        public void FromGrayscaleAvx2(int seed) =>
-            this.TestConverter(new JpegColorConverterBase.FromGrayscaleAvx(8), 1, seed);
-#endif
-
         [Theory]
         [MemberData(nameof(Seeds))]
         public void FromRgbBasic(int seed) =>
@@ -232,13 +211,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     3,
                     FeatureTestRunner.Deserialize<int>(arg));
         }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [Theory]
-        [MemberData(nameof(Seeds))]
-        public void FromRgbAvx2(int seed) =>
-            this.TestConverter(new JpegColorConverterBase.FromRgbAvx(8), 3, seed);
-#endif
 
         [Theory]
         [MemberData(nameof(Seeds))]
@@ -271,6 +243,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        [Theory]
+        [MemberData(nameof(Seeds))]
+        public void FromYCbCrAvx2(int seed) =>
+            this.TestConverter(new JpegColorConverterBase.FromYCbCrAvx(8), 3, seed);
+
+        [Theory]
+        [MemberData(nameof(Seeds))]
+        public void FromCmykAvx2(int seed) =>
+            this.TestConverter(new JpegColorConverterBase.FromCmykAvx(8), 4, seed);
+
+        [Theory]
+        [MemberData(nameof(Seeds))]
+        public void FromGrayscaleAvx2(int seed) =>
+            this.TestConverter(new JpegColorConverterBase.FromGrayscaleAvx(8), 1, seed);
+
+        [Theory]
+        [MemberData(nameof(Seeds))]
+        public void FromRgbAvx2(int seed) =>
+            this.TestConverter(new JpegColorConverterBase.FromRgbAvx(8), 3, seed);
+
         [Theory]
         [MemberData(nameof(Seeds))]
         public void FromYccKAvx2(int seed) =>

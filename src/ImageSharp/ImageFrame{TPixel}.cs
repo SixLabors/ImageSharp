@@ -58,7 +58,11 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(width, height, AllocationOptions.Clean);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+                width,
+                height,
+                configuration.PreferContiguousImageBuffers,
+                AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -87,7 +91,10 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(width, height);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+                width,
+                height,
+                configuration.PreferContiguousImageBuffers);
             this.Clear(backgroundColor);
         }
 
@@ -131,7 +138,10 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(source, nameof(source));
 
-            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+                source.PixelBuffer.Width,
+                source.PixelBuffer.Height,
+                configuration.PreferContiguousImageBuffers);
             source.PixelBuffer.FastMemoryGroup.CopyTo(this.PixelBuffer.FastMemoryGroup);
         }
 
@@ -168,36 +178,128 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
+        /// Execute <paramref name="processPixels"/> to process image pixels in a safe and efficient manner.
         /// </summary>
-        /// <param name="rowIndex">The row.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
-        public Span<TPixel> GetPixelRowSpan(int rowIndex)
+        /// <param name="processPixels">The <see cref="PixelAccessorAction{TPixel}"/> defining the pixel operations.</param>
+        public void ProcessPixelRows(PixelAccessorAction<TPixel> processPixels)
         {
-            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
-            Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));
+            Guard.NotNull(processPixels, nameof(processPixels));
 
-            return this.PixelBuffer.GetRowSpan(rowIndex);
+            this.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+
+            try
+            {
+                var accessor = new PixelAccessor<TPixel>(this.PixelBuffer);
+                processPixels(accessor);
+            }
+            finally
+            {
+                this.PixelBuffer.FastMemoryGroup.DecreaseRefCounts();
+            }
         }
 
         /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
-        /// stored in row major order, if the backing buffer is contiguous.
+        /// Execute <paramref name="processPixels"/> to process pixels of multiple image frames in a safe and efficient manner.
         /// </summary>
-        /// <param name="span">The <see cref="Span{T}"/>.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public bool TryGetSinglePixelSpan(out Span<TPixel> span)
+        /// <param name="frame2">The second image frame.</param>
+        /// <param name="processPixels">The <see cref="PixelAccessorAction{TPixel, TPixel2}"/> defining the pixel operations.</param>
+        /// <typeparam name="TPixel2">The pixel type of the second image frame.</typeparam>
+        public void ProcessPixelRows<TPixel2>(
+            ImageFrame<TPixel2> frame2,
+            PixelAccessorAction<TPixel, TPixel2> processPixels)
+            where TPixel2 : unmanaged, IPixel<TPixel2>
+        {
+            Guard.NotNull(frame2, nameof(frame2));
+            Guard.NotNull(processPixels, nameof(processPixels));
+
+            this.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+            frame2.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+
+            try
+            {
+                var accessor1 = new PixelAccessor<TPixel>(this.PixelBuffer);
+                var accessor2 = new PixelAccessor<TPixel2>(frame2.PixelBuffer);
+                processPixels(accessor1, accessor2);
+            }
+            finally
+            {
+                frame2.PixelBuffer.FastMemoryGroup.DecreaseRefCounts();
+                this.PixelBuffer.FastMemoryGroup.DecreaseRefCounts();
+            }
+        }
+
+        /// <summary>
+        /// Execute <paramref name="processPixels"/> to process pixels of multiple image frames in a safe and efficient manner.
+        /// </summary>
+        /// <param name="frame2">The second image frame.</param>
+        /// <param name="frame3">The third image frame.</param>
+        /// <param name="processPixels">The <see cref="PixelAccessorAction{TPixel, TPixel2, TPixel3}"/> defining the pixel operations.</param>
+        /// <typeparam name="TPixel2">The pixel type of the second image frame.</typeparam>
+        /// <typeparam name="TPixel3">The pixel type of the third image frame.</typeparam>
+        public void ProcessPixelRows<TPixel2, TPixel3>(
+            ImageFrame<TPixel2> frame2,
+            ImageFrame<TPixel3> frame3,
+            PixelAccessorAction<TPixel, TPixel2, TPixel3> processPixels)
+            where TPixel2 : unmanaged, IPixel<TPixel2>
+            where TPixel3 : unmanaged, IPixel<TPixel3>
+        {
+            Guard.NotNull(frame2, nameof(frame2));
+            Guard.NotNull(frame3, nameof(frame3));
+            Guard.NotNull(processPixels, nameof(processPixels));
+
+            this.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+            frame2.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+            frame3.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+
+            try
+            {
+                var accessor1 = new PixelAccessor<TPixel>(this.PixelBuffer);
+                var accessor2 = new PixelAccessor<TPixel2>(frame2.PixelBuffer);
+                var accessor3 = new PixelAccessor<TPixel3>(frame3.PixelBuffer);
+                processPixels(accessor1, accessor2, accessor3);
+            }
+            finally
+            {
+                frame3.PixelBuffer.FastMemoryGroup.DecreaseRefCounts();
+                frame2.PixelBuffer.FastMemoryGroup.DecreaseRefCounts();
+                this.PixelBuffer.FastMemoryGroup.DecreaseRefCounts();
+            }
+        }
+
+        /// <summary>
+        /// Copy image pixels to <paramref name="destination"/>.
+        /// </summary>
+        /// <param name="destination">The <see cref="Span{TPixel}"/> to copy image pixels to.</param>
+        public void CopyPixelDataTo(Span<TPixel> destination) => this.GetPixelMemoryGroup().CopyTo(destination);
+
+        /// <summary>
+        /// Copy image pixels to <paramref name="destination"/>.
+        /// </summary>
+        /// <param name="destination">The <see cref="Span{T}"/> of <see cref="byte"/> to copy image pixels to.</param>
+        public void CopyPixelDataTo(Span<byte> destination) => this.GetPixelMemoryGroup().CopyTo(MemoryMarshal.Cast<byte, TPixel>(destination));
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
+        /// stored in row major order, if the backing buffer is contiguous.
+        /// <para />
+        /// To ensure the memory is contiguous, <see cref="Configuration.PreferContiguousImageBuffers"/> should be set
+        /// to true, preferably on a non-global configuration instance (not <see cref="Configuration.Default"/>).
+        /// <para />
+        /// WARNING: Disposing or leaking the underlying image while still working with the <paramref name="memory"/>'s <see cref="Span{T}"/>
+        /// might lead to memory corruption.
+        /// </summary>
+        /// <param name="memory">The <see cref="Memory{T}"/> referencing the image buffer.</param>
+        /// <returns>The <see cref="bool"/> indicating the success.</returns>
+        public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory)
         {
             IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
             if (mg.Count > 1)
             {
-                span = default;
+                memory = default;
                 return false;
             }
 
-            span = mg.Single().Span;
+            memory = mg.Single();
             return true;
         }
 
@@ -310,7 +412,7 @@ namespace SixLabors.ImageSharp
             }
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
-            var operation = new RowIntervalOperation<TPixel2>(this, target, configuration);
+            var operation = new RowIntervalOperation<TPixel2>(this.PixelBuffer, target.PixelBuffer, configuration);
 
             ParallelRowIterator.IterateRowIntervals(
                 configuration,
@@ -364,14 +466,14 @@ namespace SixLabors.ImageSharp
         private readonly struct RowIntervalOperation<TPixel2> : IRowIntervalOperation
             where TPixel2 : unmanaged, IPixel<TPixel2>
         {
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel2> target;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel2> target;
             private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel2> target,
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel2> target,
                 Configuration configuration)
             {
                 this.source = source;
@@ -385,8 +487,8 @@ namespace SixLabors.ImageSharp
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                    Span<TPixel2> targetRow = this.target.GetPixelRowSpan(y);
+                    Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
+                    Span<TPixel2> targetRow = this.target.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.To(this.configuration, sourceRow, targetRow);
                 }
             }

@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
 {
     internal class TestMemoryAllocator : MemoryAllocator
     {
-        private readonly List<AllocationRequest> allocationLog = new List<AllocationRequest>();
-        private readonly List<ReturnRequest> returnLog = new List<ReturnRequest>();
+        private List<AllocationRequest> allocationLog;
+        private List<ReturnRequest> returnLog;
 
         public TestMemoryAllocator(byte dirtyValue = 42)
         {
@@ -27,11 +27,17 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         public int BufferCapacityInBytes { get; set; } = int.MaxValue;
 
-        public IReadOnlyList<AllocationRequest> AllocationLog => this.allocationLog;
+        public IReadOnlyList<AllocationRequest> AllocationLog => this.allocationLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
 
-        public IReadOnlyList<ReturnRequest> ReturnLog => this.returnLog;
+        public IReadOnlyList<ReturnRequest> ReturnLog => this.returnLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
 
         protected internal override int GetBufferCapacityInBytes() => this.BufferCapacityInBytes;
+
+        public void EnableNonThreadSafeLogging()
+        {
+            this.allocationLog = new List<AllocationRequest>();
+            this.returnLog = new List<ReturnRequest>();
+        }
 
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
@@ -39,17 +45,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
             return new BasicArrayBuffer<T>(array, length, this);
         }
 
-        public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            byte[] array = this.AllocateArray<byte>(length, options);
-            return new ManagedByteBuffer(array, this);
-        }
-
         private T[] AllocateArray<T>(int length, AllocationOptions options)
             where T : struct
         {
             var array = new T[length + 42];
-            this.allocationLog.Add(AllocationRequest.Create<T>(options, length, array));
+            this.allocationLog?.Add(AllocationRequest.Create<T>(options, length, array));
 
             if (options == AllocationOptions.None)
             {
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         private void Return<T>(BasicArrayBuffer<T> buffer)
             where T : struct
         {
-            this.returnLog.Add(new ReturnRequest(buffer.Array.GetHashCode()));
+            this.returnLog?.Add(new ReturnRequest(buffer.Array.GetHashCode()));
         }
 
         public struct AllocationRequest
@@ -152,12 +152,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 }
 
                 void* ptr = (void*)this.pinHandle.AddrOfPinnedObject();
-                return new MemoryHandle(ptr, this.pinHandle);
+                return new MemoryHandle(ptr, pinnable: this);
             }
 
             public override void Unpin()
             {
-                throw new NotImplementedException();
+                this.pinHandle.Free();
             }
 
             /// <inheritdoc />
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        private class ManagedByteBuffer : BasicArrayBuffer<byte>, IManagedByteBuffer
+        private class ManagedByteBuffer : BasicArrayBuffer<byte>, IMemoryOwner<byte>
         {
             public ManagedByteBuffer(byte[] array, TestMemoryAllocator allocator)
                 : base(array, allocator)

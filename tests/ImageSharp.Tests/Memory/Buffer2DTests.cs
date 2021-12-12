@@ -69,6 +69,25 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Construct_PreferContiguousImageBuffers_AllocatesContiguousRegardlessOfCapacity(bool useSizeOverload)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = 10_000;
+
+            using Buffer2D<byte> buffer = useSizeOverload ?
+                this.MemoryAllocator.Allocate2D<byte>(
+                    new Size(200, 200),
+                    preferContiguosImageBuffers: true) :
+                this.MemoryAllocator.Allocate2D<byte>(
+                200,
+                200,
+                preferContiguosImageBuffers: true);
+            Assert.Equal(1, buffer.FastMemoryGroup.Count);
+            Assert.Equal(200 * 200, buffer.FastMemoryGroup.TotalLength);
+        }
+
+        [Theory]
         [InlineData(50, 10, 20, 4)]
         public void Allocate2DOveraligned(int bufferCapacity, int width, int height, int alignmentMultiplier)
         {
@@ -108,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
+                Span<TestStructs.Foo> span = buffer.DangerousGetRowSpan(y);
 
                 Assert.Equal(width, span.Length);
 
@@ -158,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
             using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(width, height);
 
-            Exception ex = Assert.ThrowsAny<Exception>(() => buffer.GetRowSpan(y));
+            Exception ex = Assert.ThrowsAny<Exception>(() => buffer.DangerousGetRowSpan(y));
             Assert.True(ex is ArgumentOutOfRangeException || ex is IndexOutOfRangeException);
         }
 
@@ -249,16 +268,14 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Buffer2D<int>.SwapOrCopyContent(dest, source);
             }
 
-            int actual1 = dest.GetRowSpan(0)[0];
-            int actual2 = dest.GetRowSpan(0)[0];
+            int actual1 = dest.DangerousGetRowSpan(0)[0];
+            int actual2 = dest.DangerousGetRowSpan(0)[0];
             int actual3 = dest.GetSafeRowMemory(0).Span[0];
-            int actual4 = dest.GetFastRowMemory(0).Span[0];
             int actual5 = dest[0, 0];
 
             Assert.Equal(1, actual1);
             Assert.Equal(1, actual2);
             Assert.Equal(1, actual3);
-            Assert.Equal(1, actual4);
             Assert.Equal(1, actual5);
         }
 
@@ -280,7 +297,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpan(y);
+                    Span<float> row = b.DangerousGetRowSpan(y);
 
                     Span<float> s = row.Slice(startIndex, columnCount);
                     Span<float> d = row.Slice(destIndex, columnCount);
@@ -303,7 +320,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpan(y);
+                    Span<float> row = b.DangerousGetRowSpan(y);
 
                     Span<float> s = row.Slice(0, 22);
                     Span<float> d = row.Slice(50, 22);

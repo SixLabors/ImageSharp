@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y).Slice(left, width);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
                 if (this.isBigEndian)
                 {
                     for (int x = 0; x < pixelRow.Length; x++)

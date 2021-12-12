@@ -99,8 +99,6 @@ namespace SixLabors.ImageSharp.Tests.Formats
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
-
             IQuantizer quantizer = GetQuantizer(quantizerName);
 
             using (Image<TPixel> image = provider.GetImage())
@@ -134,6 +132,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
                     using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
                     {
                         image.SaveAsJpeg(output);
+                    }
+
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.pbm")))
+                    {
+                        image.SaveAsPbm(output);
                     }
 
                     using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
@@ -183,6 +186,10 @@ namespace SixLabors.ImageSharp.Tests.Formats
         }
 
         [Theory]
+        [InlineData(10, 10, "pbm")]
+        [InlineData(100, 100, "pbm")]
+        [InlineData(100, 10, "pbm")]
+        [InlineData(10, 100, "pbm")]
         [InlineData(10, 10, "png")]
         [InlineData(100, 100, "png")]
         [InlineData(100, 10, "png")]

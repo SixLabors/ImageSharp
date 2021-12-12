@@ -4,6 +4,7 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
@@ -18,6 +19,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         private static WebpDecoder WebpDecoder => new();
 
         private static MagickReferenceDecoder ReferenceDecoder => new();
+
+        private static string TestImageLossySimpleFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.SimpleFilter02);
+
+        private static string TestImageLossyComplexFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.BikeComplexFilter);
 
         [Theory]
         [InlineData(Lossless.GreenTransform1, 1000, 307, 32)]
@@ -359,5 +364,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                     {
                     }
                 });
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static void RunDecodeLossyWithSimpleFilterTest()
+        {
+            var provider = TestImageProvider<Rgba32>.File(TestImageLossySimpleFilterPath);
+            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        private static void RunDecodeLossyWithComplexFilterTest()
+        {
+            var provider = TestImageProvider<Rgba32>.File(TestImageLossyComplexFilterPath);
+            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Fact]
+        public void DecodeLossyWithSimpleFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithSimpleFilterTest, HwIntrinsics.DisableHWIntrinsic);
+
+        [Fact]
+        public void DecodeLossyWithComplexFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithComplexFilterTest, HwIntrinsics.DisableHWIntrinsic);
+#endif
     }
 }

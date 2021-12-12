@@ -15,15 +15,14 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
     public class TiffDecoderTests
     {
         public static readonly string[] MultiframeTestImages = Multiframes;
 
-        private static TiffDecoder TiffDecoder => new TiffDecoder();
+        private static TiffDecoder TiffDecoder => new();
 
-        private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
+        private static MagickReferenceDecoder ReferenceDecoder => new();
 
         [Theory]
         [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]

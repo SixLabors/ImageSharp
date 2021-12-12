@@ -866,5 +866,20 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
         }
+
+        public static class Pbm
+        {
+            public const string BlackAndWhitePlain = "Pbm/blackandwhite_plain.pbm";
+            public const string BlackAndWhiteBinary = "Pbm/blackandwhite_binary.pbm";
+            public const string GrayscaleBinary = "Pbm/rings.pgm";
+            public const string GrayscaleBinaryWide = "Pbm/Gene-UP WebSocket RunImageMask.pgm";
+            public const string GrayscalePlain = "Pbm/grayscale_plain.pgm";
+            public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
+            public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
+            public const string RgbBinary = "Pbm/00000_00000.ppm";
+            public const string RgbPlain = "Pbm/rgb_plain.ppm";
+            public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
+            public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";
+        }
     }
 }

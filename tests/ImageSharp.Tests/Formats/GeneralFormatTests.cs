@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reflection;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -16,7 +15,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats
 {
-    [Collection("RunSerial")]
     public class GeneralFormatTests
     {
         /// <summary>
@@ -34,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
         /// <summary>
         /// The collection of image files to test against.
         /// </summary>
-        protected static readonly List<TestFile> Files = new List<TestFile>
+        protected static readonly List<TestFile> Files = new()
         {
             TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
             TestFile.Create(TestImages.Bmp.Car),
@@ -85,8 +83,8 @@ namespace SixLabors.ImageSharp.Tests.Formats
         }
 
         public static readonly TheoryData<string> QuantizerNames =
-            new TheoryData<string>
-                {
+            new()
+            {
                     nameof(KnownQuantizers.Octree),
                     nameof(KnownQuantizers.WebSafe),
                     nameof(KnownQuantizers.Werner),

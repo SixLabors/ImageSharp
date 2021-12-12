@@ -18,7 +18,6 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Png")]
     public partial class PngDecoderTests
     {

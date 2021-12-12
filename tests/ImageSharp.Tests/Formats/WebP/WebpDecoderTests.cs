@@ -12,7 +12,6 @@ using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Webp")]
     public class WebpDecoderTests
     {

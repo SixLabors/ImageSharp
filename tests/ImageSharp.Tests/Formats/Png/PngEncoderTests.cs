@@ -15,21 +15,20 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Png")]
     public partial class PngEncoderTests
     {
-        private static PngEncoder PngEncoder => new PngEncoder();
+        private static PngEncoder PngEncoder => new();
 
         public static readonly TheoryData<string, PngBitDepth> PngBitDepthFiles =
-        new TheoryData<string, PngBitDepth>
+        new()
         {
             { TestImages.Png.Rgb48Bpp, PngBitDepth.Bit16 },
             { TestImages.Png.Bpp1, PngBitDepth.Bit1 }
         };
 
         public static readonly TheoryData<string, PngBitDepth, PngColorType> PngTrnsFiles =
-        new TheoryData<string, PngBitDepth, PngColorType>
+        new()
         {
             { TestImages.Png.Gray1BitTrans, PngBitDepth.Bit1, PngColorType.Grayscale },
             { TestImages.Png.Gray2BitTrans, PngBitDepth.Bit2, PngColorType.Grayscale },
@@ -43,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// <summary>
         /// All types except Palette
         /// </summary>
-        public static readonly TheoryData<PngColorType> PngColorTypes = new TheoryData<PngColorType>
+        public static readonly TheoryData<PngColorType> PngColorTypes = new()
         {
             PngColorType.RgbWithAlpha,
             PngColorType.Rgb,
@@ -51,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             PngColorType.GrayscaleWithAlpha,
         };
 
-        public static readonly TheoryData<PngFilterMethod> PngFilterMethods = new TheoryData<PngFilterMethod>
+        public static readonly TheoryData<PngFilterMethod> PngFilterMethods = new()
         {
             PngFilterMethod.None,
             PngFilterMethod.Sub,
@@ -65,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// All types except Palette
         /// </summary>
         public static readonly TheoryData<PngCompressionLevel> CompressionLevels
-        = new TheoryData<PngCompressionLevel>
+        = new()
         {
             PngCompressionLevel.Level0,
             PngCompressionLevel.Level1,
@@ -79,12 +78,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             PngCompressionLevel.Level9,
         };
 
-        public static readonly TheoryData<int> PaletteSizes = new TheoryData<int>
+        public static readonly TheoryData<int> PaletteSizes = new()
         {
             30, 55, 100, 201, 255
         };
 
-        public static readonly TheoryData<int> PaletteLargeOnly = new TheoryData<int>
+        public static readonly TheoryData<int> PaletteLargeOnly = new()
         {
             80, 100, 120, 230
         };
@@ -96,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         };
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
+        new()
         {
             { TestImages.Png.Splash, 11810, 11810, PixelResolutionUnit.PixelsPerMeter },
             { TestImages.Png.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },

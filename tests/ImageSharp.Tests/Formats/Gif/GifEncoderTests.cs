@@ -13,7 +13,6 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Gif")]
     public class GifEncoderTests
     {
@@ -21,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0015F);
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
+        new()
         {
             { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
             { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },

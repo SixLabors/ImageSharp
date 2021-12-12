@@ -12,12 +12,11 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Gif")]
     public class GifMetadataTests
     {
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-            new TheoryData<string, int, int, PixelResolutionUnit>
+            new()
             {
                 { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
                 { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             };
 
         public static readonly TheoryData<string, uint> RepeatFiles =
-            new TheoryData<string, uint>
+            new()
             {
                 { TestImages.Gif.Cheers, 0 },
                 { TestImages.Gif.Receipt, 1 },

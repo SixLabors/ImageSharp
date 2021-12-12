@@ -16,13 +16,12 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Png")]
     public partial class PngDecoderTests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
 
-        private static PngDecoder PngDecoder => new PngDecoder();
+        private static PngDecoder PngDecoder => new();
 
         public static readonly string[] CommonTestImages =
         {

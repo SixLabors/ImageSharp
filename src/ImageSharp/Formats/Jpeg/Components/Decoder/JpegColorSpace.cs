@@ -10,14 +10,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     {
         Undefined = 0,
 
+        /// <summary>
+        /// Color space with 1 component.
+        /// </summary>
         Grayscale,
 
+        /// <summary>
+        /// Color space with 4 components.
+        /// </summary>
         Ycck,
 
+        /// <summary>
+        /// Color space with 4 components.
+        /// </summary>
         Cmyk,
 
+        /// <summary>
+        /// Color space with 3 components.
+        /// </summary>
         RGB,
 
+        /// <summary>
+        /// Color space with 3 components.
+        /// </summary>
         YCbCr
     }
 }

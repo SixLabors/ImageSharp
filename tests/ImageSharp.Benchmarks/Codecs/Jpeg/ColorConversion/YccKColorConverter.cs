@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using BenchmarkDotNet.Attributes;
@@ -17,25 +17,27 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true)]
         public void Scalar()
         {
-            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
+            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYccKBasic(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromYccKScalar(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
         public void SimdVector8()
         {
-            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
+            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYccKVector8(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromYccKVector(8).ConvertToRgbInplace(values);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
         public void SimdVectorAvx2()
         {
-            var values = new JpegColorConverter.ComponentValues(this.Input, 0);
+            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverter.FromYccKAvx2(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.FromYccKAvx(8).ConvertToRgbInplace(values);
         }
+#endif
     }
 }

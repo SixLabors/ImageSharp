@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -16,11 +17,17 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
-        private static TiffDecoder TiffDecoder => new TiffDecoder();
+        private static TiffDecoder TiffDecoder => new();
+
+        private class NumberComparer : IEqualityComparer<Number>
+        {
+            public bool Equals(Number x, Number y) => x.Equals(y);
+
+            public int GetHashCode(Number obj) => obj.GetHashCode();
+        }
 
         [Fact]
         public void TiffMetadata_CloneIsDeep()

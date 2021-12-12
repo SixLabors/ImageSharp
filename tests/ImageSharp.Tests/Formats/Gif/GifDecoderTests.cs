@@ -17,13 +17,12 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Gif")]
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
-        private static GifDecoder GifDecoder => new GifDecoder();
+        private static GifDecoder GifDecoder => new();
 
         public static readonly string[] MultiFrameTestFiles =
         {

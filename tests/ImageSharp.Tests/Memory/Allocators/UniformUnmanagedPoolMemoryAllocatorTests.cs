@@ -253,13 +253,18 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1887", TestPlatforms.OSX)]
         [Theory]
         [InlineData(300)] // Group of single SharedArrayPoolBuffer<T>
         [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
         [InlineData(1200)] // Group of two UniformUnmanagedMemoryPool buffers
         public void AllocateMemoryGroup_Finalization_ReturnsToPool(int length)
         {
+            if (TestEnvironment.IsOSX)
+            {
+                // Skip on OSX: https://github.com/SixLabors/ImageSharp/issues/1887
+                return;
+            }
+
             if (!TestEnvironment.RunsOnCI)
             {
                 // This may fail in local runs resulting in high memory load.
@@ -311,12 +316,17 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1887", TestPlatforms.OSX)]
         [Theory]
         [InlineData(300)] // Group of single SharedArrayPoolBuffer<T>
         [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
         public void AllocateSingleMemoryOwner_Finalization_ReturnsToPool(int length)
         {
+            if (TestEnvironment.IsOSX)
+            {
+                // Skip on OSX: https://github.com/SixLabors/ImageSharp/issues/1887
+                return;
+            }
+
             if (!TestEnvironment.RunsOnCI)
             {
                 // This may fail in local runs resulting in high memory load.

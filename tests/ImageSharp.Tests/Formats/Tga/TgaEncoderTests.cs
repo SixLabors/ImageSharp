@@ -4,7 +4,7 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                     memStream.Position = 0;
                     using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
                     {
-                        TgaTestUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
+                        ImageComparingUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
                     }
                 }
             }

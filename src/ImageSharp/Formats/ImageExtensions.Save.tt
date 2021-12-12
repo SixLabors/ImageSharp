@@ -15,6 +15,7 @@ using SixLabors.ImageSharp.Advanced;
         "Bmp",
         "Gif",
         "Jpeg",
+        "Pbm",
         "Png",
         "Tga",
         "Webp",

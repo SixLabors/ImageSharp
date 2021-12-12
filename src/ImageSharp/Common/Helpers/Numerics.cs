@@ -907,5 +907,33 @@ namespace SixLabors.ImageSharp
         /// <param name="divisor">Divisor value.</param>
         /// <returns>Ceiled division result.</returns>
         public static uint DivideCeil(uint value, uint divisor) => (value + divisor - 1) / divisor;
+
+        /// <summary>
+        /// Rotates the specified value left by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to roate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateLeft(uint value, int offset)
+        {
+#if SUPPORTS_BITOPERATIONS
+            return BitOperations.RotateLeft(value, offset);
+#else
+            return RotateLeftSoftwareFallback(value, offset);
+#endif
+        }
+
+#if !SUPPORTS_BITOPERATIONS
+        /// <summary>
+        /// Rotates the specified value left by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to roate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateLeftSoftwareFallback(uint value, int offset)
+            => (value << offset) | (value >> (32 - offset));
+#endif
     }
 }

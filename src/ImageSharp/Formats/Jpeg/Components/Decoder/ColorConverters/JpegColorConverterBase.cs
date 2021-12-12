@@ -4,26 +4,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     /// <summary>
-    /// Encapsulates the conversion of Jpeg channels to RGBA values packed in <see cref="Vector4"/> buffer.
+    /// Encapsulates the conversion of color channels from jpeg image to RGB channels.
     /// </summary>
-    internal abstract partial class JpegColorConverter
+    internal abstract partial class JpegColorConverterBase
     {
         /// <summary>
         /// The available converters
         /// </summary>
-        private static readonly JpegColorConverter[] Converters = CreateConverters();
+        private static readonly JpegColorConverterBase[] Converters = CreateConverters();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegColorConverter"/> class.
+        /// Initializes a new instance of the <see cref="JpegColorConverterBase"/> class.
         /// </summary>
-        protected JpegColorConverter(JpegColorSpace colorSpace, int precision)
+        protected JpegColorConverterBase(JpegColorSpace colorSpace, int precision)
         {
             this.ColorSpace = colorSpace;
             this.Precision = precision;
@@ -32,10 +30,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="JpegColorConverter"/> is available
+        /// Gets a value indicating whether this <see cref="JpegColorConverterBase"/> is available
         /// on the current runtime and CPU architecture.
         /// </summary>
-        protected abstract bool IsAvailable { get; }
+        public abstract bool IsAvailable { get; }
 
         /// <summary>
         /// Gets the <see cref="JpegColorSpace"/> of this converter.
@@ -58,11 +56,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private float HalfValue { get; }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/> corresponding to the given <see cref="JpegColorSpace"/>
+        /// Returns the <see cref="JpegColorConverterBase"/> corresponding to the given <see cref="JpegColorSpace"/>
         /// </summary>
-        public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, int precision)
+        public static JpegColorConverterBase GetConverter(JpegColorSpace colorSpace, int precision)
         {
-            JpegColorConverter converter = Array.Find(
+            JpegColorConverterBase converter = Array.Find(
                 Converters,
                 c => c.ColorSpace == colorSpace
                 && c.Precision == precision);
@@ -82,11 +80,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         public abstract void ConvertToRgbInplace(in ComponentValues values);
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/>s for all supported colorspaces and precisions.
+        /// Returns the <see cref="JpegColorConverterBase"/>s for all supported colorspaces and precisions.
         /// </summary>
-        private static JpegColorConverter[] CreateConverters()
+        private static JpegColorConverterBase[] CreateConverters()
         {
-            var converters = new List<JpegColorConverter>();
+            var converters = new List<JpegColorConverterBase>();
 
             // 8-bit converters
             converters.AddRange(GetYCbCrConverters(8));
@@ -106,63 +104,63 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/>s for the YCbCr colorspace.
+        /// Returns the <see cref="JpegColorConverterBase"/>s for the YCbCr colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverter> GetYCbCrConverters(int precision)
+        private static IEnumerable<JpegColorConverterBase> GetYCbCrConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromYCbCrAvx2(precision);
+            yield return new FromYCbCrAvx(precision);
 #endif
-            yield return new FromYCbCrVector8(precision);
-            yield return new FromYCbCrVector4(precision);
-            yield return new FromYCbCrBasic(precision);
+            yield return new FromYCbCrVector(precision);
+            yield return new FromYCbCrScalar(precision);
         }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/>s for the YccK colorspace.
+        /// Returns the <see cref="JpegColorConverterBase"/>s for the YccK colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverter> GetYccKConverters(int precision)
+        private static IEnumerable<JpegColorConverterBase> GetYccKConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromYccKAvx2(precision);
+            yield return new FromYccKAvx(precision);
 #endif
-            yield return new FromYccKVector8(precision);
-            yield return new FromYccKBasic(precision);
+            yield return new FromYccKVector(precision);
+            yield return new FromYccKScalar(precision);
         }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/>s for the CMYK colorspace.
+        /// Returns the <see cref="JpegColorConverterBase"/>s for the CMYK colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverter> GetCmykConverters(int precision)
+        private static IEnumerable<JpegColorConverterBase> GetCmykConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromCmykAvx2(precision);
+            yield return new FromCmykAvx(precision);
 #endif
-            yield return new FromCmykVector8(precision);
-            yield return new FromCmykBasic(precision);
+            yield return new FromCmykVector(precision);
+            yield return new FromCmykScalar(precision);
         }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/>s for the gray scale colorspace.
+        /// Returns the <see cref="JpegColorConverterBase"/>s for the gray scale colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverter> GetGrayScaleConverters(int precision)
+        private static IEnumerable<JpegColorConverterBase> GetGrayScaleConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromGrayscaleAvx2(precision);
+            yield return new FromGrayscaleAvx(precision);
 #endif
-            yield return new FromGrayscaleBasic(precision);
+            yield return new FromGrayScaleVector(precision);
+            yield return new FromGrayscaleScalar(precision);
         }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/>s for the RGB colorspace.
+        /// Returns the <see cref="JpegColorConverterBase"/>s for the RGB colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverter> GetRgbConverters(int precision)
+        private static IEnumerable<JpegColorConverterBase> GetRgbConverters(int precision)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            yield return new FromRgbAvx2(precision);
+            yield return new FromRgbAvx(precision);
 #endif
-            yield return new FromRgbVector8(precision);
-            yield return new FromRgbBasic(precision);
+            yield return new FromRgbVector(precision);
+            yield return new FromRgbScalar(precision);
         }
 
         /// <summary>
@@ -200,27 +198,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <summary>
             /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
             /// </summary>
-            /// <param name="componentProcessors">The 1-4 sized list of component post processors.</param>
-            /// <param name="row">The row to convert</param>
-            public ComponentValues(IReadOnlyList<JpegComponentPostProcessor> componentProcessors, int row)
-            {
-                this.ComponentCount = componentProcessors.Count;
-
-                this.Component0 = componentProcessors[0].GetColorBufferRowSpan(row);
-
-                // In case of grayscale, Component1 and Component2 point to Component0 memory area
-                this.Component1 = this.ComponentCount > 1 ? componentProcessors[1].GetColorBufferRowSpan(row) : this.Component0;
-                this.Component2 = this.ComponentCount > 2 ? componentProcessors[2].GetColorBufferRowSpan(row) : this.Component0;
-                this.Component3 = this.ComponentCount > 3 ? componentProcessors[3].GetColorBufferRowSpan(row) : Span<float>.Empty;
-            }
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
-            /// </summary>
-            /// <param name="componentBuffers">The 1-4 sized list of component buffers.</param>
-            /// <param name="row">The row to convert</param>
+            /// <param name="componentBuffers">List of component buffers.</param>
+            /// <param name="row">Row to convert</param>
             public ComponentValues(IReadOnlyList<Buffer2D<float>> componentBuffers, int row)
             {
+                DebugGuard.MustBeGreaterThan(componentBuffers.Count, 0, nameof(componentBuffers));
+
                 this.ComponentCount = componentBuffers.Count;
 
                 this.Component0 = componentBuffers[0].DangerousGetRowSpan(row);
@@ -229,6 +212,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.Component1 = this.ComponentCount > 1 ? componentBuffers[1].DangerousGetRowSpan(row) : this.Component0;
                 this.Component2 = this.ComponentCount > 2 ? componentBuffers[2].DangerousGetRowSpan(row) : this.Component0;
                 this.Component3 = this.ComponentCount > 3 ? componentBuffers[3].DangerousGetRowSpan(row) : Span<float>.Empty;
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
+            /// </summary>
+            /// <param name="processors">List of component color processors.</param>
+            /// <param name="row">Row to convert</param>
+            public ComponentValues(IReadOnlyList<JpegComponentPostProcessor> processors, int row)
+            {
+                DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
+
+                this.ComponentCount = processors.Count;
+
+                this.Component0 = processors[0].GetColorBufferRowSpan(row);
+
+                // In case of grayscale, Component1 and Component2 point to Component0 memory area
+                this.Component1 = this.ComponentCount > 1 ? processors[1].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? processors[2].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? processors[3].GetColorBufferRowSpan(row) : Span<float>.Empty;
             }
 
             internal ComponentValues(

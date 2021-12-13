@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.lazyLoaders = lazyLoaders;
         }
 
-        public List<IExifValue> Values { get; } = new List<IExifValue>();
+        public List<IExifValue> Values { get; } = new();
 
         public uint NextIfdOffset { get; private set; }
 

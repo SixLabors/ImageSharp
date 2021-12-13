@@ -912,7 +912,7 @@ namespace SixLabors.ImageSharp
         /// Rotates the specified value left by the specified number of bits.
         /// </summary>
         /// <param name="value">The value to rotate.</param>
-        /// <param name="offset">The number of bits to roate with.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
         /// <returns>The rotated value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint RotateLeft(uint value, int offset)
@@ -929,11 +929,39 @@ namespace SixLabors.ImageSharp
         /// Rotates the specified value left by the specified number of bits.
         /// </summary>
         /// <param name="value">The value to rotate.</param>
-        /// <param name="offset">The number of bits to roate with.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
         /// <returns>The rotated value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint RotateLeftSoftwareFallback(uint value, int offset)
             => (value << offset) | (value >> (32 - offset));
+#endif
+
+        /// <summary>
+        /// Rotates the specified value right by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateRight(uint value, int offset)
+        {
+#if SUPPORTS_BITOPERATIONS
+            return BitOperations.RotateRight(value, offset);
+#else
+            return RotateRightSoftwareFallback(value, offset);
+#endif
+        }
+
+#if !SUPPORTS_BITOPERATIONS
+        /// <summary>
+        /// Rotates the specified value right by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateRightSoftwareFallback(uint value, int offset)
+            => (value >> offset) | (value << (32 - offset));
 #endif
     }
 }

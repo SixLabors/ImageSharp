@@ -3,10 +3,8 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Common.Helpers;
 
 // The JIT can detect and optimize rotation idioms ROTL (Rotate Left)
 // and ROTR (Rotate Right) emitting efficient CPU instructions:
@@ -99,15 +97,15 @@ namespace SixLabors.ImageSharp
         {
             ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
             ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-            nint n = (nint)source.Length / 4;
+            nuint n = (nuint)(uint)source.Length / 4;
 
-            for (nint i = 0; i < n; i++)
+            for (nuint i = 0; i < n; i++)
             {
-                uint packed = Unsafe.Add(ref sBase, i);
+                uint packed = Unsafe.Add(ref sBase, (IntPtr)(uint)i);
 
                 // packed          = [W Z Y X]
                 // ROTL(8, packed) = [Z Y X W]
-                Unsafe.Add(ref dBase, i) = (packed << 8) | (packed >> 24);
+                Unsafe.Add(ref dBase, (IntPtr)(uint)i) = (packed << 8) | (packed >> 24);
             }
         }
     }
@@ -125,15 +123,15 @@ namespace SixLabors.ImageSharp
         {
             ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
             ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-            nint n = (nint)source.Length / 4;
+            nuint n = (nuint)(uint)source.Length / 4;
 
-            for (nint i = 0; i < n; i++)
+            for (nuint i = 0; i < n; i++)
             {
-                uint packed = Unsafe.Add(ref sBase, i);
+                uint packed = Unsafe.Add(ref sBase, (IntPtr)(uint)i);
 
                 // packed              = [W Z Y X]
                 // REVERSE(packedArgb) = [X Y Z W]
-                Unsafe.Add(ref dBase, i) = BinaryPrimitives.ReverseEndianness(packed);
+                Unsafe.Add(ref dBase, (IntPtr)(uint)i) = BinaryPrimitives.ReverseEndianness(packed);
             }
         }
     }
@@ -151,15 +149,15 @@ namespace SixLabors.ImageSharp
         {
             ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
             ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-            nint n = (nint)source.Length / 4;
+            nuint n = (nuint)(uint)source.Length / 4;
 
-            for (nint i = 0; i < n; i++)
+            for (nuint i = 0; i < n; i++)
             {
-                uint packed = Unsafe.Add(ref sBase, i);
+                uint packed = Unsafe.Add(ref sBase, (IntPtr)(uint)i);
 
                 // packed              = [W Z Y X]
                 // ROTR(8, packedArgb) = [Y Z W X]
-                Unsafe.Add(ref dBase, i) = (packed >> 8) | (packed << 24);
+                Unsafe.Add(ref dBase, (IntPtr)(uint)i) = Numerics.RotateRight(packed, 8);
             }
         }
     }
@@ -177,11 +175,11 @@ namespace SixLabors.ImageSharp
         {
             ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
             ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-            nint n = (nint)source.Length / 4;
+            nuint n = (nuint)(uint)source.Length / 4;
 
-            for (nint i = 0; i < n; i++)
+            for (nuint i = 0; i < n; i++)
             {
-                uint packed = Unsafe.Add(ref sBase, i);
+                uint packed = Unsafe.Add(ref sBase, (IntPtr)(uint)i);
 
                 // packed              = [W Z Y X]
                 // tmp1                = [W 0 Y 0]
@@ -192,7 +190,7 @@ namespace SixLabors.ImageSharp
                 uint tmp2 = packed & 0x00FF00FF;
                 uint tmp3 = Numerics.RotateLeft(tmp2, 16);
 
-                Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
+                Unsafe.Add(ref dBase, (IntPtr)(uint)i) = tmp1 + tmp3;
             }
         }
     }
@@ -210,11 +208,11 @@ namespace SixLabors.ImageSharp
         {
             ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
             ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-            nint n = (nint)source.Length / 4;
+            nuint n = (nuint)(uint)source.Length / 4;
 
-            for (nint i = 0; i < n; i++)
+            for (nuint i = 0; i < n; i++)
             {
-                uint packed = Unsafe.Add(ref sBase, i);
+                uint packed = Unsafe.Add(ref sBase, (IntPtr)(uint)i);
 
                 // packed              = [W Z Y X]
                 // tmp1                = [0 Z 0 X]
@@ -225,7 +223,7 @@ namespace SixLabors.ImageSharp
                 uint tmp2 = packed & 0xFF00FF00;
                 uint tmp3 = Numerics.RotateLeft(tmp2, 16);
 
-                Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
+                Unsafe.Add(ref dBase, (IntPtr)(uint)i) = tmp1 + tmp3;
             }
         }
     }

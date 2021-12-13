@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -329,6 +330,109 @@ namespace SixLabors.ImageSharp
             source.SaveAsync(
                 stream,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
+                cancellationToken);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        public static void SaveAsPbm(this Image source, string path) => SaveAsPbm(source, path, null);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsPbmAsync(this Image source, string path) => SaveAsPbmAsync(source, path, null);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsPbmAsync(this Image source, string path, CancellationToken cancellationToken)
+            => SaveAsPbmAsync(source, path, null, cancellationToken);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        public static void SaveAsPbm(this Image source, string path, PbmEncoder encoder) =>
+            source.Save(
+                path,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance));
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsPbmAsync(this Image source, string path, PbmEncoder encoder, CancellationToken cancellationToken = default) =>
+            source.SaveAsync(
+                path,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
+                cancellationToken);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        public static void SaveAsPbm(this Image source, Stream stream)
+            => SaveAsPbm(source, stream, null);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsPbmAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
+            => SaveAsPbmAsync(source, stream, null, cancellationToken);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static void SaveAsPbm(this Image source, Stream stream, PbmEncoder encoder)
+            => source.Save(
+                stream,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance));
+
+        /// <summary>
+        /// Saves the image to the given stream with the Pbm format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsPbmAsync(this Image source, Stream stream, PbmEncoder encoder, CancellationToken cancellationToken = default) =>
+            source.SaveAsync(
+                stream,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
                 cancellationToken);
 
         /// <summary>

@@ -3,6 +3,11 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -18,6 +23,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Size of histogram used by CollectHistogram.
         /// </summary>
         private const int MaxCoeffThresh = 31;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector256<short> MaxCoeffThreshVec = Vector256.Create((short)MaxCoeffThresh);
+#endif
 
         private int maxValue;
 
@@ -52,11 +61,38 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vp8Encoding.FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), this.output, this.scratch);
 
                 // Convert coefficients to bin.
-                for (int k = 0; k < 16; ++k)
+#if SUPPORTS_RUNTIME_INTRINSICS
+                if (Avx2.IsSupported)
                 {
-                    int v = Math.Abs(this.output[k]) >> 3;
-                    int clippedValue = ClipMax(v, MaxCoeffThresh);
-                    ++this.distribution[clippedValue];
+                    // Load.
+                    ref short outputRef = ref MemoryMarshal.GetReference<short>(this.output);
+                    Vector256<byte> out0 = Unsafe.As<short, Vector256<byte>>(ref outputRef);
+
+                    // v = abs(out) >> 3
+                    Vector256<ushort> abs0 = Avx2.Abs(out0.AsInt16());
+                    Vector256<short> v0 = Avx2.ShiftRightArithmetic(abs0.AsInt16(), 3);
+
+                    // bin = min(v, MAX_COEFF_THRESH)
+                    Vector256<short> min0 = Avx2.Min(v0, MaxCoeffThreshVec);
+
+                    // Store.
+                    Unsafe.As<short, Vector256<short>>(ref outputRef) = min0;
+
+                    // Convert coefficients to bin.
+                    for (int k = 0; k < 16; ++k)
+                    {
+                        ++this.distribution[this.output[k]];
+                    }
+                }
+                else
+#endif
+                {
+                    for (int k = 0; k < 16; ++k)
+                    {
+                        int v = Math.Abs(this.output[k]) >> 3;
+                        int clippedValue = ClipMax(v, MaxCoeffThresh);
+                        ++this.distribution[clippedValue];
+                    }
                 }
             }
 

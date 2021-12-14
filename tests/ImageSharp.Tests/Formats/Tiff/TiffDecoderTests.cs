@@ -380,6 +380,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
 
+        // https://github.com/SixLabors/ImageSharp/issues/1891
+        [Theory]
+        [WithFile(Issues1891, PixelTypes.Rgba32)]
+        public void TiffDecoder_ThrowsException_WithTooManyDirectories<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageFormatException>(
+                () =>
+                {
+                    using (provider.GetImage(TiffDecoder))
+                    {
+                    }
+                });
+
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]
         public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)

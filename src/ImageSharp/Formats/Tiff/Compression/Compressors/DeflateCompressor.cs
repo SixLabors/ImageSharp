@@ -43,15 +43,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             }
 
             int size = (int)this.memoryStream.Position;
-
-#if !NETSTANDARD1_3
             byte[] buffer = this.memoryStream.GetBuffer();
             this.Output.Write(buffer, 0, size);
-#else
-            this.memoryStream.SetLength(size);
-            this.memoryStream.Position = 0;
-            this.memoryStream.CopyTo(this.Output);
-#endif
         }
 
         /// <inheritdoc/>

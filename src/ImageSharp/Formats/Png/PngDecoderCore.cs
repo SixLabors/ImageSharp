@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly bool ignoreMetadata;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to read the header and trns chunks only.
+        /// Gets or sets a value indicating whether to read the IHDR and tRNS chunks only.
         /// </summary>
         private readonly bool colorMetadataOnly;
 
@@ -81,16 +81,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// The palette containing alpha channel color information for indexed png's.
         /// </summary>
         private byte[] paletteAlpha;
-
-        /// <summary>
-        /// A value indicating whether the header chunk has been reached.
-        /// </summary>
-        private bool isHeaderChunkReached;
-
-        /// <summary>
-        /// A value indicating whether the end chunk has been reached.
-        /// </summary>
-        private bool isEndChunkReached;
 
         /// <summary>
         /// Previous scanline processed.
@@ -161,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Image<TPixel> image = null;
             try
             {
-                while (!this.isEndChunkReached && this.TryReadChunk(out PngChunk chunk))
+                while (this.TryReadChunk(out PngChunk chunk))
                 {
                     try
                     {
@@ -215,8 +205,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                                 break;
                             case PngChunkType.End:
-                                this.isEndChunkReached = true;
-                                break;
+                                goto EOF;
                             case PngChunkType.ProprietaryApple:
                                 PngThrowHelper.ThrowInvalidChunkType("Proprietary Apple PNG detected! This PNG file is not conform to the specification and cannot be decoded.");
                                 break;
@@ -228,6 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
+                EOF:
                 if (image is null)
                 {
                     PngThrowHelper.ThrowNoData();
@@ -251,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.currentStream.Skip(8);
             try
             {
-                while (!this.isEndChunkReached && this.TryReadChunk(out PngChunk chunk))
+                while (this.TryReadChunk(out PngChunk chunk))
                 {
                     try
                     {
@@ -259,7 +249,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             case PngChunkType.Header:
                                 this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
-                                this.isHeaderChunkReached = true;
                                 break;
                             case PngChunkType.Physical:
                                 if (this.colorMetadataOnly)
@@ -280,6 +269,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
+
+                                // Spec says tRNS must be before IDAT so safe to exit.
+                                if (this.colorMetadataOnly)
+                                {
+                                    goto EOF;
+                                }
+
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
                             case PngChunkType.Transparency:
@@ -288,10 +284,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
 
-                                if (this.colorMetadataOnly && this.isHeaderChunkReached)
+                                if (this.colorMetadataOnly)
                                 {
-                                    // Quick exit
-                                    this.isEndChunkReached = true;
+                                    goto EOF;
                                 }
 
                                 break;
@@ -338,8 +333,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                                 break;
                             case PngChunkType.End:
-                                this.isEndChunkReached = true;
-                                break;
+                                goto EOF;
                         }
                     }
                     finally
@@ -347,19 +341,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                         chunk.Data?.Dispose(); // Data is rented in ReadChunkData()
                     }
                 }
+
+                EOF:
+                if (this.header.Width == 0 && this.header.Height == 0)
+                {
+                    PngThrowHelper.ThrowNoHeader();
+                }
+
+                return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
             }
             finally
             {
                 this.scanline?.Dispose();
                 this.previousScanline?.Dispose();
             }
-
-            if (this.header.Width == 0 && this.header.Height == 0)
-            {
-                PngThrowHelper.ThrowNoHeader();
-            }
-
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
         }
 
         /// <summary>
@@ -1212,7 +1207,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngChunkType type = this.ReadChunkType();
 
             // NOTE: Reading the Data chunk is the responsible of the caller
-            // If we're reading color metadata only we're only interested in the Header and Transparancy chunks.
+            // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
             // We can skip all other chunk data in the stream for better performance.
             if (type == PngChunkType.Data || (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency))
             {

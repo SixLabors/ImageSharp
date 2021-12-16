@@ -1206,22 +1206,29 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             PngChunkType type = this.ReadChunkType();
 
-            // NOTE: Reading the Data chunk is the responsible of the caller
             // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
             // We can skip all other chunk data in the stream for better performance.
-            if (type == PngChunkType.Data || (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency))
+            if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency)
             {
                 chunk = new PngChunk(length, type);
 
                 return true;
             }
 
+            long pos = this.currentStream.Position;
             chunk = new PngChunk(
                 length: length,
                 type: type,
                 data: this.ReadChunkData(length));
 
             this.ValidateChunk(chunk);
+
+            // Restore the stream position for IDAT chunks, because it will be decoded later and
+            // was only read to verifying the CRC is correct.
+            if (type == PngChunkType.Data)
+            {
+                this.currentStream.Position = pos;
+            }
 
             return true;
         }

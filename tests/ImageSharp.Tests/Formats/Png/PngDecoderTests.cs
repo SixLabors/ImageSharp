@@ -302,11 +302,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_InvalidDataChunkCrc_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Exception ex = Record.Exception(
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
-                    image.DebugSave(provider);
                 });
             Assert.NotNull(ex);
             Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);

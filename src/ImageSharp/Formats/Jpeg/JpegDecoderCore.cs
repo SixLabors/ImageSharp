@@ -1022,9 +1022,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int index = 0;
             for (int i = 0; i < componentCount; i++)
             {
+                // 1 byte: component identifier
+                byte componentId = this.temp[index];
+
+                // 1 byte: component sampling factors
                 byte hv = this.temp[index + 1];
                 int h = (hv >> 4) & 15;
                 int v = hv & 15;
+
+                // Validate: 1-4 range
+                if (h is < 1 or > 4)
+                {
+                    JpegThrowHelper.ThrowInvalidImageContentException($"Bad horizontal sampling factor: {h}");
+                }
+
+                // Validate: 1-4 range
+                if (v is < 1 or > 4)
+                {
+                    JpegThrowHelper.ThrowInvalidImageContentException($"Bad vertical sampling factor: {v}");
+                }
 
                 if (maxH < h)
                 {
@@ -1036,10 +1052,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     maxV = v;
                 }
 
-                var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                // 1 byte: quantization table destination selector
+                byte quantTableIndex = this.temp[index + 2];
+
+                // Validate: 0-3 range
+                if (quantTableIndex > 3)
+                {
+                    JpegThrowHelper.ThrowBadQuantizationTableIndex(quantTableIndex);
+                }
+
+                var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i);
 
                 this.Frame.Components[i] = component;
-                this.Frame.ComponentIds[i] = component.Id;
+                this.Frame.ComponentIds[i] = componentId;
 
                 index += componentBytes;
             }

@@ -19,20 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.Frame = frame;
             this.Id = id;
 
-            // Validate sampling factors.
-            if (horizontalFactor == 0 || verticalFactor == 0)
-            {
-                JpegThrowHelper.ThrowBadSampling();
-            }
-
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
             this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
-
-            if (quantizationTableIndex > 3)
-            {
-                JpegThrowHelper.ThrowBadQuantizationTableIndex(quantizationTableIndex);
-            }
 
             this.QuantizationTableIndex = quantizationTableIndex;
             this.Index = index;

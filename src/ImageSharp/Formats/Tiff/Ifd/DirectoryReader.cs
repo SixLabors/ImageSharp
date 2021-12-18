@@ -15,6 +15,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal class DirectoryReader
     {
+        private const int DirectoryMax = 65534;
+
         private readonly Stream stream;
 
         private readonly MemoryAllocator allocator;
@@ -58,7 +60,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 return ByteOrder.LittleEndian;
             }
-            else if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
+
+            if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
             {
                 return ByteOrder.BigEndian;
             }
@@ -87,6 +90,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 this.nextIfdOffset = reader.NextIfdOffset;
                 readers.Add(reader);
+
+                if (readers.Count >= DirectoryMax)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("TIFF image contains too many directories");
+                }
             }
 
             var list = new List<ExifProfile>(readers.Count);

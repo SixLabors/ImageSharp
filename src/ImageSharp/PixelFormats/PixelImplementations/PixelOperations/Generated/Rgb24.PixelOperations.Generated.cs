@@ -112,6 +112,33 @@ namespace SixLabors.ImageSharp.PixelFormats
                 PixelConverter.FromArgb32.ToRgb24(source, dest);
             }
             /// <inheritdoc />
+            public override void ToAbgr32(
+                Configuration configuration,
+                ReadOnlySpan<Rgb24> sourcePixels,
+                Span<Abgr32> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Rgb24, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Abgr32, byte>(destinationPixels);
+                PixelConverter.FromRgb24.ToAbgr32(source, dest);
+            }
+
+            /// <inheritdoc />
+            public override void FromAbgr32(
+                Configuration configuration,
+                ReadOnlySpan<Abgr32> sourcePixels,
+                Span<Rgb24> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Abgr32, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Rgb24, byte>(destinationPixels);
+                PixelConverter.FromAbgr32.ToRgb24(source, dest);
+            }
+            /// <inheritdoc />
             public override void ToBgra32(
                 Configuration configuration,
                 ReadOnlySpan<Rgb24> sourcePixels,
@@ -177,7 +204,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref L8 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref L8 dp = ref Unsafe.Add(ref destRef, i);
@@ -197,7 +224,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref L16 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref L16 dp = ref Unsafe.Add(ref destRef, i);
@@ -217,7 +244,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref La16 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref La16 dp = ref Unsafe.Add(ref destRef, i);
@@ -237,7 +264,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref La32 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref La32 dp = ref Unsafe.Add(ref destRef, i);
@@ -257,7 +284,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgb48 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgb48 dp = ref Unsafe.Add(ref destRef, i);
@@ -277,7 +304,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgba64 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);
@@ -297,7 +324,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Bgra5551 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgra5551 dp = ref Unsafe.Add(ref destRef, i);

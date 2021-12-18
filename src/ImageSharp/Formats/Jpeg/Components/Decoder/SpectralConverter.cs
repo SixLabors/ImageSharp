@@ -6,11 +6,8 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Converter used to convert jpeg spectral data.
+    /// Converter used to convert jpeg spectral data to color pixels.
     /// </summary>
-    /// <remarks>
-    /// This is tightly coupled with <see cref="HuffmanScanDecoder"/> and <see cref="JpegDecoderCore"/>.
-    /// </remarks>
     internal abstract class SpectralConverter
     {
         /// <summary>
@@ -30,12 +27,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
 
         /// <summary>
-        /// Called once per spectral stride for each component in <see cref="HuffmanScanDecoder"/>.
-        /// This is called only for baseline interleaved jpegs.
+        /// Converts single spectral jpeg stride to color stride in baseline
+        /// decoding mode.
         /// </summary>
         /// <remarks>
+        /// Called once per decoded spectral stride in <see cref="HuffmanScanDecoder"/>
+        /// only for baseline interleaved jpeg images.
         /// Spectral 'stride' doesn't particularly mean 'single stride'.
-        /// Actual stride height depends on the subsampling factor of the given component.
+        /// Actual stride height depends on the subsampling factor of the given image.
         /// </remarks>
         public abstract void ConvertStrideBaseline();
 
@@ -58,6 +57,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="frame">The jpeg frame with the color space to convert to.</param>
         /// <param name="jpegData">The raw JPEG data.</param>
         /// <returns>The color converter.</returns>
-        protected virtual JpegColorConverter GetColorConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverter.GetConverter(jpegData.ColorSpace, frame.Precision);
+        protected virtual JpegColorConverterBase GetColorConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverterBase.GetConverter(jpegData.ColorSpace, frame.Precision);
     }
 }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -27,9 +28,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             Point p = default;
             Point newPoint;
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
             for (p.Y = 0; p.Y < source.Height; p.Y++)
             {
-                Span<TPixel> rowSpan = source.GetPixelRowSpan(p.Y);
+                Span<TPixel> rowSpan = sourceBuffer.DangerousGetRowSpan(p.Y);
                 for (p.X = 0; p.X < source.Width; p.X++)
                 {
                     newPoint = this.swizzler.Transform(p);

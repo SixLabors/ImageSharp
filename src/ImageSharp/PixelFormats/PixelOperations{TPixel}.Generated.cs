@@ -83,6 +83,78 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Converts all pixels in 'source` span of <see cref="Abgr32"/> into a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Abgr32"/> data.</param>
+        /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        public virtual void FromAbgr32(Configuration configuration, ReadOnlySpan<Abgr32> source, Span<TPixel> destinationPixels)
+        {
+            Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+            
+            ref Abgr32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                ref Abgr32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.FromAbgr32(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="FromAbgr32(Configuration, ReadOnlySpan{Abgr32}, Span{TPixel})"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Abgr32"/> layout.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void FromAbgr32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+        {
+            this.FromAbgr32(configuration, MemoryMarshal.Cast<byte, Abgr32>(sourceBytes).Slice(0, count), destinationPixels);
+        }
+
+        /// <summary>
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Abgr32"/>-s.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destinationPixels">The destination span of <see cref="Abgr32"/> data.</param>
+        public virtual void ToAbgr32(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Abgr32> destinationPixels)
+        {
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Abgr32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+
+            for (int i = 0; i < sourcePixels.Length; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Abgr32 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.FromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToAbgr32(Configuration, ReadOnlySpan{TPixel}, Span{Abgr32})"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Abgr32"/> layout.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToAbgr32Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToAbgr32(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Abgr32>(destBytes));
+        }
+
+        /// <summary>
         /// Converts all pixels in 'source` span of <see cref="Bgr24"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>

@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -105,10 +106,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             int offsetY = bounds.Top;
             int offsetX = bounds.Left;
             float scale = quantizer.Options.DitherScale;
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
                 ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
 
                 for (int x = bounds.Left; x < bounds.Right; x++)
@@ -134,10 +136,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 ThrowDefaultInstance();
             }
 
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
             float scale = processor.DitherScale;
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
                     ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
@@ -171,6 +174,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             int offset = this.offset;
             DenseMatrix<float> matrix = this.matrix;
+            Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
 
             // Loop through and distribute the error amongst neighboring pixels.
             for (int row = 0, targetY = y; row < matrix.Rows; row++, targetY++)
@@ -180,7 +184,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                     continue;
                 }
 
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(targetY);
+                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(targetY);
 
                 for (int col = 0; col < matrix.Columns; col++)
                 {

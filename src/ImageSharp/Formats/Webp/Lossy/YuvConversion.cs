@@ -321,8 +321,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static void ConvertRgbToYuv<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = image.Width;
-            int height = image.Height;
+            Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
+            int width = imageBuffer.Width;
+            int height = imageBuffer.Height;
             int uvWidth = (width + 1) >> 1;
 
             // Temporary storage for accumulated R/G/B values during conversion to U/V.
@@ -336,8 +337,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int rowIndex;
             for (rowIndex = 0; rowIndex < height - 1; rowIndex += 2)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
+                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(rowIndex);
+                Span<TPixel> nextRowSpan = imageBuffer.DangerousGetRowSpan(rowIndex + 1);
                 PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
                 PixelOperations<TPixel>.Instance.ToBgra32(configuration, nextRowSpan, bgraRow1);
 
@@ -363,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Extra last row.
             if ((height & 1) != 0)
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
+                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(rowIndex);
                 PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
                 ConvertRgbaToY(bgraRow0, y.Slice(rowIndex * width), width);
 

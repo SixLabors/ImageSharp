@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -396,11 +397,17 @@ namespace SixLabors.ImageSharp.Tests
             Span<TPixel> expectedPixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.True(image.TryGetSinglePixelSpan(out Span<TPixel> actualPixels));
-            CompareBuffers(expectedPixels, actualPixels);
+            Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<TPixel> actualPixels));
+            CompareBuffers(expectedPixels, actualPixels.Span);
 
             return image;
         }
+
+        public static Image<TPixel> ComparePixelBufferTo<TPixel>(
+            this Image<TPixel> image,
+            Memory<TPixel> expectedPixels)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            ComparePixelBufferTo(image, expectedPixels.Span);
 
         public static void CompareBuffers<T>(Span<T> expected, Span<T> actual)
             where T : struct, IEquatable<T>
@@ -413,6 +420,27 @@ namespace SixLabors.ImageSharp.Tests
                 T a = actual[i];
 
                 Assert.True(x.Equals(a), $"Buffers differ at position {i}! Expected: {x} | Actual: {a}");
+            }
+        }
+
+        public static void CompareBuffers<T>(Buffer2D<T> expected, Buffer2D<T> actual)
+            where T : struct, IEquatable<T>
+        {
+            Assert.True(expected.Size() == actual.Size(), "Buffer sizes are not equal!");
+
+            for (int y = 0; y < expected.Height; y++)
+            {
+                Span<T> expectedRow = expected.DangerousGetRowSpan(y);
+                Span<T> actualRow = actual.DangerousGetRowSpan(y);
+                for (int x = 0; x < expectedRow.Length; x++)
+                {
+                    T expectedVal = expectedRow[x];
+                    T actualVal = actualRow[x];
+
+                    Assert.True(
+                        expectedVal.Equals(actualVal),
+                        $"Buffers differ at position ({x},{y})! Expected: {expectedVal} | Actual: {actualVal}");
+                }
             }
         }
 
@@ -456,7 +484,8 @@ namespace SixLabors.ImageSharp.Tests
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(this ImageFrame<TPixel> imageFrame, TPixel expectedPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.True(imageFrame.TryGetSinglePixelSpan(out Span<TPixel> actualPixels));
+            Assert.True(imageFrame.DangerousTryGetSinglePixelMemory(out Memory<TPixel> actualPixelMem));
+            Span<TPixel> actualPixels = actualPixelMem.Span;
 
             for (int i = 0; i < actualPixels.Length; i++)
             {
@@ -471,7 +500,8 @@ namespace SixLabors.ImageSharp.Tests
                     Span<TPixel> expectedPixels)
                     where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.True(image.TryGetSinglePixelSpan(out Span<TPixel> actual));
+            Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<TPixel> actualMem));
+            Span<TPixel> actual = actualMem.Span;
             Assert.True(expectedPixels.Length == actual.Length, "Buffer sizes are not equal!");
 
             for (int i = 0; i < expectedPixels.Length; i++)
@@ -663,7 +693,7 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+            var allocator = new TestMemoryAllocator();
             provider.Configuration.MemoryAllocator = allocator;
             return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
         }
@@ -672,7 +702,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             var image = new Image<Rgba32>(buffer.Width, buffer.Height);
 
-            Assert.True(image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> pixels));
+            Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> pixelMem));
+            Span<Rgba32> pixels = pixelMem.Span;
             Span<float> bufferSpan = buffer.DangerousGetSingleSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)
@@ -705,7 +736,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rectangle sourceRectangle = this.SourceRectangle;
                 Configuration configuration = this.Configuration;
 
-                var operation = new RowOperation(configuration, sourceRectangle, source);
+                var operation = new RowOperation(configuration, sourceRectangle, source.PixelBuffer);
 
                 ParallelRowIterator.IterateRowIntervals<RowOperation, Vector4>(
                     configuration,
@@ -717,9 +748,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 private readonly Configuration configuration;
                 private readonly Rectangle bounds;
-                private readonly ImageFrame<TPixel> source;
+                private readonly Buffer2D<TPixel> source;
 
-                public RowOperation(Configuration configuration, Rectangle bounds, ImageFrame<TPixel> source)
+                public RowOperation(Configuration configuration, Rectangle bounds, Buffer2D<TPixel> source)
                 {
                     this.configuration = configuration;
                     this.bounds = bounds;
@@ -730,7 +761,7 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     for (int y = rows.Min; y < rows.Max; y++)
                     {
-                        Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
+                        Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
                         PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
                         for (int i = 0; i < span.Length; i++)
                         {
@@ -747,14 +778,16 @@ namespace SixLabors.ImageSharp.Tests
 
     internal class AllocatorBufferCapacityConfigurator
     {
-        private readonly ArrayPoolMemoryAllocator allocator;
+#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
+        private readonly TestMemoryAllocator allocator;
         private readonly int pixelSizeInBytes;
 
-        public AllocatorBufferCapacityConfigurator(ArrayPoolMemoryAllocator allocator, int pixelSizeInBytes)
+        public AllocatorBufferCapacityConfigurator(TestMemoryAllocator allocator, int pixelSizeInBytes)
         {
             this.allocator = allocator;
             this.pixelSizeInBytes = pixelSizeInBytes;
         }
+#pragma warning restore CS0618
 
         public void InBytes(int totalBytes) => this.allocator.BufferCapacityInBytes = totalBytes;
 

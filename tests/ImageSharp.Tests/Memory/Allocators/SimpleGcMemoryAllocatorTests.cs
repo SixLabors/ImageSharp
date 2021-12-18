@@ -29,14 +29,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             Assert.Equal("length", ex.ParamName);
         }
 
-        [Theory]
-        [InlineData(-1)]
-        public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-        {
-            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));
-            Assert.Equal("length", ex.ParamName);
-        }
-
         [Fact]
         public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
         {

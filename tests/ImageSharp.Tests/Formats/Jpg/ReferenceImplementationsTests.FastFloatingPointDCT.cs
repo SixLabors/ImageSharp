@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
                 Block8x8F actual = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformFDCT_UpscaleBy8(ref source);
-                actual /= 8;
+                actual.MultiplyInPlace(0.125f);
 
                 this.CompareBlocks(expected, actual, 1f);
             }

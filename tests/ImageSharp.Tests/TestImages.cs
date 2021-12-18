@@ -840,6 +840,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower32BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-32_lsb_deflate_predictor.tiff";
 
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
+            public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -888,6 +889,21 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string Damaged_MinIsWhite_RLE = Base + "BigTIFF_MinIsWhite_RLE.tif";
             public const string Damaged_MinIsBlack_RLE = Base + "BigTIFF_MinIsBlack_RLE.tif";
+        }
+
+        public static class Pbm
+        {
+            public const string BlackAndWhitePlain = "Pbm/blackandwhite_plain.pbm";
+            public const string BlackAndWhiteBinary = "Pbm/blackandwhite_binary.pbm";
+            public const string GrayscaleBinary = "Pbm/rings.pgm";
+            public const string GrayscaleBinaryWide = "Pbm/Gene-UP WebSocket RunImageMask.pgm";
+            public const string GrayscalePlain = "Pbm/grayscale_plain.pgm";
+            public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
+            public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
+            public const string RgbBinary = "Pbm/00000_00000.ppm";
+            public const string RgbPlain = "Pbm/rgb_plain.ppm";
+            public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
+            public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";
         }
     }
 }

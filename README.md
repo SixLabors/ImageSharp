@@ -20,7 +20,7 @@ ImageSharp is a new, fully featured, fully managed, cross-platform, 2D graphics 
 
 ImageSharp is designed from the ground up to be flexible and extensible. The library provides API endpoints for common image processing operations and the building blocks to allow for the development of additional operations.
 
-Built against [.NET Standard 1.3](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
+Built against [.NET Standard 2.0](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
 
 
 ## License

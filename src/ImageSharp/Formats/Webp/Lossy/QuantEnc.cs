@@ -25,6 +25,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
         private static readonly Vector128<short> MaxCoeff2047 = Vector128.Create((short)MaxLevel);
 
+        private static readonly Vector256<short> MaxCoeff2047Vec256 = Vector256.Create((short)MaxLevel);
+
+        private static readonly Vector256<byte> Cst256 = Vector256.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13, 2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15);
+
+        private static readonly Vector256<byte> Cst78 = Vector256.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255);
+
         private static readonly Vector128<byte> CstLo = Vector128.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13);
 
         private static readonly Vector128<byte> Cst7 = Vector128.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255);
@@ -329,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             LossyUtils.TransformWht(dcTmp, tmp, scratch);
             for (n = 0; n < 16; n += 2)
             {
-                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8Scan[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8Scan[n]), scratch);
+                Vp8Encoding.ITransformTwo(reference.Slice(WebpLookupTables.Vp8Scan[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8Scan[n]), scratch);
             }
 
             return nz;
@@ -375,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             for (n = 0; n < 8; n += 2)
             {
-                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8ScanUv[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8ScanUv[n]), scratch);
+                Vp8Encoding.ITransformTwo(reference.Slice(WebpLookupTables.Vp8ScanUv[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8ScanUv[n]), scratch);
             }
 
             return nz << 16;
@@ -531,7 +537,70 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static int QuantizeBlock(Span<short> input, Span<short> output, ref Vp8Matrix mtx)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse41.IsSupported)
+            if (Avx2.IsSupported)
+            {
+                // Load all inputs.
+                Vector256<short> input0 = Unsafe.As<short, Vector256<short>>(ref MemoryMarshal.GetReference(input));
+                Vector256<ushort> iq0 = Unsafe.As<ushort, Vector256<ushort>>(ref mtx.IQ[0]);
+                Vector256<ushort> q0 = Unsafe.As<ushort, Vector256<ushort>>(ref mtx.Q[0]);
+
+                // coeff = abs(in)
+                Vector256<ushort> coeff0 = Avx2.Abs(input0);
+
+                // coeff = abs(in) + sharpen
+                Vector256<short> sharpen0 = Unsafe.As<short, Vector256<short>>(ref mtx.Sharpen[0]);
+                Avx2.Add(coeff0.AsInt16(), sharpen0);
+
+                // out = (coeff * iQ + B) >> QFIX
+                // doing calculations with 32b precision (QFIX=17)
+                // out = (coeff * iQ)
+                Vector256<ushort> coeffiQ0H = Avx2.MultiplyHigh(coeff0, iq0);
+                Vector256<ushort> coeffiQ0L = Avx2.MultiplyLow(coeff0, iq0);
+                Vector256<ushort> out00 = Avx2.UnpackLow(coeffiQ0L, coeffiQ0H);
+                Vector256<ushort> out08 = Avx2.UnpackHigh(coeffiQ0L, coeffiQ0H);
+
+                // out = (coeff * iQ + B)
+                Vector256<uint> bias00 = Unsafe.As<uint, Vector256<uint>>(ref mtx.Bias[0]);
+                Vector256<uint> bias08 = Unsafe.As<uint, Vector256<uint>>(ref mtx.Bias[8]);
+                out00 = Avx2.Add(out00.AsInt32(), bias00.AsInt32()).AsUInt16();
+                out08 = Avx2.Add(out08.AsInt32(), bias08.AsInt32()).AsUInt16();
+
+                // out = QUANTDIV(coeff, iQ, B, QFIX)
+                out00 = Avx2.ShiftRightArithmetic(out00.AsInt32(), WebpConstants.QFix).AsUInt16();
+                out08 = Avx2.ShiftRightArithmetic(out08.AsInt32(), WebpConstants.QFix).AsUInt16();
+
+                // Pack result as 16b.
+                Vector256<short> out0 = Avx2.PackSignedSaturate(out00.AsInt32(), out08.AsInt32());
+
+                // if (coeff > 2047) coeff = 2047
+                out0 = Avx2.Min(out0, MaxCoeff2047Vec256);
+
+                // Put the sign back.
+                out0 = Avx2.Sign(out0, input0);
+
+                // in = out * Q
+                input0 = Avx2.MultiplyLow(out0, q0.AsInt16());
+                ref short inputRef = ref MemoryMarshal.GetReference(input);
+                Unsafe.As<short, Vector256<short>>(ref inputRef) = input0;
+
+                // zigzag the output before storing it.
+                Vector256<byte> tmp256 = Avx2.Shuffle(out0.AsByte(), Cst256);
+                Vector256<byte> tmp78 = Avx2.Shuffle(out0.AsByte(), Cst78);
+
+                // Reverse the order of the 16-byte lanes.
+                Vector256<byte> tmp87 = Avx2.Permute2x128(tmp78, tmp78, 1);
+                Vector256<short> outZ = Avx2.Or(tmp256, tmp87).AsInt16();
+
+                ref short outputRef = ref MemoryMarshal.GetReference(output);
+                Unsafe.As<short, Vector256<short>>(ref outputRef) = outZ;
+
+                Vector256<sbyte> packedOutput = Avx2.PackSignedSaturate(outZ, outZ);
+
+                // Detect if all 'out' values are zeros or not.
+                Vector256<sbyte> cmpeq = Avx2.CompareEqual(packedOutput, Vector256<sbyte>.Zero);
+                return Avx2.MoveMask(cmpeq) != -1 ? 1 : 0;
+            }
+            else if (Sse41.IsSupported)
             {
                 // Load all inputs.
                 Vector128<short> input0 = Unsafe.As<short, Vector128<short>>(ref MemoryMarshal.GetReference(input));
@@ -579,7 +648,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 out08 = Sse2.ShiftRightArithmetic(out08.AsInt32(), WebpConstants.QFix).AsUInt16();
                 out12 = Sse2.ShiftRightArithmetic(out12.AsInt32(), WebpConstants.QFix).AsUInt16();
 
-                // pack result as 16b
+                // Pack result as 16b.
                 Vector128<short> out0 = Sse2.PackSignedSaturate(out00.AsInt32(), out04.AsInt32());
                 Vector128<short> out8 = Sse2.PackSignedSaturate(out08.AsInt32(), out12.AsInt32());
 
@@ -587,7 +656,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 out0 = Sse2.Min(out0, MaxCoeff2047);
                 out8 = Sse2.Min(out8, MaxCoeff2047);
 
-                // put sign back
+                // Put the sign back.
                 out0 = Ssse3.Sign(out0, input0);
                 out8 = Ssse3.Sign(out8, input8);
 
@@ -726,7 +795,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             uint v = src[0] * 0x01010101u;
             Span<byte> vSpan = BitConverter.GetBytes(v).AsSpan();
-            for (int i = 0; i < 16; i++)
+            for (nint i = 0; i < 16; i++)
             {
                 if (!src.Slice(0, 4).SequenceEqual(vSpan) || !src.Slice(4, 4).SequenceEqual(vSpan) ||
                     !src.Slice(8, 4).SequenceEqual(vSpan) || !src.Slice(12, 4).SequenceEqual(vSpan))
@@ -744,19 +813,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static bool IsFlat(Span<short> levels, int numBlocks, int thresh)
         {
             int score = 0;
+            ref short levelsRef = ref MemoryMarshal.GetReference(levels);
+            int offset = 0;
             while (numBlocks-- > 0)
             {
-                for (int i = 1; i < 16; i++)
+                for (nint i = 1; i < 16; i++)
                 {
                     // omit DC, we're only interested in AC
-                    score += levels[i] != 0 ? 1 : 0;
+                    score += Unsafe.Add(ref levelsRef, offset) != 0 ? 1 : 0;
                     if (score > thresh)
                     {
                         return false;
                     }
                 }
 
-                levels = levels.Slice(16);
+                offset += 16;
             }
 
             return true;

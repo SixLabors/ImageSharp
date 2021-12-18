@@ -60,6 +60,21 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 return buffer;
             }
 
+            public static byte[] MakeAbgr32ByteArray(byte r, byte g, byte b, byte a)
+            {
+                var buffer = new byte[256];
+
+                for (int i = 0; i < buffer.Length; i += 4)
+                {
+                    buffer[i] = a;
+                    buffer[i + 1] = b;
+                    buffer[i + 2] = g;
+                    buffer[i + 3] = r;
+                }
+
+                return buffer;
+            }
+
             internal static void To<TSourcePixel, TDestinationPixel>(
                 Configuration configuration,
                 ReadOnlySpan<TSourcePixel> sourcePixels,

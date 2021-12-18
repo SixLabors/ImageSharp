@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             : base(stream, allocator) =>
             this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
 
-        public List<IExifValue> Values { get; } = new List<IExifValue>();
+        public List<IExifValue> Values { get; } = new();
 
         public ulong NextIfdOffset { get; private set; }
 

@@ -255,6 +255,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
@@ -262,14 +263,15 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image> LoadAsync(string path, IImageDecoder decoder)
-            => LoadAsync(Configuration.Default, path, decoder, default);
+        public static Task<Image> LoadAsync(string path, IImageDecoder decoder, CancellationToken cancellationToken = default)
+            => LoadAsync(Configuration.Default, path, decoder, cancellationToken);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The decoder is null.</exception>
@@ -278,9 +280,9 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image<TPixel>> LoadAsync<TPixel>(string path, IImageDecoder decoder)
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(string path, IImageDecoder decoder, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
-            => LoadAsync<TPixel>(Configuration.Default, path, decoder, default);
+            => LoadAsync<TPixel>(Configuration.Default, path, decoder, cancellationToken);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
@@ -342,6 +344,7 @@ namespace SixLabors.ImageSharp
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
@@ -349,9 +352,9 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image<TPixel>> LoadAsync<TPixel>(string path)
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(string path, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
-            => LoadAsync<TPixel>(Configuration.Default, path, default(CancellationToken));
+            => LoadAsync<TPixel>(Configuration.Default, path, cancellationToken);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.

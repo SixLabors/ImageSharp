@@ -11,7 +11,6 @@ using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Webp")]
     public class WebpEncoderTests
     {
@@ -99,6 +98,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using Image<TPixel> image = provider.GetImage();
             string testOutputDetails = string.Concat("lossless", "_m", method, "_q", quality);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
+        }
+
+        [Theory]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 15114)]
+        public void Encode_Lossless_WithBestQuality_HasExpectedSize<TPixel>(TestImageProvider<TPixel> provider, int expectedBytes)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                FileFormat = WebpFileFormatType.Lossless,
+                Method = WebpEncodingMethod.BestQuality
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            using var memoryStream = new MemoryStream();
+            image.Save(memoryStream, encoder);
+
+            Assert.Equal(memoryStream.Length, expectedBytes);
         }
 
         [Theory]

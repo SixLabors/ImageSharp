@@ -96,12 +96,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void FromRgba32()
         {
-            var rgb = default(Rgb24);
-            rgb.FromRgba32(new Rgba32(1, 2, 3, 4));
+            var bgra = default(Bgra32);
+            bgra.FromRgba32(new Rgba32(1, 2, 3, 4));
 
-            Assert.Equal(1, rgb.R);
-            Assert.Equal(2, rgb.G);
-            Assert.Equal(3, rgb.B);
+            Assert.Equal(1, bgra.R);
+            Assert.Equal(2, bgra.G);
+            Assert.Equal(3, bgra.B);
+            Assert.Equal(4, bgra.A);
         }
 
         private static Vector4 Vec(byte r, byte g, byte b, byte a = 255) => new Vector4(

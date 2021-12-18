@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             for (int y = 0; y < height; y++)
             {
                 Span<byte> rowAsBytes = pixelDataAsBytes.Slice(y * bytesPerRow, bytesPerRow);
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                     this.configuration,
                     rowAsBytes.Slice(0, bytesPerRow),

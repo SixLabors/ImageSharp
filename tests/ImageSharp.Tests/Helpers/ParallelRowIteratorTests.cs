@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                     in operation);
 
                 // Assert:
-                TestImageExtensions.CompareBuffers(expected.DangerousGetSingleSpan(), actual.DangerousGetSingleSpan());
+                TestImageExtensions.CompareBuffers(expected, actual);
             }
         }
 

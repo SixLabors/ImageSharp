@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     "Cannot draw image because the source image does not overlap the target image.");
             }
 
-            var operation = new RowOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity);
+            var operation = new RowOperation(source.PixelBuffer, targetImage.Frames.RootFrame.PixelBuffer, blender, configuration, minX, width, locationY, targetX, this.Opacity);
             ParallelRowIterator.IterateRows(
                 configuration,
                 workingRect,
@@ -111,8 +111,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// </summary>
         private readonly struct RowOperation : IRowOperation
         {
-            private readonly ImageFrame<TPixelBg> sourceFrame;
-            private readonly Image<TPixelFg> targetImage;
+            private readonly Buffer2D<TPixelBg> source;
+            private readonly Buffer2D<TPixelFg> target;
             private readonly PixelBlender<TPixelBg> blender;
             private readonly Configuration configuration;
             private readonly int minX;
@@ -123,8 +123,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
-                ImageFrame<TPixelBg> sourceFrame,
-                Image<TPixelFg> targetImage,
+                Buffer2D<TPixelBg> source,
+                Buffer2D<TPixelFg> target,
                 PixelBlender<TPixelBg> blender,
                 Configuration configuration,
                 int minX,
@@ -133,8 +133,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 int targetX,
                 float opacity)
             {
-                this.sourceFrame = sourceFrame;
-                this.targetImage = targetImage;
+                this.source = source;
+                this.target = target;
                 this.blender = blender;
                 this.configuration = configuration;
                 this.minX = minX;
@@ -148,8 +148,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<TPixelBg> background = this.sourceFrame.GetPixelRowSpan(y).Slice(this.minX, this.width);
-                Span<TPixelFg> foreground = this.targetImage.GetPixelRowSpan(y - this.locationY).Slice(this.targetX, this.width);
+                Span<TPixelBg> background = this.source.DangerousGetRowSpan(y).Slice(this.minX, this.width);
+                Span<TPixelFg> foreground = this.target.DangerousGetRowSpan(y - this.locationY).Slice(this.targetX, this.width);
                 this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
             }
         }

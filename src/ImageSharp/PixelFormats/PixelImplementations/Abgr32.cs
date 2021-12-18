@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -19,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     [StructLayout(LayoutKind.Sequential)]
-    public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
+    public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     {
         /// <summary>
         /// Gets or sets the alpha component.
@@ -27,9 +28,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte A;
 
         /// <summary>
-        /// Gets or sets the red component.
+        /// Gets or sets the blue component.
         /// </summary>
-        public byte R;
+        public byte B;
 
         /// <summary>
         /// Gets or sets the green component.
@@ -37,9 +38,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte G;
 
         /// <summary>
-        /// Gets or sets the blue component.
+        /// Gets or sets the red component.
         /// </summary>
-        public byte B;
+        public byte R;
 
         /// <summary>
         /// The maximum byte value.
@@ -52,13 +53,13 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static readonly Vector4 Half = new(0.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// Initializes a new instance of the <see cref="Abgr32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32(byte r, byte g, byte b)
+        public Abgr32(byte r, byte g, byte b)
         {
             this.R = r;
             this.G = g;
@@ -67,14 +68,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// Initializes a new instance of the <see cref="Abgr32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32(byte r, byte g, byte b, byte a)
+        public Abgr32(byte r, byte g, byte b, byte a)
         {
             this.R = r;
             this.G = g;
@@ -83,108 +84,108 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// Initializes a new instance of the <see cref="Abgr32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32(float r, float g, float b, float a = 1)
+        public Abgr32(float r, float g, float b, float a = 1)
             : this() => this.Pack(r, g, b, a);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// Initializes a new instance of the <see cref="Abgr32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32(Vector3 vector)
+        public Abgr32(Vector3 vector)
             : this() => this.Pack(ref vector);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// Initializes a new instance of the <see cref="Abgr32"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32(Vector4 vector)
+        public Abgr32(Vector4 vector)
             : this() => this.Pack(ref vector);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Argb32"/> struct.
+        /// Initializes a new instance of the <see cref="Abgr32"/> struct.
         /// </summary>
         /// <param name="packed">
         /// The packed value.
         /// </param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32(uint packed)
-            : this() => this.Argb = packed;
+        public Abgr32(uint packed)
+            : this() => this.Abgr = packed;
 
         /// <summary>
-        /// Gets or sets the packed representation of the Argb32 struct.
+        /// Gets or sets the packed representation of the Abgrb32 struct.
         /// </summary>
-        public uint Argb
+        public uint Abgr
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            readonly get => Unsafe.As<Argb32, uint>(ref Unsafe.AsRef(this));
+            readonly get => Unsafe.As<Abgr32, uint>(ref Unsafe.AsRef(this));
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            set => Unsafe.As<Argb32, uint>(ref this) = value;
+            set => Unsafe.As<Abgr32, uint>(ref this) = value;
         }
 
         /// <inheritdoc/>
         public uint PackedValue
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            readonly get => this.Argb;
+            readonly get => this.Abgr;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            set => this.Argb = value;
+            set => this.Abgr = value;
         }
 
         /// <summary>
-        /// Converts an <see cref="Argb32"/> to <see cref="Color"/>.
+        /// Converts an <see cref="Abgr32"/> to <see cref="Color"/>.
         /// </summary>
-        /// <param name="source">The <see cref="Argb32"/>.</param>
+        /// <param name="source">The <see cref="Abgr32"/>.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Color(Argb32 source) => new(source);
+        public static implicit operator Color(Abgr32 source) => new(source);
 
         /// <summary>
-        /// Converts a <see cref="Color"/> to <see cref="Argb32"/>.
+        /// Converts a <see cref="Color"/> to <see cref="Abgr32"/>.
         /// </summary>
         /// <param name="color">The <see cref="Color"/>.</param>
-        /// <returns>The <see cref="Argb32"/>.</returns>
+        /// <returns>The <see cref="Abgr32"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Argb32(Color color) => color.ToArgb32();
+        public static implicit operator Abgr32(Color color) => color.ToAbgr32();
 
         /// <summary>
         /// Compares two <see cref="Argb32"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Argb32"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Argb32"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Abgr32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Abgr32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(Argb32 left, Argb32 right) => left.Equals(right);
+        public static bool operator ==(Abgr32 left, Abgr32 right) => left.Equals(right);
 
         /// <summary>
-        /// Compares two <see cref="Argb32"/> objects for equality.
+        /// Compares two <see cref="Abgr32"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Argb32"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Argb32"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Abgr32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Abgr32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(Argb32 left, Argb32 right) => !left.Equals(right);
+        public static bool operator !=(Abgr32 left, Abgr32 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Abgr32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -204,7 +205,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromArgb32(Argb32 source) => this.PackedValue = source.PackedValue;
+        public void FromAbgr32(Abgr32 source) => this = source;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -214,15 +215,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgr24(Bgr24 source)
         {
-            this.R = source.R;
-            this.G = source.G;
-            this.B = source.B;
+            // We can assign the Bgr24 value directly to last three bytes of this instance.
+            ref byte thisRef = ref Unsafe.As<Abgr32, byte>(ref this);
+            ref byte thisRefFromB = ref Unsafe.AddByteOffset(ref thisRef, new IntPtr(1));
+            Unsafe.As<byte, Bgr24>(ref thisRefFromB) = source;
             this.A = byte.MaxValue;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromBgra32(Bgra32 source)
+        public void FromArgb32(Argb32 source)
         {
             this.R = source.R;
             this.G = source.G;
@@ -232,7 +234,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromAbgr32(Abgr32 source)
+        public void FromBgra32(Bgra32 source)
         {
             this.R = source.R;
             this.G = source.G;
@@ -333,21 +335,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override readonly bool Equals(object obj) => obj is Argb32 argb32 && this.Equals(argb32);
+        public override readonly bool Equals(object obj) => obj is Abgr32 abgr32 && this.Equals(abgr32);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(Argb32 other) => this.Argb == other.Argb;
+        public readonly bool Equals(Abgr32 other) => this.Abgr == other.Abgr;
 
         /// <summary>
         /// Gets a string representation of the packed vector.
         /// </summary>
         /// <returns>A string representation of the packed vector.</returns>
-        public override readonly string ToString() => $"Argb({this.A}, {this.R}, {this.G}, {this.B})";
+        public override readonly string ToString() => $"Abgr({this.A}, {this.B}, {this.G}, {this.R})";
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.Argb.GetHashCode();
+        public override readonly int GetHashCode() => this.Abgr.GetHashCode();
 
         /// <summary>
         /// Packs the four floats into a color.

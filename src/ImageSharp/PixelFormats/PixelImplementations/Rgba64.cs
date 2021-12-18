@@ -97,6 +97,19 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba64"/> struct.
         /// </summary>
+        /// <param name="source">A structure of 4 bytes in ABGR byte order.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Rgba64(Abgr32 source)
+        {
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ColorNumerics.UpscaleFrom8BitTo16Bit(source.A);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
         /// <param name="source">A structure of 3 bytes in RGB byte order.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Rgba64(Rgb24 source)
@@ -250,6 +263,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.A = ColorNumerics.UpscaleFrom8BitTo16Bit(source.A);
         }
 
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromAbgr32(Abgr32 source)
+        {
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ColorNumerics.UpscaleFrom8BitTo16Bit(source.A);
+        }
+
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
@@ -378,6 +401,20 @@ namespace SixLabors.ImageSharp.PixelFormats
             byte b = ColorNumerics.DownScaleFrom16BitTo8Bit(this.B);
             byte a = ColorNumerics.DownScaleFrom16BitTo8Bit(this.A);
             return new Argb32(r, g, b, a);
+        }
+
+        /// <summary>
+        /// Convert to <see cref="Abgr32"/>.
+        /// </summary>
+        /// <returns>The <see cref="Abgr32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public readonly Abgr32 ToAbgr32()
+        {
+            byte r = ColorNumerics.DownScaleFrom16BitTo8Bit(this.R);
+            byte g = ColorNumerics.DownScaleFrom16BitTo8Bit(this.G);
+            byte b = ColorNumerics.DownScaleFrom16BitTo8Bit(this.B);
+            byte a = ColorNumerics.DownScaleFrom16BitTo8Bit(this.A);
+            return new Abgr32(r, g, b, a);
         }
 
         /// <summary>

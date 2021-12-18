@@ -101,6 +101,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromAbgr32(Abgr32 source) => this.FromVector4(source.ToVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>

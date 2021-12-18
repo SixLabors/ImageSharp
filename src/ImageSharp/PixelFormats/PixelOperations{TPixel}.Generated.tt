@@ -112,6 +112,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     GenerateFromMethods("Argb32");
     GenerateToDestFormatMethods("Argb32");
 
+    GenerateFromMethods("Abgr32");
+    GenerateToDestFormatMethods("Abgr32");
+
     GenerateFromMethods("Bgr24");
     GenerateToDestFormatMethods("Bgr24");
 

@@ -231,6 +231,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Rgba32_FromAbgr32_ToRgba32()
+        {
+            // arrange
+            var rgba = default(Rgba32);
+            var actual = default(Abgr32);
+            var expected = new Abgr32(0x1a, 0, 0x80, 0);
+
+            // act
+            rgba.FromAbgr32(expected);
+            actual.FromRgba32(rgba);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Rgba32_FromArgb32_ToArgb32()
         {
             // arrange

@@ -112,14 +112,15 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ExpandAllTypes_2()
         {
-            PixelTypes pixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+            PixelTypes pixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Abgr32 | PixelTypes.RgbaVector;
 
             IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
 
-            Assert.Equal(3, expanded.Count());
+            Assert.Equal(4, expanded.Count());
 
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
             AssertContainsPixelType<Bgra32>(PixelTypes.Bgra32, expanded);
+            AssertContainsPixelType<Abgr32>(PixelTypes.Abgr32, expanded);
             AssertContainsPixelType<RgbaVector>(PixelTypes.RgbaVector, expanded);
         }
 

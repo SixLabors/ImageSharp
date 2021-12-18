@@ -12,8 +12,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
     public partial class PixelOperationsTests
     {
-        
-        public partial class A8_OperationsTests : PixelOperationsTests<A8>
+                public partial class A8_OperationsTests : PixelOperationsTests<A8>
         {
             public A8_OperationsTests(ITestOutputHelper output)
                 : base(output)
@@ -32,7 +31,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Argb32_OperationsTests : PixelOperationsTests<Argb32>
         {
             public Argb32_OperationsTests(ITestOutputHelper output)
@@ -52,7 +50,25 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
+        public partial class Abgr32_OperationsTests : PixelOperationsTests<Abgr32>
+        {
+            public Abgr32_OperationsTests(ITestOutputHelper output)
+                : base(output)
+            {
+            }
 
+            protected override PixelOperations<Abgr32> Operations => Abgr32.PixelOperations.Instance;
+
+            [Fact]
+            public void IsSpecialImplementation() => Assert.IsType<Abgr32.PixelOperations>(PixelOperations<Abgr32>.Instance);
+
+            [Fact]
+            public void PixelTypeInfoHasCorrectAlphaRepresentation()
+            {
+                var alphaRepresentation = this.Operations.GetPixelTypeInfo().AlphaRepresentation;
+                Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
+            }
+        }
         public partial class Bgr24_OperationsTests : PixelOperationsTests<Bgr24>
         {
             public Bgr24_OperationsTests(ITestOutputHelper output)
@@ -72,7 +88,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class Bgr565_OperationsTests : PixelOperationsTests<Bgr565>
         {
             public Bgr565_OperationsTests(ITestOutputHelper output)
@@ -92,7 +107,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class Bgra32_OperationsTests : PixelOperationsTests<Bgra32>
         {
             public Bgra32_OperationsTests(ITestOutputHelper output)
@@ -112,7 +126,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Bgra4444_OperationsTests : PixelOperationsTests<Bgra4444>
         {
             public Bgra4444_OperationsTests(ITestOutputHelper output)
@@ -132,7 +145,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Bgra5551_OperationsTests : PixelOperationsTests<Bgra5551>
         {
             public Bgra5551_OperationsTests(ITestOutputHelper output)
@@ -152,7 +164,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Byte4_OperationsTests : PixelOperationsTests<Byte4>
         {
             public Byte4_OperationsTests(ITestOutputHelper output)
@@ -172,7 +183,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class HalfSingle_OperationsTests : PixelOperationsTests<HalfSingle>
         {
             public HalfSingle_OperationsTests(ITestOutputHelper output)
@@ -192,7 +202,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class HalfVector2_OperationsTests : PixelOperationsTests<HalfVector2>
         {
             public HalfVector2_OperationsTests(ITestOutputHelper output)
@@ -212,7 +221,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class HalfVector4_OperationsTests : PixelOperationsTests<HalfVector4>
         {
             public HalfVector4_OperationsTests(ITestOutputHelper output)
@@ -232,7 +240,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class L16_OperationsTests : PixelOperationsTests<L16>
         {
             public L16_OperationsTests(ITestOutputHelper output)
@@ -252,7 +259,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class L8_OperationsTests : PixelOperationsTests<L8>
         {
             public L8_OperationsTests(ITestOutputHelper output)
@@ -272,7 +278,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class La16_OperationsTests : PixelOperationsTests<La16>
         {
             public La16_OperationsTests(ITestOutputHelper output)
@@ -292,7 +297,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class La32_OperationsTests : PixelOperationsTests<La32>
         {
             public La32_OperationsTests(ITestOutputHelper output)
@@ -312,7 +316,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class NormalizedByte2_OperationsTests : PixelOperationsTests<NormalizedByte2>
         {
             public NormalizedByte2_OperationsTests(ITestOutputHelper output)
@@ -332,7 +335,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class NormalizedByte4_OperationsTests : PixelOperationsTests<NormalizedByte4>
         {
             public NormalizedByte4_OperationsTests(ITestOutputHelper output)
@@ -352,7 +354,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class NormalizedShort2_OperationsTests : PixelOperationsTests<NormalizedShort2>
         {
             public NormalizedShort2_OperationsTests(ITestOutputHelper output)
@@ -372,7 +373,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class NormalizedShort4_OperationsTests : PixelOperationsTests<NormalizedShort4>
         {
             public NormalizedShort4_OperationsTests(ITestOutputHelper output)
@@ -392,7 +392,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Rg32_OperationsTests : PixelOperationsTests<Rg32>
         {
             public Rg32_OperationsTests(ITestOutputHelper output)
@@ -412,7 +411,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class Rgb24_OperationsTests : PixelOperationsTests<Rgb24>
         {
             public Rgb24_OperationsTests(ITestOutputHelper output)
@@ -432,7 +430,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class Rgb48_OperationsTests : PixelOperationsTests<Rgb48>
         {
             public Rgb48_OperationsTests(ITestOutputHelper output)
@@ -452,7 +449,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class Rgba1010102_OperationsTests : PixelOperationsTests<Rgba1010102>
         {
             public Rgba1010102_OperationsTests(ITestOutputHelper output)
@@ -472,7 +468,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Rgba32_OperationsTests : PixelOperationsTests<Rgba32>
         {
             public Rgba32_OperationsTests(ITestOutputHelper output)
@@ -492,7 +487,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Rgba64_OperationsTests : PixelOperationsTests<Rgba64>
         {
             public Rgba64_OperationsTests(ITestOutputHelper output)
@@ -512,7 +506,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class RgbaVector_OperationsTests : PixelOperationsTests<RgbaVector>
         {
             public RgbaVector_OperationsTests(ITestOutputHelper output)
@@ -532,7 +525,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.Unassociated, alphaRepresentation);
             }
         }
-
         public partial class Short2_OperationsTests : PixelOperationsTests<Short2>
         {
             public Short2_OperationsTests(ITestOutputHelper output)
@@ -552,7 +544,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 Assert.Equal(PixelAlphaRepresentation.None, alphaRepresentation);
             }
         }
-
         public partial class Short4_OperationsTests : PixelOperationsTests<Short4>
         {
             public Short4_OperationsTests(ITestOutputHelper output)

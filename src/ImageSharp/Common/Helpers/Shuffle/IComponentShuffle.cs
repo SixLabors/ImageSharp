@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp
 
                 // packed              = [W Z Y X]
                 // ROTR(8, packedArgb) = [Y Z W X]
-                Unsafe.Add(ref dBase, i) = (packed >> 8) | (packed << 24);
+                Unsafe.Add(ref dBase, i) = Numerics.RotateRight(packed, 8);
             }
         }
     }
@@ -188,7 +188,40 @@ namespace SixLabors.ImageSharp
                 // tmp1 + tmp3         = [W X Y Z]
                 uint tmp1 = packed & 0xFF00FF00;
                 uint tmp2 = packed & 0x00FF00FF;
-                uint tmp3 = (tmp2 << 16) | (tmp2 >> 16);
+                uint tmp3 = Numerics.RotateLeft(tmp2, 16);
+
+                Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
+            }
+        }
+    }
+
+    internal readonly struct XWZYShuffle4 : IShuffle4
+    {
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(1, 2, 3, 0);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+        {
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
+
+            for (int i = 0; i < n; i++)
+            {
+                uint packed = Unsafe.Add(ref sBase, i);
+
+                // packed              = [W Z Y X]
+                // tmp1                = [0 Z 0 X]
+                // tmp2                = [W 0 Y 0]
+                // tmp3=ROTL(16, tmp2) = [Y 0 W 0]
+                // tmp1 + tmp3         = [Y Z W X]
+                uint tmp1 = packed & 0x00FF00FF;
+                uint tmp2 = packed & 0xFF00FF00;
+                uint tmp3 = Numerics.RotateLeft(tmp2, 16);
 
                 Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
             }

@@ -92,6 +92,17 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
+        /// <param name="pixel">The <see cref="Abgr32"/> containing the color information.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Color(Abgr32 pixel)
+        {
+            this.data = new Rgba64(pixel);
+            this.boxedHighPrecisionPixel = null;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
         /// <param name="pixel">The <see cref="Rgb24"/> containing the color information.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Color(Rgb24 pixel)
@@ -173,6 +184,19 @@ namespace SixLabors.ImageSharp
             }
 
             Argb32 value = default;
+            value.FromScaledVector4(this.boxedHighPrecisionPixel.ToScaledVector4());
+            return value;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Abgr32 ToAbgr32()
+        {
+            if (this.boxedHighPrecisionPixel is null)
+            {
+                return this.data.ToAbgr32();
+            }
+
+            Abgr32 value = default;
             value.FromScaledVector4(this.boxedHighPrecisionPixel.ToScaledVector4());
             return value;
         }

@@ -310,6 +310,10 @@ namespace SixLabors.ImageSharp.Tests
             {
             }
 
+            public void FromAbgr32(Abgr32 source)
+            {
+            }
+
             public void FromL8(L8 source)
             {
             }

@@ -187,6 +187,16 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromAbgr32(Abgr32 source)
+        {
+            // We can assign this instances value directly to last three bytes of the Abgr32.
+            ref byte sourceRef = ref Unsafe.As<Abgr32, byte>(ref source);
+            ref byte sourceRefFromB = ref Unsafe.AddByteOffset(ref sourceRef, new IntPtr(1));
+            this = Unsafe.As<byte, Bgr24>(ref sourceRefFromB);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba32(Rgba32 source) => this = source.Bgr;
 
         /// <inheritdoc />

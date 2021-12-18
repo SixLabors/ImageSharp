@@ -1031,13 +1031,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 int v = hv & 15;
 
                 // Validate: 1-4 range
-                if (h is < 1 or > 4)
+                if (Numerics.IsOutOfRange(h, 1, 4))
                 {
                     JpegThrowHelper.ThrowBadSampling(h);
                 }
 
                 // Validate: 1-4 range
-                if (v is < 1 or > 4)
+                if (Numerics.IsOutOfRange(v, 1, 4))
                 {
                     JpegThrowHelper.ThrowBadSampling(v);
                 }

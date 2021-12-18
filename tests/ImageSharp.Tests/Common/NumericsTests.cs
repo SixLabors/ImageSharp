@@ -97,5 +97,25 @@ namespace SixLabors.ImageSharp.Tests.Common
                 Assert.True(expected == actual, $"Expected: {expected}\nActual: {actual}\n{value} / {divisor} = {expected}");
             }
         }
+
+        private static bool IsOutOfRange_ReferenceImplementation(int value, int min, int max) => value < min || value > max;
+
+        [Theory]
+        [InlineData(1, 100)]
+        public void IsOutOfRange(int seed, int count)
+        {
+            var rng = new Random(seed);
+            for (int i = 0; i < count; i++)
+            {
+                int value = rng.Next();
+                int min = rng.Next();
+                int max = rng.Next(min, int.MaxValue);
+
+                bool expected = IsOutOfRange_ReferenceImplementation(value, min, max);
+                bool actual = Numerics.IsOutOfRange(value, min, max);
+
+                Assert.True(expected == actual, $"IsOutOfRange({value}, {min}, {max})");
+            }
+        }
     }
 }

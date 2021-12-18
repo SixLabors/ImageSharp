@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
-            tiffMetadata.IsBigTiff = isBigTiff;
+            tiffMetadata.FormatType = isBigTiff ? TiffFormatType.BigTIFF : TiffFormatType.Default;
 
             return imageMetaData;
         }

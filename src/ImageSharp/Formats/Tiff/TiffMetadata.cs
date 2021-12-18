@@ -27,12 +27,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public ByteOrder ByteOrder { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this instance is BigTiff format.
+        /// Gets or sets the format type.
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance BigTiff format; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsBigTiff { get; set; }
+        public TiffFormatType FormatType { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffMetadata(this);

@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -80,9 +81,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(expectedVResolution, info.Metadata.VerticalResolution);
                 Assert.Equal(expectedResolutionUnit, info.Metadata.ResolutionUnits);
 
-                ImageSharp.Formats.Tiff.TiffMetadata tiffmeta = info.Metadata.GetTiffMetadata();
+                TiffMetadata tiffmeta = info.Metadata.GetTiffMetadata();
                 Assert.NotNull(tiffmeta);
-                Assert.True(tiffmeta.IsBigTiff);
+                Assert.Equal(TiffFormatType.BigTIFF, tiffmeta.FormatType);
             }
         }
 

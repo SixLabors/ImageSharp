@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp.Tests.Common
             this.Output = output;
         }
 
+        public static TheoryData<int> IsOutOfRangeTestData = new() { int.MinValue, -1, 0, 1, 6, 7, 8, 91, 92, 93, int.MaxValue };
+
         private static int Log2_ReferenceImplementation(uint value)
         {
             int n = 0;
@@ -101,21 +103,16 @@ namespace SixLabors.ImageSharp.Tests.Common
         private static bool IsOutOfRange_ReferenceImplementation(int value, int min, int max) => value < min || value > max;
 
         [Theory]
-        [InlineData(1, 100)]
-        public void IsOutOfRange(int seed, int count)
+        [MemberData(nameof(IsOutOfRangeTestData))]
+        public void IsOutOfRange(int value)
         {
-            var rng = new Random(seed);
-            for (int i = 0; i < count; i++)
-            {
-                int value = rng.Next();
-                int min = rng.Next();
-                int max = rng.Next(min, int.MaxValue);
+            const int min = 7;
+            const int max = 92;
 
-                bool expected = IsOutOfRange_ReferenceImplementation(value, min, max);
-                bool actual = Numerics.IsOutOfRange(value, min, max);
+            bool expected = IsOutOfRange_ReferenceImplementation(value, min, max);
+            bool actual = Numerics.IsOutOfRange(value, min, max);
 
-                Assert.True(expected == actual, $"IsOutOfRange({value}, {min}, {max})");
-            }
+            Assert.True(expected == actual, $"IsOutOfRange({value}, {min}, {max})");
         }
     }
 }

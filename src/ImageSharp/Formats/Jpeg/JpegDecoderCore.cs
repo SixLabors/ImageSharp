@@ -1033,13 +1033,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 // Validate: 1-4 range
                 if (h is < 1 or > 4)
                 {
-                    JpegThrowHelper.ThrowInvalidImageContentException($"Bad horizontal sampling factor: {h}");
+                    JpegThrowHelper.ThrowBadSampling(h);
                 }
 
                 // Validate: 1-4 range
                 if (v is < 1 or > 4)
                 {
-                    JpegThrowHelper.ThrowInvalidImageContentException($"Bad vertical sampling factor: {v}");
+                    JpegThrowHelper.ThrowBadSampling(v);
                 }
 
                 if (maxH < h)

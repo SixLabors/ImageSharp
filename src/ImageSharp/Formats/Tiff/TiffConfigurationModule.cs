@@ -13,9 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             configuration.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
             configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
-            configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector(false));
-
-            configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector(true));
+            configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
         }
     }
 }

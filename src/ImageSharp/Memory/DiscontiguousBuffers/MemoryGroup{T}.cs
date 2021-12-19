@@ -241,30 +241,11 @@ namespace SixLabors.ImageSharp.Memory
             return new Owned(source, bufferLength, totalLength, false);
         }
 
-        /// <summary>
-        /// Swaps the contents of 'target' with 'source' if the buffers are allocated (1),
-        /// copies the contents of 'source' to 'target' otherwise (2).
-        /// Groups should be of same TotalLength in case 2.
-        /// </summary>
-        public static bool SwapOrCopyContent(MemoryGroup<T> target, MemoryGroup<T> source)
-        {
-            if (source is Owned ownedSrc && ownedSrc.Swappable &&
-                target is Owned ownedTarget && ownedTarget.Swappable)
-            {
-                Owned.SwapContents(ownedTarget, ownedSrc);
-                return true;
-            }
-            else
-            {
-                if (target.TotalLength != source.TotalLength)
-                {
-                    throw new InvalidMemoryOperationException(
-                        "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
-                }
+        public static bool CanSwapContent(MemoryGroup<T> target, MemoryGroup<T> source) =>
+            source is Owned { Swappable: true } && target is Owned { Swappable: true };
 
-                source.CopyTo(target);
-                return false;
-            }
+        public virtual void RecreateViewAfterSwap()
+        {
         }
 
         public virtual void IncreaseRefCounts()

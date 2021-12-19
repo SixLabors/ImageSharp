@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Memory
         /// It's public counterpart is <see cref="MemoryGroup"/>,
         /// which only exposes the view of the MemoryGroup.
         /// </remarks>
-        internal MemoryGroup<T> FastMemoryGroup { get; }
+        internal MemoryGroup<T> FastMemoryGroup { get; private set; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -168,25 +168,34 @@ namespace SixLabors.ImageSharp.Memory
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
         /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
         /// </summary>
-        internal static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
+        internal static bool SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            MemoryGroup<T>.SwapOrCopyContent(destination.FastMemoryGroup, source.FastMemoryGroup);
-            SwapOwnData(destination, source);
+            bool swapped = false;
+            if (MemoryGroup<T>.CanSwapContent(destination.FastMemoryGroup, source.FastMemoryGroup))
+            {
+                (destination.FastMemoryGroup, source.FastMemoryGroup) =
+                    (source.FastMemoryGroup, destination.FastMemoryGroup);
+                destination.FastMemoryGroup.RecreateViewAfterSwap();
+                source.FastMemoryGroup.RecreateViewAfterSwap();
+                swapped = true;
+            }
+            else
+            {
+                if (destination.FastMemoryGroup.TotalLength != source.FastMemoryGroup.TotalLength)
+                {
+                    throw new InvalidMemoryOperationException(
+                        "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
+                }
+
+                source.FastMemoryGroup.CopyTo(destination.MemoryGroup);
+            }
+
+            (destination.Width, source.Width) = (source.Width, destination.Width);
+            (destination.Height, source.Height) = (source.Height, destination.Height);
+            return swapped;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private Memory<T> GetRowMemoryCore(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
-
-        private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b)
-        {
-            Size aSize = a.Size();
-            Size bSize = b.Size();
-
-            b.Width = aSize.Width;
-            b.Height = aSize.Height;
-
-            a.Width = bSize.Width;
-            a.Height = bSize.Height;
-        }
     }
 }

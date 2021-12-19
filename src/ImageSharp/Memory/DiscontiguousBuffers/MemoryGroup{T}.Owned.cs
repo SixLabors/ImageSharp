@@ -122,6 +122,12 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
+            public override void RecreateViewAfterSwap()
+            {
+                this.View.Invalidate();
+                this.View = new MemoryGroupView<T>(this);
+            }
+
             /// <inheritdoc/>
             IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
             {

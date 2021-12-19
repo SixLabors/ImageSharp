@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -14,7 +13,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    public class Buffer2DTests
+    public partial class Buffer2DTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
@@ -227,56 +226,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }
-        }
-
-        [Fact]
-        public void SwapOrCopyContent_WhenBothAllocated()
-        {
-            using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5, AllocationOptions.Clean))
-            using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7, AllocationOptions.Clean))
-            {
-                a[1, 3] = 666;
-                b[1, 3] = 444;
-
-                Memory<int> aa = a.FastMemoryGroup.Single();
-                Memory<int> bb = b.FastMemoryGroup.Single();
-
-                Buffer2D<int>.SwapOrCopyContent(a, b);
-
-                Assert.Equal(bb, a.FastMemoryGroup.Single());
-                Assert.Equal(aa, b.FastMemoryGroup.Single());
-
-                Assert.Equal(new Size(3, 7), a.Size());
-                Assert.Equal(new Size(10, 5), b.Size());
-
-                Assert.Equal(666, b[1, 3]);
-                Assert.Equal(444, a[1, 3]);
-            }
-        }
-
-        [Fact]
-        public void SwapOrCopyContent_WhenDestinationIsOwned_ShouldNotSwapInDisposedSourceBuffer()
-        {
-            using var destData = MemoryGroup<int>.Wrap(new int[100]);
-            using var dest = new Buffer2D<int>(destData, 10, 10);
-
-            using (Buffer2D<int> source = this.MemoryAllocator.Allocate2D<int>(10, 10, AllocationOptions.Clean))
-            {
-                source[0, 0] = 1;
-                dest[0, 0] = 2;
-
-                Buffer2D<int>.SwapOrCopyContent(dest, source);
-            }
-
-            int actual1 = dest.DangerousGetRowSpan(0)[0];
-            int actual2 = dest.DangerousGetRowSpan(0)[0];
-            int actual3 = dest.GetSafeRowMemory(0).Span[0];
-            int actual5 = dest[0, 0];
-
-            Assert.Equal(1, actual1);
-            Assert.Equal(1, actual2);
-            Assert.Equal(1, actual3);
-            Assert.Equal(1, actual5);
         }
 
         [Theory]

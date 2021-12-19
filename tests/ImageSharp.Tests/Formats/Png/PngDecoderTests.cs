@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_MissingDataChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_InvalidBitDepth_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_InvalidColorType_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -297,13 +297,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Assert.Contains("Invalid or unsupported color type", ex.Message);
         }
 
+        [Theory]
+        [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32)]
+        public void Decode_InvalidDataChunkCrc_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
+                () =>
+                {
+                    using Image<TPixel> image = provider.GetImage(PngDecoder);
+                });
+            Assert.NotNull(ex);
+            Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);
+        }
+
         // https://github.com/SixLabors/ImageSharp/issues/1014
         [Theory]
         [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
         public void Issue1014_DataSplitOverMultipleIDatChunks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -319,7 +333,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Issue1177_CRC_Omitted<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -335,7 +349,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Issue1127<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -351,7 +365,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Issue1047<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -372,7 +386,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Issue1765<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
@@ -388,7 +402,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Issue410_MalformedApplePng<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(PngDecoder);

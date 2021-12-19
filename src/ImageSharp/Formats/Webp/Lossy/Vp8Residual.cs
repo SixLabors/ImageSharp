@@ -52,14 +52,39 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public void SetCoeffs(Span<short> coeffs)
         {
-            int n;
-            this.Last = -1;
-            for (n = 15; n >= 0; --n)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                if (coeffs[n] != 0)
+                ref short coeffsRef = ref MemoryMarshal.GetReference(coeffs);
+                Vector128<byte> c0 = Unsafe.As<short, Vector128<byte>>(ref coeffsRef);
+                Vector128<byte> c1 = Unsafe.As<short, Vector128<byte>>(ref Unsafe.Add(ref coeffsRef, 8));
+
+                // Use SSE2 to compare 16 values with a single instruction.
+                Vector128<sbyte> m0 = Sse2.PackSignedSaturate(c0.AsInt16(), c1.AsInt16());
+                Vector128<sbyte> m1 = Sse2.CompareEqual(m0, Vector128<sbyte>.Zero);
+
+                // Get the comparison results as a bitmask into 16bits. Negate the mask to get
+                // the position of entries that are not equal to zero. We don't need to mask
+                // out least significant bits according to res->first, since coeffs[0] is 0
+                // if res->first > 0.
+                uint mask = 0x0000ffffu ^ (uint)Sse2.MoveMask(m1);
+
+                // The position of the most significant non-zero bit indicates the position of
+                // the last non-zero value.
+                this.Last = mask != 0 ? Numerics.Log2(mask) : -1;
+            }
+            else
+#endif
+            {
+                int n;
+                this.Last = -1;
+                for (n = 15; n >= 0; --n)
                 {
-                    this.Last = n;
-                    break;
+                    if (coeffs[n] != 0)
+                    {
+                        this.Last = n;
+                        break;
+                    }
                 }
             }
 

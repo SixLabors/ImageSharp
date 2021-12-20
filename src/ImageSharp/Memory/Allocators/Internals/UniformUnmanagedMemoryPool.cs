@@ -8,12 +8,10 @@ using System.Threading;
 
 namespace SixLabors.ImageSharp.Memory.Internals
 {
-    internal partial class UniformUnmanagedMemoryPool
-#if !NETSTANDARD1_3
-        // In case UniformUnmanagedMemoryPool is finalized, we prefer to run its finalizer after the guard finalizers,
-        // but we should not rely on this.
-        : System.Runtime.ConstrainedExecution.CriticalFinalizerObject
-#endif
+    // CriticalFinalizerObject:
+    // In case UniformUnmanagedMemoryPool is finalized, we prefer to run its finalizer after the guard finalizers,
+    // but we should not rely on this.
+    internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedExecution.CriticalFinalizerObject
     {
         private static int minTrimPeriodMilliseconds = int.MaxValue;
         private static readonly List<WeakReference<UniformUnmanagedMemoryPool>> AllPools = new();

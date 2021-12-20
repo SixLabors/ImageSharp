@@ -6,6 +6,8 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -21,6 +23,8 @@ namespace SixLabors.ImageSharp.Memory
     {
         private static readonly int ElementSize = Unsafe.SizeOf<T>();
 
+        private MemoryGroupSpanCache memoryGroupSpanCache;
+
         private MemoryGroup(int bufferLength, long totalLength)
         {
             this.BufferLength = bufferLength;
@@ -31,10 +35,10 @@ namespace SixLabors.ImageSharp.Memory
         public abstract int Count { get; }
 
         /// <inheritdoc />
-        public int BufferLength { get; private set; }
+        public int BufferLength { get; }
 
         /// <inheritdoc />
-        public long TotalLength { get; private set; }
+        public long TotalLength { get; }
 
         /// <inheritdoc />
         public bool IsValid { get; private set; } = true;
@@ -241,30 +245,60 @@ namespace SixLabors.ImageSharp.Memory
             return new Owned(source, bufferLength, totalLength, false);
         }
 
-        /// <summary>
-        /// Swaps the contents of 'target' with 'source' if the buffers are allocated (1),
-        /// copies the contents of 'source' to 'target' otherwise (2).
-        /// Groups should be of same TotalLength in case 2.
-        /// </summary>
-        public static bool SwapOrCopyContent(MemoryGroup<T> target, MemoryGroup<T> source)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public unsafe Span<T> GetRowSpanCoreUnsafe(int y, int width)
         {
-            if (source is Owned ownedSrc && ownedSrc.Swappable &&
-                target is Owned ownedTarget && ownedTarget.Swappable)
+            switch (this.memoryGroupSpanCache.Mode)
             {
-                Owned.SwapContents(ownedTarget, ownedSrc);
-                return true;
-            }
-            else
-            {
-                if (target.TotalLength != source.TotalLength)
+                case SpanCacheMode.SingleArray:
                 {
-                    throw new InvalidMemoryOperationException(
-                        "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
+#if SUPPORTS_CREATESPAN
+                    ref byte b0 = ref MemoryMarshal.GetReference<byte>(this.memoryGroupSpanCache.SingleArray);
+                    ref T e0 = ref Unsafe.As<byte, T>(ref b0);
+                    e0 = ref Unsafe.Add(ref e0, y * width);
+                    return MemoryMarshal.CreateSpan(ref e0, width);
+#else
+                    return MemoryMarshal.Cast<byte, T>(this.memoryGroupSpanCache.SingleArray).Slice(y * width, width);
+#endif
+
                 }
 
-                source.CopyTo(target);
-                return false;
+                case SpanCacheMode.SinglePointer:
+                {
+                    void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.SinglePointer, y * width);
+                    return new Span<T>(start, width);
+                }
+
+                case SpanCacheMode.MultiPointer:
+                {
+                    this.GetMultiBufferPosition(y, width, out int bufferIdx, out int bufferStart);
+                    void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.MultiPointer[bufferIdx], bufferStart);
+                    return new Span<T>(start, width);
+                }
+
+                default:
+                {
+                    this.GetMultiBufferPosition(y, width, out int bufferIdx, out int bufferStart);
+                    return this[bufferIdx].Span.Slice(bufferStart, width);
+                }
             }
+        }
+
+        /// <summary>
+        /// Returns the slice of the buffer starting at global index <paramref name="start"/> that goes until the end of the buffer.
+        /// </summary>
+        public Span<T> GetRemainingSliceOfBuffer(long start)
+        {
+            long bufferIdx = Math.DivRem(start, this.BufferLength, out long bufferStart);
+            Memory<T> memory = this[(int)bufferIdx];
+            return memory.Span.Slice((int)bufferStart);
+        }
+
+        public static bool CanSwapContent(MemoryGroup<T> target, MemoryGroup<T> source) =>
+            source is Owned { Swappable: true } && target is Owned { Swappable: true };
+
+        public virtual void RecreateViewAfterSwap()
+        {
         }
 
         public virtual void IncreaseRefCounts()
@@ -273,6 +307,15 @@ namespace SixLabors.ImageSharp.Memory
 
         public virtual void DecreaseRefCounts()
         {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void GetMultiBufferPosition(int y, int width, out int bufferIdx, out int bufferStart)
+        {
+            long start = y * (long)width;
+            long bufferIdxLong = Math.DivRem(start, this.BufferLength, out long bufferStartLong);
+            bufferIdx = (int)bufferIdxLong;
+            bufferStart = (int)bufferStartLong;
         }
     }
 }

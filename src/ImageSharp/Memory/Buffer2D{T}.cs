@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Memory
         /// It's public counterpart is <see cref="MemoryGroup"/>,
         /// which only exposes the view of the MemoryGroup.
         /// </remarks>
-        internal MemoryGroup<T> FastMemoryGroup { get; }
+        internal MemoryGroup<T> FastMemoryGroup { get; private set; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -97,35 +97,37 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<T> DangerousGetRowSpan(int y)
         {
-            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
-            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+            if ((uint)y >= (uint)this.Height)
+            {
+                this.ThrowYOutOfRangeException(y);
+            }
 
-            return this.GetRowMemoryCore(y).Span;
+            return this.FastMemoryGroup.GetRowSpanCoreUnsafe(y, this.Width);
         }
 
-        internal bool TryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
+        internal bool DangerousTryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
             int stride = this.Width + padding;
 
-            Memory<T> memory = this.FastMemoryGroup.GetRemainingSliceOfBuffer(y * (long)this.Width);
+            Span<T> slice = this.FastMemoryGroup.GetRemainingSliceOfBuffer(y * (long)this.Width);
 
-            if (memory.Length < stride)
+            if (slice.Length < stride)
             {
                 paddedSpan = default;
                 return false;
             }
 
-            paddedSpan = memory.Span.Slice(0, stride);
+            paddedSpan = slice.Slice(0, stride);
             return true;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ref T GetElementUnsafe(int x, int y)
         {
-            Span<T> span = this.GetRowMemoryCore(y).Span;
+            Span<T> span = this.FastMemoryGroup.GetRowSpanCoreUnsafe(y, this.Width);
             return ref span[x];
         }
 
@@ -139,7 +141,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-            return this.FastMemoryGroup.View.GetBoundedSlice(y * (long)this.Width, this.Width);
+            return this.FastMemoryGroup.View.GetBoundedMemorySlice(y * (long)this.Width, this.Width);
         }
 
         /// <summary>
@@ -168,25 +170,36 @@ namespace SixLabors.ImageSharp.Memory
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
         /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
         /// </summary>
-        internal static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
+        internal static bool SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            MemoryGroup<T>.SwapOrCopyContent(destination.FastMemoryGroup, source.FastMemoryGroup);
-            SwapOwnData(destination, source);
+            bool swapped = false;
+            if (MemoryGroup<T>.CanSwapContent(destination.FastMemoryGroup, source.FastMemoryGroup))
+            {
+                (destination.FastMemoryGroup, source.FastMemoryGroup) =
+                    (source.FastMemoryGroup, destination.FastMemoryGroup);
+                destination.FastMemoryGroup.RecreateViewAfterSwap();
+                source.FastMemoryGroup.RecreateViewAfterSwap();
+                swapped = true;
+            }
+            else
+            {
+                if (destination.FastMemoryGroup.TotalLength != source.FastMemoryGroup.TotalLength)
+                {
+                    throw new InvalidMemoryOperationException(
+                        "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
+                }
+
+                source.FastMemoryGroup.CopyTo(destination.MemoryGroup);
+            }
+
+            (destination.Width, source.Width) = (source.Width, destination.Width);
+            (destination.Height, source.Height) = (source.Height, destination.Height);
+            return swapped;
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private Memory<T> GetRowMemoryCore(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
-
-        private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b)
-        {
-            Size aSize = a.Size();
-            Size bSize = b.Size();
-
-            b.Width = aSize.Width;
-            b.Height = aSize.Height;
-
-            a.Width = bSize.Width;
-            a.Height = bSize.Height;
-        }
+        [MethodImpl(InliningOptions.ColdPath)]
+        private void ThrowYOutOfRangeException(int y) =>
+            throw new ArgumentOutOfRangeException(
+                $"DangerousGetRowSpan({y}). Y was out of range. Height={this.Height}");
     }
 }

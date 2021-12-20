@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<T> DangerousGetRowSpan(int y)
         {
-            if (Numerics.IsOutOfRangeZeroToMax(y, this.Height))
+            if (Numerics.IsOutOfRangeZeroToExclusiveMax(y, this.Height))
             {
                 this.ThrowYOutOfRangeException(y);
             }

@@ -12,8 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
     {
         private const int Height = 1024;
 
-        [Params(0.5, 2.0, 10.0)]
-        public double SizeMegaBytes { get; set; }
+        [Params(0.5, 2.0, 10.0)] public double SizeMegaBytes { get; set; }
 
         private Buffer2D<Rgba32> buffer;
 
@@ -40,8 +39,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         //
         // |              Method | SizeMegaBytes |      Mean |     Error |    StdDev |
         // |-------------------- |-------------- |----------:|----------:|----------:|
-        // | DangerousGetRowSpan |           0.5 |  7.760 ns | 0.0444 ns | 0.0347 ns |
-        // | DangerousGetRowSpan |             2 |  6.551 ns | 0.0693 ns | 0.0579 ns |
-        // | DangerousGetRowSpan |            10 | 45.839 ns | 0.9090 ns | 1.0468 ns |
+        // | DangerousGetRowSpan |           0.5 |  7.498 ns | 0.1784 ns | 0.3394 ns |
+        // | DangerousGetRowSpan |             2 |  6.542 ns | 0.1565 ns | 0.3659 ns |
+        // | DangerousGetRowSpan |            10 | 38.556 ns | 0.6604 ns | 0.8587 ns |
     }
 }

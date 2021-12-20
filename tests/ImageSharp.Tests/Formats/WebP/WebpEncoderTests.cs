@@ -5,6 +5,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
@@ -14,6 +15,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class WebpEncoderTests
     {
+        private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
+
         [Theory]
         [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossless)] // if its not a webp input image, it should default to lossless.
         [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
@@ -287,6 +290,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy };
             image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
         }
+
+        public static void RunEncodeLossy_WithPeakImage()
+        {
+            var provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
+            using Image<Rgba32> image = provider.GetImage();
+
+            var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy };
+            image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void RunEncodeLossy_WithPeakImage_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.AllowAll);
+
+        [Fact]
+        public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
+#endif
 
         private static ImageComparer GetComparer(int quality)
         {

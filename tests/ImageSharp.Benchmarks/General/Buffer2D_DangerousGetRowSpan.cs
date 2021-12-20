@@ -38,9 +38,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         // BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19044
         // Intel Core i9-10900X CPU 3.70GHz, 1 CPU, 20 logical and 10 physical cores
         //
-        // |              Method | IsDiscontiguousBuffer |     Mean |    Error |   StdDev |
-        // |-------------------- |---------------------- |---------:|---------:|---------:|
-        // | DangerousGetRowSpan |                 False | 74.96 ns | 1.505 ns | 1.478 ns |
-        // | DangerousGetRowSpan |                  True | 71.49 ns | 1.446 ns | 2.120 ns |
+        // |              Method | SizeMegaBytes |      Mean |     Error |    StdDev |
+        // |-------------------- |-------------- |----------:|----------:|----------:|
+        // | DangerousGetRowSpan |           0.5 |  7.760 ns | 0.0444 ns | 0.0347 ns |
+        // | DangerousGetRowSpan |             2 |  6.551 ns | 0.0693 ns | 0.0579 ns |
+        // | DangerousGetRowSpan |            10 | 45.839 ns | 0.9090 ns | 1.0468 ns |
     }
 }

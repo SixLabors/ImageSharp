@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory.Internals;
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Cached pointer or array data enabling fast <see cref="Span{T}"/> from
+    /// Cached pointer or array data enabling fast <see cref="Span{T}"/> access from
     /// known <see cref="IMemoryOwner{T}"/> implementations.
     /// </summary>
     internal unsafe struct MemoryGroupSpanCache

@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(3, 5);
 
             bool expectSuccess = expectedBufferIndex >= 0;
-            bool success = buffer.TryGetPaddedRowSpan(y, padding, out Span<byte> paddedSpan);
+            bool success = buffer.DangerousTryGetPaddedRowSpan(y, padding, out Span<byte> paddedSpan);
             Xunit.Assert.Equal(expectSuccess, success);
             if (success)
             {

@@ -1,11 +1,16 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
+    /// <summary>
+    /// Cached pointer or array data enabling fast <see cref="Span{T}"/> from
+    /// known <see cref="IMemoryOwner{T}"/> implementations.
+    /// </summary>
     internal unsafe struct MemoryGroupSpanCache
     {
         public SpanCacheMode Mode;
@@ -31,16 +36,13 @@ namespace SixLabors.ImageSharp.Memory
                     memoryGroupSpanCache.SinglePointer = unmanagedBuffer.Pointer;
                 }
             }
-            else
+            else if (owner0 is UnmanagedBuffer<T>)
             {
-                if (owner0 is UnmanagedBuffer<T>)
+                memoryGroupSpanCache.Mode = SpanCacheMode.MultiPointer;
+                memoryGroupSpanCache.MultiPointer = new void*[memoryOwners.Length];
+                for (int i = 0; i < memoryOwners.Length; i++)
                 {
-                    memoryGroupSpanCache.Mode = SpanCacheMode.MultiPointer;
-                    memoryGroupSpanCache.MultiPointer = new void*[memoryOwners.Length];
-                    for (int i = 0; i < memoryOwners.Length; i++)
-                    {
-                        memoryGroupSpanCache.MultiPointer[i] = ((UnmanagedBuffer<T>)memoryOwners[i]).Pointer;
-                    }
+                    memoryGroupSpanCache.MultiPointer[i] = ((UnmanagedBuffer<T>)memoryOwners[i]).Pointer;
                 }
             }
 

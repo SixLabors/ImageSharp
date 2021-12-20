@@ -105,22 +105,22 @@ namespace SixLabors.ImageSharp.Memory
             return this.FastMemoryGroup.GetRowSpanCoreUnsafe(y, this.Width);
         }
 
-        internal bool TryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
+        internal bool DangerousTryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
             int stride = this.Width + padding;
 
-            Memory<T> memory = this.FastMemoryGroup.GetRemainingSliceOfBuffer(y * (long)this.Width);
+            Span<T> slice = this.FastMemoryGroup.GetRemainingSliceOfBuffer(y * (long)this.Width);
 
-            if (memory.Length < stride)
+            if (slice.Length < stride)
             {
                 paddedSpan = default;
                 return false;
             }
 
-            paddedSpan = memory.Span.Slice(0, stride);
+            paddedSpan = slice.Slice(0, stride);
             return true;
         }
 

@@ -279,6 +279,17 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
+        /// <summary>
+        /// Returns the slice of the buffer starting at global index <paramref name="start"/> that goes until the end of the buffer.
+        /// </summary>
+        public Span<T> GetRemainingSliceOfBuffer(long start)
+        {
+            int bufferIdx = (int)(start / this.BufferLength);
+            int bufferStart = (int)(start % this.BufferLength);
+            Memory<T> memory = this[bufferIdx];
+            return memory.Span.Slice(bufferStart);
+        }
+
         public static bool CanSwapContent(MemoryGroup<T> target, MemoryGroup<T> source) =>
             source is Owned { Swappable: true } && target is Owned { Swappable: true };
 

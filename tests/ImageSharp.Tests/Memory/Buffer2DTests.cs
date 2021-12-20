@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(200, 100, 30, 1, 0)]
         [InlineData(200, 100, 30, 2, 1)]
         [InlineData(200, 100, 30, 4, 2)]
-        public unsafe void GetRowSpanY(int bufferCapacity, int width, int height, int y, int expectedBufferIndex)
+        public unsafe void DangerousGetRowSpan_TestAllocator(int bufferCapacity, int width, int height, int y, int expectedBufferIndex)
         {
             this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
 
@@ -132,6 +132,57 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 int expectedSubBufferOffset = (width * y) - (expectedBufferIndex * buffer.FastMemoryGroup.BufferLength);
                 Assert.SpanPointsTo(span, buffer.FastMemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
+            }
+        }
+
+        [Theory]
+        [InlineData(100, 5)] // Within shared pool
+        [InlineData(77, 11)] // Within shared pool
+        [InlineData(100, 19)] // Single unmanaged pooled buffer
+        [InlineData(103, 17)] // Single unmanaged pooled buffer
+        [InlineData(100, 22)] // 2 unmanaged pooled buffers
+        [InlineData(100, 99)] // 9 unmanaged pooled buffers
+        [InlineData(100, 120)] // 2 unpooled buffers
+        public unsafe void DangerousGetRowSpan_UnmanagedAllocator(int width, int height)
+        {
+            const int sharedPoolThreshold = 1_000;
+            const int poolBufferSize = 2_000;
+            const int maxPoolSize = 10_000;
+            const int unpooledBufferSize = 8_000;
+
+            int elementSize = sizeof(TestStructs.Foo);
+            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
+                sharedPoolThreshold * elementSize,
+                poolBufferSize * elementSize,
+                maxPoolSize * elementSize,
+                unpooledBufferSize * elementSize);
+
+            using Buffer2D<TestStructs.Foo> buffer = allocator.Allocate2D<TestStructs.Foo>(width, height);
+
+            var rnd = new Random(42);
+
+            for (int y = 0; y < buffer.Height; y++)
+            {
+                Span<TestStructs.Foo> span = buffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < span.Length; x++)
+                {
+                    ref TestStructs.Foo e = ref span[x];
+                    e.A = rnd.Next();
+                    e.B = rnd.NextDouble();
+                }
+            }
+
+            // Re-seed
+            rnd = new Random(42);
+            for (int y = 0; y < buffer.Height; y++)
+            {
+                Span<TestStructs.Foo> span = buffer.GetSafeRowMemory(y).Span;
+                for (int x = 0; x < span.Length; x++)
+                {
+                    ref TestStructs.Foo e = ref span[x];
+                    Assert.True(rnd.Next() == e.A, $"Mismatch @ y={y} x={x}");
+                    Assert.True(rnd.NextDouble() == e.B, $"Mismatch @ y={y} x={x}");
+                }
             }
         }
 

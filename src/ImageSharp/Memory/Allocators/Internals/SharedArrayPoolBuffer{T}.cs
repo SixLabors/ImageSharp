@@ -13,34 +13,35 @@ namespace SixLabors.ImageSharp.Memory.Internals
         where T : struct
     {
         private readonly int lengthInBytes;
-        private byte[] array;
         private LifetimeGuard lifetimeGuard;
 
         public SharedArrayPoolBuffer(int lengthInElements)
         {
             this.lengthInBytes = lengthInElements * Unsafe.SizeOf<T>();
-            this.array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
-            this.lifetimeGuard = new LifetimeGuard(this.array);
+            this.Array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
+            this.lifetimeGuard = new LifetimeGuard(this.Array);
         }
+
+        public byte[] Array { get; private set; }
 
         protected override void Dispose(bool disposing)
         {
-            if (this.array == null)
+            if (this.Array == null)
             {
                 return;
             }
 
             this.lifetimeGuard.Dispose();
-            this.array = null;
+            this.Array = null;
         }
 
         public override Span<T> GetSpan()
         {
             this.CheckDisposed();
-            return MemoryMarshal.Cast<byte, T>(this.array.AsSpan(0, this.lengthInBytes));
+            return MemoryMarshal.Cast<byte, T>(this.Array.AsSpan(0, this.lengthInBytes));
         }
 
-        protected override object GetPinnableObject() => this.array;
+        protected override object GetPinnableObject() => this.Array;
 
         public void AddRef()
         {
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         [Conditional("DEBUG")]
         private void CheckDisposed()
         {
-            if (this.array == null)
+            if (this.Array == null)
             {
                 throw new ObjectDisposedException("SharedArrayPoolBuffer");
             }

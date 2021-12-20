@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
         {
             using MemoryGroup<int> group = this.CreateTestGroup(totalLength, bufferLength, true);
 
-            Memory<int> slice = group.GetBoundedSlice(start, length);
+            Memory<int> slice = group.GetBoundedMemorySlice(start, length);
 
             Assert.Equal(length, slice.Length);
 
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
         public void GetBoundedSlice_WhenOverlapsBuffers_Throws(long totalLength, int bufferLength, long start, int length)
         {
             using MemoryGroup<int> group = this.CreateTestGroup(totalLength, bufferLength, true);
-            Assert.ThrowsAny<ArgumentOutOfRangeException>(() => group.GetBoundedSlice(start, length));
+            Assert.ThrowsAny<ArgumentOutOfRangeException>(() => group.GetBoundedMemorySlice(start, length));
         }
 
         [Fact]

@@ -6,6 +6,8 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -21,6 +23,8 @@ namespace SixLabors.ImageSharp.Memory
     {
         private static readonly int ElementSize = Unsafe.SizeOf<T>();
 
+        private MemoryGroupSpanCache memoryGroupSpanCache;
+
         private MemoryGroup(int bufferLength, long totalLength)
         {
             this.BufferLength = bufferLength;
@@ -31,10 +35,10 @@ namespace SixLabors.ImageSharp.Memory
         public abstract int Count { get; }
 
         /// <inheritdoc />
-        public int BufferLength { get; private set; }
+        public int BufferLength { get; }
 
         /// <inheritdoc />
-        public long TotalLength { get; private set; }
+        public long TotalLength { get; }
 
         /// <inheritdoc />
         public bool IsValid { get; private set; } = true;
@@ -241,6 +245,40 @@ namespace SixLabors.ImageSharp.Memory
             return new Owned(source, bufferLength, totalLength, false);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public unsafe Span<T> GetRowSpanCoreUnsafe(int y, int width)
+        {
+            switch (this.memoryGroupSpanCache.Mode)
+            {
+                case SpanCacheMode.SingleArray:
+                {
+                    ref byte b0 = ref MemoryMarshal.GetReference<byte>(this.memoryGroupSpanCache.SingleArray);
+                    ref T e0 = ref Unsafe.As<byte, T>(ref b0);
+                    e0 = ref Unsafe.Add(ref e0, y * width);
+                    return MemoryMarshal.CreateSpan(ref e0, width);
+                }
+
+                case SpanCacheMode.SinglePointer:
+                {
+                    void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.SinglePointer, y * width);
+                    return new Span<T>(start, width);
+                }
+
+                case SpanCacheMode.MultiPointer:
+                {
+                    this.GetMultiBufferPosition(y, width, out int bufferIdx, out int bufferStart);
+                    void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.MultiPointer[bufferIdx], bufferStart);
+                    return new Span<T>(start, width);
+                }
+
+                default:
+                {
+                    this.GetMultiBufferPosition(y, width, out int bufferIdx, out int bufferStart);
+                    return this[bufferIdx].Span.Slice(bufferStart, width);
+                }
+            }
+        }
+
         public static bool CanSwapContent(MemoryGroup<T> target, MemoryGroup<T> source) =>
             source is Owned { Swappable: true } && target is Owned { Swappable: true };
 
@@ -254,6 +292,14 @@ namespace SixLabors.ImageSharp.Memory
 
         public virtual void DecreaseRefCounts()
         {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void GetMultiBufferPosition(int y, int width, out int bufferIdx, out int bufferStart)
+        {
+            long start = y * (long)width;
+            bufferIdx = (int)(start / this.BufferLength);
+            bufferStart = (int)(start % this.BufferLength);
         }
     }
 }

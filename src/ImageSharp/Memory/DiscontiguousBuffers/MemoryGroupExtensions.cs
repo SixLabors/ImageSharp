@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Returns a slice that is expected to be within the bounds of a single buffer.
         /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.
         /// </summary>
-        internal static Memory<T> GetBoundedSlice<T>(this IMemoryGroup<T> group, long start, int length)
+        internal static Memory<T> GetBoundedMemorySlice<T>(this IMemoryGroup<T> group, long start, int length)
             where T : struct
         {
             Guard.NotNull(group, nameof(group));

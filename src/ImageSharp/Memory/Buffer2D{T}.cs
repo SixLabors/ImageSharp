@@ -97,10 +97,12 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<T> DangerousGetRowSpan(int y)
         {
-            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
-            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+            if (y < 0 || y >= this.Height)
+            {
+                this.ThrowYOutOfRangeException(y);
+            }
 
-            return this.GetRowMemoryCore(y).Span;
+            return this.FastMemoryGroup.GetRowSpanCoreUnsafe(y, this.Width);
         }
 
         internal bool TryGetPaddedRowSpan(int y, int padding, out Span<T> paddedSpan)
@@ -125,7 +127,7 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ref T GetElementUnsafe(int x, int y)
         {
-            Span<T> span = this.GetRowMemoryCore(y).Span;
+            Span<T> span = this.FastMemoryGroup.GetRowSpanCoreUnsafe(y, this.Width);
             return ref span[x];
         }
 
@@ -139,7 +141,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-            return this.FastMemoryGroup.View.GetBoundedSlice(y * (long)this.Width, this.Width);
+            return this.FastMemoryGroup.View.GetBoundedMemorySlice(y * (long)this.Width, this.Width);
         }
 
         /// <summary>
@@ -195,7 +197,9 @@ namespace SixLabors.ImageSharp.Memory
             return swapped;
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private Memory<T> GetRowMemoryCore(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
+        [MethodImpl(InliningOptions.ColdPath)]
+        private void ThrowYOutOfRangeException(int y) =>
+            throw new ArgumentOutOfRangeException(
+                $"DangerousGetRowSpan({y}). Y was out of range. Height={this.Height}");
     }
 }

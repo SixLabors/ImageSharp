@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Memory
                 this.memoryOwners = memoryOwners;
                 this.Swappable = swappable;
                 this.View = new MemoryGroupView<T>(this);
+                this.memoryGroupSpanCache = MemoryGroupSpanCache.Create(memoryOwners);
             }
 
             public Owned(
@@ -122,6 +123,12 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
+            public override void RecreateViewAfterSwap()
+            {
+                this.View.Invalidate();
+                this.View = new MemoryGroupView<T>(this);
+            }
+
             /// <inheritdoc/>
             IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
             {
@@ -166,32 +173,6 @@ namespace SixLabors.ImageSharp.Memory
 
             [MethodImpl(MethodImplOptions.NoInlining)]
             private static void ThrowObjectDisposedException() => throw new ObjectDisposedException(nameof(MemoryGroup<T>));
-
-            internal static void SwapContents(Owned a, Owned b)
-            {
-                a.EnsureNotDisposed();
-                b.EnsureNotDisposed();
-
-                IMemoryOwner<T>[] tempOwners = a.memoryOwners;
-                long tempTotalLength = a.TotalLength;
-                int tempBufferLength = a.BufferLength;
-                RefCountedLifetimeGuard tempGroupOwner = a.groupLifetimeGuard;
-
-                a.memoryOwners = b.memoryOwners;
-                a.TotalLength = b.TotalLength;
-                a.BufferLength = b.BufferLength;
-                a.groupLifetimeGuard = b.groupLifetimeGuard;
-
-                b.memoryOwners = tempOwners;
-                b.TotalLength = tempTotalLength;
-                b.BufferLength = tempBufferLength;
-                b.groupLifetimeGuard = tempGroupOwner;
-
-                a.View.Invalidate();
-                b.View.Invalidate();
-                a.View = new MemoryGroupView<T>(a);
-                b.View = new MemoryGroupView<T>(b);
-            }
 
             // When the MemoryGroup points to multiple buffers via `groupLifetimeGuard`,
             // the lifetime of the individual buffers is managed by the guard.

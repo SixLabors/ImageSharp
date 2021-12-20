@@ -40,9 +40,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // LibJpeg can open this despite incorrect colorspace metadata.
                 TestImages.Jpeg.Issues.IncorrectColorspace855,
 
-                // LibJpeg can open this despite the invalid subsampling units.
-                TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824C,
-
                 // High depth images
                 TestImages.Jpeg.Baseline.Testorig12bit,
             };
@@ -90,7 +87,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Issues.Fuzz.AccessViolationException827,
             TestImages.Jpeg.Issues.Fuzz.ExecutionEngineException839,
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693A,
-            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693B
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693B,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824C,
         };
 
         private static readonly Dictionary<string, float> CustomToleranceValues =

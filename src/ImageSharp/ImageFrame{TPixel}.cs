@@ -443,12 +443,12 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         private void VerifyCoords(int x, int y)
         {
-            if (Numerics.IsOutOfRangeZeroToExclusiveMax(x, this.Width))
+            if ((uint)x >= (uint)this.Width)
             {
                 ThrowArgumentOutOfRangeException(nameof(x));
             }
 
-            if (Numerics.IsOutOfRangeZeroToExclusiveMax(y, this.Height))
+            if ((uint)y >= (uint)this.Height)
             {
                 ThrowArgumentOutOfRangeException(nameof(y));
             }

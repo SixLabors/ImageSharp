@@ -452,12 +452,12 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         private void VerifyCoords(int x, int y)
         {
-            if (x < 0 || x >= this.Width)
+            if (Numerics.IsOutOfRangeZeroToMax(x, this.Width))
             {
                 ThrowArgumentOutOfRangeException(nameof(x));
             }
 
-            if (y < 0 || y >= this.Height)
+            if (Numerics.IsOutOfRangeZeroToMax(y, this.Height))
             {
                 ThrowArgumentOutOfRangeException(nameof(y));
             }

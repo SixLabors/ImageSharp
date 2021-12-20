@@ -252,10 +252,15 @@ namespace SixLabors.ImageSharp.Memory
             {
                 case SpanCacheMode.SingleArray:
                 {
+#if SUPPORTS_CREATESPAN
                     ref byte b0 = ref MemoryMarshal.GetReference<byte>(this.memoryGroupSpanCache.SingleArray);
                     ref T e0 = ref Unsafe.As<byte, T>(ref b0);
                     e0 = ref Unsafe.Add(ref e0, y * width);
                     return MemoryMarshal.CreateSpan(ref e0, width);
+#else
+                    return MemoryMarshal.Cast<byte, T>(this.memoryGroupSpanCache.SingleArray).Slice(y * width, width);
+#endif
+
                 }
 
                 case SpanCacheMode.SinglePointer:

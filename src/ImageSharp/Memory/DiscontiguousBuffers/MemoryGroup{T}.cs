@@ -289,10 +289,9 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public Span<T> GetRemainingSliceOfBuffer(long start)
         {
-            int bufferIdx = (int)(start / this.BufferLength);
-            int bufferStart = (int)(start % this.BufferLength);
-            Memory<T> memory = this[bufferIdx];
-            return memory.Span.Slice(bufferStart);
+            long bufferIdx = Math.DivRem(start, this.BufferLength, out long bufferStart);
+            Memory<T> memory = this[(int)bufferIdx];
+            return memory.Span.Slice((int)bufferStart);
         }
 
         public static bool CanSwapContent(MemoryGroup<T> target, MemoryGroup<T> source) =>
@@ -314,8 +313,9 @@ namespace SixLabors.ImageSharp.Memory
         private void GetMultiBufferPosition(int y, int width, out int bufferIdx, out int bufferStart)
         {
             long start = y * (long)width;
-            bufferIdx = (int)(start / this.BufferLength);
-            bufferStart = (int)(start % this.BufferLength);
+            long bufferIdxLong = Math.DivRem(start, this.BufferLength, out long bufferStartLong);
+            bufferIdx = (int)bufferIdxLong;
+            bufferStart = (int)bufferStartLong;
         }
     }
 }

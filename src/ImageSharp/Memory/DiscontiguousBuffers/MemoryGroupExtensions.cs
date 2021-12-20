@@ -37,7 +37,8 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
             Guard.MustBeLessThan(start, group.TotalLength, nameof(start));
 
-            int bufferIdx = (int)(start / group.BufferLength);
+            int bufferIdx = (int)Math.DivRem(start, group.BufferLength, out long bufferStartLong);
+            int bufferStart = (int)bufferStartLong;
 
             // if (bufferIdx < 0 || bufferIdx >= group.Count)
             if ((uint)bufferIdx >= group.Count)
@@ -45,7 +46,6 @@ namespace SixLabors.ImageSharp.Memory
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
 
-            int bufferStart = (int)(start % group.BufferLength);
             int bufferEnd = bufferStart + length;
             Memory<T> memory = group[bufferIdx];
 

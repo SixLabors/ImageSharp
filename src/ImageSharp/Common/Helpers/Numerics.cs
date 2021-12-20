@@ -963,5 +963,14 @@ namespace SixLabors.ImageSharp
         public static uint RotateRightSoftwareFallback(uint value, int offset)
             => (value >> offset) | (value << (32 - offset));
 #endif
+
+        /// <summary>
+        /// Tells whether input value is outside of the given range.
+        /// </summary>
+        /// <param name="value">Value.</param>
+        /// <param name="min">Mininum value, inclusive.</param>
+        /// <param name="max">Maximum value, inclusive.</param>
+        public static bool IsOutOfRange(int value, int min, int max)
+            => (uint)(value - min) > (uint)(max - min);
     }
 }

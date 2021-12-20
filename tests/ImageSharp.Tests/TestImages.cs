@@ -120,6 +120,7 @@ namespace SixLabors.ImageSharp.Tests
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
+                public const string WrongCrcDataChunk = "Png/xcsn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
 
                 // Zlib errors.

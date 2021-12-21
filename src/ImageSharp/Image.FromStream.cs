@@ -724,7 +724,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(stream, nameof(stream));
 
-            if (!stream.CanRead)
+            if (!stream.CanRead || stream.Length == 0)
             {
                 throw new NotSupportedException("Cannot read from the stream.");
             }
@@ -765,7 +765,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(stream, nameof(stream));
 
-            if (!stream.CanRead)
+            if (!stream.CanRead || stream.Length == 0)
             {
                 throw new NotSupportedException("Cannot read from the stream.");
             }

@@ -747,6 +747,12 @@ namespace SixLabors.ImageSharp
             // We want to be able to load images from things like HttpContext.Request.Body
             using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
             stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
+
+            if (memoryStream.Length == 0)
+            {
+                ThrowNotSupported();
+            }
+
             memoryStream.Position = 0;
 
             return action(memoryStream);
@@ -796,6 +802,12 @@ namespace SixLabors.ImageSharp
 
             using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
             await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
+
+            if (memoryStream.Length == 0)
+            {
+                ThrowNotSupported();
+            }
+
             memoryStream.Position = 0;
 
             return await action(memoryStream, cancellationToken).ConfigureAwait(false);

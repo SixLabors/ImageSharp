@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Stream_Decoder_Specific()
             {
-                var stream = new MemoryStream();
+                var stream = new MemoryStream(this.Marker);
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Stream_Decoder_Agnostic()
             {
-                var stream = new MemoryStream();
+                var stream = new MemoryStream(this.Marker);
                 var img = Image.Load(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);

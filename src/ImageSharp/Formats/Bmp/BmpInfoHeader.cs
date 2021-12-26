@@ -279,15 +279,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
-        public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data)
-        {
-            return new BmpInfoHeader(
+        public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data) => new(
                 headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
                 width: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(4, 2)),
                 height: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(6, 2)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(8, 2)),
                 bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(10, 2)));
-        }
 
         /// <summary>
         /// Parses a short variant of the OS22XBITMAPHEADER. It is identical to the BITMAPCOREHEADER, except that the width and height
@@ -296,15 +293,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
-        public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
-        {
-            return new BmpInfoHeader(
+        public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data) => new(
                 headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
                 bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)));
-        }
 
         /// <summary>
         /// Parses the full BMP Version 3 BITMAPINFOHEADER header (40 bytes).
@@ -312,9 +306,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
-        public static BmpInfoHeader ParseV3(ReadOnlySpan<byte> data)
-        {
-            return new BmpInfoHeader(
+        public static BmpInfoHeader ParseV3(ReadOnlySpan<byte> data) => new(
                 headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
@@ -326,7 +318,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
                 clrUsed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(32, 4)),
                 clrImportant: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(36, 4)));
-        }
 
         /// <summary>
         /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
@@ -336,9 +327,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="withAlpha">Indicates, if the alpha bitmask is present.</param>
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://forums.adobe.com/message/3272950#3272950"/>
-        public static BmpInfoHeader ParseAdobeV3(ReadOnlySpan<byte> data, bool withAlpha = true)
-        {
-            return new BmpInfoHeader(
+        public static BmpInfoHeader ParseAdobeV3(ReadOnlySpan<byte> data, bool withAlpha = true) => new(
                 headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
@@ -354,7 +343,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
                 blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
                 alphaMask: withAlpha ? BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)) : 0);
-        }
 
         /// <summary>
         /// Parses a OS/2 version 2 bitmap header (64 bytes). Only the first 40 bytes are parsed which are

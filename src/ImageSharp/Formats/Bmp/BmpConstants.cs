@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Defines constants relating to BMPs
+    /// Defines constants relating to BMP images.
     /// </summary>
     internal static class BmpConstants
     {

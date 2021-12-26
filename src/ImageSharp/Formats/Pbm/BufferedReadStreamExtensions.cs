@@ -1,7 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers.Binary;
 using System.IO;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Pbm
@@ -60,6 +63,29 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             }
 
             return value;
+        }
+
+        /// <summary>
+        /// Reads a float.
+        /// </summary>
+        /// <param name="stream">The stream to read from.</param>
+        /// <param name="scratch">A scratch buffer of size 4 bytes.</param>
+        /// <param name="byteOrder">The byte order. Defaults to little endian.</param>
+        /// <returns>the value.</returns>
+        public static float ReadSingle(this BufferedReadStream stream, Span<byte> scratch, ByteOrder byteOrder = ByteOrder.LittleEndian)
+        {
+            stream.Read(scratch, 0, 4);
+            int intValue;
+            if (byteOrder == ByteOrder.LittleEndian)
+            {
+                intValue = BinaryPrimitives.ReadInt32LittleEndian(scratch);
+            }
+            else
+            {
+                intValue = BinaryPrimitives.ReadInt32BigEndian(scratch);
+            }
+
+            return Unsafe.As<int, float>(ref intValue);
         }
     }
 }

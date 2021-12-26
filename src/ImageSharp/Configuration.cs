@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.OpenExr;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
@@ -124,7 +125,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets or sets the <see cref="ImageFormatManager"/> that is currently in use.
         /// </summary>
-        public ImageFormatManager ImageFormatsManager { get; set; } = new ImageFormatManager();
+        public ImageFormatManager ImageFormatsManager { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the <see cref="ImageSharp.Memory.MemoryAllocator"/> that is currently in use.
@@ -192,7 +193,7 @@ namespace SixLabors.ImageSharp
         /// Creates a shallow copy of the <see cref="Configuration"/>.
         /// </summary>
         /// <returns>A new configuration instance.</returns>
-        public Configuration Clone() => new Configuration
+        public Configuration Clone() => new()
         {
             MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
             StreamProcessingBufferSize = this.StreamProcessingBufferSize,
@@ -214,9 +215,10 @@ namespace SixLabors.ImageSharp
         /// <see cref="TgaConfigurationModule"/>.
         /// <see cref="TiffConfigurationModule"/>.
         /// <see cref="WebpConfigurationModule"/>.
+        /// <see cref="ExrConfigurationModule"/>.
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
-        internal static Configuration CreateDefaultInstance() => new Configuration(
+        internal static Configuration CreateDefaultInstance() => new(
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
@@ -224,6 +226,7 @@ namespace SixLabors.ImageSharp
                 new PbmConfigurationModule(),
                 new TgaConfigurationModule(),
                 new TiffConfigurationModule(),
-                new WebpConfigurationModule());
+                new WebpConfigurationModule(),
+                new ExrConfigurationModule());
     }
 }

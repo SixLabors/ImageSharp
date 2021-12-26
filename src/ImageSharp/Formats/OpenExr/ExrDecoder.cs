@@ -6,35 +6,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Bmp
+namespace SixLabors.ImageSharp.Formats.OpenExr
 {
     /// <summary>
-    /// Image decoder for generating an image out of a Windows bitmap stream.
+    /// Image decoder for generating an image out of a OpenExr stream.
     /// </summary>
-    /// <remarks>
-    /// Does not support the following formats at the moment:
-    /// <list type="bullet">
-    ///    <item>JPG</item>
-    ///    <item>PNG</item>
-    ///    <item>Some OS/2 specific subtypes like: Bitmap Array, Color Icon, Color Pointer, Icon, Pointer.</item>
-    /// </list>
-    /// Formats will be supported in a later releases. We advise always
-    /// to use only 24 Bit Windows bitmaps.
-    /// </remarks>
-    public sealed class BmpDecoder : IImageDecoder, IBmpDecoderOptions, IImageInfoDetector
+    public sealed class ExrDecoder : IImageDecoder, IExrDecoderOptions, IImageInfoDetector
     {
-        /// <summary>
-        /// Gets or sets a value indicating how to deal with skipped pixels, which can occur during decoding run length encoded bitmaps.
-        /// </summary>
-        public RleSkippedPixelHandling RleSkippedPixelHandling { get; set; } = RleSkippedPixelHandling.Black;
-
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new BmpDecoderCore(configuration, this);
+            var decoder = new ExrDecoderCore(configuration, this);
             return decoder.Decode<TPixel>(configuration, stream);
         }
 
@@ -44,25 +29,25 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <inheritdoc/>
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-           where TPixel : unmanaged, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new BmpDecoderCore(configuration, this);
+            var decoder = new ExrDecoderCore(configuration, this);
             return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
         public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
-            .ConfigureAwait(false);
+                .ConfigureAwait(false);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new BmpDecoderCore(configuration, this).Identify(configuration, stream);
+            return new ExrDecoderCore(configuration, this).Identify(configuration, stream);
         }
 
         /// <inheritdoc/>
@@ -70,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new BmpDecoderCore(configuration, this).IdentifyAsync(configuration, stream, cancellationToken);
+            return new ExrDecoderCore(configuration, this).IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

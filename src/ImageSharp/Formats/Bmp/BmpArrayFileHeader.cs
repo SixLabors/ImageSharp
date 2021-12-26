@@ -45,9 +45,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         public short ScreenHeight { get; }
 
-        public static BmpArrayFileHeader Parse(Span<byte> data)
-        {
-            return MemoryMarshal.Cast<byte, BmpArrayFileHeader>(data)[0];
-        }
+        public static BmpArrayFileHeader Parse(Span<byte> data) => MemoryMarshal.Cast<byte, BmpArrayFileHeader>(data)[0];
     }
 }

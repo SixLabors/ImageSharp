@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
-        public Size Dimensions => new Size(this.infoHeader.Width, this.infoHeader.Height);
+        public Size Dimensions => new(this.infoHeader.Width, this.infoHeader.Height);
 
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)

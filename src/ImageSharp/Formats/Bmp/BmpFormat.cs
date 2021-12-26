@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Gets the current instance.
         /// </summary>
-        public static BmpFormat Instance { get; } = new BmpFormat();
+        public static BmpFormat Instance { get; } = new();
 
         /// <inheritdoc/>
         public string Name => "BMP";
@@ -32,6 +32,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public IEnumerable<string> FileExtensions => BmpConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public BmpMetadata CreateDefaultFormatMetadata() => new BmpMetadata();
+        public BmpMetadata CreateDefaultFormatMetadata() => new();
     }
 }

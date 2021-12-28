@@ -124,12 +124,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
-        /// <summary>
-        /// Gets the sequence of bytes for the exif header ("Exif" ASCII and two zero bytes). Used for the legacy exif parsing.
-        /// </summary>
-        // This uses C# compiler's optimization to refer to the static data directly, no intermediate array allocations happen.
-        private static ReadOnlySpan<byte> ExifHeader => new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
-
         /// <inheritdoc/>
         public Configuration Configuration { get; }
 
@@ -1015,35 +1009,39 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Skip to the hex-encoded data
             dataSpan = dataSpan.Slice(dataLengthEnd).Trim();
 
-            if (dataLength < ExifHeader.Length)
+            // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
+            // This doesn't actually allocate.
+            ReadOnlySpan<byte> exifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+
+            if (dataLength < exifHeader.Length)
             {
                 // Not enough room for the required exif header, this data couldn't possibly be valid
                 return false;
             }
 
             // Parse the hex-encoded data into the byte array we are going to hand off to ExifProfile
-            byte[] exifBlob = new byte[dataLength - ExifHeader.Length];
+            byte[] exifBlob = new byte[dataLength - exifHeader.Length];
 
             try
             {
                 // Check for the presence of the exif header in the hex-encoded binary data
                 byte[] tempExifBuf = exifBlob;
-                if (exifBlob.Length < ExifHeader.Length)
+                if (exifBlob.Length < exifHeader.Length)
                 {
                     // Need to allocate a temporary array, this should be an extremely uncommon (TODO: impossible?) case
-                    tempExifBuf = new byte[ExifHeader.Length];
+                    tempExifBuf = new byte[exifHeader.Length];
                 }
 
-                HexStringToBytes(dataSpan.Slice(0, ExifHeader.Length * 2), tempExifBuf.AsSpan());
-                if (!tempExifBuf.AsSpan().Slice(0, ExifHeader.Length).SequenceEqual(ExifHeader))
+                HexStringToBytes(dataSpan.Slice(0, exifHeader.Length * 2), tempExifBuf.AsSpan());
+                if (!tempExifBuf.AsSpan().Slice(0, exifHeader.Length).SequenceEqual(exifHeader))
                 {
                     // Exif header in the hex data is not valid
                     return false;
                 }
 
                 // Skip over the exif header we just tested
-                dataSpan = dataSpan.Slice(ExifHeader.Length * 2);
-                dataLength -= ExifHeader.Length;
+                dataSpan = dataSpan.Slice(exifHeader.Length * 2);
+                dataLength -= exifHeader.Length;
 
                 // Load the hex-encoded data, one line at a time
                 for (int i = 0; i < dataLength;)

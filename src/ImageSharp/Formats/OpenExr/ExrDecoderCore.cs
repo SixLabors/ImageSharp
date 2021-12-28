@@ -66,11 +66,18 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
         private IList<ExrChannelInfo> Channels { get; set; }
 
+        private ExrCompression Compression { get; set; }
+
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ExrHeader header = this.ReadExrHeader(stream);
+
+            if (this.Compression != ExrCompression.None)
+            {
+                ExrThrowHelper.ThrowNotSupported("Only uncompressed EXR images are supported");
+            }
 
             int bitsPerPixel = CalculateBitsPerPixel(header.Channels);
 
@@ -78,7 +85,6 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-            // TODO: we for now assume the image pixel type is HalfSingle.
             using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(this.Width * 3);
             Span<float> redPixelData = rowBuffer.GetSpan().Slice(0, this.Width);
             Span<float> bluePixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
@@ -102,36 +108,52 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
-                    switch (this.Channels[channelIdx].ChannelName)
+                    ExrChannelInfo channel = this.Channels[channelIdx];
+                    switch (channel.ChannelName)
                     {
                         case "R":
-                            for (int x = 0; x < this.Width; x++)
+                            switch (channel.PixelType)
                             {
-                                redPixelData[x] = stream.ReadHalfSingle(this.buffer);
+                                case ExrPixelType.Half:
+                                    this.ReadPixelRowChannelHalfSingle(stream, redPixelData);
+                                    break;
+                                case ExrPixelType.Float:
+                                    this.ReadPixelRowChannelSingle(stream, redPixelData);
+                                    break;
                             }
 
                             break;
 
                         case "B":
-                            for (int x = 0; x < this.Width; x++)
+                            switch (channel.PixelType)
                             {
-                                bluePixelData[x] = stream.ReadHalfSingle(this.buffer);
+                                case ExrPixelType.Half:
+                                    this.ReadPixelRowChannelHalfSingle(stream, bluePixelData);
+                                    break;
+                                case ExrPixelType.Float:
+                                    this.ReadPixelRowChannelSingle(stream, bluePixelData);
+                                    break;
                             }
 
                             break;
 
                         case "G":
-                            for (int x = 0; x < this.Width; x++)
+                            switch (channel.PixelType)
                             {
-                                greenPixelData[x] = stream.ReadHalfSingle(this.buffer);
+                                case ExrPixelType.Half:
+                                    this.ReadPixelRowChannelHalfSingle(stream, greenPixelData);
+                                    break;
+                                case ExrPixelType.Float:
+                                    this.ReadPixelRowChannelSingle(stream, greenPixelData);
+                                    break;
                             }
 
                             break;
 
                         default:
                             // Skip unknown channel.
-                            // TODO: can we assume the same data size as the others here?
-                            stream.Position += this.Width * 2;
+                            int channelDataSizeInBytes = channel.PixelType is ExrPixelType.Float or ExrPixelType.Uint ? 4 : 2;
+                            stream.Position += this.Width * channelDataSizeInBytes;
                             break;
                     }
                 }
@@ -147,6 +169,22 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             }
 
             return image;
+        }
+
+        private void ReadPixelRowChannelHalfSingle(BufferedReadStream stream, Span<float> channelData)
+        {
+            for (int x = 0; x < this.Width; x++)
+            {
+                channelData[x] = stream.ReadHalfSingle(this.buffer);
+            }
+        }
+
+        private void ReadPixelRowChannelSingle(BufferedReadStream stream, Span<float> channelData)
+        {
+            for (int x = 0; x < this.Width; x++)
+            {
+                channelData[x] = stream.ReadSingle(this.buffer);
+            }
         }
 
         /// <inheritdoc />
@@ -182,14 +220,10 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 ExrThrowHelper.ThrowInvalidImageHeader();
             }
 
-            if (header.Channels.Count != 3)
-            {
-                ExrThrowHelper.ThrowNotSupported("Only 3 channels are supported!");
-            }
-
             this.Width = header.DataWindow.Value.xMax - header.DataWindow.Value.xMin + 1;
             this.Height = header.DataWindow.Value.yMax - header.DataWindow.Value.yMin + 1;
             this.Channels = header.Channels;
+            this.Compression = header.Compression.GetValueOrDefault();
 
             this.metadata = new ImageMetadata();
 
@@ -210,13 +244,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                         header.Channels = channels;
                         break;
                     case "compression":
-                        var compression = (ExrCompression)stream.ReadByte();
-                        if (compression != ExrCompression.None)
-                        {
-                            ExrThrowHelper.ThrowNotSupported("Only uncompressed EXR images are supported");
-                        }
-
-                        header.Compression = compression;
+                        header.Compression = (ExrCompression)stream.ReadByte();
                         break;
                     case "dataWindow":
                         ExrBox2i dataWindow = this.ReadBox2i(stream);

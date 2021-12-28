@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.OpenExr
 {
-    internal enum ExrCompression : int
+    internal enum ExrCompression
     {
         None = 0
     }

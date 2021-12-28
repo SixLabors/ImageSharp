@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                 int lastRow = y + height;
                 for (int row = y; row < lastRow; row++)
                 {
-                    ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.GetPixelRowSpan(row);
+                    ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.DangerousGetRowSpan(row);
                     int idxPixels = 0;
                     for (int x = 0; x < halfWidth; x++)
                     {
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                 int indexedPixelsRowIdx = 0;
                 for (int row = y; row < lastRow; row++)
                 {
-                    ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.GetPixelRowSpan(row);
+                    ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.DangerousGetRowSpan(row);
                     indexedPixelRow.CopyTo(indexedPixels.Slice(indexedPixelsRowIdx * width, width));
                     indexedPixelsRowIdx++;
                 }

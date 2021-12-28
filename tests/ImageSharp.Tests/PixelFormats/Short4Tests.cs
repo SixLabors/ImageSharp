@@ -151,6 +151,24 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Short4_FromAbgrb32_ToRgba32()
+        {
+            // arrange
+            var short4 = default(Short4);
+            var actual = default(Abgr32);
+            var expected = new Abgr32(20, 38, 0, 255);
+
+            // act
+            short4.FromAbgr32(expected);
+            Rgba32 temp = default;
+            short4.ToRgba32(ref temp);
+            actual.FromRgba32(temp);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Short4_FromRgb48_ToRgb48()
         {
             // arrange

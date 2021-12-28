@@ -907,5 +907,71 @@ namespace SixLabors.ImageSharp
         /// <param name="divisor">Divisor value.</param>
         /// <returns>Ceiled division result.</returns>
         public static uint DivideCeil(uint value, uint divisor) => (value + divisor - 1) / divisor;
+
+        /// <summary>
+        /// Rotates the specified value left by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateLeft(uint value, int offset)
+        {
+#if SUPPORTS_BITOPERATIONS
+            return BitOperations.RotateLeft(value, offset);
+#else
+            return RotateLeftSoftwareFallback(value, offset);
+#endif
+        }
+
+#if !SUPPORTS_BITOPERATIONS
+        /// <summary>
+        /// Rotates the specified value left by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateLeftSoftwareFallback(uint value, int offset)
+            => (value << offset) | (value >> (32 - offset));
+#endif
+
+        /// <summary>
+        /// Rotates the specified value right by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateRight(uint value, int offset)
+        {
+#if SUPPORTS_BITOPERATIONS
+            return BitOperations.RotateRight(value, offset);
+#else
+            return RotateRightSoftwareFallback(value, offset);
+#endif
+        }
+
+#if !SUPPORTS_BITOPERATIONS
+        /// <summary>
+        /// Rotates the specified value right by the specified number of bits.
+        /// </summary>
+        /// <param name="value">The value to rotate.</param>
+        /// <param name="offset">The number of bits to rotate with.</param>
+        /// <returns>The rotated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RotateRightSoftwareFallback(uint value, int offset)
+            => (value >> offset) | (value << (32 - offset));
+#endif
+
+        /// <summary>
+        /// Tells whether input value is outside of the given range.
+        /// </summary>
+        /// <param name="value">Value.</param>
+        /// <param name="min">Mininum value, inclusive.</param>
+        /// <param name="max">Maximum value, inclusive.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsOutOfRange(int value, int min, int max)
+            => (uint)(value - min) > (uint)(max - min);
     }
 }

@@ -15,15 +15,14 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
     public class TiffDecoderTests
     {
         public static readonly string[] MultiframeTestImages = Multiframes;
 
-        private static TiffDecoder TiffDecoder => new TiffDecoder();
+        private static TiffDecoder TiffDecoder => new();
 
-        private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
+        private static MagickReferenceDecoder ReferenceDecoder => new();
 
         [Theory]
         [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
@@ -380,6 +379,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
+
+        // https://github.com/SixLabors/ImageSharp/issues/1891
+        [Theory]
+        [WithFile(Issues1891, PixelTypes.Rgba32)]
+        public void TiffDecoder_ThrowsException_WithTooManyDirectories<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageFormatException>(
+                () =>
+                {
+                    using (provider.GetImage(TiffDecoder))
+                    {
+                    }
+                });
 
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]

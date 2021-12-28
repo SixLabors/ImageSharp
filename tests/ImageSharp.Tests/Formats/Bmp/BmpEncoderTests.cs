@@ -17,19 +17,18 @@ using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Bmp")]
     public class BmpEncoderTests
     {
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
-        new TheoryData<BmpBitsPerPixel>
+        new()
         {
             BmpBitsPerPixel.Pixel24,
             BmpBitsPerPixel.Pixel32
         };
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
+        new()
         {
             { Car, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
             { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
@@ -37,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         };
 
         public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
-        new TheoryData<string, BmpBitsPerPixel>
+        new()
         {
             { Bit1, BmpBitsPerPixel.Pixel1 },
             { Bit4, BmpBitsPerPixel.Pixel4 },

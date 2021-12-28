@@ -56,6 +56,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 Assert.Equal(expected, actual);
             }
+
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToAbgr32(byte r, byte g, byte b, byte a)
+            {
+                byte[] source = ReferenceImplementations.MakeRgba32ByteArray(r, g, b, a);
+                byte[] actual = new byte[source.Length];
+
+                PixelConverter.FromRgba32.ToAbgr32(source, actual);
+
+                byte[] expected = ReferenceImplementations.MakeAbgr32ByteArray(r, g, b, a);
+
+                Assert.Equal(expected, actual);
+            }
         }
 
         public class FromArgb32 : PixelConverterTests
@@ -115,6 +129,51 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 PixelConverter.FromBgra32.ToRgba32(source, actual);
 
                 byte[] expected = ReferenceImplementations.MakeRgba32ByteArray(r, g, b, a);
+
+                Assert.Equal(expected, actual);
+            }
+        }
+
+        public class FromAbgr32 : PixelConverterTests
+        {
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToArgb32(byte r, byte g, byte b, byte a)
+            {
+                byte[] source = ReferenceImplementations.MakeAbgr32ByteArray(r, g, b, a);
+                byte[] actual = new byte[source.Length];
+
+                PixelConverter.FromAbgr32.ToArgb32(source, actual);
+
+                byte[] expected = ReferenceImplementations.MakeArgb32ByteArray(r, g, b, a);
+
+                Assert.Equal(expected, actual);
+            }
+
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToRgba32(byte r, byte g, byte b, byte a)
+            {
+                byte[] source = ReferenceImplementations.MakeAbgr32ByteArray(r, g, b, a);
+                byte[] actual = new byte[source.Length];
+
+                PixelConverter.FromAbgr32.ToRgba32(source, actual);
+
+                byte[] expected = ReferenceImplementations.MakeRgba32ByteArray(r, g, b, a);
+
+                Assert.Equal(expected, actual);
+            }
+
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToBgra32(byte r, byte g, byte b, byte a)
+            {
+                byte[] source = ReferenceImplementations.MakeAbgr32ByteArray(r, g, b, a);
+                byte[] actual = new byte[source.Length];
+
+                PixelConverter.FromAbgr32.ToBgra32(source, actual);
+
+                byte[] expected = ReferenceImplementations.MakeBgra32ByteArray(r, g, b, a);
 
                 Assert.Equal(expected, actual);
             }

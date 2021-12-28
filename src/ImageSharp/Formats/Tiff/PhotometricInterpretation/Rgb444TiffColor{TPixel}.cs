@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var bgra = default(Bgra4444);
             for (int y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
 
                 for (int x = left; x < left + width; x += 2)
                 {

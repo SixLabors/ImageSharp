@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Format", "Tiff")]
     public class TiffEncoderHeaderTests
     {
-        private static readonly MemoryAllocator MemoryAllocator = new ArrayPoolMemoryAllocator();
+        private static readonly MemoryAllocator MemoryAllocator = MemoryAllocator.Create();
         private static readonly Configuration Configuration = Configuration.Default;
         private static readonly ITiffEncoderOptions Options = new TiffEncoder();
 

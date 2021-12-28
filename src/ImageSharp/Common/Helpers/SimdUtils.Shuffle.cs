@@ -77,6 +77,7 @@ namespace SixLabors.ImageSharp
             TShuffle shuffle)
             where TShuffle : struct, IShuffle3
         {
+            // Source length should be smaller than dest length, and divisible by 3.
             VerifyShuffle3SpanInput(source, dest);
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -182,9 +183,9 @@ namespace SixLabors.ImageSharp
             where T : struct
         {
             DebugGuard.IsTrue(
-                source.Length == dest.Length,
+                source.Length <= dest.Length,
                 nameof(source),
-                "Input spans must be of same length!");
+                "Source should fit into dest!");
 
             DebugGuard.IsTrue(
                 source.Length % 3 == 0,

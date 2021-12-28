@@ -71,6 +71,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
+            [InlineData("test.pbm", "image/x-portable-pixmap")]
             [InlineData("test.png", "image/png")]
             [InlineData("test.tga", "image/tga")]
             [InlineData("test.bmp", "image/bmp")]
@@ -114,6 +115,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
+            [InlineData("test.pbm")]
             [InlineData("test.png")]
             [InlineData("test.tga")]
             [InlineData("test.bmp")]

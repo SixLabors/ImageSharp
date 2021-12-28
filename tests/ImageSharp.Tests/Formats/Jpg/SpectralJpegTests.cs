@@ -122,7 +122,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.Output.WriteLine($"Component{i}: [total: {total} | average: {average}]");
                 averageDifference += average;
                 totalDifference += total;
-                tolerance += libJpegComponent.SpectralBlocks.DangerousGetSingleSpan().Length;
+                Size s = libJpegComponent.SpectralBlocks.Size();
+                tolerance += s.Width * s.Height;
             }
 
             averageDifference /= componentCount;
@@ -182,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     Buffer2D<Block8x8> spectralBlocks = component.SpectralBlocks;
                     for (int i = 0; i < spectralBlocks.Height; i++)
                     {
-                        spectralBlocks.GetRowSpan(i).Clear();
+                        spectralBlocks.DangerousGetRowSpan(i).Clear();
                     }
                 }
             }

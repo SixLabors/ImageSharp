@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             int i = 0;
             while (y < yEnd)
             {
-                this[i++] = buffer.GetRowSpan(y++);
+                this[i++] = buffer.DangerousGetRowSpan(y++);
             }
         }
 

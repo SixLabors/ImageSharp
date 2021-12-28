@@ -18,9 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private uint nextIfdOffset;
 
+        private const int DirectoryMax = 65534;
+
         // used for sequential read big values (actual for multiframe big files)
         // todo: different tags can link to the same data (stream offset) - investigate
-        private readonly SortedList<uint, Action> lazyLoaders = new SortedList<uint, Action>(new DuplicateKeyComparer<uint>());
+        private readonly SortedList<uint, Action> lazyLoaders = new(new DuplicateKeyComparer<uint>());
 
         public DirectoryReader(Stream stream) => this.stream = stream;
 
@@ -48,7 +50,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 return ByteOrder.LittleEndian;
             }
-            else if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
+
+            if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
             {
                 return ByteOrder.BigEndian;
             }
@@ -67,6 +70,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.nextIfdOffset = reader.NextIfdOffset;
 
                 readers.Add(reader);
+
+                if (readers.Count >= DirectoryMax)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("TIFF image contains too many directories");
+                }
             }
 
             // Sequential reading big values.

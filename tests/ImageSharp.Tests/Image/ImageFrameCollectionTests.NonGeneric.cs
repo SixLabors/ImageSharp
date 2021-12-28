@@ -158,8 +158,8 @@ namespace SixLabors.ImageSharp.Tests
 
                         var expectedClone = (Image<TPixel>)cloned;
 
-                        Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
-                        expectedClone.ComparePixelBufferTo(imgSpan);
+                        Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
+                        expectedClone.ComparePixelBufferTo(imgMem);
                     }
                 }
             }
@@ -171,8 +171,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
-                    Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
-                    var sourcePixelData = imgSpan.ToArray();
+                    Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
+                    TPixel[] sourcePixelData = imgMem.ToArray();
 
                     ImageFrameCollection nonGenericFrameCollection = img.Frames;
 
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Tests
                         Assert.Equal(1, img.Frames.Count);
 
                         var expectedClone = (Image<TPixel>)cloned;
-                        expectedClone.ComparePixelBufferTo(sourcePixelData);
+                        expectedClone.ComparePixelBufferTo(sourcePixelData.AsSpan());
                     }
                 }
             }

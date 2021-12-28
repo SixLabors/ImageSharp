@@ -322,6 +322,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
         public static readonly TheoryData<object> Generic_To_Data = new TheoryData<object>
         {
+            new TestPixel<Abgr32>(),
             new TestPixel<Rgba32>(),
             new TestPixel<Bgra32>(),
             new TestPixel<Rgb24>(),
@@ -584,6 +585,50 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 source,
                 expected,
                 (s, d) => this.Operations.ToBgra32Bytes(this.Configuration, s, d.GetSpan(), count));
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromAbgr32Bytes(int count)
+        {
+            byte[] source = CreateByteTestData(count * 4);
+            var expected = new TPixel[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+
+                expected[i].FromAbgr32(new Abgr32(source[i4 + 3], source[i4 + 2], source[i4 + 1], source[i4 + 0]));
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => this.Operations.FromAbgr32Bytes(this.Configuration, s, d.GetSpan(), count));
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToAbgr32Bytes(int count)
+        {
+            TPixel[] source = CreatePixelTestData(count);
+            byte[] expected = new byte[count * 4];
+            var abgr = default(Abgr32);
+
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+                abgr.FromScaledVector4(source[i].ToScaledVector4());
+                expected[i4] = abgr.A;
+                expected[i4 + 1] = abgr.B;
+                expected[i4 + 2] = abgr.G;
+                expected[i4 + 3] = abgr.R;
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => this.Operations.ToAbgr32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]

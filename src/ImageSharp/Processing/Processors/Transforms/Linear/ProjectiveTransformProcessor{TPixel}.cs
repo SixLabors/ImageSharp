@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (sampler is NearestNeighborResampler)
             {
-                var nnOperation = new NNProjectiveOperation(source, destination, matrix);
+                var nnOperation = new NNProjectiveOperation(source.PixelBuffer, destination.PixelBuffer, matrix);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     destination.Bounds(),
@@ -83,8 +83,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             var operation = new ProjectiveOperation<TResampler>(
                 configuration,
-                source,
-                destination,
+                source.PixelBuffer,
+                destination.PixelBuffer,
                 in sampler,
                 matrix);
 
@@ -96,15 +96,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly struct NNProjectiveOperation : IRowOperation
         {
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel> destination;
             private readonly Rectangle bounds;
             private readonly Matrix4x4 matrix;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public NNProjectiveOperation(
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel> destination,
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel> destination,
                 Matrix4x4 matrix)
             {
                 this.source = source;
@@ -116,8 +116,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
-                Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
+                Span<TPixel> destRow = this.destination.DangerousGetRowSpan(y);
 
                 for (int x = 0; x < destRow.Length; x++)
                 {
@@ -127,7 +126,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                     if (this.bounds.Contains(px, py))
                     {
-                        destRow[x] = sourceBuffer.GetElementUnsafe(px, py);
+                        destRow[x] = this.source.GetElementUnsafe(px, py);
                     }
                 }
             }
@@ -137,8 +136,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             where TResampler : struct, IResampler
         {
             private readonly Configuration configuration;
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
+            private readonly Buffer2D<TPixel> source;
+            private readonly Buffer2D<TPixel> destination;
             private readonly TResampler sampler;
             private readonly Matrix4x4 matrix;
             private readonly float yRadius;
@@ -147,8 +146,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public ProjectiveOperation(
                 Configuration configuration,
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel> destination,
+                Buffer2D<TPixel> source,
+                Buffer2D<TPixel> destination,
                 in TResampler sampler,
                 Matrix4x4 matrix)
             {
@@ -185,11 +184,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int maxY = this.source.Height - 1;
                 int maxX = this.source.Width - 1;
 
-                Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
-
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> rowSpan = this.destination.GetPixelRowSpan(y);
+                    Span<TPixel> rowSpan = this.destination.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.ToVector4(
                         this.configuration,
                         rowSpan,
@@ -221,7 +218,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             {
                                 float xWeight = sampler.GetValue(xK - pX);
 
-                                Vector4 current = sourceBuffer.GetElementUnsafe(xK, yK).ToScaledVector4();
+                                Vector4 current = this.source.GetElementUnsafe(xK, yK).ToScaledVector4();
                                 Numerics.Premultiply(ref current);
                                 sum += current * xWeight * yWeight;
                             }
@@ -250,11 +247,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int maxY = this.source.Height - 1;
                 int maxX = this.source.Width - 1;
 
-                Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
-
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> rowSpan = this.destination.GetPixelRowSpan(y);
+                    Span<TPixel> rowSpan = this.destination.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.ToVector4(
                         this.configuration,
                         rowSpan,
@@ -286,7 +281,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             {
                                 float xWeight = sampler.GetValue(xK - pX);
 
-                                Vector4 current = sourceBuffer.GetElementUnsafe(xK, yK).ToScaledVector4();
+                                Vector4 current = this.source.GetElementUnsafe(xK, yK).ToScaledVector4();
                                 Numerics.Premultiply(ref current);
                                 sum += current * xWeight * yWeight;
                             }

@@ -64,6 +64,19 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void Abgr32()
+            {
+                var source = new Abgr32(1, 22, 33, 231);
+
+                // Act:
+                var color = new Color(source);
+
+                // Assert:
+                Abgr32 data = color.ToPixel<Abgr32>();
+                Assert.Equal(source, data);
+            }
+
+            [Fact]
             public void Rgb24()
             {
                 var source = new Rgb24(1, 22,  231);

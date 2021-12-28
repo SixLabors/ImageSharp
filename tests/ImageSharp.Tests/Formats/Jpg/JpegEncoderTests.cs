@@ -19,23 +19,22 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Jpg")]
     public class JpegEncoderTests
     {
-        private static JpegEncoder JpegEncoder => new JpegEncoder();
+        private static JpegEncoder JpegEncoder => new();
 
-        private static JpegDecoder JpegDecoder => new JpegDecoder();
+        private static JpegDecoder JpegDecoder => new();
 
         public static readonly TheoryData<string, int> QualityFiles =
-            new TheoryData<string, int>
+            new()
             {
                 { TestImages.Jpeg.Baseline.Calliphora, 80 },
                 { TestImages.Jpeg.Progressive.Fb, 75 }
             };
 
         public static readonly TheoryData<JpegColorType, int> BitsPerPixel_Quality =
-            new TheoryData<JpegColorType, int>
+            new()
             {
                 { JpegColorType.YCbCrRatio420, 40 },
                 { JpegColorType.YCbCrRatio420, 60 },
@@ -49,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             };
 
         public static readonly TheoryData<int> Grayscale_Quality =
-            new TheoryData<int>
+            new()
             {
                 { 40 },
                 { 60 },
@@ -57,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             };
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-            new TheoryData<string, int, int, PixelResolutionUnit>
+            new()
             {
                 { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1, PixelResolutionUnit.AspectRatio },
                 { TestImages.Jpeg.Baseline.Snake, 300, 300, PixelResolutionUnit.PixelsPerInch },

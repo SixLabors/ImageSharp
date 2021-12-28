@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -74,6 +75,7 @@ namespace SixLabors.ImageSharp.Advanced
 
                 Seed<A8>();
                 Seed<Argb32>();
+                Seed<Abgr32>();
                 Seed<Bgr24>();
                 Seed<Bgr565>();
                 Seed<Bgra32>();
@@ -148,6 +150,7 @@ namespace SixLabors.ImageSharp.Advanced
             Image<TPixel> img = default;
             img.CloneAs<A8>(default);
             img.CloneAs<Argb32>(default);
+            img.CloneAs<Abgr32>(default);
             img.CloneAs<Bgr24>(default);
             img.CloneAs<Bgr565>(default);
             img.CloneAs<Bgra32>(default);
@@ -200,6 +203,7 @@ namespace SixLabors.ImageSharp.Advanced
             default(BmpEncoderCore).Encode<TPixel>(default, default, default);
             default(GifEncoderCore).Encode<TPixel>(default, default, default);
             default(JpegEncoderCore).Encode<TPixel>(default, default, default);
+            default(PbmEncoderCore).Encode<TPixel>(default, default, default);
             default(PngEncoderCore).Encode<TPixel>(default, default, default);
             default(TgaEncoderCore).Encode<TPixel>(default, default, default);
             default(TiffEncoderCore).Encode<TPixel>(default, default, default);
@@ -217,6 +221,7 @@ namespace SixLabors.ImageSharp.Advanced
             default(BmpDecoderCore).Decode<TPixel>(default, default, default);
             default(GifDecoderCore).Decode<TPixel>(default, default, default);
             default(JpegDecoderCore).Decode<TPixel>(default, default, default);
+            default(PbmDecoderCore).Decode<TPixel>(default, default, default);
             default(PngDecoderCore).Decode<TPixel>(default, default, default);
             default(TgaDecoderCore).Decode<TPixel>(default, default, default);
             default(TiffDecoderCore).Decode<TPixel>(default, default, default);
@@ -234,6 +239,7 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileImageEncoder<TPixel, BmpEncoder>();
             AotCompileImageEncoder<TPixel, GifEncoder>();
             AotCompileImageEncoder<TPixel, JpegEncoder>();
+            AotCompileImageEncoder<TPixel, PbmEncoder>();
             AotCompileImageEncoder<TPixel, PngEncoder>();
             AotCompileImageEncoder<TPixel, TgaEncoder>();
             AotCompileImageEncoder<TPixel, TiffEncoder>();
@@ -251,6 +257,7 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileImageDecoder<TPixel, BmpDecoder>();
             AotCompileImageDecoder<TPixel, GifDecoder>();
             AotCompileImageDecoder<TPixel, JpegDecoder>();
+            AotCompileImageDecoder<TPixel, PbmDecoder>();
             AotCompileImageDecoder<TPixel, PngDecoder>();
             AotCompileImageDecoder<TPixel, TgaDecoder>();
             AotCompileImageDecoder<TPixel, TiffDecoder>();
@@ -529,7 +536,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileMemoryManagers<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            AotCompileMemoryManager<TPixel, ArrayPoolMemoryAllocator>();
+            AotCompileMemoryManager<TPixel, UniformUnmanagedMemoryPoolMemoryAllocator>();
             AotCompileMemoryManager<TPixel, SimpleGcMemoryAllocator>();
         }
 

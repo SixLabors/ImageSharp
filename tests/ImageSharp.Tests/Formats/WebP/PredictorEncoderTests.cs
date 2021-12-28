@@ -139,15 +139,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             uint[] bgra = new uint[image.Width * image.Height];
-            int idx = 0;
-            for (int y = 0; y < image.Height; y++)
+            image.ProcessPixelRows(accessor =>
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                for (int x = 0; x < rowSpan.Length; x++)
+                int idx = 0;
+                for (int y = 0; y < accessor.Height; y++)
                 {
-                    bgra[idx++] = ToBgra32(rowSpan[x]).PackedValue;
+                    Span<TPixel> rowSpan = accessor.GetRowSpan(y);
+                    for (int x = 0; x < rowSpan.Length; x++)
+                    {
+                        bgra[idx++] = ToBgra32(rowSpan[x]).PackedValue;
+                    }
                 }
-            }
+            });
 
             return bgra;
         }

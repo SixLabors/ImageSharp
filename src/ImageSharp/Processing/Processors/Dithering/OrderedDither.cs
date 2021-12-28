@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -118,10 +119,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             int spread = CalculatePaletteSpread(destination.Palette.Length);
             float scale = quantizer.Options.DitherScale;
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                ReadOnlySpan<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(bounds.X, bounds.Width);
+                ReadOnlySpan<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y).Slice(bounds.X, bounds.Width);
                 Span<byte> destRow = destination.GetWritablePixelRowSpanUnsafe(y - bounds.Y).Slice(0, sourceRow.Length);
 
                 for (int x = 0; x < sourceRow.Length; x++)
@@ -148,10 +150,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             int spread = CalculatePaletteSpread(processor.Palette.Length);
             float scale = processor.DitherScale;
+            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y).Slice(bounds.X, bounds.Width);
+                Span<TPixel> row = sourceBuffer.DangerousGetRowSpan(y).Slice(bounds.X, bounds.Width);
 
                 for (int x = 0; x < row.Length; x++)
                 {

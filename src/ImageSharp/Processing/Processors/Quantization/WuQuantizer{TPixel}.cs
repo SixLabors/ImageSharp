@@ -384,7 +384,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetRowSpan(y).Slice(bounds.Left, bounds.Width);
+                Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.Left, bounds.Width);
                 PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
                 for (int x = 0; x < bufferSpan.Length; x++)

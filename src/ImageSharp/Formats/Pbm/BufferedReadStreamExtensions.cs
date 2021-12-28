@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Pbm
 {
@@ -66,12 +67,12 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         }
 
         /// <summary>
-        /// Reads a float.
+        /// Reads a 32 bit float.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
         /// <param name="scratch">A scratch buffer of size 4 bytes.</param>
         /// <param name="byteOrder">The byte order. Defaults to little endian.</param>
-        /// <returns>the value.</returns>
+        /// <returns>the float value.</returns>
         public static float ReadSingle(this BufferedReadStream stream, Span<byte> scratch, ByteOrder byteOrder = ByteOrder.LittleEndian)
         {
             stream.Read(scratch, 0, 4);
@@ -86,6 +87,29 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             }
 
             return Unsafe.As<int, float>(ref intValue);
+        }
+
+        /// <summary>
+        /// Reads a 16 bit float.
+        /// </summary>
+        /// <param name="stream">The stream to read from.</param>
+        /// <param name="scratch">A scratch buffer of size 2 bytes.</param>
+        /// <param name="byteOrder">The byte order. Defaults to little endian.</param>
+        /// <returns>The float value.</returns>
+        public static float ReadHalfSingle(this BufferedReadStream stream, Span<byte> scratch, ByteOrder byteOrder = ByteOrder.LittleEndian)
+        {
+            stream.Read(scratch, 0, 2);
+            ushort shortValue;
+            if (byteOrder == ByteOrder.LittleEndian)
+            {
+                shortValue = BinaryPrimitives.ReadUInt16LittleEndian(scratch);
+            }
+            else
+            {
+                shortValue = BinaryPrimitives.ReadUInt16BigEndian(scratch);
+            }
+
+            return HalfTypeHelper.Unpack(shortValue);
         }
     }
 }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Text;
@@ -22,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         /// <summary>
         /// Reusable buffer.
         /// </summary>
-        private readonly byte[] buffer = new byte[4];
+        private readonly byte[] buffer = new byte[8];
 
         /// <summary>
         /// Used for allocating memory during processing operations.
@@ -33,6 +34,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         /// The bitmap decoder options.
         /// </summary>
         private readonly IExrDecoderOptions options;
+
+        /// <summary>
+        /// The metadata.
+        /// </summary>
+        private ImageMetadata metadata;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExrDecoderCore"/> class.
@@ -58,12 +64,102 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
         private int Height { get; set; }
 
+        private IList<ExrChannelInfo> Channels { get; set; }
+
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel> => throw new NotImplementedException();
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            ExrHeader header = this.ReadExrHeader(stream);
+
+            int bitsPerPixel = CalculateBitsPerPixel(header.Channels);
+
+            var image = new Image<TPixel>(this.Configuration, this.Width, this.Height, this.metadata);
+
+            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+
+            // TODO: we for now assume the image pixel type is HalfSingle.
+            using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(this.Width * 3);
+            Span<float> redPixelData = rowBuffer.GetSpan().Slice(0, this.Width);
+            Span<float> bluePixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
+            Span<float> greenPixelData = rowBuffer.GetSpan().Slice(this.Width * 2, this.Width);
+
+            TPixel color = default;
+            for (int y = 0; y < this.Height; y++)
+            {
+                stream.Read(this.buffer, 0, 8);
+                ulong rowOffset = BinaryPrimitives.ReadUInt64LittleEndian(this.buffer);
+                long nextRowOffsetPosition = stream.Position;
+
+                stream.Position = (long)rowOffset;
+                stream.Read(this.buffer, 0, 4);
+                uint rowIndex = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
+
+                stream.Read(this.buffer, 0, 4);
+                uint pixelDataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+
+                for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
+                {
+                    switch (this.Channels[channelIdx].ChannelName)
+                    {
+                        case "R":
+                            for (int x = 0; x < this.Width; x++)
+                            {
+                                redPixelData[x] = stream.ReadHalfSingle(this.buffer);
+                            }
+
+                            break;
+
+                        case "B":
+                            for (int x = 0; x < this.Width; x++)
+                            {
+                                bluePixelData[x] = stream.ReadHalfSingle(this.buffer);
+                            }
+
+                            break;
+
+                        case "G":
+                            for (int x = 0; x < this.Width; x++)
+                            {
+                                greenPixelData[x] = stream.ReadHalfSingle(this.buffer);
+                            }
+
+                            break;
+
+                        default:
+                            // Skip unknown channel.
+                            // TODO: can we assume the same data size as the others here?
+                            stream.Position += this.Width * 2;
+                            break;
+                    }
+                }
+
+                stream.Position = nextRowOffsetPosition;
+
+                for (int x = 0; x < this.Width; x++)
+                {
+                    var pixelValue = new HalfVector4(redPixelData[x], greenPixelData[x], bluePixelData[x], 1.0f);
+                    color.FromVector4(pixelValue.ToVector4());
+                    pixelRow[x] = color;
+                }
+            }
+
+            return image;
+        }
 
         /// <inheritdoc />
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+        {
+            ExrHeader header = this.ReadExrHeader(stream);
+
+            int bitsPerPixel = CalculateBitsPerPixel(header.Channels);
+
+            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), this.Width, this.Height, new ImageMetadata());
+        }
+
+        private ExrHeader ReadExrHeader(BufferedReadStream stream)
         {
             // Skip over the magick bytes.
             stream.Read(this.buffer, 0, 4);
@@ -93,11 +189,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
             this.Width = header.DataWindow.Value.xMax - header.DataWindow.Value.xMin + 1;
             this.Height = header.DataWindow.Value.yMax - header.DataWindow.Value.yMin + 1;
+            this.Channels = header.Channels;
 
-            // TODO: calculate bits per pixel.
-            int bitsPerPixel = 48;
+            this.metadata = new ImageMetadata();
 
-            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), this.Width, this.Height, new ImageMetadata());
+            return header;
         }
 
         private ExrHeader ParseHeader(BufferedReadStream stream)
@@ -110,11 +206,16 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 switch (attribute.Name)
                 {
                     case "channels":
-                        IList<ExrChannelInfo> channels = this.ParseChannelList(stream, attribute.Length);
+                        IList<ExrChannelInfo> channels = this.ReadChannelList(stream, attribute.Length);
                         header.Channels = channels;
                         break;
                     case "compression":
                         var compression = (ExrCompression)stream.ReadByte();
+                        if (compression != ExrCompression.None)
+                        {
+                            ExrThrowHelper.ThrowNotSupported("Only uncompressed EXR images are supported");
+                        }
+
                         header.Compression = compression;
                         break;
                     case "dataWindow":
@@ -187,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return new ExrBox2i(xMin, yMin, xMax, yMax);
         }
 
-        private List<ExrChannelInfo> ParseChannelList(BufferedReadStream stream, int attributeSize)
+        private List<ExrChannelInfo> ReadChannelList(BufferedReadStream stream, int attributeSize)
         {
             var channels = new List<ExrChannelInfo>();
             while (attributeSize > 1)
@@ -227,6 +328,25 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             int ySampling = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
 
             return new ExrChannelInfo(channelName, pixelType, pLinear, xSampling, ySampling);
+        }
+
+        private static int CalculateBitsPerPixel(IList<ExrChannelInfo> channels)
+        {
+            int bitsPerPixel = 0;
+            for (int i = 0; i < channels.Count; i++)
+            {
+                ExrChannelInfo channel = channels[0];
+                if (channel.PixelType is ExrPixelType.Float or ExrPixelType.Uint)
+                {
+                    bitsPerPixel += 32;
+                }
+                else if (channel.PixelType == ExrPixelType.Half)
+                {
+                    bitsPerPixel += 16;
+                }
+            }
+
+            return bitsPerPixel;
         }
 
         private static string ReadString(BufferedReadStream stream)

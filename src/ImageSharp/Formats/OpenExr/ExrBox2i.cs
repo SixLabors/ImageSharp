@@ -7,18 +7,18 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
     {
         public ExrBox2i(int xMin, int yMin, int xMax, int yMax)
         {
-            this.xMin = xMin;
-            this.yMin = yMin;
-            this.xMax = xMax;
-            this.yMax = yMax;
+            this.XMin = xMin;
+            this.YMin = yMin;
+            this.XMax = xMax;
+            this.YMax = yMax;
         }
 
-        public int xMin { get; }
+        public int XMin { get; }
 
-        public int yMin { get; }
+        public int YMin { get; }
 
-        public int xMax { get; }
+        public int XMax { get; }
 
-        public int yMax { get; }
+        public int YMax { get; }
     }
 }

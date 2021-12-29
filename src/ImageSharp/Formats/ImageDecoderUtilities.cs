@@ -170,6 +170,6 @@ namespace SixLabors.ImageSharp.Formats
         private static InvalidImageContentException DefaultLargeImageExceptionFactory(
             InvalidMemoryOperationException memoryOperationException,
             Size dimensions) =>
-            new InvalidImageContentException(dimensions, memoryOperationException);
+            new(dimensions, memoryOperationException);
     }
 }

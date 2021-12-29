@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
     /// </summary>
     internal static class ExrThrowHelper
     {
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
+
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNotSupportedVersion() => throw new NotSupportedException("Unsupported EXR version");
 

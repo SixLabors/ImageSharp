@@ -3,12 +3,12 @@
 
 namespace SixLabors.ImageSharp.Formats.OpenExr
 {
-    internal enum ExrPixelType : int
+    internal enum ExrPixelType
     {
         /// <summary>
         /// unsigned int (32 bit).
         /// </summary>
-        Uint = 0,
+        UnsignedInt = 0,
 
         /// <summary>
         /// half (16 bit floating point).

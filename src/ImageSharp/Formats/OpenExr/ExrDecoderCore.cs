@@ -90,6 +90,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 case ExrPixelType.Float:
                     this.DecodeFloatingPointPixelData(stream, pixels);
                     break;
+                case ExrPixelType.UnsignedInt:
+                    this.DecodeUnsignedIntPixelData(stream, pixels);
+                    break;
                 default:
                     ExrThrowHelper.ThrowNotSupported("Pixel type is not supported");
                     break;
@@ -349,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             }
 
             // Next three bytes contain info's about the image.
-            // We ignore those for now.
+            // TODO: We ignore those for now.
             stream.Read(this.buffer, 0, 3);
 
             ExrHeader header = this.ParseHeader(stream);

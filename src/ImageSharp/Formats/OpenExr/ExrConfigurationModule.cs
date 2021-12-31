@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         /// <inheritdoc/>
         public void Configure(Configuration configuration)
         {
+            configuration.ImageFormatsManager.SetEncoder(ExrFormat.Instance, new ExrEncoder());
             configuration.ImageFormatsManager.SetDecoder(ExrFormat.Instance, new ExrDecoder());
             configuration.ImageFormatsManager.AddImageFormatDetector(new ExrImageFormatDetector());
         }

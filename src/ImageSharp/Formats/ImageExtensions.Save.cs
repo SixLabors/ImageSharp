@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.OpenExr;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
@@ -847,5 +848,108 @@ namespace SixLabors.ImageSharp
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
                 cancellationToken);
 
+        // foo
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        public static void SaveAsExr(this Image source, string path) => SaveAsExr(source, path, null);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsExrAsync(this Image source, string path) => SaveAsExrAsync(source, path, null);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsExrAsync(this Image source, string path, CancellationToken cancellationToken)
+            => SaveAsExrAsync(source, path, null, cancellationToken);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        public static void SaveAsExr(this Image source, string path, ExrEncoder encoder) =>
+            source.Save(
+                path,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ExrFormat.Instance));
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsExrAsync(this Image source, string path, ExrEncoder encoder, CancellationToken cancellationToken = default) =>
+            source.SaveAsync(
+                path,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ExrFormat.Instance),
+                cancellationToken);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        public static void SaveAsExr(this Image source, Stream stream)
+            => SaveAsExr(source, stream, null);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsExrAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
+            => SaveAsExrAsync(source, stream, null, cancellationToken);
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static void SaveAsExr(this Image source, Stream stream, ExrEncoder encoder)
+            => source.Save(
+                stream,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ExrFormat.Instance));
+
+        /// <summary>
+        /// Saves the image to the given stream with the Open Exr format.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsExrAsync(this Image source, Stream stream, ExrEncoder encoder, CancellationToken cancellationToken = default) =>
+            source.SaveAsync(
+                stream,
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ExrFormat.Instance),
+                cancellationToken);
     }
 }

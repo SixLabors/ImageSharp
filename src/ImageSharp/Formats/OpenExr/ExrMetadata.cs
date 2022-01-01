@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         /// <summary>
         /// Gets or sets the pixel format.
         /// </summary>
-        public ExrPixelType PixelType { get; set; } = ExrPixelType.Half;
+        public ExrPixelType PixelType { get; set; } = ExrPixelType.Float;
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new ExrMetadata(this);

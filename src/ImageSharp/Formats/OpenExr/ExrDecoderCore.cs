@@ -381,35 +381,35 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             {
                 switch (attribute.Name)
                 {
-                    case "channels":
+                    case ExrConstants.AttributeNames.Channels:
                         IList<ExrChannelInfo> channels = this.ReadChannelList(stream, attribute.Length);
                         header.Channels = channels;
                         break;
-                    case "compression":
+                    case ExrConstants.AttributeNames.Compression:
                         header.Compression = (ExrCompression)stream.ReadByte();
                         break;
-                    case "dataWindow":
+                    case ExrConstants.AttributeNames.DataWindow:
                         ExrBox2i dataWindow = this.ReadBox2i(stream);
                         header.DataWindow = dataWindow;
                         break;
-                    case "displayWindow":
+                    case ExrConstants.AttributeNames.DisplayWindow:
                         ExrBox2i displayWindow = this.ReadBox2i(stream);
                         header.DisplayWindow = displayWindow;
                         break;
-                    case "lineOrder":
+                    case ExrConstants.AttributeNames.LineOrder:
                         var lineOrder = (ExrLineOrder)stream.ReadByte();
                         header.LineOrder = lineOrder;
                         break;
-                    case "pixelAspectRatio":
+                    case ExrConstants.AttributeNames.PixelAspectRatio:
                         float aspectRatio = stream.ReadSingle(this.buffer);
                         header.AspectRatio = aspectRatio;
                         break;
-                    case "screenWindowCenter":
+                    case ExrConstants.AttributeNames.ScreenWindowCenter:
                         float screenWindowCenterX = stream.ReadSingle(this.buffer);
                         float screenWindowCenterY = stream.ReadSingle(this.buffer);
                         header.ScreenWindowCenter = new PointF(screenWindowCenterX, screenWindowCenterY);
                         break;
-                    case "screenWindowWidth":
+                    case ExrConstants.AttributeNames.ScreenWindowWidth:
                         float screenWindowWidth = stream.ReadSingle(this.buffer);
                         header.ScreenWindowWidth = screenWindowWidth;
                         break;

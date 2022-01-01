@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -14,29 +13,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, -1, -1, -1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
     public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     {
-        /// <summary>
-        /// Gets or sets the red component.
-        /// </summary>
-        public float R;
-
-        /// <summary>
-        /// Gets or sets the green component.
-        /// </summary>
-        public float G;
-
-        /// <summary>
-        /// Gets or sets the blue component.
-        /// </summary>
-        public float B;
-
-        /// <summary>
-        /// Gets or sets the alpha component.
-        /// </summary>
-        public float A;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="HalfVector4"/> struct.
         /// </summary>
@@ -45,43 +23,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="z">The z-component.</param>
         /// <param name="w">The w-component.</param>
         public HalfVector4(float x, float y, float z, float w)
+            : this(new Vector4(x, y, z, w))
         {
-            this.R = x;
-            this.G = y;
-            this.B = z;
-            this.A = w;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HalfVector4"/> struct.
         /// </summary>
         /// <param name="vector">A vector containing the initial values for the components</param>
-        public HalfVector4(Vector4 vector)
-        {
-            this.R = vector.X;
-            this.G = vector.Y;
-            this.B = vector.Z;
-            this.A = vector.W;
-        }
-
-        /// <summary>
-        /// Gets or sets the packed representation of the HalfVector4 struct.
-        /// </summary>
-        public ulong HalfVector
-        {
-            [MethodImpl(InliningOptions.ShortMethod)]
-            readonly get => Unsafe.As<HalfVector4, ulong>(ref Unsafe.AsRef(this));
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            set => Unsafe.As<HalfVector4, ulong>(ref this) = value;
-        }
+        public HalfVector4(Vector4 vector) => this.PackedValue = Pack(ref vector);
 
         /// <inheritdoc/>
-        public ulong PackedValue
-        {
-            readonly get => this.HalfVector;
-            set => this.HalfVector = value;
-        }
+        public ulong PackedValue { get; set; }
 
         /// <summary>
         /// Compares two <see cref="HalfVector4"/> objects for equality.
@@ -133,7 +86,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new(this.R, this.G, this.B, this.A);
+        public readonly Vector4 ToVector4() => new(
+                HalfTypeHelper.Unpack((ushort)this.PackedValue),
+                HalfTypeHelper.Unpack((ushort)(this.PackedValue >> 0x10)),
+                HalfTypeHelper.Unpack((ushort)(this.PackedValue >> 0x20)),
+                HalfTypeHelper.Unpack((ushort)(this.PackedValue >> 0x30)));
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

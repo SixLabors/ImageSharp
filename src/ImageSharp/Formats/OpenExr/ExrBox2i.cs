@@ -1,8 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
+
 namespace SixLabors.ImageSharp.Formats.OpenExr
 {
+    [DebuggerDisplay("xMin: {XMin}, yMin: {YMin}, xMax: {XMax}, yMax: {YMax}")]
     internal struct ExrBox2i
     {
         public ExrBox2i(int xMin, int yMin, int xMax, int yMax)

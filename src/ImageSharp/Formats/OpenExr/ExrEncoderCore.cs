@@ -7,7 +7,6 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -28,11 +27,6 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
-
-        /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private Configuration configuration;
 
         /// <summary>
         /// The pixel type of the image.
@@ -63,14 +57,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
             ExrMetadata exrMetadata = metadata.GetExrMetadata();
             this.pixelType ??= exrMetadata.PixelType;
-
             int width = image.Width;
             int height = image.Height;
-            ExrPixelType pixelType = ExrPixelType.Float;
             var header = new ExrHeader()
             {
                 Compression = ExrCompression.None,
@@ -82,9 +73,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 ScreenWindowWidth = 1,
                 Channels = new List<ExrChannelInfo>()
                 {
-                    new("B", pixelType, 0, 1, 1),
-                    new("G", pixelType, 0, 1, 1),
-                    new("R", pixelType, 0, 1, 1),
+                    new("B", this.pixelType.Value, 0, 1, 1),
+                    new("G", this.pixelType.Value, 0, 1, 1),
+                    new("R", this.pixelType.Value, 0, 1, 1),
                 }
             };
 
@@ -112,7 +103,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
             // Write offsets to each pixel row.
-            uint rowSizeBytes = (uint)(width * 3 * 4);
+            int bytesPerPixel = this.pixelType == ExrPixelType.Half ? 2 : 4;
+            int numberOfChannels = 3;
+            uint rowSizeBytes = (uint)(width * numberOfChannels * bytesPerPixel);
             this.WriteRowOffsets(stream, height, rowSizeBytes);
             for (int y = 0; y < height; y++)
             {
@@ -134,19 +127,14 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, rowSizeBytes);
                 stream.Write(this.buffer.AsSpan(0, 4));
 
-                for (int x = 0; x < width; x++)
+                switch (this.pixelType)
                 {
-                    this.WriteSingle(stream, blueBuffer[x]);
-                }
-
-                for (int x = 0; x < width; x++)
-                {
-                    this.WriteSingle(stream, greenBuffer[x]);
-                }
-
-                for (int x = 0; x < width; x++)
-                {
-                    this.WriteSingle(stream, redBuffer[x]);
+                    case ExrPixelType.Float:
+                        this.WriteSingleRow(stream, width, blueBuffer, greenBuffer, redBuffer);
+                        break;
+                    case ExrPixelType.Half:
+                        this.WriteHalfSingleRow(stream, width, blueBuffer, greenBuffer, redBuffer);
+                        break;
                 }
             }
         }
@@ -162,6 +150,42 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             this.WriteScreenWindowCenter(stream, header.ScreenWindowCenter.Value);
             this.WriteScreenWindowWidth(stream, header.ScreenWindowWidth.Value);
             stream.WriteByte(0);
+        }
+
+        private void WriteSingleRow(Stream stream, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteSingle(stream, blueBuffer[x]);
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteSingle(stream, greenBuffer[x]);
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteSingle(stream, redBuffer[x]);
+            }
+        }
+
+        private void WriteHalfSingleRow(Stream stream, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteHalfSingle(stream, blueBuffer[x]);
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteHalfSingle(stream, greenBuffer[x]);
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteHalfSingle(stream, redBuffer[x]);
+            }
         }
 
         private void WriteRowOffsets(Stream stream, int height, uint rowSizeBytes)
@@ -187,7 +211,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
             // Last zero byte.
             attributeSize++;
-            this.WriteAttributeInformation(stream, "channels", "chlist", attributeSize);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.Channels, ExrConstants.AttibuteTypes.ChannelList, attributeSize);
 
             foreach (ExrChannelInfo channelInfo in channels)
             {
@@ -200,45 +224,45 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
         private void WriteCompression(Stream stream, ExrCompression compression)
         {
-            this.WriteAttributeInformation(stream, "compression", "compression", 1);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.Compression, ExrConstants.AttibuteTypes.Compression, 1);
             stream.WriteByte((byte)compression);
         }
 
         private void WritePixelAspectRatio(Stream stream, float aspectRatio)
         {
-            this.WriteAttributeInformation(stream, "pixelAspectRatio", "float", 4);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.PixelAspectRatio, ExrConstants.AttibuteTypes.Float, 4);
             this.WriteSingle(stream, aspectRatio);
         }
 
         private void WriteLineOrder(Stream stream, ExrLineOrder lineOrder)
         {
-            this.WriteAttributeInformation(stream, "lineOrder", "lineOrder", 1);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.LineOrder, ExrConstants.AttibuteTypes.LineOrder, 1);
             stream.WriteByte((byte)lineOrder);
         }
 
         private void WriteScreenWindowCenter(Stream stream, PointF screenWindowCenter)
         {
-            this.WriteAttributeInformation(stream, "screenWindowCenter", "v2f", 8);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.ScreenWindowCenter, ExrConstants.AttibuteTypes.TwoFloat, 8);
             this.WriteSingle(stream, screenWindowCenter.X);
             this.WriteSingle(stream, screenWindowCenter.Y);
         }
 
         private void WriteScreenWindowWidth(Stream stream, float screenWindowWidth)
         {
-            this.WriteAttributeInformation(stream, "screenWindowWidth", "float", 4);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.ScreenWindowWidth, ExrConstants.AttibuteTypes.Float, 4);
             this.WriteSingle(stream, screenWindowWidth);
         }
 
         private void WriteDataWindow(Stream stream, ExrBox2i dataWindow)
         {
-            this.WriteAttributeInformation(stream, "dataWindow", "box2i", 16);
-            this.WriteBox2i(stream, dataWindow);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.DataWindow, ExrConstants.AttibuteTypes.BoxInt, 16);
+            this.WriteBoxInteger(stream, dataWindow);
         }
 
         private void WriteDisplayWindow(Stream stream, ExrBox2i displayWindow)
         {
-            this.WriteAttributeInformation(stream, "displayWindow", "box2i", 16);
-            this.WriteBox2i(stream, displayWindow);
+            this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.DisplayWindow, ExrConstants.AttibuteTypes.BoxInt, 16);
+            this.WriteBoxInteger(stream, displayWindow);
         }
 
         private void WriteAttributeInformation(Stream stream, string name, string type, int size)
@@ -286,7 +310,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             stream.WriteByte(0);
         }
 
-        private void WriteBox2i(Stream stream, ExrBox2i box)
+        private void WriteBoxInteger(Stream stream, ExrBox2i box)
         {
             BinaryPrimitives.WriteInt32LittleEndian(this.buffer, box.XMin);
             stream.Write(this.buffer.AsSpan(0, 4));
@@ -305,6 +329,13 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         {
             BinaryPrimitives.WriteInt32LittleEndian(this.buffer, *(int*)&value);
             stream.Write(this.buffer.AsSpan(0, 4));
+        }
+
+        private void WriteHalfSingle(Stream stream, float value)
+        {
+            ushort valueAsShort = HalfTypeHelper.Pack(value);
+            BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, valueAsShort);
+            stream.Write(this.buffer.AsSpan(0, 2));
         }
     }
 }

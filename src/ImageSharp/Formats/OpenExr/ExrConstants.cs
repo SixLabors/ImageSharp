@@ -24,5 +24,42 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         /// The magick bytes identifying an OpenExr image.
         /// </summary>
         public static readonly int MagickBytes = 20000630;
+
+        /// <summary>
+        /// EXR attribute names.
+        /// </summary>
+        internal static class AttributeNames
+        {
+            public const string Channels = "channels";
+
+            public const string Compression = "compression";
+
+            public const string DataWindow = "dataWindow";
+
+            public const string DisplayWindow = "displayWindow";
+
+            public const string LineOrder = "lineOrder";
+
+            public const string PixelAspectRatio = "pixelAspectRatio";
+
+            public const string ScreenWindowCenter = "screenWindowCenter";
+
+            public const string ScreenWindowWidth = "screenWindowWidth";
+        }
+
+        internal static class AttibuteTypes
+        {
+            public const string ChannelList = "chlist";
+
+            public const string Compression = "compression";
+
+            public const string Float = "float";
+
+            public const string LineOrder = "lineOrder";
+
+            public const string TwoFloat = "v2f";
+
+            public const string BoxInt = "box2i";
+        }
     }
 }

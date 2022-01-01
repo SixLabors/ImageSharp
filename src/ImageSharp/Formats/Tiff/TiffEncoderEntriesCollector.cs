@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -57,9 +58,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 ImageFrame rootFrame = image.Frames.RootFrame;
                 ExifProfile rootFrameExifProfile = rootFrame.Metadata.ExifProfile ?? new ExifProfile();
-                byte[] foorFrameXmpBytes = rootFrame.Metadata.XmpProfile;
+                XmpProfile rootFrameXmpProfile = rootFrame.Metadata.XmpProfile;
 
-                this.ProcessProfiles(image.Metadata, rootFrameExifProfile, foorFrameXmpBytes);
+                this.ProcessProfiles(image.Metadata, rootFrameExifProfile, rootFrameXmpProfile);
                 this.ProcessMetadata(rootFrameExifProfile);
 
                 if (!this.Collector.Entries.Exists(t => t.Tag == ExifTag.Software))
@@ -149,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            private void ProcessProfiles(ImageMetadata imageMetadata, ExifProfile exifProfile, byte[] xmpProfile)
+            private void ProcessProfiles(ImageMetadata imageMetadata, ExifProfile exifProfile, XmpProfile xmpProfile)
             {
                 if (exifProfile != null && exifProfile.Parts != ExifParts.None)
                 {
@@ -201,9 +202,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 if (xmpProfile != null)
                 {
+                    xmpProfile.UpdateData();
                     var xmp = new ExifByteArray(ExifTagValue.XMP, ExifDataType.Byte)
                     {
-                        Value = xmpProfile
+                        Value = xmpProfile.Data
                     };
 
                     this.Collector.Add(xmp);

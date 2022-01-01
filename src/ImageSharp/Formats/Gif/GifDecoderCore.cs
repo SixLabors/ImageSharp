@@ -11,6 +11,7 @@ using System.Threading;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -250,7 +251,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        /// Reads the application extension block parsing any animation information
+        /// Reads the application extension block parsing any animation or XMP information
         /// if present.
         /// </summary>
         private void ReadApplicationExtension()
@@ -258,25 +259,42 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int appLength = this.stream.ReadByte();
 
             // If the length is 11 then it's a valid extension and most likely
-            // a NETSCAPE or ANIMEXTS extension. We want the loop count from this.
+            // a NETSCAPE, XMP or ANIMEXTS extension. We want the loop count from this.
             if (appLength == GifConstants.ApplicationBlockSize)
             {
-                this.stream.Skip(appLength);
-                int subBlockSize = this.stream.ReadByte();
-
-                // TODO: There's also a NETSCAPE buffer extension.
-                // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
-                if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
+                this.stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
+                bool isXmp = true;
+                ReadOnlySpan<byte> idBytes = GifConstants.XmpApplicationIdentificationBytes;
+                for (int i = 0; i < idBytes.Length; i++)
                 {
-                    this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                    this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
-                    this.stream.Skip(1); // Skip the terminator.
-                    return;
+                    isXmp &= this.buffer[i] == idBytes[i];
                 }
 
-                // Could be XMP or something else not supported yet.
-                // Skip the subblock and terminator.
-                this.SkipBlock(subBlockSize);
+                if (isXmp)
+                {
+                    var extension = GifXmpApplicationExtension.Read(this.stream);
+                    this.metadata.XmpProfile = new XmpProfile(extension.Data);
+                    return;
+                }
+                else
+                {
+                    int subBlockSize = this.stream.ReadByte();
+
+                    // TODO: There's also a NETSCAPE buffer extension.
+                    // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
+                    if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
+                    {
+                        this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
+                        this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
+                        this.stream.Skip(1); // Skip the terminator.
+                        return;
+                    }
+
+                    // Could be something else not supported yet.
+                    // Skip the subblock and terminator.
+                    this.SkipBlock(subBlockSize);
+                }
+
                 return;
             }
 

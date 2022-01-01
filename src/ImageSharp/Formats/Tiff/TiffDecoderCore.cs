@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -197,9 +198,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ImageFrameMetadata imageFrameMetaData = this.ignoreMetadata ?
-                new ImageFrameMetadata() :
-                new ImageFrameMetadata { ExifProfile = tags, XmpProfile = tags.GetValue(ExifTag.XMP)?.Value };
+            var imageFrameMetaData = new ImageFrameMetadata();
+            if (!this.ignoreMetadata)
+            {
+                imageFrameMetaData.ExifProfile = tags;
+            }
 
             TiffFrameMetadata tiffFrameMetaData = imageFrameMetaData.GetTiffMetadata();
             TiffFrameMetadata.Parse(tiffFrameMetaData, tags);

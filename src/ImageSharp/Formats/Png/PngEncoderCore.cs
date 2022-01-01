@@ -138,6 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WriteTransparencyChunk(stream, pngMetadata);
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
+            this.WriteXmpChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
             this.WriteDataChunks(clearTransparency ? clonedImage : image, quantized, stream);
             this.WriteEndChunk(stream);
@@ -652,6 +653,43 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             meta.SyncProfiles();
             this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
+        }
+
+        /// <summary>
+        /// Writes an iTXT chunk, containing the XMP metdata to the stream, if such profile is present in the metadata.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="meta">The image metadata.</param>
+        private void WriteXmpChunk(Stream stream, ImageMetadata meta)
+        {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+            {
+                return;
+            }
+
+            if (meta.XmpProfile is null)
+            {
+                return;
+            }
+
+            meta.XmpProfile.UpdateData();
+            var xmpData = meta.XmpProfile.Data;
+
+            if (xmpData.Length == 0)
+            {
+                return;
+            }
+
+            byte[] payload = new byte[xmpData.Length + PngConstants.XmpKeyword.Length + 5];
+            PngConstants.XmpKeyword.CopyTo(payload);
+            int bytesWritten = PngConstants.XmpKeyword.Length;
+            payload[bytesWritten++] = 0; // Keyword string terminator
+            payload[bytesWritten++] = 0; // Compression flag
+            payload[bytesWritten++] = 0; // Compression method
+            payload[bytesWritten++] = 0; // Language tag
+            payload[bytesWritten++] = 0; // Translated keyword
+            xmpData.CopyTo(payload.AsSpan(bytesWritten));
+            this.WriteChunk(stream, PngChunkType.InternationalText, payload);
         }
 
         /// <summary>

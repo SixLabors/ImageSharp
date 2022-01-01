@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -72,6 +73,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Contains IPTC data.
         /// </summary>
         private byte[] iptcData;
+
+        /// <summary>
+        /// Whether the image has a XMP data.
+        /// </summary>
+        private bool isXmp;
+
+        /// <summary>
+        /// Contains XMP data.
+        /// </summary>
+        private byte[] xmpData;
 
         /// <summary>
         /// Contains information about the JFIF marker.
@@ -183,6 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
+            this.InitXmpProfile();
             this.InitDerivedMetadataProperties();
 
             return new Image<TPixel>(
@@ -198,6 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
+            this.InitXmpProfile();
             this.InitDerivedMetadataProperties();
 
             Size pixelSize = this.Frame.PixelSize;
@@ -573,6 +586,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Initializes the XMP profile.
+        /// </summary>
+        private void InitXmpProfile()
+        {
+            if (this.isXmp)
+            {
+                var profile = new XmpProfile(this.xmpData);
+                this.Metadata.XmpProfile = profile;
+            }
+        }
+
+        /// <summary>
         /// Assigns derived metadata properties to <see cref="Metadata"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
         private void InitDerivedMetadataProperties()
@@ -657,6 +682,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void ProcessApp1Marker(BufferedReadStream stream, int remaining)
         {
             const int Exif00 = 6;
+            const int XmpNsLength = 29;
             if (remaining < Exif00 || this.IgnoreMetadata)
             {
                 // Skip the application header length
@@ -684,6 +710,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 {
                     // If the EXIF information exceeds 64K, it will be split over multiple APP1 markers
                     this.ExtendProfile(ref this.exifData, profile.AsSpan(Exif00).ToArray());
+                }
+            }
+
+            if (ProfileResolver.IsProfile(profile, ProfileResolver.XmpMarker))
+            {
+                this.isXmp = true;
+                if (this.xmpData is null)
+                {
+                    // The first 29 bytes will be skipped, because this is Jpeg specific
+                    this.xmpData = profile.AsSpan(XmpNsLength).ToArray();
+                }
+                else
+                {
+                    // If the XMP information exceeds 64K, it will be split over multiple APP1 markers
+                    this.ExtendProfile(ref this.xmpData, profile.AsSpan(XmpNsLength).ToArray());
                 }
             }
         }

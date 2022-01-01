@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -109,7 +110,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.WriteJfifApplicationHeader(metadata);
             }
 
-            // Write Exif, ICC and IPTC profiles
+            // Write Exif, XMP, ICC and IPTC profiles
             this.WriteProfiles(metadata);
 
             if (this.colorType == JpegColorType.Rgb)
@@ -467,6 +468,55 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Writes the XMP metadata.
+        /// </summary>
+        /// <param name="xmpProfile">The XMP metadata to write.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the XMP profile size exceeds the limit of 65533 bytes.
+        /// </exception>
+        private void WriteXmpProfile(XmpProfile xmpProfile)
+        {
+            if (xmpProfile is null)
+            {
+                return;
+            }
+
+            const int XmpOverheadLength = 29;
+            const int Max = 65533;
+            const int MaxData = Max - XmpOverheadLength;
+
+            xmpProfile.UpdateData();
+            byte[] data = xmpProfile.Data;
+
+            if (data is null || data.Length == 0)
+            {
+                return;
+            }
+
+            int dataLength = data.Length;
+            int offset = 0;
+
+            while (dataLength > 0)
+            {
+                int length = dataLength; // Number of bytes to write.
+
+                if (length > MaxData)
+                {
+                    length = MaxData;
+                }
+
+                dataLength -= length;
+
+                int app1Length = 2 + ProfileResolver.XmpMarker.Length + length;
+                this.WriteApp1Header(app1Length);
+                this.outputStream.Write(ProfileResolver.XmpMarker);
+                this.outputStream.Write(data, offset, length);
+
+                offset += length;
+            }
+        }
+
+        /// <summary>
         /// Writes the App1 header.
         /// </summary>
         /// <param name="app1Length">The length of the data the app1 marker contains.</param>
@@ -579,8 +629,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
+            // For compatibility, place the profiles in the following order:
+            // - APP1 EXIF
+            // - APP1 XMP
+            // - APP2 ICC
+            // - APP13 IPTC
             metadata.SyncProfiles();
             this.WriteExifProfile(metadata.ExifProfile);
+            this.WriteXmpProfile(metadata.XmpProfile);
             this.WriteIccProfile(metadata.IccProfile);
             this.WriteIptcProfile(metadata.IptcProfile);
         }

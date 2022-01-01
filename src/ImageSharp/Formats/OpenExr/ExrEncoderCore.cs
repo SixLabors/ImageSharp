@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -57,6 +58,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
+            Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
+
             ImageMetadata metadata = image.Metadata;
             ExrMetadata exrMetadata = metadata.GetExrMetadata();
             this.pixelType ??= exrMetadata.PixelType;
@@ -86,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             // Version number.
             this.buffer[0] = 2;
 
-            // Second, third and fourth bytes store info about the image, all set to zero.
+            // Second, third and fourth bytes store info about the image, set all to default: zero.
             this.buffer[1] = 0;
             this.buffer[2] = 0;
             this.buffer[3] = 0;
@@ -95,18 +98,33 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             // Write EXR header.
             this.WriteHeader(stream, header);
 
+            // Write offsets to each pixel row.
+            int bytesPerChannel = this.pixelType == ExrPixelType.Half ? 2 : 4;
+            int numberOfChannels = 3;
+            uint rowSizeBytes = (uint)(width * numberOfChannels * bytesPerChannel);
+            this.WriteRowOffsets(stream, height, rowSizeBytes);
+
             // Write pixel data.
-            Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
+            switch (this.pixelType)
+            {
+                case ExrPixelType.Half:
+                case ExrPixelType.Float:
+                    this.EncodeFloatingPointPixelData(stream, pixels, width, height, rowSizeBytes);
+                    break;
+                case ExrPixelType.UnsignedInt:
+                    this.EncodeUnsignedIntPixelData(stream, pixels, width, height, rowSizeBytes);
+                    break;
+            }
+        }
+
+        private void EncodeFloatingPointPixelData<TPixel>(Stream stream, Buffer2D<TPixel> pixels, int width, int height, uint rowSizeBytes)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 3);
             Span<float> redBuffer = rgbBuffer.GetSpan().Slice(0, width);
-            Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width, width);
-            Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
+            Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
+            Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
-            // Write offsets to each pixel row.
-            int bytesPerPixel = this.pixelType == ExrPixelType.Half ? 2 : 4;
-            int numberOfChannels = 3;
-            uint rowSizeBytes = (uint)(width * numberOfChannels * bytesPerPixel);
-            this.WriteRowOffsets(stream, height, rowSizeBytes);
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
@@ -136,6 +154,41 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                         this.WriteHalfSingleRow(stream, width, blueBuffer, greenBuffer, redBuffer);
                         break;
                 }
+            }
+        }
+
+        private void EncodeUnsignedIntPixelData<TPixel>(Stream stream, Buffer2D<TPixel> pixels, int width, int height, uint rowSizeBytes)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using IMemoryOwner<uint> rgbBuffer = this.memoryAllocator.Allocate<uint>(width * 3);
+            Span<uint> redBuffer = rgbBuffer.GetSpan().Slice(0, width);
+            Span<uint> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
+            Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
+
+            var rgb = default(Rgb96);
+            for (int y = 0; y < height; y++)
+            {
+                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
+
+                for (int x = 0; x < width; x++)
+                {
+                    var vector4 = pixelRowSpan[x].ToVector4();
+                    rgb.FromVector4(vector4);
+
+                    redBuffer[x] = rgb.R;
+                    greenBuffer[x] = rgb.G;
+                    blueBuffer[x] = rgb.B;
+                }
+
+                // Write row index.
+                BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
+                stream.Write(this.buffer.AsSpan(0, 4));
+
+                // Write pixel row data size.
+                BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, rowSizeBytes);
+                stream.Write(this.buffer.AsSpan(0, 4));
+
+                this.WriteUnsignedIntRow(stream, width, blueBuffer, greenBuffer, redBuffer);
             }
         }
 
@@ -185,6 +238,24 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             for (int x = 0; x < width; x++)
             {
                 this.WriteHalfSingle(stream, redBuffer[x]);
+            }
+        }
+
+        private void WriteUnsignedIntRow(Stream stream, int width, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteUnsignedInt(stream, blueBuffer[x]);
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteUnsignedInt(stream, greenBuffer[x]);
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                this.WriteUnsignedInt(stream, redBuffer[x]);
             }
         }
 
@@ -325,17 +396,26 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             stream.Write(this.buffer.AsSpan(0, 4));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private unsafe void WriteSingle(Stream stream, float value)
         {
             BinaryPrimitives.WriteInt32LittleEndian(this.buffer, *(int*)&value);
             stream.Write(this.buffer.AsSpan(0, 4));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void WriteHalfSingle(Stream stream, float value)
         {
             ushort valueAsShort = HalfTypeHelper.Pack(value);
             BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, valueAsShort);
             stream.Write(this.buffer.AsSpan(0, 2));
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void WriteUnsignedInt(Stream stream, uint value)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
+            stream.Write(this.buffer.AsSpan(0, 4));
         }
     }
 }

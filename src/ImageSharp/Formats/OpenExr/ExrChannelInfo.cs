@@ -1,10 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.OpenExr
 {
+    [DebuggerDisplay("Name: {ChannelName}, PixelType: {PixelType}")]
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct ExrChannelInfo
     {

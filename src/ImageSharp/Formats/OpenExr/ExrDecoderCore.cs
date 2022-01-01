@@ -106,8 +106,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         {
             using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(this.Width * 3);
             Span<float> redPixelData = rowBuffer.GetSpan().Slice(0, this.Width);
-            Span<float> bluePixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
-            Span<float> greenPixelData = rowBuffer.GetSpan().Slice(this.Width * 2, this.Width);
+            Span<float> greenPixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
+            Span<float> bluePixelData = rowBuffer.GetSpan().Slice(this.Width * 2, this.Width);
 
             TPixel color = default;
             for (int y = 0; y < this.Height; y++)
@@ -193,8 +193,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         {
             using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(this.Width * 3);
             Span<uint> redPixelData = rowBuffer.GetSpan().Slice(0, this.Width);
-            Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
-            Span<uint> greenPixelData = rowBuffer.GetSpan().Slice(this.Width * 2, this.Width);
+            Span<uint> greenPixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
+            Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(this.Width * 2, this.Width);
 
             TPixel color = default;
             for (int y = 0; y < this.Height; y++)
@@ -389,11 +389,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                         header.Compression = (ExrCompression)stream.ReadByte();
                         break;
                     case ExrConstants.AttributeNames.DataWindow:
-                        ExrBox2i dataWindow = this.ReadBox2i(stream);
+                        ExrBox2i dataWindow = this.ReadBoxInteger(stream);
                         header.DataWindow = dataWindow;
                         break;
                     case ExrConstants.AttributeNames.DisplayWindow:
-                        ExrBox2i displayWindow = this.ReadBox2i(stream);
+                        ExrBox2i displayWindow = this.ReadBoxInteger(stream);
                         header.DisplayWindow = displayWindow;
                         break;
                     case ExrConstants.AttributeNames.LineOrder:
@@ -441,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return new ExrAttribute(attributeName, attributeType, attributeSize);
         }
 
-        private ExrBox2i ReadBox2i(BufferedReadStream stream)
+        private ExrBox2i ReadBoxInteger(BufferedReadStream stream)
         {
             stream.Read(this.buffer, 0, 4);
             int xMin = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);

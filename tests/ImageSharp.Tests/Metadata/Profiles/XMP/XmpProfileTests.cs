@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Text;
 using System.Xml.Linq;
@@ -108,22 +109,36 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         }
 
         [Fact]
-        public void XmpProfile_EqualalityIsByValue()
+        public void XmpProfile_EqualityIsByValue()
         {
             // arrange
-            byte[] content = new byte[0];
-            XmpProfile original = new XmpProfile(content);
-            XmpProfile other = new XmpProfile(content);
+            XmpProfile original = CreateMinimalXmlProfile();
+            var other = new XmpProfile(original.Data);
 
             // act
-            var equals = original.Equals(other);
-            var equality = original == other;
-            var inequality = original != other;
+            bool equals = original.Equals(other);
+            bool equality = original == other;
+            bool inequality = original != other;
 
             // assert
             Assert.True(equals);
             Assert.True(equality);
             Assert.False(inequality);
+            Assert.Equal(original, other);
+        }
+
+        [Fact]
+        public void XmpProfile_DocumentConstructor()
+        {
+            // arrange
+            XmpProfile original = CreateMinimalXmlProfile();
+
+            // act
+            var actual = new XmpProfile(original.Document);
+
+            // assert
+            XmpProfileContainsExpectedValues(actual);
+            Assert.Equal(original, actual);
         }
 
         [Fact]
@@ -147,7 +162,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         {
             // arrange
             var image = new Image<Rgba32>(1, 1);
-            image.Metadata.XmpProfile = CreateMinimalXmlProfile();
+            XmpProfile original = CreateMinimalXmlProfile();
+            image.Metadata.XmpProfile = original;
             var encoder = new GifEncoder();
 
             // act
@@ -156,6 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
+            Assert.Equal(original, actual);
         }
 
         [Fact]
@@ -163,7 +180,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         {
             // arrange
             var image = new Image<Rgba32>(1, 1);
-            image.Metadata.XmpProfile = CreateMinimalXmlProfile();
+            XmpProfile original = CreateMinimalXmlProfile();
+            image.Metadata.XmpProfile = original;
             var encoder = new JpegEncoder();
 
             // act
@@ -172,6 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
+            Assert.Equal(original, actual);
         }
 
         [Fact]
@@ -180,6 +199,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // arrange
             var provider = TestImageProvider<Rgba32>.File(TestImages.Jpeg.Baseline.ExtendedXmp);
             using Image<Rgba32> image = await provider.GetImageAsync(JpegDecoder);
+            XmpProfile original = image.Metadata.XmpProfile;
             var encoder = new JpegEncoder();
 
             // act
@@ -188,6 +208,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
+            Assert.Equal(original, actual);
         }
 
         [Fact]
@@ -195,7 +216,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         {
             // arrange
             var image = new Image<Rgba32>(1, 1);
-            image.Metadata.XmpProfile = CreateMinimalXmlProfile();
+            XmpProfile original = CreateMinimalXmlProfile();
+            image.Metadata.XmpProfile = original;
             var encoder = new PngEncoder();
 
             // act
@@ -204,6 +226,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
+            Assert.Equal(original, actual);
         }
 
         [Fact]
@@ -211,7 +234,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         {
             // arrange
             var image = new Image<Rgba32>(1, 1);
-            image.Frames.RootFrame.Metadata.XmpProfile = CreateMinimalXmlProfile();
+            XmpProfile original = CreateMinimalXmlProfile();
+            image.Frames.RootFrame.Metadata.XmpProfile = original;
             var encoder = new TiffEncoder();
 
             // act
@@ -220,6 +244,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
+            Assert.Equal(original, actual);
         }
 
         [Fact]
@@ -227,7 +252,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         {
             // arrange
             var image = new Image<Rgba32>(1, 1);
-            image.Metadata.XmpProfile = CreateMinimalXmlProfile();
+            XmpProfile original = CreateMinimalXmlProfile();
+            image.Metadata.XmpProfile = original;
             var encoder = new WebpEncoder();
 
             // act
@@ -236,6 +262,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
+            Assert.Equal(original, actual);
         }
 
         private static void XmpProfileContainsExpectedValues(XmpProfile xmp)
@@ -249,7 +276,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
 
         private static XmpProfile CreateMinimalXmlProfile()
         {
-            string content = "<x:xmpmeta xmlns:x='adobe:ns:meta/'></x:xmpmeta><?xpacket end='w'?>";
+            string content = $"<?xpacket begin='' id='{Guid.NewGuid()}'?><x:xmpmeta xmlns:x='adobe:ns:meta/'></x:xmpmeta><?xpacket end='w'?>";
             byte[] data = Encoding.UTF8.GetBytes(content);
             var profile = new XmpProfile(data);
             return profile;

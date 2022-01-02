@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
 {
     /// <summary>
     /// Represents an XMP profile, providing access to the raw XML.
+    /// See <seealso href="https://www.adobe.com/devnet/xmp.html"/> for the full specification.
     /// </summary>
     public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     {
@@ -28,6 +30,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
         /// </summary>
         /// <param name="data">The UTF8 encoded byte array to read the XMP profile from.</param>
         public XmpProfile(byte[] data) => this.Data = data;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XmpProfile"/> class, based on the speicief <see cref="XDocument"/>.
+        /// </summary>
+        /// <param name="doc">The document to base this instance on.</param>
+        public XmpProfile(XDocument doc)
+        {
+            this.document = doc;
+            this.UpdateData();
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="XmpProfile"/> class
@@ -78,7 +90,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
                 return true;
             }
 
-            if (ReferenceEquals(left, null))
+            if (left is null)
             {
                 return false;
             }
@@ -95,10 +107,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter;
         /// otherwise, false.
         /// </returns>
-        public static bool operator !=(XmpProfile left, XmpProfile right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(XmpProfile left, XmpProfile right) => !(left == right);
 
         /// <inheritdoc/>
         public XmpProfile DeepClone() => new(this);
@@ -113,7 +122,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
                 return;
             }
 
-            using var stream = new MemoryStream(this.Data.Length);
+            int initialLength = 256;
+            if (this.Data != null)
+            {
+                initialLength = this.Data.Length;
+            }
+
+            using var stream = new MemoryStream(initialLength);
             using var writer = new StreamWriter(stream, Encoding.UTF8);
             this.document.Save(writer);
             this.Data = stream.ToArray();
@@ -125,28 +140,37 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            XmpProfile other = obj as XmpProfile;
-            if (ReferenceEquals(other, null))
+            if (obj is not XmpProfile other)
             {
                 return false;
             }
 
-            if (ReferenceEquals(this.Data, null))
+            XElement thisRoot = this.Document.Root;
+            XElement otherRoot = other.Document.Root;
+
+            return this.CompareElements(thisRoot, otherRoot);
+        }
+
+        private bool CompareElements(XElement left, XElement right)
+        {
+            var comparer = new XElementEqualityComparer();
+            bool result = comparer.Equals(left, right);
+            if (result)
             {
-                return false;
+                result |= !left.Elements().Except(right.Elements(), comparer).Any();
             }
 
-            return this.Data.Equals(other.Data);
+            return result;
         }
 
         private void InitializeDocument()
         {
-            if (this.document != null)
+            if (!(this.document is null))
             {
                 return;
             }
 
-            if (this.Data == null)
+            if (this.Data is null)
             {
                 return;
             }
@@ -164,6 +188,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
             using var stream = new MemoryStream(this.Data, 0, count);
             using var reader = new StreamReader(stream, Encoding.UTF8);
             this.document = XDocument.Load(reader);
+
+            // In case we removed any trailing bytes, update the Data property accordingly.
+            if (count != this.Data.Length)
+            {
+                this.UpdateData();
+            }
         }
     }
 }

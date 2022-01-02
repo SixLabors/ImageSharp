@@ -18,7 +18,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     [StructLayout(LayoutKind.Sequential)]
     public partial struct Rgb96 : IPixel<Rgb96>
     {
-        private const float Max = uint.MaxValue;
+        private const float InvMax = 1.0f / uint.MaxValue;
+
+        private const double Max = uint.MaxValue;
 
         /// <summary>
         /// Gets or sets the red component.
@@ -86,6 +88,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void FromVector4(Vector4 vector)
         {
+            vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One);
             this.R = (uint)(vector.X * Max);
             this.G = (uint)(vector.Y * Max);
             this.B = (uint)(vector.Z * Max);
@@ -94,9 +97,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4() => new(
-                this.R / Max,
-                this.G / Max,
-                this.B / Max,
+                this.R * InvMax,
+                this.G * InvMax,
+                this.B * InvMax,
                 1.0f);
 
         /// <inheritdoc />

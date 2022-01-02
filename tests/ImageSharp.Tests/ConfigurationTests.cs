@@ -8,7 +8,6 @@ using Moq;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Tests.Memory;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -23,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public Configuration DefaultConfiguration { get; }
 
-        private readonly int expectedDefaultConfigurationCount = 8;
+        private readonly int expectedDefaultConfigurationCount = 9;
 
         public ConfigurationTests()
         {

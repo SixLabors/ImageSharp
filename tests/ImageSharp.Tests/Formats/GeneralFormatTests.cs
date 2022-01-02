@@ -85,11 +85,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
         public static readonly TheoryData<string> QuantizerNames =
             new()
             {
-                    nameof(KnownQuantizers.Octree),
-                    nameof(KnownQuantizers.WebSafe),
-                    nameof(KnownQuantizers.Werner),
-                    nameof(KnownQuantizers.Wu)
-                };
+                nameof(KnownQuantizers.Octree),
+                nameof(KnownQuantizers.WebSafe),
+                nameof(KnownQuantizers.Werner),
+                nameof(KnownQuantizers.Wu)
+            };
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(QuantizerNames), PixelTypes.Rgba32)]
@@ -156,6 +156,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
                     {
                         image.SaveAsTiff(output);
                     }
+
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.exr")))
+                    {
+                        image.SaveAsOpenExr(output);
+                    }
                 }
             }
         }
@@ -210,6 +215,9 @@ namespace SixLabors.ImageSharp.Tests.Formats
         [InlineData(100, 100, "tiff")]
         [InlineData(100, 10, "tiff")]
         [InlineData(10, 100, "tiff")]
+        [InlineData(100, 100, "exr")]
+        [InlineData(100, 10, "exr")]
+        [InlineData(10, 100, "exr")]
 
         public void CanIdentifyImageLoadedFromBytes(int width, int height, string extension)
         {

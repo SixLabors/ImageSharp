@@ -19,15 +19,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
 {
     public class XmpProfileTests
     {
-        private static GifDecoder GifDecoder => new GifDecoder() { IgnoreMetadata = false };
+        private static GifDecoder GifDecoder => new() { IgnoreMetadata = false };
 
-        private static JpegDecoder JpegDecoder => new JpegDecoder() { IgnoreMetadata = false };
+        private static JpegDecoder JpegDecoder => new() { IgnoreMetadata = false };
 
-        private static PngDecoder PngDecoder => new PngDecoder() { IgnoreMetadata = false };
+        private static PngDecoder PngDecoder => new() { IgnoreMetadata = false };
 
-        private static TiffDecoder TiffDecoder => new TiffDecoder() { IgnoreMetadata = false };
+        private static TiffDecoder TiffDecoder => new() { IgnoreMetadata = false };
 
-        private static WebpDecoder WebpDecoder => new WebpDecoder() { IgnoreMetadata = false };
+        private static WebpDecoder WebpDecoder => new() { IgnoreMetadata = false };
 
         [Theory]
         [WithFile(TestImages.Gif.Receipt, PixelTypes.Rgba32)]

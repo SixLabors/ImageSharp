@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
@@ -13,9 +12,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
     public class XElementEqualityComparer : IEqualityComparer<XElement>
     {
         /// <inheritdoc />
-        public bool Equals([AllowNull] XElement x, [AllowNull] XElement y) => x.Name == y.Name && x.Value == y.Value;
+        public bool Equals(XElement x, XElement y) => x.Name == y.Name && x.Value == y.Value;
 
         /// <inheritdoc />
-        public int GetHashCode([DisallowNull] XElement obj) => obj.GetHashCode();
+        public int GetHashCode(XElement obj) => obj.GetHashCode();
     }
 }

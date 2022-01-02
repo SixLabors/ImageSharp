@@ -263,12 +263,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             if (appLength == GifConstants.ApplicationBlockSize)
             {
                 this.stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
-                bool isXmp = true;
-                ReadOnlySpan<byte> idBytes = GifConstants.XmpApplicationIdentificationBytes;
-                for (int i = 0; i < idBytes.Length; i++)
-                {
-                    isXmp &= this.buffer[i] == idBytes[i];
-                }
+                bool isXmp = this.buffer.AsSpan().StartsWith(GifConstants.XmpApplicationIdentificationBytes);
 
                 if (isXmp)
                 {

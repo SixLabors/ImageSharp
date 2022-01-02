@@ -1371,20 +1371,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             return true;
         }
 
-        private bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes)
-        {
-            ReadOnlySpan<byte> expected = PngConstants.XmpKeyword;
-            bool result = keywordBytes.Length == expected.Length;
-            if (result)
-            {
-                for (int i = 0; i < keywordBytes.Length; i++)
-                {
-                    result |= keywordBytes[i] == expected[i];
-                }
-            }
-
-            return result;
-        }
+        private bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes) => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
 
         private void SwapScanlineBuffers()
         {

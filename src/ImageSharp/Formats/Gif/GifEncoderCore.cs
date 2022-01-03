@@ -427,11 +427,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteExtension<TGifExtension>(TGifExtension extension, Stream stream)
             where TGifExtension : struct, IGifExtension
         {
-            byte[] buffer;
+            IMemoryOwner<byte> owner = null;
+            Span<byte> buffer;
             int extensionSize = extension.ContentLength;
             if (extensionSize > this.buffer.Length - 3)
             {
-                buffer = new byte[extensionSize + 3];
+                owner = this.memoryAllocator.Allocate<byte>(extensionSize + 3);
+                buffer = owner.GetSpan();
             }
             else
             {
@@ -441,11 +443,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
             buffer[0] = GifConstants.ExtensionIntroducer;
             buffer[1] = extension.Label;
 
-            extension.WriteTo(buffer.AsSpan(2));
+            extension.WriteTo(buffer.Slice(2));
 
             buffer[extensionSize + 2] = GifConstants.Terminator;
 
             stream.Write(buffer, 0, extensionSize + 3);
+            owner?.Dispose();
         }
 
         /// <summary>

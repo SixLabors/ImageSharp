@@ -662,6 +662,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WriteXmpChunk(Stream stream, ImageMetadata meta)
         {
+            const int iTxtHeaderSize = 5;
             if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
             {
                 return;
@@ -682,12 +683,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             byte[] payload = new byte[xmpData.Length + PngConstants.XmpKeyword.Length + 5];
             PngConstants.XmpKeyword.CopyTo(payload);
-            int bytesWritten = PngConstants.XmpKeyword.Length;
-            payload[bytesWritten++] = 0; // Keyword string terminator
-            payload[bytesWritten++] = 0; // Compression flag
-            payload[bytesWritten++] = 0; // Compression method
-            payload[bytesWritten++] = 0; // Language tag
-            payload[bytesWritten++] = 0; // Translated keyword
+            int bytesWritten = PngConstants.XmpKeyword.Length + iTxtHeaderSize;
             xmpData.CopyTo(payload.AsSpan(bytesWritten));
             this.WriteChunk(stream, PngChunkType.InternationalText, payload);
         }

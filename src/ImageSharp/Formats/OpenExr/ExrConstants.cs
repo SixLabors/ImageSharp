@@ -47,6 +47,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             public const string ScreenWindowWidth = "screenWindowWidth";
         }
 
+        /// <summary>
+        /// EXR attribute types.
+        /// </summary>
         internal static class AttibuteTypes
         {
             public const string ChannelList = "chlist";
@@ -60,6 +63,17 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             public const string TwoFloat = "v2f";
 
             public const string BoxInt = "box2i";
+        }
+
+        internal static class ChannelNames
+        {
+            public const string Red = "R";
+
+            public const string Green = "G";
+
+            public const string Blue = "B";
+
+            public const string Alpha = "A";
         }
     }
 }

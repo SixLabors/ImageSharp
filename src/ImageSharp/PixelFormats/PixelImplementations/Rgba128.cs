@@ -9,14 +9,14 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Pixel type containing three 32-bit unsigned normalized values ranging from 0 to 4294967295.
-    /// The color components are stored in red, green, blue.
+    /// Pixel type containing four 32-bit unsigned normalized values ranging from 0 to 4294967295.
+    /// The color components are stored in red, green, blue and alpha.
     /// <para>
-    /// Ranges from [0, 0, 0] to [1, 1, 1] in vector form.
+    /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public partial struct Rgb96 : IPixel<Rgb96>
+    public partial struct Rgba128 : IPixel<Rgba128>
     {
         private const float InvMax = 1.0f / uint.MaxValue;
 
@@ -38,43 +38,50 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint B;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgb96"/> struct.
+        /// Gets the alpha channel.
+        /// </summary>
+        public uint A;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba128"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb96(uint r, uint g, uint b)
+        public Rgba128(uint r, uint g, uint b, uint a)
         {
             this.R = r;
             this.G = g;
             this.B = b;
+            this.A = a;
         }
 
         /// <summary>
-        /// Compares two <see cref="Rgb96"/> objects for equality.
+        /// Compares two <see cref="Rgba128"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Rgb96"/> on the left side of the operand.</param>
+        /// <param name="left">The <see cref="Rgba128"/> on the left side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        /// <param name="right">The <see cref="Rgb96"/> on the right side of the operand.</param>
+        /// <param name="right">The <see cref="Rgba128"/> on the right side of the operand.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Rgb96 left, Rgb96 right) => left.Equals(right);
+        public static bool operator ==(Rgba128 left, Rgba128 right) => left.Equals(right);
 
         /// <summary>
-        /// Compares two <see cref="Rgb96"/> objects for equality.
+        /// Compares two <see cref="Rgba128"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Rgb96"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Rgb96"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Rgba128"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgba128"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Rgb96 left, Rgb96 right) => !left.Equals(right);
+        public static bool operator !=(Rgba128 left, Rgba128 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Rgb96> CreatePixelOperations() => new();
+        public PixelOperations<Rgba128> CreatePixelOperations() => new();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -92,6 +99,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = (uint)(vector.X * Max);
             this.G = (uint)(vector.Y * Max);
             this.B = (uint)(vector.Z * Max);
+            this.A = (uint)(vector.W * Max);
         }
 
         /// <inheritdoc />
@@ -100,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 this.R * InvMax,
                 this.G * InvMax,
                 this.B * InvMax,
-                1.0f);
+                this.A * InvMax);
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -159,17 +167,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Rgb96 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is Rgba128 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
+        public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Rgb96 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+        public bool Equals(Rgba128 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B) && this.A.Equals(other.A);
 
         /// <inheritdoc />
-        public override string ToString() => FormattableString.Invariant($"Rgb96({this.R}, {this.G}, {this.B})");
+        public override string ToString() => FormattableString.Invariant($"Rgba128({this.R}, {this.G}, {this.B}, {this.A})");
     }
 }

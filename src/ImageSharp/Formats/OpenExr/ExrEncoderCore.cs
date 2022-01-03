@@ -76,9 +76,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 ScreenWindowWidth = 1,
                 Channels = new List<ExrChannelInfo>()
                 {
-                    new("B", this.pixelType.Value, 0, 1, 1),
-                    new("G", this.pixelType.Value, 0, 1, 1),
-                    new("R", this.pixelType.Value, 0, 1, 1),
+                    new(ExrConstants.ChannelNames.Blue, this.pixelType.Value, 0, 1, 1),
+                    new(ExrConstants.ChannelNames.Green, this.pixelType.Value, 0, 1, 1),
+                    new(ExrConstants.ChannelNames.Red, this.pixelType.Value, 0, 1, 1),
                 }
             };
 

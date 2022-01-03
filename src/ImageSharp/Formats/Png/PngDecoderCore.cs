@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
                                 this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
                                 if (this.colorMetadataOnly)
@@ -970,7 +970,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -993,7 +993,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             string value = PngConstants.Encoding.GetString(data.Slice(zeroIndex + 1));
 
-            metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            if (!this.TryReadSpecialTextData(baseMetadata, name, value))
+            {
+                metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            }
         }
 
         /// <summary>
@@ -1030,19 +1033,35 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
 
-            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed))
+            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed) &&
+                !this.TryReadSpecialTextData(baseMetadata, name, uncompressed))
             {
-                if (name.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
-                    this.TryReadLegacyExifTextChunk(baseMetadata, uncompressed))
-                {
-                    // Successfully parsed exif data stored as text in this chunk
-                }
-                else
-                {
-                    // Seems to be regular old text data, or we failed to parse it in any special way
-                    metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
-                }
+                metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
             }
+        }
+
+        /// <summary>
+        /// Checks if the given text chunk is actually storing parsable metadata.
+        /// </summary>
+        /// <param name="baseMetadata"></param>
+        /// <param name="chunkName"></param>
+        /// <param name="chunkText"></param>
+        /// <returns>True if metadata was successfully parsed from the text chunk. False if the
+        /// text chunk was not identified as metadata, and should be stored in the metadata
+        /// object unmodified.</returns>
+        private bool TryReadSpecialTextData(ImageMetadata baseMetadata, string chunkName, string chunkText)
+        {
+            if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
+                this.TryReadLegacyExifTextChunk(baseMetadata, chunkText))
+            {
+                // Successfully parsed legacy exif data from text
+                return true;
+            }
+
+            // TODO: "Raw profile type iptc", potentially others?
+
+            // No special chunk data identified
+            return false;
         }
 
         /// <summary>

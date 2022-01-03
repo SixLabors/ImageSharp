@@ -968,6 +968,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a text chunk containing image properties from the data.
         /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object.</param>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
         private void ReadTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
@@ -993,7 +994,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             string value = PngConstants.Encoding.GetString(data.Slice(zeroIndex + 1));
 
-            if (!this.TryReadSpecialTextData(baseMetadata, name, value))
+            if (!this.TryReadTextChunkMetadata(baseMetadata, name, value))
             {
                 metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
             }
@@ -1034,7 +1035,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
 
             if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed) &&
-                !this.TryReadSpecialTextData(baseMetadata, name, uncompressed))
+                !this.TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
             {
                 metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
             }
@@ -1043,13 +1044,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Checks if the given text chunk is actually storing parsable metadata.
         /// </summary>
-        /// <param name="baseMetadata"></param>
-        /// <param name="chunkName"></param>
-        /// <param name="chunkText"></param>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object to store the parsed metadata in.</param>
+        /// <param name="chunkName">The name of the text chunk.</param>
+        /// <param name="chunkText">The contents of the text chunk.</param>
         /// <returns>True if metadata was successfully parsed from the text chunk. False if the
         /// text chunk was not identified as metadata, and should be stored in the metadata
         /// object unmodified.</returns>
-        private bool TryReadSpecialTextData(ImageMetadata baseMetadata, string chunkName, string chunkText)
+        private bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
         {
             if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
                 this.TryReadLegacyExifTextChunk(baseMetadata, chunkText))

@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             this.lifetimeGuard = lifetimeGuard;
         }
 
-        private void* Pointer => this.lifetimeGuard.Handle.Pointer;
+        public void* Pointer => this.lifetimeGuard.Handle.Pointer;
 
         public override Span<T> GetSpan()
         {

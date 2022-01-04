@@ -970,6 +970,7 @@ namespace SixLabors.ImageSharp
         /// <param name="value">Value.</param>
         /// <param name="min">Mininum value, inclusive.</param>
         /// <param name="max">Maximum value, inclusive.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsOutOfRange(int value, int min, int max)
             => (uint)(value - min) > (uint)(max - min);
     }

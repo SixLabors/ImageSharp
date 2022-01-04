@@ -145,13 +145,8 @@ namespace SixLabors.ImageSharp
             source.PixelBuffer.FastMemoryGroup.CopyTo(this.PixelBuffer.FastMemoryGroup);
         }
 
-        /// <summary>
-        /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.
-        /// </summary>
-        internal Buffer2D<TPixel> PixelBuffer { get; private set; }
-
         /// <inheritdoc/>
-        Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.PixelBuffer;
+        public Buffer2D<TPixel> PixelBuffer { get; private set; }
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -443,12 +438,12 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         private void VerifyCoords(int x, int y)
         {
-            if (x < 0 || x >= this.Width)
+            if ((uint)x >= (uint)this.Width)
             {
                 ThrowArgumentOutOfRangeException(nameof(x));
             }
 
-            if (y < 0 || y >= this.Height)
+            if ((uint)y >= (uint)this.Height)
             {
                 ThrowArgumentOutOfRangeException(nameof(y));
             }

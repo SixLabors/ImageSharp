@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
                 // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,
                 // pack pixels to a temporary, padded proxy buffer, then copy the relevant values to the destination row.
-                if (this.pixelBuffer.TryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
+                if (this.pixelBuffer.DangerousTryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
                 {
                     PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, destRow);
                 }

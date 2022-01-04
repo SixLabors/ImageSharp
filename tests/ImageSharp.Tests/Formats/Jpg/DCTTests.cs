@@ -149,12 +149,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // 4 paths:
                 // 1. AllowAll - call avx/fma implementation
                 // 2. DisableFMA - call avx without fma implementation
-                // 3. DisableAvx - call sse Vector4 implementation
-                // 4. DisableHWIntrinsic - call scalar fallback implementation
+                // 3. DisableAvx - call sse implementation
+                // 4. DisableSIMD - call Vector4 fallback implementation
                 FeatureTestRunner.RunWithHwIntrinsicsFeature(
                     RunTest,
                     seed,
-                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSIMD);
             }
 
             // Forward transform
@@ -197,12 +197,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // 4 paths:
                 // 1. AllowAll - call avx/fma implementation
                 // 2. DisableFMA - call avx without fma implementation
-                // 3. DisableAvx - call sse Vector4 implementation
-                // 4. DisableHWIntrinsic - call scalar fallback implementation
+                // 3. DisableAvx - call Vector4 implementation
+                // 4. DisableSIMD - call scalar fallback implementation
                 FeatureTestRunner.RunWithHwIntrinsicsFeature(
                     RunTest,
                     seed,
-                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSIMD);
             }
         }
     }

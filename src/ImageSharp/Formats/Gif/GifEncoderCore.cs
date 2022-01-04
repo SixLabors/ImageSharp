@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteComments(gifMetadata, stream);
 
             // Write application extensions.
-            this.WriteApplicationExtensions(stream, gifMetadata.RepeatCount, metadata.XmpProfile);
+            this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, metadata.XmpProfile);
 
             if (useGlobalTable)
             {
@@ -324,9 +324,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the application extension to the stream.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
+        /// <param name="frameCount">The frame count fo this image.</param>
         /// <param name="repeatCount">The animated image repeat count.</param>
         /// <param name="xmpProfile">The XMP metadata profile. Null if profile is not to be written.</param>
-        private void WriteApplicationExtensions(Stream stream, ushort repeatCount, XmpProfile xmpProfile)
+        private void WriteApplicationExtensions(Stream stream, int frameCount, ushort repeatCount, XmpProfile xmpProfile)
         {
             // Application Extension: Loop repeat count.
             if (repeatCount != 1)

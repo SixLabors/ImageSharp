@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -288,6 +289,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Assert.Contains(meta.TextData, m => m.Keyword is "CompressedInternational2" && m.Value is "這是一個考驗" && m.LanguageTag is "chinese");
             Assert.Contains(meta.TextData, m => m.Keyword is "NoLang" && m.Value is "this text chunk is missing a language tag");
             Assert.Contains(meta.TextData, m => m.Keyword is "NoTranslatedKeyword" && m.Value is "dieser chunk hat kein übersetztes Schlüßelwort");
+        }
+
+        [Theory]
+        [InlineData(TestImages.Png.Issue1875)]
+        public void Identify_ReadsLegacyExifData(string imagePath)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo imageInfo = Image.Identify(stream);
+                Assert.NotNull(imageInfo);
+                Assert.NotNull(imageInfo.Metadata.ExifProfile);
+
+                PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
+                Assert.DoesNotContain(meta.TextData, t => t.Keyword.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase));
+
+                ExifProfile exif = imageInfo.Metadata.ExifProfile;
+                Assert.Equal(0, exif.InvalidTags.Count);
+                Assert.Equal(3, exif.Values.Count);
+
+                Assert.Equal(
+                    "A colorful tiling of blue, red, yellow, and green 4x4 pixel blocks.",
+                    exif.GetValue(ExifTag.ImageDescription).Value);
+                Assert.Equal(
+                    "Duplicated from basn3p02.png, then image metadata modified with exiv2",
+                    exif.GetValue(ExifTag.ImageHistory).Value);
+
+                Assert.Equal(42, (int)exif.GetValue(ExifTag.ImageNumber).Value);
+            }
         }
     }
 }

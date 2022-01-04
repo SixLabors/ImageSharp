@@ -197,8 +197,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // 4 paths:
                 // 1. AllowAll - call avx/fma implementation
                 // 2. DisableFMA - call avx without fma implementation
-                // 3. DisableAvx - call sse implementation
-                // 4. DisableSIMD - call Vector4 fallback implementation
+                // 3. DisableAvx - call Vector4 implementation
+                // 4. DisableSIMD - call scalar fallback implementation
                 FeatureTestRunner.RunWithHwIntrinsicsFeature(
                     RunTest,
                     seed,

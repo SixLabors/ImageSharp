@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             {
                 { new ExifTag<ulong>((ExifTagValue)0xdd11), (ExifDataType.Long8, ulong.MaxValue) },
                 { new ExifTag<long>((ExifTagValue)0xdd12), (ExifDataType.SignedLong8, long.MaxValue) },
-                //// WriteIfdTags64Bit: arrays aren't support
+                //// WriteIfdTags64Bit: arrays aren't support (by our code)
                 ////{ new ExifTag<ulong[]>((ExifTagValue)0xdd13), (ExifDataType.Long8, new ulong[] { 0, 1234, 56789UL, ulong.MaxValue }) },
                 ////{ new ExifTag<long[]>((ExifTagValue)0xdd14), (ExifDataType.SignedLong8, new long[] { -1234, 56789L, long.MaxValue }) },
             };

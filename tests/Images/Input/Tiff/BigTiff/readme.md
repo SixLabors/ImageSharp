@@ -1,3 +1,5 @@
-BigTIFF samples.  
+#### BigTIFF samples.  
 
-Downloaded from AWARE SYSTEMS: https://www.awaresystems.be/imaging/tiff/bigtiff.html
+For details: BigTIFFSamples.md
+
+Downloaded from https://www.awaresystems.be/imaging/tiff/bigtiff.html

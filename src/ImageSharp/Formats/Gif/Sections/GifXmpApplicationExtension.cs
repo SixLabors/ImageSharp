@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {

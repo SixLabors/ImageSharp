@@ -92,53 +92,17 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         }
 
         [Fact]
-        public void XmpProfile_ToAndFromByteArray_Works()
+        public void XmpProfile_ToFromByteArray_ReturnsClone()
         {
             // arrange
             XmpProfile profile = CreateMinimalXmlProfile();
-            profile.Document.Root.AddFirst(new XElement(XName.Get("written")));
+            byte[] original = profile.ToByteArray();
 
             // act
-            profile.UpdateData();
-            byte[] profileBytes = profile.Data;
-            var profileFromBytes = new XmpProfile(profileBytes);
+            byte[] actual = profile.ToByteArray();
 
             // assert
-            XmpProfileContainsExpectedValues(profileFromBytes);
-            Assert.Equal("written", ((XElement)profileFromBytes.Document.Root.FirstNode).Name);
-        }
-
-        [Fact]
-        public void XmpProfile_EqualityIsByValue()
-        {
-            // arrange
-            XmpProfile original = CreateMinimalXmlProfile();
-            var other = new XmpProfile(original.Data);
-
-            // act
-            bool equals = original.Equals(other);
-            bool equality = original == other;
-            bool inequality = original != other;
-
-            // assert
-            Assert.True(equals);
-            Assert.True(equality);
-            Assert.False(inequality);
-            Assert.Equal(original, other);
-        }
-
-        [Fact]
-        public void XmpProfile_DocumentConstructor()
-        {
-            // arrange
-            XmpProfile original = CreateMinimalXmlProfile();
-
-            // act
-            var actual = new XmpProfile(original.Document);
-
-            // assert
-            XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original, actual);
+            Assert.False(ReferenceEquals(original, actual));
         }
 
         [Fact]
@@ -146,15 +110,14 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         {
             // arrange
             XmpProfile profile = CreateMinimalXmlProfile();
-            profile.Document.Root.AddFirst(new XElement(XName.Get("written")));
+            byte[] original = profile.ToByteArray();
 
             // act
             XmpProfile clone = profile.DeepClone();
-            clone.Document.Root.AddFirst(new XElement(XName.Get("onlyonclone")));
+            byte[] actual = clone.ToByteArray();
 
             // assert
-            XmpProfileContainsExpectedValues(clone);
-            Assert.Equal("onlyonclone", ((XElement)clone.Document.Root.FirstNode).Name);
+            Assert.False(ReferenceEquals(original, actual));
         }
 
         [Fact]
@@ -172,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original, actual);
+            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
         }
 
         [Fact]
@@ -190,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original, actual);
+            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
         }
 
         [Fact]
@@ -208,7 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original, actual);
+            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
         }
 
         [Fact]
@@ -226,7 +189,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original, actual);
+            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
         }
 
         [Fact]
@@ -244,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original, actual);
+            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
         }
 
         [Fact]
@@ -262,13 +225,13 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original, actual);
+            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
         }
 
         private static void XmpProfileContainsExpectedValues(XmpProfile xmp)
         {
             Assert.NotNull(xmp);
-            XDocument document = xmp.Document;
+            XDocument document = xmp.GetDocument();
             Assert.NotNull(document);
             Assert.Equal("xmpmeta", document.Root.Name.LocalName);
             Assert.Equal("adobe:ns:meta/", document.Root.Name.NamespaceName);
@@ -276,7 +239,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
 
         private static XmpProfile CreateMinimalXmlProfile()
         {
-            string content = $"<?xpacket begin='' id='{Guid.NewGuid()}'?><x:xmpmeta xmlns:x='adobe:ns:meta/'></x:xmpmeta><?xpacket end='w'?>";
+            string content = $"<?xpacket begin='' id='{Guid.NewGuid()}'?><x:xmpmeta xmlns:x='adobe:ns:meta/'></x:xmpmeta><?xpacket end='w'?> ";
             byte[] data = Encoding.UTF8.GetBytes(content);
             var profile = new XmpProfile(data);
             return profile;

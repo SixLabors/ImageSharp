@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata
             Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
             Assert.True(metaData.ExifProfile.Values.Count == clone.ExifProfile.Values.Count);
             Assert.False(ReferenceEquals(metaData.XmpProfile, clone.XmpProfile));
-            Assert.True(metaData.XmpProfile.Data.Length.Equals(clone.XmpProfile.Data.Length));
+            Assert.True(metaData.XmpProfile.ToByteArray().Length.Equals(clone.XmpProfile.ToByteArray().Length));
             Assert.False(metaData.GetGifMetadata().Equals(clone.GetGifMetadata()));
             Assert.False(metaData.IccProfile.Equals(clone.IccProfile));
             Assert.False(metaData.IptcProfile.Equals(clone.IptcProfile));

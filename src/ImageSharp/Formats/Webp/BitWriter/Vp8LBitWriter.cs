@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             {
                 isVp8X = true;
                 riffSize += ExtendedFileChunkSize;
-                xmpBytes = xmpProfile.Data;
+                xmpBytes = xmpProfile.ToByteArray();
                 riffSize += this.MetadataChunkSize(xmpBytes);
             }
 

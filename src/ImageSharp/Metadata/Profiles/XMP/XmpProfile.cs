@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
@@ -15,7 +14,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
     /// </summary>
     public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     {
-        private XDocument document;
+        private byte[] data;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="XmpProfile"/> class.
@@ -29,17 +28,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
         /// Initializes a new instance of the <see cref="XmpProfile"/> class.
         /// </summary>
         /// <param name="data">The UTF8 encoded byte array to read the XMP profile from.</param>
-        public XmpProfile(byte[] data) => this.Data = data;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="XmpProfile"/> class, based on the speicief <see cref="XDocument"/>.
-        /// </summary>
-        /// <param name="doc">The document to base this instance on.</param>
-        public XmpProfile(XDocument doc)
-        {
-            this.document = doc;
-            this.UpdateData();
-        }
+        public XmpProfile(byte[] data) => this.data = data;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="XmpProfile"/> class
@@ -50,150 +39,48 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
         {
             Guard.NotNull(other, nameof(other));
 
-            if (other.Data != null)
-            {
-                this.Data = new byte[other.Data.Length];
-                other.Data.AsSpan().CopyTo(this.Data);
-            }
+            this.data = other.ToByteArray();
         }
 
         /// <summary>
-        /// Gets the rax XML document containing the XMP profile.
+        /// Gets the raw XML document containing the XMP profile.
         /// </summary>
-        public XDocument Document
+        /// <returns>The <see cref="XDocument"/></returns>
+        public XDocument GetDocument()
         {
-            get
+            byte[] byteArray = this.ToByteArray();
+            if (byteArray is null)
             {
-                this.InitializeDocument();
-                return this.document;
-            }
-        }
-
-        /// <summary>
-        /// Gets the byte data of the XMP profile.
-        /// </summary>
-        public byte[] Data { get; private set; }
-
-        /// <summary>
-        /// Checks whether two <see cref="XmpProfile"/> structures are equal.
-        /// </summary>
-        /// <param name="left">The left hand <see cref="XmpProfile"/> operand.</param>
-        /// <param name="right">The right hand <see cref="XmpProfile"/> operand.</param>
-        /// <returns>
-        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter;
-        /// otherwise, false.
-        /// </returns>
-        public static bool operator ==(XmpProfile left, XmpProfile right)
-        {
-            if (ReferenceEquals(left, right))
-            {
-                return true;
-            }
-
-            if (left is null)
-            {
-                return false;
-            }
-
-            return left.Equals(right);
-        }
-
-        /// <summary>
-        /// Checks whether two <see cref="XmpProfile"/> structures are not equal.
-        /// </summary>
-        /// <param name="left">The left hand <see cref="XmpProfile"/> operand.</param>
-        /// <param name="right">The right hand <see cref="XmpProfile"/> operand.</param>
-        /// <returns>
-        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter;
-        /// otherwise, false.
-        /// </returns>
-        public static bool operator !=(XmpProfile left, XmpProfile right) => !(left == right);
-
-        /// <inheritdoc/>
-        public XmpProfile DeepClone() => new(this);
-
-        /// <summary>
-        /// Updates the data of the profile.
-        /// </summary>
-        public void UpdateData()
-        {
-            if (this.document == null)
-            {
-                return;
-            }
-
-            int initialLength = 256;
-            if (this.Data != null)
-            {
-                initialLength = this.Data.Length;
-            }
-
-            using var stream = new MemoryStream(initialLength);
-            using var writer = new StreamWriter(stream, Encoding.UTF8);
-            this.document.Save(writer);
-            this.Data = stream.ToArray();
-        }
-
-        /// <inheritdoc />
-        public override int GetHashCode() => base.GetHashCode();
-
-        /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            if (obj is not XmpProfile other)
-            {
-                return false;
-            }
-
-            XElement thisRoot = this.Document.Root;
-            XElement otherRoot = other.Document.Root;
-
-            return this.CompareElements(thisRoot, otherRoot);
-        }
-
-        private bool CompareElements(XElement left, XElement right)
-        {
-            var comparer = new XElementEqualityComparer();
-            bool result = comparer.Equals(left, right);
-            if (result)
-            {
-                result |= !left.Elements().Except(right.Elements(), comparer).Any();
-            }
-
-            return result;
-        }
-
-        private void InitializeDocument()
-        {
-            if (!(this.document is null))
-            {
-                return;
-            }
-
-            if (this.Data is null)
-            {
-                return;
+                return null;
             }
 
             // Strip leading whitespace, as the XmlReader doesn't like them.
-            int count = this.Data.Length;
+            int count = byteArray.Length;
             for (int i = count - 1; i > 0; i--)
             {
-                if (this.Data[i] is 0 or 0x0f)
+                if (byteArray[i] is 0 or 0x0f)
                 {
                     count--;
                 }
             }
 
-            using var stream = new MemoryStream(this.Data, 0, count);
+            using var stream = new MemoryStream(byteArray, 0, count);
             using var reader = new StreamReader(stream, Encoding.UTF8);
-            this.document = XDocument.Load(reader);
-
-            // In case we removed any trailing bytes, update the Data property accordingly.
-            if (count != this.Data.Length)
-            {
-                this.UpdateData();
-            }
+            return XDocument.Load(reader);
         }
+
+        /// <summary>
+        /// Convert the content of this <see cref="XmpProfile"/> into a byte array.
+        /// </summary>
+        /// <returns>The <see cref="T:byte[]"/></returns>
+        public byte[] ToByteArray()
+        {
+            byte[] result = new byte[this.data.Length];
+            this.data.AsSpan().CopyTo(result);
+            return result;
+        }
+
+        /// <inheritdoc/>
+        public XmpProfile DeepClone() => new(this);
     }
 }

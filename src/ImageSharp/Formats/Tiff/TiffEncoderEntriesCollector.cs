@@ -202,10 +202,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 if (xmpProfile != null)
                 {
-                    xmpProfile.UpdateData();
                     var xmp = new ExifByteArray(ExifTagValue.XMP, ExifDataType.Byte)
                     {
-                        Value = xmpProfile.Data
+                        Value = xmpProfile.ToByteArray()
                     };
 
                     this.Collector.Add(xmp);

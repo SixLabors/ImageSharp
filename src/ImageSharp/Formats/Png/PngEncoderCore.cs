@@ -673,8 +673,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            meta.XmpProfile.UpdateData();
-            var xmpData = meta.XmpProfile.Data;
+            var xmpData = meta.XmpProfile.ToByteArray();
 
             if (xmpData.Length == 0)
             {

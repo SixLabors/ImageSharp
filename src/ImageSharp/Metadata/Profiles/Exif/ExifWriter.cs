@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             // two bytes for the byte Order marker 'II' or 'MM', followed by the number 42 (0x2A) and a 0, making 4 bytes total
             length += (uint)ExifConstants.LittleEndianByteOrderMarker.Length;
 
-            length += 4 + 2;
+            length += 4 + 4;
 
             var result = new byte[length];
 
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 i = this.WriteData(startIndex, this.gpsValues, result, i);
             }
 
-            WriteUInt16(0, result, i);
+            WriteUInt32(0, result, i);
 
             return result;
         }

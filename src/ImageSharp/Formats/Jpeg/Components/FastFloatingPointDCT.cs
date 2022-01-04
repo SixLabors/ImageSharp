@@ -146,11 +146,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Apply floating point IDCT inplace using <see cref="Vector4"/> API.
         /// </summary>
+        /// <remarks>
+        /// This method can be used even if there's no SIMD intrinsics available
+        /// as <see cref="Vector4"/> can be compiled to scalar instructions.
+        /// </remarks>
         /// <param name="transposedBlock">Input block.</param>
         private static void IDCT_Vector4(ref Block8x8F transposedBlock)
         {
-            DebugGuard.IsTrue(Vector.IsHardwareAccelerated, "Scalar implementation should be called for non-accelerated hardware.");
-
             // First pass - process columns
             IDCT8x4_Vector4(ref transposedBlock.V0L);
             IDCT8x4_Vector4(ref transposedBlock.V0R);

@@ -2,15 +2,15 @@ These images were created by [AWare Systems](http://www.awaresystems.be/).
 
 # Index
 
-[Classic.tif](#classic)  
-[BigTIFF.tif](#bigtiff)  
-[BigTIFFMotorola.tif](#bigtiffmotorola)  
-[BigTIFFLong.tif](#bigtifflong)  
-[BigTIFFLong8.tif](#bigtifflong8)  
-[BigTIFFMotorolaLongStrips.tif](#bigtiffmotorolalongstrips)  
-[BigTIFFLong8Tiles.tif](#bigtifflong8tiles)  
-[BigTIFFSubIFD4.tif](#bigtiffsubifd4)  
-[BigTIFFSubIFD8.tif](#bigtiffsubifd8)  
+[Classic.tif](#classictif)  
+[BigTIFF.tif](#bigtifftif)  
+[BigTIFFMotorola.tif](#bigtiffmotorolatif)  
+[BigTIFFLong.tif](#bigtifflongtif)  
+[BigTIFFLong8.tif](#bigtifflong8tif)  
+[BigTIFFMotorolaLongStrips.tif](#bigtiffmotorolalongstripstif)  
+[BigTIFFLong8Tiles.tif](#bigtifflong8tilestif)  
+[BigTIFFSubIFD4.tif](#bigtiffsubifd4tif)  
+[BigTIFFSubIFD8.tif](#bigtiffsubifd8tif)  
 
 # Classic.tif
 

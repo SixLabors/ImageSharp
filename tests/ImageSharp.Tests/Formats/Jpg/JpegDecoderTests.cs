@@ -193,6 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithFile(TestImages.Jpeg.Baseline.ArithmeticCoding, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingProgressive, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.Lossless, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Issues.MalformedUnsupportedComponentCount, PixelTypes.Rgba32)]
         public void ThrowsNotSupported_WithUnsupportedJpegs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

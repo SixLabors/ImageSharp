@@ -872,6 +872,29 @@ namespace SixLabors.ImageSharp.Tests
             public static readonly string[] Metadata = { SampleMetadata };
         }
 
+        public static class BigTiff
+        {
+            public const string Base = "Tiff/BigTiff/";
+
+            public const string BigTIFF = Base + "BigTIFF.tif";
+            public const string BigTIFFLong = Base + "BigTIFFLong.tif";
+            public const string BigTIFFLong8 = Base + "BigTIFFLong8.tif";
+            public const string BigTIFFLong8Tiles = Base + "BigTIFFLong8Tiles.tif";
+            public const string BigTIFFMotorola = Base + "BigTIFFMotorola.tif";
+            public const string BigTIFFMotorolaLongStrips = Base + "BigTIFFMotorolaLongStrips.tif";
+
+            public const string BigTIFFSubIFD4 = Base + "BigTIFFSubIFD4.tif";
+            public const string BigTIFFSubIFD8 = Base + "BigTIFFSubIFD8.tif";
+
+            public const string Indexed4_Deflate = Base + "BigTIFF_Indexed4_Deflate.tif";
+            public const string Indexed8_LZW = Base + "BigTIFF_Indexed8_LZW.tif";
+            public const string MinIsBlack = Base + "BigTIFF_MinIsBlack.tif";
+            public const string MinIsWhite = Base + "BigTIFF_MinIsWhite.tif";
+
+            public const string Damaged_MinIsWhite_RLE = Base + "BigTIFF_MinIsWhite_RLE.tif";
+            public const string Damaged_MinIsBlack_RLE = Base + "BigTIFF_MinIsBlack_RLE.tif";
+        }
+
         public static class Pbm
         {
             public const string BlackAndWhitePlain = "Pbm/blackandwhite_plain.pbm";

@@ -32,10 +32,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Long:
                 case ExifDataType.SignedLong:
                 case ExifDataType.SingleFloat:
+                case ExifDataType.Ifd:
                     return 4;
                 case ExifDataType.DoubleFloat:
                 case ExifDataType.Rational:
                 case ExifDataType.SignedRational:
+                case ExifDataType.Long8:
+                case ExifDataType.SignedLong8:
+                case ExifDataType.Ifd8:
                     return 8;
                 default:
                     throw new NotSupportedException(dataType.ToString());

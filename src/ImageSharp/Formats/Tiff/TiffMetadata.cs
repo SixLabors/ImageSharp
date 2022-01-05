@@ -26,6 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         public ByteOrder ByteOrder { get; set; }
 
+        /// <summary>
+        /// Gets or sets the format type.
+        /// </summary>
+        public TiffFormatType FormatType { get; set; }
+
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffMetadata(this);
     }

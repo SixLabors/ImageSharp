@@ -9,6 +9,10 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Memory;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp
 {
@@ -325,9 +329,32 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
             else
             {
-                for (int i = 0; i < width; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+                if (Avx2.IsSupported)
                 {
-                    dst[i] = (byte)(prev[i] + input[i]);
+                    int i;
+                    int maxPos = width & ~31;
+                    for (i = 0; i < maxPos; i += 32)
+                    {
+                        Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(input), i));
+                        Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(prev), i));
+                        Vector256<byte> c0 = Avx2.Add(a0.AsByte(), b0.AsByte());
+                        ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), i);
+                        Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
+                    }
+
+                    for (; i < width; i++)
+                    {
+                        dst[i] = (byte)(prev[i] + input[i]);
+                    }
+                }
+                else
+#endif
+                {
+                    for (int i = 0; i < width; i++)
+                    {
+                        dst[i] = (byte)(prev[i] + input[i]);
+                    }
                 }
             }
         }

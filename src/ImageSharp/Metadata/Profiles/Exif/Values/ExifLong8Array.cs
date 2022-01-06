@@ -1,16 +1,18 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
-    internal sealed class ExifNumberArray : ExifArrayValue<Number>
+    internal sealed class ExifLong8Array : ExifArrayValue<ulong>
     {
-        public ExifNumberArray(ExifTag<Number[]> tag)
+        public ExifLong8Array(ExifTagValue tag)
             : base(tag)
         {
         }
 
-        private ExifNumberArray(ExifNumberArray value)
+        private ExifLong8Array(ExifLong8Array value)
             : base(value)
         {
         }
@@ -21,16 +23,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             {
                 if (this.Value is not null)
                 {
-                    foreach (Number value in this.Value)
+                    foreach (ulong value in this.Value)
                     {
-                        if (value > ushort.MaxValue)
+                        if (value > uint.MaxValue)
                         {
-                            return ExifDataType.Long;
+                            return ExifDataType.Long8;
                         }
                     }
                 }
 
-                return ExifDataType.Short;
+                return ExifDataType.Long;
             }
         }
 
@@ -44,16 +46,32 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (value)
             {
                 case int val:
-                    return this.SetSingle(val);
+                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, int.MaxValue));
+
                 case uint val:
-                    return this.SetSingle(val);
+                    return this.SetSingle((ulong)val);
+
                 case short val:
-                    return this.SetSingle(val);
+                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, short.MaxValue));
+
                 case ushort val:
-                    return this.SetSingle(val);
+                    return this.SetSingle((ulong)val);
+
+                case long val:
+                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, long.MaxValue));
+
+                case long[] array:
+                {
+                    if (value.GetType() == typeof(ulong[]))
+                    {
+                        return this.SetArray((ulong[])value);
+                    }
+
+                    return this.SetArray(array);
+                }
+
                 case int[] array:
                 {
-                    // workaround for inconsistent covariance of value-typed arrays
                     if (value.GetType() == typeof(uint[]))
                     {
                         return this.SetArray((uint[])value);
@@ -76,20 +94,38 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return false;
         }
 
-        public override IExifValue DeepClone() => new ExifNumberArray(this);
+        public override IExifValue DeepClone() => new ExifLong8Array(this);
 
-        private bool SetSingle(Number value)
+        private bool SetSingle(ulong value)
         {
             this.Value = new[] { value };
             return true;
         }
 
-        private bool SetArray(int[] values)
+        private bool SetArray(long[] values)
         {
-            var numbers = new Number[values.Length];
+            var numbers = new ulong[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                numbers[i] = values[i];
+                numbers[i] = (ulong)(values[i] < 0 ? 0 : values[i]);
+            }
+
+            this.Value = numbers;
+            return true;
+        }
+
+        private bool SetArray(ulong[] values)
+        {
+            this.Value = values;
+            return true;
+        }
+
+        private bool SetArray(int[] values)
+        {
+            var numbers = new ulong[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = (ulong)Numerics.Clamp(values[i], 0, int.MaxValue);
             }
 
             this.Value = numbers;
@@ -98,10 +134,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private bool SetArray(uint[] values)
         {
-            var numbers = new Number[values.Length];
+            var numbers = new ulong[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                numbers[i] = values[i];
+                numbers[i] = (ulong)values[i];
             }
 
             this.Value = numbers;
@@ -110,10 +146,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private bool SetArray(short[] values)
         {
-            var numbers = new Number[values.Length];
+            var numbers = new ulong[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                numbers[i] = values[i];
+                numbers[i] = (ulong)Numerics.Clamp(values[i], 0, short.MaxValue);
             }
 
             this.Value = numbers;
@@ -122,10 +158,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private bool SetArray(ushort[] values)
         {
-            var numbers = new Number[values.Length];
+            var numbers = new ulong[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                numbers[i] = values[i];
+                numbers[i] = (ulong)values[i];
             }
 
             this.Value = numbers;

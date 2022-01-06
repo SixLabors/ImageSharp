@@ -80,6 +80,21 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// Reference to an IFD (32-bit (4-byte) unsigned integer).
         /// </summary>
-        Ifd = 13
+        Ifd = 13,
+
+        /// <summary>
+        /// A 64-bit (8-byte) unsigned integer.
+        /// </summary>
+        Long8 = 16,
+
+        /// <summary>
+        /// A 64-bit (8-byte) signed integer (2's complement notation).
+        /// </summary>
+        SignedLong8 = 17,
+
+        /// <summary>
+        /// Reference to an IFD (64-bit (8-byte) unsigned integer).
+        /// </summary>
+        Ifd8 = 18,
     }
 }

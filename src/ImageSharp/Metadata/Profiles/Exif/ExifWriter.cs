@@ -150,6 +150,20 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return offset + 4;
         }
 
+        private static int WriteInt64(long value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(destination.Slice(offset, 8), value);
+
+            return offset + 8;
+        }
+
+        private static int WriteUInt64(ulong value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(destination.Slice(offset, 8), value);
+
+            return offset + 8;
+        }
+
         private static int WriteInt32(int value, Span<byte> destination, int offset)
         {
             BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(offset, 4), value);
@@ -390,6 +404,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     return WriteUInt32((uint)value, destination, offset);
+                case ExifDataType.Long8:
+                    return WriteUInt64((ulong)value, destination, offset);
+                case ExifDataType.SignedLong8:
+                    return WriteInt64((long)value, destination, offset);
                 case ExifDataType.Rational:
                     WriteRational(destination.Slice(offset, 8), (Rational)value);
                     return offset + 8;

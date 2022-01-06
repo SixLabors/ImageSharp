@@ -472,7 +472,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {componentCount}");
+            JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
             return default;
         }
 
@@ -997,6 +997,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // 1 byte: Number of components
             byte componentCount = this.temp[5];
+
+            // Validate: componentCount more than 4 can lead to a buffer overflow during stream
+            // reading so we must limit it to 4
+            // We do not support jpeg images with more than 4 components anyway
+            if (componentCount > 4)
+            {
+                JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
+            }
 
             this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
 

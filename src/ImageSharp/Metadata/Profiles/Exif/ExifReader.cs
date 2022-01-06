@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 buffer = buffer.Slice(0, nullCharIndex);
             }
 
-            return Encoding.UTF8.GetString(buffer);
+            return ExifConstants.DefaultAsciiEncoding.GetString(buffer);
         }
 
         private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
@@ -358,6 +358,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     if (!isArray)
                     {
                         return this.ConvertToByte(buffer);
+                    }
+
+                    // ext processing
+                    if (ExifConstants.TryDetect(buffer, out EncodedStringCode code))
+                    {
+                        string text = ExifConstants.GetEncoding(code).GetString(buffer.Slice(ExifConstants.CharacterCodeBytesLength));
+                        return new EncodedString(text, code);
                     }
 
                     return buffer.ToArray();

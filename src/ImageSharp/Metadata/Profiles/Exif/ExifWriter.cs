@@ -276,7 +276,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (exifValue.DataType == ExifDataType.Ascii)
             {
-                return (uint)Encoding.UTF8.GetBytes((string)value).Length + 1;
+                return (uint)ExifConstants.DefaultAsciiEncoding.GetByteCount((string)value) + 1;
+            }
+
+            if (value is EncodedString encodedString)
+            {
+                return (uint)ExifConstants.GetEncoding(encodedString.Code).GetByteCount(encodedString.Text) + 8;
             }
 
             if (value is Array arrayValue)
@@ -289,11 +294,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static int WriteArray(IExifValue value, Span<byte> destination, int offset)
         {
-            if (value.DataType == ExifDataType.Ascii)
-            {
-                return WriteValue(ExifDataType.Ascii, value.GetValue(), destination, offset);
-            }
-
             int newOffset = offset;
             foreach (object obj in (Array)value.GetValue())
             {
@@ -378,13 +378,31 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (dataType)
             {
                 case ExifDataType.Ascii:
-                    offset = Write(Encoding.UTF8.GetBytes((string)value), destination, offset);
+                    offset = Write(ExifConstants.DefaultAsciiEncoding.GetBytes((string)value), destination, offset);
                     destination[offset] = 0;
                     return offset + 1;
                 case ExifDataType.Byte:
-                case ExifDataType.Undefined:
                     destination[offset] = (byte)value;
                     return offset + 1;
+                case ExifDataType.Undefined:
+                    if (value is EncodedString encodedString)
+                    {
+                        ReadOnlySpan<byte> codeBytes = ExifConstants.GetCodeBytes(encodedString.Code);
+                        codeBytes.CopyTo(destination.Slice(offset));
+                        offset += codeBytes.Length;
+
+                        ReadOnlySpan<byte> dataBytes = ExifConstants.GetEncoding(encodedString.Code).GetBytes(encodedString.Text);
+                        dataBytes.CopyTo(destination.Slice(offset));
+                        offset += dataBytes.Length;
+
+                        return offset;
+                    }
+                    else
+                    {
+                        destination[offset] = (byte)value;
+                        return offset + 1;
+                    }
+
                 case ExifDataType.DoubleFloat:
                     return WriteDouble((double)value, destination, offset);
                 case ExifDataType.Short:
@@ -427,7 +445,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         internal static int WriteValue(IExifValue value, Span<byte> destination, int offset)
         {
-            if (value.IsArray && value.DataType != ExifDataType.Ascii)
+            if (value.IsArray)
             {
                 return WriteArray(value, destination, offset);
             }

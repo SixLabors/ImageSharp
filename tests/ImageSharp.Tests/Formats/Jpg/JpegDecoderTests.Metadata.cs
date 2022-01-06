@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;
@@ -287,5 +288,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         Assert.Equal(72, imageInfo.Metadata.HorizontalResolution);
                         Assert.Equal(72, imageInfo.Metadata.VerticalResolution);
                     });
+
+        [Fact]
+        public void ExifIfdStructure()
+        {
+            byte[] exifBytes;
+            using var memoryStream = new MemoryStream();
+            using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora)))
+            {
+                var exif = new ExifProfile();
+                exif.SetValue<byte[]>(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
+
+                exif.SetValue<byte[]>(ExifTag.XPTitle, Encoding.GetEncoding("UCS-2").GetBytes("A bit of test metadata for image title"));
+                exif.SetValue<byte[]>(ExifTag.UserComment, Encoding.ASCII.GetBytes("A bit of normal comment text"));
+
+                exif.SetValue(ExifTag.GPSDateStamp, "2022-01-06");
+                exif.SetValue(ExifTag.XPKeywords, new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 00, 00, 00, 0x41, 0x41, 0x41 });
+
+                image.Metadata.ExifProfile = exif;
+
+                exifBytes = exif.ToByteArray();
+
+                image.Save("c:\\temp\\1.jpeg");
+                image.Save(memoryStream, new JpegEncoder());
+            }
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var image = Image.Load(memoryStream))
+            {
+                Assert.NotNull(image.Metadata.ExifProfile);
+            }
+        }
     }
 }

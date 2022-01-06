@@ -136,13 +136,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
         }
-
-        /// <summary>
-        /// Expands the HuffmanTable into its readable form.
-        /// </summary>
-        public void Configure()
-        {
-
-        }
     }
 }

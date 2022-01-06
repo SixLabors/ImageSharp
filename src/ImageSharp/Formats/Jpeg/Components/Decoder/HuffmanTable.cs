@@ -144,6 +144,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(InliningOptions.AlwaysInline)]
-        public byte Decode(int size, int code) => this.values[this.valOffset[size] + code];
+        public byte Decode(int size, int code) => this.values[(this.valOffset[size] + code) & 0xFF];
     }
 }

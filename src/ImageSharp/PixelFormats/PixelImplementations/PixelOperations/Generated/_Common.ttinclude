@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
     private static readonly string[] CommonPixelTypes =
     {
         "Argb32",
+        "Abgr32",
         "Bgr24",
         "Bgra32",
         "L8",
@@ -34,6 +35,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
     {
         "Rgba32",
         "Argb32",
+        "Abgr32",
         "Bgra32",
         "Rgb24",
         "Bgr24"
@@ -43,6 +45,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
     private static readonly string[] Rgba32CompatibleTypes =
     {
         "Argb32",
+        "Abgr32",
         "Bgra32",
         "Rgb24",
         "Bgr24"
@@ -101,7 +104,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
                 ref <#=fromPixelType#> sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref <#=toPixelType#> destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                for (nint i = 0; i < sourcePixels.Length; i++)
                 {
                     ref <#=fromPixelType#> sp = ref Unsafe.Add(ref sourceRef, i);
                     ref <#=toPixelType#> dp = ref Unsafe.Add(ref destRef, i);

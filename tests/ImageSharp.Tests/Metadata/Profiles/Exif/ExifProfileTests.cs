@@ -185,9 +185,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
          2 x due to use of non-standard padding tag 0xEA1C listed in EXIF Tool. We can read those values but adhere
          strictly to the 2.3.1 specification when writing. (TODO: Support 2.3.2)
          https://exiftool.org/TagNames/EXIF.html */
-        [InlineData(TestImageWriteFormat.Jpeg, 16)]
-        [InlineData(TestImageWriteFormat.Png, 16)]
-        [InlineData(TestImageWriteFormat.WebpLossless, 16)]
+        [InlineData(TestImageWriteFormat.Jpeg, 18)]
+        [InlineData(TestImageWriteFormat.Png, 18)]
+        [InlineData(TestImageWriteFormat.WebpLossless, 18)]
         public void SetValue(TestImageWriteFormat imageFormat, int expectedProfileValueCount)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
@@ -557,7 +557,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             // todo: duplicate tags
             Assert.Equal(2, profile.Values.Count(v => (ushort)v.Tag == 59932));
 
-            Assert.Equal(16, profile.Values.Count);
+            Assert.Equal(18, profile.Values.Count);
 
             foreach (IExifValue value in profile.Values)
             {

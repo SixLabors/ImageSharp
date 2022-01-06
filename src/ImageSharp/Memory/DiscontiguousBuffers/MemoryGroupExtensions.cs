@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Returns a slice that is expected to be within the bounds of a single buffer.
         /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.
         /// </summary>
-        internal static Memory<T> GetBoundedSlice<T>(this IMemoryGroup<T> group, long start, int length)
+        internal static Memory<T> GetBoundedMemorySlice<T>(this IMemoryGroup<T> group, long start, int length)
             where T : struct
         {
             Guard.NotNull(group, nameof(group));
@@ -37,7 +37,8 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
             Guard.MustBeLessThan(start, group.TotalLength, nameof(start));
 
-            int bufferIdx = (int)(start / group.BufferLength);
+            int bufferIdx = (int)Math.DivRem(start, group.BufferLength, out long bufferStartLong);
+            int bufferStart = (int)bufferStartLong;
 
             // if (bufferIdx < 0 || bufferIdx >= group.Count)
             if ((uint)bufferIdx >= group.Count)
@@ -45,7 +46,6 @@ namespace SixLabors.ImageSharp.Memory
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
 
-            int bufferStart = (int)(start % group.BufferLength);
             int bufferEnd = bufferStart + length;
             Memory<T> memory = group[bufferIdx];
 
@@ -55,31 +55,6 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             return memory.Slice(bufferStart, length);
-        }
-
-        /// <summary>
-        /// Returns the slice of the buffer starting at global index <paramref name="start"/> that goes until the end of the buffer.
-        /// </summary>
-        internal static Memory<T> GetRemainingSliceOfBuffer<T>(this IMemoryGroup<T> group, long start)
-            where T : struct
-        {
-            Guard.NotNull(group, nameof(group));
-            Guard.IsTrue(group.IsValid, nameof(group), "Group must be valid!");
-            Guard.MustBeLessThan(start, group.TotalLength, nameof(start));
-
-            int bufferIdx = (int)(start / group.BufferLength);
-
-            // if (bufferIdx < 0 || bufferIdx >= group.Count)
-            if ((uint)bufferIdx >= group.Count)
-            {
-                throw new ArgumentOutOfRangeException(nameof(start));
-            }
-
-            int bufferStart = (int)(start % group.BufferLength);
-
-            Memory<T> memory = group[bufferIdx];
-
-            return memory.Slice(bufferStart);
         }
 
         internal static void CopyTo<T>(this IMemoryGroup<T> source, Span<T> target)

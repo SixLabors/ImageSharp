@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -14,7 +13,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    public class Buffer2DTests
+    public partial class Buffer2DTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
@@ -121,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(200, 100, 30, 1, 0)]
         [InlineData(200, 100, 30, 2, 1)]
         [InlineData(200, 100, 30, 4, 2)]
-        public unsafe void GetRowSpanY(int bufferCapacity, int width, int height, int y, int expectedBufferIndex)
+        public unsafe void DangerousGetRowSpan_TestAllocator(int bufferCapacity, int width, int height, int y, int expectedBufferIndex)
         {
             this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
 
@@ -133,6 +132,57 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 int expectedSubBufferOffset = (width * y) - (expectedBufferIndex * buffer.FastMemoryGroup.BufferLength);
                 Assert.SpanPointsTo(span, buffer.FastMemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
+            }
+        }
+
+        [Theory]
+        [InlineData(100, 5)] // Within shared pool
+        [InlineData(77, 11)] // Within shared pool
+        [InlineData(100, 19)] // Single unmanaged pooled buffer
+        [InlineData(103, 17)] // Single unmanaged pooled buffer
+        [InlineData(100, 22)] // 2 unmanaged pooled buffers
+        [InlineData(100, 99)] // 9 unmanaged pooled buffers
+        [InlineData(100, 120)] // 2 unpooled buffers
+        public unsafe void DangerousGetRowSpan_UnmanagedAllocator(int width, int height)
+        {
+            const int sharedPoolThreshold = 1_000;
+            const int poolBufferSize = 2_000;
+            const int maxPoolSize = 10_000;
+            const int unpooledBufferSize = 8_000;
+
+            int elementSize = sizeof(TestStructs.Foo);
+            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
+                sharedPoolThreshold * elementSize,
+                poolBufferSize * elementSize,
+                maxPoolSize * elementSize,
+                unpooledBufferSize * elementSize);
+
+            using Buffer2D<TestStructs.Foo> buffer = allocator.Allocate2D<TestStructs.Foo>(width, height);
+
+            var rnd = new Random(42);
+
+            for (int y = 0; y < buffer.Height; y++)
+            {
+                Span<TestStructs.Foo> span = buffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < span.Length; x++)
+                {
+                    ref TestStructs.Foo e = ref span[x];
+                    e.A = rnd.Next();
+                    e.B = rnd.NextDouble();
+                }
+            }
+
+            // Re-seed
+            rnd = new Random(42);
+            for (int y = 0; y < buffer.Height; y++)
+            {
+                Span<TestStructs.Foo> span = buffer.GetSafeRowMemory(y).Span;
+                for (int x = 0; x < span.Length; x++)
+                {
+                    ref TestStructs.Foo e = ref span[x];
+                    Assert.True(rnd.Next() == e.A, $"Mismatch @ y={y} x={x}");
+                    Assert.True(rnd.NextDouble() == e.B, $"Mismatch @ y={y} x={x}");
+                }
             }
         }
 
@@ -153,7 +203,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(3, 5);
 
             bool expectSuccess = expectedBufferIndex >= 0;
-            bool success = buffer.TryGetPaddedRowSpan(y, padding, out Span<byte> paddedSpan);
+            bool success = buffer.DangerousTryGetPaddedRowSpan(y, padding, out Span<byte> paddedSpan);
             Xunit.Assert.Equal(expectSuccess, success);
             if (success)
             {
@@ -227,56 +277,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }
-        }
-
-        [Fact]
-        public void SwapOrCopyContent_WhenBothAllocated()
-        {
-            using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5, AllocationOptions.Clean))
-            using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7, AllocationOptions.Clean))
-            {
-                a[1, 3] = 666;
-                b[1, 3] = 444;
-
-                Memory<int> aa = a.FastMemoryGroup.Single();
-                Memory<int> bb = b.FastMemoryGroup.Single();
-
-                Buffer2D<int>.SwapOrCopyContent(a, b);
-
-                Assert.Equal(bb, a.FastMemoryGroup.Single());
-                Assert.Equal(aa, b.FastMemoryGroup.Single());
-
-                Assert.Equal(new Size(3, 7), a.Size());
-                Assert.Equal(new Size(10, 5), b.Size());
-
-                Assert.Equal(666, b[1, 3]);
-                Assert.Equal(444, a[1, 3]);
-            }
-        }
-
-        [Fact]
-        public void SwapOrCopyContent_WhenDestinationIsOwned_ShouldNotSwapInDisposedSourceBuffer()
-        {
-            using var destData = MemoryGroup<int>.Wrap(new int[100]);
-            using var dest = new Buffer2D<int>(destData, 10, 10);
-
-            using (Buffer2D<int> source = this.MemoryAllocator.Allocate2D<int>(10, 10, AllocationOptions.Clean))
-            {
-                source[0, 0] = 1;
-                dest[0, 0] = 2;
-
-                Buffer2D<int>.SwapOrCopyContent(dest, source);
-            }
-
-            int actual1 = dest.DangerousGetRowSpan(0)[0];
-            int actual2 = dest.DangerousGetRowSpan(0)[0];
-            int actual3 = dest.GetSafeRowMemory(0).Span[0];
-            int actual5 = dest[0, 0];
-
-            Assert.Equal(1, actual1);
-            Assert.Equal(1, actual2);
-            Assert.Equal(1, actual3);
-            Assert.Equal(1, actual5);
         }
 
         [Theory]

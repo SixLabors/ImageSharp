@@ -16,6 +16,7 @@ using Xunit.Abstractions;
     {
         "A8",
         "Argb32",
+        "Abgr32",
         "Bgra32",
         "Bgra4444",
         "Bgra5551",
@@ -38,6 +39,7 @@ using Xunit.Abstractions;
     {
         "A8",
         "Argb32",
+        "Abgr32",
         "Bgr24",
         "Bgr565",
         "Bgra32",

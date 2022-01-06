@@ -118,9 +118,13 @@ namespace SixLabors.ImageSharp.Tests
             // Issue 1765: https://github.com/SixLabors/ImageSharp/issues/1765
             public const string Issue1765_Net6DeflateStreamRead = "Png/issues/Issue_1765_Net6DeflateStreamRead.png";
 
+            // Discussion 1875: https://github.com/SixLabors/ImageSharp/discussions/1875
+            public const string Issue1875 = "Png/raw-profile-type-exif.png";
+
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
+                public const string WrongCrcDataChunk = "Png/xcsn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
 
                 // Zlib errors.
@@ -255,6 +259,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadSubSampling1076 = "Jpg/issues/issue-1076-invalid-subsampling.jpg";
                 public const string IdentifyMultiFrame1211 = "Jpg/issues/issue-1221-identify-multi-frame.jpg";
                 public const string WrongColorSpace = "Jpg/issues/Issue1732-WrongColorSpace.jpg";
+                public const string MalformedUnsupportedComponentCount = "Jpg/issues/issue-1900-malformed-unsupported-255-components.jpg";
 
                 public static class Fuzz
                 {
@@ -870,6 +875,29 @@ namespace SixLabors.ImageSharp.Tests
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
+        }
+
+        public static class BigTiff
+        {
+            public const string Base = "Tiff/BigTiff/";
+
+            public const string BigTIFF = Base + "BigTIFF.tif";
+            public const string BigTIFFLong = Base + "BigTIFFLong.tif";
+            public const string BigTIFFLong8 = Base + "BigTIFFLong8.tif";
+            public const string BigTIFFLong8Tiles = Base + "BigTIFFLong8Tiles.tif";
+            public const string BigTIFFMotorola = Base + "BigTIFFMotorola.tif";
+            public const string BigTIFFMotorolaLongStrips = Base + "BigTIFFMotorolaLongStrips.tif";
+
+            public const string BigTIFFSubIFD4 = Base + "BigTIFFSubIFD4.tif";
+            public const string BigTIFFSubIFD8 = Base + "BigTIFFSubIFD8.tif";
+
+            public const string Indexed4_Deflate = Base + "BigTIFF_Indexed4_Deflate.tif";
+            public const string Indexed8_LZW = Base + "BigTIFF_Indexed8_LZW.tif";
+            public const string MinIsBlack = Base + "BigTIFF_MinIsBlack.tif";
+            public const string MinIsWhite = Base + "BigTIFF_MinIsWhite.tif";
+
+            public const string Damaged_MinIsWhite_RLE = Base + "BigTIFF_MinIsWhite_RLE.tif";
+            public const string Damaged_MinIsBlack_RLE = Base + "BigTIFF_MinIsBlack_RLE.tif";
         }
 
         public static class Pbm

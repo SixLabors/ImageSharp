@@ -168,7 +168,6 @@ namespace SixLabors.ImageSharp.IO
                     // Position is out of range
                     this.readChunk = backupReadChunk;
                     this.readOffset = backupReadOffset;
-                    ThrowArgumentOutOfRange(nameof(value));
                 }
             }
         }

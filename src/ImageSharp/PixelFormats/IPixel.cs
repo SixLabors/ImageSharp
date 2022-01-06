@@ -80,6 +80,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         void FromBgra32(Bgra32 source);
 
         /// <summary>
+        /// Initializes the pixel instance from an <see cref="Abgr32"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Abgr32"/> value.</param>
+        void FromAbgr32(Abgr32 source);
+
+        /// <summary>
         /// Initializes the pixel instance from an <see cref="L8"/> value.
         /// </summary>
         /// <param name="source">The <see cref="L8"/> value.</param>

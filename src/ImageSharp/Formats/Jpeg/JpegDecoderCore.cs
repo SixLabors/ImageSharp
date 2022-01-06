@@ -485,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {componentCount}");
+            JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
             return default;
         }
 
@@ -1039,6 +1039,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // 1 byte: Number of components
             byte componentCount = this.temp[5];
 
+            // Validate: componentCount more than 4 can lead to a buffer overflow during stream
+            // reading so we must limit it to 4
+            // We do not support jpeg images with more than 4 components anyway
+            if (componentCount > 4)
+            {
+                JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
+            }
+
             this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
 
             remaining -= length;
@@ -1063,9 +1071,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int index = 0;
             for (int i = 0; i < componentCount; i++)
             {
+                // 1 byte: component identifier
+                byte componentId = this.temp[index];
+
+                // 1 byte: component sampling factors
                 byte hv = this.temp[index + 1];
                 int h = (hv >> 4) & 15;
                 int v = hv & 15;
+
+                // Validate: 1-4 range
+                if (Numerics.IsOutOfRange(h, 1, 4))
+                {
+                    JpegThrowHelper.ThrowBadSampling(h);
+                }
+
+                // Validate: 1-4 range
+                if (Numerics.IsOutOfRange(v, 1, 4))
+                {
+                    JpegThrowHelper.ThrowBadSampling(v);
+                }
 
                 if (maxH < h)
                 {
@@ -1077,10 +1101,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     maxV = v;
                 }
 
-                var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                // 1 byte: quantization table destination selector
+                byte quantTableIndex = this.temp[index + 2];
+
+                // Validate: 0-3 range
+                if (quantTableIndex > 3)
+                {
+                    JpegThrowHelper.ThrowBadQuantizationTableIndex(quantTableIndex);
+                }
+
+                var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i);
 
                 this.Frame.Components[i] = component;
-                this.Frame.ComponentIds[i] = component.Id;
+                this.Frame.ComponentIds[i] = componentId;
 
                 index += componentBytes;
             }

@@ -311,13 +311,50 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
         {
-            byte pred = (byte)(prev == null ? 0 : prev[0]);
-
-            for (int i = 0; i < width; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                byte val = (byte)(pred + input[i]);
-                pred = val;
-                dst[i] = val;
+                dst[0] = (byte)(input[0] + (prev == null ? 0 : prev[0]));
+                if (width <= 1)
+                {
+                    return;
+                }
+
+                int i;
+                var last = Vector128.Create(dst[0], 0, 0, 0);
+                ref byte srcRef = ref MemoryMarshal.GetReference(input);
+                for (i = 1; i + 8 <= width; i += 8)
+                {
+                    var a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
+                    Vector128<byte> a1 = Sse2.Add(a0.AsByte(), last.AsByte());
+                    Vector128<byte> a2 = Sse2.ShiftLeftLogical128BitLane(a1, 1);
+                    Vector128<byte> a3 = Sse2.Add(a1, a2);
+                    Vector128<byte> a4 = Sse2.ShiftLeftLogical128BitLane(a3, 2);
+                    Vector128<byte> a5 = Sse2.Add(a3, a4);
+                    Vector128<byte> a6 = Sse2.ShiftLeftLogical128BitLane(a5, 4);
+                    Vector128<byte> a7 = Sse2.Add(a5, a6);
+
+                    ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), i);
+                    Unsafe.As<byte, Vector64<byte>>(ref outputRef) = a7.GetLower();
+                    last = Sse2.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
+                }
+
+                for (; i < width; ++i)
+                {
+                    dst[i] = (byte)(input[i] + dst[i - 1]);
+                }
+            }
+            else
+#endif
+            {
+                byte pred = (byte)(prev == null ? 0 : prev[0]);
+
+                for (int i = 0; i < width; i++)
+                {
+                    byte val = (byte)(pred + input[i]);
+                    pred = val;
+                    dst[i] = val;
+                }
             }
         }
 

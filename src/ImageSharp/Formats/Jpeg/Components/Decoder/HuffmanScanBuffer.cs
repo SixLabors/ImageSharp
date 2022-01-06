@@ -110,7 +110,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.remainingBits -= size;
 
-            return h.Values[(h.ValOffset[size] + (int)(x >> (JpegConstants.Huffman.RegisterSize - size))) & 0xFF];
+            // No need to mask this value with 0xFF after shifting because we
+            // are fetching MSB bits, everything else is zeroed out by unsigned
+            // shift operation itself
+            int code = (int)(x >> (JpegConstants.Huffman.RegisterSize - size));
+            return h.Decode(size, code);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

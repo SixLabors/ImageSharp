@@ -16,20 +16,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Derived from the DHT marker. Contains the symbols, in order of incremental code length.
         /// </summary>
-        public fixed byte Values[256];
-
-        /// <summary>
-        /// Contains the largest code of length k (0 if none). MaxCode[17] is a sentinel to
-        /// ensure <see cref="HuffmanScanBuffer.DecodeHuffman"/> terminates.
-        /// </summary>
-        public fixed ulong MaxCode[18];
+        private fixed byte values[256];
 
         /// <summary>
         /// Values[] offset for codes of length k  ValOffset[k] = Values[] index of 1st symbol of code length
         /// k, less the smallest code of length k; so given a code of length k, the corresponding symbol is
         /// Values[code + ValOffset[k]].
         /// </summary>
-        public fixed int ValOffset[19];
+        private fixed int valOffset[19];
+
+        /// <summary>
+        /// Contains the largest code of length k (0 if none). MaxCode[17] is a sentinel to
+        /// ensure <see cref="HuffmanScanBuffer.DecodeHuffman"/> terminates.
+        /// </summary>
+        public fixed ulong MaxCode[18];
 
         /// <summary>
         /// Contains the length of bits for the given k value.
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="values">The huffman values</param>
         public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
-            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
+            Unsafe.CopyBlockUnaligned(ref this.values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
 
             Span<char> huffSize = stackalloc char[257];
             Span<uint> huffCode = stackalloc uint[257];
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 if (codeLengths[j] != 0)
                 {
-                    this.ValOffset[j] = p - (int)huffCode[p];
+                    this.valOffset[j] = p - (int)huffCode[p];
                     p += codeLengths[j];
                     this.MaxCode[j] = huffCode[p - 1]; // Maximum code of length l
                     this.MaxCode[j] <<= JpegConstants.Huffman.RegisterSize - j; // Left justify
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            this.ValOffset[18] = 0;
+            this.valOffset[18] = 0;
             this.MaxCode[17] = ulong.MaxValue; // Ensures huff decode terminates
 
             // Compute lookahead tables to speed up decoding.
@@ -130,11 +130,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     for (int ctr = 1 << (JpegConstants.Huffman.LookupBits - length); ctr > 0; ctr--)
                     {
                         this.LookaheadSize[lookBits] = (byte)length;
-                        this.LookaheadValue[lookBits] = this.Values[p];
+                        this.LookaheadValue[lookBits] = this.values[p];
                         lookBits++;
                     }
                 }
             }
         }
+
+        [MethodImpl(InliningOptions.AlwaysInline)]
+        public byte Decode(int size, int code) => this.values[this.valOffset[size] + code];
     }
 }

@@ -19,6 +19,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         private static MagickReferenceDecoder ReferenceDecoder => new();
 
+        private static string TestImageLossyHorizontalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedHorizontalFilter);
+
+        private static string TestImageLossyVerticalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedVerticalFilter);
+
         private static string TestImageLossySimpleFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.SimpleFilter02);
 
         private static string TestImageLossyComplexFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.BikeComplexFilter);
@@ -365,6 +369,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                 });
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        private static void RunDecodeLossyWithHorizontalFilter()
+        {
+            var provider = TestImageProvider<Rgba32>.File(TestImageLossyHorizontalFilterPath);
+            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        private static void RunDecodeLossyWithVerticalFilter()
+        {
+            var provider = TestImageProvider<Rgba32>.File(TestImageLossyVerticalFilterPath);
+            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
         private static void RunDecodeLossyWithSimpleFilterTest()
         {
             var provider = TestImageProvider<Rgba32>.File(TestImageLossySimpleFilterPath);
@@ -384,6 +408,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                 image.CompareToOriginal(provider, ReferenceDecoder);
             }
         }
+
+        [Fact]
+        public void DecodeLossyWithHorizontalFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithHorizontalFilter, HwIntrinsics.DisableHWIntrinsic);
+
+        [Fact]
+        public void DecodeLossyWithVerticalFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithVerticalFilter, HwIntrinsics.DisableHWIntrinsic);
 
         [Fact]
         public void DecodeLossyWithSimpleFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithSimpleFilterTest, HwIntrinsics.DisableHWIntrinsic);

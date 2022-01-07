@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Lossless = "Jpg/baseline/lossless.jpg";
                 public const string Winter444_Interleaved = "Jpg/baseline/winter444_interleaved.jpg";
                 public const string Metadata = "Jpg/baseline/Metadata-test-file.jpg";
-                public const string ExtendedXmp = "Jpg/baseline/Extended-XMP.jpg";
+                public const string ExtendedXmp = "Jpg/baseline/extended-xmp.jpg";
 
                 public static readonly string[] All =
                 {

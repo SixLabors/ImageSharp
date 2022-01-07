@@ -339,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Application Extension: XMP Profile.
             if (xmpProfile != null)
             {
-                var xmpExtension = new GifXmpApplicationExtension(xmpProfile.ToByteArray());
+                var xmpExtension = new GifXmpApplicationExtension(xmpProfile.Data);
                 this.WriteExtension(xmpExtension, stream);
             }
         }

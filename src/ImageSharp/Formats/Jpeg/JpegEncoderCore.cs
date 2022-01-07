@@ -485,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             const int Max = 65533;
             const int MaxData = Max - XmpOverheadLength;
 
-            byte[] data = xmpProfile.ToByteArray();
+            byte[] data = xmpProfile.Data;
 
             if (data is null || data.Length == 0)
             {

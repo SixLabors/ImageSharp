@@ -681,9 +681,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp1Marker(BufferedReadStream stream, int remaining)
         {
-            const int Exif00 = 6;
-            const int XmpNsLength = 29;
-            if (remaining < Exif00 || this.IgnoreMetadata)
+            const int ExifMarkerLength = 6;
+            const int XmpMarkerLength = 29;
+            if (remaining < ExifMarkerLength || this.IgnoreMetadata)
             {
                 // Skip the application header length
                 stream.Skip(remaining);
@@ -695,38 +695,55 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
             }
 
-            byte[] profile = new byte[remaining];
-            stream.Read(profile, 0, remaining);
+            // XMP marker is the longest, so read at least that many bytes into temp.
+            stream.Read(this.temp, 0, ExifMarkerLength);
 
-            if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
+            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.ExifMarker))
             {
+                remaining -= ExifMarkerLength;
                 this.isExif = true;
+                byte[] profile = new byte[remaining];
+                stream.Read(profile, 0, remaining);
+
                 if (this.exifData is null)
                 {
-                    // The first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
-                    this.exifData = profile.AsSpan(Exif00).ToArray();
+                    this.exifData = profile;
                 }
                 else
                 {
                     // If the EXIF information exceeds 64K, it will be split over multiple APP1 markers
-                    this.ExtendProfile(ref this.exifData, profile.AsSpan(Exif00).ToArray());
+                    this.ExtendProfile(ref this.exifData, profile);
+                }
+
+                remaining = 0;
+            }
+
+            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(0, ExifMarkerLength)))
+            {
+                stream.Read(this.temp, 0, XmpMarkerLength - ExifMarkerLength);
+                remaining -= XmpMarkerLength;
+                if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(ExifMarkerLength)))
+                {
+                    this.isXmp = true;
+                    byte[] profile = new byte[remaining];
+                    stream.Read(profile, 0, remaining);
+
+                    if (this.xmpData is null)
+                    {
+                        this.xmpData = profile;
+                    }
+                    else
+                    {
+                        // If the XMP information exceeds 64K, it will be split over multiple APP1 markers
+                        this.ExtendProfile(ref this.xmpData, profile);
+                    }
+
+                    remaining = 0;
                 }
             }
 
-            if (ProfileResolver.IsProfile(profile, ProfileResolver.XmpMarker))
-            {
-                this.isXmp = true;
-                if (this.xmpData is null)
-                {
-                    // The first 29 bytes will be skipped, because this is Jpeg specific
-                    this.xmpData = profile.AsSpan(XmpNsLength).ToArray();
-                }
-                else
-                {
-                    // If the XMP information exceeds 64K, it will be split over multiple APP1 markers
-                    this.ExtendProfile(ref this.xmpData, profile.AsSpan(XmpNsLength).ToArray());
-                }
-            }
+            // Skip over any remaining bytes of this header.
+            stream.Skip(remaining);
         }
 
         /// <summary>

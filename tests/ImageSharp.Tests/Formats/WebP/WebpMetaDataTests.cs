@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             else
             {
                 Assert.NotNull(image.Metadata.XmpProfile);
-                Assert.NotEmpty(image.Metadata.XmpProfile.ToByteArray());
+                Assert.NotEmpty(image.Metadata.XmpProfile.Data);
             }
         }
 

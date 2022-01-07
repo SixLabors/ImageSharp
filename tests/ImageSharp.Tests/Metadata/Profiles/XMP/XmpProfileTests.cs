@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
+            Assert.Equal(original.Data, actual.Data);
         }
 
         [Fact]
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
+            Assert.Equal(original.Data, actual.Data);
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
+            Assert.Equal(original.Data, actual.Data);
         }
 
         [Fact]
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
+            Assert.Equal(original.Data, actual.Data);
         }
 
         [Fact]
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
+            Assert.Equal(original.Data, actual.Data);
         }
 
         [Fact]
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
             // assert
             XmpProfile actual = reloadedImage.Metadata.XmpProfile ?? reloadedImage.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
-            Assert.Equal(original.ToByteArray(), actual.ToByteArray());
+            Assert.Equal(original.Data, actual.Data);
         }
 
         private static void XmpProfileContainsExpectedValues(XmpProfile xmp)

@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 {
                     Assert.NotNull(rootFrameMetaData.XmpProfile);
                     Assert.NotNull(rootFrameMetaData.ExifProfile);
-                    Assert.Equal(2599, rootFrameMetaData.XmpProfile.ToByteArray().Length);
+                    Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
                     Assert.Equal(26, rootFrameMetaData.ExifProfile.Values.Count);
                 }
             }
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(32, rootFrame.Width);
                 Assert.Equal(32, rootFrame.Height);
                 Assert.NotNull(rootFrame.Metadata.XmpProfile);
-                Assert.Equal(2599, rootFrame.Metadata.XmpProfile.ToByteArray().Length);
+                Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Data.Length);
 
                 ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
                 TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
@@ -291,7 +291,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             Assert.NotNull(xmpProfileInput);
             Assert.NotNull(encodedImageXmpProfile);
-            Assert.Equal(xmpProfileInput.ToByteArray(), encodedImageXmpProfile.ToByteArray());
+            Assert.Equal(xmpProfileInput.Data, encodedImageXmpProfile.Data);
 
             Assert.Equal("IrfanView", exifProfileInput.GetValue(ExifTag.Software).Value);
             Assert.Equal("This is Название", exifProfileInput.GetValue(ExifTag.ImageDescription).Value);

@@ -628,7 +628,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Earth = "Webp/earth_lossy.webp";
                 public const string WithExif = "Webp/exif_lossy.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
-                public const string WithXmp = "webp/xmp_lossy.webp";
+                public const string WithXmp = "Webp/xmp_lossy.webp";
                 public const string BikeSmall = "Webp/bike_lossless_small.webp";
 
                 // Lossy images without macroblock filtering.

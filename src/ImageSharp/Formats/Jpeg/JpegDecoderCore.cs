@@ -1110,13 +1110,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     // Types 0..1 DC..AC
                     if (tableType > 1)
                     {
-                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table type: {tableType}");
+                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table type: {tableType}.");
                     }
 
                     // Max tables of each type
                     if (tableIndex > 3)
                     {
-                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table index: {tableIndex}");
+                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table index: {tableIndex}.");
                     }
 
                     stream.Read(huffmanDataSpan, 0, 16);

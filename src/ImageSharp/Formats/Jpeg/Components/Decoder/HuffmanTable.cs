@@ -94,6 +94,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         code++;
                     }
 
+                    // 'code' is now 1 more than the last code used for codelength 'si'
+                    // in the valid worst possible case 'code' would have the least
+                    // significant bit set to 1, e.g. 1111(0) +1 => 1111(1)
+                    // but it must still fit in 'si' bits since no huffman code can be equal to all 1s
+                    // if last code is all ones, e.g. 1111(1), then incrementing it by 1 would yield
+                    // a new code which occupies one extra bit, e.g. 1111(1) +1 => (1)1111(0)
+                    if (code >= (1 << si))
+                    {
+                        JpegThrowHelper.ThrowInvalidImageContentException("Bad huffman table.");
+                    }
+
                     code <<= 1;
                     si++;
                 }

@@ -58,101 +58,92 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
 
             // TODO: testing code
-            Span<char> huffSize = new char[257];
-            Span<uint> huffCode = new uint[257];
+            Span<char> huffSize = stackalloc char[257];
+            Span<uint> huffCode = stackalloc uint[257];
 
-            fixed (void* maxCodePtr = this.MaxCode, valOffsetPtr = this.ValOffset, lookaheadSizePtr = this.LookaheadSize, lookaheadValuePtr = this.LookaheadValue)
+            // Figure C.1: make table of Huffman code length for each symbol
+            int p = 0;
+            for (int j = 1; j <= 16; j++)
             {
-                // TODO: testing spans
-                var maxCodeSpan = new Span<ulong>(maxCodePtr, 18);
-                var valOffsetSpan = new Span<int>(valOffsetPtr, 19);
-                var lookaheadSizeSpan = new Span<byte>(lookaheadSizePtr, JpegConstants.Huffman.LookupSize);
-                var lookaheadValueSpan = new Span<byte>(lookaheadValuePtr, JpegConstants.Huffman.LookupSize);
-
-                // Figure C.1: make table of Huffman code length for each symbol
-                int p = 0;
-                for (int j = 1; j <= 16; j++)
+                int i = codeLengths[j];
+                while (i-- != 0)
                 {
-                    int i = codeLengths[j];
-                    while (i-- != 0)
-                    {
-                        huffSize[p++] = (char)j;
-                    }
+                    huffSize[p++] = (char)j;
+                }
+            }
+
+            huffSize[p] = (char)0;
+
+            // Figure C.2: generate the codes themselves
+            uint code = 0;
+            int si = huffSize[0];
+            p = 0;
+            while (huffSize[p] != 0)
+            {
+                while (huffSize[p] == si)
+                {
+                    huffCode[p++] = code;
+                    code++;
                 }
 
-                huffSize[p] = (char)0;
-
-                // Figure C.2: generate the codes themselves
-                uint code = 0;
-                int si = huffSize[0];
-                p = 0;
-                while (huffSize[p] != 0)
+                // 'code' is now 1 more than the last code used for codelength 'si'
+                // in the valid worst possible case 'code' would have the least
+                // significant bit set to 1, e.g. 1111(0) +1 => 1111(1)
+                // but it must still fit in 'si' bits since no huffman code can be equal to all 1s
+                // if last code is all ones, e.g. 1111(1), then incrementing it by 1 would yield
+                // a new code which occupies one extra bit, e.g. 1111(1) +1 => (1)1111(0)
+                if (code >= (1 << si))
                 {
-                    while (huffSize[p] == si)
-                    {
-                        huffCode[p++] = code;
-                        code++;
-                    }
-
-                    // 'code' is now 1 more than the last code used for codelength 'si'
-                    // in the valid worst possible case 'code' would have the least
-                    // significant bit set to 1, e.g. 1111(0) +1 => 1111(1)
-                    // but it must still fit in 'si' bits since no huffman code can be equal to all 1s
-                    // if last code is all ones, e.g. 1111(1), then incrementing it by 1 would yield
-                    // a new code which occupies one extra bit, e.g. 1111(1) +1 => (1)1111(0)
-                    if (code >= (1 << si))
-                    {
-                        JpegThrowHelper.ThrowInvalidImageContentException("Bad huffman table.");
-                    }
-
-                    code <<= 1;
-                    si++;
+                    JpegThrowHelper.ThrowInvalidImageContentException("Bad huffman table.");
                 }
 
-                // Figure F.15: generate decoding tables for bit-sequential decoding
-                p = 0;
-                for (int j = 1; j <= 16; j++)
+                code <<= 1;
+                si++;
+            }
+
+            // Figure F.15: generate decoding tables for bit-sequential decoding
+            p = 0;
+            for (int j = 1; j <= 16; j++)
+            {
+                if (codeLengths[j] != 0)
                 {
-                    if (codeLengths[j] != 0)
-                    {
-                        valOffsetSpan[j] = p - (int)huffCode[p];
-                        p += codeLengths[j];
-                        maxCodeSpan[j] = huffCode[p - 1]; // Maximum code of length l
-                        maxCodeSpan[j] <<= JpegConstants.Huffman.RegisterSize - j; // Left justify
-                        maxCodeSpan[j] |= (1ul << (JpegConstants.Huffman.RegisterSize - j)) - 1;
-                    }
-                    else
-                    {
-                        maxCodeSpan[j] = 0;
-                    }
+                    this.ValOffset[j] = p - (int)huffCode[p];
+                    p += codeLengths[j];
+                    this.MaxCode[j] = huffCode[p - 1]; // Maximum code of length l
+                    this.MaxCode[j] <<= JpegConstants.Huffman.RegisterSize - j; // Left justify
+                    this.MaxCode[j] |= (1ul << (JpegConstants.Huffman.RegisterSize - j)) - 1;
                 }
-
-                valOffsetSpan[18] = 0;
-                maxCodeSpan[17] = ulong.MaxValue; // Ensures huff decode terminates
-
-                // Compute lookahead tables to speed up decoding.
-                // First we set all the table entries to JpegConstants.Huffman.SlowBits, indicating "too long";
-                // then we iterate through the Huffman codes that are short enough and
-                // fill in all the entries that correspond to bit sequences starting
-                // with that code.
-                ref byte lookupSizeRef = ref lookaheadSizeSpan[0];
-                Unsafe.InitBlockUnaligned(ref lookupSizeRef, JpegConstants.Huffman.SlowBits, JpegConstants.Huffman.LookupSize);
-
-                p = 0;
-                for (int length = 1; length <= JpegConstants.Huffman.LookupBits; length++)
+                else
                 {
-                    int jShift = JpegConstants.Huffman.LookupBits - length;
-                    for (int i = 1; i <= codeLengths[length]; i++, p++)
+                    this.MaxCode[j] = 0;
+                }
+            }
+
+            this.ValOffset[18] = 0;
+            this.MaxCode[17] = ulong.MaxValue; // Ensures huff decode terminates
+
+            // Compute lookahead tables to speed up decoding.
+            // First we set all the table entries to JpegConstants.Huffman.SlowBits, indicating "too long";
+            // then we iterate through the Huffman codes that are short enough and
+            // fill in all the entries that correspond to bit sequences starting
+            // with that code.
+            ref byte lookupSizeRef = ref this.LookaheadSize[0];
+            Unsafe.InitBlockUnaligned(ref lookupSizeRef, JpegConstants.Huffman.SlowBits, JpegConstants.Huffman.LookupSize);
+
+            p = 0;
+            for (int length = 1; length <= JpegConstants.Huffman.LookupBits; length++)
+            {
+                int jShift = JpegConstants.Huffman.LookupBits - length;
+                for (int i = 1; i <= codeLengths[length]; i++, p++)
+                {
+                    // length = current code's length, p = its index in huffCode[] & Values[].
+                    // Generate left-justified code followed by all possible bit sequences
+                    int lookBits = (int)(huffCode[p] << jShift);
+                    for (int ctr = 1 << (JpegConstants.Huffman.LookupBits - length); ctr > 0; ctr--)
                     {
-                        // length = current code's length, p = its index in huffCode[] & Values[].
-                        // Generate left-justified code followed by all possible bit sequences
-                        int lookBits = (int)(huffCode[p] << jShift);
-                        for (int ctr = 1 << (JpegConstants.Huffman.LookupBits - length); ctr > 0; ctr--)
-                        {
-                            lookaheadSizeSpan[lookBits] = (byte)length;
-                            lookaheadValueSpan[lookBits] = this.Values[p];
-                            lookBits++;
-                        }
+                        this.LookaheadSize[lookBits] = (byte)length;
+                        this.LookaheadValue[lookBits] = this.Values[p];
+                        lookBits++;
                     }
                 }
             }

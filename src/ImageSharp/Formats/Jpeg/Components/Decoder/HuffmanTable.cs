@@ -57,27 +57,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
 
-            Span<byte> huffSize = stackalloc byte[257];
             Span<uint> huffCode = stackalloc uint[257];
 
-            // Figure C.1: make table of Huffman code length for each symbol
-            int p = 0;
-            for (int j = 1; j <= 16; j++)
-            {
-                int count = codeLengths[j];
-                huffSize.Slice(p, count).Fill((byte)j);
-                p += count;
-            }
-
-            huffSize[p] = 0;
-
-            // Figure C.2: generate the codes themselves
+            // Generate codes
             uint code = 0;
-            int si = huffSize[0];
-            p = 0;
-            while (huffSize[p] != 0)
+            int si = 1;
+            int p = 0;
+            for (int i = 1; i <= 16; i++)
             {
-                while (huffSize[p] == si)
+                int count = codeLengths[i];
+                for (int j = 0; j < count; j++)
                 {
                     huffCode[p++] = code;
                     code++;

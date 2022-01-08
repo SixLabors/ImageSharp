@@ -256,6 +256,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadSubSampling1076 = "Jpg/issues/issue-1076-invalid-subsampling.jpg";
                 public const string IdentifyMultiFrame1211 = "Jpg/issues/issue-1221-identify-multi-frame.jpg";
                 public const string WrongColorSpace = "Jpg/issues/Issue1732-WrongColorSpace.jpg";
+                public const string MalformedUnsupportedComponentCount = "Jpg/issues/issue-1900-malformed-unsupported-255-components.jpg";
 
                 public static class Fuzz
                 {

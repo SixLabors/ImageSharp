@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -493,20 +494,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             var exif = new ExifProfile();
             exif.SetValue(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
 
-            byte[] actualBytes = exif.ToByteArray();
+            Span<byte> actualBytes = exif.ToByteArray();
 
             // Assert
             int ifdOffset = ExifConstants.LittleEndianByteOrderMarker.Length;
-            Assert.Equal(8, actualBytes[ifdOffset]);
-            Assert.Equal(0, actualBytes[ifdOffset + 1]);
-            Assert.Equal(0, actualBytes[ifdOffset + 2]);
-            Assert.Equal(0, actualBytes[ifdOffset + 3]);
+
+            Assert.Equal(8U, BinaryPrimitives.ReadUInt32LittleEndian(actualBytes.Slice(ifdOffset, 4)));
 
             int nextIfdPointerOffset = ExifConstants.LittleEndianByteOrderMarker.Length + 4 + 2 + 12;
-            Assert.Equal(0, actualBytes[nextIfdPointerOffset]);
-            Assert.Equal(0, actualBytes[nextIfdPointerOffset + 1]);
-            Assert.Equal(0, actualBytes[nextIfdPointerOffset + 2]);
-            Assert.Equal(0, actualBytes[nextIfdPointerOffset + 3]);
+            Assert.Equal(0U, BinaryPrimitives.ReadUInt32LittleEndian(actualBytes.Slice(nextIfdPointerOffset, 4)));
         }
 
         internal static ExifProfile GetExifProfile()

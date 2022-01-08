@@ -94,6 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             profile.SetValue(ExifTag.Copyright, "Copyright text");
 
             byte[] bytes = profile.ToByteArray();
+
             Assert.NotNull(bytes);
             Assert.Empty(bytes);
         }

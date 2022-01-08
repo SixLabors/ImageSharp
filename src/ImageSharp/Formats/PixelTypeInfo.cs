@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats
         /// </summary>
         /// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
         /// <param name="alpha">Tthe pixel alpha transparency behavior.</param>
-        internal PixelTypeInfo(int bitsPerPixel, PixelAlphaRepresentation? alpha = null)
+        public PixelTypeInfo(int bitsPerPixel, PixelAlphaRepresentation? alpha = null)
         {
             this.BitsPerPixel = bitsPerPixel;
             this.AlphaRepresentation = alpha;

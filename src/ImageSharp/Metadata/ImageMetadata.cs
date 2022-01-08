@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Metadata
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageMetadata"/> class.
         /// </summary>
-        internal ImageMetadata()
+        public ImageMetadata()
         {
             this.horizontalResolution = DefaultHorizontalResolution;
             this.verticalResolution = DefaultVerticalResolution;

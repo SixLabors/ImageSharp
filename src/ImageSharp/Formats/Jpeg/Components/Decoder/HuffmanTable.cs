@@ -51,13 +51,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
         /// </summary>
-        /// <param name="codeLengths">The code lengths</param>
-        /// <param name="values">The huffman values</param>
-        public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        /// <param name="codeLengths">The code lengths.</param>
+        /// <param name="values">The huffman values.</param>
+        /// <param name="workspace">The spare workspace memory, must be provided by the caller.</param>
+        public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
         {
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
 
-            Span<uint> huffCode = stackalloc uint[257];
+            Span<uint> huffCode = workspace;
 
             // Generate codes
             uint code = 0;

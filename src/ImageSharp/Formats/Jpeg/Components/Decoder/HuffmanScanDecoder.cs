@@ -728,10 +728,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="codeLengths">Code lengths.</param>
         /// <param name="values">Code values.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
         {
             HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
-            tables[index] = new HuffmanTable(codeLengths, values);
+            tables[index] = new HuffmanTable(codeLengths, values, workspace);
         }
     }
 }

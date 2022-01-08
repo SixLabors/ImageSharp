@@ -1150,7 +1150,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 tableType,
                                 tableIndex,
                                 codeLengthsSpan,
-                                huffmanValuesSpan);
+                                huffmanValuesSpan,
+                                stackalloc uint[257]);
                         }
                     }
                 }

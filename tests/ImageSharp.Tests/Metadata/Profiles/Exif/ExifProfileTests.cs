@@ -487,6 +487,28 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             return profile;
         }
 
+        [Fact]
+        public void IfdStructure()
+        {
+            var exif = new ExifProfile();
+            exif.SetValue(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
+
+            byte[] actualBytes = exif.ToByteArray();
+
+            // Assert
+            int ifdOffset = ExifConstants.LittleEndianByteOrderMarker.Length;
+            Assert.Equal(8, actualBytes[ifdOffset]);
+            Assert.Equal(0, actualBytes[ifdOffset + 1]);
+            Assert.Equal(0, actualBytes[ifdOffset + 2]);
+            Assert.Equal(0, actualBytes[ifdOffset + 3]);
+
+            int nextIfdPointerOffset = ExifConstants.LittleEndianByteOrderMarker.Length + 4 + 2 + 12;
+            Assert.Equal(0, actualBytes[nextIfdPointerOffset]);
+            Assert.Equal(0, actualBytes[nextIfdPointerOffset + 1]);
+            Assert.Equal(0, actualBytes[nextIfdPointerOffset + 2]);
+            Assert.Equal(0, actualBytes[nextIfdPointerOffset + 3]);
+        }
+
         internal static ExifProfile GetExifProfile()
         {
             using Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();

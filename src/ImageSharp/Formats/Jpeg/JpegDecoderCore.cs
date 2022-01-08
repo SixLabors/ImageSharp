@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Whether the image has an EXIF marker.
         /// </summary>
-        private bool isExif;
+        private bool hasExif;
 
         /// <summary>
         /// Contains exif data.
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Whether the image has an ICC marker.
         /// </summary>
-        private bool isIcc;
+        private bool hasIcc;
 
         /// <summary>
         /// Contains ICC data.
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Whether the image has a IPTC data.
         /// </summary>
-        private bool isIptc;
+        private bool hasIptc;
 
         /// <summary>
         /// Contains IPTC data.
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Whether the image has a XMP data.
         /// </summary>
-        private bool isXmp;
+        private bool hasXmp;
 
         /// <summary>
         /// Contains XMP data.
@@ -552,7 +552,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void InitExifProfile()
         {
-            if (this.isExif)
+            if (this.hasExif)
             {
                 this.Metadata.ExifProfile = new ExifProfile(this.exifData);
             }
@@ -563,7 +563,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void InitIccProfile()
         {
-            if (this.isIcc)
+            if (this.hasIcc)
             {
                 var profile = new IccProfile(this.iccData);
                 if (profile.CheckIsValid())
@@ -578,7 +578,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void InitIptcProfile()
         {
-            if (this.isIptc)
+            if (this.hasIptc)
             {
                 var profile = new IptcProfile(this.iptcData);
                 this.Metadata.IptcProfile = profile;
@@ -590,7 +590,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void InitXmpProfile()
         {
-            if (this.isXmp)
+            if (this.hasXmp)
             {
                 var profile = new XmpProfile(this.xmpData);
                 this.Metadata.XmpProfile = profile;
@@ -608,7 +608,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Metadata.VerticalResolution = this.jFif.YDensity;
                 this.Metadata.ResolutionUnits = this.jFif.DensityUnits;
             }
-            else if (this.isExif)
+            else if (this.hasExif)
             {
                 double horizontalValue = this.GetExifResolutionValue(ExifTag.XResolution);
                 double verticalValue = this.GetExifResolutionValue(ExifTag.YResolution);
@@ -701,7 +701,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (ProfileResolver.IsProfile(this.temp, ProfileResolver.ExifMarker))
             {
                 remaining -= ExifMarkerLength;
-                this.isExif = true;
+                this.hasExif = true;
                 byte[] profile = new byte[remaining];
                 stream.Read(profile, 0, remaining);
 
@@ -724,7 +724,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 remaining -= XmpMarkerLength;
                 if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(ExifMarkerLength)))
                 {
-                    this.isXmp = true;
+                    this.hasXmp = true;
                     byte[] profile = new byte[remaining];
                     stream.Read(profile, 0, remaining);
 
@@ -767,7 +767,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
-                this.isIcc = true;
+                this.hasIcc = true;
                 byte[] profile = new byte[remaining];
                 stream.Read(profile, 0, remaining);
 
@@ -826,7 +826,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         int dataStartIdx = 2 + resourceBlockNameLength + 4;
                         if (resourceDataSize > 0 && blockDataSpan.Length >= dataStartIdx + resourceDataSize)
                         {
-                            this.isIptc = true;
+                            this.hasIptc = true;
                             this.iptcData = blockDataSpan.Slice(dataStartIdx, resourceDataSize).ToArray();
                             break;
                         }

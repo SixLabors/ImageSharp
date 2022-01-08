@@ -420,7 +420,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             Assert.Equal(2, profile.Values.Count(v => (ExifTagValue)(ushort)v.Tag == ExifTagValue.DateTime));
 
             byte[] bytes = profile.ToByteArray();
-            Assert.Equal(527, bytes.Length);
+            Assert.Equal(531, bytes.Length);
 
             var profile2 = new ExifProfile(bytes);
             Assert.Equal(25, profile2.Values.Count);

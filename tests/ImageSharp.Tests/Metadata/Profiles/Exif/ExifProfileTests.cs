@@ -88,6 +88,17 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         }
 
         [Fact]
+        public void EmptyWriter()
+        {
+            var profile = new ExifProfile() { Parts = ExifParts.GpsTags };
+            profile.SetValue(ExifTag.Copyright, "Copyright text");
+
+            byte[] bytes = profile.ToByteArray();
+            Assert.NotNull(bytes);
+            Assert.Empty(bytes);
+        }
+
+        [Fact]
         public void ConstructorCopy()
         {
             Assert.Throws<NullReferenceException>(() => ((ExifProfile)null).DeepClone());
@@ -498,7 +509,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
             // Assert
             int ifdOffset = ExifConstants.LittleEndianByteOrderMarker.Length;
-
             Assert.Equal(8U, BinaryPrimitives.ReadUInt32LittleEndian(actualBytes.Slice(ifdOffset, 4)));
 
             int nextIfdPointerOffset = ExifConstants.LittleEndianByteOrderMarker.Length + 4 + 2 + 12;

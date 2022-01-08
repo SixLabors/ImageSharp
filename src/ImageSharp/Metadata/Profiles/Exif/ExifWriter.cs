@@ -50,11 +50,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             IExifValue exifOffset = GetOffsetValue(this.ifdValues, this.exifValues, ExifTag.SubIFDOffset);
             IExifValue gpsOffset = GetOffsetValue(this.ifdValues, this.gpsValues, ExifTag.GPSIFDOffset);
 
-            if (this.ifdValues.Count == 0 && this.exifValues.Count == 0 && this.gpsValues.Count == 0)
-            {
-                return Array.Empty<byte>();
-            }
-
             uint ifdLength = this.GetLength(this.ifdValues);
             uint exifLength = this.GetLength(this.exifValues);
             uint gpsLength = this.GetLength(this.gpsValues);

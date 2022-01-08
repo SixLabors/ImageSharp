@@ -57,7 +57,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
 
-            // TODO: testing code
             Span<byte> huffSize = stackalloc byte[257];
             Span<uint> huffCode = stackalloc uint[257];
 
@@ -65,11 +64,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int p = 0;
             for (int j = 1; j <= 16; j++)
             {
-                int i = codeLengths[j];
-                while (i-- != 0)
-                {
-                    huffSize[p++] = (byte)j;
-                }
+                int count = codeLengths[j];
+                huffSize.Slice(p, count).Fill((byte)j);
+                p += count;
             }
 
             huffSize[p] = 0;

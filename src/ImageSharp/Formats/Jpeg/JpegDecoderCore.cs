@@ -788,6 +788,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     }
                 }
             }
+            else
+            {
+                // If the profile is unknown skip over the rest of it.
+                stream.Skip(remaining);
+            }
         }
 
         /// <summary>

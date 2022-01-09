@@ -53,12 +53,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         /// <param name="codeLengths">The code lengths.</param>
         /// <param name="values">The huffman values.</param>
-        /// <param name="workspace">The spare workspace memory, must be provided by the caller.</param>
+        /// <param name="workspace">The provided spare workspace memory, can be dirty.</param>
         public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
         {
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
-
-            Span<uint> huffCode = workspace;
 
             // Generate codes
             uint code = 0;
@@ -69,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int count = codeLengths[i];
                 for (int j = 0; j < count; j++)
                 {
-                    huffCode[p++] = code;
+                    workspace[p++] = code;
                     code++;
                 }
 
@@ -94,9 +92,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 if (codeLengths[j] != 0)
                 {
-                    this.ValOffset[j] = p - (int)huffCode[p];
+                    this.ValOffset[j] = p - (int)workspace[p];
                     p += codeLengths[j];
-                    this.MaxCode[j] = huffCode[p - 1]; // Maximum code of length l
+                    this.MaxCode[j] = workspace[p - 1]; // Maximum code of length l
                     this.MaxCode[j] <<= JpegConstants.Huffman.RegisterSize - j; // Left justify
                     this.MaxCode[j] |= (1ul << (JpegConstants.Huffman.RegisterSize - j)) - 1;
                 }
@@ -125,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     // length = current code's length, p = its index in huffCode[] & Values[].
                     // Generate left-justified code followed by all possible bit sequences
-                    int lookBits = (int)(huffCode[p] << jShift);
+                    int lookBits = (int)(workspace[p] << jShift);
                     for (int ctr = 1 << (JpegConstants.Huffman.LookupBits - length); ctr > 0; ctr--)
                     {
                         this.LookaheadSize[lookBits] = (byte)length;

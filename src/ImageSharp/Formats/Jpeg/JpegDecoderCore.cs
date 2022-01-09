@@ -1095,15 +1095,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(BufferedReadStream stream, int remaining)
         {
-            const int codeLengthsByteSize = 16;
+            const int codeLengthsByteSize = 17;
             const int codeValuesMaxByteSize = 256;
-            const int tableWorkspaceByteSize = 257 * sizeof(uint);
+            const int tableWorkspaceByteSize = 256 * sizeof(uint);
             const int totalBufferSize = codeLengthsByteSize + codeValuesMaxByteSize + tableWorkspaceByteSize;
 
             int length = remaining;
-            using (IMemoryOwner<byte> huffmanData = this.Configuration.MemoryAllocator.Allocate<byte>(17))
+            using (IMemoryOwner<byte> buffer = this.Configuration.MemoryAllocator.Allocate<byte>(totalBufferSize))
             {
-                Span<byte> huffmanDataSpan = huffmanData.GetSpan();
+                Span<byte> bufferSpan = buffer.GetSpan();
+                Span<byte> huffmanLegthsSpan = buffer.Slice(0, codeLengthsByteSize);
+                Span<byte> huffmanValuesSpan = buffer.Slice(codeLengthsByteSize, codeValuesMaxByteSize);
+                Span<uint> tableWorkspace = MemoryMarshal.Cast<byte, uint>(buffer.Slice(codeLengthsByteSize + codeValuesMaxByteSize));
+
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)stream.ReadByte();
@@ -1122,12 +1126,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table index: {tableIndex}.");
                     }
 
-                    stream.Read(huffmanDataSpan, 1, 16);
+                    stream.Read(huffmanLegthsSpan, 1, 16);
 
                     int codeLengthSum = 0;
                     for (int j = 1; j < 17; j++)
                     {
-                        codeLengthSum += huffmanDataSpan[j];
+                        codeLengthSum += huffmanLegthsSpan[j];
                     }
 
                     length -= 17;
@@ -1137,20 +1141,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         JpegThrowHelper.ThrowInvalidImageContentException("Huffman table has excessive length.");
                     }
 
-                    using (IMemoryOwner<byte> huffmanValues = this.Configuration.MemoryAllocator.Allocate<byte>(256, AllocationOptions.Clean))
-                    {
-                        Span<byte> huffmanValuesSpan = huffmanValues.GetSpan();
-                        stream.Read(huffmanValuesSpan, 0, codeLengthSum);
+                    stream.Read(huffmanValuesSpan, 0, codeLengthSum);
 
-                        i += 17 + codeLengthSum;
+                    i += 17 + codeLengthSum;
 
-                        this.scanDecoder.BuildHuffmanTable(
-                            tableType,
-                            tableIndex,
-                            huffmanDataSpan,
-                            huffmanValuesSpan,
-                            stackalloc uint[257]);
-                    }
+                    this.scanDecoder.BuildHuffmanTable(
+                        tableType,
+                        tableIndex,
+                        huffmanLegthsSpan,
+                        huffmanValuesSpan.Slice(0, codeLengthSum),
+                        tableWorkspace);
                 }
             }
         }

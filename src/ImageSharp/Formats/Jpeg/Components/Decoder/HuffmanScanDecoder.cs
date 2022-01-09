@@ -727,6 +727,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="index">Table index.</param>
         /// <param name="codeLengths">Code lengths.</param>
         /// <param name="values">Code values.</param>
+        /// <param name="workspace">The provided spare workspace memory, can be dirty.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
         {

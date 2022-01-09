@@ -1097,16 +1097,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             const int codeLengthsByteSize = 17;
             const int codeValuesMaxByteSize = 256;
-            const int tableWorkspaceByteSize = 256 * sizeof(uint);
-            const int totalBufferSize = codeLengthsByteSize + codeValuesMaxByteSize + tableWorkspaceByteSize;
+            const int totalBufferSize = codeLengthsByteSize + codeValuesMaxByteSize + HuffmanTable.WorkspaceByteSize;
 
             int length = remaining;
             using (IMemoryOwner<byte> buffer = this.Configuration.MemoryAllocator.Allocate<byte>(totalBufferSize))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
-                Span<byte> huffmanLegthsSpan = buffer.Slice(0, codeLengthsByteSize);
-                Span<byte> huffmanValuesSpan = buffer.Slice(codeLengthsByteSize, codeValuesMaxByteSize);
-                Span<uint> tableWorkspace = MemoryMarshal.Cast<byte, uint>(buffer.Slice(codeLengthsByteSize + codeValuesMaxByteSize));
+                Span<byte> huffmanLegthsSpan = bufferSpan.Slice(0, codeLengthsByteSize);
+                Span<byte> huffmanValuesSpan = bufferSpan.Slice(codeLengthsByteSize, codeValuesMaxByteSize);
+                Span<uint> tableWorkspace = MemoryMarshal.Cast<byte, uint>(bufferSpan.Slice(codeLengthsByteSize + codeValuesMaxByteSize));
 
                 for (int i = 2; i < remaining;)
                 {

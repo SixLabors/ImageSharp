@@ -14,6 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal unsafe struct HuffmanTable
     {
         /// <summary>
+        /// Memory workspace buffer size used in <see cref="HuffmanTable"/> ctor.
+        /// </summary>
+        public const int WorkspaceByteSize = 256 * sizeof(uint);
+
+        /// <summary>
         /// Derived from the DHT marker. Contains the symbols, in order of incremental code length.
         /// </summary>
         public fixed byte Values[256];

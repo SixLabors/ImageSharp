@@ -330,7 +330,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteApplicationExtensions(Stream stream, int frameCount, ushort repeatCount, XmpProfile xmpProfile)
         {
             // Application Extension: Loop repeat count.
-            if (repeatCount != 1)
+            if (frameCount > 1 && repeatCount != 1)
             {
                 var loopingExtension = new GifNetscapeLoopingApplicationExtension(repeatCount);
                 this.WriteExtension(loopingExtension, stream);

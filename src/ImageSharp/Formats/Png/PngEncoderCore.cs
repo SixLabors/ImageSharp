@@ -680,12 +680,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            int payloadLength = xmpData.Length + PngConstants.XmpKeyword.Length + 5;
+            int payloadLength = xmpData.Length + PngConstants.XmpKeyword.Length + iTxtHeaderSize;
             using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
             {
                 Span<byte> payload = owner.GetSpan();
                 PngConstants.XmpKeyword.CopyTo(payload);
-                int bytesWritten = PngConstants.XmpKeyword.Length + iTxtHeaderSize;
+                int bytesWritten = PngConstants.XmpKeyword.Length;
+
+                // Write the iTxt header (all zeros in this case)
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+
+                // And the XMP data itself
                 xmpData.CopyTo(payload.Slice(bytesWritten));
                 this.WriteChunk(stream, PngChunkType.InternationalText, payload);
             }

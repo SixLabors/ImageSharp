@@ -47,6 +47,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         }
 
         /// <inheritdoc/>
+        public override int GetHashCode() =>
+            HashCode.Combine(this.Text, this.Code);
+
+        /// <inheritdoc/>
         public override string ToString() => this.Text;
     }
 }

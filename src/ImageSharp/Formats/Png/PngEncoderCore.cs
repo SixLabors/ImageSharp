@@ -680,12 +680,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            using IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(xmpData.Length + PngConstants.XmpKeyword.Length + 5);
-            Span<byte> payload = owner.GetSpan();
-            PngConstants.XmpKeyword.CopyTo(payload);
-            int bytesWritten = PngConstants.XmpKeyword.Length + iTxtHeaderSize;
-            xmpData.CopyTo(payload.Slice(bytesWritten));
-            this.WriteChunk(stream, PngChunkType.InternationalText, payload);
+            int payloadLength = xmpData.Length + PngConstants.XmpKeyword.Length + 5;
+            using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
+            {
+                Span<byte> payload = owner.GetSpan();
+                PngConstants.XmpKeyword.CopyTo(payload);
+                int bytesWritten = PngConstants.XmpKeyword.Length + iTxtHeaderSize;
+                xmpData.CopyTo(payload.Slice(bytesWritten));
+                this.WriteChunk(stream, PngChunkType.InternationalText, payload);
+            }
         }
 
         /// <summary>

@@ -44,10 +44,6 @@ jobs:
                       framework: net5.0
                       runtime: -x64
                       codecov: false
-                    - os: ubuntu-latest
-                      framework: netcoreapp3.1
-                      runtime: -x64
-                      codecov: true
                     - os: macos-latest
                       framework: netcoreapp3.1
                       runtime: -x64
@@ -152,12 +148,6 @@ jobs:
               with:
                 name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
                 path: tests/Images/ActualOutput/
-
-            - name: Codecov Update
-              uses: codecov/codecov-action@v1
-              if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
-              with:
-                flags: unittests
 
     Publish:
         needs: [Build]

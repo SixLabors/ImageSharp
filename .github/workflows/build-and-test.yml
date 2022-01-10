@@ -1,192 +1,192 @@
 name: Build
 
 on:
-   push:
-       branches:
-           - master
-       tags:
-           - "v*"
-   pull_request:
-       branches:
-          - master
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - master
 jobs:
-    Build:
-        strategy:
-            matrix:
-                options:
-                    - os: ubuntu-latest
-                      framework: net6.0
-                      sdk: 6.0.x
-                      sdk-preview: true
-                      runtime: -x64
-                      codecov: false
-                    - os: macos-latest
-                      framework: net6.0
-                      sdk: 6.0.x
-                      sdk-preview: true
-                      runtime: -x64
-                      codecov: false
-                    - os: windows-latest
-                      framework: net6.0
-                      sdk: 6.0.x
-                      sdk-preview: true
-                      runtime: -x64
-                      codecov: false
-                    - os: ubuntu-latest
-                      framework: net5.0
-                      runtime: -x64
-                      codecov: false
-                    - os: macos-latest
-                      framework: net5.0
-                      runtime: -x64
-                      codecov: false
-                    - os: windows-latest
-                      framework: net5.0
-                      runtime: -x64
-                      codecov: false
-                    - os: macos-latest
-                      framework: netcoreapp3.1
-                      runtime: -x64
-                      codecov: false
-                    - os: windows-latest
-                      framework: netcoreapp3.1
-                      runtime: -x64
-                      codecov: false
-                    - os: windows-latest
-                      framework: netcoreapp2.1
-                      runtime: -x64
-                      codecov: false
-                    - os: windows-latest
-                      framework: net472
-                      runtime: -x64
-                      codecov: false
-                    - os: windows-latest
-                      framework: net472
-                      runtime: -x86
-                      codecov: false
+  Build:
+    strategy:
+      matrix:
+        options:
+          - os: ubuntu-latest
+            framework: net6.0
+            sdk: 6.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
+          - os: macos-latest
+            framework: net6.0
+            sdk: 6.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: net6.0
+            sdk: 6.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
+          - os: ubuntu-latest
+            framework: net5.0
+            runtime: -x64
+            codecov: false
+          - os: macos-latest
+            framework: net5.0
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: net5.0
+            runtime: -x64
+            codecov: false
+          - os: macos-latest
+            framework: netcoreapp3.1
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: netcoreapp3.1
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: netcoreapp2.1
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: net472
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: net472
+            runtime: -x86
+            codecov: false
 
-        runs-on: ${{matrix.options.os}}
+    runs-on: ${{matrix.options.os}}
 
-        steps:
-            - name: Git Config
-              shell: bash
-              run: |
-                  git config --global core.autocrlf false
-                  git config --global core.longpaths true
+    steps:
+      - name: Git Config
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
 
-            - name: Git Checkout
-              uses: actions/checkout@v2
-              with:
-                fetch-depth: 0
-                submodules: recursive
-            
-            # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
-            - name: Git Create LFS FileList
-              run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+      - name: Git Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-            - name: Git Setup LFS Cache
-              uses: actions/cache@v2
-              id: lfs-cache
-              with:
-                path: .git/lfs
-                key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+      # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
+      - name: Git Create LFS FileList
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
-            - name: Git Pull LFS
-              run: git lfs pull
+      - name: Git Setup LFS Cache
+        uses: actions/cache@v2
+        id: lfs-cache
+        with:
+          path: .git/lfs
+          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
 
-            - name: NuGet Install
-              uses: NuGet/setup-nuget@v1
+      - name: Git Pull LFS
+        run: git lfs pull
 
-            - name: NuGet Setup Cache
-              uses: actions/cache@v2
-              id: nuget-cache
-              with:
-                  path: ~/.nuget
-                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
-                  restore-keys: ${{ runner.os }}-nuget-
+      - name: NuGet Install
+        uses: NuGet/setup-nuget@v1
 
-            - name: DotNet Setup Preview
-              if: ${{ matrix.options.sdk-preview == true }}
-              uses: actions/setup-dotnet@v1
-              with:
-                dotnet-version: ${{ matrix.options.sdk }}
-                include-prerelease: true
+      - name: NuGet Setup Cache
+        uses: actions/cache@v2
+        id: nuget-cache
+        with:
+          path: ~/.nuget
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
+          restore-keys: ${{ runner.os }}-nuget-
 
-            - name: DotNet Build
-              if: ${{ matrix.options.sdk-preview != true }}
-              shell: pwsh
-              run: ./ci-build.ps1 "${{matrix.options.framework}}"
-              env:
-                SIXLABORS_TESTING: True
+      - name: DotNet Setup Preview
+        if: ${{ matrix.options.sdk-preview == true }}
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.options.sdk }}
+          include-prerelease: true
 
-            - name: DotNet Build Preview
-              if: ${{ matrix.options.sdk-preview == true }}
-              shell: pwsh
-              run: ./ci-build.ps1 "${{matrix.options.framework}}"
-              env:
-                SIXLABORS_TESTING_PREVIEW: True
+      - name: DotNet Build
+        if: ${{ matrix.options.sdk-preview != true }}
+        shell: pwsh
+        run: ./ci-build.ps1 "${{matrix.options.framework}}"
+        env:
+          SIXLABORS_TESTING: True
 
-            - name: DotNet Test
-              if: ${{ matrix.options.sdk-preview != true }}
-              shell: pwsh
-              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
-              env:
-                SIXLABORS_TESTING: True
-                XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+      - name: DotNet Build Preview
+        if: ${{ matrix.options.sdk-preview == true }}
+        shell: pwsh
+        run: ./ci-build.ps1 "${{matrix.options.framework}}"
+        env:
+          SIXLABORS_TESTING_PREVIEW: True
 
-            - name: DotNet Test Preview
-              if: ${{ matrix.options.sdk-preview == true }}
-              shell: pwsh
-              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
-              env:
-                SIXLABORS_TESTING_PREVIEW: True
-                XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+      - name: DotNet Test
+        if: ${{ matrix.options.sdk-preview != true }}
+        shell: pwsh
+        run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+        env:
+          SIXLABORS_TESTING: True
+          XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
-            - name: Export Failed Output
-              uses: actions/upload-artifact@v2
-              if: failure()
-              with:
-                name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
-                path: tests/Images/ActualOutput/
+      - name: DotNet Test Preview
+        if: ${{ matrix.options.sdk-preview == true }}
+        shell: pwsh
+        run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+        env:
+          SIXLABORS_TESTING_PREVIEW: True
+          XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
-    Publish:
-        needs: [Build]
+      - name: Export Failed Output
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+          path: tests/Images/ActualOutput/
 
-        runs-on: ubuntu-latest
+  Publish:
+    needs: [Build]
 
-        if: (github.event_name == 'push')
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Git Config
-              shell: bash
-              run: |
-                  git config --global core.autocrlf false
-                  git config --global core.longpaths true
+    if: (github.event_name == 'push')
 
-            - name: Git Checkout
-              uses: actions/checkout@v2
-              with:
-                fetch-depth: 0
-                submodules: recursive
+    steps:
+      - name: Git Config
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
 
-            - name: NuGet Install
-              uses: NuGet/setup-nuget@v1
+      - name: Git Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-            - name: NuGet Setup Cache
-              uses: actions/cache@v2
-              id: nuget-cache
-              with:
-                  path: ~/.nuget
-                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
-                  restore-keys: ${{ runner.os }}-nuget-
+      - name: NuGet Install
+        uses: NuGet/setup-nuget@v1
 
-            - name: DotNet Pack
-              shell: pwsh
-              run: ./ci-pack.ps1
+      - name: NuGet Setup Cache
+        uses: actions/cache@v2
+        id: nuget-cache
+        with:
+          path: ~/.nuget
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
+          restore-keys: ${{ runner.os }}-nuget-
 
-            - name: MyGet Publish
-              shell: pwsh
-              run: |
-                  dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v2/package
-                  dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v3/index.json
-              # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org
+      - name: DotNet Pack
+        shell: pwsh
+        run: ./ci-pack.ps1
+
+      - name: MyGet Publish
+        shell: pwsh
+        run: |
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v2/package
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v3/index.json
+        # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

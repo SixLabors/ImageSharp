@@ -5,6 +5,9 @@ using System;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
+    /// <summary>
+    /// The EXIF encoded string structure.
+    /// </summary>
     public readonly struct EncodedString : IEquatable<EncodedString>
     {
         /// <summary>

@@ -625,7 +625,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void ProcessApplicationHeaderMarker(BufferedReadStream stream, int remaining)
         {
             // We can only decode JFif identifiers.
-            // Some bad images contain multiple App0 markers (Issue 1932) so we check to see
+            // Some images contain multiple JFIF markers (Issue 1932) so we check to see
             // if it's already been read.
             if (remaining < JFifMarker.Length || (!this.jFif.Equals(default)))
             {

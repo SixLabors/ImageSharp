@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -84,6 +85,18 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         {
             new ExifProfile(null);
             new ExifProfile(Array.Empty<byte>());
+        }
+
+        [Fact]
+        public void EmptyWriter()
+        {
+            var profile = new ExifProfile() { Parts = ExifParts.GpsTags };
+            profile.SetValue(ExifTag.Copyright, "Copyright text");
+
+            byte[] bytes = profile.ToByteArray();
+
+            Assert.NotNull(bytes);
+            Assert.Empty(bytes);
         }
 
         [Fact]
@@ -420,7 +433,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             Assert.Equal(2, profile.Values.Count(v => (ExifTagValue)(ushort)v.Tag == ExifTagValue.DateTime));
 
             byte[] bytes = profile.ToByteArray();
-            Assert.Equal(525, bytes.Length);
+            Assert.Equal(531, bytes.Length);
 
             var profile2 = new ExifProfile(bytes);
             Assert.Equal(25, profile2.Values.Count);
@@ -485,6 +498,22 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             }
 
             return profile;
+        }
+
+        [Fact]
+        public void IfdStructure()
+        {
+            var exif = new ExifProfile();
+            exif.SetValue(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
+
+            Span<byte> actualBytes = exif.ToByteArray();
+
+            // Assert
+            int ifdOffset = ExifConstants.LittleEndianByteOrderMarker.Length;
+            Assert.Equal(8U, BinaryPrimitives.ReadUInt32LittleEndian(actualBytes.Slice(ifdOffset, 4)));
+
+            int nextIfdPointerOffset = ExifConstants.LittleEndianByteOrderMarker.Length + 4 + 2 + 12;
+            Assert.Equal(0U, BinaryPrimitives.ReadUInt32LittleEndian(actualBytes.Slice(nextIfdPointerOffset, 4)));
         }
 
         internal static ExifProfile GetExifProfile()

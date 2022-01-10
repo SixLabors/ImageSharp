@@ -294,7 +294,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.ExifVersion: return new ExifByteArray(ExifTag.ExifVersion, ExifDataType.Undefined);
                 case ExifTagValue.ComponentsConfiguration: return new ExifByteArray(ExifTag.ComponentsConfiguration, ExifDataType.Undefined);
                 case ExifTagValue.MakerNote: return new ExifByteArray(ExifTag.MakerNote, ExifDataType.Undefined);
-                case ExifTagValue.UserComment: return new ExifByteArray(ExifTag.UserComment, ExifDataType.Undefined);
+                case ExifTagValue.UserComment: return new ExifEncodedString(ExifTag.UserComment);
                 case ExifTagValue.FlashpixVersion: return new ExifByteArray(ExifTag.FlashpixVersion, ExifDataType.Undefined);
                 case ExifTagValue.SpatialFrequencyResponse: return new ExifByteArray(ExifTag.SpatialFrequencyResponse, ExifDataType.Undefined);
                 case ExifTagValue.SpatialFrequencyResponse2: return new ExifByteArray(ExifTag.SpatialFrequencyResponse2, ExifDataType.Undefined);
@@ -302,8 +302,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.CFAPattern: return new ExifByteArray(ExifTag.CFAPattern, ExifDataType.Undefined);
                 case ExifTagValue.DeviceSettingDescription: return new ExifByteArray(ExifTag.DeviceSettingDescription, ExifDataType.Undefined);
                 case ExifTagValue.ImageSourceData: return new ExifByteArray(ExifTag.ImageSourceData, ExifDataType.Undefined);
-                case ExifTagValue.GPSProcessingMethod: return new ExifByteArray(ExifTag.GPSProcessingMethod, ExifDataType.Undefined);
-                case ExifTagValue.GPSAreaInformation: return new ExifByteArray(ExifTag.GPSAreaInformation, ExifDataType.Undefined);
+                case ExifTagValue.GPSProcessingMethod: return new ExifEncodedString(ExifTag.GPSProcessingMethod);
+                case ExifTagValue.GPSAreaInformation: return new ExifEncodedString(ExifTag.GPSAreaInformation);
 
                 default: return null;
             }

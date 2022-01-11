@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.Tests.IO
 
         [Theory]
         [MemberData(nameof(BufferSizes))]
-        public void BufferedStreamThrowsOnBadPosition(int bufferSize)
+        public void BufferedStreamThrowsOnNegativePosition(int bufferSize)
         {
             this.configuration.StreamProcessingBufferSize = bufferSize;
             using (MemoryStream stream = this.CreateTestStream(bufferSize))
@@ -322,21 +322,35 @@ namespace SixLabors.ImageSharp.Tests.IO
                 using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     Assert.Throws<ArgumentOutOfRangeException>(() => reader.Position = -stream.Length);
-                    Assert.Throws<ArgumentOutOfRangeException>(() => reader.Position = stream.Length + 1);
                 }
             }
         }
 
-        [Fact]
-        public void BufferedStreamCanSetPositionToEnd()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanSetPositionToEnd(int bufferSize)
         {
-            var bufferSize = 8;
             this.configuration.StreamProcessingBufferSize = bufferSize;
             using (MemoryStream stream = this.CreateTestStream(bufferSize * 2))
             {
                 using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     reader.Position = reader.Length;
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanSetPositionPastTheEnd(int bufferSize)
+        {
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 2))
+            {
+                using (var reader = new BufferedReadStream(this.configuration, stream))
+                {
+                    reader.Position = reader.Length + 1;
+                    Assert.Equal(stream.Length + 1, stream.Position);
                 }
             }
         }

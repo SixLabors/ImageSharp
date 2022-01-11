@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp
@@ -177,6 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Reads an the extended webp file header. An extended file header consists of:
         /// - A 'VP8X' chunk with information about features used in the file.
         /// - An optional 'ICCP' chunk with color profile.
+        /// - An optional 'XMP' chunk with metadata.
         /// - An optional 'ANIM' chunk with animation control data.
         /// - An optional 'ALPH' chunk with alpha channel data.
         /// After the image header, image data will follow. After that optional image metadata chunks (EXIF and XMP) can follow.
@@ -228,12 +230,27 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.buffer[3] = 0;
             uint height = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
-            // Optional chunks ICCP, ALPH and ANIM can follow here.
-            WebpChunkType chunkType = this.ReadChunkType();
-            while (IsOptionalVp8XChunk(chunkType))
+            // Read all the chunks in the order they occur.
+            var info = new WebpImageInfo();
+            while (this.currentStream.Position < this.currentStream.Length)
             {
-                this.ParseOptionalExtendedChunks(chunkType, features);
-                chunkType = this.ReadChunkType();
+                WebpChunkType chunkType = this.ReadChunkType();
+                if (chunkType == WebpChunkType.Vp8)
+                {
+                    info = this.ReadVp8Header(features);
+                }
+                else if (chunkType == WebpChunkType.Vp8L)
+                {
+                    info = this.ReadVp8LHeader(features);
+                }
+                else if (IsOptionalVp8XChunk(chunkType))
+                {
+                    this.ParseOptionalExtendedChunks(chunkType, features);
+                }
+                else
+                {
+                    WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
+                }
             }
 
             if (features.Animation)
@@ -242,17 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 return new WebpImageInfo() { Width = width, Height = height, Features = features };
             }
 
-            switch (chunkType)
-            {
-                case WebpChunkType.Vp8:
-                    return this.ReadVp8Header(features);
-                case WebpChunkType.Vp8L:
-                    return this.ReadVp8LHeader(features);
-            }
-
-            WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
-
-            return new WebpImageInfo();
+            return info;
         }
 
         /// <summary>
@@ -413,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <summary>
-        /// Parses optional VP8X chunks, which can be ICCP, ANIM or ALPH chunks.
+        /// Parses optional VP8X chunks, which can be ICCP, XMP, ANIM or ALPH chunks.
         /// </summary>
         /// <param name="chunkType">The chunk type.</param>
         /// <param name="features">The webp image features.</param>
@@ -440,6 +447,38 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
                     break;
 
+                case WebpChunkType.Exif:
+                    uint exifChunkSize = this.ReadChunkSize();
+                    if (this.IgnoreMetadata)
+                    {
+                        this.currentStream.Skip((int)exifChunkSize);
+                    }
+                    else
+                    {
+                        byte[] exifData = new byte[exifChunkSize];
+                        this.currentStream.Read(exifData, 0, (int)exifChunkSize);
+                        var profile = new ExifProfile(exifData);
+                        this.Metadata.ExifProfile = profile;
+                    }
+
+                    break;
+
+                case WebpChunkType.Xmp:
+                    uint xmpChunkSize = this.ReadChunkSize();
+                    if (this.IgnoreMetadata)
+                    {
+                        this.currentStream.Skip((int)xmpChunkSize);
+                    }
+                    else
+                    {
+                        byte[] xmpData = new byte[xmpChunkSize];
+                        this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
+                        var profile = new XmpProfile(xmpData);
+                        this.Metadata.XmpProfile = profile;
+                    }
+
+                    break;
+
                 case WebpChunkType.Animation:
                     // TODO: Decoding animation is not implemented yet.
                     break;
@@ -450,6 +489,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     int alphaDataSize = (int)(alphaChunkSize - 1);
                     features.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
                     this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
+                    break;
+                default:
+                    WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
                     break;
             }
         }
@@ -530,7 +572,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             WebpChunkType.Alpha => true,
             WebpChunkType.Animation => true,
+            WebpChunkType.Exif => true,
             WebpChunkType.Iccp => true,
+            WebpChunkType.Xmp => true,
             _ => false
         };
     }

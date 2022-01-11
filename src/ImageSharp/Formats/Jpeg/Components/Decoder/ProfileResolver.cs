@@ -61,6 +61,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         };
 
         /// <summary>
+        /// Gets the XMP specific markers.
+        /// </summary>
+        public static ReadOnlySpan<byte> XmpMarker => new[]
+        {
+            (byte)'h', (byte)'t', (byte)'t', (byte)'p', (byte)':', (byte)'/', (byte)'/',
+            (byte)'n', (byte)'s', (byte)'.', (byte)'a', (byte)'d', (byte)'o', (byte)'b',
+            (byte)'e', (byte)'.', (byte)'c', (byte)'o', (byte)'m', (byte)'/', (byte)'x',
+            (byte)'a', (byte)'p', (byte)'/', (byte)'1', (byte)'.', (byte)'0', (byte)'/',
+            (byte)0
+        };
+
+        /// <summary>
         /// Gets the Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>.
         /// </summary>
         public static ReadOnlySpan<byte> AdobeMarker => new[]

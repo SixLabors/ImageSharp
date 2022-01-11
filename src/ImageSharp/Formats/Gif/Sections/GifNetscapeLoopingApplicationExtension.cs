@@ -12,6 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         public byte Label => GifConstants.ApplicationExtensionLabel;
 
+        public int ContentLength => 16;
+
         /// <summary>
         /// Gets the repeat count.
         /// 0 means loop indefinitely. Count is set as play n + 1 times.

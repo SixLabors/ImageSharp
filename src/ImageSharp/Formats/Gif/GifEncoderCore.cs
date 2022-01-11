@@ -10,6 +10,7 @@ using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -121,11 +122,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Write the comments.
             this.WriteComments(gifMetadata, stream);
 
-            // Write application extension to allow additional frames.
-            if (image.Frames.Count > 1)
-            {
-                this.WriteApplicationExtension(stream, gifMetadata.RepeatCount);
-            }
+            // Write application extensions.
+            this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, metadata.XmpProfile);
 
             if (useGlobalTable)
             {
@@ -326,14 +324,23 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the application extension to the stream.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
+        /// <param name="frameCount">The frame count fo this image.</param>
         /// <param name="repeatCount">The animated image repeat count.</param>
-        private void WriteApplicationExtension(Stream stream, ushort repeatCount)
+        /// <param name="xmpProfile">The XMP metadata profile. Null if profile is not to be written.</param>
+        private void WriteApplicationExtensions(Stream stream, int frameCount, ushort repeatCount, XmpProfile xmpProfile)
         {
-            // Application Extension Header
-            if (repeatCount != 1)
+            // Application Extension: Loop repeat count.
+            if (frameCount > 1 && repeatCount != 1)
             {
                 var loopingExtension = new GifNetscapeLoopingApplicationExtension(repeatCount);
                 this.WriteExtension(loopingExtension, stream);
+            }
+
+            // Application Extension: XMP Profile.
+            if (xmpProfile != null)
+            {
+                var xmpExtension = new GifXmpApplicationExtension(xmpProfile.Data);
+                this.WriteExtension(xmpExtension, stream);
             }
         }
 
@@ -420,14 +427,28 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteExtension<TGifExtension>(TGifExtension extension, Stream stream)
             where TGifExtension : struct, IGifExtension
         {
-            this.buffer[0] = GifConstants.ExtensionIntroducer;
-            this.buffer[1] = extension.Label;
+            IMemoryOwner<byte> owner = null;
+            Span<byte> buffer;
+            int extensionSize = extension.ContentLength;
+            if (extensionSize > this.buffer.Length - 3)
+            {
+                owner = this.memoryAllocator.Allocate<byte>(extensionSize + 3);
+                buffer = owner.GetSpan();
+            }
+            else
+            {
+                buffer = this.buffer;
+            }
 
-            int extensionSize = extension.WriteTo(this.buffer.AsSpan(2));
+            buffer[0] = GifConstants.ExtensionIntroducer;
+            buffer[1] = extension.Label;
 
-            this.buffer[extensionSize + 2] = GifConstants.Terminator;
+            extension.WriteTo(buffer.Slice(2));
 
-            stream.Write(this.buffer, 0, extensionSize + 3);
+            buffer[extensionSize + 2] = GifConstants.Terminator;
+
+            stream.Write(buffer, 0, extensionSize + 3);
+            owner?.Dispose();
         }
 
         /// <summary>

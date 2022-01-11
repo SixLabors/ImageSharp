@@ -87,7 +87,6 @@ namespace SixLabors.ImageSharp.IO
             set
             {
                 Guard.MustBeGreaterThanOrEqualTo(value, 0, nameof(this.Position));
-                Guard.MustBeLessThanOrEqualTo(value, this.Length, nameof(this.Position));
 
                 // Only reset readBufferIndex if we are out of bounds of our working buffer
                 // otherwise we should simply move the value by the diff.

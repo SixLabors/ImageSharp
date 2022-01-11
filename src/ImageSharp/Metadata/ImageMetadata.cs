@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Metadata
 {
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Metadata
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageMetadata"/> class.
         /// </summary>
-        internal ImageMetadata()
+        public ImageMetadata()
         {
             this.horizontalResolution = DefaultHorizontalResolution;
             this.verticalResolution = DefaultVerticalResolution;
@@ -120,12 +121,17 @@ namespace SixLabors.ImageSharp.Metadata
         public ExifProfile ExifProfile { get; set; }
 
         /// <summary>
+        /// Gets or sets the XMP profile.
+        /// </summary>
+        public XmpProfile XmpProfile { get; set; }
+
+        /// <summary>
         /// Gets or sets the list of ICC profiles.
         /// </summary>
         public IccProfile IccProfile { get; set; }
 
         /// <summary>
-        /// Gets or sets the iptc profile.
+        /// Gets or sets the IPTC profile.
         /// </summary>
         public IptcProfile IptcProfile { get; set; }
 

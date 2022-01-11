@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 {
@@ -132,20 +133,30 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         /// <param name="exifProfile">The exif profile.</param>
+        /// <param name="xmpProfile">The XMP profile.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height, bool hasAlpha)
+        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha)
         {
             bool isVp8X = false;
             byte[] exifBytes = null;
+            byte[] xmpBytes = null;
             uint riffSize = 0;
             if (exifProfile != null)
             {
                 isVp8X = true;
                 riffSize += ExtendedFileChunkSize;
                 exifBytes = exifProfile.ToByteArray();
-                riffSize += this.ExifChunkSize(exifBytes);
+                riffSize += this.MetadataChunkSize(exifBytes);
+            }
+
+            if (xmpProfile != null)
+            {
+                isVp8X = true;
+                riffSize += ExtendedFileChunkSize;
+                xmpBytes = xmpProfile.Data;
+                riffSize += this.MetadataChunkSize(xmpBytes);
             }
 
             this.Finish();
@@ -160,7 +171,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             // Write VP8X, header if necessary.
             if (isVp8X)
             {
-                this.WriteVp8XHeader(stream, exifProfile, width, height, hasAlpha);
+                this.WriteVp8XHeader(stream, exifProfile, xmpProfile, width, height, hasAlpha);
             }
 
             // Write magic bytes indicating its a lossless webp.
@@ -180,7 +191,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 
             if (exifProfile != null)
             {
-                this.WriteExifProfile(stream, exifBytes);
+                this.WriteMetadataProfile(stream, exifBytes, WebpChunkType.Exif);
+            }
+
+            if (xmpProfile != null)
+            {
+                this.WriteMetadataProfile(stream, xmpBytes, WebpChunkType.Xmp);
             }
         }
 

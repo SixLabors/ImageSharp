@@ -19,6 +19,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -194,7 +195,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
@@ -316,7 +317,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
                                 if (this.colorMetadataOnly)
@@ -1224,13 +1225,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadInternationalTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadInternationalTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
                 return;
             }
 
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
             int zeroIndexKeyword = data.IndexOf((byte)0);
             if (zeroIndexKeyword < PngConstants.MinTextKeywordLength || zeroIndexKeyword > PngConstants.MaxTextKeywordLength)
             {
@@ -1276,13 +1278,18 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
                 {
-                    metadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
+                    pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
                 }
+            }
+            else if (this.IsXmpTextData(keywordBytes))
+            {
+                XmpProfile xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
+                metadata.XmpProfile = xmpProfile;
             }
             else
             {
                 string value = PngConstants.TranslatedEncoding.GetString(data.Slice(dataStartIdx));
-                metadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
+                pngMetadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
             }
         }
 
@@ -1549,6 +1556,8 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             return true;
         }
+
+        private bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes) => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
 
         private void SwapScanlineBuffers()
         {

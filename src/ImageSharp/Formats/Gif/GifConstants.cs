@@ -121,5 +121,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
             (byte)'P', (byte)'E',
             (byte)'2', (byte)'.', (byte)'0'
         };
+
+        /// <summary>
+        /// Gets the ASCII encoded application identification bytes.
+        /// </summary>
+        internal static ReadOnlySpan<byte> XmpApplicationIdentificationBytes => new[]
+        {
+            (byte)'X', (byte)'M', (byte)'P',
+            (byte)' ', (byte)'D', (byte)'a',
+            (byte)'t', (byte)'a',
+            (byte)'X', (byte)'M', (byte)'P'
+        };
     }
 }

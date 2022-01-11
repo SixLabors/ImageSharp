@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 {
@@ -90,34 +91,35 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         }
 
         /// <summary>
-        /// Calculates the exif chunk size.
+        /// Calculates the chunk size of EXIF or XMP metadata.
         /// </summary>
-        /// <param name="exifBytes">The exif profile bytes.</param>
+        /// <param name="metadataBytes">The metadata profile bytes.</param>
         /// <returns>The exif chunk size in bytes.</returns>
-        protected uint ExifChunkSize(byte[] exifBytes)
+        protected uint MetadataChunkSize(byte[] metadataBytes)
         {
-            uint exifSize = (uint)exifBytes.Length;
-            uint exifChunkSize = WebpConstants.ChunkHeaderSize + exifSize + (exifSize & 1);
+            uint metaSize = (uint)metadataBytes.Length;
+            uint metaChunkSize = WebpConstants.ChunkHeaderSize + metaSize + (metaSize & 1);
 
-            return exifChunkSize;
+            return metaChunkSize;
         }
 
         /// <summary>
-        /// Writes the Exif profile to the stream.
+        /// Writes a metadata profile (EXIF or XMP) to the stream.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
-        /// <param name="exifBytes">The exif profile bytes.</param>
-        protected void WriteExifProfile(Stream stream, byte[] exifBytes)
+        /// <param name="metadataBytes">The metadata profile's bytes.</param>
+        /// <param name="chunkType">The chuck type to write.</param>
+        protected void WriteMetadataProfile(Stream stream, byte[] metadataBytes, WebpChunkType chunkType)
         {
-            DebugGuard.NotNull(exifBytes, nameof(exifBytes));
+            DebugGuard.NotNull(metadataBytes, nameof(metadataBytes));
 
-            uint size = (uint)exifBytes.Length;
+            uint size = (uint)metadataBytes.Length;
             Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
-            BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Exif);
+            BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)chunkType);
             stream.Write(buf);
             BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
             stream.Write(buf);
-            stream.Write(exifBytes);
+            stream.Write(metadataBytes);
 
             // Add padding byte if needed.
             if ((size & 1) == 1)
@@ -131,10 +133,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
+        /// <param name="xmpProfile">A XMP profile or null, if it does not exist.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, uint width, uint height, bool hasAlpha)
+        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha)
         {
             if (width > MaxDimension || height > MaxDimension)
             {
@@ -152,6 +155,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             {
                 // Set exif bit.
                 flags |= 8;
+            }
+
+            if (xmpProfile != null)
+            {
+                // Set xmp bit.
+                flags |= 4;
             }
 
             if (hasAlpha)

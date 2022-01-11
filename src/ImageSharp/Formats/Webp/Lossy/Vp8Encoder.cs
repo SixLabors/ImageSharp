@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
@@ -355,8 +356,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.AdjustFilterStrength();
 
             // Write bytes from the bitwriter buffer to the stream.
-            image.Metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height, hasAlpha);
+            ImageMetadata metadata = image.Metadata;
+            metadata.SyncProfiles();
+            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha);
         }
 
         /// <inheritdoc/>

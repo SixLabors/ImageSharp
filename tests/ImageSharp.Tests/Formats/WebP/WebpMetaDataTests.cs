@@ -64,6 +64,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
+        [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, true)]
+        public async void IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
+
+            using Image<TPixel> image = await provider.GetImageAsync(decoder);
+            if (ignoreMetadata)
+            {
+                Assert.Null(image.Metadata.XmpProfile);
+            }
+            else
+            {
+                Assert.NotNull(image.Metadata.XmpProfile);
+                Assert.NotEmpty(image.Metadata.XmpProfile.Data);
+            }
+        }
+
+        [Theory]
         [InlineData(WebpFileFormatType.Lossy)]
         [InlineData(WebpFileFormatType.Lossless)]
         public void Encode_WritesExifWithPadding(WebpFileFormatType fileFormatType)

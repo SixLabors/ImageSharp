@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Linq;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using Xunit;
 using ExifProfile = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifProfile;
 using ExifTag = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifTag;
@@ -41,10 +41,10 @@ namespace SixLabors.ImageSharp.Tests.Metadata
         public void CloneIsDeep()
         {
             // arrange
-            byte[] xmpProfile = { 1, 2, 3 };
             var exifProfile = new ExifProfile();
             exifProfile.SetValue(ExifTag.Software, "UnitTest");
             exifProfile.SetValue(ExifTag.Artist, "UnitTest");
+            var xmpProfile = new XmpProfile(new byte[0]);
             var iccProfile = new IccProfile()
             {
                 Header = new IccProfileHeader()
@@ -72,8 +72,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata
             Assert.NotNull(clone.IptcProfile);
             Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
             Assert.True(metaData.ExifProfile.Values.Count == clone.ExifProfile.Values.Count);
-            Assert.False(metaData.XmpProfile.Equals(clone.XmpProfile));
-            Assert.True(metaData.XmpProfile.SequenceEqual(clone.XmpProfile));
+            Assert.False(ReferenceEquals(metaData.XmpProfile, clone.XmpProfile));
+            Assert.True(metaData.XmpProfile.Data.Equals(clone.XmpProfile.Data));
             Assert.False(metaData.GetGifMetadata().Equals(clone.GetGifMetadata()));
             Assert.False(metaData.IccProfile.Equals(clone.IccProfile));
             Assert.False(metaData.IptcProfile.Equals(clone.IptcProfile));

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,6 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the label identifying the extensions.
         /// </summary>
         byte Label { get; }
+
+        /// <summary>
+        /// Gets the length of the contents of this extension.
+        /// </summary>
+        int ContentLength { get; }
 
         /// <summary>
         /// Writes the extension data to the buffer.

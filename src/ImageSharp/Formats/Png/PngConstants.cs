@@ -78,5 +78,29 @@ namespace SixLabors.ImageSharp.Formats.Png
             0x1A, // EOF
             0x0A // LF
         };
+
+        /// <summary>
+        /// Gets the keyword of the XMP metadata, encoded in an iTXT chunk.
+        /// </summary>
+        public static ReadOnlySpan<byte> XmpKeyword => new byte[]
+        {
+            (byte)'X',
+            (byte)'M',
+            (byte)'L',
+            (byte)':',
+            (byte)'c',
+            (byte)'o',
+            (byte)'m',
+            (byte)'.',
+            (byte)'a',
+            (byte)'d',
+            (byte)'o',
+            (byte)'b',
+            (byte)'e',
+            (byte)'.',
+            (byte)'x',
+            (byte)'m',
+            (byte)'p'
+        };
     }
 }

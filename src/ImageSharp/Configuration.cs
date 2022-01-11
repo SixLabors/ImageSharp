@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets or the <see cref="ImageFormatManager"/> that is currently in use.
         /// </summary>
-        public ImageFormatManager ImageFormatsManager { get; } = new ImageFormatManager();
+        public ImageFormatManager ImageFormatsManager { get; private set; } = new ImageFormatManager();
 
         /// <summary>
         /// Gets or sets the <see cref="Memory.MemoryAllocator"/> that is currently in use.

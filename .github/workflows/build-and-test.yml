@@ -44,6 +44,10 @@ jobs:
             framework: net5.0
             runtime: -x64
             codecov: false
+          - os: ubuntu-latest
+            framework: netcoreapp3.1
+            runtime: -x64
+            codecov: false
           - os: macos-latest
             framework: netcoreapp3.1
             runtime: -x64

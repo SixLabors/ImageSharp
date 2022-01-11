@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -62,6 +62,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public bool TransparencyFlag => (this.Packed & 0x01) == 1;
 
         byte IGifExtension.Label => GifConstants.GraphicControlLabel;
+
+        int IGifExtension.ContentLength => 5;
 
         public int WriteTo(Span<byte> buffer)
         {

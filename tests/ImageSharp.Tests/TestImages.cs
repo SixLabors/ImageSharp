@@ -61,6 +61,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string David = "Png/david.png";
             public const string TestPattern31x31 = "Png/testpattern31x31.png";
             public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
+            public const string XmpColorPalette = "Png/xmp-colorpalette.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -218,6 +219,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ArithmeticCodingProgressive = "Jpg/progressive/arithmetic_progressive.jpg";
                 public const string Lossless = "Jpg/baseline/lossless.jpg";
                 public const string Winter444_Interleaved = "Jpg/baseline/winter444_interleaved.jpg";
+                public const string Metadata = "Jpg/baseline/Metadata-test-file.jpg";
+                public const string ExtendedXmp = "Jpg/baseline/extended-xmp.jpg";
 
                 public static readonly string[] All =
                 {
@@ -626,6 +629,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Earth = "Webp/earth_lossy.webp";
                 public const string WithExif = "Webp/exif_lossy.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
+                public const string WithXmp = "Webp/xmp_lossy.webp";
                 public const string BikeSmall = "Webp/bike_lossless_small.webp";
 
                 // Lossy images without macroblock filtering.

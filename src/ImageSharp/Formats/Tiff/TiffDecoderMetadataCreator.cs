@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -37,6 +38,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                     {
                         frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
+                    }
+
+                    IExifValue<byte[]> xmpProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.XMP);
+                    if (xmpProfileBytes != null)
+                    {
+                        frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
                     }
 
                     IExifValue<byte[]> iccProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);

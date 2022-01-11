@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// The list of supported <see cref="IImageFormatDetector"/>s.
         /// </summary>
-        private readonly ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new();
+        private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFormatManager" /> class.
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Removes all the registered image format detectors.
         /// </summary>
-        public void ClearImageFormatDetectors() => this.imageFormatDetectors.Clear();
+        public void ClearImageFormatDetectors() => this.imageFormatDetectors = new();
 
         /// <summary>
         /// Adds a new detector for detecting mime types.

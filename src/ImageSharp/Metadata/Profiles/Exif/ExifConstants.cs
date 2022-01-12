@@ -9,18 +9,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal static class ExifConstants
     {
+        public const int CharacterCodeBytesLength = 8;
+
         private const ulong AsciiCode = 0x_41_53_43_49_49_00_00_00;
         private const ulong JISCode = 0x_4A_49_53_00_00_00_00_00;
         private const ulong UnicodeCode = 0x_55_4E_49_43_4F_44_45_00;
         private const ulong UndefinedCode = 0x_00_00_00_00_00_00_00_00;
-
-        // This uses C# compiler's optimization to refer to the data segment directly. No allocation occurs.
-        private static ReadOnlySpan<byte> AsciiCodeBytes => new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0 };
-        private static readonly byte[] JISCodeBytes = { 0x4A, 0x49, 0x53, 0, 0, 0, 0, 0 };
-        private static readonly byte[] UnicodeCodeBytes = { 0x55, 0x4E, 0x49, 0x43, 0x4F, 0x44, 0x45, 0 };
-        private static readonly byte[] UndefinedCodeBytes = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
-        public const int CharacterCodeBytesLength = 8;
 
         public static ReadOnlySpan<byte> LittleEndianByteOrderMarker => new byte[]
         {
@@ -41,6 +35,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static Encoding DefaultAsciiEncoding => Encoding.UTF8;
 
         public static Encoding JIS0208Encoding => Encoding.GetEncoding(932);
+
+        private static ReadOnlySpan<byte> AsciiCodeBytes => new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0 };
+
+        private static ReadOnlySpan<byte> JISCodeBytes => new byte[] { 0x4A, 0x49, 0x53, 0, 0, 0, 0, 0 };
+
+        private static ReadOnlySpan<byte> UnicodeCodeBytes => new byte[] { 0x55, 0x4E, 0x49, 0x43, 0x4F, 0x44, 0x45, 0 };
+
+        private static ReadOnlySpan<byte> UndefinedCodeBytes => new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 
         public static bool TryDetect(ReadOnlySpan<byte> buffer, out EncodedStringCode code)
         {

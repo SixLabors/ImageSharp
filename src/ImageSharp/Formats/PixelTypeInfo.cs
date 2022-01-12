@@ -15,8 +15,17 @@ namespace SixLabors.ImageSharp.Formats
         /// Initializes a new instance of the <see cref="PixelTypeInfo"/> class.
         /// </summary>
         /// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
-        /// <param name="alpha">Tthe pixel alpha transparency behavior.</param>
-        internal PixelTypeInfo(int bitsPerPixel, PixelAlphaRepresentation? alpha = null)
+        public PixelTypeInfo(int bitsPerPixel)
+        {
+            this.BitsPerPixel = bitsPerPixel;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelTypeInfo"/> class.
+        /// </summary>
+        /// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
+        /// <param name="alpha">The pixel alpha transparency behavior.</param>
+        public PixelTypeInfo(int bitsPerPixel, PixelAlphaRepresentation alpha)
         {
             this.BitsPerPixel = bitsPerPixel;
             this.AlphaRepresentation = alpha;

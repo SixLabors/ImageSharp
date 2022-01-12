@@ -122,25 +122,25 @@ namespace SixLabors.ImageSharp
         public ReadOrigin ReadOrigin { get; set; } = ReadOrigin.Current;
 
         /// <summary>
-        /// Gets or sets the <see cref="ImageFormatManager"/> that is currently in use.
+        /// Gets or the <see cref="ImageFormatManager"/> that is currently in use.
         /// </summary>
-        public ImageFormatManager ImageFormatsManager { get; set; } = new ImageFormatManager();
+        public ImageFormatManager ImageFormatsManager { get; private set; } = new ImageFormatManager();
 
         /// <summary>
-        /// Gets or sets the <see cref="ImageSharp.Memory.MemoryAllocator"/> that is currently in use.
-        /// Defaults to <see cref="ImageSharp.Memory.MemoryAllocator.Default"/>.
+        /// Gets or sets the <see cref="Memory.MemoryAllocator"/> that is currently in use.
+        /// Defaults to <see cref="MemoryAllocator.Default"/>.
         /// <para />
         /// Allocators are expensive, so it is strongly recommended to use only one busy instance per process.
         /// In case you need to customize it, you can ensure this by changing
         /// </summary>
         /// <remarks>
         /// It's possible to reduce allocator footprint by assigning a custom instance created with
-        /// <see cref="Memory.MemoryAllocator.Create(MemoryAllocatorOptions)"/>, but note that since the default pooling
+        /// <see cref="MemoryAllocator.Create(MemoryAllocatorOptions)"/>, but note that since the default pooling
         /// allocators are expensive, it is strictly recommended to use a single process-wide allocator.
         /// You can ensure this by altering the allocator of <see cref="Default"/>, or by implementing custom application logic that
         /// manages allocator lifetime.
         /// <para />
-        /// If an allocator has to be dropped for some reason, <see cref="Memory.MemoryAllocator.ReleaseRetainedResources"/>
+        /// If an allocator has to be dropped for some reason, <see cref="MemoryAllocator.ReleaseRetainedResources"/>
         /// shall be invoked after disposing all associated <see cref="Image"/> instances.
         /// </remarks>
         public MemoryAllocator MemoryAllocator
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp
         /// Creates a shallow copy of the <see cref="Configuration"/>.
         /// </summary>
         /// <returns>A new configuration instance.</returns>
-        public Configuration Clone() => new Configuration
+        public Configuration Clone() => new()
         {
             MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
             StreamProcessingBufferSize = this.StreamProcessingBufferSize,
@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp
         /// <see cref="WebpConfigurationModule"/>.
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
-        internal static Configuration CreateDefaultInstance() => new Configuration(
+        internal static Configuration CreateDefaultInstance() => new(
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         // TODO: A JPEGsnoop & metadata expert should review if the Exif/Icc expectations are correct.
         // I'm seeing several entries with Exif-related names in images where we do not decode an exif profile. (- Anton)
         public static readonly TheoryData<bool, string, int, bool, bool> MetadataTestData =
-        new TheoryData<bool, string, int, bool, bool>
+        new()
         {
             { false, TestImages.Jpeg.Progressive.Progress, 24, false, false },
             { false, TestImages.Jpeg.Progressive.Fb, 24, false, true },
@@ -43,15 +43,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         };
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
+        new()
         {
             { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1, PixelResolutionUnit.AspectRatio },
             { TestImages.Jpeg.Baseline.Snake, 300, 300, PixelResolutionUnit.PixelsPerInch },
-            { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
+            { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch },
+            { TestImages.Jpeg.Issues.MultipleApp01932, 400, 400, PixelResolutionUnit.PixelsPerInch }
         };
 
         public static readonly TheoryData<string, int> QualityFiles =
-        new TheoryData<string, int>
+        new()
         {
             { TestImages.Jpeg.Baseline.Calliphora, 80 },
             { TestImages.Jpeg.Progressive.Fb, 75 },

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -103,26 +103,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         /// <inheritdoc/>
         public bool Equals(JFifMarker other)
-        {
-            return this.MajorVersion == other.MajorVersion
+            => this.MajorVersion == other.MajorVersion
                 && this.MinorVersion == other.MinorVersion
                 && this.DensityUnits == other.DensityUnits
                 && this.XDensity == other.XDensity
                 && this.YDensity == other.YDensity;
-        }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is JFifMarker other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.MajorVersion,
                 this.MinorVersion,
                 this.DensityUnits,
                 this.XDensity,
                 this.YDensity);
-        }
     }
 }

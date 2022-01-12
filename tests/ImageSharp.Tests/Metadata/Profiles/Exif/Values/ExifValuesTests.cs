@@ -605,7 +605,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             var expected = new EncodedString("test string", EncodedStringCode.JIS);
             ExifValue value = ExifValues.Create(tag);
 
-            Assert.False(value.TrySetValue(expected.ToString()));
+            Assert.False(value.TrySetValue(123));
             Assert.True(value.TrySetValue(expected));
 
             var typed = (ExifEncodedString)value;

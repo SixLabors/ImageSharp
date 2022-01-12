@@ -14,7 +14,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private const ulong UnicodeCode = 0x_55_4E_49_43_4F_44_45_00;
         private const ulong UndefinedCode = 0x_00_00_00_00_00_00_00_00;
 
-        private static readonly byte[] AsciiCodeBytes = { 0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0 };
+        // This uses C# compiler's optimization to refer to the data segment directly. No allocation occurs.
+        private static ReadOnlySpan<byte> AsciiCodeBytes => new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0 };
         private static readonly byte[] JISCodeBytes = { 0x4A, 0x49, 0x53, 0, 0, 0, 0, 0 };
         private static readonly byte[] UnicodeCodeBytes = { 0x55, 0x4E, 0x49, 0x43, 0x4F, 0x44, 0x45, 0 };
         private static readonly byte[] UndefinedCodeBytes = { 0, 0, 0, 0, 0, 0, 0, 0 };

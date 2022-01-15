@@ -321,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 }
 
                 nint i;
-                var last = Vector128<int>.Zero.WithElement(0, dst[0]);
+                Vector128<int> last = Vector128<int>.Zero.WithElement(0, dst[0]);
                 ref byte srcRef = ref MemoryMarshal.GetReference(input);
                 for (i = 1; i + 8 <= width; i += 8)
                 {
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
                 for (; i < width; ++i)
                 {
-                    dst[i] = (byte)(input[i] + dst[i - 1]);
+                    dst[(int)i] = (byte)(input[(int)i] + dst[(int)i - 1]);
                 }
             }
             else
@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         private static void VerticalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
         {
-            if (prev == null)
+            if (prev.IsEmpty)
             {
                 HorizontalUnfilter(null, input, dst, width);
             }
@@ -382,7 +382,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
                     for (; i < width; i++)
                     {
-                        dst[i] = (byte)(prev[i] + input[i]);
+                        dst[(int)i] = (byte)(prev[(int)i] + input[(int)i]);
                     }
                 }
                 else
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         private static void GradientUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
         {
-            if (prev == null)
+            if (prev.IsEmpty)
             {
                 HorizontalUnfilter(null, input, dst, width);
             }

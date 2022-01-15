@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                     byte[] valueBytes;
                     if (this.Strict && value.Length > maxLength)
                     {
-                        var cappedValue = value.Substring(0, maxLength);
+                        string cappedValue = value.Substring(0, maxLength);
                         valueBytes = this.encoding.GetBytes(cappedValue);
 
                         // It is still possible that the bytes of the string exceed the limit.

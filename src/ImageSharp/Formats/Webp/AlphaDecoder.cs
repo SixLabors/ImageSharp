@@ -314,14 +314,14 @@ namespace SixLabors.ImageSharp.Formats.Webp
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
-                dst[0] = (byte)(input[0] + (prev == null ? 0 : prev[0]));
+                dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));
                 if (width <= 1)
                 {
                     return;
                 }
 
-                int i;
-                var last = Vector128.Create(dst[0], 0, 0, 0);
+                nint i;
+                var last = Vector128<int>.Zero.WithElement(0, dst[0]);
                 ref byte srcRef = ref MemoryMarshal.GetReference(input);
                 for (i = 1; i + 8 <= width; i += 8)
                 {
@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             else
 #endif
             {
-                byte pred = (byte)(prev == null ? 0 : prev[0]);
+                byte pred = (byte)(prev.IsEmpty ? 0 : prev[0]);
 
                 for (int i = 0; i < width; i++)
                 {
@@ -369,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 #if SUPPORTS_RUNTIME_INTRINSICS
                 if (Avx2.IsSupported)
                 {
-                    int i;
+                    nint i;
                     int maxPos = width & ~31;
                     for (i = 0; i < maxPos; i += 32)
                     {

@@ -282,6 +282,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
                 uint byteCount = BinaryPrimitives.ReadUInt16BigEndian(this.Data.AsSpan(offset, 2));
                 offset += 2;
+                if (byteCount > MaxStandardDataTagSize)
+                {
+                    // Extended data set tag's are not supported.
+                    break;
+                }
 
                 if (isValidTagMarker && byteCount > 0 && (offset + byteCount <= this.Data.Length))
                 {

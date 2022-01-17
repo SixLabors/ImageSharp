@@ -246,6 +246,23 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             int i = 0;
             foreach (IptcValue value in this.Values)
             {
+                // Standard DataSet Tag
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | Octet Pos | Name           | Description                                                                     |
+                // +==========-+================+=================================================================================+
+                // | 1         | Tag Marker     | Is the tag marker that initiates the start of a DataSet 0x1c.                   |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | 2         | Record Number  | Octet 2 is the binary representation of the record number. Note that the        |
+                // |           |                | envelope record number is always 1, and that the application records are        |
+                // |           |                | numbered 2 through 6, the pre-object descriptor record is 7, the object record  |
+                // |           |                | is 8, and the post - object descriptor record is 9.                             |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | 3         | DataSet Number | Octet 3 is the binary representation of the DataSet number.                     |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | 4 and 5   | Data Field     | Octets 4 and 5, taken together, are the binary count of the number of octets in |
+                // |           | Octet Count    | the following data field(32767 or fewer octets). Note that the value of bit 7 of|
+                // |           |                | octet 4(most significant bit) always will be 0.                                 |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
                 this.Data[i++] = IptcTagMarkerByte;
                 this.Data[i++] = 2;
                 this.Data[i++] = (byte)value.Tag;

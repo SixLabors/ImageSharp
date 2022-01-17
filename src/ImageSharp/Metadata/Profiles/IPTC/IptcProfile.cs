@@ -307,7 +307,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                     break;
                 }
 
-                if (isValidEntry && byteCount > 0 && (offset + byteCount <= this.Data.Length))
+                if (isValidEntry && byteCount > 0 && (offset <= this.Data.Length - byteCount))
                 {
                     var iptcData = new byte[byteCount];
                     Buffer.BlockCopy(this.Data, offset, iptcData, 0, (int)byteCount);

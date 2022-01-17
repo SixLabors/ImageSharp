@@ -291,7 +291,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             }
 
             int offset = 0;
-            while (offset + 4 < this.Data.Length)
+            while (offset < this.Data.Length - 4)
             {
                 bool isValidTagMarker = this.Data[offset++] == IptcTagMarkerByte;
                 byte recordNumber = this.Data[offset++];

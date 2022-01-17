@@ -277,8 +277,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             while (offset + 4 < this.Data.Length)
             {
                 bool isValidTagMarker = this.Data[offset++] == IptcTagMarkerByte;
-                byte recordType = this.Data[offset++];
+                byte recordNumber = this.Data[offset++];
+                bool isValidRecordNumber = recordNumber is >= 1 and <= 9;
                 var tag = (IptcTag)this.Data[offset++];
+                bool isValidEntry = isValidTagMarker && isValidRecordNumber;
 
                 uint byteCount = BinaryPrimitives.ReadUInt16BigEndian(this.Data.AsSpan(offset, 2));
                 offset += 2;
@@ -288,7 +290,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                     break;
                 }
 
-                if (isValidTagMarker && byteCount > 0 && (offset + byteCount <= this.Data.Length))
+                if (isValidEntry && byteCount > 0 && (offset + byteCount <= this.Data.Length))
                 {
                     var iptcData = new byte[byteCount];
                     Buffer.BlockCopy(this.Data, offset, iptcData, 0, (int)byteCount);

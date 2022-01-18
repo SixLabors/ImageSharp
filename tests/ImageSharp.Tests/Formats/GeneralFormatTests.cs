@@ -85,11 +85,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
         public static readonly TheoryData<string> QuantizerNames =
             new()
             {
-                    nameof(KnownQuantizers.Octree),
-                    nameof(KnownQuantizers.WebSafe),
-                    nameof(KnownQuantizers.Werner),
-                    nameof(KnownQuantizers.Wu)
-                };
+                nameof(KnownQuantizers.Octree),
+                nameof(KnownQuantizers.WebSafe),
+                nameof(KnownQuantizers.Werner),
+                nameof(KnownQuantizers.Wu)
+            };
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(QuantizerNames), PixelTypes.Rgba32)]

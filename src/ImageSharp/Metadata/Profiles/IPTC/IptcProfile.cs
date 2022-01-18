@@ -16,6 +16,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
     {
         private Collection<IptcValue> values;
 
+        private const byte IptcTagMarkerByte = 0x1c;
+
+        private const uint MaxStandardDataTagSize = 0x7FFF;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="IptcProfile"/> class.
         /// </summary>
@@ -78,7 +82,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         }
 
         /// <inheritdoc/>
-        public IptcProfile DeepClone() => new IptcProfile(this);
+        public IptcProfile DeepClone() => new(this);
 
         /// <summary>
         /// Returns all values with the specified tag.
@@ -207,7 +211,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 throw new ArgumentException("iptc tag is not a time or date type");
             }
 
-            var formattedDate = tag.IsDate()
+            string formattedDate = tag.IsDate()
                 ? dateTimeOffset.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
                 : dateTimeOffset.ToString("HHmmsszzzz", System.Globalization.CultureInfo.InvariantCulture)
                     .Replace(":", string.Empty);
@@ -231,7 +235,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// </summary>
         public void UpdateData()
         {
-            var length = 0;
+            int length = 0;
             foreach (IptcValue value in this.Values)
             {
                 length += value.Length + 5;
@@ -242,7 +246,24 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             int i = 0;
             foreach (IptcValue value in this.Values)
             {
-                this.Data[i++] = 28;
+                // Standard DataSet Tag
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | Octet Pos | Name           | Description                                                                     |
+                // +==========-+================+=================================================================================+
+                // | 1         | Tag Marker     | Is the tag marker that initiates the start of a DataSet 0x1c.                   |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | 2         | Record Number  | Octet 2 is the binary representation of the record number. Note that the        |
+                // |           |                | envelope record number is always 1, and that the application records are        |
+                // |           |                | numbered 2 through 6, the pre-object descriptor record is 7, the object record  |
+                // |           |                | is 8, and the post - object descriptor record is 9.                             |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | 3         | DataSet Number | Octet 3 is the binary representation of the DataSet number.                     |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                // | 4 and 5   | Data Field     | Octets 4 and 5, taken together, are the binary count of the number of octets in |
+                // |           | Octet Count    | the following data field(32767 or fewer octets). Note that the value of bit 7 of|
+                // |           |                | octet 4(most significant bit) always will be 0.                                 |
+                // +-----------+----------------+---------------------------------------------------------------------------------+
+                this.Data[i++] = IptcTagMarkerByte;
                 this.Data[i++] = 2;
                 this.Data[i++] = (byte)value.Tag;
                 this.Data[i++] = (byte)(value.Length >> 8);
@@ -264,34 +285,36 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
             this.values = new Collection<IptcValue>();
 
-            if (this.Data == null || this.Data[0] != 0x1c)
+            if (this.Data == null || this.Data[0] != IptcTagMarkerByte)
             {
                 return;
             }
 
-            int i = 0;
-            while (i + 4 < this.Data.Length)
+            int offset = 0;
+            while (offset < this.Data.Length - 4)
             {
-                if (this.Data[i++] != 28)
+                bool isValidTagMarker = this.Data[offset++] == IptcTagMarkerByte;
+                byte recordNumber = this.Data[offset++];
+                bool isValidRecordNumber = recordNumber is >= 1 and <= 9;
+                var tag = (IptcTag)this.Data[offset++];
+                bool isValidEntry = isValidTagMarker && isValidRecordNumber;
+
+                uint byteCount = BinaryPrimitives.ReadUInt16BigEndian(this.Data.AsSpan(offset, 2));
+                offset += 2;
+                if (byteCount > MaxStandardDataTagSize)
                 {
-                    continue;
+                    // Extended data set tag's are not supported.
+                    break;
                 }
 
-                i++;
-
-                var tag = (IptcTag)this.Data[i++];
-
-                int count = BinaryPrimitives.ReadInt16BigEndian(this.Data.AsSpan(i, 2));
-                i += 2;
-
-                var iptcData = new byte[count];
-                if ((count > 0) && (i + count <= this.Data.Length))
+                if (isValidEntry && byteCount > 0 && (offset <= this.Data.Length - byteCount))
                 {
-                    Buffer.BlockCopy(this.Data, i, iptcData, 0, count);
+                    var iptcData = new byte[byteCount];
+                    Buffer.BlockCopy(this.Data, offset, iptcData, 0, (int)byteCount);
                     this.values.Add(new IptcValue(tag, iptcData, false));
                 }
 
-                i += count;
+                offset += (int)byteCount;
             }
         }
     }

@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {
-                Span<TPixel> sourceRow = this.source.GetRowSpan(y);
+                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
 
                 PixelOperations<TPixel>.Instance.ToVector4(
                     this.configuration,

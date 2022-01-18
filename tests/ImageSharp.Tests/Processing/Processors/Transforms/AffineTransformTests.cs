@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Reflection;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -222,6 +223,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             provider.RunBufferCapacityLimitProcessorTest(
                 bufferCapacityInPixelRows,
                 c => c.Transform(builder));
+        }
+
+        [Fact]
+        public void Issue1911()
+        {
+            using var image = new Image<Rgba32>(100, 100);
+            image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix3x2.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
+
+            Assert.Equal(99, image.Width);
+            Assert.Equal(100, image.Height);
         }
 
         private static IResampler GetResampler(string name)

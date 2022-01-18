@@ -147,6 +147,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             }
         }
 
+        [Fact]
+        public void Issue1911()
+        {
+            using var image = new Image<Rgba32>(100, 100);
+            image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix4x4.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
+
+            Assert.Equal(99, image.Width);
+            Assert.Equal(100, image.Height);
+        }
+
         private static IResampler GetResampler(string name)
         {
             PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);

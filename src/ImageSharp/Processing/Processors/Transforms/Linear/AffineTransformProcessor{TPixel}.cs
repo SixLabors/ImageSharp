@@ -64,7 +64,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (matrix.Equals(default) || matrix.Equals(Matrix3x2.Identity))
             {
                 // The clone will be blank here copy all the pixel data over
-                source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
+                var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+                Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
+                Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
+                for (int y = 0; y < sourceBuffer.Height; y++)
+                {
+                    sourceBuffer.DangerousGetRowSpan(y).CopyTo(destbuffer.DangerousGetRowSpan(y));
+                }
+
                 return;
             }
 

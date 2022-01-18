@@ -384,7 +384,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetRowSpan(y).Slice(bounds.Left, bounds.Width);
+                Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.Left, bounds.Width);
                 PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
                 for (int x = 0; x < bufferSpan.Length; x++)
@@ -417,19 +417,40 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int r = 1; r < IndexCount; r++)
             {
+                // Currently, RyuJIT hoists the invariants of multi-level nested loop only to the
+                // immediate outer loop. See https://github.com/dotnet/runtime/issues/61420
+                // To ensure the calculation doesn't happen repeatedly, hoist some of the calculations
+                // in the form of ind1* manually.
+                int ind1R = (r << ((IndexBits * 2) + IndexAlphaBits)) +
+                    (r << (IndexBits + IndexAlphaBits + 1)) +
+                    (r << (IndexBits * 2)) +
+                    (r << (IndexBits + 1)) +
+                    r;
+
                 volumeSpan.Clear();
 
                 for (int g = 1; g < IndexCount; g++)
                 {
+                    int ind1G = ind1R +
+                        (g << (IndexBits + IndexAlphaBits)) +
+                        (g << IndexBits) +
+                        g;
+                    int r_g = r + g;
+
                     areaSpan.Clear();
 
                     for (int b = 1; b < IndexCount; b++)
                     {
+                        int ind1B = ind1G +
+                            ((r_g + b) << IndexAlphaBits) +
+                            b;
+
                         Moment line = default;
 
                         for (int a = 1; a < IndexAlphaCount; a++)
                         {
-                            int ind1 = GetPaletteIndex(r, g, b, a);
+                            int ind1 = ind1B + a;
+
                             line += momentSpan[ind1];
 
                             areaSpan[a] += line;
@@ -628,13 +649,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int r = cube.RMin + 1; r <= cube.RMax; r++)
             {
+                // Currently, RyuJIT hoists the invariants of multi-level nested loop only to the
+                // immediate outer loop. See https://github.com/dotnet/runtime/issues/61420
+                // To ensure the calculation doesn't happen repeatedly, hoist some of the calculations
+                // in the form of ind1* manually.
+                int ind1R = (r << ((IndexBits * 2) + IndexAlphaBits)) +
+                    (r << (IndexBits + IndexAlphaBits + 1)) +
+                    (r << (IndexBits * 2)) +
+                    (r << (IndexBits + 1)) +
+                    r;
+
                 for (int g = cube.GMin + 1; g <= cube.GMax; g++)
                 {
+                    int ind1G = ind1R +
+                        (g << (IndexBits + IndexAlphaBits)) +
+                        (g << IndexBits) +
+                        g;
+                    int r_g = r + g;
+
                     for (int b = cube.BMin + 1; b <= cube.BMax; b++)
                     {
+                        int ind1B = ind1G +
+                            ((r_g + b) << IndexAlphaBits) +
+                            b;
+
                         for (int a = cube.AMin + 1; a <= cube.AMax; a++)
                         {
-                            tagSpan[GetPaletteIndex(r, g, b, a)] = label;
+                            int index = ind1B + a;
+
+                            tagSpan[index] = label;
                         }
                     }
                 }

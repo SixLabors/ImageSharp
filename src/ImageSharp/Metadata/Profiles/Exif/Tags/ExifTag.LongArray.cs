@@ -65,5 +65,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// Gets the TimeZoneOffset exif tag.
         /// </summary>
         public static ExifTag<uint[]> TimeZoneOffset { get; } = new ExifTag<uint[]>(ExifTagValue.TimeZoneOffset);
+
+        /// <summary>
+        /// Gets the offset to child IFDs exif tag.
+        /// </summary>
+        public static ExifTag<uint[]> SubIFDs { get; } = new ExifTag<uint[]>(ExifTagValue.SubIFDs);
     }
 }

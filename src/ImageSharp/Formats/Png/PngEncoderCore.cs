@@ -138,6 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WriteTransparencyChunk(stream, pngMetadata);
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
+            this.WriteXmpChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
             this.WriteDataChunks(clearTransparency ? clonedImage : image, quantized, stream);
             this.WriteEndChunk(stream);
@@ -163,23 +164,25 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="image">The cloned image where the transparent pixels will be changed.</param>
         private static void ClearTransparentPixels<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Rgba32 rgba32 = default;
-            for (int y = 0; y < image.Height; y++)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            image.ProcessPixelRows(accessor =>
             {
-                Span<TPixel> span = image.GetPixelRowSpan(y);
-                for (int x = 0; x < image.Width; x++)
+                Rgba32 rgba32 = default;
+                Rgba32 transparent = Color.Transparent;
+                for (int y = 0; y < accessor.Height; y++)
                 {
-                    span[x].ToRgba32(ref rgba32);
-
-                    if (rgba32.A == 0)
+                    Span<TPixel> span = accessor.GetRowSpan(y);
+                    for (int x = 0; x < accessor.Width; x++)
                     {
-                        span[x].FromRgba32(Color.Transparent);
+                        span[x].ToRgba32(ref rgba32);
+
+                        if (rgba32.A == 0)
+                        {
+                            span[x].FromRgba32(transparent);
+                        }
                     }
                 }
-            }
-        }
+            });
 
         /// <summary>
         /// Creates the quantized image and sets calculates and sets the bit depth.
@@ -391,11 +394,11 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     if (this.bitDepth < 8)
                     {
-                        PngEncoderHelpers.ScaleDownFrom8BitArray(quantized.GetPixelRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
+                        PngEncoderHelpers.ScaleDownFrom8BitArray(quantized.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
                     }
                     else
                     {
-                        quantized.GetPixelRowSpan(row).CopyTo(this.currentScanline.GetSpan());
+                        quantized.DangerousGetRowSpan(row).CopyTo(this.currentScanline.GetSpan());
                     }
 
                     break;
@@ -653,6 +656,51 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
+        /// Writes an iTXT chunk, containing the XMP metdata to the stream, if such profile is present in the metadata.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="meta">The image metadata.</param>
+        private void WriteXmpChunk(Stream stream, ImageMetadata meta)
+        {
+            const int iTxtHeaderSize = 5;
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+            {
+                return;
+            }
+
+            if (meta.XmpProfile is null)
+            {
+                return;
+            }
+
+            var xmpData = meta.XmpProfile.Data;
+
+            if (xmpData.Length == 0)
+            {
+                return;
+            }
+
+            int payloadLength = xmpData.Length + PngConstants.XmpKeyword.Length + iTxtHeaderSize;
+            using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
+            {
+                Span<byte> payload = owner.GetSpan();
+                PngConstants.XmpKeyword.CopyTo(payload);
+                int bytesWritten = PngConstants.XmpKeyword.Length;
+
+                // Write the iTxt header (all zeros in this case)
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+                payload[bytesWritten++] = 0;
+
+                // And the XMP data itself
+                xmpData.CopyTo(payload.Slice(bytesWritten));
+                this.WriteChunk(stream, PngChunkType.InternationalText, payload);
+            }
+        }
+
+        /// <summary>
         /// Writes a text chunk to the stream. Can be either a tTXt, iTXt or zTXt chunk,
         /// depending whether the text contains any latin characters or should be compressed.
         /// </summary>
@@ -691,21 +739,33 @@ namespace SixLabors.ImageSharp.Formats.Png
                     byte[] translatedKeyword = PngConstants.TranslatedEncoding.GetBytes(textData.TranslatedKeyword);
                     byte[] languageTag = PngConstants.LanguageEncoding.GetBytes(textData.LanguageTag);
 
-                    Span<byte> outputBytes = new byte[keywordBytes.Length + textBytes.Length +
-                                                      translatedKeyword.Length + languageTag.Length + 5];
-                    keywordBytes.CopyTo(outputBytes);
-                    if (textData.Value.Length > this.options.TextCompressionThreshold)
+                    int payloadLength = keywordBytes.Length + textBytes.Length + translatedKeyword.Length + languageTag.Length + 5;
+                    using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
                     {
-                        // Indicate that the text is compressed.
-                        outputBytes[keywordBytes.Length + 1] = 1;
-                    }
+                        Span<byte> outputBytes = owner.GetSpan();
+                        keywordBytes.CopyTo(outputBytes);
+                        int bytesWritten = keywordBytes.Length;
+                        outputBytes[bytesWritten++] = 0;
+                        if (textData.Value.Length > this.options.TextCompressionThreshold)
+                        {
+                            // Indicate that the text is compressed.
+                            outputBytes[bytesWritten++] = 1;
+                        }
+                        else
+                        {
+                            outputBytes[bytesWritten++] = 0;
+                        }
 
-                    int keywordStart = keywordBytes.Length + 3;
-                    languageTag.CopyTo(outputBytes.Slice(keywordStart));
-                    int translatedKeywordStart = keywordStart + languageTag.Length + 1;
-                    translatedKeyword.CopyTo(outputBytes.Slice(translatedKeywordStart));
-                    textBytes.CopyTo(outputBytes.Slice(translatedKeywordStart + translatedKeyword.Length + 1));
-                    this.WriteChunk(stream, PngChunkType.InternationalText, outputBytes.ToArray());
+                        outputBytes[bytesWritten++] = 0;
+                        languageTag.CopyTo(outputBytes.Slice(bytesWritten));
+                        bytesWritten += languageTag.Length;
+                        outputBytes[bytesWritten++] = 0;
+                        translatedKeyword.CopyTo(outputBytes.Slice(bytesWritten));
+                        bytesWritten += translatedKeyword.Length;
+                        outputBytes[bytesWritten++] = 0;
+                        textBytes.CopyTo(outputBytes.Slice(bytesWritten));
+                        this.WriteChunk(stream, PngChunkType.InternationalText, outputBytes);
+                    }
                 }
                 else
                 {
@@ -714,19 +774,32 @@ namespace SixLabors.ImageSharp.Formats.Png
                         // Write zTXt chunk.
                         byte[] compressedData =
                             this.GetCompressedTextBytes(PngConstants.Encoding.GetBytes(textData.Value));
-                        Span<byte> outputBytes = new byte[textData.Keyword.Length + compressedData.Length + 2];
-                        PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
-                        compressedData.CopyTo(outputBytes.Slice(textData.Keyword.Length + 2));
-                        this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes.ToArray());
+                        int payloadLength = textData.Keyword.Length + compressedData.Length + 2;
+                        using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
+                        {
+                            Span<byte> outputBytes = owner.GetSpan();
+                            PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
+                            int bytesWritten = textData.Keyword.Length;
+                            outputBytes[bytesWritten++] = 0;
+                            outputBytes[bytesWritten++] = 0;
+                            compressedData.CopyTo(outputBytes.Slice(bytesWritten));
+                            this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes.ToArray());
+                        }
                     }
                     else
                     {
                         // Write tEXt chunk.
-                        Span<byte> outputBytes = new byte[textData.Keyword.Length + textData.Value.Length + 1];
-                        PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
-                        PngConstants.Encoding.GetBytes(textData.Value)
-                            .CopyTo(outputBytes.Slice(textData.Keyword.Length + 1));
-                        this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
+                        int payloadLength = textData.Keyword.Length + textData.Value.Length + 1;
+                        using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
+                        {
+                            Span<byte> outputBytes = owner.GetSpan();
+                            PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
+                            int bytesWritten = textData.Keyword.Length;
+                            outputBytes[bytesWritten++] = 0;
+                            PngConstants.Encoding.GetBytes(textData.Value)
+                                .CopyTo(outputBytes.Slice(bytesWritten));
+                            this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
+                        }
                     }
                 }
             }
@@ -914,27 +987,31 @@ namespace SixLabors.ImageSharp.Formats.Png
             using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
             using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
 
-            Span<byte> filter = filterBuffer.GetSpan();
-            Span<byte> attempt = attemptBuffer.GetSpan();
-            for (int y = 0; y < this.height; y++)
+            pixels.ProcessPixelRows(accessor =>
             {
-                this.CollectAndFilterPixelRow(pixels.GetPixelRowSpan(y), ref filter, ref attempt, quantized, y);
-                deflateStream.Write(filter);
-                this.SwapScanlineBuffers();
-            }
+                Span<byte> filter = filterBuffer.GetSpan();
+                Span<byte> attempt = attemptBuffer.GetSpan();
+                for (int y = 0; y < this.height; y++)
+                {
+                    this.CollectAndFilterPixelRow(accessor.GetRowSpan(y), ref filter, ref attempt, quantized, y);
+                    deflateStream.Write(filter);
+                    this.SwapScanlineBuffers();
+                }
+            });
         }
 
         /// <summary>
         /// Interlaced encoding the pixels.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="pixels">The pixels.</param>
+        /// <param name="image">The image.</param>
         /// <param name="deflateStream">The deflate stream.</param>
-        private void EncodeAdam7Pixels<TPixel>(Image<TPixel> pixels, ZlibDeflateStream deflateStream)
+        private void EncodeAdam7Pixels<TPixel>(Image<TPixel> image, ZlibDeflateStream deflateStream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = pixels.Width;
-            int height = pixels.Height;
+            int width = image.Width;
+            int height = image.Height;
+            Buffer2D<TPixel> pixelBuffer = image.Frames.RootFrame.PixelBuffer;
             for (int pass = 0; pass < 7; pass++)
             {
                 int startRow = Adam7.FirstRow[pass];
@@ -959,7 +1036,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 for (int row = startRow; row < height; row += Adam7.RowIncrement[pass])
                 {
                     // Collect pixel data
-                    Span<TPixel> srcRow = pixels.GetPixelRowSpan(row);
+                    Span<TPixel> srcRow = pixelBuffer.DangerousGetRowSpan(row);
                     for (int col = startCol, i = 0; col < width; col += Adam7.ColumnIncrement[pass])
                     {
                         block[i++] = srcRow[col];
@@ -1014,7 +1091,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     row += Adam7.RowIncrement[pass])
                 {
                     // Collect data
-                    ReadOnlySpan<byte> srcRow = quantized.GetPixelRowSpan(row);
+                    ReadOnlySpan<byte> srcRow = quantized.DangerousGetRowSpan(row);
                     for (int col = startCol, i = 0;
                         col < width;
                         col += Adam7.ColumnIncrement[pass])

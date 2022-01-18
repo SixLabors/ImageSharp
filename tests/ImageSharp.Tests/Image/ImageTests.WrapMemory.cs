@@ -5,12 +5,15 @@ using System;
 using System.Buffers;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -71,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
                 public override unsafe MemoryHandle Pin(int elementIndex = 0)
                 {
                     void* ptr = (void*)this.bmpData.Scan0;
-                    return new MemoryHandle(ptr);
+                    return new MemoryHandle(ptr, pinnable: this);
                 }
 
                 public override void Unpin()
@@ -132,8 +135,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 using (var image = Image.WrapMemory(cfg, memory, 5, 5, metaData))
                 {
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    ref Rgba32 pixel0 = ref imageSpan[0];
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    ref Rgba32 pixel0 = ref imageMem.Span[0];
                     Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
 
                     Assert.Equal(cfg, image.GetConfiguration());
@@ -160,15 +163,23 @@ namespace SixLabors.ImageSharp.Tests
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
                             Assert.Equal(memory, image.GetRootFramePixelBuffer().DangerousGetSingleMemory());
-                            Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
-                            imageSpan.Fill(bg);
-                            for (var i = 10; i < 20; i++)
+                            image.GetPixelMemoryGroup().Fill(bg);
+
+                            image.ProcessPixelRows(accessor =>
                             {
-                                image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
-                            }
+                                for (var i = 10; i < 20; i++)
+                                {
+                                    accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
+                                }
+                            });
                         }
 
                         Assert.False(memoryManager.IsDisposed);
+                    }
+
+                    if (!Directory.Exists(TestEnvironment.ActualOutputDirectoryFullPath))
+                    {
+                        Directory.CreateDirectory(TestEnvironment.ActualOutputDirectoryFullPath);
                     }
 
                     string fn = System.IO.Path.Combine(
@@ -196,12 +207,14 @@ namespace SixLabors.ImageSharp.Tests
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {
                         Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().DangerousGetSingleMemory());
-                        Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
-                        imageSpan.Fill(bg);
-                        for (var i = 10; i < 20; i++)
+                        image.GetPixelMemoryGroup().Fill(bg);
+                        image.ProcessPixelRows(accessor =>
                         {
-                            image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
-                        }
+                            for (var i = 10; i < 20; i++)
+                            {
+                                accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
+                            }
+                        });
                     }
 
                     Assert.True(memoryManager.IsDisposed);
@@ -225,8 +238,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 using (var image = Image.WrapMemory<Rgba32>(cfg, memory, 5, 5, metaData))
                 {
-                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
-                    ref Rgba32 pixel0 = ref imageSpan[0];
+                    Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                    ref Rgba32 pixel0 = ref imageMem.Span[0];
                     Assert.True(Unsafe.AreSame(ref Unsafe.As<byte, Rgba32>(ref array[0]), ref pixel0));
 
                     Assert.Equal(cfg, image.GetConfiguration());
@@ -262,12 +275,14 @@ namespace SixLabors.ImageSharp.Tests
                             Assert.Equal(pixelSpan.Length, imageSpan.Length);
                             Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(), ref imageSpan.GetPinnableReference()));
 
-                            Assert.True(image.TryGetSinglePixelSpan(out imageSpan));
-                            imageSpan.Fill(bg);
-                            for (var i = 10; i < 20; i++)
+                            image.GetPixelMemoryGroup().Fill(bg);
+                            image.ProcessPixelRows(accessor =>
                             {
-                                image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
-                            }
+                                for (var i = 10; i < 20; i++)
+                                {
+                                    accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
+                                }
+                            });
                         }
 
                         Assert.False(memoryManager.IsDisposed);
@@ -293,7 +308,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     using (var image = Image.WrapMemory<Rgba32>(cfg, ptr, 5, 5, metaData))
                     {
-                        Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
+                        Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
+                        Span<Rgba32> imageSpan = imageMem.Span;
                         ref Rgba32 pixel0 = ref imageSpan[0];
                         Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
                         ref Rgba32 pixel_1 = ref imageSpan[imageSpan.Length - 1];
@@ -331,12 +347,14 @@ namespace SixLabors.ImageSharp.Tests
                                 Assert.Equal(pixelSpan.Length, imageSpan.Length);
                                 Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(), ref imageSpan.GetPinnableReference()));
 
-                                Assert.True(image.TryGetSinglePixelSpan(out imageSpan));
-                                imageSpan.Fill(bg);
-                                for (var i = 10; i < 20; i++)
+                                image.GetPixelMemoryGroup().Fill(bg);
+                                image.ProcessPixelRows(accessor =>
                                 {
-                                    image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
-                                }
+                                    for (var i = 10; i < 20; i++)
+                                    {
+                                        accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
+                                    }
+                                });
                             }
 
                             Assert.False(memoryManager.IsDisposed);
@@ -414,16 +432,19 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.Equal(width, img.Width);
                     Assert.Equal(height, img.Height);
 
-                    for (int i = 0; i < height; ++i)
+                    img.ProcessPixelRows(accessor =>
                     {
-                        var arrayIndex = width * i;
+                        for (int i = 0; i < height; ++i)
+                        {
+                            var arrayIndex = width * i;
 
-                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
-                        ref Rgba32 r0 = ref rowSpan[0];
-                        ref Rgba32 r1 = ref array[arrayIndex];
+                            Span<Rgba32> rowSpan = accessor.GetRowSpan(i);
+                            ref Rgba32 r0 = ref rowSpan[0];
+                            ref Rgba32 r1 = ref array[arrayIndex];
 
-                        Assert.True(Unsafe.AreSame(ref r0, ref r1));
-                    }
+                            Assert.True(Unsafe.AreSame(ref r0, ref r1));
+                        }
+                    });
                 }
 
                 Assert.True(memory.Disposed);
@@ -458,16 +479,19 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.Equal(width, img.Width);
                     Assert.Equal(height, img.Height);
 
-                    for (int i = 0; i < height; ++i)
+                    img.ProcessPixelRows(acccessor =>
                     {
-                        var arrayIndex = pixelSize * width * i;
+                        for (int i = 0; i < height; ++i)
+                        {
+                            var arrayIndex = pixelSize * width * i;
 
-                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
-                        ref Rgba32 r0 = ref rowSpan[0];
-                        ref Rgba32 r1 = ref Unsafe.As<byte, Rgba32>(ref array[arrayIndex]);
+                            Span<Rgba32> rowSpan = acccessor.GetRowSpan(i);
+                            ref Rgba32 r0 = ref rowSpan[0];
+                            ref Rgba32 r1 = ref Unsafe.As<byte, Rgba32>(ref array[arrayIndex]);
 
-                        Assert.True(Unsafe.AreSame(ref r0, ref r1));
-                    }
+                            Assert.True(Unsafe.AreSame(ref r0, ref r1));
+                        }
+                    });
                 }
 
                 Assert.True(memory.Disposed);

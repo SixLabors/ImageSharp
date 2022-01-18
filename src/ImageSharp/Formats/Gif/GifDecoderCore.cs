@@ -11,6 +11,7 @@ using System.Threading;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -250,7 +251,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        /// Reads the application extension block parsing any animation information
+        /// Reads the application extension block parsing any animation or XMP information
         /// if present.
         /// </summary>
         private void ReadApplicationExtension()
@@ -258,25 +259,37 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int appLength = this.stream.ReadByte();
 
             // If the length is 11 then it's a valid extension and most likely
-            // a NETSCAPE or ANIMEXTS extension. We want the loop count from this.
+            // a NETSCAPE, XMP or ANIMEXTS extension. We want the loop count from this.
             if (appLength == GifConstants.ApplicationBlockSize)
             {
-                this.stream.Skip(appLength);
-                int subBlockSize = this.stream.ReadByte();
+                this.stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
+                bool isXmp = this.buffer.AsSpan().StartsWith(GifConstants.XmpApplicationIdentificationBytes);
 
-                // TODO: There's also a NETSCAPE buffer extension.
-                // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
-                if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
+                if (isXmp)
                 {
-                    this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                    this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
-                    this.stream.Skip(1); // Skip the terminator.
+                    var extension = GifXmpApplicationExtension.Read(this.stream);
+                    this.metadata.XmpProfile = new XmpProfile(extension.Data);
                     return;
                 }
+                else
+                {
+                    int subBlockSize = this.stream.ReadByte();
 
-                // Could be XMP or something else not supported yet.
-                // Skip the subblock and terminator.
-                this.SkipBlock(subBlockSize);
+                    // TODO: There's also a NETSCAPE buffer extension.
+                    // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
+                    if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
+                    {
+                        this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
+                        this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
+                        this.stream.Skip(1); // Skip the terminator.
+                        return;
+                    }
+
+                    // Could be something else not supported yet.
+                    // Skip the subblock and terminator.
+                    this.SkipBlock(subBlockSize);
+                }
+
                 return;
             }
 
@@ -445,7 +458,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
             {
-                ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.GetRowSpan(y - descriptorTop));
+                ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y - descriptorTop));
 
                 // Check if this image is interlaced.
                 int writeY; // the target y offset to write to
@@ -481,7 +494,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     writeY = y;
                 }
 
-                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
 
                 if (!transFlag)
                 {

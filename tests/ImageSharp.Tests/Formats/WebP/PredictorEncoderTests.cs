@@ -40,8 +40,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void ColorSpaceTransform_WithBikeImage_WithoutSSE41_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+
+        [Fact]
+        public void ColorSpaceTransform_WithBikeImage_WithoutAvx2_Works()
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableAVX2);
 #endif
 
+        // Test image: Input\Webp\peak.png
         private static void RunColorSpaceTransformTestWithPeakImage()
         {
             // arrange
@@ -99,6 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.Equal(expectedData, transformData);
         }
 
+        // Test image: Input\Png\Bike.png
         private static void RunColorSpaceTransformTestWithBikeImage()
         {
             // arrange
@@ -133,15 +139,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             uint[] bgra = new uint[image.Width * image.Height];
-            int idx = 0;
-            for (int y = 0; y < image.Height; y++)
+            image.ProcessPixelRows(accessor =>
             {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
-                for (int x = 0; x < rowSpan.Length; x++)
+                int idx = 0;
+                for (int y = 0; y < accessor.Height; y++)
                 {
-                    bgra[idx++] = ToBgra32(rowSpan[x]).PackedValue;
+                    Span<TPixel> rowSpan = accessor.GetRowSpan(y);
+                    for (int x = 0; x < rowSpan.Length; x++)
+                    {
+                        bgra[idx++] = ToBgra32(rowSpan[x]).PackedValue;
+                    }
                 }
-            }
+            });
 
             return bgra;
         }

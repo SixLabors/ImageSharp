@@ -21,8 +21,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
-    [Collection("RunSerial")]
-    [Trait("Format", "Jpg")]
+     [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;
@@ -90,6 +89,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var image = Image.Load(file);
+            Assert.IsType<Image<Rgb24>>(image);
+        }
+
+        [Fact]
+        public async Task DecodeAsync_NonGeneric_CreatesRgb24Image()
+        {
+            string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
+            using Image image = await Image.LoadAsync(file);
             Assert.IsType<Image<Rgb24>>(image);
         }
 
@@ -183,9 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCoding, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingProgressive, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Lossless, PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(UnsupportedTestJpegs), PixelTypes.Rgba32)]
         public void ThrowsNotSupported_WithUnsupportedJpegs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

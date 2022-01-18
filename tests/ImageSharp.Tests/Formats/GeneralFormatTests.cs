@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reflection;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -16,7 +15,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats
 {
-    [Collection("RunSerial")]
     public class GeneralFormatTests
     {
         /// <summary>
@@ -34,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
         /// <summary>
         /// The collection of image files to test against.
         /// </summary>
-        protected static readonly List<TestFile> Files = new List<TestFile>
+        protected static readonly List<TestFile> Files = new()
         {
             TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
             TestFile.Create(TestImages.Bmp.Car),
@@ -85,13 +83,13 @@ namespace SixLabors.ImageSharp.Tests.Formats
         }
 
         public static readonly TheoryData<string> QuantizerNames =
-            new TheoryData<string>
-                {
-                    nameof(KnownQuantizers.Octree),
-                    nameof(KnownQuantizers.WebSafe),
-                    nameof(KnownQuantizers.Werner),
-                    nameof(KnownQuantizers.Wu)
-                };
+            new()
+            {
+                nameof(KnownQuantizers.Octree),
+                nameof(KnownQuantizers.WebSafe),
+                nameof(KnownQuantizers.Werner),
+                nameof(KnownQuantizers.Wu)
+            };
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(QuantizerNames), PixelTypes.Rgba32)]
@@ -99,8 +97,6 @@ namespace SixLabors.ImageSharp.Tests.Formats
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
-
             IQuantizer quantizer = GetQuantizer(quantizerName);
 
             using (Image<TPixel> image = provider.GetImage())
@@ -134,6 +130,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
                     using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
                     {
                         image.SaveAsJpeg(output);
+                    }
+
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.pbm")))
+                    {
+                        image.SaveAsPbm(output);
                     }
 
                     using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
@@ -183,6 +184,10 @@ namespace SixLabors.ImageSharp.Tests.Formats
         }
 
         [Theory]
+        [InlineData(10, 10, "pbm")]
+        [InlineData(100, 100, "pbm")]
+        [InlineData(100, 10, "pbm")]
+        [InlineData(10, 100, "pbm")]
         [InlineData(10, 10, "png")]
         [InlineData(100, 100, "png")]
         [InlineData(100, 10, "png")]

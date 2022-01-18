@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -17,27 +17,27 @@ namespace SixLabors.ImageSharp.Formats
         /// Used for locking against as there is no ConcurrentSet type.
         /// <see href="https://github.com/dotnet/corefx/issues/6318"/>
         /// </summary>
-        private static readonly object HashLock = new object();
+        private static readonly object HashLock = new();
 
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
-        private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new ConcurrentDictionary<IImageFormat, IImageEncoder>();
+        private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new();
 
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
-        private readonly ConcurrentDictionary<IImageFormat, IImageDecoder> mimeTypeDecoders = new ConcurrentDictionary<IImageFormat, IImageDecoder>();
+        private readonly ConcurrentDictionary<IImageFormat, IImageDecoder> mimeTypeDecoders = new();
 
         /// <summary>
         /// The list of supported <see cref="IImageFormat"/>s.
         /// </summary>
-        private readonly HashSet<IImageFormat> imageFormats = new HashSet<IImageFormat>();
+        private readonly HashSet<IImageFormat> imageFormats = new();
 
         /// <summary>
         /// The list of supported <see cref="IImageFormatDetector"/>s.
         /// </summary>
-        private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new ConcurrentBag<IImageFormatDetector>();
+        private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFormatManager" /> class.
@@ -113,9 +113,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="mimeType">The mime-type to discover</param>
         /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
         public IImageFormat FindFormatByMimeType(string mimeType)
-        {
-            return this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
-        }
+            => this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
 
         /// <summary>
         /// Sets a specific image encoder as the encoder for a specific image format.
@@ -146,10 +144,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Removes all the registered image format detectors.
         /// </summary>
-        public void ClearImageFormatDetectors()
-        {
-            this.imageFormatDetectors = new ConcurrentBag<IImageFormatDetector>();
-        }
+        public void ClearImageFormatDetectors() => this.imageFormatDetectors = new();
 
         /// <summary>
         /// Adds a new detector for detecting mime types.
@@ -193,9 +188,6 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Sets the max header size.
         /// </summary>
-        private void SetMaxHeaderSize()
-        {
-            this.MaxHeaderSize = this.imageFormatDetectors.Max(x => x.HeaderSize);
-        }
+        private void SetMaxHeaderSize() => this.MaxHeaderSize = this.imageFormatDetectors.Max(x => x.HeaderSize);
     }
 }

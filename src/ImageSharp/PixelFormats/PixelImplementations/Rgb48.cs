@@ -188,6 +188,15 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromAbgr32(Abgr32 source)
+        {
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void ToRgba32(ref Rgba32 dest)
         {
             dest.R = ColorNumerics.DownScaleFrom16BitTo8Bit(this.R);

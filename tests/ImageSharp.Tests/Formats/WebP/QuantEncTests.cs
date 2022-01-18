@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.WebP
+namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     [Trait("Format", "Webp")]
     public class QuantEncTests
@@ -47,7 +47,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void QuantizeBlock_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void QuantizeBlock_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableHWIntrinsic);
+        public void QuantizeBlock_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableSSE2);
+
+        [Fact]
+        public void QuantizeBlock_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableAVX2);
 #endif
     }
 }

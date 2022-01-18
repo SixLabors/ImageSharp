@@ -333,6 +333,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.A = source.A;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromAbgr32(Abgr32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = source.A;
+        }
+
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());

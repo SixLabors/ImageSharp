@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             for (int y = 0; y < height; y++)
             {
                 int newY = InvertY(y, height, origin);
-                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
                 switch (colorMapPixelSizeInBytes)
                 {
@@ -318,7 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
                     {
@@ -364,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                    Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                     for (int x = width - 1; x >= 0; x--)
                     {
                         this.ReadL8Pixel(color, x, pixelSpan);
@@ -412,7 +412,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             for (int y = 0; y < height; y++)
             {
                 int newY = InvertY(y, height, origin);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
 
                 if (invertX)
                 {
@@ -479,7 +479,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                    Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                     for (int x = width - 1; x >= 0; x--)
                     {
                         this.ReadBgr24Pixel(color, x, pixelSpan);
@@ -548,7 +548,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             for (int y = 0; y < height; y++)
             {
                 int newY = InvertY(y, height, origin);
-                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
                 if (invertX)
                 {
                     for (int x = width - 1; x >= 0; x--)
@@ -587,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
                     {
@@ -654,7 +654,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.currentStream.Read(row);
-            Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromL8Bytes(this.Configuration, row, pixelSpan, width);
         }
 
@@ -681,7 +681,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.currentStream.Read(row);
-            Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.Configuration, row, pixelSpan, width);
         }
 
@@ -700,7 +700,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.currentStream.Read(row);
-            Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.Configuration, row, pixelSpan, width);
         }
 

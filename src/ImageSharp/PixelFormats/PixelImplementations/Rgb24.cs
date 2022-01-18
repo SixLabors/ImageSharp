@@ -155,6 +155,15 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromAbgr32(Abgr32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL8(L8 source)
         {
             this.R = source.PackedValue;

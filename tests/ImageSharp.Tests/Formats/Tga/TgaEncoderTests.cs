@@ -4,26 +4,25 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Tga")]
     public class TgaEncoderTests
     {
         public static readonly TheoryData<TgaBitsPerPixel> BitsPerPixel =
-            new TheoryData<TgaBitsPerPixel>
+            new()
             {
                 TgaBitsPerPixel.Pixel24,
                 TgaBitsPerPixel.Pixel32
             };
 
         public static readonly TheoryData<string, TgaBitsPerPixel> TgaBitsPerPixelFiles =
-            new TheoryData<string, TgaBitsPerPixel>
+            new()
             {
                 { Gray8BitBottomLeft, TgaBitsPerPixel.Pixel8 },
                 { Bit16BottomLeft, TgaBitsPerPixel.Pixel16 },
@@ -150,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                     memStream.Position = 0;
                     using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
                     {
-                        TgaTestUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
+                        ImageComparingUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
                     }
                 }
             }

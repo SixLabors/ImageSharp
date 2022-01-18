@@ -76,10 +76,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
             this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4));
 
+#if DEBUG
+            // Filling those buffers with 205, is only useful for debugging,
+            // so the default values are the same as the reference libwebp implementation.
             this.YuvBuffer.Memory.Span.Fill(205);
             this.CacheY.Memory.Span.Fill(205);
             this.CacheU.Memory.Span.Fill(205);
             this.CacheV.Memory.Span.Fill(205);
+#endif
 
             this.Vp8BitReaders = new Vp8BitReader[WebpConstants.MaxNumPartitions];
         }

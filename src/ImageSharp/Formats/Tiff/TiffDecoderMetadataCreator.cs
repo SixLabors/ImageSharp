@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -18,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffDecoderMetadataCreator
     {
-        public static ImageMetadata Create<TPixel>(List<ImageFrame<TPixel>> frames, bool ignoreMetadata, ByteOrder byteOrder)
+        public static ImageMetadata Create<TPixel>(List<ImageFrame<TPixel>> frames, bool ignoreMetadata, ByteOrder byteOrder, bool isBigTiff)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (frames.Count < 1)
@@ -26,13 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
             }
 
-            var imageMetaData = new ImageMetadata();
-            ExifProfile exifProfileRootFrame = frames[0].Metadata.ExifProfile;
-
-            SetResolution(imageMetaData, exifProfileRootFrame);
-
-            TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
-            tiffMetadata.ByteOrder = byteOrder;
+            ImageMetadata imageMetaData = Create(byteOrder, isBigTiff, frames[0].Metadata.ExifProfile);
 
             if (!ignoreMetadata)
             {
@@ -43,6 +38,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                     {
                         frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
+                    }
+
+                    IExifValue<byte[]> xmpProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.XMP);
+                    if (xmpProfileBytes != null)
+                    {
+                        frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
                     }
 
                     IExifValue<byte[]> iccProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);
@@ -56,13 +57,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return imageMetaData;
         }
 
-        public static ImageMetadata Create(ByteOrder byteOrder, ExifProfile exifProfile)
+        public static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ExifProfile exifProfile)
         {
             var imageMetaData = new ImageMetadata();
             SetResolution(imageMetaData, exifProfile);
 
             TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
+            tiffMetadata.FormatType = isBigTiff ? TiffFormatType.BigTIFF : TiffFormatType.Default;
 
             return imageMetaData;
         }

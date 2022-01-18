@@ -19,16 +19,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         {
             get
             {
-                if (this.Value is null)
+                if (this.Value is not null)
                 {
-                    return ExifDataType.Short;
-                }
-
-                for (int i = 0; i < this.Value.Length; i++)
-                {
-                    if (this.Value[i] > ushort.MaxValue)
+                    foreach (Number value in this.Value)
                     {
-                        return ExifDataType.Long;
+                        if (value > ushort.MaxValue)
+                        {
+                            return ExifDataType.Long;
+                        }
                     }
                 }
 
@@ -54,13 +52,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ushort val:
                     return this.SetSingle(val);
                 case int[] array:
+                {
+                    // workaround for inconsistent covariance of value-typed arrays
+                    if (value.GetType() == typeof(uint[]))
+                    {
+                        return this.SetArray((uint[])value);
+                    }
+
                     return this.SetArray(array);
-                case uint[] array:
-                    return this.SetArray(array);
+                }
+
                 case short[] array:
+                {
+                    if (value.GetType() == typeof(ushort[]))
+                    {
+                        return this.SetArray((ushort[])value);
+                    }
+
                     return this.SetArray(array);
-                case ushort[] array:
-                    return this.SetArray(array);
+                }
             }
 
             return false;

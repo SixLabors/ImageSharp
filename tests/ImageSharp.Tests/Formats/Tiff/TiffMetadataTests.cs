@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -9,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -16,11 +18,17 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Collection("RunSerial")]
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
-        private static TiffDecoder TiffDecoder => new TiffDecoder();
+        private static TiffDecoder TiffDecoder => new();
+
+        private class NumberComparer : IEqualityComparer<Number>
+        {
+            public bool Equals(Number x, Number y) => x.Equals(y);
+
+            public int GetHashCode(Number obj) => obj.GetHashCode();
+        }
 
         [Fact]
         public void TiffMetadata_CloneIsDeep()
@@ -125,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 {
                     Assert.NotNull(rootFrameMetaData.XmpProfile);
                     Assert.NotNull(rootFrameMetaData.ExifProfile);
-                    Assert.Equal(2599, rootFrameMetaData.XmpProfile.Length);
+                    Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
                     Assert.Equal(26, rootFrameMetaData.ExifProfile.Values.Count);
                 }
             }
@@ -156,7 +164,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(32, rootFrame.Width);
                 Assert.Equal(32, rootFrame.Height);
                 Assert.NotNull(rootFrame.Metadata.XmpProfile);
-                Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Length);
+                Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Data.Length);
 
                 ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
                 TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
@@ -244,7 +252,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ImageMetadata inputMetaData = image.Metadata;
             ImageFrame<TPixel> rootFrameInput = image.Frames.RootFrame;
             TiffFrameMetadata frameMetaInput = rootFrameInput.Metadata.GetTiffMetadata();
-            byte[] xmpProfileInput = rootFrameInput.Metadata.XmpProfile;
+            XmpProfile xmpProfileInput = rootFrameInput.Metadata.XmpProfile;
             ExifProfile exifProfileInput = rootFrameInput.Metadata.ExifProfile;
 
             Assert.Equal(TiffCompression.Lzw, frameMetaInput.Compression);
@@ -263,7 +271,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;
             TiffFrameMetadata tiffMetaDataEncodedRootFrame = rootFrameEncodedImage.Metadata.GetTiffMetadata();
             ExifProfile encodedImageExifProfile = rootFrameEncodedImage.Metadata.ExifProfile;
-            byte[] encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
+            XmpProfile encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
 
             Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaDataEncodedRootFrame.BitsPerPixel);
             Assert.Equal(TiffCompression.Lzw, tiffMetaDataEncodedRootFrame.Compression);
@@ -281,7 +289,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(exifProfileInput.GetValue(ExifTag.XResolution).Value.ToDouble(), encodedImageExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
             Assert.Equal(exifProfileInput.GetValue(ExifTag.YResolution).Value.ToDouble(), encodedImageExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
 
-            Assert.Equal(xmpProfileInput, encodedImageXmpProfile);
+            Assert.NotNull(xmpProfileInput);
+            Assert.NotNull(encodedImageXmpProfile);
+            Assert.Equal(xmpProfileInput.Data, encodedImageXmpProfile.Data);
 
             Assert.Equal("IrfanView", exifProfileInput.GetValue(ExifTag.Software).Value);
             Assert.Equal("This is Название", exifProfileInput.GetValue(ExifTag.ImageDescription).Value);

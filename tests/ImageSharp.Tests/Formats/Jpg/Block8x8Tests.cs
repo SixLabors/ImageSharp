@@ -71,20 +71,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void Equality_WhenTrue()
-        {
-            short[] data = Create8x8ShortData();
-            var block1 = Block8x8.Load(data);
-            var block2 = Block8x8.Load(data);
-
-            block1[0] = 42;
-            block2[0] = 42;
-
-            Assert.Equal(block1, block2);
-            Assert.Equal(block1.GetHashCode(), block2.GetHashCode());
-        }
-
-        [Fact]
         public void Equality_WhenFalse()
         {
             short[] data = Create8x8ShortData();
@@ -275,6 +261,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 RunTest,
                 seed,
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        }
+
+        [Fact]
+        public void TransposeInplace()
+        {
+            static void RunTest()
+            {
+                short[] expected = Create8x8ShortData();
+                ReferenceImplementations.Transpose8x8(expected);
+
+                var block8x8 = default(Block8x8);
+                block8x8.LoadFrom(Create8x8ShortData());
+
+                block8x8.TransposeInplace();
+
+                short[] actual = new short[64];
+                block8x8.CopyTo(actual);
+
+                Assert.Equal(expected, actual);
+            }
+
+            // This method has only 1 implementation:
+            // 1. Scalar
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.DisableHWIntrinsic);
         }
     }
 }

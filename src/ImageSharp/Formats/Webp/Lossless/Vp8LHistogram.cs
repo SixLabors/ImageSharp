@@ -3,10 +3,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
-    internal class Vp8LHistogram : IDeepCloneable
+    internal sealed class Vp8LHistogram : IDeepCloneable
     {
         private const uint NonTrivialSym = 0xffffffff;
 
@@ -320,7 +326,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Literal.AsSpan(0, literalSize).Fill(0);
+                output.Literal.AsSpan(0, literalSize).Clear();
             }
         }
 
@@ -343,7 +349,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Red.AsSpan(0, size).Fill(0);
+                output.Red.AsSpan(0, size).Clear();
             }
         }
 
@@ -366,7 +372,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Blue.AsSpan(0, size).Fill(0);
+                output.Blue.AsSpan(0, size).Clear();
             }
         }
 
@@ -389,7 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Alpha.AsSpan(0, size).Fill(0);
+                output.Alpha.AsSpan(0, size).Clear();
             }
         }
 
@@ -412,7 +418,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else
             {
-                output.Distance.AsSpan(0, size).Fill(0);
+                output.Distance.AsSpan(0, size).Clear();
             }
         }
 
@@ -505,11 +511,52 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return cost;
         }
 
-        private static void AddVector(uint[] a, uint[] b, uint[] output, int size)
+        private static void AddVector(Span<uint> a, Span<uint> b, Span<uint> output, int count)
         {
-            for (int i = 0; i < size; i++)
+            DebugGuard.MustBeGreaterThanOrEqualTo(a.Length, count, nameof(a.Length));
+            DebugGuard.MustBeGreaterThanOrEqualTo(b.Length, count, nameof(b.Length));
+            DebugGuard.MustBeGreaterThanOrEqualTo(output.Length, count, nameof(output.Length));
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
             {
-                output[i] = a[i] + b[i];
+                ref uint aRef = ref MemoryMarshal.GetReference(a);
+                ref uint bRef = ref MemoryMarshal.GetReference(b);
+                ref uint outputRef = ref MemoryMarshal.GetReference(output);
+                int i;
+
+                for (i = 0; i + 32 <= count; i += 32)
+                {
+                    // Load values.
+                    Vector256<uint> a0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i));
+                    Vector256<uint> a1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i + 8));
+                    Vector256<uint> a2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i + 16));
+                    Vector256<uint> a3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i + 24));
+                    Vector256<uint> b0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i));
+                    Vector256<uint> b1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i + 8));
+                    Vector256<uint> b2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i + 16));
+                    Vector256<uint> b3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i + 24));
+
+                    // Note we are adding uint32_t's as *signed* int32's (using _mm_add_epi32). But
+                    // that's ok since the histogram values are less than 1<<28 (max picture count).
+                    Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i)) = Avx2.Add(a0, b0);
+                    Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 8)) = Avx2.Add(a1, b1);
+                    Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 16)) = Avx2.Add(a2, b2);
+                    Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 24)) = Avx2.Add(a3, b3);
+                }
+
+                for (; i < count; i++)
+                {
+                    output[i] = a[i] + b[i];
+                }
+            }
+            else
+#endif
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    output[i] = a[i] + b[i];
+                }
             }
         }
     }

@@ -151,6 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             if (this.componentsCount == this.frame.ComponentCount)
             {
                 this.ParseBaselineDataInterleaved();
+                this.spectralConverter.CommitConversion();
             }
             else
             {
@@ -165,18 +166,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcusPerColumn = this.frame.McusPerColumn;
             int mcusPerLine = this.frame.McusPerLine;
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
-
-            // Pre-derive the huffman table to avoid in-loop checks.
-            for (int i = 0; i < this.componentsCount; i++)
-            {
-                int order = this.frame.ComponentOrder[i];
-                JpegComponent component = this.components[order];
-
-                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-                dcHuffmanTable.Configure();
-                acHuffmanTable.Configure();
-            }
 
             for (int j = 0; j < mcusPerColumn; j++)
             {
@@ -202,7 +191,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
-                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(y);
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
@@ -247,13 +236,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
             ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-            dcHuffmanTable.Configure();
-            acHuffmanTable.Configure();
 
             for (int j = 0; j < h; j++)
             {
                 this.cancellationToken.ThrowIfCancellationRequested();
-                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                 for (int i = 0; i < w; i++)
@@ -346,15 +333,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcusPerLine = this.frame.McusPerLine;
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
 
-            // Pre-derive the huffman table to avoid in-loop checks.
-            for (int k = 0; k < this.componentsCount; k++)
-            {
-                int order = this.frame.ComponentOrder[k];
-                JpegComponent component = this.components[order];
-                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                dcHuffmanTable.Configure();
-            }
-
             for (int j = 0; j < mcusPerColumn; j++)
             {
                 for (int i = 0; i < mcusPerLine; i++)
@@ -376,7 +354,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         for (int y = 0; y < v; y++)
                         {
                             int blockRow = (mcuRow * v) + y;
-                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(blockRow);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
@@ -415,13 +393,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             if (this.SpectralStart == 0)
             {
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                dcHuffmanTable.Configure();
 
                 for (int j = 0; j < h; j++)
                 {
                     this.cancellationToken.ThrowIfCancellationRequested();
 
-                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
                     ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                     for (int i = 0; i < w; i++)
@@ -443,13 +420,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-                acHuffmanTable.Configure();
 
                 for (int j = 0; j < h; j++)
                 {
                     this.cancellationToken.ThrowIfCancellationRequested();
 
-                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
                     ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                     for (int i = 0; i < w; i++)
@@ -501,7 +477,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     i += r;
                     s = buffer.Receive(s);
-                    Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i++]) = (short)s;
+                    Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[i++]) = (short)s;
                 }
                 else
                 {
@@ -570,7 +546,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     if (s != 0)
                     {
                         s = buffer.Receive(s);
-                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[i]) = (short)(s << low);
+                        Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[i]) = (short)(s << low);
                     }
                     else
                     {
@@ -646,7 +622,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     do
                     {
-                        ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
+                        ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]);
                         if (coef != 0)
                         {
                             buffer.CheckBits();
@@ -672,7 +648,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     if ((s != 0) && (k < 64))
                     {
-                        Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]) = (short)s;
+                        Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]) = (short)s;
                     }
                 }
             }
@@ -681,7 +657,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 for (; k <= end; k++)
                 {
-                    ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.ZigZagOrder[k]);
+                    ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]);
 
                     if (coef != 0)
                     {
@@ -751,11 +727,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="index">Table index.</param>
         /// <param name="codeLengths">Code lengths.</param>
         /// <param name="values">Code values.</param>
+        /// <param name="workspace">The provided spare workspace memory, can be dirty.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
         {
             HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
-            tables[index] = new HuffmanTable(codeLengths, values);
+            tables[index] = new HuffmanTable(codeLengths, values, workspace);
         }
     }
 }

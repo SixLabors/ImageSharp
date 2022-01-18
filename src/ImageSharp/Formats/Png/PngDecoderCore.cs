@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -18,6 +19,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -36,6 +38,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         private readonly bool ignoreMetadata;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to read the IHDR and tRNS chunks only.
+        /// </summary>
+        private readonly bool colorMetadataOnly;
 
         /// <summary>
         /// Used the manage memory allocations.
@@ -76,11 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// The palette containing alpha channel color information for indexed png's.
         /// </summary>
         private byte[] paletteAlpha;
-
-        /// <summary>
-        /// A value indicating whether the end chunk has been reached.
-        /// </summary>
-        private bool isEndChunkReached;
 
         /// <summary>
         /// Previous scanline processed.
@@ -124,13 +126,21 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
+        internal PngDecoderCore(Configuration configuration, bool colorMetadataOnly)
+        {
+            this.Configuration = configuration ?? Configuration.Default;
+            this.memoryAllocator = this.Configuration.MemoryAllocator;
+            this.colorMetadataOnly = colorMetadataOnly;
+            this.ignoreMetadata = true;
+        }
+
         /// <inheritdoc/>
         public Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
-        public Size Dimensions => new Size(this.header.Width, this.header.Height);
+        public Size Dimensions => new(this.header.Width, this.header.Height);
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -143,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Image<TPixel> image = null;
             try
             {
-                while (!this.isEndChunkReached && this.TryReadChunk(out PngChunk chunk))
+                while (this.TryReadChunk(out PngChunk chunk))
                 {
                     try
                     {
@@ -168,37 +178,36 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                                 break;
                             case PngChunkType.Palette:
-                                var pal = new byte[chunk.Length];
+                                byte[] pal = new byte[chunk.Length];
                                 chunk.Data.GetSpan().CopyTo(pal);
                                 this.palette = pal;
                                 break;
                             case PngChunkType.Transparency:
-                                var alpha = new byte[chunk.Length];
+                                byte[] alpha = new byte[chunk.Length];
                                 chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
-                                    var exifData = new byte[chunk.Length];
+                                    byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
                             case PngChunkType.End:
-                                this.isEndChunkReached = true;
-                                break;
+                                goto EOF;
                             case PngChunkType.ProprietaryApple:
                                 PngThrowHelper.ThrowInvalidChunkType("Proprietary Apple PNG detected! This PNG file is not conform to the specification and cannot be decoded.");
                                 break;
@@ -210,6 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
+                EOF:
                 if (image is null)
                 {
                     PngThrowHelper.ThrowNoData();
@@ -233,7 +243,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.currentStream.Skip(8);
             try
             {
-                while (!this.isEndChunkReached && this.TryReadChunk(out PngChunk chunk))
+                while (this.TryReadChunk(out PngChunk chunk))
                 {
                     try
                     {
@@ -243,35 +253,89 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Physical:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Gamma:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
+
+                                // Spec says tRNS must be before IDAT so safe to exit.
+                                if (this.colorMetadataOnly)
+                                {
+                                    goto EOF;
+                                }
+
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
+                            case PngChunkType.Transparency:
+                                byte[] alpha = new byte[chunk.Length];
+                                chunk.Data.GetSpan().CopyTo(alpha);
+                                this.paletteAlpha = alpha;
+                                this.AssignTransparentMarkers(alpha, pngMetadata);
+
+                                if (this.colorMetadataOnly)
+                                {
+                                    goto EOF;
+                                }
+
+                                break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
+                                this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
+                                this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
+                                this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                    break;
+                                }
+
                                 if (!this.ignoreMetadata)
                                 {
-                                    var exifData = new byte[chunk.Length];
+                                    byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
                             case PngChunkType.End:
-                                this.isEndChunkReached = true;
-                                break;
+                                goto EOF;
                         }
                     }
                     finally
@@ -279,19 +343,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                         chunk.Data?.Dispose(); // Data is rented in ReadChunkData()
                     }
                 }
+
+                EOF:
+                if (this.header.Width == 0 && this.header.Height == 0)
+                {
+                    PngThrowHelper.ThrowNoHeader();
+                }
+
+                return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
             }
             finally
             {
                 this.scanline?.Dispose();
                 this.previousScanline?.Dispose();
             }
-
-            if (this.header.Width == 0 && this.header.Height == 0)
-            {
-                PngThrowHelper.ThrowNoHeader();
-            }
-
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
         }
 
         /// <summary>
@@ -364,11 +429,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pngMetadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
         private void ReadGammaChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
-        {
+
             // The value is encoded as a 4-byte unsigned integer, representing gamma times 100000.
             // For example, a gamma of 1/2.2 would be stored as 45455.
-            pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) / 100_000F;
-        }
+            => pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) * 1e-5F;
 
         /// <summary>
         /// Initializes the image and various buffers needed for processing
@@ -477,19 +541,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
-            {
-                deframeStream.AllocateNewBytes(chunk.Length, true);
-                DeflateStream dataStream = deframeStream.CompressedStream;
+            using var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk);
+            deframeStream.AllocateNewBytes(chunk.Length, true);
+            DeflateStream dataStream = deframeStream.CompressedStream;
 
-                if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
-                {
-                    this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
-                }
-                else
-                {
-                    this.DecodePixelData(dataStream, image, pngMetadata);
-                }
+            if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
+            {
+                this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
+            }
+            else
+            {
+                this.DecodePixelData(dataStream, image, pngMetadata);
             }
         }
 
@@ -565,6 +627,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             int pass = 0;
             int width = this.header.Width;
+            Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
             while (true)
             {
                 int numColumns = Adam7.ComputeColumns(width, pass);
@@ -623,7 +686,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             break;
                     }
 
-                    Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
+                    Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(this.currentRow);
                     this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[pass], Adam7.ColumnIncrement[pass]);
 
                     this.SwapScanlineBuffers();
@@ -656,7 +719,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
+            Span<TPixel> rowSpan = pixels.PixelBuffer.DangerousGetRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
@@ -906,9 +969,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a text chunk containing image properties from the data.
         /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object.</param>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -918,7 +982,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int zeroIndex = data.IndexOf((byte)0);
 
             // Keywords are restricted to 1 to 79 bytes in length.
-            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
+            if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }
@@ -931,15 +995,19 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             string value = PngConstants.Encoding.GetString(data.Slice(zeroIndex + 1));
 
-            metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            if (!this.TryReadTextChunkMetadata(baseMetadata, name, value))
+            {
+                metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            }
         }
 
         /// <summary>
         /// Reads the compressed text chunk. Contains a uncompressed keyword and a compressed text string.
         /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object.</param>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadCompressedTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadCompressedTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -967,9 +1035,182 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
 
-            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed))
+            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed) &&
+                !this.TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
             {
                 metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
+            }
+        }
+
+        /// <summary>
+        /// Checks if the given text chunk is actually storing parsable metadata.
+        /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object to store the parsed metadata in.</param>
+        /// <param name="chunkName">The name of the text chunk.</param>
+        /// <param name="chunkText">The contents of the text chunk.</param>
+        /// <returns>True if metadata was successfully parsed from the text chunk. False if the
+        /// text chunk was not identified as metadata, and should be stored in the metadata
+        /// object unmodified.</returns>
+        private bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
+        {
+            if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
+                this.TryReadLegacyExifTextChunk(baseMetadata, chunkText))
+            {
+                // Successfully parsed legacy exif data from text
+                return true;
+            }
+
+            // TODO: "Raw profile type iptc", potentially others?
+
+            // No special chunk data identified
+            return false;
+        }
+
+        /// <summary>
+        /// Reads exif data encoded into a text chunk with the name "raw profile type exif".
+        /// This method was used by ImageMagick, exiftool, exiv2, digiKam, etc, before the
+        /// 2017 update to png that allowed a true exif chunk.
+        /// </summary>
+        /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
+        /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>
+        private bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string data)
+        {
+            ReadOnlySpan<char> dataSpan = data.AsSpan();
+            dataSpan = dataSpan.TrimStart();
+
+            if (!StringEqualsInsensitive(dataSpan.Slice(0, 4), "exif".AsSpan()))
+            {
+                // "exif" identifier is missing from the beginning of the text chunk
+                return false;
+            }
+
+            // Skip to the data length
+            dataSpan = dataSpan.Slice(4).TrimStart();
+            int dataLengthEnd = dataSpan.IndexOf('\n');
+            int dataLength = ParseInt32(dataSpan.Slice(0, dataSpan.IndexOf('\n')));
+
+            // Skip to the hex-encoded data
+            dataSpan = dataSpan.Slice(dataLengthEnd).Trim();
+
+            // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
+            // This doesn't actually allocate.
+            ReadOnlySpan<byte> exifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+
+            if (dataLength < exifHeader.Length)
+            {
+                // Not enough room for the required exif header, this data couldn't possibly be valid
+                return false;
+            }
+
+            // Parse the hex-encoded data into the byte array we are going to hand off to ExifProfile
+            byte[] exifBlob = new byte[dataLength - exifHeader.Length];
+
+            try
+            {
+                // Check for the presence of the exif header in the hex-encoded binary data
+                byte[] tempExifBuf = exifBlob;
+                if (exifBlob.Length < exifHeader.Length)
+                {
+                    // Need to allocate a temporary array, this should be an extremely uncommon (TODO: impossible?) case
+                    tempExifBuf = new byte[exifHeader.Length];
+                }
+
+                HexConverter.HexStringToBytes(dataSpan.Slice(0, exifHeader.Length * 2), tempExifBuf);
+                if (!tempExifBuf.AsSpan().Slice(0, exifHeader.Length).SequenceEqual(exifHeader))
+                {
+                    // Exif header in the hex data is not valid
+                    return false;
+                }
+
+                // Skip over the exif header we just tested
+                dataSpan = dataSpan.Slice(exifHeader.Length * 2);
+                dataLength -= exifHeader.Length;
+
+                // Load the hex-encoded data, one line at a time
+                for (int i = 0; i < dataLength;)
+                {
+                    ReadOnlySpan<char> lineSpan = dataSpan;
+
+                    int newlineIndex = dataSpan.IndexOf('\n');
+                    if (newlineIndex != -1)
+                    {
+                        lineSpan = dataSpan.Slice(0, newlineIndex);
+                    }
+
+                    i += HexConverter.HexStringToBytes(lineSpan, exifBlob.AsSpan().Slice(i));
+
+                    dataSpan = dataSpan.Slice(newlineIndex + 1);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            this.MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
+            return true;
+        }
+
+        /// <summary>
+        /// Compares two ReadOnlySpan&lt;char&gt;s in a case-insensitive method.
+        /// This is only needed because older frameworks are missing the extension method.
+        /// </summary>
+        /// <param name="span1">The first <see cref="Span{T}"/> to compare.</param>
+        /// <param name="span2">The second <see cref="Span{T}"/> to compare.</param>
+        /// <returns>True if the spans were identical, false otherwise.</returns>
+        private static bool StringEqualsInsensitive(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2)
+        {
+#pragma warning disable IDE0022 // Use expression body for methods
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+            return span1.Equals(span2, StringComparison.OrdinalIgnoreCase);
+#else
+            return span1.ToString().Equals(span2.ToString(), StringComparison.OrdinalIgnoreCase);
+#endif
+#pragma warning restore IDE0022 // Use expression body for methods
+        }
+
+        /// <summary>
+        /// int.Parse() a ReadOnlySpan&lt;char&gt;, with a fallback for older frameworks.
+        /// </summary>
+        /// <param name="span">The <see cref="int"/> to parse.</param>
+        /// <returns>The parsed <see cref="int"/>.</returns>
+        private static int ParseInt32(ReadOnlySpan<char> span)
+        {
+#pragma warning disable IDE0022 // Use expression body for methods
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+            return int.Parse(span);
+#else
+            return int.Parse(span.ToString());
+#endif
+#pragma warning restore IDE0022 // Use expression body for methods
+        }
+
+        /// <summary>
+        /// Sets the <see cref="ExifProfile"/> in <paramref name="metadata"/> to <paramref name="newProfile"/>,
+        /// or copies exif tags if <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>.
+        /// </summary>
+        /// <param name="metadata">The <see cref="ImageMetadata"/> to store the exif data in.</param>
+        /// <param name="newProfile">The <see cref="ExifProfile"/> to copy exif tags from.</param>
+        /// <param name="replaceExistingKeys">If <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>,
+        /// controls whether existing exif tags in <paramref name="metadata"/> will be overwritten with any conflicting
+        /// tags from <paramref name="newProfile"/>.</param>
+        private void MergeOrSetExifProfile(ImageMetadata metadata, ExifProfile newProfile, bool replaceExistingKeys)
+        {
+            if (metadata.ExifProfile is null)
+            {
+                // No exif metadata was loaded yet, so just assign it
+                metadata.ExifProfile = newProfile;
+            }
+            else
+            {
+                // Try to merge existing keys with the ones from the new profile
+                foreach (IExifValue newKey in newProfile.Values)
+                {
+                    if (replaceExistingKeys || metadata.ExifProfile.GetValueInternal(newKey.Tag) is null)
+                    {
+                        metadata.ExifProfile.SetValueInternal(newKey.Tag, newKey.GetValue());
+                    }
+                }
             }
         }
 
@@ -984,13 +1225,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadInternationalTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadInternationalTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
                 return;
             }
 
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
             int zeroIndexKeyword = data.IndexOf((byte)0);
             if (zeroIndexKeyword < PngConstants.MinTextKeywordLength || zeroIndexKeyword > PngConstants.MaxTextKeywordLength)
             {
@@ -1036,13 +1278,18 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
                 {
-                    metadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
+                    pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
                 }
+            }
+            else if (this.IsXmpTextData(keywordBytes))
+            {
+                XmpProfile xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
+                metadata.XmpProfile = xmpProfile;
             }
             else
             {
                 string value = PngConstants.TranslatedEncoding.GetString(data.Slice(dataStartIdx));
-                metadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
+                pngMetadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
             }
         }
 
@@ -1145,20 +1392,29 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             PngChunkType type = this.ReadChunkType();
 
-            // NOTE: Reading the chunk data is the responsible of the caller
-            if (type == PngChunkType.Data)
+            // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
+            // We can skip all other chunk data in the stream for better performance.
+            if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency)
             {
                 chunk = new PngChunk(length, type);
 
                 return true;
             }
 
+            long pos = this.currentStream.Position;
             chunk = new PngChunk(
                 length: length,
                 type: type,
                 data: this.ReadChunkData(length));
 
             this.ValidateChunk(chunk);
+
+            // Restore the stream position for IDAT chunks, because it will be decoded later and
+            // was only read to verifying the CRC is correct.
+            if (type == PngChunkType.Data)
+            {
+                this.currentStream.Position = pos;
+            }
 
             return true;
         }
@@ -1300,6 +1556,8 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             return true;
         }
+
+        private bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes) => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
 
         private void SwapScanlineBuffers()
         {

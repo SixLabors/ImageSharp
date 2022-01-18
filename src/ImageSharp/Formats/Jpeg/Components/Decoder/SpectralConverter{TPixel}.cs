@@ -3,7 +3,7 @@
 
 using System;
 using System.Buffers;
-using System.Numerics;
+using System.Linq;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Memory;
@@ -11,39 +11,78 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Color decoding scheme:
+    /// <list type = "number" >
+    /// <listheader>
+    ///     <item>Decode spectral data to Jpeg color space</item>
+    ///     <item>Convert from Jpeg color space to RGB</item>
+    ///     <item>Convert from RGB to target pixel space</item>
+    /// </listheader>
+    /// </list>
+    /// </remarks>
     internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        /// <summary>
+        /// <see cref="Configuration"/> instance associated with current
+        /// decoding routine.
+        /// </summary>
         private readonly Configuration configuration;
 
-        private readonly CancellationToken cancellationToken;
-
+        /// <summary>
+        /// Jpeg component converters from decompressed spectral to color data.
+        /// </summary>
         private JpegComponentPostProcessor[] componentProcessors;
 
-        private JpegColorConverter colorConverter;
+        /// <summary>
+        /// Color converter from jpeg color space to target pixel color space.
+        /// </summary>
+        private JpegColorConverterBase colorConverter;
 
-        // private IMemoryOwner<Vector4> rgbaBuffer;
+        /// <summary>
+        /// Intermediate buffer of RGB components used in color conversion.
+        /// </summary>
         private IMemoryOwner<byte> rgbBuffer;
 
+        /// <summary>
+        /// Proxy buffer used in packing from RGB to target TPixel pixels.
+        /// </summary>
         private IMemoryOwner<TPixel> paddedProxyPixelRow;
 
+        /// <summary>
+        /// Resulting 2D pixel buffer.
+        /// </summary>
         private Buffer2D<TPixel> pixelBuffer;
 
-        private int blockRowsPerStep;
-
+        /// <summary>
+        /// How many pixel rows are processed in one 'stride'.
+        /// </summary>
         private int pixelRowsPerStep;
 
+        /// <summary>
+        /// How many pixel rows were processed.
+        /// </summary>
         private int pixelRowCounter;
 
-        public SpectralConverter(Configuration configuration, CancellationToken cancellationToken)
-        {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SpectralConverter{TPixel}" /> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        public SpectralConverter(Configuration configuration) =>
             this.configuration = configuration;
-            this.cancellationToken = cancellationToken;
-        }
 
-        private bool Converted => this.pixelRowCounter >= this.pixelBuffer.Height;
-
-        public Buffer2D<TPixel> GetPixelBuffer()
+        /// <summary>
+        /// Gets converted pixel buffer.
+        /// </summary>
+        /// <remarks>
+        /// For non-baseline interleaved jpeg this method does a 'lazy' spectral
+        /// conversion from spectral to color.
+        /// </remarks>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Pixel buffer.</returns>
+        public Buffer2D<TPixel> GetPixelBuffer(CancellationToken cancellationToken)
         {
             if (!this.Converted)
             {
@@ -51,8 +90,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int step = 0; step < steps; step++)
                 {
-                    this.cancellationToken.ThrowIfCancellationRequested();
-                    this.ConvertNextStride(step);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    this.ConvertStride(step);
                 }
             }
 
@@ -65,18 +104,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
 
             // iteration data
-            IJpegComponent c0 = frame.Components[0];
+            int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);
+            int majorVerticalSamplingFactor = frame.Components.Max((component) => component.SamplingFactors.Height);
 
             const int blockPixelHeight = 8;
-            this.blockRowsPerStep = c0.SamplingFactors.Height;
-            this.pixelRowsPerStep = this.blockRowsPerStep * blockPixelHeight;
+            this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelHeight;
 
             // pixel buffer for resulting image
             this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight);
             this.paddedProxyPixelRow = allocator.Allocate<TPixel>(frame.PixelWidth + 3);
 
             // component processors from spectral to Rgba32
-            var postProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, this.pixelRowsPerStep);
+            const int blockPixelWidth = 8;
+            var postProcessorBufferSize = new Size(majorBlockWidth * blockPixelWidth, this.pixelRowsPerStep);
             this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
@@ -84,7 +124,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            // this.rgbaBuffer = allocator.Allocate<Vector4>(frame.PixelWidth);
             this.rgbBuffer = allocator.Allocate<byte>(frame.PixelWidth * 3);
 
             // color converter from Rgba32 to TPixel
@@ -95,41 +134,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public override void ConvertStrideBaseline()
         {
             // Convert next pixel stride using single spectral `stride'
-            // Note that zero passing eliminates the need of virtual call from JpegComponentPostProcessor
-            this.ConvertNextStride(spectralStep: 0);
+            // Note that zero passing eliminates the need of virtual call
+            // from JpegComponentPostProcessor
+            this.ConvertStride(spectralStep: 0);
 
-            // Clear spectral stride - this is VERY important as jpeg possibly won't fill entire buffer each stride
-            // Which leads to decoding artifacts
-            // Note that this code clears all buffers of the post processors, it's their responsibility to allocate only single stride
             foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
             {
                 cpp.ClearSpectralBuffers();
             }
         }
 
-        public void Dispose()
-        {
-            if (this.componentProcessors != null)
-            {
-                foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
-                {
-                    cpp.Dispose();
-                }
-            }
-
-            this.rgbBuffer?.Dispose();
-            this.paddedProxyPixelRow?.Dispose();
-        }
-
-        private void ConvertNextStride(int spectralStep)
+        /// <summary>
+        /// Converts single spectral jpeg stride to color stride.
+        /// </summary>
+        /// <param name="spectralStep">Spectral stride index.</param>
+        private void ConvertStride(int spectralStep)
         {
             int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
-            var buffers = new Buffer2D<float>[this.componentProcessors.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
                 this.componentProcessors[i].CopyBlocksToColorBuffer(spectralStep);
-                buffers[i] = this.componentProcessors[i].ColorBuffer;
             }
 
             int width = this.pixelBuffer.Width;
@@ -138,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 int y = yy - this.pixelRowCounter;
 
-                var values = new JpegColorConverter.ComponentValues(buffers, y);
+                var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
 
                 this.colorConverter.ConvertToRgbInplace(values);
                 values = values.Slice(0, width); // slice away Jpeg padding
@@ -154,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
                 // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,
                 // pack pixels to a temporary, padded proxy buffer, then copy the relevant values to the destination row.
-                if (this.pixelBuffer.TryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
+                if (this.pixelBuffer.DangerousTryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
                 {
                     PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, destRow);
                 }
@@ -162,11 +187,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     Span<TPixel> proxyRow = this.paddedProxyPixelRow.GetSpan();
                     PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, proxyRow);
-                    proxyRow.Slice(0, width).CopyTo(this.pixelBuffer.GetRowSpan(yy));
+                    proxyRow.Slice(0, width).CopyTo(this.pixelBuffer.DangerousGetRowSpan(yy));
                 }
             }
 
             this.pixelRowCounter += this.pixelRowsPerStep;
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            if (this.componentProcessors != null)
+            {
+                foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+                {
+                    cpp.Dispose();
+                }
+            }
+
+            this.rgbBuffer?.Dispose();
+            this.paddedProxyPixelRow?.Dispose();
         }
     }
 }

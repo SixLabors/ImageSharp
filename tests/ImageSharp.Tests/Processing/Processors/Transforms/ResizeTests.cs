@@ -117,6 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
                 var allocator = new TestMemoryAllocator();
+                allocator.EnableNonThreadSafeLogging();
                 configuration.MemoryAllocator = allocator;
                 configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
 
@@ -269,8 +270,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             using (Image<TPixel> image0 = provider.GetImage())
             {
-                Assert.True(image0.TryGetSinglePixelSpan(out Span<TPixel> imageSpan));
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageSpan);
+                Assert.True(image0.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imageMem));
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageMem.Span);
 
                 using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
                 {
@@ -340,7 +341,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // Resize_WorksWithAllResamplers_TestPattern301x1180_NearestNeighbor-300x480.png
             // TODO: Should we investigate this?
             bool allowHigherInaccuracy = !TestEnvironment.Is64BitProcess
-                                         && string.IsNullOrEmpty(TestEnvironment.NetCoreVersion)
+                                         && TestEnvironment.NetCoreVersion == null
                                          && sampler is NearestNeighborResampler;
 
             var comparer = ImageComparer.TolerantPercentage(allowHigherInaccuracy ? 0.3f : 0.017f);

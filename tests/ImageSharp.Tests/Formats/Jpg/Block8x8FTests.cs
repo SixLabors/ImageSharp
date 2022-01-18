@@ -115,56 +115,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public unsafe void Load_Store_FloatArray_Ptr()
-        {
-            float[] data = new float[Block8x8F.Size];
-            float[] mirror = new float[Block8x8F.Size];
-
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                data[i] = i;
-            }
-
-            this.Measure(
-                Times,
-                () =>
-                {
-                    var b = default(Block8x8F);
-                    Block8x8F.LoadFrom(&b, data);
-                    Block8x8F.ScaledCopyTo(&b, mirror);
-                });
-
-            Assert.Equal(data, mirror);
-
-            // PrintLinearData((Span<float>)mirror);
-        }
-
-        [Fact]
-        public void Load_Store_IntArray()
-        {
-            int[] data = new int[Block8x8F.Size];
-            int[] mirror = new int[Block8x8F.Size];
-
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                data[i] = i;
-            }
-
-            this.Measure(
-                Times,
-                () =>
-                {
-                    var v = default(Block8x8F);
-                    v.LoadFrom(data);
-                    v.ScaledCopyTo(mirror);
-                });
-
-            Assert.Equal(data, mirror);
-
-            // PrintLinearData((Span<int>)mirror);
-        }
-
-        [Fact]
         public void TransposeInplace()
         {
             static void RunTest()
@@ -183,9 +133,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expected, actual);
             }
 
+            // This method has only 2 implementations:
+            // 1. AVX
+            // 2. Scalar
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
         }
 
         private static float[] Create8x8ColorCropTestData()

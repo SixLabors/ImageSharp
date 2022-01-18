@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     /// Represents the Huffman tree.
     /// </summary>
     [DebuggerDisplay("TotalCount = {TotalCount}, Value = {Value}, Left = {PoolIndexLeft}, Right = {PoolIndexRight}")]
-    internal struct HuffmanTree : IDeepCloneable
+    internal struct HuffmanTree
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanTree"/> struct.
@@ -57,7 +57,5 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             return t1.Value < t2.Value ? -1 : 1;
         }
-
-        public IDeepCloneable DeepClone() => new HuffmanTree(this);
     }
 }

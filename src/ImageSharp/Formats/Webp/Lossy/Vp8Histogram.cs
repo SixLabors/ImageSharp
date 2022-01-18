@@ -3,10 +3,15 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
-    internal class Vp8Histogram
+    internal sealed class Vp8Histogram
     {
         private readonly int[] scratch = new int[16];
 
@@ -18,6 +23,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Size of histogram used by CollectHistogram.
         /// </summary>
         private const int MaxCoeffThresh = 31;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector256<short> MaxCoeffThreshVec = Vector256.Create((short)MaxCoeffThresh);
+#endif
 
         private int maxValue;
 
@@ -49,14 +58,41 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.distribution.AsSpan().Clear();
             for (j = startBlock; j < endBlock; j++)
             {
-                this.Vp8FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), this.output);
+                Vp8Encoding.FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), this.output, this.scratch);
 
                 // Convert coefficients to bin.
-                for (int k = 0; k < 16; ++k)
+#if SUPPORTS_RUNTIME_INTRINSICS
+                if (Avx2.IsSupported)
                 {
-                    int v = Math.Abs(this.output[k]) >> 3;
-                    int clippedValue = ClipMax(v, MaxCoeffThresh);
-                    ++this.distribution[clippedValue];
+                    // Load.
+                    ref short outputRef = ref MemoryMarshal.GetReference<short>(this.output);
+                    Vector256<byte> out0 = Unsafe.As<short, Vector256<byte>>(ref outputRef);
+
+                    // v = abs(out) >> 3
+                    Vector256<ushort> abs0 = Avx2.Abs(out0.AsInt16());
+                    Vector256<short> v0 = Avx2.ShiftRightArithmetic(abs0.AsInt16(), 3);
+
+                    // bin = min(v, MAX_COEFF_THRESH)
+                    Vector256<short> min0 = Avx2.Min(v0, MaxCoeffThreshVec);
+
+                    // Store.
+                    Unsafe.As<short, Vector256<short>>(ref outputRef) = min0;
+
+                    // Convert coefficients to bin.
+                    for (int k = 0; k < 16; ++k)
+                    {
+                        ++this.distribution[this.output[k]];
+                    }
+                }
+                else
+#endif
+                {
+                    for (int k = 0; k < 16; ++k)
+                    {
+                        int v = Math.Abs(this.output[k]) >> 3;
+                        int clippedValue = ClipMax(v, MaxCoeffThresh);
+                        ++this.distribution[clippedValue];
+                    }
                 }
             }
 
@@ -96,48 +132,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             this.maxValue = maxValue;
             this.lastNonZero = lastNonZero;
-        }
-
-        private void Vp8FTransform(Span<byte> src, Span<byte> reference, Span<short> output)
-        {
-            int i;
-            Span<int> tmp = this.scratch;
-            tmp.Clear();
-
-            for (i = 0; i < 4; i++)
-            {
-                int d0 = src[0] - reference[0];   // 9bit dynamic range ([-255,255])
-                int d1 = src[1] - reference[1];
-                int d2 = src[2] - reference[2];
-                int d3 = src[3] - reference[3];
-                int a0 = d0 + d3; // 10b [-510,510]
-                int a1 = d1 + d2;
-                int a2 = d1 - d2;
-                int a3 = d0 - d3;
-                tmp[0 + (i * 4)] = (a0 + a1) * 8; // 14b [-8160,8160]
-                tmp[1 + (i * 4)] = ((a2 * 2217) + (a3 * 5352) + 1812) >> 9; // [-7536,7542]
-                tmp[2 + (i * 4)] = (a0 - a1) * 8;
-                tmp[3 + (i * 4)] = ((a3 * 2217) - (a2 * 5352) + 937) >> 9;
-
-                // Do not change the span in the last iteration.
-                if (i < 3)
-                {
-                    src = src.Slice(WebpConstants.Bps);
-                    reference = reference.Slice(WebpConstants.Bps);
-                }
-            }
-
-            for (i = 0; i < 4; i++)
-            {
-                int a0 = tmp[0 + i] + tmp[12 + i];  // 15b
-                int a1 = tmp[4 + i] + tmp[8 + i];
-                int a2 = tmp[4 + i] - tmp[8 + i];
-                int a3 = tmp[0 + i] - tmp[12 + i];
-                output[0 + i] = (short)((a0 + a1 + 7) >> 4); // 12b
-                output[4 + i] = (short)((((a2 * 2217) + (a3 * 5352) + 12000) >> 16) + (a3 != 0 ? 1 : 0));
-                output[8 + i] = (short)((a0 - a1 + 7) >> 4);
-                output[12 + i] = (short)(((a3 * 2217) - (a2 * 5352) + 51000) >> 16);
-            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

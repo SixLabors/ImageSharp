@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -64,6 +65,19 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void Abgr32()
+            {
+                var source = new Abgr32(1, 22, 33, 231);
+
+                // Act:
+                var color = new Color(source);
+
+                // Assert:
+                Abgr32 data = color;
+                Assert.Equal(source, data);
+            }
+
+            [Fact]
             public void Rgb24()
             {
                 var source = new Rgb24(1, 22, 231);
@@ -90,17 +104,30 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void GenericPixel()
+            public void Vector4Constructor()
             {
-                AssertGenericPixel(new RgbaVector(float.Epsilon, 2 * float.Epsilon, float.MaxValue, float.MinValue));
-                AssertGenericPixel(new Rgba64(1, 2, ushort.MaxValue, ushort.MaxValue - 1));
-                AssertGenericPixel(new Rgb48(1, 2, ushort.MaxValue - 1));
-                AssertGenericPixel(new La32(1, ushort.MaxValue - 1));
-                AssertGenericPixel(new L16(ushort.MaxValue - 1));
-                AssertGenericPixel(new Rgba32(1, 2, 255, 254));
+                // Act:
+                Color color = new(Vector4.One);
+
+                // Assert:
+                Assert.Equal(new RgbaVector(1, 1, 1, 1), color.ToPixel<RgbaVector>());
+                Assert.Equal(new Rgba64(65535, 65535, 65535, 65535), color.ToPixel<Rgba64>());
+                Assert.Equal(new Rgba32(255, 255, 255, 255), color.ToPixel<Rgba32>());
+                Assert.Equal(new L8(255), color.ToPixel<L8>());
             }
 
-            private static void AssertGenericPixel<TPixel>(TPixel source)
+            [Fact]
+            public void GenericPixelRoundTrip()
+            {
+                AssertGenericPixelRoundTrip(new RgbaVector(float.Epsilon, 2 * float.Epsilon, float.MaxValue, float.MinValue));
+                AssertGenericPixelRoundTrip(new Rgba64(1, 2, ushort.MaxValue, ushort.MaxValue - 1));
+                AssertGenericPixelRoundTrip(new Rgb48(1, 2, ushort.MaxValue - 1));
+                AssertGenericPixelRoundTrip(new La32(1, ushort.MaxValue - 1));
+                AssertGenericPixelRoundTrip(new L16(ushort.MaxValue - 1));
+                AssertGenericPixelRoundTrip(new Rgba32(1, 2, 255, 254));
+            }
+
+            private static void AssertGenericPixelRoundTrip<TPixel>(TPixel source)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 // Act:
@@ -109,6 +136,27 @@ namespace SixLabors.ImageSharp.Tests
                 // Assert:
                 TPixel actual = color.ToPixel<TPixel>();
                 Assert.Equal(source, actual);
+            }
+
+            [Fact]
+            public void GenericPixelDifferentPrecision()
+            {
+                AssertGenericPixelDifferentPrecision(new RgbaVector(1, 1, 1, 1), new Rgba64(65535, 65535, 65535, 65535));
+                AssertGenericPixelDifferentPrecision(new RgbaVector(1, 1, 1, 1), new Rgba32(255, 255, 255, 255));
+                AssertGenericPixelDifferentPrecision(new Rgba64(65535, 65535, 65535, 65535), new Rgba32(255, 255, 255, 255));
+                AssertGenericPixelDifferentPrecision(new Rgba32(255, 255, 255, 255), new L8(255));
+            }
+
+            private static void AssertGenericPixelDifferentPrecision<TPixel, TPixel2>(TPixel source, TPixel2 expected)
+                where TPixel : unmanaged, IPixel<TPixel>
+                where TPixel2 : unmanaged, IPixel<TPixel2>
+            {
+                // Act:
+                var color = Color.FromPixel(source);
+
+                // Assert:
+                TPixel2 actual = color.ToPixel<TPixel2>();
+                Assert.Equal(expected, actual);
             }
         }
     }

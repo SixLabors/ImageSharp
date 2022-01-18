@@ -278,10 +278,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0;
 
-            var pixelConverter = LuminanceForwardConverter<TPixel>.Create();
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
             RowOctet<TPixel> currentRows = default;
+
+            var pixelConverter = new LuminanceForwardConverter<TPixel>(frame);
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
@@ -290,7 +291,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(frame, x, y, ref currentRows);
+                    pixelConverter.Convert(x, y, ref currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -649,6 +650,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 
             this.target.Write(this.streamWriteBuffer, 0, writeIdx);
+            this.emitWriteIndex = this.emitBuffer.Length;
         }
 
         /// <summary>
@@ -659,11 +661,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// This must be called only if <see cref="IsStreamFlushNeeded"/> is true
         /// only during the macroblocks encoding routine.
         /// </remarks>
-        private void FlushToStream()
-        {
+        private void FlushToStream() =>
             this.FlushToStream(this.emitWriteIndex * 4);
-            this.emitWriteIndex = this.emitBuffer.Length;
-        }
 
         /// <summary>
         /// Flushes final cached bits to the stream padding 1's to
@@ -680,10 +679,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // And writing only valuable count of bytes count we want to write to the output stream
             int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
             uint packedBytes = this.accumulatedBits | (uint.MaxValue >> this.bitCount);
-            this.emitBuffer[--this.emitWriteIndex] = packedBytes;
+            this.emitBuffer[this.emitWriteIndex - 1] = packedBytes;
 
             // Flush cached bytes to the output stream with padding bits
-            this.FlushToStream((this.emitWriteIndex * 4) - 4 + valuableBytesCount);
+            int lastByteIndex = (this.emitWriteIndex * 4) - valuableBytesCount;
+            this.FlushToStream(lastByteIndex);
         }
     }
 }

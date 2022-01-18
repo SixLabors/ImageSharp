@@ -61,6 +61,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string David = "Png/david.png";
             public const string TestPattern31x31 = "Png/testpattern31x31.png";
             public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
+            public const string XmpColorPalette = "Png/xmp-colorpalette.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -117,9 +118,13 @@ namespace SixLabors.ImageSharp.Tests
             // Issue 1765: https://github.com/SixLabors/ImageSharp/issues/1765
             public const string Issue1765_Net6DeflateStreamRead = "Png/issues/Issue_1765_Net6DeflateStreamRead.png";
 
+            // Discussion 1875: https://github.com/SixLabors/ImageSharp/discussions/1875
+            public const string Issue1875 = "Png/raw-profile-type-exif.png";
+
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
+                public const string WrongCrcDataChunk = "Png/xcsn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
 
                 // Zlib errors.
@@ -163,7 +168,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Fb = "Jpg/progressive/fb.jpg";
                 public const string Progress = "Jpg/progressive/progress.jpg";
                 public const string Festzug = "Jpg/progressive/Festzug.jpg";
-                public const string Winter = "Jpg/progressive/winter.jpg";
+                public const string Winter420_NonInterleaved = "Jpg/progressive/winter420_noninterleaved.jpg";
 
                 public static class Bad
                 {
@@ -213,6 +218,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ArithmeticCoding = "Jpg/baseline/arithmetic_coding.jpg";
                 public const string ArithmeticCodingProgressive = "Jpg/progressive/arithmetic_progressive.jpg";
                 public const string Lossless = "Jpg/baseline/lossless.jpg";
+                public const string Winter444_Interleaved = "Jpg/baseline/winter444_interleaved.jpg";
+                public const string Metadata = "Jpg/baseline/Metadata-test-file.jpg";
+                public const string ExtendedXmp = "Jpg/baseline/extended-xmp.jpg";
 
                 public static readonly string[] All =
                 {
@@ -251,6 +259,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadSubSampling1076 = "Jpg/issues/issue-1076-invalid-subsampling.jpg";
                 public const string IdentifyMultiFrame1211 = "Jpg/issues/issue-1221-identify-multi-frame.jpg";
                 public const string WrongColorSpace = "Jpg/issues/Issue1732-WrongColorSpace.jpg";
+                public const string MalformedUnsupportedComponentCount = "Jpg/issues/issue-1900-malformed-unsupported-255-components.jpg";
+                public const string MultipleApp01932 = "Jpg/issues/issue-1932-app0-resolution.jpg";
+                public const string InvalidIptcTag = "Jpg/issues/Issue1942InvalidIptcTag.jpg";
 
                 public static class Fuzz
                 {
@@ -619,6 +630,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Earth = "Webp/earth_lossy.webp";
                 public const string WithExif = "Webp/exif_lossy.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
+                public const string WithXmp = "Webp/xmp_lossy.webp";
                 public const string BikeSmall = "Webp/bike_lossless_small.webp";
 
                 // Lossy images without macroblock filtering.
@@ -839,6 +851,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower32BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-32_lsb_deflate_predictor.tiff";
 
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
+            public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -864,6 +877,44 @@ namespace SixLabors.ImageSharp.Tests
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
+        }
+
+        public static class BigTiff
+        {
+            public const string Base = "Tiff/BigTiff/";
+
+            public const string BigTIFF = Base + "BigTIFF.tif";
+            public const string BigTIFFLong = Base + "BigTIFFLong.tif";
+            public const string BigTIFFLong8 = Base + "BigTIFFLong8.tif";
+            public const string BigTIFFLong8Tiles = Base + "BigTIFFLong8Tiles.tif";
+            public const string BigTIFFMotorola = Base + "BigTIFFMotorola.tif";
+            public const string BigTIFFMotorolaLongStrips = Base + "BigTIFFMotorolaLongStrips.tif";
+
+            public const string BigTIFFSubIFD4 = Base + "BigTIFFSubIFD4.tif";
+            public const string BigTIFFSubIFD8 = Base + "BigTIFFSubIFD8.tif";
+
+            public const string Indexed4_Deflate = Base + "BigTIFF_Indexed4_Deflate.tif";
+            public const string Indexed8_LZW = Base + "BigTIFF_Indexed8_LZW.tif";
+            public const string MinIsBlack = Base + "BigTIFF_MinIsBlack.tif";
+            public const string MinIsWhite = Base + "BigTIFF_MinIsWhite.tif";
+
+            public const string Damaged_MinIsWhite_RLE = Base + "BigTIFF_MinIsWhite_RLE.tif";
+            public const string Damaged_MinIsBlack_RLE = Base + "BigTIFF_MinIsBlack_RLE.tif";
+        }
+
+        public static class Pbm
+        {
+            public const string BlackAndWhitePlain = "Pbm/blackandwhite_plain.pbm";
+            public const string BlackAndWhiteBinary = "Pbm/blackandwhite_binary.pbm";
+            public const string GrayscaleBinary = "Pbm/rings.pgm";
+            public const string GrayscaleBinaryWide = "Pbm/Gene-UP WebSocket RunImageMask.pgm";
+            public const string GrayscalePlain = "Pbm/grayscale_plain.pgm";
+            public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
+            public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
+            public const string RgbBinary = "Pbm/00000_00000.ppm";
+            public const string RgbPlain = "Pbm/rgb_plain.ppm";
+            public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
+            public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";
         }
     }
 }

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
             // Build the histogram of the grayscale levels.
-            var grayscaleOperation = new GrayscaleLevelsRowOperation(interest, histogramBuffer, source, this.LuminanceLevels);
+            var grayscaleOperation = new GrayscaleLevelsRowOperation(interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 interest,
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
             // Apply the cdf to each pixel of the image
-            var cdfOperation = new CdfApplicationRowOperation(interest, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+            var cdfOperation = new CdfApplicationRowOperation(interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 interest,
@@ -90,14 +90,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             private readonly Rectangle bounds;
             private readonly IMemoryOwner<int> histogramBuffer;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
             private readonly int luminanceLevels;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public GrayscaleLevelsRowOperation(
                 Rectangle bounds,
                 IMemoryOwner<int> histogramBuffer,
-                ImageFrame<TPixel> source,
+                Buffer2D<TPixel> source,
                 int luminanceLevels)
             {
                 this.bounds = bounds;
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             public void Invoke(int y)
             {
                 ref int histogramBase = ref MemoryMarshal.GetReference(this.histogramBuffer.GetSpan());
-                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
+                Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
                 int levels = this.luminanceLevels;
 
                 for (int x = 0; x < this.bounds.Width; x++)
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             private readonly Rectangle bounds;
             private readonly IMemoryOwner<int> cdfBuffer;
-            private readonly ImageFrame<TPixel> source;
+            private readonly Buffer2D<TPixel> source;
             private readonly int luminanceLevels;
             private readonly float numberOfPixelsMinusCdfMin;
 
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             public CdfApplicationRowOperation(
                 Rectangle bounds,
                 IMemoryOwner<int> cdfBuffer,
-                ImageFrame<TPixel> source,
+                Buffer2D<TPixel> source,
                 int luminanceLevels,
                 float numberOfPixelsMinusCdfMin)
             {
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             public void Invoke(int y)
             {
                 ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
+                Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
                 int levels = this.luminanceLevels;
                 float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     // ReSharper disable once InconsistentNaming
     [StructLayout(LayoutKind.Explicit)]
-    internal unsafe struct Block8x8 : IEquatable<Block8x8>
+    internal unsafe partial struct Block8x8
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
@@ -35,34 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [FieldOffset(0)]
         private fixed short data[Size];
 #pragma warning restore IDE0051
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [FieldOffset(0)]
-        public Vector128<short> V0;
-        [FieldOffset(16)]
-        public Vector128<short> V1;
-        [FieldOffset(32)]
-        public Vector128<short> V2;
-        [FieldOffset(48)]
-        public Vector128<short> V3;
-        [FieldOffset(64)]
-        public Vector128<short> V4;
-        [FieldOffset(80)]
-        public Vector128<short> V5;
-        [FieldOffset(96)]
-        public Vector128<short> V6;
-        [FieldOffset(112)]
-        public Vector128<short> V7;
-
-        [FieldOffset(0)]
-        public Vector256<short> V01;
-        [FieldOffset(32)]
-        public Vector256<short> V23;
-        [FieldOffset(64)]
-        public Vector256<short> V45;
-        [FieldOffset(96)]
-        public Vector256<short> V67;
-#endif
 
         /// <summary>
         /// Gets or sets a <see cref="short"/> value at the given index
@@ -100,74 +72,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             get => this[(y * 8) + x];
             set => this[(y * 8) + x] = value;
-        }
-
-        public static bool operator ==(Block8x8 left, Block8x8 right) => left.Equals(right);
-
-        public static bool operator !=(Block8x8 left, Block8x8 right) => !left.Equals(right);
-
-        /// <summary>
-        /// Multiply all elements by a given <see cref="int"/>
-        /// </summary>
-        public static Block8x8 operator *(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val *= value;
-                result[i] = (short)val;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Divide all elements by a given <see cref="int"/>
-        /// </summary>
-        public static Block8x8 operator /(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val /= value;
-                result[i] = (short)val;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Add an <see cref="int"/> to all elements
-        /// </summary>
-        public static Block8x8 operator +(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val += value;
-                result[i] = (short)val;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Subtract an <see cref="int"/> from all elements
-        /// </summary>
-        public static Block8x8 operator -(Block8x8 block, int value)
-        {
-            Block8x8 result = block;
-            for (int i = 0; i < Size; i++)
-            {
-                int val = result[i];
-                val -= value;
-                result[i] = (short)val;
-            }
-
-            return result;
         }
 
         public static Block8x8 Load(Span<short> data)
@@ -260,26 +164,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             return sb.ToString();
         }
 
-        /// <inheritdoc />
-        public bool Equals(Block8x8 other)
-        {
-            for (int i = 0; i < Size; i++)
-            {
-                if (this[i] != other[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Block8x8 other && this.Equals(other);
-
-        /// <inheritdoc />
-        public override int GetHashCode() => (this[0] * 31) + this[1];
-
         /// <summary>
         /// Returns index of the last non-zero element in given matrix.
         /// </summary>
@@ -334,6 +218,64 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
 
                 return index;
+            }
+        }
+
+        /// <summary>
+        /// Transpose the block inplace.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void TransposeInplace()
+        {
+            ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
+
+            // row #0
+            Swap(ref Unsafe.Add(ref elemRef, 1), ref Unsafe.Add(ref elemRef, 8));
+            Swap(ref Unsafe.Add(ref elemRef, 2), ref Unsafe.Add(ref elemRef, 16));
+            Swap(ref Unsafe.Add(ref elemRef, 3), ref Unsafe.Add(ref elemRef, 24));
+            Swap(ref Unsafe.Add(ref elemRef, 4), ref Unsafe.Add(ref elemRef, 32));
+            Swap(ref Unsafe.Add(ref elemRef, 5), ref Unsafe.Add(ref elemRef, 40));
+            Swap(ref Unsafe.Add(ref elemRef, 6), ref Unsafe.Add(ref elemRef, 48));
+            Swap(ref Unsafe.Add(ref elemRef, 7), ref Unsafe.Add(ref elemRef, 56));
+
+            // row #1
+            Swap(ref Unsafe.Add(ref elemRef, 10), ref Unsafe.Add(ref elemRef, 17));
+            Swap(ref Unsafe.Add(ref elemRef, 11), ref Unsafe.Add(ref elemRef, 25));
+            Swap(ref Unsafe.Add(ref elemRef, 12), ref Unsafe.Add(ref elemRef, 33));
+            Swap(ref Unsafe.Add(ref elemRef, 13), ref Unsafe.Add(ref elemRef, 41));
+            Swap(ref Unsafe.Add(ref elemRef, 14), ref Unsafe.Add(ref elemRef, 49));
+            Swap(ref Unsafe.Add(ref elemRef, 15), ref Unsafe.Add(ref elemRef, 57));
+
+            // row #2
+            Swap(ref Unsafe.Add(ref elemRef, 19), ref Unsafe.Add(ref elemRef, 26));
+            Swap(ref Unsafe.Add(ref elemRef, 20), ref Unsafe.Add(ref elemRef, 34));
+            Swap(ref Unsafe.Add(ref elemRef, 21), ref Unsafe.Add(ref elemRef, 42));
+            Swap(ref Unsafe.Add(ref elemRef, 22), ref Unsafe.Add(ref elemRef, 50));
+            Swap(ref Unsafe.Add(ref elemRef, 23), ref Unsafe.Add(ref elemRef, 58));
+
+            // row #3
+            Swap(ref Unsafe.Add(ref elemRef, 28), ref Unsafe.Add(ref elemRef, 35));
+            Swap(ref Unsafe.Add(ref elemRef, 29), ref Unsafe.Add(ref elemRef, 43));
+            Swap(ref Unsafe.Add(ref elemRef, 30), ref Unsafe.Add(ref elemRef, 51));
+            Swap(ref Unsafe.Add(ref elemRef, 31), ref Unsafe.Add(ref elemRef, 59));
+
+            // row #4
+            Swap(ref Unsafe.Add(ref elemRef, 37), ref Unsafe.Add(ref elemRef, 44));
+            Swap(ref Unsafe.Add(ref elemRef, 38), ref Unsafe.Add(ref elemRef, 52));
+            Swap(ref Unsafe.Add(ref elemRef, 39), ref Unsafe.Add(ref elemRef, 60));
+
+            // row #5
+            Swap(ref Unsafe.Add(ref elemRef, 46), ref Unsafe.Add(ref elemRef, 53));
+            Swap(ref Unsafe.Add(ref elemRef, 47), ref Unsafe.Add(ref elemRef, 61));
+
+            // row #6
+            Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
+
+            static void Swap(ref short a, ref short b)
+            {
+                short tmp = a;
+                a = b;
+                b = tmp;
             }
         }
 

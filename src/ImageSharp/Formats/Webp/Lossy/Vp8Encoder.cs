@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
@@ -355,8 +356,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.AdjustFilterStrength();
 
             // Write bytes from the bitwriter buffer to the stream.
-            image.Metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(stream, image.Metadata.ExifProfile, (uint)width, (uint)height, hasAlpha);
+            ImageMetadata metadata = image.Metadata;
+            metadata.SyncProfiles();
+            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha);
         }
 
         /// <inheritdoc/>
@@ -546,7 +548,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int predsW = (4 * this.Mbw) + 1;
             int predsH = (4 * this.Mbh) + 1;
             int predsSize = predsW * predsH;
-            this.Preds.AsSpan(predsSize + this.PredsWidth - 4, 4).Fill(0);
+            this.Preds.AsSpan(predsSize + this.PredsWidth - 4, 4).Clear();
 
             this.Nz[0] = 0;   // constant
         }

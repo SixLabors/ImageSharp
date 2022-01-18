@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Whether the image has an EXIF marker.
         /// </summary>
-        private bool isExif;
+        private bool hasExif;
 
         /// <summary>
         /// Contains exif data.
@@ -56,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Whether the image has an ICC marker.
         /// </summary>
-        private bool isIcc;
+        private bool hasIcc;
 
         /// <summary>
         /// Contains ICC data.
@@ -66,12 +67,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Whether the image has a IPTC data.
         /// </summary>
-        private bool isIptc;
+        private bool hasIptc;
 
         /// <summary>
         /// Contains IPTC data.
         /// </summary>
         private byte[] iptcData;
+
+        /// <summary>
+        /// Whether the image has a XMP data.
+        /// </summary>
+        private bool hasXmp;
+
+        /// <summary>
+        /// Contains XMP data.
+        /// </summary>
+        private byte[] xmpData;
 
         /// <summary>
         /// Contains information about the JFIF marker.
@@ -175,7 +186,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, cancellationToken);
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration);
 
             var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
@@ -183,9 +194,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
+            this.InitXmpProfile();
             this.InitDerivedMetadataProperties();
 
-            return new Image<TPixel>(this.Configuration, spectralConverter.GetPixelBuffer(), this.Metadata);
+            return new Image<TPixel>(
+                this.Configuration,
+                spectralConverter.GetPixelBuffer(cancellationToken),
+                this.Metadata);
         }
 
         /// <inheritdoc/>
@@ -195,6 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
+            this.InitXmpProfile();
             this.InitDerivedMetadataProperties();
 
             Size pixelSize = this.Frame.PixelSize;
@@ -469,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {componentCount}");
+            JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
             return default;
         }
 
@@ -536,7 +552,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void InitExifProfile()
         {
-            if (this.isExif)
+            if (this.hasExif)
             {
                 this.Metadata.ExifProfile = new ExifProfile(this.exifData);
             }
@@ -547,7 +563,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void InitIccProfile()
         {
-            if (this.isIcc)
+            if (this.hasIcc)
             {
                 var profile = new IccProfile(this.iccData);
                 if (profile.CheckIsValid())
@@ -562,10 +578,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void InitIptcProfile()
         {
-            if (this.isIptc)
+            if (this.hasIptc)
             {
                 var profile = new IptcProfile(this.iptcData);
                 this.Metadata.IptcProfile = profile;
+            }
+        }
+
+        /// <summary>
+        /// Initializes the XMP profile.
+        /// </summary>
+        private void InitXmpProfile()
+        {
+            if (this.hasXmp)
+            {
+                var profile = new XmpProfile(this.xmpData);
+                this.Metadata.XmpProfile = profile;
             }
         }
 
@@ -580,7 +608,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Metadata.VerticalResolution = this.jFif.YDensity;
                 this.Metadata.ResolutionUnits = this.jFif.DensityUnits;
             }
-            else if (this.isExif)
+            else if (this.hasExif)
             {
                 double horizontalValue = this.GetExifResolutionValue(ExifTag.XResolution);
                 double verticalValue = this.GetExifResolutionValue(ExifTag.YResolution);
@@ -622,7 +650,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void ProcessApplicationHeaderMarker(BufferedReadStream stream, int remaining)
         {
             // We can only decode JFif identifiers.
-            if (remaining < JFifMarker.Length)
+            // Some images contain multiple JFIF markers (Issue 1932) so we check to see
+            // if it's already been read.
+            if (remaining < JFifMarker.Length || (!this.jFif.Equals(default)))
             {
                 // Skip the application header length
                 stream.Skip(remaining);
@@ -653,8 +683,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp1Marker(BufferedReadStream stream, int remaining)
         {
-            const int Exif00 = 6;
-            if (remaining < Exif00 || this.IgnoreMetadata)
+            const int ExifMarkerLength = 6;
+            const int XmpMarkerLength = 29;
+            if (remaining < ExifMarkerLength || this.IgnoreMetadata)
             {
                 // Skip the application header length
                 stream.Skip(remaining);
@@ -666,23 +697,55 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
             }
 
-            byte[] profile = new byte[remaining];
-            stream.Read(profile, 0, remaining);
+            // XMP marker is the longest, so read at least that many bytes into temp.
+            stream.Read(this.temp, 0, ExifMarkerLength);
 
-            if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
+            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.ExifMarker))
             {
-                this.isExif = true;
+                remaining -= ExifMarkerLength;
+                this.hasExif = true;
+                byte[] profile = new byte[remaining];
+                stream.Read(profile, 0, remaining);
+
                 if (this.exifData is null)
                 {
-                    // The first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
-                    this.exifData = profile.AsSpan(Exif00).ToArray();
+                    this.exifData = profile;
                 }
                 else
                 {
                     // If the EXIF information exceeds 64K, it will be split over multiple APP1 markers
-                    this.ExtendProfile(ref this.exifData, profile.AsSpan(Exif00).ToArray());
+                    this.ExtendProfile(ref this.exifData, profile);
+                }
+
+                remaining = 0;
+            }
+
+            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(0, ExifMarkerLength)))
+            {
+                stream.Read(this.temp, 0, XmpMarkerLength - ExifMarkerLength);
+                remaining -= XmpMarkerLength;
+                if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(ExifMarkerLength)))
+                {
+                    this.hasXmp = true;
+                    byte[] profile = new byte[remaining];
+                    stream.Read(profile, 0, remaining);
+
+                    if (this.xmpData is null)
+                    {
+                        this.xmpData = profile;
+                    }
+                    else
+                    {
+                        // If the XMP information exceeds 64K, it will be split over multiple APP1 markers
+                        this.ExtendProfile(ref this.xmpData, profile);
+                    }
+
+                    remaining = 0;
                 }
             }
+
+            // Skip over any remaining bytes of this header.
+            stream.Skip(remaining);
         }
 
         /// <summary>
@@ -706,7 +769,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
-                this.isIcc = true;
+                this.hasIcc = true;
                 byte[] profile = new byte[remaining];
                 stream.Read(profile, 0, remaining);
 
@@ -765,7 +828,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         int dataStartIdx = 2 + resourceBlockNameLength + 4;
                         if (resourceDataSize > 0 && blockDataSpan.Length >= dataStartIdx + resourceDataSize)
                         {
-                            this.isIptc = true;
+                            this.hasIptc = true;
                             this.iptcData = blockDataSpan.Slice(dataStartIdx, resourceDataSize).ToArray();
                             break;
                         }
@@ -784,6 +847,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         blockDataSpan = blockDataSpan.Slice(dataStartIdx + resourceDataSize);
                     }
                 }
+            }
+            else
+            {
+                // If the profile is unknown skip over the rest of it.
+                stream.Skip(remaining);
             }
         }
 
@@ -942,6 +1010,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         break;
                     }
                 }
+
+                // Adjusting table for IDCT step during decompression
+                FastFloatingPointDCT.AdjustToIDCT(ref table);
             }
         }
 
@@ -992,6 +1063,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // 1 byte: Number of components
             byte componentCount = this.temp[5];
 
+            // Validate: componentCount more than 4 can lead to a buffer overflow during stream
+            // reading so we must limit it to 4
+            // We do not support jpeg images with more than 4 components anyway
+            if (componentCount > 4)
+            {
+                JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
+            }
+
             this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
 
             remaining -= length;
@@ -1016,9 +1095,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int index = 0;
             for (int i = 0; i < componentCount; i++)
             {
+                // 1 byte: component identifier
+                byte componentId = this.temp[index];
+
+                // 1 byte: component sampling factors
                 byte hv = this.temp[index + 1];
                 int h = (hv >> 4) & 15;
                 int v = hv & 15;
+
+                // Validate: 1-4 range
+                if (Numerics.IsOutOfRange(h, 1, 4))
+                {
+                    JpegThrowHelper.ThrowBadSampling(h);
+                }
+
+                // Validate: 1-4 range
+                if (Numerics.IsOutOfRange(v, 1, 4))
+                {
+                    JpegThrowHelper.ThrowBadSampling(v);
+                }
 
                 if (maxH < h)
                 {
@@ -1030,10 +1125,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     maxV = v;
                 }
 
-                var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                // 1 byte: quantization table destination selector
+                byte quantTableIndex = this.temp[index + 2];
+
+                // Validate: 0-3 range
+                if (quantTableIndex > 3)
+                {
+                    JpegThrowHelper.ThrowBadQuantizationTableIndex(quantTableIndex);
+                }
+
+                var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i);
 
                 this.Frame.Components[i] = component;
-                this.Frame.ComponentIds[i] = component.Id;
+                this.Frame.ComponentIds[i] = componentId;
 
                 index += componentBytes;
             }
@@ -1056,12 +1160,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(BufferedReadStream stream, int remaining)
         {
-            int length = remaining;
+            const int codeLengthsByteSize = 17;
+            const int codeValuesMaxByteSize = 256;
+            const int totalBufferSize = codeLengthsByteSize + codeValuesMaxByteSize + HuffmanTable.WorkspaceByteSize;
 
-            using (IMemoryOwner<byte> huffmanData = this.Configuration.MemoryAllocator.Allocate<byte>(256, AllocationOptions.Clean))
+            int length = remaining;
+            using (IMemoryOwner<byte> buffer = this.Configuration.MemoryAllocator.Allocate<byte>(totalBufferSize))
             {
-                Span<byte> huffmanDataSpan = huffmanData.GetSpan();
-                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanDataSpan);
+                Span<byte> bufferSpan = buffer.GetSpan();
+                Span<byte> huffmanLegthsSpan = bufferSpan.Slice(0, codeLengthsByteSize);
+                Span<byte> huffmanValuesSpan = bufferSpan.Slice(codeLengthsByteSize, codeValuesMaxByteSize);
+                Span<uint> tableWorkspace = MemoryMarshal.Cast<byte, uint>(bufferSpan.Slice(codeLengthsByteSize + codeValuesMaxByteSize));
+
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)stream.ReadByte();
@@ -1071,49 +1181,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     // Types 0..1 DC..AC
                     if (tableType > 1)
                     {
-                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table type: {tableType}");
+                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table type: {tableType}.");
                     }
 
                     // Max tables of each type
                     if (tableIndex > 3)
                     {
-                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table index: {tableIndex}");
+                        JpegThrowHelper.ThrowInvalidImageContentException($"Bad huffman table index: {tableIndex}.");
                     }
 
-                    stream.Read(huffmanDataSpan, 0, 16);
+                    stream.Read(huffmanLegthsSpan, 1, 16);
 
-                    using (IMemoryOwner<byte> codeLengths = this.Configuration.MemoryAllocator.Allocate<byte>(17, AllocationOptions.Clean))
+                    int codeLengthSum = 0;
+                    for (int j = 1; j < 17; j++)
                     {
-                        Span<byte> codeLengthsSpan = codeLengths.GetSpan();
-                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengthsSpan);
-                        int codeLengthSum = 0;
-
-                        for (int j = 1; j < 17; j++)
-                        {
-                            codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
-                        }
-
-                        length -= 17;
-
-                        if (codeLengthSum > 256 || codeLengthSum > length)
-                        {
-                            JpegThrowHelper.ThrowInvalidImageContentException("Huffman table has excessive length.");
-                        }
-
-                        using (IMemoryOwner<byte> huffmanValues = this.Configuration.MemoryAllocator.Allocate<byte>(256, AllocationOptions.Clean))
-                        {
-                            Span<byte> huffmanValuesSpan = huffmanValues.GetSpan();
-                            stream.Read(huffmanValuesSpan, 0, codeLengthSum);
-
-                            i += 17 + codeLengthSum;
-
-                            this.scanDecoder.BuildHuffmanTable(
-                                tableType,
-                                tableIndex,
-                                codeLengthsSpan,
-                                huffmanValuesSpan);
-                        }
+                        codeLengthSum += huffmanLegthsSpan[j];
                     }
+
+                    length -= 17;
+
+                    if (codeLengthSum > 256 || codeLengthSum > length)
+                    {
+                        JpegThrowHelper.ThrowInvalidImageContentException("Huffman table has excessive length.");
+                    }
+
+                    stream.Read(huffmanValuesSpan, 0, codeLengthSum);
+
+                    i += 17 + codeLengthSum;
+
+                    this.scanDecoder.BuildHuffmanTable(
+                        tableType,
+                        tableIndex,
+                        huffmanLegthsSpan,
+                        huffmanValuesSpan.Slice(0, codeLengthSum),
+                        tableWorkspace);
                 }
             }
         }

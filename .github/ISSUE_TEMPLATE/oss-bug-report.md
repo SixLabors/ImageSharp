@@ -1,6 +1,6 @@
 ---
 name: "OSS : Bug Report"
-about: Create a report to help us improve the project.
+about: Create a report to help us improve the project. OSS Issues are not guaranteed to be triaged.
 labels: needs triage
 
 ---

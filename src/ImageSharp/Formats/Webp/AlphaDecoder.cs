@@ -9,6 +9,10 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Memory;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp
 {
@@ -307,34 +311,94 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
         {
-            byte pred = (byte)(prev == null ? 0 : prev[0]);
-
-            for (int i = 0; i < width; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
             {
-                byte val = (byte)(pred + input[i]);
-                pred = val;
-                dst[i] = val;
+                dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));
+                if (width <= 1)
+                {
+                    return;
+                }
+
+                nint i;
+                Vector128<int> last = Vector128<int>.Zero.WithElement(0, dst[0]);
+                ref byte srcRef = ref MemoryMarshal.GetReference(input);
+                for (i = 1; i + 8 <= width; i += 8)
+                {
+                    var a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
+                    Vector128<byte> a1 = Sse2.Add(a0.AsByte(), last.AsByte());
+                    Vector128<byte> a2 = Sse2.ShiftLeftLogical128BitLane(a1, 1);
+                    Vector128<byte> a3 = Sse2.Add(a1, a2);
+                    Vector128<byte> a4 = Sse2.ShiftLeftLogical128BitLane(a3, 2);
+                    Vector128<byte> a5 = Sse2.Add(a3, a4);
+                    Vector128<byte> a6 = Sse2.ShiftLeftLogical128BitLane(a5, 4);
+                    Vector128<byte> a7 = Sse2.Add(a5, a6);
+
+                    ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), i);
+                    Unsafe.As<byte, Vector64<byte>>(ref outputRef) = a7.GetLower();
+                    last = Sse2.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
+                }
+
+                for (; i < width; ++i)
+                {
+                    dst[(int)i] = (byte)(input[(int)i] + dst[(int)i - 1]);
+                }
+            }
+            else
+#endif
+            {
+                byte pred = (byte)(prev.IsEmpty ? 0 : prev[0]);
+
+                for (int i = 0; i < width; i++)
+                {
+                    byte val = (byte)(pred + input[i]);
+                    pred = val;
+                    dst[i] = val;
+                }
             }
         }
 
         private static void VerticalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
         {
-            if (prev == null)
+            if (prev.IsEmpty)
             {
                 HorizontalUnfilter(null, input, dst, width);
             }
             else
             {
-                for (int i = 0; i < width; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+                if (Avx2.IsSupported)
                 {
-                    dst[i] = (byte)(prev[i] + input[i]);
+                    nint i;
+                    int maxPos = width & ~31;
+                    for (i = 0; i < maxPos; i += 32)
+                    {
+                        Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(input), i));
+                        Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(prev), i));
+                        Vector256<byte> c0 = Avx2.Add(a0.AsByte(), b0.AsByte());
+                        ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), i);
+                        Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
+                    }
+
+                    for (; i < width; i++)
+                    {
+                        dst[(int)i] = (byte)(prev[(int)i] + input[(int)i]);
+                    }
+                }
+                else
+#endif
+                {
+                    for (int i = 0; i < width; i++)
+                    {
+                        dst[i] = (byte)(prev[i] + input[i]);
+                    }
                 }
             }
         }
 
         private static void GradientUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
         {
-            if (prev == null)
+            if (prev.IsEmpty)
             {
                 HorizontalUnfilter(null, input, dst, width);
             }

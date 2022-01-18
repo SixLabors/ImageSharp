@@ -33,17 +33,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return true;
             }
 
-            switch (value)
+            if (value is string stringValue)
             {
-                case string stringValue:
-                    this.Value = new EncodedString(stringValue);
-                    return true;
-                case byte[] bytes:
-                    this.Value = new EncodedString(ExifConstants.DefaultAsciiEncoding.GetString(bytes));
-                    return true;
-                default:
-                    return false;
+                this.Value = new EncodedString(stringValue);
+                return true;
             }
+
+            return false;
         }
 
         public override IExifValue DeepClone() => new ExifEncodedString(this);

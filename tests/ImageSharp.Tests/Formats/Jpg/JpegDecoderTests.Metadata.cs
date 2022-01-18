@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 exif.SetValue(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
 
                 exif.SetValue(ExifTag.XPTitle, Encoding.GetEncoding("UCS-2").GetBytes("A bit of test metadata for image title"));
-                exif.SetValue(ExifTag.UserComment, new EncodedString("A bit of normal comment text", EncodedStringCode.ASCII));
+                exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedStringCode.ASCII, "A bit of normal comment text"));
 
                 exif.SetValue(ExifTag.GPSDateStamp, "2022-01-06");
                 exif.SetValue(ExifTag.XPKeywords, new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 00, 00, 00, 0x41, 0x41, 0x41 });

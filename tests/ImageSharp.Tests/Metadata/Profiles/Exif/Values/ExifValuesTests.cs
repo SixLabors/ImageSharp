@@ -602,7 +602,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
         [MemberData(nameof(EncodedStringTags))]
         public void ExifEncodedStringTests(ExifTag tag)
         {
-            var expected = new EncodedString("test string", EncodedStringCode.JIS);
+            var expected = new EncodedString(EncodedStringCode.JIS, "test string");
             ExifValue value = ExifValues.Create(tag);
 
             Assert.False(value.TrySetValue(123));

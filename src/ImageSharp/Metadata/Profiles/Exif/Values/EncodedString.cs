@@ -13,32 +13,32 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// Initializes a new instance of the <see cref="EncodedString" /> struct.
         /// </summary>
-        /// <param name="text">The text.</param>
+        /// <param name="text">The text value.</param>
         public EncodedString(string text)
-          : this(text, EncodedStringCode.Unicode)
+          : this(EncodedStringCode.Unicode, text)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EncodedString" /> struct.
         /// </summary>
-        /// <param name="text">The text.</param>
-        /// <param name="code">The code.</param>
-        public EncodedString(string text, EncodedStringCode code)
+        /// <param name="code">The character code.</param>
+        /// <param name="text">The text value.</param>
+        public EncodedString(EncodedStringCode code, string text)
         {
             this.Text = text;
             this.Code = code;
         }
 
         /// <summary>
-        /// Gets the text.
-        /// </summary>
-        public string Text { get; }
-
-        /// <summary>
         /// Gets the character ode.
         /// </summary>
         public EncodedStringCode Code { get; }
+
+        /// <summary>
+        /// Gets the text.
+        /// </summary>
+        public string Text { get; }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is EncodedString other && this.Equals(other);

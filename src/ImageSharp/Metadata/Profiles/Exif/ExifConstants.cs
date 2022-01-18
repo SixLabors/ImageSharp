@@ -32,7 +32,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             0x2A
         };
 
-        public static Encoding DefaultAsciiEncoding => Encoding.UTF8;
+        // UTF-8 is better than ASCII, UTF-8 encodes the ASCII codes the same way
+        public static Encoding DefaultEncoding => Encoding.UTF8;
 
         public static Encoding JIS0208Encoding => Encoding.GetEncoding(932);
 

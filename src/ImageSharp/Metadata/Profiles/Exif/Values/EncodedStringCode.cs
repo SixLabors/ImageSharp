@@ -4,17 +4,17 @@
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
-    /// The 8-byte The character code enum.
+    /// The 8-byte character code enum.
     /// </summary>
     public enum EncodedStringCode
     {
         /// <summary>
-        /// The ASCII ITU-T T.50 IA5 character code.
+        /// The ASCII (ITU-T T.50 IA5) character code.
         /// </summary>
         ASCII,
 
         /// <summary>
-        /// The JIS X208-1990 character code.
+        /// The JIS (X208-1990) character code.
         /// </summary>
         JIS,
 

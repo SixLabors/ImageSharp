@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (exifValue.DataType == ExifDataType.Ascii)
             {
-                return (uint)ExifConstants.DefaultAsciiEncoding.GetByteCount((string)value) + 1;
+                return (uint)ExifConstants.DefaultEncoding.GetByteCount((string)value) + 1;
             }
 
             if (value is EncodedString encodedString)
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (dataType)
             {
                 case ExifDataType.Ascii:
-                    offset = Write(ExifConstants.DefaultAsciiEncoding.GetBytes((string)value), destination, offset);
+                    offset = Write(ExifConstants.DefaultEncoding.GetBytes((string)value), destination, offset);
                     destination[offset] = 0;
                     return offset + 1;
                 case ExifDataType.Byte:

@@ -288,5 +288,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         Assert.Equal(72, imageInfo.Metadata.HorizontalResolution);
                         Assert.Equal(72, imageInfo.Metadata.VerticalResolution);
                     });
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.InvalidIptcTag, PixelTypes.Rgba32)]
+        public void Decode_WithInvalidIptcTag_DoesNotThrowException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            });
+            Assert.Null(ex);
+        }
     }
 }

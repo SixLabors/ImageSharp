@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         /// <param name="text">The text value.</param>
         public EncodedString(string text)
-          : this(EncodedStringCode.Unicode, text)
+          : this(CharacterCode.Unicode, text)
         {
         }
 
@@ -24,16 +24,42 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         /// <param name="code">The character code.</param>
         /// <param name="text">The text value.</param>
-        public EncodedString(EncodedStringCode code, string text)
+        public EncodedString(CharacterCode code, string text)
         {
             this.Text = text;
             this.Code = code;
         }
 
         /// <summary>
+        /// The 8-byte character code enum.
+        /// </summary>
+        public enum CharacterCode
+        {
+            /// <summary>
+            /// The ASCII (ITU-T T.50 IA5) character code.
+            /// </summary>
+            ASCII,
+
+            /// <summary>
+            /// The JIS (X208-1990) character code.
+            /// </summary>
+            JIS,
+
+            /// <summary>
+            /// The Unicode character code.
+            /// </summary>
+            Unicode,
+
+            /// <summary>
+            /// The undefined character code.
+            /// </summary>
+            Undefined
+        }
+
+        /// <summary>
         /// Gets the character ode.
         /// </summary>
-        public EncodedStringCode Code { get; }
+        public CharacterCode Code { get; }
 
         /// <summary>
         /// Gets the text.
@@ -44,14 +70,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public override bool Equals(object obj) => obj is EncodedString other && this.Equals(other);
 
         /// <inheritdoc/>
-        public bool Equals(EncodedString other)
-        {
-            return this.Text == other.Text && this.Code == other.Code;
-        }
+        public bool Equals(EncodedString other) => this.Text == other.Text && this.Code == other.Code;
 
         /// <inheritdoc/>
-        public override int GetHashCode() =>
-            HashCode.Combine(this.Text, this.Code);
+        public override int GetHashCode() => HashCode.Combine(this.Text, this.Code);
 
         /// <inheritdoc/>
         public override string ToString() => this.Text;

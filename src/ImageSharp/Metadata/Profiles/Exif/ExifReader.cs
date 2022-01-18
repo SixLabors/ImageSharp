@@ -361,7 +361,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     // ext processing
-                    if (ExifConstants.TryDetect(buffer, out EncodedStringCode code))
+                    if (ExifConstants.TryDetect(buffer, out EncodedString.CharacterCode code))
                     {
                         string text = ExifConstants.GetEncoding(code).GetString(buffer.Slice(ExifConstants.CharacterCodeBytesLength));
                         return new EncodedString(code, text);

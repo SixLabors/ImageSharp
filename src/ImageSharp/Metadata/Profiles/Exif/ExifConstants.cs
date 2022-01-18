@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Text;
+using static SixLabors.ImageSharp.Metadata.Profiles.Exif.EncodedString;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static ReadOnlySpan<byte> UndefinedCodeBytes => new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-        public static bool TryDetect(ReadOnlySpan<byte> buffer, out EncodedStringCode code)
+        public static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)
         {
             if (buffer.Length >= CharacterCodeBytesLength)
             {
@@ -53,16 +54,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 switch (test)
                 {
                     case AsciiCode:
-                        code = EncodedStringCode.ASCII;
+                        code = CharacterCode.ASCII;
                         return true;
                     case JISCode:
-                        code = EncodedStringCode.JIS;
+                        code = CharacterCode.JIS;
                         return true;
                     case UnicodeCode:
-                        code = EncodedStringCode.Unicode;
+                        code = CharacterCode.Unicode;
                         return true;
                     case UndefinedCode:
-                        code = EncodedStringCode.Undefined;
+                        code = CharacterCode.Undefined;
                         return true;
                     default:
                         break;
@@ -73,21 +74,21 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return false;
         }
 
-        public static ReadOnlySpan<byte> GetCodeBytes(EncodedStringCode code) => code switch
+        public static ReadOnlySpan<byte> GetCodeBytes(CharacterCode code) => code switch
         {
-            EncodedStringCode.ASCII => AsciiCodeBytes,
-            EncodedStringCode.JIS => JISCodeBytes,
-            EncodedStringCode.Unicode => UnicodeCodeBytes,
-            EncodedStringCode.Undefined => UndefinedCodeBytes,
+            CharacterCode.ASCII => AsciiCodeBytes,
+            CharacterCode.JIS => JISCodeBytes,
+            CharacterCode.Unicode => UnicodeCodeBytes,
+            CharacterCode.Undefined => UndefinedCodeBytes,
             _ => UndefinedCodeBytes
         };
 
-        public static Encoding GetEncoding(EncodedStringCode code) => code switch
+        public static Encoding GetEncoding(CharacterCode code) => code switch
         {
-            EncodedStringCode.ASCII => Encoding.ASCII,
-            EncodedStringCode.JIS => JIS0208Encoding,
-            EncodedStringCode.Unicode => Encoding.Unicode,
-            EncodedStringCode.Undefined => Encoding.UTF8,
+            CharacterCode.ASCII => Encoding.ASCII,
+            CharacterCode.JIS => JIS0208Encoding,
+            CharacterCode.Unicode => Encoding.Unicode,
+            CharacterCode.Undefined => Encoding.UTF8,
             _ => Encoding.UTF8
         };
     }

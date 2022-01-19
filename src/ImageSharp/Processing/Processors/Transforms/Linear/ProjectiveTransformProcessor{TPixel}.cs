@@ -60,7 +60,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Matrix4x4 matrix = this.transformMatrix;
 
             // Handle transforms that result in output identical to the original.
-            if (matrix.Equals(default) || matrix.Equals(Matrix4x4.Identity))
+            // Degenerate matrices are already handled in the upstream definition.
+            if (matrix.Equals(Matrix4x4.Identity))
             {
                 // The clone will be blank here copy all the pixel data over
                 var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());

@@ -310,13 +310,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora)))
             {
                 var exif = new ExifProfile();
-                exif.SetValue(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
+                exif.SetValue(ExifTag.XPAuthor, "Dan Petitt");
 
-                exif.SetValue(ExifTag.XPTitle, Encoding.GetEncoding("UCS-2").GetBytes("A bit of test metadata for image title"));
+                exif.SetValue(ExifTag.XPTitle, "A bit of test metadata for image title");
                 exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.ASCII, "A bit of normal comment text"));
 
                 exif.SetValue(ExifTag.GPSDateStamp, "2022-01-06");
-                exif.SetValue(ExifTag.XPKeywords, new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 00, 00, 00, 0x41, 0x41, 0x41 });
+                exif.SetValue(ExifTag.XPKeywords, "Keywords");
 
                 image.Metadata.ExifProfile = exif;
 

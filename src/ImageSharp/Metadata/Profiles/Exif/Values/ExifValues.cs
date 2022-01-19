@@ -46,11 +46,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.XMP: return new ExifByteArray(ExifTag.XMP, ExifDataType.Byte);
                 case ExifTagValue.CFAPattern2: return new ExifByteArray(ExifTag.CFAPattern2, ExifDataType.Byte);
                 case ExifTagValue.TIFFEPStandardID: return new ExifByteArray(ExifTag.TIFFEPStandardID, ExifDataType.Byte);
-                case ExifTagValue.XPTitle: return new ExifByteArray(ExifTag.XPTitle, ExifDataType.Byte);
-                case ExifTagValue.XPComment: return new ExifByteArray(ExifTag.XPComment, ExifDataType.Byte);
-                case ExifTagValue.XPAuthor: return new ExifByteArray(ExifTag.XPAuthor, ExifDataType.Byte);
-                case ExifTagValue.XPKeywords: return new ExifByteArray(ExifTag.XPKeywords, ExifDataType.Byte);
-                case ExifTagValue.XPSubject: return new ExifByteArray(ExifTag.XPSubject, ExifDataType.Byte);
                 case ExifTagValue.GPSVersionID: return new ExifByteArray(ExifTag.GPSVersionID, ExifDataType.Byte);
 
                 case ExifTagValue.PixelScale: return new ExifDoubleArray(ExifTag.PixelScale);
@@ -285,6 +280,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.GPSDestBearingRef: return new ExifString(ExifTag.GPSDestBearingRef);
                 case ExifTagValue.GPSDestDistanceRef: return new ExifString(ExifTag.GPSDestDistanceRef);
                 case ExifTagValue.GPSDateStamp: return new ExifString(ExifTag.GPSDateStamp);
+                case ExifTagValue.XPTitle: return new ExifString(ExifTag.XPTitle);
+                case ExifTagValue.XPComment: return new ExifString(ExifTag.XPComment);
+                case ExifTagValue.XPAuthor: return new ExifString(ExifTag.XPAuthor);
+                case ExifTagValue.XPKeywords: return new ExifString(ExifTag.XPKeywords);
+                case ExifTagValue.XPSubject: return new ExifString(ExifTag.XPSubject);
 
                 case ExifTagValue.FileSource: return new ExifByte(ExifTag.FileSource, ExifDataType.Undefined);
                 case ExifTagValue.SceneType: return new ExifByte(ExifTag.SceneType, ExifDataType.Undefined);
@@ -294,7 +294,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.ExifVersion: return new ExifByteArray(ExifTag.ExifVersion, ExifDataType.Undefined);
                 case ExifTagValue.ComponentsConfiguration: return new ExifByteArray(ExifTag.ComponentsConfiguration, ExifDataType.Undefined);
                 case ExifTagValue.MakerNote: return new ExifByteArray(ExifTag.MakerNote, ExifDataType.Undefined);
-                case ExifTagValue.UserComment: return new ExifEncodedString(ExifTag.UserComment);
                 case ExifTagValue.FlashpixVersion: return new ExifByteArray(ExifTag.FlashpixVersion, ExifDataType.Undefined);
                 case ExifTagValue.SpatialFrequencyResponse: return new ExifByteArray(ExifTag.SpatialFrequencyResponse, ExifDataType.Undefined);
                 case ExifTagValue.SpatialFrequencyResponse2: return new ExifByteArray(ExifTag.SpatialFrequencyResponse2, ExifDataType.Undefined);
@@ -302,6 +301,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.CFAPattern: return new ExifByteArray(ExifTag.CFAPattern, ExifDataType.Undefined);
                 case ExifTagValue.DeviceSettingDescription: return new ExifByteArray(ExifTag.DeviceSettingDescription, ExifDataType.Undefined);
                 case ExifTagValue.ImageSourceData: return new ExifByteArray(ExifTag.ImageSourceData, ExifDataType.Undefined);
+
+                case ExifTagValue.UserComment: return new ExifEncodedString(ExifTag.UserComment);
                 case ExifTagValue.GPSProcessingMethod: return new ExifEncodedString(ExifTag.GPSProcessingMethod);
                 case ExifTagValue.GPSAreaInformation: return new ExifEncodedString(ExifTag.GPSAreaInformation);
 

@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Seek(tag.Offset);
             if (this.TryReadSpan(buffer))
             {
-                object value = this.ConvertValue(tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
+                object value = this.ConvertValue(tag.Exif, tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
                 if (value is EncodedString)
                 {
                     // Console.WriteLine("EncodedString tag: " + (ushort)tag.Exif.Tag);
@@ -260,11 +260,24 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return ExifConstants.DefaultEncoding.GetString(buffer);
         }
 
-        private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
+        private object ConvertValue(ExifValue exifValue, ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
         {
             if (buffer.Length == 0)
             {
                 return null;
+            }
+
+            var tagValue = (ExifTagValue)(ushort)exifValue.Tag;
+            if (ExifUcs2StringHelpers.IsUcs2Tag(tagValue))
+            {
+                return ExifUcs2StringHelpers.ConvertToString(buffer);
+            }
+            else if (ExifEncodedStringHelpers.IsEncodedString(tagValue))
+            {
+                if (ExifEncodedStringHelpers.TryCreate(buffer, out EncodedString encodedString))
+                {
+                    return encodedString;
+                }
             }
 
             switch (dataType)
@@ -274,6 +287,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Ascii:
                     return this.ConvertToString(buffer);
                 case ExifDataType.Byte:
+                case ExifDataType.Undefined:
                 {
                     if (!isArray)
                     {
@@ -362,15 +376,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToUInt64);
-                case ExifDataType.Undefined:
-                {
-                    if (!isArray)
-                    {
-                        return this.ConvertToByte(buffer);
-                    }
-
-                    return ExifEncodedStringHelpers.TryCreate(buffer, out EncodedString encodedString) ? encodedString : buffer.ToArray();
-                }
 
                 default:
                     throw new NotSupportedException($"Data type {dataType} is not supported.");
@@ -430,7 +435,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
+                object value = this.ConvertValue(exifValue, dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }
@@ -504,7 +509,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
+                object value = this.ConvertValue(exifValue, dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }

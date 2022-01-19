@@ -27,34 +27,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static Encoding JIS0208Encoding => Encoding.GetEncoding(932);
 
-        private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)
-        {
-            if (buffer.Length >= CharacterCodeBytesLength)
-            {
-                ulong test = BinaryPrimitives.ReadUInt64LittleEndian(buffer);
-                switch (test)
-                {
-                    case AsciiCode:
-                        code = CharacterCode.ASCII;
-                        return true;
-                    case JISCode:
-                        code = CharacterCode.JIS;
-                        return true;
-                    case UnicodeCode:
-                        code = CharacterCode.Unicode;
-                        return true;
-                    case UndefinedCode:
-                        code = CharacterCode.Undefined;
-                        return true;
-                    default:
-                        break;
-                }
-            }
-
-            code = default;
-            return false;
-        }
-
         public static ReadOnlySpan<byte> GetCodeBytes(CharacterCode code) => code switch
         {
             CharacterCode.ASCII => AsciiCodeBytes,
@@ -88,5 +60,46 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public static uint GetDataLength(EncodedString encodedString) =>
             (uint)GetEncoding(encodedString.Code).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
+
+        public static bool IsEncodedString(ExifTagValue tag)
+        {
+            switch (tag)
+            {
+                case ExifTagValue.UserComment:
+                case ExifTagValue.GPSProcessingMethod:
+                case ExifTagValue.GPSAreaInformation:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)
+        {
+            if (buffer.Length >= CharacterCodeBytesLength)
+            {
+                ulong test = BinaryPrimitives.ReadUInt64LittleEndian(buffer);
+                switch (test)
+                {
+                    case AsciiCode:
+                        code = CharacterCode.ASCII;
+                        return true;
+                    case JISCode:
+                        code = CharacterCode.JIS;
+                        return true;
+                    case UnicodeCode:
+                        code = CharacterCode.Unicode;
+                        return true;
+                    case UndefinedCode:
+                        code = CharacterCode.Undefined;
+                        return true;
+                    default:
+                        break;
+                }
+            }
+
+            code = default;
+            return false;
+        }
     }
 }

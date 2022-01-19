@@ -23,11 +23,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.XMP },
             { ExifTag.CFAPattern2 },
             { ExifTag.TIFFEPStandardID },
-            { ExifTag.XPTitle },
-            { ExifTag.XPComment },
-            { ExifTag.XPAuthor },
-            { ExifTag.XPKeywords },
-            { ExifTag.XPSubject },
             { ExifTag.GPSVersionID },
         };
 
@@ -295,7 +290,12 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.GPSDestLongitudeRef },
             { ExifTag.GPSDestBearingRef },
             { ExifTag.GPSDestDistanceRef },
-            { ExifTag.GPSDateStamp }
+            { ExifTag.GPSDateStamp },
+            { ExifTag.XPTitle },
+            { ExifTag.XPComment },
+            { ExifTag.XPAuthor },
+            { ExifTag.XPKeywords },
+            { ExifTag.XPSubject },
         };
 
         public static TheoryData<ExifTag> UndefinedTags => new TheoryData<ExifTag>

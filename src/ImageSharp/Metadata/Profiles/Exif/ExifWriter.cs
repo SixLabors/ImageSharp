@@ -281,7 +281,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (value is EncodedString encodedString)
             {
-                return (uint)ExifConstants.GetEncoding(encodedString.Code).GetByteCount(encodedString.Text) + 8;
+                return ExifEncodedStringHelpers.GetDataLength(encodedString);
             }
 
             if (value is Array arrayValue)
@@ -387,11 +387,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Undefined:
                     if (value is EncodedString encodedString)
                     {
-                        ReadOnlySpan<byte> codeBytes = ExifConstants.GetCodeBytes(encodedString.Code);
+                        ReadOnlySpan<byte> codeBytes = ExifEncodedStringHelpers.GetCodeBytes(encodedString.Code);
                         codeBytes.CopyTo(destination.Slice(offset));
                         offset += codeBytes.Length;
 
-                        ReadOnlySpan<byte> dataBytes = ExifConstants.GetEncoding(encodedString.Code).GetBytes(encodedString.Text);
+                        ReadOnlySpan<byte> dataBytes = ExifEncodedStringHelpers.GetEncoding(encodedString.Code).GetBytes(encodedString.Text);
                         dataBytes.CopyTo(destination.Slice(offset));
                         offset += dataBytes.Length;
 

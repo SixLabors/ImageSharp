@@ -220,6 +220,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             if (this.TryReadSpan(buffer))
             {
                 object value = this.ConvertValue(tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
+                if (value is EncodedString)
+                {
+                    // Console.WriteLine("EncodedString tag: " + (ushort)tag.Exif.Tag);
+                }
+
                 this.Add(values, tag.Exif, value);
             }
         }
@@ -269,12 +274,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Ascii:
                     return this.ConvertToString(buffer);
                 case ExifDataType.Byte:
+                {
                     if (!isArray)
                     {
                         return this.ConvertToByte(buffer);
                     }
 
-                    return buffer.ToArray();
+                    return ExifEncodedStringHelpers.TryCreate(buffer, out EncodedString encodedString) ? encodedString : buffer.ToArray();
+                }
+
                 case ExifDataType.DoubleFloat:
                     if (!isArray)
                     {
@@ -355,19 +363,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                     return ToArray(dataType, buffer, this.ConvertToUInt64);
                 case ExifDataType.Undefined:
+                {
                     if (!isArray)
                     {
                         return this.ConvertToByte(buffer);
                     }
 
-                    // ext processing
-                    if (ExifConstants.TryDetect(buffer, out EncodedString.CharacterCode code))
-                    {
-                        string text = ExifConstants.GetEncoding(code).GetString(buffer.Slice(ExifConstants.CharacterCodeBytesLength));
-                        return new EncodedString(code, text);
-                    }
+                    return ExifEncodedStringHelpers.TryCreate(buffer, out EncodedString encodedString) ? encodedString : buffer.ToArray();
+                }
 
-                    return buffer.ToArray();
                 default:
                     throw new NotSupportedException($"Data type {dataType} is not supported.");
             }

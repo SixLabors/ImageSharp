@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal static class ExifUcs2StringHelpers
     {
-        private static Encoding Ucs2Encoding => Encoding.GetEncoding("UCS-2");
+        public static Encoding Ucs2Encoding => Encoding.GetEncoding("UCS-2");
 
         public static bool IsUcs2Tag(ExifTagValue tag)
         {

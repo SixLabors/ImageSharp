@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (exifValue.DataType == ExifDataType.Ascii)
             {
-                return (uint)ExifConstants.DefaultEncoding.GetByteCount((string)value) + 1;
+                return (uint)(ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag) ? ExifUcs2StringHelpers.Ucs2Encoding : ExifConstants.DefaultEncoding).GetByteCount((string)value) + 1;
             }
 
             if (value is EncodedString encodedString)
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             int newOffset = offset;
             foreach (object obj in (Array)value.GetValue())
             {
-                newOffset = WriteValue(value.DataType, obj, destination, newOffset);
+                newOffset = WriteValue(value, value.DataType, obj, destination, newOffset);
             }
 
             return newOffset;
@@ -373,17 +373,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
-        private static int WriteValue(ExifDataType dataType, object value, Span<byte> destination, int offset)
+        private static int WriteValue(IExifValue exifValue, ExifDataType dataType, object value, Span<byte> destination, int offset)
         {
             switch (dataType)
             {
                 case ExifDataType.Ascii:
-                    offset = Write(ExifConstants.DefaultEncoding.GetBytes((string)value), destination, offset);
+                    offset = Write((ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag) ? ExifUcs2StringHelpers.Ucs2Encoding : ExifConstants.DefaultEncoding).GetBytes((string)value), destination, offset);
                     destination[offset] = 0;
                     return offset + 1;
                 case ExifDataType.Byte:
-                    destination[offset] = (byte)value;
-                    return offset + 1;
                 case ExifDataType.Undefined:
                     if (value is EncodedString encodedString)
                     {
@@ -450,7 +448,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return WriteArray(value, destination, offset);
             }
 
-            return WriteValue(value.DataType, value.GetValue(), destination, offset);
+            return WriteValue(value, value.DataType, value.GetValue(), destination, offset);
         }
     }
 }

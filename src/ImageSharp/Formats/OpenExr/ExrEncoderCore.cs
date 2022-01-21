@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using SixLabors.ImageSharp.Formats.OpenExr.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -67,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             int height = image.Height;
             var header = new ExrHeader()
             {
-                Compression = ExrCompression.None,
+                Compression = ExrCompressionType.None,
                 AspectRatio = 1.0f,
                 DataWindow = new ExrBox2i(0, 0, width - 1, height - 1),
                 DisplayWindow = new ExrBox2i(0, 0, width - 1, height - 1),
@@ -293,7 +294,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             stream.WriteByte(0);
         }
 
-        private void WriteCompression(Stream stream, ExrCompression compression)
+        private void WriteCompression(Stream stream, ExrCompressionType compression)
         {
             this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.Compression, ExrConstants.AttibuteTypes.Compression, 1);
             stream.WriteByte((byte)compression);

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.OpenExr.Compression;
 
 namespace SixLabors.ImageSharp.Formats.OpenExr
 {
@@ -9,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
     {
         public IList<ExrChannelInfo> Channels { get; set; }
 
-        public ExrCompression? Compression { get; set; }
+        public ExrCompressionType? Compression { get; set; }
 
         public ExrBox2i? DataWindow { get; set; }
 

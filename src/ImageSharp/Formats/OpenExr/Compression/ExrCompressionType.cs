@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.OpenExr
+namespace SixLabors.ImageSharp.Formats.OpenExr.Compression
 {
-    internal enum ExrCompression
+    internal enum ExrCompressionType
     {
         /// <summary>
         /// Pixel data is not compressed.

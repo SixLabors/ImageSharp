@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
     /// </summary>
     internal static class ExrThrowHelper
     {
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static Exception NotSupportedDecompressor(string compressionType) => throw new NotSupportedException($"Not supported decoder compression method: {compressionType}");
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
 

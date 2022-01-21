@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.OpenExr.Compression;
+using SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -76,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         {
             this.ReadExrHeader(stream);
 
-            if (this.Compression is not ExrCompressionType.None and not ExrCompressionType.Zips)
+            if (this.Compression is not ExrCompressionType.None and not ExrCompressionType.Zips and not ExrCompressionType.RunLengthEncoded)
             {
                 ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
             }

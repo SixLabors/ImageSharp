@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors
 
         public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
         {
+            Span<byte> uncompressed = this.tmpBuffer.GetSpan();
+
             long pos = stream.Position;
             using var deframeStream = new ZlibInflateStream(
                        stream,
@@ -30,11 +32,10 @@ namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors
             deframeStream.AllocateNewBytes((int)this.UncompressedBytes, true);
             DeflateStream dataStream = deframeStream.CompressedStream;
 
-            Span<byte> tmp = this.tmpBuffer.GetSpan();
             int totalRead = 0;
             while (totalRead < buffer.Length)
             {
-                int bytesRead = dataStream.Read(tmp, totalRead, buffer.Length - totalRead);
+                int bytesRead = dataStream.Read(uncompressed, totalRead, buffer.Length - totalRead);
                 if (bytesRead <= 0)
                 {
                     break;
@@ -43,31 +44,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors
                 totalRead += bytesRead;
             }
 
-            Reconstruct(tmp, this.UncompressedBytes);
-            Interleave(tmp, this.UncompressedBytes, buffer);
-        }
-
-        private static void Reconstruct(Span<byte> buffer, uint unCompressedBytes)
-        {
-            int offset = 0;
-            for (int i = 0; i < unCompressedBytes - 1; i++)
-            {
-                byte d = (byte)(buffer[offset] + (buffer[offset + 1] - 128));
-                buffer[offset + 1] = d;
-                offset++;
-            }
-        }
-
-        private static void Interleave(Span<byte> source, uint unCompressedBytes, Span<byte> output)
-        {
-            int sourceOffset = 0;
-            int offset0 = 0;
-            int offset1 = (int)((unCompressedBytes + 1) / 2);
-            while (sourceOffset < unCompressedBytes)
-            {
-                output[sourceOffset++] = source[offset0++];
-                output[sourceOffset++] = source[offset1++];
-            }
+            Reconstruct(uncompressed, this.UncompressedBytes);
+            Interleave(uncompressed, this.UncompressedBytes, buffer);
         }
 
         protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();

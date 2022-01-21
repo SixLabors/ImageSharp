@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr.Compression
                     return new NoneExrCompression(memoryAllocator, bytesPerRow);
                 case ExrCompressionType.Zips:
                     return new ZipsExrCompression(memoryAllocator, bytesPerRow);
+                case ExrCompressionType.RunLengthEncoded:
+                    return new RunLengthCompression(memoryAllocator, bytesPerRow);
                 default:
                     throw ExrThrowHelper.NotSupportedDecompressor(nameof(method));
             }

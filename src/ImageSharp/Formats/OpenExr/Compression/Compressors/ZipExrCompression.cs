@@ -10,11 +10,11 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors
 {
-    internal class ZipsExrCompression : ExrBaseDecompressor
+    internal class ZipExrCompression : ExrBaseDecompressor
     {
         private readonly IMemoryOwner<byte> tmpBuffer;
 
-        public ZipsExrCompression(MemoryAllocator allocator, uint uncompressedBytes)
+        public ZipExrCompression(MemoryAllocator allocator, uint uncompressedBytes)
             : base(allocator, uncompressedBytes) => this.tmpBuffer = allocator.Allocate<byte>((int)uncompressedBytes);
 
         public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors
                 totalRead += bytesRead;
             }
 
-            Reconstruct(uncompressed, this.UncompressedBytes);
-            Interleave(uncompressed, this.UncompressedBytes, buffer);
+            Reconstruct(uncompressed, (uint)totalRead);
+            Interleave(uncompressed, (uint)totalRead, buffer);
         }
 
         protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();

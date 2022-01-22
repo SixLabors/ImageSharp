@@ -8,16 +8,18 @@ namespace SixLabors.ImageSharp.Formats.OpenExr.Compression
 {
     internal static class ExrDecompressorFactory
     {
-        public static ExrBaseDecompressor Create(ExrCompressionType method, MemoryAllocator memoryAllocator, uint bytesPerRow)
+        public static ExrBaseDecompressor Create(ExrCompressionType method, MemoryAllocator memoryAllocator, uint uncompressedBytes)
         {
             switch (method)
             {
                 case ExrCompressionType.None:
-                    return new NoneExrCompression(memoryAllocator, bytesPerRow);
+                    return new NoneExrCompression(memoryAllocator, uncompressedBytes);
                 case ExrCompressionType.Zips:
-                    return new ZipsExrCompression(memoryAllocator, bytesPerRow);
+                    return new ZipExrCompression(memoryAllocator, uncompressedBytes);
+                case ExrCompressionType.Zip:
+                    return new ZipExrCompression(memoryAllocator, uncompressedBytes);
                 case ExrCompressionType.RunLengthEncoded:
-                    return new RunLengthCompression(memoryAllocator, bytesPerRow);
+                    return new RunLengthCompression(memoryAllocator, uncompressedBytes);
                 default:
                     throw ExrThrowHelper.NotSupportedDecompressor(nameof(method));
             }

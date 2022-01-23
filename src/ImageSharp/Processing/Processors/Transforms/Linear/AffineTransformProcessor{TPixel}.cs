@@ -201,9 +201,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float yRadius = this.yRadius;
                 float xRadius = this.xRadius;
                 int minY = this.bounds.Y;
-                int maxY = this.bounds.Right - 1;
+                int maxY = this.bounds.Bottom - 1;
                 int minX = this.bounds.X;
-                int maxX = this.bounds.Bottom - 1;
+                int maxX = this.bounds.Right - 1;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {

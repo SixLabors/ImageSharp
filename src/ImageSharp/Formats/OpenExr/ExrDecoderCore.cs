@@ -70,18 +70,16 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
         private ExrCompressionType Compression { get; set; }
 
+        private ExrImageType ImageType { get; set; }
+
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ReadExrHeader(stream);
-
-            if (this.Compression is not ExrCompressionType.None and not ExrCompressionType.Zips and not ExrCompressionType.Zip and not ExrCompressionType.RunLengthEncoded)
-            {
-                ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
-            }
-
+            this.IsSupportedCompression();
             ExrPixelType pixelType = this.ValidateChannels();
+            this.ReadImageType();
 
             var image = new Image<TPixel>(this.Configuration, this.Width, this.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
@@ -194,6 +192,22 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                                         offset += this.ReadPixelRowChannelSingle(decompressedPixelData.Slice(offset), alphaPixelData);
                                         break;
                                 }
+
+                                break;
+
+                            case ExrConstants.ChannelNames.Luminance:
+                                switch (channel.PixelType)
+                                {
+                                    case ExrPixelType.Half:
+                                        offset += this.ReadPixelRowChannelHalfSingle(decompressedPixelData.Slice(offset), redPixelData);
+                                        break;
+                                    case ExrPixelType.Float:
+                                        offset += this.ReadPixelRowChannelSingle(decompressedPixelData.Slice(offset), redPixelData);
+                                        break;
+                                }
+
+                                redPixelData.CopyTo(bluePixelData);
+                                redPixelData.CopyTo(greenPixelData);
 
                                 break;
 
@@ -418,41 +432,9 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             }
 
             // Find pixel the type of any channel which is R, G, B or A.
-            ExrPixelType? pixelType = null;
-            for (int i = 0; i < this.Channels.Count; i++)
-            {
-                if (this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue) ||
-                    this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green) ||
-                    this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red) ||
-                    this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Alpha))
-                {
-                    pixelType = this.Channels[i].PixelType;
-                    break;
-                }
-            }
+            ExrPixelType pixelType = this.FindPixelType();
 
-            if (!pixelType.HasValue)
-            {
-                ExrThrowHelper.ThrowInvalidImageContentException("Pixel channel data is unknown! Only R, G, B and A are supported.");
-            }
-
-            for (int i = 0; i < this.Channels.Count; i++)
-            {
-                // Ignore channels which we cannot interpret.
-                if (!(this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue) ||
-                      this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green) ||
-                      this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red)))
-                {
-                    continue;
-                }
-
-                if (pixelType != this.Channels[i].PixelType)
-                {
-                    ExrThrowHelper.ThrowInvalidImageContentException("All channels are expected to have the same pixel data!");
-                }
-            }
-
-            return pixelType.Value;
+            return pixelType;
         }
 
         private ExrHeader ReadExrHeader(BufferedReadStream stream)
@@ -640,6 +622,103 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return str.ToString();
         }
 
+        private ExrPixelType FindPixelType()
+        {
+            ExrPixelType? pixelType = null;
+            for (int i = 0; i < this.Channels.Count; i++)
+            {
+                if (this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue) ||
+                    this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green) ||
+                    this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red) ||
+                    this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Alpha) ||
+                    this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Luminance))
+                {
+                    if (!pixelType.HasValue)
+                    {
+                        pixelType = this.Channels[i].PixelType;
+                    }
+                    else
+                    {
+                        if (pixelType != this.Channels[i].PixelType)
+                        {
+                            ExrThrowHelper.ThrowNotSupported("Pixel channel data is expected to be the same for all channels.");
+                        }
+                    }
+                }
+            }
+
+            if (!pixelType.HasValue)
+            {
+                ExrThrowHelper.ThrowNotSupported("Pixel channel data is unknown! Only R, G, B, A and Y are supported.");
+            }
+
+            return pixelType.Value;
+        }
+
+        private void IsSupportedCompression()
+        {
+            if (this.Compression is not ExrCompressionType.None and not ExrCompressionType.Zips and not ExrCompressionType.Zip and not ExrCompressionType.RunLengthEncoded)
+            {
+                ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
+            }
+        }
+
+        private void ReadImageType()
+        {
+            bool hasRedChannel = false;
+            bool hasGreenChannel = false;
+            bool hasBlueChannel = false;
+            bool hasAlphaChannel = false;
+            bool hasLuminance = false;
+            foreach (ExrChannelInfo channelInfo in this.Channels)
+            {
+                if (channelInfo.ChannelName.Equals("A"))
+                {
+                    hasAlphaChannel = true;
+                }
+
+                if (channelInfo.ChannelName.Equals("R"))
+                {
+                    hasRedChannel = true;
+                }
+
+                if (channelInfo.ChannelName.Equals("G"))
+                {
+                    hasGreenChannel = true;
+                }
+
+                if (channelInfo.ChannelName.Equals("B"))
+                {
+                    hasBlueChannel = true;
+                }
+
+                if (channelInfo.ChannelName.Equals("Y"))
+                {
+                    hasLuminance = true;
+                }
+            }
+
+            if (hasRedChannel && hasGreenChannel && hasBlueChannel && hasAlphaChannel)
+            {
+                this.ImageType = ExrImageType.Rgba;
+                return;
+            }
+
+            if (hasRedChannel && hasGreenChannel && hasBlueChannel)
+            {
+                this.ImageType = ExrImageType.Rgb;
+                return;
+            }
+
+            if (hasLuminance && this.Channels.Count == 1)
+            {
+                this.ImageType = ExrImageType.Gray;
+                return;
+            }
+
+            ExrThrowHelper.ThrowNotSupported("The image contains channels, which are not supported!");
+        }
+
         private bool HasAlpha()
         {
             foreach (ExrChannelInfo channelInfo in this.Channels)
@@ -658,7 +737,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             uint bytesPerRow = 0;
             foreach (ExrChannelInfo channelInfo in this.Channels)
             {
-                if (channelInfo.ChannelName.Equals("A") || channelInfo.ChannelName.Equals("R") || channelInfo.ChannelName.Equals("G") || channelInfo.ChannelName.Equals("B"))
+                if (channelInfo.ChannelName.Equals("A") || channelInfo.ChannelName.Equals("R") || channelInfo.ChannelName.Equals("G") || channelInfo.ChannelName.Equals("B") || channelInfo.ChannelName.Equals("Y"))
                 {
                     if (channelInfo.PixelType == ExrPixelType.Half)
                     {

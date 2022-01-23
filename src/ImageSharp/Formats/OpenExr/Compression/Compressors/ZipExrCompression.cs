@@ -44,6 +44,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors
                 totalRead += bytesRead;
             }
 
+            if (totalRead == 0)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("Could not read zip compressed image data!");
+            }
+
             Reconstruct(uncompressed, (uint)totalRead);
             Interleave(uncompressed, (uint)totalRead, buffer);
         }

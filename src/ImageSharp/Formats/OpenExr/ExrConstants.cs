@@ -74,6 +74,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             public const string Blue = "B";
 
             public const string Alpha = "A";
+
+            public const string Luminance = "Y";
         }
     }
 }

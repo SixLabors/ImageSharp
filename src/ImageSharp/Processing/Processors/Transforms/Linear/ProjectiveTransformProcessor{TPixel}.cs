@@ -80,7 +80,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (sampler is NearestNeighborResampler)
             {
-                var nnOperation = new NNProjectiveOperation(source.PixelBuffer, destination.PixelBuffer, matrix);
+                var nnOperation = new NNProjectiveOperation(
+                    source.PixelBuffer,
+                    Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+                    destination.PixelBuffer,
+                    matrix);
+
                 ParallelRowIterator.IterateRows(
                     configuration,
                     destination.Bounds(),
@@ -92,6 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             var operation = new ProjectiveOperation<TResampler>(
                 configuration,
                 source.PixelBuffer,
+                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 destination.PixelBuffer,
                 in sampler,
                 matrix);
@@ -112,12 +118,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public NNProjectiveOperation(
                 Buffer2D<TPixel> source,
+                Rectangle bounds,
                 Buffer2D<TPixel> destination,
                 Matrix4x4 matrix)
             {
                 this.source = source;
+                this.bounds = bounds;
                 this.destination = destination;
-                this.bounds = source.Bounds();
                 this.matrix = matrix;
             }
 
@@ -145,6 +152,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             private readonly Configuration configuration;
             private readonly Buffer2D<TPixel> source;
+            private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> destination;
             private readonly TResampler sampler;
             private readonly Matrix4x4 matrix;
@@ -155,18 +163,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             public ProjectiveOperation(
                 Configuration configuration,
                 Buffer2D<TPixel> source,
+                Rectangle bounds,
                 Buffer2D<TPixel> destination,
                 in TResampler sampler,
                 Matrix4x4 matrix)
             {
                 this.configuration = configuration;
                 this.source = source;
+                this.bounds = bounds;
                 this.destination = destination;
                 this.sampler = sampler;
                 this.matrix = matrix;
 
-                this.yRadius = LinearTransformUtility.GetSamplingRadius(in sampler, source.Height, destination.Height);
-                this.xRadius = LinearTransformUtility.GetSamplingRadius(in sampler, source.Width, destination.Width);
+                this.yRadius = LinearTransformUtility.GetSamplingRadius(in sampler, bounds.Height, destination.Height);
+                this.xRadius = LinearTransformUtility.GetSamplingRadius(in sampler, bounds.Width, destination.Width);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -189,8 +199,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 TResampler sampler = this.sampler;
                 float yRadius = this.yRadius;
                 float xRadius = this.xRadius;
-                int maxY = this.source.Height - 1;
-                int maxX = this.source.Width - 1;
+                int minY = this.bounds.Y;
+                int maxY = this.bounds.Right - 1;
+                int minX = this.bounds.X;
+                int maxX = this.bounds.Bottom - 1;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
@@ -207,10 +219,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         float pY = point.Y;
                         float pX = point.X;
 
-                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, maxY);
-                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, maxY);
-                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, maxX);
-                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, maxX);
+                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, minY, maxY);
+                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, minY, maxY);
+                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, minX, maxX);
+                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, minX, maxX);
 
                         if (bottom <= top || right <= left)
                         {
@@ -252,8 +264,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 TResampler sampler = this.sampler;
                 float yRadius = this.yRadius;
                 float xRadius = this.xRadius;
-                int maxY = this.source.Height - 1;
-                int maxX = this.source.Width - 1;
+                int minY = this.bounds.Y;
+                int maxY = this.bounds.Right - 1;
+                int minX = this.bounds.X;
+                int maxX = this.bounds.Bottom - 1;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
@@ -270,10 +284,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         float pY = point.Y;
                         float pX = point.X;
 
-                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, maxY);
-                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, maxY);
-                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, maxX);
-                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, maxX);
+                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, minY, maxY);
+                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, minY, maxY);
+                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, minX, maxX);
+                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, minX, maxX);
 
                         if (bottom <= top || right <= left)
                         {

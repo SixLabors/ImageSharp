@@ -245,10 +245,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             cleanup.Register(b1);
         }
 
-        public static readonly bool IsNotMacOS = !TestEnvironment.IsOSX;
-
-        // TODO: Investigate MacOS failures
-        [ConditionalTheory(nameof(IsNotMacOS))]
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void RentReturnRelease_SubsequentRentReturnsDifferentHandles(bool multiple)

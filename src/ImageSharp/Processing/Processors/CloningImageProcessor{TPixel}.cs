@@ -46,38 +46,25 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         Image<TPixel> ICloningImageProcessor<TPixel>.CloneAndExecute()
         {
-            try
+            Image<TPixel> clone = this.CreateTarget();
+            this.CheckFrameCount(this.Source, clone);
+
+            Configuration configuration = this.Configuration;
+            this.BeforeImageApply(clone);
+
+            for (int i = 0; i < this.Source.Frames.Count; i++)
             {
-                Image<TPixel> clone = this.CreateTarget();
-                this.CheckFrameCount(this.Source, clone);
+                ImageFrame<TPixel> sourceFrame = this.Source.Frames[i];
+                ImageFrame<TPixel> clonedFrame = clone.Frames[i];
 
-                Configuration configuration = this.Configuration;
-                this.BeforeImageApply(clone);
-
-                for (int i = 0; i < this.Source.Frames.Count; i++)
-                {
-                    ImageFrame<TPixel> sourceFrame = this.Source.Frames[i];
-                    ImageFrame<TPixel> clonedFrame = clone.Frames[i];
-
-                    this.BeforeFrameApply(sourceFrame, clonedFrame);
-                    this.OnFrameApply(sourceFrame, clonedFrame);
-                    this.AfterFrameApply(sourceFrame, clonedFrame);
-                }
-
-                this.AfterImageApply(clone);
-
-                return clone;
+                this.BeforeFrameApply(sourceFrame, clonedFrame);
+                this.OnFrameApply(sourceFrame, clonedFrame);
+                this.AfterFrameApply(sourceFrame, clonedFrame);
             }
-#if DEBUG
-            catch (Exception)
-            {
-                throw;
-#else
-            catch (Exception ex)
-            {
-                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
-#endif
-            }
+
+            this.AfterImageApply(clone);
+
+            return clone;
         }
 
         /// <inheritdoc/>

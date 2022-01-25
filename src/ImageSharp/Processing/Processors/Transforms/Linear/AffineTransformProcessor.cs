@@ -21,6 +21,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(sampler, nameof(sampler));
             Guard.MustBeValueType(sampler, nameof(sampler));
 
+            if (TransformUtils.IsDegenerate(matrix))
+            {
+                throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
+            }
+
             this.Sampler = sampler;
             this.TransformMatrix = matrix;
             this.DestinationSize = targetDimensions;

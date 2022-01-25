@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using Xunit;
 
@@ -602,14 +603,18 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
         [MemberData(nameof(EncodedStringTags))]
         public void ExifEncodedStringTests(ExifTag tag)
         {
-            var expected = new EncodedString(EncodedString.CharacterCode.JIS, "test string");
-            ExifValue value = ExifValues.Create(tag);
+            foreach (object code in Enum.GetValues(typeof(EncodedString.CharacterCode)))
+            {
+                var charCode = (EncodedString.CharacterCode)code;
+                var expected = new EncodedString(charCode, "test string");
+                ExifValue value = ExifValues.Create(tag);
 
-            Assert.False(value.TrySetValue(123));
-            Assert.True(value.TrySetValue(expected));
+                Assert.False(value.TrySetValue(123));
+                Assert.True(value.TrySetValue(expected));
 
-            var typed = (ExifEncodedString)value;
-            Assert.Equal(expected, typed.Value);
+                var typed = (ExifEncodedString)value;
+                Assert.Equal(expected, typed.Value);
+            }
         }
     }
 }

@@ -220,11 +220,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             if (this.TryReadSpan(buffer))
             {
                 object value = this.ConvertValue(tag.Exif, tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
-                if (value is EncodedString)
-                {
-                    // Console.WriteLine("EncodedString tag: " + (ushort)tag.Exif.Tag);
-                }
-
                 this.Add(values, tag.Exif, value);
             }
         }
@@ -469,7 +464,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             // Likewise, tags that point to other IFDs, like e.g. the SubIFDs tag, are now allowed to have the datatype TIFF_IFD8 in BigTIFF.
             // Again, the old datatypes TIFF_IFD, and the hardly recommendable TIFF_LONG, are still valid, too.
             // https://www.awaresystems.be/imaging/tiff/bigtiff.html
-            ExifValue exifValue = null;
+            ExifValue exifValue;
             switch (tag)
             {
                 case ExifTagValue.StripOffsets:

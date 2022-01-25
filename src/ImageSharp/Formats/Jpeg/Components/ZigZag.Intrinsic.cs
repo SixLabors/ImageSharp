@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             DebugGuard.IsTrue(Ssse3.IsSupported, "Ssse3 support is required to run this operation!");
 
-            fixed (byte* shuffleVectorsPtr = SseShuffleMasks)
+            fixed (byte* shuffleVectorsPtr = &MemoryMarshal.GetReference(SseShuffleMasks)
             {
                 Vector128<byte> rowA = block.V0.AsByte();
                 Vector128<byte> rowB = block.V1.AsByte();

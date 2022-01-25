@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="y">The row index</param>
         /// <returns>The span</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> GetRowSpan(int y)
+        public Span<T> DangerousGetRowSpan(int y)
         {
             int yy = this.Rectangle.Y + y;
             int xx = this.Rectangle.X;
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Memory
 
             for (int y = 0; y < this.Rectangle.Height; y++)
             {
-                Span<T> row = this.GetRowSpan(y);
+                Span<T> row = this.DangerousGetRowSpan(y);
                 row.Clear();
             }
         }

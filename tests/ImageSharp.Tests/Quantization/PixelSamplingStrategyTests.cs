@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             var white = new L8(255);
             for (int y = 0; y < region.Height; y++)
             {
-                region.GetRowSpan(y).Fill(white);
+                region.DangerousGetRowSpan(y).Fill(white);
             }
         }
 

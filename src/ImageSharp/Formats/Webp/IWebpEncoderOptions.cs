@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     {
         /// <summary>
         /// Gets the webp file format used. Either lossless or lossy.
+        /// Defaults to lossy.
         /// </summary>
         WebpFileFormatType? FileFormat { get; }
 

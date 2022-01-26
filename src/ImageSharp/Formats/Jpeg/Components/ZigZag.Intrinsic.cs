@@ -3,6 +3,7 @@
 
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -149,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             DebugGuard.IsTrue(Ssse3.IsSupported, "Ssse3 support is required to run this operation!");
 
-            fixed (byte* shuffleVectorsPtr = &MemoryMarshal.GetReference(SseShuffleMasks)
+            fixed (byte* shuffleVectorsPtr = &MemoryMarshal.GetReference(SseShuffleMasks))
             {
                 Vector128<byte> rowA = block.V0.AsByte();
                 Vector128<byte> rowB = block.V1.AsByte();
@@ -243,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             DebugGuard.IsTrue(Avx2.IsSupported, "Avx2 support is required to run this operation!");
 
-            fixed (byte* shuffleVectorsPtr = AvxShuffleMasks)
+            fixed (byte* shuffleVectorsPtr = &MemoryMarshal.GetReference(AvxShuffleMasks))
             {
                 Vector256<byte> rowAB = block.V01.AsByte();
                 Vector256<byte> rowCD = block.V23.AsByte();

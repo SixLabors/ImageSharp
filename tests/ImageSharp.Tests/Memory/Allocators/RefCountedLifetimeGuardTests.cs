@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
-        private class MockLifetimeGuard : RefCountedLifetimeGuard
+        private class MockLifetimeGuard : RefCountedMemoryLifetimeGuard
         {
             public int ReleaseInvocationCount { get; private set; }
 

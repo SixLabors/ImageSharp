@@ -2,21 +2,22 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Threading;
 
 namespace SixLabors.ImageSharp.Diagnostics
 {
-    public readonly struct MemoryInfo
-    {
-        internal MemoryInfo(long totalUndisposedAllocationCount)
-            => this.TotalUndisposedAllocationCount = totalUndisposedAllocationCount;
-
-        public long TotalUndisposedAllocationCount { get; }
-    }
-
     public static class MemoryDiagnostics
     {
-        public static MemoryInfo GetMemoryInfo() => throw new NotImplementedException();
+        private static int totalUndisposedAllocationCount;
+
+        public static MemoryInfo GetMemoryInfo() => new MemoryInfo(totalUndisposedAllocationCount);
 
         public static bool EnableStrictDisposeWatcher { get; set; }
+
+        internal static void IncrementTotalUndisposedAllocationCount() =>
+            Interlocked.Increment(ref totalUndisposedAllocationCount);
+
+        internal static void DecrementTotalUndisposedAllocationCount() =>
+            Interlocked.Decrement(ref totalUndisposedAllocationCount);
     }
 }

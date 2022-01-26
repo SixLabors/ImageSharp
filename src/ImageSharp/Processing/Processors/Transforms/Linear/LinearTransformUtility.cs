@@ -39,11 +39,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="radius">The radius.</param>
         /// <param name="center">The center position.</param>
+        /// <param name="min">The min allowed amouunt.</param>
         /// <param name="max">The max allowed amouunt.</param>
         /// <returns>The <see cref="int"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetRangeStart(float radius, float center, int max)
-            => Numerics.Clamp((int)MathF.Ceiling(center - radius), 0, max);
+        public static int GetRangeStart(float radius, float center, int min, int max)
+            => Numerics.Clamp((int)MathF.Ceiling(center - radius), min, max);
 
         /// <summary>
         /// Gets the end position (inclusive) for a sampling range given
@@ -51,10 +52,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="radius">The radius.</param>
         /// <param name="center">The center position.</param>
+        /// <param name="min">The min allowed amouunt.</param>
         /// <param name="max">The max allowed amouunt.</param>
         /// <returns>The <see cref="int"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetRangeEnd(float radius, float center, int max)
-            => Numerics.Clamp((int)MathF.Floor(center + radius), 0, max);
+        public static int GetRangeEnd(float radius, float center, int min, int max)
+            => Numerics.Clamp((int)MathF.Floor(center + radius), min, max);
     }
 }

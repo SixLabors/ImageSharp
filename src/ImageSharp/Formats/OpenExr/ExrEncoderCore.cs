@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             this.pixelType ??= exrMetadata.PixelType;
             int width = image.Width;
             int height = image.Height;
-            var header = new ExrHeader()
+            var header = new ExrHeaderAttributes()
             {
                 Compression = ExrCompressionType.None,
                 AspectRatio = 1.0f,
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             }
         }
 
-        private void WriteHeader(Stream stream, ExrHeader header)
+        private void WriteHeader(Stream stream, ExrHeaderAttributes header)
         {
             this.WriteChannels(stream, header.Channels);
             this.WriteCompression(stream, header.Compression.Value);

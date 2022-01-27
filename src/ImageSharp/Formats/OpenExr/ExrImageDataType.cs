@@ -3,10 +3,14 @@
 
 namespace SixLabors.ImageSharp.Formats.OpenExr
 {
-    internal enum ExrImageType
+    internal enum ExrImageDataType
     {
-        ScanLine = 0,
+        Unknown = 0,
 
-        Tiled = 1
+        Rgb = 1,
+
+        Rgba = 2,
+
+        Gray = 3,
     }
 }

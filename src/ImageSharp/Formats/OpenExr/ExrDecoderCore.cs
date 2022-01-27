@@ -70,7 +70,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
         private ExrCompressionType Compression { get; set; }
 
+        private ExrImageDataType ImageDataType { get; set; }
+
         private ExrImageType ImageType { get; set; }
+
+        private ExrHeaderAttributes HeaderAttributes { get; set; }
 
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -79,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             this.ReadExrHeader(stream);
             this.IsSupportedCompression();
             ExrPixelType pixelType = this.ValidateChannels();
-            this.ReadImageType();
+            this.ReadImageDataType();
 
             var image = new Image<TPixel>(this.Configuration, this.Width, this.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
@@ -105,138 +109,51 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             where TPixel : unmanaged, IPixel<TPixel>
         {
             bool hasAlpha = this.HasAlpha();
-            uint bytesPerRow = this.CalculateBytesPerRow();
+            uint bytesPerRow = this.CalculateBytesPerRow((uint)this.Width);
             uint rowsPerBlock = this.RowsPerBlock();
             uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+            int width = this.Width;
+            int height = this.Height;
 
-            using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(this.Width * 4);
+            using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4);
             using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
             Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
-            Span<float> redPixelData = rowBuffer.GetSpan().Slice(0, this.Width);
-            Span<float> greenPixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
-            Span<float> bluePixelData = rowBuffer.GetSpan().Slice(this.Width * 2, this.Width);
-            Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(this.Width * 3, this.Width);
+            Span<float> redPixelData = rowBuffer.GetSpan().Slice(0, width);
+            Span<float> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
+            Span<float> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
+            Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
             using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock);
 
             TPixel color = default;
-            for (uint y = 0; y < this.Height; y += rowsPerBlock)
+            for (uint y = 0; y < height; y += rowsPerBlock)
             {
-                stream.Read(this.buffer, 0, 8);
-                ulong rowOffset = BinaryPrimitives.ReadUInt64LittleEndian(this.buffer);
+                ulong rowOffset = this.ReadUnsignedLong(stream);
                 long nextRowOffsetPosition = stream.Position;
 
                 stream.Position = (long)rowOffset;
-                stream.Read(this.buffer, 0, 4);
-                uint rowStartIndex = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+                uint rowStartIndex = this.ReadUnsignedInteger(stream);
 
-                stream.Read(this.buffer, 0, 4);
-                uint compressedBytesCount = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+                uint compressedBytesCount = this.ReadUnsignedInteger(stream);
                 decompressor.Decompress(stream, compressedBytesCount, decompressedPixelData);
 
                 int offset = 0;
-                for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < this.Height; rowIndex++)
+                for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
                 {
                     Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
                     for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                     {
                         ExrChannelInfo channel = this.Channels[channelIdx];
-                        switch (channel.ChannelName)
-                        {
-                            case ExrConstants.ChannelNames.Red:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.Half:
-                                        offset += this.ReadPixelRowChannelHalfSingle(decompressedPixelData.Slice(offset), redPixelData);
-                                        break;
-                                    case ExrPixelType.Float:
-                                        offset += this.ReadPixelRowChannelSingle(decompressedPixelData.Slice(offset), redPixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            case ExrConstants.ChannelNames.Blue:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.Half:
-                                        offset += this.ReadPixelRowChannelHalfSingle(decompressedPixelData.Slice(offset), bluePixelData);
-                                        break;
-                                    case ExrPixelType.Float:
-                                        offset += this.ReadPixelRowChannelSingle(decompressedPixelData.Slice(offset), bluePixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            case ExrConstants.ChannelNames.Green:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.Half:
-                                        offset += this.ReadPixelRowChannelHalfSingle(decompressedPixelData.Slice(offset), greenPixelData);
-                                        break;
-                                    case ExrPixelType.Float:
-                                        offset += this.ReadPixelRowChannelSingle(decompressedPixelData.Slice(offset), greenPixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            case ExrConstants.ChannelNames.Alpha:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.Half:
-                                        offset += this.ReadPixelRowChannelHalfSingle(decompressedPixelData.Slice(offset), alphaPixelData);
-                                        break;
-                                    case ExrPixelType.Float:
-                                        offset += this.ReadPixelRowChannelSingle(decompressedPixelData.Slice(offset), alphaPixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            case ExrConstants.ChannelNames.Luminance:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.Half:
-                                        offset += this.ReadPixelRowChannelHalfSingle(decompressedPixelData.Slice(offset), redPixelData);
-                                        break;
-                                    case ExrPixelType.Float:
-                                        offset += this.ReadPixelRowChannelSingle(decompressedPixelData.Slice(offset), redPixelData);
-                                        break;
-                                }
-
-                                redPixelData.CopyTo(bluePixelData);
-                                redPixelData.CopyTo(greenPixelData);
-
-                                break;
-
-                            default:
-                                // Skip unknown channel.
-                                int channelDataSizeInBytes = channel.PixelType is ExrPixelType.Float or ExrPixelType.UnsignedInt ? 4 : 2;
-                                stream.Position += this.Width * channelDataSizeInBytes;
-                                break;
-                        }
+                        offset += this.ReadFloatChannelData(stream, channel, decompressedPixelData.Slice(offset), redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                     }
 
-                    if (hasAlpha)
+                    for (int x = 0; x < width; x++)
                     {
-                        for (int x = 0; x < this.Width; x++)
-                        {
-                            var pixelValue = new HalfVector4(redPixelData[x], greenPixelData[x], bluePixelData[x], alphaPixelData[x]);
-                            color.FromVector4(pixelValue.ToVector4());
-                            pixelRow[x] = color;
-                        }
+                        var pixelValue = new HalfVector4(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1.0f);
+                        color.FromVector4(pixelValue.ToVector4());
+                        pixelRow[x] = color;
                     }
-                    else
-                    {
-                        for (int x = 0; x < this.Width; x++)
-                        {
-                            var pixelValue = new HalfVector4(redPixelData[x], greenPixelData[x], bluePixelData[x], 1.0f);
-                            color.FromVector4(pixelValue.ToVector4());
-                            pixelRow[x] = color;
-                        }
-                    }
+
                 }
 
                 stream.Position = nextRowOffsetPosition;
@@ -247,120 +164,161 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             where TPixel : unmanaged, IPixel<TPixel>
         {
             bool hasAlpha = this.HasAlpha();
-            uint bytesPerRow = this.CalculateBytesPerRow();
+            uint bytesPerRow = this.CalculateBytesPerRow((uint)this.Width);
             uint rowsPerBlock = this.RowsPerBlock();
             uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+            int width = this.Width;
+            int height = this.Height;
 
-            using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(this.Width * 4);
+            using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4);
             using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
             Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
-            Span<uint> redPixelData = rowBuffer.GetSpan().Slice(0, this.Width);
-            Span<uint> greenPixelData = rowBuffer.GetSpan().Slice(this.Width, this.Width);
-            Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(this.Width * 2, this.Width);
-            Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(this.Width * 3, this.Width);
+            Span<uint> redPixelData = rowBuffer.GetSpan().Slice(0, width);
+            Span<uint> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
+            Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
+            Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
             using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock);
 
             TPixel color = default;
-            for (uint y = 0; y < this.Height; y += rowsPerBlock)
+            for (uint y = 0; y < height; y += rowsPerBlock)
             {
-                stream.Read(this.buffer, 0, 8);
-                ulong rowOffset = BinaryPrimitives.ReadUInt64LittleEndian(this.buffer);
+                ulong rowOffset = this.ReadUnsignedLong(stream);
                 long nextRowOffsetPosition = stream.Position;
 
                 stream.Position = (long)rowOffset;
-                stream.Read(this.buffer, 0, 4);
-                uint rowStartIndex = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+                uint rowStartIndex = this.ReadUnsignedInteger(stream);
 
-                stream.Read(this.buffer, 0, 4);
-                uint compressedBytesCount = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+                uint compressedBytesCount = this.ReadUnsignedInteger(stream);
                 decompressor.Decompress(stream, compressedBytesCount, decompressedPixelData);
 
                 int offset = 0;
-                for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < this.Height; rowIndex++)
+                for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
                 {
                     Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
                     for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                     {
                         ExrChannelInfo channel = this.Channels[channelIdx];
-                        switch (channel.ChannelName)
-                        {
-                            case ExrConstants.ChannelNames.Red:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.UnsignedInt:
-                                        offset += this.ReadPixelRowChannelUnsignedInt(decompressedPixelData.Slice(offset), redPixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            case ExrConstants.ChannelNames.Blue:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.UnsignedInt:
-                                        offset += this.ReadPixelRowChannelUnsignedInt(decompressedPixelData.Slice(offset), bluePixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            case ExrConstants.ChannelNames.Green:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.UnsignedInt:
-                                        offset += this.ReadPixelRowChannelUnsignedInt(decompressedPixelData.Slice(offset), greenPixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            case ExrConstants.ChannelNames.Alpha:
-                                switch (channel.PixelType)
-                                {
-                                    case ExrPixelType.UnsignedInt:
-                                        offset += this.ReadPixelRowChannelUnsignedInt(decompressedPixelData.Slice(offset), alphaPixelData);
-                                        break;
-                                }
-
-                                break;
-
-                            default:
-                                // Skip unknown channel.
-                                int channelDataSizeInBytes = channel.PixelType is ExrPixelType.Float or ExrPixelType.UnsignedInt ? 4 : 2;
-                                stream.Position += this.Width * channelDataSizeInBytes;
-                                break;
-                        }
+                        offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData, redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                     }
 
                     stream.Position = nextRowOffsetPosition;
 
-                    if (hasAlpha)
+                    for (int x = 0; x < width; x++)
                     {
-                        for (int x = 0; x < this.Width; x++)
-                        {
-                            var pixelValue = new Rgba128(redPixelData[x], greenPixelData[x], bluePixelData[x], alphaPixelData[x]);
-                            color.FromVector4(pixelValue.ToVector4());
-                            pixelRow[x] = color;
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0; x < this.Width; x++)
-                        {
-                            var pixelValue = new Rgb96(redPixelData[x], greenPixelData[x], bluePixelData[x]);
-                            color.FromVector4(pixelValue.ToVector4());
-                            pixelRow[x] = color;
-                        }
+                        var pixelValue = new Rgba128(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
+                        color.FromVector4(pixelValue.ToVector4());
+                        pixelRow[x] = color;
                     }
                 }
             }
         }
 
-        private int ReadPixelRowChannelHalfSingle(Span<byte> decompressedPixelData, Span<float> channelData)
+        private int ReadFloatChannelData(
+            BufferedReadStream stream,
+            ExrChannelInfo channel,
+            Span<byte> decompressedPixelData,
+            Span<float> redPixelData,
+            Span<float> greenPixelData,
+            Span<float> bluePixelData,
+            Span<float> alphaPixelData,
+            int width)
+        {
+            switch (channel.ChannelName)
+            {
+                case ExrConstants.ChannelNames.Red:
+                    return this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+
+                case ExrConstants.ChannelNames.Blue:
+                    return this.ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
+
+                case ExrConstants.ChannelNames.Green:
+                    return this.ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
+
+                case ExrConstants.ChannelNames.Alpha:
+                    return this.ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
+
+                case ExrConstants.ChannelNames.Luminance:
+                    int bytesRead = this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+                    redPixelData.CopyTo(bluePixelData);
+                    redPixelData.CopyTo(greenPixelData);
+
+                    return bytesRead;
+
+                default:
+                    // Skip unknown channel.
+                    int channelDataSizeInBytes = channel.PixelType is ExrPixelType.Float or ExrPixelType.UnsignedInt ? 4 : 2;
+                    stream.Position += width * channelDataSizeInBytes;
+                    return channelDataSizeInBytes;
+            }
+        }
+
+        private int ReadUnsignedIntChannelData(
+            BufferedReadStream stream,
+            ExrChannelInfo channel,
+            Span<byte> decompressedPixelData,
+            Span<uint> redPixelData,
+            Span<uint> greenPixelData,
+            Span<uint> bluePixelData,
+            Span<uint> alphaPixelData,
+            int width)
+        {
+            switch (channel.ChannelName)
+            {
+                case ExrConstants.ChannelNames.Red:
+                    return this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+
+                case ExrConstants.ChannelNames.Blue:
+                    return this.ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
+
+                case ExrConstants.ChannelNames.Green:
+                    return this.ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
+
+                case ExrConstants.ChannelNames.Alpha:
+                    return this.ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
+
+                case ExrConstants.ChannelNames.Luminance:
+                    int bytesRead = this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+                    redPixelData.CopyTo(bluePixelData);
+                    redPixelData.CopyTo(greenPixelData);
+                    return bytesRead;
+
+                default:
+                    // Skip unknown channel.
+                    int channelDataSizeInBytes = channel.PixelType is ExrPixelType.Float or ExrPixelType.UnsignedInt ? 4 : 2;
+                    stream.Position += this.Width * channelDataSizeInBytes;
+                    return channelDataSizeInBytes;
+            }
+        }
+
+        private int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<float> pixelData, int width)
+        {
+            switch (channel.PixelType)
+            {
+                case ExrPixelType.Half:
+                    return this.ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width);
+                case ExrPixelType.Float:
+                    return this.ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width);
+            }
+
+            return 0;
+        }
+
+        private int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<uint> pixelData, int width)
+        {
+            switch (channel.PixelType)
+            {
+                case ExrPixelType.UnsignedInt:
+                    return this.ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width);
+            }
+
+            return 0;
+        }
+
+        private int ReadPixelRowChannelHalfSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
         {
             int offset = 0;
-            for (int x = 0; x < this.Width; x++)
+            for (int x = 0; x < width; x++)
             {
                 ushort shortValue = BinaryPrimitives.ReadUInt16LittleEndian(decompressedPixelData.Slice(offset, 2));
                 channelData[x] = HalfTypeHelper.Unpack(shortValue);
@@ -370,10 +328,10 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return offset;
         }
 
-        private int ReadPixelRowChannelSingle(Span<byte> decompressedPixelData, Span<float> channelData)
+        private int ReadPixelRowChannelSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
         {
             int offset = 0;
-            for (int x = 0; x < this.Width; x++)
+            for (int x = 0; x < width; x++)
             {
                 int intValue = BinaryPrimitives.ReadInt32LittleEndian(decompressedPixelData.Slice(offset, 4));
                 channelData[x] = Unsafe.As<int, float>(ref intValue);
@@ -383,10 +341,10 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return offset;
         }
 
-        private int ReadPixelRowChannelUnsignedInt(Span<byte> decompressedPixelData, Span<uint> channelData)
+        private int ReadPixelRowChannelUnsignedInt(Span<byte> decompressedPixelData, Span<uint> channelData, int width)
         {
             int offset = 0;
-            for (int x = 0; x < this.Width; x++)
+            for (int x = 0; x < width; x++)
             {
                 channelData[x] = BinaryPrimitives.ReadUInt32LittleEndian(decompressedPixelData.Slice(offset, 4));
                 offset += 4;
@@ -398,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         /// <inheritdoc />
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
-            ExrHeader header = this.ReadExrHeader(stream);
+            ExrHeaderAttributes header = this.ReadExrHeader(stream);
 
             int bitsPerPixel = this.CalculateBitsPerPixel();
 
@@ -437,10 +395,10 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return pixelType;
         }
 
-        private ExrHeader ReadExrHeader(BufferedReadStream stream)
+        private ExrHeaderAttributes ReadExrHeader(BufferedReadStream stream)
         {
-            // Skip over the magick bytes.
-            stream.Read(this.buffer, 0, 4);
+            // Skip over the magick bytes, we already know its an EXR image.
+            stream.Skip(4);
 
             // Read version number.
             byte version = (byte)stream.ReadByte();
@@ -450,30 +408,35 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             }
 
             // Next three bytes contain info's about the image.
-            // TODO: We ignore those for now.
-            stream.Read(this.buffer, 0, 3);
+            byte flagsByte0 = (byte)stream.ReadByte();
+            byte flagsByte1 = (byte)stream.ReadByte();
+            byte flagsByte2 = (byte)stream.ReadByte();
+            if ((flagsByte0 & (1 << 1)) != 0)
+            {
+                this.ImageType = ExrImageType.Tiled;
+            }
 
-            ExrHeader header = this.ParseHeader(stream);
+            this.HeaderAttributes = this.ParseHeaderAttributes(stream);
 
-            if (!header.IsValid())
+            if (!this.HeaderAttributes.IsValid())
             {
                 ExrThrowHelper.ThrowInvalidImageHeader();
             }
 
-            this.Width = header.DataWindow.Value.XMax - header.DataWindow.Value.XMin + 1;
-            this.Height = header.DataWindow.Value.YMax - header.DataWindow.Value.YMin + 1;
-            this.Channels = header.Channels;
-            this.Compression = header.Compression.GetValueOrDefault();
+            this.Width = this.HeaderAttributes.DataWindow.Value.XMax - this.HeaderAttributes.DataWindow.Value.XMin + 1;
+            this.Height = this.HeaderAttributes.DataWindow.Value.YMax - this.HeaderAttributes.DataWindow.Value.YMin + 1;
+            this.Channels = this.HeaderAttributes.Channels;
+            this.Compression = this.HeaderAttributes.Compression.GetValueOrDefault();
 
             this.metadata = new ImageMetadata();
 
-            return header;
+            return this.HeaderAttributes;
         }
 
-        private ExrHeader ParseHeader(BufferedReadStream stream)
+        private ExrHeaderAttributes ParseHeaderAttributes(BufferedReadStream stream)
         {
             ExrAttribute attribute = this.ReadAttribute(stream);
-            var header = new ExrHeader();
+            var header = new ExrHeaderAttributes();
 
             while (!attribute.Equals(ExrAttribute.EmptyAttribute))
             {
@@ -511,6 +474,13 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                         float screenWindowWidth = stream.ReadSingle(this.buffer);
                         header.ScreenWindowWidth = screenWindowWidth;
                         break;
+                    case ExrConstants.AttributeNames.Tiles:
+                        header.TileXSize = this.ReadUnsignedInteger(stream);
+                        header.TileYSize = this.ReadUnsignedInteger(stream);
+                        break;
+                    case ExrConstants.AttributeNames.ChunkCount:
+                        header.ChunkCount = this.ReadSignedInteger(stream);
+                        break;
                     default:
                         // Skip unknown attribute bytes.
                         stream.Skip(attribute.Length);
@@ -533,25 +503,17 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
             string attributeType = ReadString(stream);
 
-            stream.Read(this.buffer, 0, 4);
-            int attributeSize = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
+            int attributeSize = this.ReadSignedInteger(stream);
 
             return new ExrAttribute(attributeName, attributeType, attributeSize);
         }
 
         private ExrBox2i ReadBoxInteger(BufferedReadStream stream)
         {
-            stream.Read(this.buffer, 0, 4);
-            int xMin = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
-
-            stream.Read(this.buffer, 0, 4);
-            int yMin = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
-
-            stream.Read(this.buffer, 0, 4);
-            int xMax = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
-
-            stream.Read(this.buffer, 0, 4);
-            int yMax = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
+            int xMin = this.ReadSignedInteger(stream);
+            int yMin = this.ReadSignedInteger(stream);
+            int xMax = this.ReadSignedInteger(stream);
+            int yMax = this.ReadSignedInteger(stream);
 
             return new ExrBox2i(xMin, yMin, xMax, yMax);
         }
@@ -577,9 +539,8 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             string channelName = ReadString(stream);
             bytesRead = channelName.Length + 1;
 
-            stream.Read(this.buffer, 0, 4);
+            var pixelType = (ExrPixelType)this.ReadSignedInteger(stream);
             bytesRead += 4;
-            var pixelType = (ExrPixelType)BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
 
             byte pLinear = (byte)stream.ReadByte();
             byte reserved0 = (byte)stream.ReadByte();
@@ -587,13 +548,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             byte reserved2 = (byte)stream.ReadByte();
             bytesRead += 4;
 
-            stream.Read(this.buffer, 0, 4);
+            int xSampling = this.ReadSignedInteger(stream);
             bytesRead += 4;
-            int xSampling = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
 
-            stream.Read(this.buffer, 0, 4);
+            int ySampling = this.ReadSignedInteger(stream);
             bytesRead += 4;
-            int ySampling = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
 
             return new ExrChannelInfo(channelName, pixelType, pLinear, xSampling, ySampling);
         }
@@ -663,7 +622,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             }
         }
 
-        private void ReadImageType()
+        private void ReadImageDataType()
         {
             bool hasRedChannel = false;
             bool hasGreenChannel = false;
@@ -700,19 +659,19 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
 
             if (hasRedChannel && hasGreenChannel && hasBlueChannel && hasAlphaChannel)
             {
-                this.ImageType = ExrImageType.Rgba;
+                this.ImageDataType = ExrImageDataType.Rgba;
                 return;
             }
 
             if (hasRedChannel && hasGreenChannel && hasBlueChannel)
             {
-                this.ImageType = ExrImageType.Rgb;
+                this.ImageDataType = ExrImageDataType.Rgb;
                 return;
             }
 
             if (hasLuminance && this.Channels.Count == 1)
             {
-                this.ImageType = ExrImageType.Gray;
+                this.ImageDataType = ExrImageDataType.Gray;
                 return;
             }
 
@@ -732,7 +691,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return false;
         }
 
-        private uint CalculateBytesPerRow()
+        private uint CalculateBytesPerRow(uint width)
         {
             uint bytesPerRow = 0;
             foreach (ExrChannelInfo channelInfo in this.Channels)
@@ -741,11 +700,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 {
                     if (channelInfo.PixelType == ExrPixelType.Half)
                     {
-                        bytesPerRow += 2 * (uint)this.Width;
+                        bytesPerRow += 2 * width;
                     }
                     else
                     {
-                        bytesPerRow += 4 * (uint)this.Width;
+                        bytesPerRow += 4 * width;
                     }
                 }
             }
@@ -768,6 +727,39 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                 default:
                     return 1;
             }
+        }
+
+        private ulong ReadUnsignedLong(BufferedReadStream stream)
+        {
+            int bytesRead = stream.Read(this.buffer, 0, 8);
+            if (bytesRead != 8)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
+            }
+
+            return BinaryPrimitives.ReadUInt64LittleEndian(this.buffer);
+        }
+
+        private uint ReadUnsignedInteger(BufferedReadStream stream)
+        {
+            int bytesRead = stream.Read(this.buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
+            }
+
+            return BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+        }
+
+        private int ReadSignedInteger(BufferedReadStream stream)
+        {
+            int bytesRead = stream.Read(this.buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
+            }
+
+            return BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
         }
     }
 }

@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.OpenExr.Compression;
 
 namespace SixLabors.ImageSharp.Formats.OpenExr
 {
-    internal class ExrHeader
+    internal class ExrHeaderAttributes
     {
         public IList<ExrChannelInfo> Channels { get; set; }
 
@@ -23,6 +23,12 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
         public float? ScreenWindowWidth { get; set; }
 
         public PointF? ScreenWindowCenter { get; set; }
+
+        public uint? TileXSize { get; set; }
+
+        public uint? TileYSize { get; set; }
+
+        public int? ChunkCount { get; set; }
 
         public bool IsValid()
         {

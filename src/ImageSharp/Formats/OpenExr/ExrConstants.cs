@@ -45,6 +45,10 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             public const string ScreenWindowCenter = "screenWindowCenter";
 
             public const string ScreenWindowWidth = "screenWindowWidth";
+
+            public const string Tiles = "tiles";
+
+            public const string ChunkCount = "chunkCount";
         }
 
         /// <summary>

@@ -135,10 +135,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
                     srcBlock.MultiplyInPlace(ref dequantMatrix);
 
+                    // testee
                     // IDCT implementation tranforms blocks after transposition
                     srcBlock.TransposeInplace();
-
-                    // IDCT calculation
                     FastFloatingPointDCT.TransformIDCT(ref srcBlock);
 
                     float[] actualDest = srcBlock.ToArray();
@@ -180,7 +179,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
 
                     // testee
+                    // Second transpose call is done by Quantize step
+                    // Do this manually here just to be complient to the reference implementation
                     FastFloatingPointDCT.TransformFDCT(ref block);
+                    block.TransposeInplace();
 
                     // Part of the IDCT calculations is fused into the quantization step
                     // We must multiply input block with adjusted no-quantization matrix

@@ -305,7 +305,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void EncodedStringTags()
         {
-            byte[] exifBytes;
             using var memoryStream = new MemoryStream();
             using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora)))
             {
@@ -323,11 +322,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.JIS, "GPS processing method (JIS)"));
                 exif.SetValue(ExifTag.GPSAreaInformation, new EncodedString(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
 
-                exifBytes = exif.ToByteArray();
-
                 image.Metadata.ExifProfile = exif;
 
-                image.Save(@"c:\\temp\1.jpeg");
                 image.Save(memoryStream, new JpegEncoder());
             }
 
@@ -351,7 +347,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal("GPS processing method (JIS)", exif.GetValue(ExifTag.GPSProcessingMethod).Value.Text);
                 Assert.Equal(EncodedString.CharacterCode.JIS, exif.GetValue(ExifTag.GPSProcessingMethod).Value.Code);
 
-                Assert.Equal("GPS area info (Unicode)", exif.GetValue(ExifTag.GPSAreaInformation).Value.Text);
+                Assert.Equal("GPS area info (Unicode)", (string)exif.GetValue(ExifTag.GPSAreaInformation).Value);
                 Assert.Equal(EncodedString.CharacterCode.Unicode, exif.GetValue(ExifTag.GPSAreaInformation).Value.Code);
             }
         }

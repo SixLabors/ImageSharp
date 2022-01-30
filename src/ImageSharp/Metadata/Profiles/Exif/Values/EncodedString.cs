@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EncodedString" /> struct.
+        /// Default use Unicode character code.
         /// </summary>
         /// <param name="text">The text value.</param>
         public EncodedString(string text)

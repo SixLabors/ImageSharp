@@ -245,43 +245,45 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             cleanup.Register(b1);
         }
 
-        public static readonly bool IsNotMacOS = !TestEnvironment.IsOSX;
-
-        // TODO: Investigate MacOS failures
-        [ConditionalTheory(nameof(IsNotMacOS))]
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void RentReturnRelease_SubsequentRentReturnsDifferentHandles(bool multiple)
         {
-            var pool = new UniformUnmanagedMemoryPool(16, 16);
-            using var cleanup = new CleanupUtil(pool);
-            UnmanagedMemoryHandle b0 = pool.Rent();
-            IntPtr h0 = b0.Handle;
-            UnmanagedMemoryHandle b1 = pool.Rent();
-            IntPtr h1 = b1.Handle;
-            pool.Return(b0);
-            pool.Return(b1);
-            pool.Release();
+            RemoteExecutor.Invoke(RunTest, multiple.ToString()).Dispose();
 
-            // Do some unmanaged allocations to make sure new pool buffers are different:
-            IntPtr[] dummy = Enumerable.Range(0, 100).Select(_ => Marshal.AllocHGlobal(16)).ToArray();
-            cleanup.Register(dummy);
+            static void RunTest(string multipleInner)
+            {
+                var pool = new UniformUnmanagedMemoryPool(16, 16);
+                using var cleanup = new CleanupUtil(pool);
+                UnmanagedMemoryHandle b0 = pool.Rent();
+                IntPtr h0 = b0.Handle;
+                UnmanagedMemoryHandle b1 = pool.Rent();
+                IntPtr h1 = b1.Handle;
+                pool.Return(b0);
+                pool.Return(b1);
+                pool.Release();
 
-            if (multiple)
-            {
-                UnmanagedMemoryHandle b = pool.Rent();
-                cleanup.Register(b);
-                Assert.NotEqual(h0, b.Handle);
-                Assert.NotEqual(h1, b.Handle);
-            }
-            else
-            {
-                UnmanagedMemoryHandle[] b = pool.Rent(2);
-                cleanup.Register(b);
-                Assert.NotEqual(h0, b[0].Handle);
-                Assert.NotEqual(h1, b[0].Handle);
-                Assert.NotEqual(h0, b[1].Handle);
-                Assert.NotEqual(h1, b[1].Handle);
+                // Do some unmanaged allocations to make sure new pool buffers are different:
+                IntPtr[] dummy = Enumerable.Range(0, 100).Select(_ => Marshal.AllocHGlobal(16)).ToArray();
+                cleanup.Register(dummy);
+
+                if (bool.Parse(multipleInner))
+                {
+                    UnmanagedMemoryHandle b = pool.Rent();
+                    cleanup.Register(b);
+                    Assert.NotEqual(h0, b.Handle);
+                    Assert.NotEqual(h1, b.Handle);
+                }
+                else
+                {
+                    UnmanagedMemoryHandle[] b = pool.Rent(2);
+                    cleanup.Register(b);
+                    Assert.NotEqual(h0, b[0].Handle);
+                    Assert.NotEqual(h1, b[0].Handle);
+                    Assert.NotEqual(h0, b[1].Handle);
+                    Assert.NotEqual(h1, b[1].Handle);
+                }
             }
         }
 

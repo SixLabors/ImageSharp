@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             Buffer2DRegion<int> region = buffer.GetRegion(r);
 
-            Span<int> span = region.GetRowSpan(y);
+            Span<int> span = region.DangerousGetRowSpan(y);
 
             Assert.Equal(w, span.Length);
 

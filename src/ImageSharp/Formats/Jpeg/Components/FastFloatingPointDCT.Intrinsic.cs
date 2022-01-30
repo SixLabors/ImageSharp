@@ -29,11 +29,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             DebugGuard.IsTrue(Avx.IsSupported, "Avx support is required to execute this operation.");
 
-            // First pass - process rows
-            block.TransposeInplace();
+            // First pass - process columns
             FDCT8x8_1D_Avx(ref block);
 
-            // Second pass - process columns
+            // Second pass - process rows
             block.TransposeInplace();
             FDCT8x8_1D_Avx(ref block);
 

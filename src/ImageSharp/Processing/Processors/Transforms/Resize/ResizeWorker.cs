@@ -88,7 +88,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.workerHeight,
                 destWidth,
-                AllocationOptions.Clean);
+                preferContiguosImageBuffers: true,
+                options: AllocationOptions.Clean);
 
             this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
             this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(destWidth);
@@ -171,7 +172,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {
-                Span<TPixel> sourceRow = this.source.GetRowSpan(y);
+                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
 
                 PixelOperations<TPixel>.Instance.ToVector4(
                     this.configuration,

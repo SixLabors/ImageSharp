@@ -88,7 +88,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.workerHeight,
                 destWidth,
-                AllocationOptions.Clean);
+                preferContiguosImageBuffers: true,
+                options: AllocationOptions.Clean);
 
             this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
             this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(destWidth);

@@ -669,5 +669,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 Assert.Equal(height, image.Height);
             }
         }
+
+        [Theory]
+        [WithBasicTestPatternImages(20, 20, PixelTypes.Rgba32)]
+        public void Issue1625_LimitedAllocator<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InBytes(1000);
+            provider.RunValidatingProcessorTest(
+                x => x.Resize(30, 30),
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+        }
     }
 }

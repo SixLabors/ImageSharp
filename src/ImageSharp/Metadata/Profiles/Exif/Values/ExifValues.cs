@@ -16,33 +16,33 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (dataType)
             {
                 case ExifDataType.Byte:
-                    return isArray ? (ExifValue)new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);
+                    return isArray ? new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);
                 case ExifDataType.DoubleFloat:
-                    return isArray ? (ExifValue)new ExifDoubleArray(tag) : new ExifDouble(tag);
+                    return isArray ? new ExifDoubleArray(tag) : new ExifDouble(tag);
                 case ExifDataType.SingleFloat:
-                    return isArray ? (ExifValue)new ExifFloatArray(tag) : new ExifFloat(tag);
+                    return isArray ? new ExifFloatArray(tag) : new ExifFloat(tag);
                 case ExifDataType.Long:
-                    return isArray ? (ExifValue)new ExifLongArray(tag) : new ExifLong(tag);
+                    return isArray ? new ExifLongArray(tag) : new ExifLong(tag);
                 case ExifDataType.Long8:
-                    return isArray ? (ExifValue)new ExifLong8Array(tag) : new ExifLong8(tag);
+                    return isArray ? new ExifLong8Array(tag) : new ExifLong8(tag);
                 case ExifDataType.Rational:
-                    return isArray ? (ExifValue)new ExifRationalArray(tag) : new ExifRational(tag);
+                    return isArray ? new ExifRationalArray(tag) : new ExifRational(tag);
                 case ExifDataType.Short:
-                    return isArray ? (ExifValue)new ExifShortArray(tag) : new ExifShort(tag);
+                    return isArray ? new ExifShortArray(tag) : new ExifShort(tag);
                 case ExifDataType.SignedByte:
-                    return isArray ? (ExifValue)new ExifSignedByteArray(tag) : new ExifSignedByte(tag);
+                    return isArray ? new ExifSignedByteArray(tag) : new ExifSignedByte(tag);
                 case ExifDataType.SignedLong:
-                    return isArray ? (ExifValue)new ExifSignedLongArray(tag) : new ExifSignedLong(tag);
+                    return isArray ? new ExifSignedLongArray(tag) : new ExifSignedLong(tag);
                 case ExifDataType.SignedLong8:
-                    return isArray ? (ExifValue)new ExifSignedLong8Array(tag) : new ExifSignedLong8(tag);
+                    return isArray ? new ExifSignedLong8Array(tag) : new ExifSignedLong8(tag);
                 case ExifDataType.SignedRational:
-                    return isArray ? (ExifValue)new ExifSignedRationalArray(tag) : new ExifSignedRational(tag);
+                    return isArray ? new ExifSignedRationalArray(tag) : new ExifSignedRational(tag);
                 case ExifDataType.SignedShort:
-                    return isArray ? (ExifValue)new ExifSignedShortArray(tag) : new ExifSignedShort(tag);
+                    return isArray ? new ExifSignedShortArray(tag) : new ExifSignedShort(tag);
                 case ExifDataType.Ascii:
                     return new ExifString(tag);
                 case ExifDataType.Undefined:
-                    return isArray ? (ExifValue)new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);
+                    return isArray ? new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);
                 default:
                     return null;
             }

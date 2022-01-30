@@ -612,6 +612,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             {
                 var charCode = (EncodedString.CharacterCode)code;
 
+                Assert.Equal(ExifEncodedStringHelpers.CharacterCodeBytesLength, ExifEncodedStringHelpers.GetCodeBytes(charCode).Length);
+
                 const string expectedText = "test string";
                 var expected = new EncodedString(charCode, expectedText);
                 ExifValue value = ExifValues.Create(tag);

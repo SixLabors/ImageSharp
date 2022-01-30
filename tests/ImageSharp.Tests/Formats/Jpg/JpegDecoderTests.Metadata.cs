@@ -318,7 +318,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 exif.SetValue(ExifTag.XPKeywords, "Keyword1;Keyword2");
                 exif.SetValue(ExifTag.XPSubject, "This is a subject");
 
-                exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "本日は晴天なり(JIS)"));
+                // exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "ビッ"));
+                exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "eng comment text (JIS)"));
+
                 exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
                 exif.SetValue(ExifTag.GPSAreaInformation, new EncodedString(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
 
@@ -357,7 +359,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal("Keyword1;Keyword2", exif.GetValue(ExifTag.XPKeywords).Value);
             Assert.Equal("This is a subject", exif.GetValue(ExifTag.XPSubject).Value);
 
-            Assert.Equal("本日は晴天なり(JIS)", exif.GetValue(ExifTag.UserComment).Value.Text);
+            Assert.Equal("eng comment text (JIS)", exif.GetValue(ExifTag.UserComment).Value.Text);
             Assert.Equal(EncodedString.CharacterCode.JIS, exif.GetValue(ExifTag.UserComment).Value.Code);
 
             Assert.Equal("GPS processing method (ASCII)", exif.GetValue(ExifTag.GPSProcessingMethod).Value.Text);

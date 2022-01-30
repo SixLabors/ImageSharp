@@ -38,6 +38,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 this.Value = new EncodedString(stringValue);
                 return true;
             }
+            else if (value is byte[] buffer)
+            {
+                if (ExifEncodedStringHelpers.TryParse(buffer, out EncodedString encodedString))
+                {
+                    this.Value = encodedString;
+                    return true;
+                }
+            }
 
             return false;
         }

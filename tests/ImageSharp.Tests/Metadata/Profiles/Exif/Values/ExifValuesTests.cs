@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Text;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using Xunit;
 
@@ -291,11 +293,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.GPSDestBearingRef },
             { ExifTag.GPSDestDistanceRef },
             { ExifTag.GPSDateStamp },
-            { ExifTag.XPTitle },
-            { ExifTag.XPComment },
-            { ExifTag.XPAuthor },
-            { ExifTag.XPKeywords },
-            { ExifTag.XPSubject },
         };
 
         public static TheoryData<ExifTag> UndefinedTags => new TheoryData<ExifTag>
@@ -325,6 +322,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.UserComment },
             { ExifTag.GPSProcessingMethod },
             { ExifTag.GPSAreaInformation }
+        };
+
+        public static TheoryData<ExifTag> Ucs2StringTags => new TheoryData<ExifTag>
+        {
+            { ExifTag.XPTitle },
+            { ExifTag.XPComment },
+            { ExifTag.XPAuthor },
+            { ExifTag.XPKeywords },
+            { ExifTag.XPSubject },
         };
 
         [Theory]
@@ -602,13 +608,38 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
         [MemberData(nameof(EncodedStringTags))]
         public void ExifEncodedStringTests(ExifTag tag)
         {
-            var expected = new EncodedString(EncodedString.CharacterCode.JIS, "test string");
+            foreach (object code in Enum.GetValues(typeof(EncodedString.CharacterCode)))
+            {
+                var charCode = (EncodedString.CharacterCode)code;
+
+                const string expectedText = "test string";
+                var expected = new EncodedString(charCode, expectedText);
+                ExifValue value = ExifValues.Create(tag);
+
+                Assert.False(value.TrySetValue(123));
+                Assert.True(value.TrySetValue(expected));
+
+                var typed = (ExifEncodedString)value;
+                Assert.Equal(expected, typed.Value);
+                Assert.Equal(expectedText, (string)typed.Value);
+                Assert.Equal(charCode, typed.Value.Code);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(Ucs2StringTags))]
+        public void ExifUcs2StringTests(ExifTag tag)
+        {
+            const string expected = "Dan Petitt";
             ExifValue value = ExifValues.Create(tag);
 
             Assert.False(value.TrySetValue(123));
             Assert.True(value.TrySetValue(expected));
 
-            var typed = (ExifEncodedString)value;
+            var typed = (ExifUcs2String)value;
+            Assert.Equal(expected, typed.Value);
+
+            Assert.True(value.TrySetValue(Encoding.GetEncoding("UCS-2").GetBytes(expected)));
             Assert.Equal(expected, typed.Value);
         }
     }

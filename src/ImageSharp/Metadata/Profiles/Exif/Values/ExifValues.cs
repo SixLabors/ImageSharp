@@ -280,11 +280,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.GPSDestBearingRef: return new ExifString(ExifTag.GPSDestBearingRef);
                 case ExifTagValue.GPSDestDistanceRef: return new ExifString(ExifTag.GPSDestDistanceRef);
                 case ExifTagValue.GPSDateStamp: return new ExifString(ExifTag.GPSDateStamp);
-                case ExifTagValue.XPTitle: return new ExifString(ExifTag.XPTitle);
-                case ExifTagValue.XPComment: return new ExifString(ExifTag.XPComment);
-                case ExifTagValue.XPAuthor: return new ExifString(ExifTag.XPAuthor);
-                case ExifTagValue.XPKeywords: return new ExifString(ExifTag.XPKeywords);
-                case ExifTagValue.XPSubject: return new ExifString(ExifTag.XPSubject);
 
                 case ExifTagValue.FileSource: return new ExifByte(ExifTag.FileSource, ExifDataType.Undefined);
                 case ExifTagValue.SceneType: return new ExifByte(ExifTag.SceneType, ExifDataType.Undefined);
@@ -301,6 +296,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.CFAPattern: return new ExifByteArray(ExifTag.CFAPattern, ExifDataType.Undefined);
                 case ExifTagValue.DeviceSettingDescription: return new ExifByteArray(ExifTag.DeviceSettingDescription, ExifDataType.Undefined);
                 case ExifTagValue.ImageSourceData: return new ExifByteArray(ExifTag.ImageSourceData, ExifDataType.Undefined);
+
+                case ExifTagValue.XPTitle:  return new ExifUcs2String(ExifTag.XPTitle);
+                case ExifTagValue.XPComment: return new ExifUcs2String(ExifTag.XPComment);
+                case ExifTagValue.XPAuthor: return new ExifUcs2String(ExifTag.XPAuthor);
+                case ExifTagValue.XPKeywords: return new ExifUcs2String(ExifTag.XPKeywords);
+                case ExifTagValue.XPSubject: return new ExifUcs2String(ExifTag.XPSubject);
 
                 case ExifTagValue.UserComment: return new ExifEncodedString(ExifTag.UserComment);
                 case ExifTagValue.GPSProcessingMethod: return new ExifEncodedString(ExifTag.GPSProcessingMethod);

@@ -10,21 +10,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
     {
         public static Encoding Ucs2Encoding => Encoding.GetEncoding("UCS-2");
 
-        public static bool IsUcs2Tag(ExifTagValue tag)
+        public static bool IsUcs2Tag(ExifTagValue tag) => tag switch
         {
-            switch (tag)
-            {
-                case ExifTagValue.XPAuthor:
-                case ExifTagValue.XPComment:
-                case ExifTagValue.XPKeywords:
-                case ExifTagValue.XPSubject:
-                case ExifTagValue.XPTitle:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        public static string ConvertToString(ReadOnlySpan<byte> buffer) => Ucs2Encoding.GetString(buffer);
+            ExifTagValue.XPAuthor or ExifTagValue.XPComment or ExifTagValue.XPKeywords or ExifTagValue.XPSubject or ExifTagValue.XPTitle => true,
+            _ => false,
+        };
     }
 }

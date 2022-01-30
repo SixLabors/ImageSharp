@@ -66,6 +66,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         public string Text { get; }
 
+        /// <summary>
+        /// Converts the specified <see cref="string"/> to an instance of this type.
+        /// </summary>
+        /// <param name="text">The text value.</param>
+        public static implicit operator EncodedString(string text) => new(text);
+
+        /// <summary>
+        /// Converts the specified <see cref="EncodedString"/> to a <see cref="string"/>.
+        /// </summary>
+        /// <param name="encodedString">The <see cref="EncodedString"/> to convert.</param>
+        public static explicit operator string(EncodedString encodedString) => encodedString.Text;
+
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is EncodedString other && this.Equals(other);
 

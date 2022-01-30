@@ -591,7 +591,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             foreach (IExifValue value in profile.Values)
             {
                 Assert.NotNull(value.GetValue());
-        }
+            }
 
             IExifValue<string> software = profile.GetValue(ExifTag.Software);
             Assert.Equal("Windows Photo Editor 10.0.10011.16384", software.Value);

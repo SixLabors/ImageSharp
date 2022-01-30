@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
     {
         public const int CharacterCodeBytesLength = 8;
 
-        private const ulong AsciiCode = 0x_41_53_43_49_49_00_00_00;
-        private const ulong JISCode = 0x_4A_49_53_00_00_00_00_00;
-        private const ulong UnicodeCode = 0x_55_4E_49_43_4F_44_45_00;
+        private const ulong AsciiCode = 0x_00_00_00_49_49_43_53_41;
+        private const ulong JISCode = 0x_00_00_00_00_00_53_49_4A;
+        private const ulong UnicodeCode = 0x_45_44_4F_43_49_4E_55;
         private const ulong UndefinedCode = 0x_00_00_00_00_00_00_00_00;
 
         private static ReadOnlySpan<byte> AsciiCodeBytes => new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0 };
@@ -25,7 +25,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static ReadOnlySpan<byte> UndefinedCodeBytes => new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-        private static Encoding JIS0208Encoding => Encoding.GetEncoding(932);
+        private static Encoding JIS0208Encoding => CodePagesEncodingProvider.Instance.GetEncoding(932);
+
+        public static bool IsEncodedString(ExifTagValue tag) => tag switch
+        {
+            ExifTagValue.UserComment or ExifTagValue.GPSProcessingMethod or ExifTagValue.GPSAreaInformation => true,
+            _ => false
+        };
 
         public static ReadOnlySpan<byte> GetCodeBytes(CharacterCode code) => code switch
         {
@@ -45,7 +51,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             _ => Encoding.UTF8
         };
 
-        public static bool TryCreate(ReadOnlySpan<byte> buffer, out EncodedString encodedString)
+        public static bool TryParse(ReadOnlySpan<byte> buffer, out EncodedString encodedString)
         {
             if (TryDetect(buffer, out CharacterCode code))
             {
@@ -61,17 +67,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static uint GetDataLength(EncodedString encodedString) =>
             (uint)GetEncoding(encodedString.Code).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
 
-        public static bool IsEncodedString(ExifTagValue tag)
+        public static byte[] GetData(EncodedString encodedString)
         {
-            switch (tag)
-            {
-                case ExifTagValue.UserComment:
-                case ExifTagValue.GPSProcessingMethod:
-                case ExifTagValue.GPSAreaInformation:
-                    return true;
-                default:
-                    return false;
-            }
+            int length = (int)GetDataLength(encodedString);
+            byte[] buffer = new byte[length];
+
+            GetCodeBytes(encodedString.Code).CopyTo(buffer);
+
+            string text = encodedString.Text;
+            GetEncoding(encodedString.Code).GetBytes(text, 0, text.Length, buffer, CharacterCodeBytesLength);
+
+            return buffer;
         }
 
         private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)

@@ -220,10 +220,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             if (this.TryReadSpan(buffer))
             {
                 object value = this.ConvertValue(tag.Exif, tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
-                if (value is EncodedString)
-                {
-                    // Console.WriteLine("EncodedString tag: " + (ushort)tag.Exif.Tag);
-                }
 
                 this.Add(values, tag.Exif, value);
             }
@@ -248,7 +244,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
 
-        private string ConvertToString(ReadOnlySpan<byte> buffer)
+        private string ConvertToString(Encoding encoding, ReadOnlySpan<byte> buffer)
         {
             int nullCharIndex = buffer.IndexOf((byte)0);
 
@@ -257,7 +253,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 buffer = buffer.Slice(0, nullCharIndex);
             }
 
-            return ExifConstants.DefaultEncoding.GetString(buffer);
+            return encoding.GetString(buffer);
         }
 
         private object ConvertValue(ExifValue exifValue, ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
@@ -267,35 +263,20 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return null;
             }
 
-            var tagValue = (ExifTagValue)(ushort)exifValue.Tag;
-            if (ExifUcs2StringHelpers.IsUcs2Tag(tagValue))
-            {
-                return ExifUcs2StringHelpers.ConvertToString(buffer);
-            }
-            else if (ExifEncodedStringHelpers.IsEncodedString(tagValue))
-            {
-                if (ExifEncodedStringHelpers.TryCreate(buffer, out EncodedString encodedString))
-                {
-                    return encodedString;
-                }
-            }
-
             switch (dataType)
             {
                 case ExifDataType.Unknown:
                     return null;
                 case ExifDataType.Ascii:
-                    return this.ConvertToString(buffer);
+                    return this.ConvertToString(ExifConstants.DefaultEncoding, buffer);
                 case ExifDataType.Byte:
                 case ExifDataType.Undefined:
-                {
                     if (!isArray)
                     {
                         return this.ConvertToByte(buffer);
                     }
 
-                    return ExifEncodedStringHelpers.TryCreate(buffer, out EncodedString encodedString) ? encodedString : buffer.ToArray();
-                }
+                    return buffer.ToArray();
 
                 case ExifDataType.DoubleFloat:
                     if (!isArray)

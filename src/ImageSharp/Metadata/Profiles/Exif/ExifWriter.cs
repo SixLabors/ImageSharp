@@ -390,6 +390,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Undefined:
                     if (value is byte[] array)
                     {
+                        // used by encoded strings (which  dataType is Byte/Undefined)
                         offset = Write(array, destination, offset);
                         return offset;
                     }

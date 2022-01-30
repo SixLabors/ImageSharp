@@ -53,6 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             { ExifTag.Model, "Model" },
             { ExifTag.XPAuthor, "The XPAuthor text" },
             { ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.Unicode, "The Unicode text") },
+            { ExifTag.GPSAreaInformation, new EncodedString("Default constructor text (GPSAreaInformation)") },
         };
 
         [Theory]

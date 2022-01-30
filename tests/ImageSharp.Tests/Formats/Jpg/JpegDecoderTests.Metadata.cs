@@ -318,8 +318,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 exif.SetValue(ExifTag.XPKeywords, "Keyword1;Keyword2");
                 exif.SetValue(ExifTag.XPSubject, "This is a subject");
 
-                exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.ASCII, "user comment (ASCII)"));
-                exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.JIS, "GPS processing method (JIS)"));
+                exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "本日は晴天なり(JIS)"));
+                exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
                 exif.SetValue(ExifTag.GPSAreaInformation, new EncodedString(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
 
                 image.Metadata.ExifProfile = exif;
@@ -357,11 +357,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal("Keyword1;Keyword2", exif.GetValue(ExifTag.XPKeywords).Value);
             Assert.Equal("This is a subject", exif.GetValue(ExifTag.XPSubject).Value);
 
-            Assert.Equal("user comment (ASCII)", exif.GetValue(ExifTag.UserComment).Value.Text);
-            Assert.Equal(EncodedString.CharacterCode.ASCII, exif.GetValue(ExifTag.UserComment).Value.Code);
+            Assert.Equal("本日は晴天なり(JIS)", exif.GetValue(ExifTag.UserComment).Value.Text);
+            Assert.Equal(EncodedString.CharacterCode.JIS, exif.GetValue(ExifTag.UserComment).Value.Code);
 
-            Assert.Equal("GPS processing method (JIS)", exif.GetValue(ExifTag.GPSProcessingMethod).Value.Text);
-            Assert.Equal(EncodedString.CharacterCode.JIS, exif.GetValue(ExifTag.GPSProcessingMethod).Value.Code);
+            Assert.Equal("GPS processing method (ASCII)", exif.GetValue(ExifTag.GPSProcessingMethod).Value.Text);
+            Assert.Equal(EncodedString.CharacterCode.ASCII, exif.GetValue(ExifTag.GPSProcessingMethod).Value.Code);
 
             Assert.Equal("GPS area info (Unicode)", (string)exif.GetValue(ExifTag.GPSAreaInformation).Value);
             Assert.Equal(EncodedString.CharacterCode.Unicode, exif.GetValue(ExifTag.GPSAreaInformation).Value.Code);

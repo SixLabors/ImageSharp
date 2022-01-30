@@ -302,7 +302,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             int newOffset = offset;
             foreach (object obj in (Array)value.GetValue())
             {
-                newOffset = WriteValue(value, value.DataType, obj, destination, newOffset);
+                newOffset = WriteValue(value.DataType, obj, destination, newOffset);
             }
 
             return newOffset;
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
-        private static int WriteValue(IExifValue exifValue, ExifDataType dataType, object value, Span<byte> destination, int offset)
+        private static int WriteValue(ExifDataType dataType, object value, Span<byte> destination, int offset)
         {
             switch (dataType)
             {
@@ -457,7 +457,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return WriteArray(exifValue, destination, offset);
             }
 
-            return WriteValue(exifValue, exifValue.DataType, value, destination, offset);
+            return WriteValue(exifValue.DataType, value, destination, offset);
         }
     }
 }

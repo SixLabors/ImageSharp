@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.Seek(tag.Offset);
             if (this.TryReadSpan(buffer))
             {
-                object value = this.ConvertValue(tag.Exif, tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
+                object value = this.ConvertValue(tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
                 this.Add(values, tag.Exif, value);
             }
         }
@@ -241,9 +241,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return result;
         }
 
-        private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
-
-        private string ConvertToString(Encoding encoding, ReadOnlySpan<byte> buffer)
+        private static string ConvertToString(Encoding encoding, ReadOnlySpan<byte> buffer)
         {
             int nullCharIndex = buffer.IndexOf((byte)0);
 
@@ -255,7 +253,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return encoding.GetString(buffer);
         }
 
-        private object ConvertValue(ExifValue exifValue, ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
+        private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
+
+        private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
         {
             if (buffer.Length == 0)
             {
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Unknown:
                     return null;
                 case ExifDataType.Ascii:
-                    return this.ConvertToString(ExifConstants.DefaultEncoding, buffer);
+                    return ConvertToString(ExifConstants.DefaultEncoding, buffer);
                 case ExifDataType.Byte:
                 case ExifDataType.Undefined:
                     if (!isArray)
@@ -276,7 +276,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     return buffer.ToArray();
-
                 case ExifDataType.DoubleFloat:
                     if (!isArray)
                     {
@@ -415,7 +414,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(exifValue, dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }
@@ -489,7 +488,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
             else
             {
-                object value = this.ConvertValue(exifValue, dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
+                object value = this.ConvertValue(dataType, offsetBuffer.Slice(0, (int)size), numberOfComponents > 1 || exifValue.IsArray);
                 this.Add(values, exifValue, value);
             }
         }

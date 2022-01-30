@@ -300,7 +300,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
-            YuvConversion.ConvertRgbToYuv(image, this.configuration, this.memoryAllocator, y, u, v);
+            bool hasAlpha = YuvConversion.ConvertRgbToYuv(image, this.configuration, this.memoryAllocator, y, u, v);
 
             int yStride = width;
             int uvStride = (yStride + 1) >> 1;
@@ -322,8 +322,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int expectedSize = this.Mbw * this.Mbh * averageBytesPerMacroBlock;
             this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
-            // TODO: EncodeAlpha();
-            bool hasAlpha = false;
+            // Extract and encode alpha data, if present.
+            byte[] alphaData = null;
+            if (hasAlpha)
+            {
+                // TODO: This can potentially run in an separate task.
+                alphaData = AlphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator);
+            }
 
             // Stats-collection loop.
             this.StatLoop(width, height, yStride, uvStride);
@@ -358,7 +363,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Write bytes from the bitwriter buffer to the stream.
             ImageMetadata metadata = image.Metadata;
             metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha);
+            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha, alphaData);
         }
 
         /// <inheritdoc/>

@@ -409,7 +409,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha)
+        /// <param name="alphaData">The alpha channel data.</param>
+        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha, byte[] alphaData)
         {
             bool isVp8X = false;
             byte[] exifBytes = null;
@@ -418,7 +419,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             if (exifProfile != null)
             {
                 isVp8X = true;
-                riffSize += ExtendedFileChunkSize;
                 exifBytes = exifProfile.ToByteArray();
                 riffSize += this.MetadataChunkSize(exifBytes);
             }
@@ -426,9 +426,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             if (xmpProfile != null)
             {
                 isVp8X = true;
-                riffSize += ExtendedFileChunkSize;
                 xmpBytes = xmpProfile.Data;
                 riffSize += this.MetadataChunkSize(xmpBytes);
+            }
+
+            if (hasAlpha)
+            {
+                isVp8X = true;
+                riffSize += this.AlphaChunkSize(alphaData);
+            }
+
+            if (isVp8X)
+            {
+                riffSize += ExtendedFileChunkSize;
             }
 
             this.Finish();
@@ -451,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
 
             // Emit headers and partition #0
-            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, hasAlpha);
+            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, hasAlpha, alphaData);
             bitWriterPartZero.WriteToStream(stream);
 
             // Write the encoded image to the stream.
@@ -639,7 +649,18 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             while (it.Next());
         }
 
-        private void WriteWebpHeaders(Stream stream, uint size0, uint vp8Size, uint riffSize, bool isVp8X, uint width, uint height, ExifProfile exifProfile, XmpProfile xmpProfile, bool hasAlpha)
+        private void WriteWebpHeaders(
+            Stream stream,
+            uint size0,
+            uint vp8Size,
+            uint riffSize,
+            bool isVp8X,
+            uint width,
+            uint height,
+            ExifProfile exifProfile,
+            XmpProfile xmpProfile,
+            bool hasAlpha,
+            byte[] alphaData)
         {
             this.WriteRiffHeader(stream, riffSize);
 
@@ -647,6 +668,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             if (isVp8X)
             {
                 this.WriteVp8XHeader(stream, exifProfile, xmpProfile, width, height, hasAlpha);
+                if (hasAlpha)
+                {
+                    this.WriteAlphaChunk(stream, alphaData);
+                }
             }
 
             this.WriteVp8Header(stream, vp8Size);

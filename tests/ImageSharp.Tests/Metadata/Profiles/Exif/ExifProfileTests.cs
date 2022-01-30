@@ -51,6 +51,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             { ExifTag.ImageDescription, "ImageDescription" },
             { ExifTag.ExposureTime, new Rational(1.0 / 1600.0) },
             { ExifTag.Model, "Model" },
+            { ExifTag.XPAuthor, "The XPAuthor text" },
+            { ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.Unicode, "The Unicode text") },
         };
 
         [Theory]

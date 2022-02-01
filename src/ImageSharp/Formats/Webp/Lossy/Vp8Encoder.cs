@@ -302,6 +302,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int width = image.Width;
             int height = image.Height;
+            int pixelCount = width * height;
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
@@ -329,10 +330,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // Extract and encode alpha channel data, if present.
             int alphaDataSize = 0;
+            bool alphaCompressionSucceeded = false;
             if (hasAlpha)
             {
                 // TODO: This can potentially run in an separate task.
                 this.AlphaData = AlphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
+                if (alphaDataSize < pixelCount)
+                {
+                    // Only use compressed data, if the compressed data is actually smaller then the uncompressed data.
+                    alphaCompressionSucceeded = true;
+                }
             }
 
             // Stats-collection loop.
@@ -376,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 (uint)height,
                 hasAlpha,
                 hasAlpha ? this.AlphaData.GetSpan().Slice(0, alphaDataSize) : Span<byte>.Empty,
-                this.alphaCompression);
+                this.alphaCompression && alphaCompressionSucceeded);
         }
 
         /// <inheritdoc/>

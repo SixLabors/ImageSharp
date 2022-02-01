@@ -264,12 +264,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="alphaData">The destination buffer to write the encoded alpha data to.</param>
-        /// <returns>The size of the data in bytes.</returns>
+        /// <returns>The size of the compressed data in bytes.
+        /// If the size of the data is the same as the pixel count, the compression would not yield in smaller data and is left uncompressed.
+        /// </returns>
         public int EncodeAlphaImageData<TPixel>(Image<TPixel> image, IMemoryOwner<byte> alphaData)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = image.Width;
             int height = image.Height;
+            int pixelCount = width * height;
 
             // Convert image pixels to bgra array.
             this.ConvertPixelsToBgra(image, width, height);
@@ -278,6 +281,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.EncodeStream(image);
             this.bitWriter.Finish();
             int size = this.bitWriter.NumBytes();
+            if (size >= pixelCount)
+            {
+                // Compressing would not yield in smaller data -> leave the data uncompressed.
+                return pixelCount;
+            }
+
             this.bitWriter.WriteToBuffer(alphaData.GetSpan());
             return size;
         }

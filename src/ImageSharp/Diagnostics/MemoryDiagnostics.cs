@@ -20,6 +20,7 @@ namespace SixLabors.ImageSharp.Diagnostics
 
         private static UndisposedMemoryResourceDelegate undisposedMemoryResource;
         private static int undisposedMemoryResourceSubscriptionCounter;
+        private static readonly object SyncRoot = new();
 
         /// <summary>
         /// Fires when an ImageSharp object's undisposed memory resource leaks to the finalizer.
@@ -30,14 +31,20 @@ namespace SixLabors.ImageSharp.Diagnostics
         {
             add
             {
-                Interlocked.Increment(ref undisposedMemoryResourceSubscriptionCounter);
-                undisposedMemoryResource += value;
+                lock (SyncRoot)
+                {
+                    undisposedMemoryResourceSubscriptionCounter++;
+                    undisposedMemoryResource += value;
+                }
             }
 
             remove
             {
-                undisposedMemoryResource -= value;
-                Interlocked.Decrement(ref undisposedMemoryResourceSubscriptionCounter);
+                lock (SyncRoot)
+                {
+                    undisposedMemoryResource -= value;
+                    undisposedMemoryResourceSubscriptionCounter--;
+                }
             }
         }
 
@@ -56,6 +63,11 @@ namespace SixLabors.ImageSharp.Diagnostics
 
         internal static void RaiseUndisposedMemoryResource(string allocationStackTrace)
         {
+            if (undisposedMemoryResource is null)
+            {
+                return;
+            }
+
             // Schedule on the ThreadPool, to avoid user callback messing up the finalizer thread.
             ThreadPool.QueueUserWorkItem(_ => undisposedMemoryResource?.Invoke(allocationStackTrace));
         }

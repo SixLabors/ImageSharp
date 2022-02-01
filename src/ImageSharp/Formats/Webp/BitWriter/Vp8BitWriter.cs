@@ -410,7 +410,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="height">The height of the image.</param>
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
         /// <param name="alphaData">The alpha channel data.</param>
-        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha, byte[] alphaData)
+        /// <param name="alphaDataIsCompressed">Indicates, if the alpha data is compressed.</param>
+        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha, byte[] alphaData, bool alphaDataIsCompressed)
         {
             bool isVp8X = false;
             byte[] exifBytes = null;
@@ -461,7 +462,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
 
             // Emit headers and partition #0
-            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, hasAlpha, alphaData);
+            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, hasAlpha, alphaData, alphaDataIsCompressed);
             bitWriterPartZero.WriteToStream(stream);
 
             // Write the encoded image to the stream.
@@ -660,7 +661,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             ExifProfile exifProfile,
             XmpProfile xmpProfile,
             bool hasAlpha,
-            byte[] alphaData)
+            byte[] alphaData,
+            bool alphaDataIsCompressed)
         {
             this.WriteRiffHeader(stream, riffSize);
 
@@ -670,7 +672,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                 this.WriteVp8XHeader(stream, exifProfile, xmpProfile, width, height, hasAlpha);
                 if (hasAlpha)
                 {
-                    this.WriteAlphaChunk(stream, alphaData);
+                    this.WriteAlphaChunk(stream, alphaData, alphaDataIsCompressed);
                 }
             }
 

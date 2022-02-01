@@ -146,7 +146,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         /// <param name="dataBytes">The alpha channel data bytes.</param>
-        protected void WriteAlphaChunk(Stream stream, byte[] dataBytes)
+        /// <param name="alphaDataIsCompressed">Indicates, if the alpha channel data is compressed.</param>
+        protected void WriteAlphaChunk(Stream stream, byte[] dataBytes, bool alphaDataIsCompressed)
         {
             DebugGuard.NotNull(dataBytes, nameof(dataBytes));
 
@@ -157,9 +158,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
             stream.Write(buf);
 
-            // Write flags, all zero for now.
-            stream.WriteByte(0);
+            byte flags = 0;
+            if (alphaDataIsCompressed)
+            {
+                flags |= 1;
+            }
 
+            stream.WriteByte(flags);
             stream.Write(dataBytes);
 
             // Add padding byte if needed.

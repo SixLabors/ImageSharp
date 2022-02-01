@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Diagnostics
     /// <summary>
     /// Represents the method to handle <see cref="MemoryDiagnostics.UndisposedAllocation"/>.
     /// </summary>
-    public delegate void UndisposedMemoryResourceDelegate(string allocationStackTrace);
+    public delegate void UndisposedAllocationDelegate(string allocationStackTrace);
 
     /// <summary>
     /// Utilities to track memory usage and detect memory leaks from not disposing ImageSharp objects.
@@ -18,8 +18,8 @@ namespace SixLabors.ImageSharp.Diagnostics
     {
         private static int totalUndisposedAllocationCount;
 
-        private static UndisposedMemoryResourceDelegate undisposedMemoryResource;
-        private static int undisposedMemoryResourceSubscriptionCounter;
+        private static UndisposedAllocationDelegate undisposedAllocation;
+        private static int undisposedAllocationSubscriptionCounter;
         private static readonly object SyncRoot = new();
 
         /// <summary>
@@ -27,14 +27,14 @@ namespace SixLabors.ImageSharp.Diagnostics
         /// The event brings significant overhead, and is intended to be used for troubleshooting only.
         /// For production diagnostics, use <see cref="TotalUndisposedAllocationCount"/>.
         /// </summary>
-        public static event UndisposedMemoryResourceDelegate UndisposedAllocation
+        public static event UndisposedAllocationDelegate UndisposedAllocation
         {
             add
             {
                 lock (SyncRoot)
                 {
-                    undisposedMemoryResourceSubscriptionCounter++;
-                    undisposedMemoryResource += value;
+                    undisposedAllocationSubscriptionCounter++;
+                    undisposedAllocation += value;
                 }
             }
 
@@ -42,8 +42,8 @@ namespace SixLabors.ImageSharp.Diagnostics
             {
                 lock (SyncRoot)
                 {
-                    undisposedMemoryResource -= value;
-                    undisposedMemoryResourceSubscriptionCounter--;
+                    undisposedAllocation -= value;
+                    undisposedAllocationSubscriptionCounter--;
                 }
             }
         }
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Diagnostics
         /// </summary>
         public static int TotalUndisposedAllocationCount => totalUndisposedAllocationCount;
 
-        internal static bool MemoryResourceLeakedSubscribed => Volatile.Read(ref undisposedMemoryResourceSubscriptionCounter) > 0;
+        internal static bool UndisposedAllocationSubscribed => Volatile.Read(ref undisposedAllocationSubscriptionCounter) > 0;
 
         internal static void IncrementTotalUndisposedAllocationCount() =>
             Interlocked.Increment(ref totalUndisposedAllocationCount);
@@ -63,13 +63,16 @@ namespace SixLabors.ImageSharp.Diagnostics
 
         internal static void RaiseUndisposedMemoryResource(string allocationStackTrace)
         {
-            if (undisposedMemoryResource is null)
+            if (undisposedAllocation is null)
             {
                 return;
             }
 
             // Schedule on the ThreadPool, to avoid user callback messing up the finalizer thread.
-            ThreadPool.QueueUserWorkItem(_ => undisposedMemoryResource?.Invoke(allocationStackTrace));
+            ThreadPool.QueueUserWorkItem(
+                stackTrace => undisposedAllocation?.Invoke(stackTrace),
+                allocationStackTrace,
+                preferLocal: true);
         }
     }
 }

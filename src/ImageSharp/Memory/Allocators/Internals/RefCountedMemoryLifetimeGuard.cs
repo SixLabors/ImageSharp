@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
 
         protected RefCountedMemoryLifetimeGuard()
         {
-            if (MemoryDiagnostics.MemoryResourceLeakedSubscribed)
+            if (MemoryDiagnostics.UndisposedAllocationSubscribed)
             {
                 this.allocationStackTrace = Environment.StackTrace;
             }

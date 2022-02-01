@@ -10,15 +10,24 @@ namespace SixLabors.ImageSharp.Memory.Internals
 {
     /// <summary>
     /// Implements reference counting lifetime guard mechanism for memory resources
-    /// also maintaining the current value of <see cref="MemoryInfo.TotalUndisposedAllocationCount"/>.
+    /// and maintains the value of <see cref="MemoryDiagnostics.TotalUndisposedAllocationCount"/>.
     /// </summary>
     internal abstract class RefCountedMemoryLifetimeGuard : IDisposable
     {
         private int refCount = 1;
         private int disposed;
         private int released;
+        private string allocationStackTrace;
 
-        public RefCountedMemoryLifetimeGuard() => MemoryDiagnostics.IncrementTotalUndisposedAllocationCount();
+        protected RefCountedMemoryLifetimeGuard()
+        {
+            if (MemoryDiagnostics.MemoryResourceLeakedSubscribed)
+            {
+                this.allocationStackTrace = Environment.StackTrace;
+            }
+
+            MemoryDiagnostics.IncrementTotalUndisposedAllocationCount();
+        }
 
         ~RefCountedMemoryLifetimeGuard()
         {
@@ -56,6 +65,10 @@ namespace SixLabors.ImageSharp.Memory.Internals
                     if (!finalizing)
                     {
                         MemoryDiagnostics.DecrementTotalUndisposedAllocationCount();
+                    }
+                    else if (this.allocationStackTrace != null)
+                    {
+                        MemoryDiagnostics.RaiseUndisposedMemoryResource(this.allocationStackTrace);
                     }
 
                     this.Release();

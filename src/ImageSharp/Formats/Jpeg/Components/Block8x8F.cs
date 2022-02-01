@@ -280,7 +280,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Quantize input block, apply zig-zag ordering and store result as 16bit integers.
+        /// Quantize input block, transpose, apply zig-zag ordering and store as <see cref="Block8x8"/>.
         /// </summary>
         /// <param name="block">Source block.</param>
         /// <param name="dest">Destination block.</param>
@@ -291,19 +291,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             if (Avx2.IsSupported)
             {
                 MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
-                ZigZag.ApplyZigZagOrderingAvx2(ref dest);
+                ZigZag.ApplyTransposingZigZagOrderingAvx2(ref dest);
             }
             else if (Ssse3.IsSupported)
             {
                 MultiplyIntoInt16_Sse2(ref block, ref qt, ref dest);
-                ZigZag.ApplyZigZagOrderingSsse3(ref dest);
+                ZigZag.ApplyTransposingZigZagOrderingSsse3(ref dest);
             }
             else
 #endif
             {
                 for (int i = 0; i < Size; i++)
                 {
-                    int idx = ZigZag.ZigZagOrder[i];
+                    int idx = ZigZag.TransposingOrder[i];
                     float quantizedVal = block[idx] * qt[idx];
                     quantizedVal += quantizedVal < 0 ? -0.5f : 0.5f;
                     dest[i] = (short)quantizedVal;

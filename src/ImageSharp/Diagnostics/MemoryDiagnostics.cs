@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Diagnostics
         /// </summary>
         public static int TotalUndisposedAllocationCount => totalUndisposedAllocationCount;
 
-        internal static bool MemoryResourceLeakedSubscribed => undisposedMemoryResourceSubscriptionCounter > 0;
+        internal static bool MemoryResourceLeakedSubscribed => Volatile.Read(ref undisposedMemoryResourceSubscriptionCounter) > 0;
 
         internal static void IncrementTotalUndisposedAllocationCount() =>
             Interlocked.Increment(ref totalUndisposedAllocationCount);

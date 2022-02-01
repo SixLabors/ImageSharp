@@ -73,8 +73,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private readonly bool alphaCompression;
 
-        private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
-
         private const int NumMbSegments = 4;
 
         private const int MaxItersKMeans = 6;
@@ -173,6 +171,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             this.ResetBoundaryPredictions();
         }
+
+        // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
+        private static ReadOnlySpan<byte> AverageBytesPerMb => new byte[] { 50, 24, 16, 9, 7, 5, 3, 2 };
 
         public int BaseQuant { get; set; }
 
@@ -319,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.SetLoopParams(this.quality);
 
             // Initialize the bitwriter.
-            int averageBytesPerMacroBlock = this.averageBytesPerMb[this.BaseQuant >> 4];
+            int averageBytesPerMacroBlock = AverageBytesPerMb[this.BaseQuant >> 4];
             int expectedSize = this.Mbw * this.Mbh * averageBytesPerMacroBlock;
             this.bitWriter = new Vp8BitWriter(expectedSize, this);
 

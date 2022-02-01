@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
@@ -388,18 +387,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return offset + 1;
                 case ExifDataType.Byte:
                 case ExifDataType.Undefined:
-                    if (value is byte[] array)
-                    {
-                        // used by encoded strings (which  dataType is Byte/Undefined)
-                        offset = Write(array, destination, offset);
-                        return offset;
-                    }
-                    else
-                    {
-                        destination[offset] = (byte)value;
-                        return offset + 1;
-                    }
-
+                    destination[offset] = (byte)value;
+                    return offset + 1;
                 case ExifDataType.DoubleFloat:
                     return WriteDouble((double)value, destination, offset);
                 case ExifDataType.Short:
@@ -446,11 +435,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
             {
-                value = ExifUcs2StringHelpers.Ucs2Encoding.GetBytes((string)value);
+                return offset + ExifUcs2StringHelpers.Write((string)value, destination.Slice(offset));
             }
             else if (value is EncodedString encodedString)
             {
-                value = ExifEncodedStringHelpers.GetData(encodedString);
+                return offset + ExifEncodedStringHelpers.Write(encodedString, destination.Slice(offset));
             }
 
             if (exifValue.IsArray)

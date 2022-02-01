@@ -15,5 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             ExifTagValue.XPAuthor or ExifTagValue.XPComment or ExifTagValue.XPKeywords or ExifTagValue.XPSubject or ExifTagValue.XPTitle => true,
             _ => false,
         };
+
+        public static int Write(string value, Span<byte> destination) => ExifEncodedStringHelpers.Write(Ucs2Encoding, value, destination);
     }
 }

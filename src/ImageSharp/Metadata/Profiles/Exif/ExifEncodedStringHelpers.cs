@@ -69,17 +69,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static uint GetDataLength(EncodedString encodedString) =>
             (uint)GetEncoding(encodedString.Code).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
 
-        public static byte[] GetData(EncodedString encodedString)
+        public static int Write(EncodedString encodedString, Span<byte> destination)
         {
-            int length = (int)GetDataLength(encodedString);
-            byte[] buffer = new byte[length];
-
-            GetCodeBytes(encodedString.Code).CopyTo(buffer);
+            GetCodeBytes(encodedString.Code).CopyTo(destination);
 
             string text = encodedString.Text;
-            GetEncoding(encodedString.Code).GetBytes(text, 0, text.Length, buffer, CharacterCodeBytesLength);
+            int count = Write(GetEncoding(encodedString.Code), text, destination.Slice(CharacterCodeBytesLength));
 
-            return buffer;
+            return CharacterCodeBytesLength + count;
+        }
+
+        public static unsafe int Write(Encoding encoding, string value, Span<byte> destination)
+        {
+            fixed (char* c = value)
+            {
+                fixed (byte* b = destination)
+                {
+                    return encoding.GetBytes(c, value.Length, b, destination.Length);
+                }
+            }
         }
 
         private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)

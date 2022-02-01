@@ -147,6 +147,46 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             }
         }
 
+        [Fact]
+        public void Issue1911()
+        {
+            using var image = new Image<Rgba32>(100, 100);
+            image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix4x4.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
+
+            Assert.Equal(99, image.Width);
+            Assert.Equal(100, image.Height);
+        }
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+        public void Identity<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            Matrix4x4 m = Matrix4x4.Identity;
+            Rectangle r = new(25, 25, 50, 50);
+            image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
+        }
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0.0001F)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 57F)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0F)]
+        public void Transform_With_Custom_Dimensions<TPixel>(TestImageProvider<TPixel> provider, float radians)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            Matrix4x4 m = Matrix4x4.CreateRotationX(radians, new Vector3(50, 50, 1F)) * Matrix4x4.CreateRotationY(radians, new Vector3(50, 50, 1F));
+            Rectangle r = new(25, 25, 50, 50);
+            image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+            image.DebugSave(provider, testOutputDetails: radians);
+            image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
+        }
+
         private static IResampler GetResampler(string name)
         {
             PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);

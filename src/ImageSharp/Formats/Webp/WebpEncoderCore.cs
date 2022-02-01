@@ -70,6 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         /// <summary>
         /// Indicating what file format compression should be used.
+        /// Defaults to lossy.
         /// </summary>
         private readonly WebpFileFormatType? fileFormat;
 
@@ -112,32 +113,18 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
-            bool lossy;
+            bool lossless;
             if (this.fileFormat is not null)
             {
-                lossy = this.fileFormat == WebpFileFormatType.Lossy;
+                lossless = this.fileFormat == WebpFileFormatType.Lossless;
             }
             else
             {
                 WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
-                lossy = webpMetadata.FileFormat == WebpFileFormatType.Lossy;
+                lossless = webpMetadata.FileFormat == WebpFileFormatType.Lossless;
             }
 
-            if (lossy)
-            {
-                using var enc = new Vp8Encoder(
-                    this.memoryAllocator,
-                    this.configuration,
-                    image.Width,
-                    image.Height,
-                    this.quality,
-                    this.method,
-                    this.entropyPasses,
-                    this.filterStrength,
-                    this.spatialNoiseShaping);
-                enc.Encode(image, stream);
-            }
-            else
+            if (lossless)
             {
                 using var enc = new Vp8LEncoder(
                     this.memoryAllocator,
@@ -149,6 +136,20 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     this.transparentColorMode,
                     this.nearLossless,
                     this.nearLosslessQuality);
+                enc.Encode(image, stream);
+            }
+            else
+            {
+                using var enc = new Vp8Encoder(
+                    this.memoryAllocator,
+                    this.configuration,
+                    image.Width,
+                    image.Height,
+                    this.quality,
+                    this.method,
+                    this.entropyPasses,
+                    this.filterStrength,
+                    this.spatialNoiseShaping);
                 enc.Encode(image, stream);
             }
         }

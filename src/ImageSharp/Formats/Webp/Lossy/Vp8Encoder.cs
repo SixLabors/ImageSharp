@@ -242,11 +242,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public int DqUvDc { get; private set; }
 
         /// <summary>
-        /// Gets or sets the alpha data.
-        /// </summary>
-        private IMemoryOwner<byte> AlphaData { get; set; }
-
-        /// <summary>
         /// Gets the luma component.
         /// </summary>
         private IMemoryOwner<byte> Y { get; }
@@ -331,10 +326,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Extract and encode alpha channel data, if present.
             int alphaDataSize = 0;
             bool alphaCompressionSucceeded = false;
+            using var alphaEncoder = new AlphaEncoder();
+            Span<byte> alphaData = Span<byte>.Empty;
             if (hasAlpha)
             {
                 // TODO: This can potentially run in an separate task.
-                this.AlphaData = AlphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
+                IMemoryOwner<byte> encodedAlphaData = alphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
+                alphaData = encodedAlphaData.GetSpan();
                 if (alphaDataSize < pixelCount)
                 {
                     // Only use compressed data, if the compressed data is actually smaller then the uncompressed data.
@@ -382,7 +380,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 (uint)width,
                 (uint)height,
                 hasAlpha,
-                hasAlpha ? this.AlphaData.GetSpan().Slice(0, alphaDataSize) : Span<byte>.Empty,
+                alphaData,
                 this.alphaCompression && alphaCompressionSucceeded);
         }
 
@@ -392,7 +390,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Y.Dispose();
             this.U.Dispose();
             this.V.Dispose();
-            this.AlphaData?.Dispose();
         }
 
         /// <summary>

@@ -13,8 +13,10 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Methods for encoding the alpha data of a VP8 image.
     /// </summary>
-    internal static class AlphaEncoder
+    internal class AlphaEncoder : IDisposable
     {
+        private IMemoryOwner<byte> alphaData;
+
         /// <summary>
         /// Encodes the alpha channel data.
         /// Data is either compressed as lossless webp image or uncompressed.
@@ -26,12 +28,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="compress">Indicates, if the data should be compressed with the lossless webp compression.</param>
         /// <param name="size">The size in bytes of the alpha data.</param>
         /// <returns>The encoded alpha data.</returns>
-        public static IMemoryOwner<byte> EncodeAlpha<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, bool compress, out int size)
+        public IMemoryOwner<byte> EncodeAlpha<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, bool compress, out int size)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = image.Width;
             int height = image.Height;
-            IMemoryOwner<byte> alphaData = ExtractAlphaChannel(image, configuration, memoryAllocator);
+            this.alphaData = ExtractAlphaChannel(image, configuration, memoryAllocator);
 
             if (compress)
             {
@@ -51,15 +53,15 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 // The transparency information will be stored in the green channel of the ARGB quadruplet.
                 // The green channel is allowed extra transformation steps in the specification -- unlike the other channels,
                 // that can improve compression.
-                using Image<Rgba32> alphaAsImage = DispatchAlphaToGreen(image, alphaData.GetSpan());
+                using Image<Rgba32> alphaAsImage = DispatchAlphaToGreen(image, this.alphaData.GetSpan());
 
-                size = lossLessEncoder.EncodeAlphaImageData(alphaAsImage, alphaData);
+                size = lossLessEncoder.EncodeAlphaImageData(alphaAsImage, this.alphaData);
 
-                return alphaData;
+                return this.alphaData;
             }
 
             size = width * height;
-            return alphaData;
+            return this.alphaData;
         }
 
         /// <summary>
@@ -124,5 +126,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             return alphaDataBuffer;
         }
+
+        /// <inheritdoc/>
+        public void Dispose() => this.alphaData?.Dispose();
     }
 }

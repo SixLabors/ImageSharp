@@ -263,8 +263,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <returns>The encoded alpha stream.</returns>
-        public byte[] EncodeAlphaImageData<TPixel>(Image<TPixel> image)
+        /// <param name="alphaData">The destination buffer to write the encoded alpha data to.</param>
+        /// <returns>The size of the data in bytes.</returns>
+        public int EncodeAlphaImageData<TPixel>(Image<TPixel> image, IMemoryOwner<byte> alphaData)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = image.Width;
@@ -273,12 +274,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // Convert image pixels to bgra array.
             this.ConvertPixelsToBgra(image, width, height);
 
-            // The image-stream does NOT contain any headers describing the image dimension, the dimension is already known.
+            // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
             this.EncodeStream(image);
             this.bitWriter.Finish();
-            using var ms = new MemoryStream();
-            this.bitWriter.WriteToStream(ms);
-            return ms.ToArray();
+            int size = this.bitWriter.NumBytes();
+            this.bitWriter.WriteToBuffer(alphaData.GetSpan());
+            return size;
         }
 
         /// <summary>

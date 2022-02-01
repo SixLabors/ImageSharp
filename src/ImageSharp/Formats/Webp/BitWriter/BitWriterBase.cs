@@ -48,6 +48,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         public void WriteToStream(Stream stream) => stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
 
         /// <summary>
+        /// Writes the encoded bytes of the image to the given buffer. Call Finish() before this.
+        /// </summary>
+        /// <param name="dest">The destination buffer.</param>
+        public void WriteToBuffer(Span<byte> dest) => this.Buffer.AsSpan(0, this.NumBytes()).CopyTo(dest);
+
+        /// <summary>
         /// Resizes the buffer to write to.
         /// </summary>
         /// <param name="extraSize">The extra size in bytes needed.</param>
@@ -108,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         /// <param name="alphaBytes">The alpha chunk bytes.</param>
         /// <returns>The alpha data chunk size in bytes.</returns>
-        protected uint AlphaChunkSize(byte[] alphaBytes)
+        protected uint AlphaChunkSize(Span<byte> alphaBytes)
         {
             uint alphaSize = (uint)alphaBytes.Length + 1;
             uint alphaChunkSize = WebpConstants.ChunkHeaderSize + alphaSize + (alphaSize & 1);
@@ -147,10 +153,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="stream">The stream to write to.</param>
         /// <param name="dataBytes">The alpha channel data bytes.</param>
         /// <param name="alphaDataIsCompressed">Indicates, if the alpha channel data is compressed.</param>
-        protected void WriteAlphaChunk(Stream stream, byte[] dataBytes, bool alphaDataIsCompressed)
+        protected void WriteAlphaChunk(Stream stream, Span<byte> dataBytes, bool alphaDataIsCompressed)
         {
-            DebugGuard.NotNull(dataBytes, nameof(dataBytes));
-
             uint size = (uint)dataBytes.Length + 1;
             Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
             BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Alpha);

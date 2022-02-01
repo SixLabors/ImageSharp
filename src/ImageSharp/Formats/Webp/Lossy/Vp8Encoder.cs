@@ -242,6 +242,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public int DqUvDc { get; private set; }
 
         /// <summary>
+        /// Gets or sets the alpha data.
+        /// </summary>
+        private IMemoryOwner<byte> AlphaData { get; set; }
+
+        /// <summary>
         /// Gets the luma component.
         /// </summary>
         private IMemoryOwner<byte> Y { get; }
@@ -322,12 +327,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int expectedSize = this.Mbw * this.Mbh * averageBytesPerMacroBlock;
             this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
-            // Extract and encode alpha data, if present.
-            byte[] alphaData = null;
+            // Extract and encode alpha channel data, if present.
+            int alphaDataSize = 0;
             if (hasAlpha)
             {
                 // TODO: This can potentially run in an separate task.
-                alphaData = AlphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression);
+                this.AlphaData = AlphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
             }
 
             // Stats-collection loop.
@@ -363,7 +368,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Write bytes from the bitwriter buffer to the stream.
             ImageMetadata metadata = image.Metadata;
             metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha, alphaData, this.alphaCompression);
+            this.bitWriter.WriteEncodedImageToStream(
+                stream,
+                metadata.ExifProfile,
+                metadata.XmpProfile,
+                (uint)width,
+                (uint)height,
+                hasAlpha,
+                hasAlpha ? this.AlphaData.GetSpan().Slice(0, alphaDataSize) : Span<byte>.Empty,
+                this.alphaCompression);
         }
 
         /// <inheritdoc/>
@@ -372,6 +385,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Y.Dispose();
             this.U.Dispose();
             this.V.Dispose();
+            this.AlphaData?.Dispose();
         }
 
         /// <summary>

@@ -411,7 +411,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
         /// <param name="alphaData">The alpha channel data.</param>
         /// <param name="alphaDataIsCompressed">Indicates, if the alpha data is compressed.</param>
-        public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha, byte[] alphaData, bool alphaDataIsCompressed)
+        public void WriteEncodedImageToStream(
+            Stream stream,
+            ExifProfile exifProfile,
+            XmpProfile xmpProfile,
+            uint width,
+            uint height,
+            bool hasAlpha,
+            Span<byte> alphaData,
+            bool alphaDataIsCompressed)
         {
             bool isVp8X = false;
             byte[] exifBytes = null;
@@ -661,7 +669,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             ExifProfile exifProfile,
             XmpProfile xmpProfile,
             bool hasAlpha,
-            byte[] alphaData,
+            Span<byte> alphaData,
             bool alphaDataIsCompressed)
         {
             this.WriteRiffHeader(stream, riffSize);

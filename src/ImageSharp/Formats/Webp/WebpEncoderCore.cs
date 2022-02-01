@@ -23,6 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         /// <summary>
         /// Indicating whether the alpha plane should be compressed with Webp lossless format.
+        /// Defaults to true.
         /// </summary>
         private readonly bool alphaCompression;
 

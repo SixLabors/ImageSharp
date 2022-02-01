@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public WebpEncodingMethod Method { get; set; } = WebpEncodingMethod.Default;
 
         /// <inheritdoc/>
-        public bool UseAlphaCompression { get; set; }
+        public bool UseAlphaCompression { get; set; } = true;
 
         /// <inheritdoc/>
         public int EntropyPasses { get; set; } = 1;

@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     {
         public static class Png
         {
+            public const string Transparency = "Png/transparency.png";
             public const string P1 = "Png/pl.png";
             public const string Pd = "Png/pd.png";
             public const string Blur = "Png/blur.png";

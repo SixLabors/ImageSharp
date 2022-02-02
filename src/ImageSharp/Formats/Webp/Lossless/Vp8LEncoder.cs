@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public Vp8LHashChain HashChain { get; }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+        /// Encodes the image as lossless webp to the specified stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
@@ -236,9 +236,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            image.Metadata.SyncProfiles();
             int width = image.Width;
             int height = image.Height;
+
+            ImageMetadata metadata = image.Metadata;
+            metadata.SyncProfiles();
 
             // Convert image pixels to bgra array.
             bool hasAlpha = this.ConvertPixelsToBgra(image, width, height);
@@ -253,9 +255,40 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.EncodeStream(image);
 
             // Write bytes from the bitwriter buffer to the stream.
-            ImageMetadata metadata = image.Metadata;
-            metadata.SyncProfiles();
             this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha);
+        }
+
+        /// <summary>
+        /// Encodes the alpha image data using the webp lossless compression.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+        /// <param name="alphaData">The destination buffer to write the encoded alpha data to.</param>
+        /// <returns>The size of the compressed data in bytes.
+        /// If the size of the data is the same as the pixel count, the compression would not yield in smaller data and is left uncompressed.
+        /// </returns>
+        public int EncodeAlphaImageData<TPixel>(Image<TPixel> image, IMemoryOwner<byte> alphaData)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int width = image.Width;
+            int height = image.Height;
+            int pixelCount = width * height;
+
+            // Convert image pixels to bgra array.
+            this.ConvertPixelsToBgra(image, width, height);
+
+            // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
+            this.EncodeStream(image);
+            this.bitWriter.Finish();
+            int size = this.bitWriter.NumBytes();
+            if (size >= pixelCount)
+            {
+                // Compressing would not yield in smaller data -> leave the data uncompressed.
+                return pixelCount;
+            }
+
+            this.bitWriter.WriteToBuffer(alphaData.GetSpan());
+            return size;
         }
 
         /// <summary>

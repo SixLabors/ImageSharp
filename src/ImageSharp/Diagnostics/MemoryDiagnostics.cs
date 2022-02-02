@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Diagnostics
             ThreadPool.QueueUserWorkItem(
                 stackTrace => undisposedAllocation?.Invoke(stackTrace),
                 allocationStackTrace,
-                preferLocal: true);
+                preferLocal: false);
         }
     }
 }

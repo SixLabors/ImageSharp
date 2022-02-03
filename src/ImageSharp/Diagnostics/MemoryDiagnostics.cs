@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Threading;
 
 namespace SixLabors.ImageSharp.Diagnostics
@@ -69,10 +68,16 @@ namespace SixLabors.ImageSharp.Diagnostics
             }
 
             // Schedule on the ThreadPool, to avoid user callback messing up the finalizer thread.
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
             ThreadPool.QueueUserWorkItem(
                 stackTrace => undisposedAllocation?.Invoke(stackTrace),
                 allocationStackTrace,
                 preferLocal: false);
+#else
+            ThreadPool.QueueUserWorkItem(
+                stackTrace => undisposedAllocation?.Invoke((string)stackTrace),
+                allocationStackTrace);
+#endif
         }
     }
 }

@@ -167,18 +167,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
         }
 
-        [Theory]
-        [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
-        [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
-        public void Encode_Lossless_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using Image<TPixel> image = provider.GetImage();
-
-            var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless };
-            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
-        }
-
         [Fact]
         public void Encode_Lossless_OneByOnePixel_Works()
         {
@@ -277,6 +265,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using Image<TPixel> image = provider.GetImage();
             string testOutputDetails = string.Concat("lossy", "_m", method, "_q", quality);
             image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, true)]
+        public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, bool compressed)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                UseAlphaCompression = compressed
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            image.VerifyEncoder(provider, "webp", $"with_alpha_compressed_{compressed}", encoder, ImageComparer.Tolerant(0.04f));
+        }
+
+        [Theory]
+        [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+        [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
+        public void Encode_Lossless_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless };
+            image.VerifyEncoder(provider, "webp", string.Empty, encoder);
         }
 
         [Theory]

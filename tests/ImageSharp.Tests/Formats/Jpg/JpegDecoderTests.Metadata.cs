@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;
@@ -299,6 +300,73 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
             });
             Assert.Null(ex);
+        }
+
+        [Fact]
+        public void EncodedStringTags_WriteAndRead()
+        {
+            using var memoryStream = new MemoryStream();
+            using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora)))
+            {
+                var exif = new ExifProfile();
+
+                exif.SetValue(ExifTag.GPSDateStamp, "2022-01-06");
+
+                exif.SetValue(ExifTag.XPTitle, "A bit of test metadata for image title");
+                exif.SetValue(ExifTag.XPComment, "A bit of test metadata for image comment");
+                exif.SetValue(ExifTag.XPAuthor, "Dan Petitt");
+                exif.SetValue(ExifTag.XPKeywords, "Keyword1;Keyword2");
+                exif.SetValue(ExifTag.XPSubject, "This is a subject");
+
+                // exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "ビッ"));
+                exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "eng comment text (JIS)"));
+
+                exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
+                exif.SetValue(ExifTag.GPSAreaInformation, new EncodedString(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
+
+                image.Metadata.ExifProfile = exif;
+
+                image.Save(memoryStream, new JpegEncoder());
+            }
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var image = Image.Load(memoryStream))
+            {
+                ExifProfile exif = image.Metadata.ExifProfile;
+                VerifyEncodedStrings(exif);
+            }
+        }
+
+        [Fact]
+        public void EncodedStringTags_Read()
+        {
+            using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora_EncodedStrings)))
+            {
+                ExifProfile exif = image.Metadata.ExifProfile;
+                VerifyEncodedStrings(exif);
+            }
+        }
+
+        private static void VerifyEncodedStrings(ExifProfile exif)
+        {
+            Assert.NotNull(exif);
+
+            Assert.Equal("2022-01-06", exif.GetValue(ExifTag.GPSDateStamp).Value);
+
+            Assert.Equal("A bit of test metadata for image title", exif.GetValue(ExifTag.XPTitle).Value);
+            Assert.Equal("A bit of test metadata for image comment", exif.GetValue(ExifTag.XPComment).Value);
+            Assert.Equal("Dan Petitt", exif.GetValue(ExifTag.XPAuthor).Value);
+            Assert.Equal("Keyword1;Keyword2", exif.GetValue(ExifTag.XPKeywords).Value);
+            Assert.Equal("This is a subject", exif.GetValue(ExifTag.XPSubject).Value);
+
+            Assert.Equal("eng comment text (JIS)", exif.GetValue(ExifTag.UserComment).Value.Text);
+            Assert.Equal(EncodedString.CharacterCode.JIS, exif.GetValue(ExifTag.UserComment).Value.Code);
+
+            Assert.Equal("GPS processing method (ASCII)", exif.GetValue(ExifTag.GPSProcessingMethod).Value.Text);
+            Assert.Equal(EncodedString.CharacterCode.ASCII, exif.GetValue(ExifTag.GPSProcessingMethod).Value.Code);
+
+            Assert.Equal("GPS area info (Unicode)", (string)exif.GetValue(ExifTag.GPSAreaInformation).Value);
+            Assert.Equal(EncodedString.CharacterCode.Unicode, exif.GetValue(ExifTag.GPSAreaInformation).Value.Code);
         }
     }
 }

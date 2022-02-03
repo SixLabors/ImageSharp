@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
@@ -274,9 +273,19 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         {
             object value = exifValue.GetValue();
 
+            if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
+            {
+                return (uint)ExifUcs2StringHelpers.Ucs2Encoding.GetByteCount((string)value);
+            }
+
+            if (value is EncodedString encodedString)
+            {
+                return ExifEncodedStringHelpers.GetDataLength(encodedString);
+            }
+
             if (exifValue.DataType == ExifDataType.Ascii)
             {
-                return (uint)Encoding.UTF8.GetBytes((string)value).Length + 1;
+                return (uint)ExifConstants.DefaultEncoding.GetByteCount((string)value) + 1;
             }
 
             if (value is Array arrayValue)
@@ -289,11 +298,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static int WriteArray(IExifValue value, Span<byte> destination, int offset)
         {
-            if (value.DataType == ExifDataType.Ascii)
-            {
-                return WriteValue(ExifDataType.Ascii, value.GetValue(), destination, offset);
-            }
-
             int newOffset = offset;
             foreach (object obj in (Array)value.GetValue())
             {
@@ -378,7 +382,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (dataType)
             {
                 case ExifDataType.Ascii:
-                    offset = Write(Encoding.UTF8.GetBytes((string)value), destination, offset);
+                    offset = Write(ExifConstants.DefaultEncoding.GetBytes((string)value), destination, offset);
                     destination[offset] = 0;
                     return offset + 1;
                 case ExifDataType.Byte:
@@ -425,14 +429,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
-        internal static int WriteValue(IExifValue value, Span<byte> destination, int offset)
+        internal static int WriteValue(IExifValue exifValue, Span<byte> destination, int offset)
         {
-            if (value.IsArray && value.DataType != ExifDataType.Ascii)
+            object value = exifValue.GetValue();
+
+            if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
             {
-                return WriteArray(value, destination, offset);
+                return offset + ExifUcs2StringHelpers.Write((string)value, destination.Slice(offset));
+            }
+            else if (value is EncodedString encodedString)
+            {
+                return offset + ExifEncodedStringHelpers.Write(encodedString, destination.Slice(offset));
             }
 
-            return WriteValue(value.DataType, value.GetValue(), destination, offset);
+            if (exifValue.IsArray)
+            {
+                return WriteArray(exifValue, destination, offset);
+            }
+
+            return WriteValue(exifValue.DataType, value, destination, offset);
         }
     }
 }

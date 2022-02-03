@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     {
         public static class Png
         {
+            public const string Transparency = "Png/transparency.png";
             public const string P1 = "Png/pl.png";
             public const string Pd = "Png/pd.png";
             public const string Blur = "Png/blur.png";
@@ -191,6 +192,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Exif = "Jpg/baseline/exif.jpg";
                 public const string Floorplan = "Jpg/baseline/Floorplan.jpg";
                 public const string Calliphora = "Jpg/baseline/Calliphora.jpg";
+                public const string Calliphora_EncodedStrings = "Jpg/baseline/Calliphora_encoded_strings.jpg";
                 public const string Ycck = "Jpg/baseline/ycck.jpg";
                 public const string Turtle420 = "Jpg/baseline/turtle.jpg";
                 public const string GammaDalaiLamaGray = "Jpg/baseline/gamma_dalai_lama_gray.jpg";

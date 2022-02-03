@@ -51,6 +51,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             { ExifTag.ImageDescription, "ImageDescription" },
             { ExifTag.ExposureTime, new Rational(1.0 / 1600.0) },
             { ExifTag.Model, "Model" },
+            { ExifTag.XPAuthor, "The XPAuthor text" },
+            { ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.Unicode, "The Unicode text") },
+            { ExifTag.GPSAreaInformation, new EncodedString("Default constructor text (GPSAreaInformation)") },
         };
 
         [Theory]
@@ -504,7 +507,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         public void IfdStructure()
         {
             var exif = new ExifProfile();
-            exif.SetValue(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
+            exif.SetValue(ExifTag.XPAuthor, "Dan Petitt");
 
             Span<byte> actualBytes = exif.ToByteArray();
 

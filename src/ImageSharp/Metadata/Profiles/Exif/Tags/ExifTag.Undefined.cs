@@ -32,11 +32,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<byte[]> MakerNote { get; } = new ExifTag<byte[]>(ExifTagValue.MakerNote);
 
         /// <summary>
-        /// Gets the UserComment exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> UserComment { get; } = new ExifTag<byte[]>(ExifTagValue.UserComment);
-
-        /// <summary>
         /// Gets the FlashpixVersion exif tag.
         /// </summary>
         public static ExifTag<byte[]> FlashpixVersion { get; } = new ExifTag<byte[]>(ExifTagValue.FlashpixVersion);
@@ -70,16 +65,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// Gets the ImageSourceData exif tag.
         /// </summary>
         public static ExifTag<byte[]> ImageSourceData { get; } = new ExifTag<byte[]>(ExifTagValue.ImageSourceData);
-
-        /// <summary>
-        /// Gets the GPSProcessingMethod exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> GPSProcessingMethod { get; } = new ExifTag<byte[]>(ExifTagValue.GPSProcessingMethod);
-
-        /// <summary>
-        /// Gets the GPSAreaInformation exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> GPSAreaInformation { get; } = new ExifTag<byte[]>(ExifTagValue.GPSAreaInformation);
 
         /// <summary>
         /// Gets the FileSource exif tag.

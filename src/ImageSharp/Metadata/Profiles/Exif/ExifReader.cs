@@ -241,9 +241,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return result;
         }
 
-        private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
-
-        private string ConvertToString(ReadOnlySpan<byte> buffer)
+        private static string ConvertToString(Encoding encoding, ReadOnlySpan<byte> buffer)
         {
             int nullCharIndex = buffer.IndexOf((byte)0);
 
@@ -252,8 +250,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 buffer = buffer.Slice(0, nullCharIndex);
             }
 
-            return Encoding.UTF8.GetString(buffer);
+            return encoding.GetString(buffer);
         }
+
+        private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
 
         private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
         {
@@ -267,8 +267,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifDataType.Unknown:
                     return null;
                 case ExifDataType.Ascii:
-                    return this.ConvertToString(buffer);
+                    return ConvertToString(ExifConstants.DefaultEncoding, buffer);
                 case ExifDataType.Byte:
+                case ExifDataType.Undefined:
                     if (!isArray)
                     {
                         return this.ConvertToByte(buffer);
@@ -354,13 +355,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     return ToArray(dataType, buffer, this.ConvertToUInt64);
-                case ExifDataType.Undefined:
-                    if (!isArray)
-                    {
-                        return this.ConvertToByte(buffer);
-                    }
 
-                    return buffer.ToArray();
                 default:
                     throw new NotSupportedException($"Data type {dataType} is not supported.");
             }
@@ -453,7 +448,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             // Likewise, tags that point to other IFDs, like e.g. the SubIFDs tag, are now allowed to have the datatype TIFF_IFD8 in BigTIFF.
             // Again, the old datatypes TIFF_IFD, and the hardly recommendable TIFF_LONG, are still valid, too.
             // https://www.awaresystems.be/imaging/tiff/bigtiff.html
-            ExifValue exifValue = null;
+            ExifValue exifValue;
             switch (tag)
             {
                 case ExifTagValue.StripOffsets:

@@ -20,9 +20,9 @@ namespace SixLabors.ImageSharp.Memory.Internals
             return buffer;
         }
 
-        public RefCountedLifetimeGuard CreateGroupLifetimeGuard(UnmanagedMemoryHandle[] handles) => new GroupLifetimeGuard(this, handles);
+        public RefCountedMemoryLifetimeGuard CreateGroupLifetimeGuard(UnmanagedMemoryHandle[] handles) => new GroupLifetimeGuard(this, handles);
 
-        private sealed class GroupLifetimeGuard : RefCountedLifetimeGuard
+        private sealed class GroupLifetimeGuard : RefCountedMemoryLifetimeGuard
         {
             private readonly UniformUnmanagedMemoryPool pool;
             private readonly UnmanagedMemoryHandle[] handles;

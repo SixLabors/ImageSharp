@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
             }
         }
 
-        private sealed class LifetimeGuard : RefCountedLifetimeGuard
+        private sealed class LifetimeGuard : RefCountedMemoryLifetimeGuard
         {
             private byte[] array;
 

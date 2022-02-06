@@ -98,7 +98,7 @@ jobs:
       - name: Git Pull LFS
         run: git lfs pull
 
-      - name: Setup .NET SDKs
+      - name: DotNet Setup
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: |
@@ -117,13 +117,6 @@ jobs:
           path: ~/.nuget
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
           restore-keys: ${{ runner.os }}-nuget-
-
-      - name: DotNet Setup Preview
-        if: ${{ matrix.options.sdk-preview == true }}
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ matrix.options.sdk }}
-          include-prerelease: true
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

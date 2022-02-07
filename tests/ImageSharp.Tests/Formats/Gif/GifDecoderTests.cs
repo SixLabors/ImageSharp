@@ -247,5 +247,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     "Disco")
                 .Dispose();
         }
+
+        // https://github.com/SixLabors/ImageSharp/issues/1962
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue1962NoColorTable, PixelTypes.Rgba32)]
+        public void Issue1962<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+        }
     }
 }

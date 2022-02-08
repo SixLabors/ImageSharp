@@ -46,6 +46,17 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         public bool Animation { get; set; }
 
+        /// <summary>
+        /// Gets or sets the animation loop count. 0 means infinitely.
+        /// </summary>
+        public ushort AnimationLoopCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets  default background color of the animation frame canvas.
+        /// This color MAY be used to fill the unused space on the canvas around the frames, as well as the transparent pixels of the first frame..
+        /// </summary>
+        public Color? AnimationBackgroundColor { get; set; }
+
         /// <inheritdoc/>
         public void Dispose() => this.AlphaData?.Dispose();
     }

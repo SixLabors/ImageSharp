@@ -146,23 +146,23 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 imageFrame = currentFrame;
             }
 
+            int frameX = (int)(frameData.X * 2);
+            int frameY = (int)(frameData.Y * 2);
+            int frameWidth = (int)frameData.Width;
+            int frameHeight = (int)frameData.Height;
+            var regionRectangle = Rectangle.FromLTRB(frameX, frameY, frameX + frameWidth, frameY + frameHeight);
+
             if (frameData.DisposalMethod is AnimationDisposalMethod.Dispose)
             {
                 this.RestoreToBackground(imageFrame, backgroundColor);
             }
-
-            uint frameX = frameData.X * 2;
-            uint frameY = frameData.Y * 2;
-            uint frameWidth = frameData.Width;
-            uint frameHeight = frameData.Height;
-            var regionRectangle = Rectangle.FromLTRB((int)frameX, (int)frameY, (int)(frameX + frameWidth), (int)(frameY + frameHeight));
 
             using Image<TPixel> decodedImage = this.DecodeImageData<TPixel>(frameData, webpInfo);
             this.DrawDecodedImageOnCanvas(decodedImage, imageFrame, frameX, frameY, frameWidth, frameHeight);
 
             if (previousFrame != null && frameData.BlendingMethod is AnimationBlendingMethod.AlphaBlending)
             {
-                this.AlphaBlend(previousFrame, imageFrame);
+                this.AlphaBlend(previousFrame, imageFrame, frameX, frameY, frameWidth, frameHeight);
             }
 
             previousFrame = currentFrame ?? image.Frames.RootFrame;
@@ -207,17 +207,17 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="frameY">The frame y coordinate.</param>
         /// <param name="frameWidth">The width of the frame.</param>
         /// <param name="frameHeight">The height of the frame.</param>
-        private void DrawDecodedImageOnCanvas<TPixel>(Image<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, uint frameX, uint frameY, uint frameWidth, uint frameHeight)
+        private void DrawDecodedImageOnCanvas<TPixel>(Image<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, int frameX, int frameY, int frameWidth, int frameHeight)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> decodedImagePixels = decodedImage.Frames.RootFrame.PixelBuffer;
             Buffer2D<TPixel> imageFramePixels = imageFrame.PixelBuffer;
             int decodedRowIdx = 0;
-            for (uint y = frameY; y < frameHeight; y++)
+            for (int y = frameY; y < frameY + frameHeight; y++)
             {
-                Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan((int)y);
-                Span<TPixel> decodedPixelRow = decodedImagePixels.DangerousGetRowSpan(decodedRowIdx++).Slice(0, (int)frameWidth);
-                decodedPixelRow.TryCopyTo(framePixelRow.Slice((int)frameX));
+                Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
+                Span<TPixel> decodedPixelRow = decodedImagePixels.DangerousGetRowSpan(decodedRowIdx++).Slice(0, frameWidth);
+                decodedPixelRow.TryCopyTo(framePixelRow.Slice(frameX));
             }
         }
 
@@ -228,30 +228,37 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="src">The source image.</param>
         /// <param name="dst">The destination image.</param>
-        private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst)
+        /// <param name="frameX">The frame x coordinate.</param>
+        /// <param name="frameY">The frame y coordinate.</param>
+        /// <param name="frameWidth">The width of the frame.</param>
+        /// <param name="frameHeight">The height of the frame.</param>
+        private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst, int frameX, int frameY, int frameWidth, int frameHeight)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int width = src.Width;
-            int height = src.Height;
-
-            PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
             Buffer2D<TPixel> srcPixels = src.PixelBuffer;
             Buffer2D<TPixel> dstPixels = dst.PixelBuffer;
             Rgba32 srcRgba = default;
             Rgba32 dstRgba = default;
-            for (int y = 0; y < height; y++)
+            PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+            for (int y = frameY; y < frameY + frameHeight; y++)
             {
                 Span<TPixel> srcPixelRow = srcPixels.DangerousGetRowSpan(y);
                 Span<TPixel> dstPixelRow = dstPixels.DangerousGetRowSpan(y);
-                for (int x = 0; x < width; x++)
+                for (int x = frameX; x < frameX + frameWidth; x++)
                 {
                     ref TPixel srcPixel = ref srcPixelRow[x];
                     ref TPixel dstPixel = ref dstPixelRow[x];
                     srcPixel.ToRgba32(ref srcRgba);
                     dstPixel.ToRgba32(ref dstRgba);
-                    if (dstRgba.A == 0)
+
+                    if (srcRgba.A is 0)
                     {
-                        Rgba32 blendResult = blender.Blend(srcRgba, dstRgba, 1.0f);
+                        dstPixel.FromRgba32(dstRgba);
+                    }
+                    else
+                    {
+                        int dstFactorA = dstRgba.A * (255 - srcRgba.A) / 255;
+                        Rgba32 blendResult = blender.Blend(srcRgba, dstRgba, 1.0f / dstFactorA);
                         dstPixel.FromRgba32(blendResult);
                     }
                 }

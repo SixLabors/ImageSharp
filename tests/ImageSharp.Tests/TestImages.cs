@@ -192,6 +192,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Exif = "Jpg/baseline/exif.jpg";
                 public const string Floorplan = "Jpg/baseline/Floorplan.jpg";
                 public const string Calliphora = "Jpg/baseline/Calliphora.jpg";
+                public const string Calliphora_EncodedStrings = "Jpg/baseline/Calliphora_encoded_strings.jpg";
                 public const string Ycck = "Jpg/baseline/ycck.jpg";
                 public const string Turtle420 = "Jpg/baseline/turtle.jpg";
                 public const string GammaDalaiLamaGray = "Jpg/baseline/gamma_dalai_lama_gray.jpg";
@@ -222,6 +223,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Winter444_Interleaved = "Jpg/baseline/winter444_interleaved.jpg";
                 public const string Metadata = "Jpg/baseline/Metadata-test-file.jpg";
                 public const string ExtendedXmp = "Jpg/baseline/extended-xmp.jpg";
+                public const string GrayscaleSampling2x2 = "Jpg/baseline/grayscale_sampling22.jpg";
 
                 public static readonly string[] All =
                 {
@@ -449,6 +451,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
                 public const string Issue1530 = "Gif/issues/issue1530.gif";
                 public const string InvalidColorIndex = "Gif/issues/issue1668_invalidcolorindex.gif";
+                public const string Issue1962NoColorTable = "Gif/issues/issue1962_tiniest_gif_1st.gif";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };

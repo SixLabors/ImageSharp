@@ -42,6 +42,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // High depth images
             TestImages.Jpeg.Baseline.Testorig12bit,
+
+            // Grayscale jpeg with 2x2 sampling factors (not a usual thing to encounter in the wild)
+            TestImages.Jpeg.Baseline.GrayscaleSampling2x2,
         };
 
         public static string[] ProgressiveTestJpegs =

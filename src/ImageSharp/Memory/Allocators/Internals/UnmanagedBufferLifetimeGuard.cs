@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
     /// <summary>
     /// Defines a strategy for managing unmanaged memory ownership.
     /// </summary>
-    internal abstract class UnmanagedBufferLifetimeGuard : RefCountedLifetimeGuard
+    internal abstract class UnmanagedBufferLifetimeGuard : RefCountedMemoryLifetimeGuard
     {
         private UnmanagedMemoryHandle handle;
 

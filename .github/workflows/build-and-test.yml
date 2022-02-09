@@ -109,12 +109,14 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
           restore-keys: ${{ runner.os }}-nuget-
 
-      - name: DotNet Setup Preview
-        if: ${{ matrix.options.sdk-preview == true }}
+      - name: DotNet Setup
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: ${{ matrix.options.sdk }}
-          include-prerelease: true
+          dotnet-version: |
+            6.0.x
+            5.0.x
+            3.1.x
+            2.1.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

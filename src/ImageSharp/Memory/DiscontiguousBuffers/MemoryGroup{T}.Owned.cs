@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Memory
         public sealed class Owned : MemoryGroup<T>, IEnumerable<Memory<T>>
         {
             private IMemoryOwner<T>[] memoryOwners;
-            private RefCountedLifetimeGuard groupLifetimeGuard;
+            private RefCountedMemoryLifetimeGuard groupLifetimeGuard;
 
             public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
                 : base(bufferLength, totalLength)

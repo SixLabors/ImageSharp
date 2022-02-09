@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Threading;
@@ -19,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Performs the webp decoding operation.
     /// </summary>
-    internal sealed class WebpDecoderCore : IImageDecoderInternals
+    internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     {
         /// <summary>
         /// Reusable buffer.
@@ -76,6 +78,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         public Size Dimensions => new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
 
+        /// <summary>
+        /// Gets or sets the alpha data, if an ALPH chunk is present.
+        /// </summary>
+        public IMemoryOwner<byte> AlphaData { get; set; }
+
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -89,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 if (this.webImageInfo.Features is { Animation: true })
                 {
-                    var animationDecoder = new WebpAnimationDecoder(this.memoryAllocator, this.Configuration);
+                    using var animationDecoder = new WebpAnimationDecoder(this.memoryAllocator, this.Configuration);
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
@@ -104,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 else
                 {
                     var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
-                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo);
+                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.AlphaData);
                 }
 
                 // There can be optional chunks after the image data, like EXIF and XMP.
@@ -120,7 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.currentStream = stream;
 
             this.ReadImageHeader();
-            using (this.webImageInfo = this.ReadVp8Info())
+            using (this.webImageInfo = this.ReadVp8Info(true))
             {
                 return new ImageInfo(new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel), (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.Metadata);
             }
@@ -149,8 +156,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Reads information present in the image header, about the image content and how to decode the image.
         /// </summary>
+        /// <param name="ignoreAlpha">For identify, the alpha data should not be read.</param>
         /// <returns>Information about the webp image.</returns>
-        private WebpImageInfo ReadVp8Info()
+        private WebpImageInfo ReadVp8Info(bool ignoreAlpha = false)
         {
             this.Metadata = new ImageMetadata();
             this.webpMetadata = this.Metadata.GetFormatMetadata(WebpFormat.Instance);
@@ -183,7 +191,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                         }
                         else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
                         {
-                            bool isAnimationChunk = this.ParseOptionalExtendedChunks(chunkType, features);
+                            bool isAnimationChunk = this.ParseOptionalExtendedChunks(chunkType, features, ignoreAlpha);
                             if (isAnimationChunk)
                             {
                                 return webpInfos;
@@ -207,8 +215,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         /// <param name="chunkType">The chunk type.</param>
         /// <param name="features">The webp image features.</param>
+        /// <param name="ignoreAlpha">For identify, the alpha data should not be read.</param>
         /// <returns>true, if animation chunk was found.</returns>
-        private bool ParseOptionalExtendedChunks(WebpChunkType chunkType, WebpFeatures features)
+        private bool ParseOptionalExtendedChunks(WebpChunkType chunkType, WebpFeatures features, bool ignoreAlpha)
         {
             int bytesRead;
             switch (chunkType)
@@ -293,10 +302,16 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
                 case WebpChunkType.Alpha:
                     uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(this.currentStream, this.buffer);
+                    if (ignoreAlpha)
+                    {
+                        this.currentStream.Skip((int)alphaChunkSize);
+                    }
+
                     features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
                     int alphaDataSize = (int)(alphaChunkSize - 1);
-                    features.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
-                    this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
+                    this.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
+                    Span<byte> alphaData = this.AlphaData.GetSpan();
+                    this.currentStream.Read(alphaData, 0, alphaDataSize);
                     break;
                 default:
                     WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
@@ -324,5 +339,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 WebpChunkParsingUtils.ParseOptionalChunks(this.currentStream, chunkType, this.Metadata, this.IgnoreMetadata, this.buffer);
             }
         }
+
+        /// <inheritdoc/>
+        public void Dispose() => this.AlphaData?.Dispose();
     }
 }

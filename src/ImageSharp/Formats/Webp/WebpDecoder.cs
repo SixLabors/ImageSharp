@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new WebpDecoderCore(configuration, this);
+            using var decoder = new WebpDecoderCore(configuration, this);
 
             try
             {
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new WebpDecoderCore(configuration, this);
+            using var decoder = new WebpDecoderCore(configuration, this);
 
             try
             {

@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             stream.Read(buffer, 0, 4);
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
 
-            // remaining counts the available image data payload.
+            // Remaining counts the available image data payload.
             uint remaining = dataSize;
 
             // Paragraph 9.1 https://tools.ietf.org/html/rfc6386#page-30

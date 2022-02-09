@@ -1,15 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
-
 namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
     /// Image features of a VP8X image.
     /// </summary>
-    internal class WebpFeatures : IDisposable
+    internal class WebpFeatures
     {
         /// <summary>
         /// Gets or sets a value indicating whether this image has an ICC Profile.
@@ -20,11 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Gets or sets a value indicating whether this image has an alpha channel.
         /// </summary>
         public bool Alpha { get; set; }
-
-        /// <summary>
-        /// Gets or sets the alpha data, if an ALPH chunk is present.
-        /// </summary>
-        public IMemoryOwner<byte> AlphaData { get; set; }
 
         /// <summary>
         /// Gets or sets the alpha chunk header.
@@ -56,8 +48,5 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// This color MAY be used to fill the unused space on the canvas around the frames, as well as the transparent pixels of the first frame..
         /// </summary>
         public Color? AnimationBackgroundColor { get; set; }
-
-        /// <inheritdoc/>
-        public void Dispose() => this.AlphaData?.Dispose();
     }
 }

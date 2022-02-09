@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Decoder for animated webp images.
     /// </summary>
-    internal class WebpAnimationDecoder
+    internal class WebpAnimationDecoder : IDisposable
     {
         /// <summary>
         /// Reusable buffer.
@@ -46,6 +47,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
         }
+
+        /// <summary>
+        /// Gets or sets the alpha data, if an ALPH chunk is present.
+        /// </summary>
+        public IMemoryOwner<byte> AlphaData { get; set; }
 
         /// <summary>
         /// Decodes the animated webp image from the specified stream.
@@ -108,12 +114,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
             long streamStartPosition = stream.Position;
 
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
+            bool hasAlpha = false;
+            byte alphaChunkHeader = 0;
             if (chunkType is WebpChunkType.Alpha)
             {
-                // TODO: ignore alpha for now.
-                stream.Skip(4);
-                uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
-                stream.Skip((int)alphaChunkSize);
+                alphaChunkHeader = this.ReadAlphaData(stream);
+                hasAlpha = true;
                 chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
             }
 
@@ -123,6 +129,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 case WebpChunkType.Vp8:
                     webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, this.buffer, features);
+                    features.Alpha = hasAlpha;
+                    features.AlphaChunkHeader = alphaChunkHeader;
                     break;
                 case WebpChunkType.Vp8L:
                     webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, this.buffer, features);
@@ -172,6 +180,25 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <summary>
+        /// Reads the ALPH chunk data.
+        /// </summary>
+        /// <param name="stream">The stream to read from.</param>
+        private byte ReadAlphaData(BufferedReadStream stream)
+        {
+            this.AlphaData?.Dispose();
+
+            uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
+            int alphaDataSize = (int)(alphaChunkSize - 1);
+            this.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
+
+            byte alphaChunkHeader = (byte)stream.ReadByte();
+            Span<byte> alphaData = this.AlphaData.GetSpan();
+            stream.Read(alphaData, 0, alphaDataSize);
+
+            return alphaChunkHeader;
+        }
+
+        /// <summary>
         /// Decodes the either lossy or lossless webp image data.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -191,7 +218,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             else
             {
                 var lossyDecoder = new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
-                lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo);
+                lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.AlphaData);
             }
 
             return decodedImage;
@@ -326,5 +353,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             return data;
         }
+
+        /// <inheritdoc/>
+        public void Dispose() => this.AlphaData?.Dispose();
     }
 }

@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [InlineData(Lossless.NoTransform2, 128, 128, 32)]
         [InlineData(Lossy.Alpha1, 1000, 307, 32)]
         [InlineData(Lossy.Alpha2, 1000, 307, 32)]
-        [InlineData(Lossy.Bike, 250, 195, 24)]
+        [InlineData(Lossy.BikeWithExif, 250, 195, 24)]
         public void Identify_DetectsCorrectDimensionsAndBitDepth(
             string imagePath,
             int expectedWidth,
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(Lossy.Bike, PixelTypes.Rgba32)]
+        [WithFile(Lossy.BikeWithExif, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter01, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter02, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter03, PixelTypes.Rgba32)]

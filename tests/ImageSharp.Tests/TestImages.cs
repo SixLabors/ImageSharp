@@ -632,13 +632,12 @@ namespace SixLabors.ImageSharp.Tests
             public static class Lossy
             {
                 public const string Earth = "Webp/earth_lossy.webp";
-                public const string WithExif = "Webp/exif_lossy.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
                 public const string WithXmp = "Webp/xmp_lossy.webp";
-                public const string BikeSmall = "Webp/bike_lossless_small.webp";
+                public const string BikeSmall = "Webp/bike_lossy_small.webp";
 
                 // Lossy images without macroblock filtering.
-                public const string Bike = "Webp/bike_lossy.webp";
+                public const string BikeWithExif = "Webp/bike_lossy_with_exif.webp";
                 public const string NoFilter01 = "Webp/vp80-01-intra-1400.webp";
                 public const string NoFilter02 = "Webp/vp80-00-comprehensive-010.webp";
                 public const string NoFilter03 = "Webp/vp80-00-comprehensive-005.webp";

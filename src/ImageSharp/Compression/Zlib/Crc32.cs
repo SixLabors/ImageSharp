@@ -7,6 +7,9 @@ using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+#if NET5_0_OR_GREATER
+using ArmCrc32 = System.Runtime.Intrinsics.Arm.Crc32;
+#endif
 #endif
 
 namespace SixLabors.ImageSharp.Compression.Zlib
@@ -65,13 +68,19 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             {
                 return ~CalculateSse(~crc, buffer);
             }
-            else
+
+#if NET5_0_OR_GREATER
+            if (ArmCrc32.Arm64.IsSupported)
             {
-                return ~CalculateScalar(~crc, buffer);
+                return ~CalculateArm64(~crc, buffer);
             }
-#else
-            return ~CalculateScalar(~crc, buffer);
+            else if (ArmCrc32.IsSupported)
+            {
+                return ~CalculateArm(~crc, buffer);
+            }
 #endif
+#endif
+            return ~CalculateScalar(~crc, buffer);
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -198,6 +207,103 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 }
             }
         }
+
+#if NET5_0_OR_GREATER
+
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        private static unsafe uint CalculateArm(uint crc, ReadOnlySpan<byte> buffer)
+        {
+            fixed (byte* bufferPtr = buffer)
+            {
+                byte* localBufferPtr = bufferPtr;
+                int len = buffer.Length;
+
+                while (len > 0 && ((ulong)localBufferPtr & 3) != 0)
+                {
+                    crc = ArmCrc32.ComputeCrc32(crc, *localBufferPtr++);
+                    len--;
+                }
+
+                uint* intBufferPtr = (uint*)localBufferPtr;
+
+                while (len >= 8 * sizeof(uint))
+                {
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    len -= 8 * sizeof(uint);
+                }
+
+                while (len >= sizeof(uint))
+                {
+                    crc = ArmCrc32.ComputeCrc32(crc, *intBufferPtr++);
+                    len -= sizeof(uint);
+                }
+
+                localBufferPtr = (byte*)intBufferPtr;
+
+                while (len > 0)
+                {
+                    crc = ArmCrc32.ComputeCrc32(crc, *localBufferPtr++);
+                    len--;
+                }
+
+                return crc;
+            }
+        }
+
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        private static unsafe uint CalculateArm64(uint crc, ReadOnlySpan<byte> buffer)
+        {
+            fixed (byte* bufferPtr = buffer)
+            {
+                byte* localBufferPtr = bufferPtr;
+                int len = buffer.Length;
+
+                while (len > 0 && ((ulong)localBufferPtr & 7) != 0)
+                {
+                    crc = ArmCrc32.ComputeCrc32(crc, *localBufferPtr++);
+                    len--;
+                }
+
+                ulong* longBufferPtr = (ulong*)localBufferPtr;
+
+                while (len >= 8 * sizeof(ulong))
+                {
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    len -= 8 * sizeof(ulong);
+                }
+
+                while (len >= sizeof(ulong))
+                {
+                    crc = ArmCrc32.Arm64.ComputeCrc32(crc, *longBufferPtr++);
+                    len -= sizeof(ulong);
+                }
+
+                localBufferPtr = (byte*)longBufferPtr;
+
+                while (len > 0)
+                {
+                    crc = ArmCrc32.ComputeCrc32(crc, *localBufferPtr++);
+                    len--;
+                }
+
+                return crc;
+            }
+        }
+#endif
 #endif
 
         [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]

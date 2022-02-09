@@ -305,6 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     if (ignoreAlpha)
                     {
                         this.currentStream.Skip((int)alphaChunkSize);
+                        break;
                     }
 
                     features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();

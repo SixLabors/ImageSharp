@@ -550,16 +550,9 @@ namespace SixLabors.ImageSharp.Tests
             // Test images for converting rgb data to yuv.
             public const string Yuv = "Webp/yuv_test.png";
 
-            public static class Animated
-            {
-                public const string Animated1 = "Webp/animated-webp.webp";
-                public const string Animated2 = "Webp/animated2.webp";
-                public const string Animated3 = "Webp/animated3.webp";
-                public const string Animated4 = "Webp/animated_lossy.webp";
-            }
-
             public static class Lossless
             {
+                public const string Animated = "Webp/leo_animated_lossless.webp";
                 public const string Earth = "Webp/earth_lossless.webp";
                 public const string Alpha = "Webp/lossless_alpha_small.webp";
                 public const string WithExif = "Webp/exif_lossless.webp";
@@ -635,6 +628,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
                 public const string WithXmp = "Webp/xmp_lossy.webp";
                 public const string BikeSmall = "Webp/bike_lossy_small.webp";
+                public const string Animated = "Webp/leo_animated_lossy.webp";
 
                 // Lossy images without macroblock filtering.
                 public const string BikeWithExif = "Webp/bike_lossy_with_exif.webp";

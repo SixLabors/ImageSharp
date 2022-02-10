@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_WithInvalidDimensions_DoesThrowException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(GifDecoder);

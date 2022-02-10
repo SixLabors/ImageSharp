@@ -5,6 +5,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
@@ -326,6 +327,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossless.Animated, PixelTypes.Rgba32)]
+        public void Decode_AnimatedLossless_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSaveMultiFrame(provider);
+                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
+        public void Decode_AnimatedLossy_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSaveMultiFrame(provider);
+                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
             }
         }
 

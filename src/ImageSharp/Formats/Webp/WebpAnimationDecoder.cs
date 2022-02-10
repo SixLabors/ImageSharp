@@ -278,11 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     srcPixel.ToRgba32(ref srcRgba);
                     dstPixel.ToRgba32(ref dstRgba);
 
-                    if (srcRgba.A is 0)
-                    {
-                        dstPixel.FromRgba32(dstRgba);
-                    }
-                    else
+                    if (srcRgba.A is not 0)
                     {
                         int dstFactorA = dstRgba.A * (255 - srcRgba.A) / 255;
                         Rgba32 blendResult = blender.Blend(srcRgba, dstRgba, 1.0f / dstFactorA);

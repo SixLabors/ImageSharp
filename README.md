@@ -7,8 +7,8 @@ SixLabors.ImageSharp
 
 <div align="center">
 
-[![Build Status](https://img.shields.io/github/workflow/status/SixLabors/ImageSharp/Build/master)](https://github.com/SixLabors/ImageSharp/actions)
-[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
+[![Build Status](https://img.shields.io/github/workflow/status/SixLabors/ImageSharp/Build/main)](https://github.com/SixLabors/ImageSharp/actions)
+[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/main/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
 
@@ -93,7 +93,7 @@ git submodule update --init --recursive
 
 ## How can you help?
 
-Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening a PR.
+Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening a PR.
 
 ## The ImageSharp Team
 

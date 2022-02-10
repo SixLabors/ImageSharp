@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// Executes 'dump-jpeg-coeffs.exe' for the given jpeg image file, saving the libjpeg spectral data into 'destFile'. Windows only!
         /// See:
         /// <see>
-        ///     <cref>https://github.com/SixLabors/Imagesharp.Tests.Images/blob/master/tools/jpeg/README.md</cref>
+        ///     <cref>https://github.com/SixLabors/Imagesharp.Tests.Images/blob/main/tools/jpeg/README.md</cref>
         /// </see>
         /// </summary>
         public static void RunDumpJpegCoeffsTool(string sourceFile, string destFile)
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <summary>
         /// Extract libjpeg <see cref="SpectralData"/> from the given jpg file with  'dump-jpeg-coeffs.exe'. Windows only!
         /// See:
-        /// https://github.com/SixLabors/Imagesharp.Tests.Images/blob/master/tools/jpeg/README.md
+        /// https://github.com/SixLabors/Imagesharp.Tests.Images/blob/main/tools/jpeg/README.md
         /// </summary>
         public static SpectralData ExtractSpectralData(string inputFile)
         {

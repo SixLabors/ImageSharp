@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp
@@ -19,6 +20,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; set; }
+
+        /// <summary>
+        /// Gets or sets the decoding mode for multi-frame images.
+        /// Defaults to All.
+        /// </summary>
+        public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)

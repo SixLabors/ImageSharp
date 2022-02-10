@@ -56,9 +56,18 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public WebpDecoderCore(Configuration configuration, IWebpDecoderOptions options)
         {
             this.Configuration = configuration;
+            this.DecodingMode = options.DecodingMode;
             this.memoryAllocator = configuration.MemoryAllocator;
             this.IgnoreMetadata = options.IgnoreMetadata;
         }
+
+        /// <inheritdoc/>
+        public Configuration Configuration { get; }
+
+        /// <summary>
+        /// Gets the decoding mode for multi-frame images.
+        /// </summary>
+        public FrameDecodingMode DecodingMode { get; }
 
         /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -69,9 +78,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
         /// </summary>
         public ImageMetadata Metadata { get; private set; }
-
-        /// <inheritdoc/>
-        public Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the dimensions of the image.
@@ -96,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 if (this.webImageInfo.Features is { Animation: true })
                 {
-                    using var animationDecoder = new WebpAnimationDecoder(this.memoryAllocator, this.Configuration);
+                    using var animationDecoder = new WebpAnimationDecoder(this.memoryAllocator, this.Configuration, this.DecodingMode);
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 

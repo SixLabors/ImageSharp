@@ -53,16 +53,23 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="configuration">The global configuration.</param>
-        public WebpAnimationDecoder(MemoryAllocator memoryAllocator, Configuration configuration)
+        /// <param name="decodingMode">The frame decoding mode.</param>
+        public WebpAnimationDecoder(MemoryAllocator memoryAllocator, Configuration configuration, FrameDecodingMode decodingMode)
         {
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
+            this.DecodingMode = decodingMode;
         }
 
         /// <summary>
         /// Gets or sets the alpha data, if an ALPH chunk is present.
         /// </summary>
         public IMemoryOwner<byte> AlphaData { get; set; }
+
+        /// <summary>
+        /// Gets the decoding mode for multi-frame images.
+        /// </summary>
+        public FrameDecodingMode DecodingMode { get; }
 
         /// <summary>
         /// Decodes the animated webp image from the specified stream.
@@ -103,7 +110,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                         break;
                 }
 
-                if (stream.Position == stream.Length)
+                if (stream.Position == stream.Length || this.DecodingMode is FrameDecodingMode.First)
                 {
                     break;
                 }

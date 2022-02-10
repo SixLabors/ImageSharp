@@ -337,8 +337,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using (Image<TPixel> image = provider.GetImage(WebpDecoder))
             {
+                WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+                WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
+
                 image.DebugSaveMultiFrame(provider);
                 image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+
+                Assert.Equal(0, webpMetaData.AnimationLoopCount);
+                Assert.Equal(150U, frameMetaData.FrameDuration);
             }
         }
 
@@ -349,8 +355,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using (Image<TPixel> image = provider.GetImage(WebpDecoder))
             {
+                WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+                WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
+
                 image.DebugSaveMultiFrame(provider);
                 image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
+
+                Assert.Equal(0, webpMetaData.AnimationLoopCount);
+                Assert.Equal(150U, frameMetaData.FrameDuration);
             }
         }
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -38,6 +39,16 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private Rectangle? restoreArea;
 
         /// <summary>
+        /// The abstract metadata.
+        /// </summary>
+        private ImageMetadata metadata;
+
+        /// <summary>
+        /// The gif specific metadata.
+        /// </summary>
+        private WebpMetadata webpMetadata;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator.</param>
@@ -67,6 +78,10 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             Image<TPixel> image = null;
             ImageFrame<TPixel> previousFrame = null;
+
+            this.metadata = new ImageMetadata();
+            this.webpMetadata = this.metadata.GetWebpMetadata();
+            this.webpMetadata.AnimationLoopCount = features.AnimationLoopCount;
 
             int remainingBytes = (int)completeDataSize;
             while (remainingBytes > 0)
@@ -140,17 +155,22 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     break;
             }
 
-            var metaData = new ImageMetadata();
             ImageFrame<TPixel> currentFrame = null;
             ImageFrame<TPixel> imageFrame;
             if (previousFrame is null)
             {
-                image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), metaData);
+                image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
+
+                this.SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData.Duration);
+
                 imageFrame = image.Frames.RootFrame;
             }
             else
             {
                 currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection.
+
+                this.SetFrameMetadata(currentFrame.Metadata, frameData.Duration);
+
                 imageFrame = currentFrame;
             }
 
@@ -177,6 +197,18 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.restoreArea = regionRectangle;
 
             return (uint)(stream.Position - streamStartPosition);
+        }
+
+        /// <summary>
+        /// Sets the frames metadata.
+        /// </summary>
+        /// <param name="meta">The metadata.</param>
+        /// <param name="duration">The frame duration.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetFrameMetadata(ImageFrameMetadata meta, uint duration)
+        {
+            WebpFrameMetadata frameMetadata = meta.GetWebpMetadata();
+            frameMetadata.FrameDuration = duration;
         }
 
         /// <summary>

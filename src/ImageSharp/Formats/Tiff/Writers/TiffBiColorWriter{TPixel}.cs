@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         {
             int width = this.Image.Width;
 
-            if (compressor.Method == TiffCompression.CcittGroup3Fax || compressor.Method == TiffCompression.Ccitt1D)
+            if (compressor.Method == TiffCompression.CcittGroup3Fax || compressor.Method == TiffCompression.Ccitt1D || compressor.Method == TiffCompression.CcittGroup4Fax)
             {
                 // Special case for T4BitCompressor.
                 int stripPixels = width * height;

@@ -10,6 +10,24 @@ on:
     branches:
       - main
 jobs:
+  TestsWithArm:
+      runs-on: ubuntu-latest
+      steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build and test
+        run: |
+          docker-compose build
+          docker-compose up
   Build:
     strategy:
       matrix:

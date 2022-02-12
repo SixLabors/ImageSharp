@@ -6,6 +6,4 @@ RUN apt-get -y install libgdiplus libgif-dev autoconf libtool automake build-ess
 
 COPY . /app/
 WORKDIR /app/
-RUN dotnet restore
-RUN dotnet build
 CMD ["dotnet", "test", "tests/ImageSharp.Tests/ImageSharp.Tests.csproj", "-c", "Release", "-f", "net5.0"]

@@ -4,5 +4,3 @@ services:
     build:
       context: .
       dockerfile: ImageSharp.DockerFile
-    volumes:
-      - ./tests:/app/tests

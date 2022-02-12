@@ -1,0 +1,39 @@
+name: "OSS : Bug Report"
+description: Create a report to help us improve the project. OSS Issues are not guaranteed to be triaged.
+labels: ["needs triage"]
+- type: input
+  attributes:
+    label: ImageSharp version
+  validations:
+    required: true
+- type: input
+  attributes:
+    label: Other ImageSharp packages and versions
+  validations:
+    required: true
+- type: input
+  attributes:
+    label: Environment (Operating system, version and so on)
+  validations:
+    required: true
+- type: input
+  attributes:
+    label: .NET Framework version
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Description
+    description: A description of the bug
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Steps to Reproduce
+    description: List of steps, sample code, failing test or link to a project that reproduces the behavior. Make sure you place a stack trace inside a code (```) block to avoid linking unrelated issues.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Images
+    description: Please upload images that can be used to reproduce issues in the area below. If the file type is not supported the file can be zipped and then uploaded instead.

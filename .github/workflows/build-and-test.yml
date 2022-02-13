@@ -54,7 +54,7 @@ jobs:
       - name: Build and test
         run: |
           docker-compose build
-          docker-compose up
+          docker-compose up --exit-code-from imagesharptests
   Build:
     strategy:
       matrix:

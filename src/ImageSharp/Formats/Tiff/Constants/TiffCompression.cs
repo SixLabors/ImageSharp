@@ -35,9 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
 
         /// <summary>
         /// T6-encoding: CCITT T.6 bi-level encoding (see Section 11 of the TIFF 6.0 specification).
-        ///
-        /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
-        /// if this is choosen.
         /// </summary>
         CcittGroup4Fax = 4,
 

@@ -4,7 +4,7 @@
   <PropertyGroup>
     <DebugSymbols>True</DebugSymbols>
     <AssemblyName>SixLabors.ImageSharp.Tests</AssemblyName>
-    <Platforms>AnyCPU;x64;x86</Platforms>
+    <Platforms>AnyCPU;x64;x86;ARM64</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
     <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
   </PropertyGroup>

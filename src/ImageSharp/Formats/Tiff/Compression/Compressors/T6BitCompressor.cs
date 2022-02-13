@@ -15,9 +15,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
     internal sealed class T6BitCompressor : TiffCcittCompressor
     {
         /// <summary>
-        /// Vertical codes from -3 to +3
+        /// Vertical codes from -3 to +3.
         /// </summary>
-        private static readonly (uint Length, uint Code)[] VerticalCodes = new[]
+        private static readonly (uint Length, uint Code)[] VerticalCodes =
         {
             (7u, 3u),
             (6u, 3u),
@@ -30,6 +30,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 
         private IMemoryOwner<byte> referenceLineBuffer;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="T6BitCompressor"/> class.
+        /// </summary>
+        /// <param name="output">The output stream to write the compressed data.</param>
+        /// <param name="allocator">The memory allocator.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="bitsPerPixel">The bits per pixel.</param>
         public T6BitCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel)
             : base(output, allocator, width, bitsPerPixel)
         {
@@ -39,14 +46,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         public override TiffCompression Method => TiffCompression.CcittGroup4Fax;
 
         /// <summary>
-        /// Writes a image compressed with CCITT T4 to the output buffer.
+        /// Writes a image compressed with CCITT T6 to the output buffer.
         /// </summary>
         /// <param name="pixelsAsGray">The pixels as 8-bit gray array.</param>
         /// <param name="height">The strip height.</param>
         /// <param name="compressedData">The destination for the compressed data.</param>
         protected override void CompressStrip(Span<byte> pixelsAsGray, int height, Span<byte> compressedData)
         {
-            // Initial reference line is all white
+            // Initial reference line is all white.
             Span<byte> referenceLine = this.referenceLineBuffer.GetSpan();
             referenceLine.Fill(0xff);
 
@@ -62,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                     uint b2 = this.FindRunEnd(referenceLine, b1);
                     if (b2 < a1)
                     {
-                        // pass mode
+                        // Pass mode.
                         this.WriteCode(4, 1, compressedData);
                         a0 = b2;
                     }
@@ -80,14 +87,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 
                         if ((d >= -3) && (d <= 3))
                         {
-                            // vertical mode
+                            // Vertical mode.
                             (uint length, uint code) = VerticalCodes[d + 3];
                             this.WriteCode(length, code, compressedData);
                             a0 = a1;
                         }
                         else
                         {
-                            // Horizontal mode
+                            // Horizontal mode.
                             this.WriteCode(3, 1, compressedData);
 
                             uint a2 = this.FindRunEnd(row, a1);
@@ -117,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                     b1 = this.FindRunEnd(referenceLine, b1, thisPixel);
                 }
 
-                // This row is now the reference line
+                // This row is now the reference line.
                 row.CopyTo(referenceLine);
             }
 
@@ -169,11 +176,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         }
 
         /// <summary>
-        /// Writes a run to the output buffer
+        /// Writes a run to the output buffer.
         /// </summary>
-        /// <param name="runLength">The length of the run</param>
+        /// <param name="runLength">The length of the run.</param>
         /// <param name="isWhiteRun">If <c>true</c> the run is white pixels,
-        /// if <c>false</c> the run is black pixels</param>
+        /// if <c>false</c> the run is black pixels.</param>
         /// <param name="compressedData">The destination to write the run to.</param>
         private void WriteRun(uint runLength, bool isWhiteRun, Span<byte> compressedData)
         {

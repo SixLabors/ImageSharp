@@ -21,16 +21,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <summary>
         /// Initializes a new instance of the <see cref="T4BitCompressor" /> class.
         /// </summary>
-        /// <param name="output">The output.</param>
-        /// <param name="allocator">The allocator.</param>
-        /// <param name="width">The width.</param>
+        /// <param name="output">The output stream to write the compressed data.</param>
+        /// <param name="allocator">The memory allocator.</param>
+        /// <param name="width">The width of the image.</param>
         /// <param name="bitsPerPixel">The bits per pixel.</param>
         /// <param name="useModifiedHuffman">Indicates if the modified huffman RLE should be used.</param>
         public T4BitCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel, bool useModifiedHuffman = false)
-            : base(output, allocator, width, bitsPerPixel)
-        {
-            this.useModifiedHuffman = useModifiedHuffman;
-        }
+            : base(output, allocator, width, bitsPerPixel) => this.useModifiedHuffman = useModifiedHuffman;
 
         /// <inheritdoc/>
         public override TiffCompression Method => this.useModifiedHuffman ? TiffCompression.Ccitt1D : TiffCompression.CcittGroup3Fax;

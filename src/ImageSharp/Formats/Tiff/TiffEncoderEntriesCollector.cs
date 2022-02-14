@@ -395,6 +395,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     case TiffCompression.CcittGroup3Fax:
                         return (ushort)TiffCompression.CcittGroup3Fax;
 
+                    case TiffCompression.CcittGroup4Fax:
+                        return (ushort)TiffCompression.CcittGroup4Fax;
+
                     case TiffCompression.Ccitt1D:
                         return (ushort)TiffCompression.Ccitt1D;
 

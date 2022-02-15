@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Number of component in the current scan.
         /// </summary>
-        private int componentsCount;
+        private int scanComponentCount;
 
         /// <summary>
         /// The reset interval determined by RST markers.
@@ -112,11 +112,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Decodes the entropy coded data.
         /// </summary>
-        public void ParseEntropyCodedData(int componentCount)
+        /// <param name="scanComponentCount">Component count in the current scan.</param>
+        public void ParseEntropyCodedData(int scanComponentCount)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
 
-            this.componentsCount = componentCount;
+            this.scanComponentCount = scanComponentCount;
 
             this.scanBuffer = new HuffmanScanBuffer(this.stream);
 
@@ -148,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineData()
         {
-            if (this.componentsCount != 1)
+            if (this.scanComponentCount != 1)
             {
                 this.ParseBaselineDataInterleaved();
                 this.spectralConverter.CommitConversion();
@@ -180,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 {
                     // Scan an interleaved mcu... process components in order
                     int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < this.componentsCount; k++)
+                    for (int k = 0; k < this.scanComponentCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
@@ -228,9 +229,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // Convert from spectral to actual pixels via given converter
                 this.spectralConverter.ConvertStrideBaseline();
             }
-
-            // Stride conversion must be sealed for stride conversion approach
-            this.spectralConverter.CommitConversion();
         }
 
         private void ParseBaselineDataNonInterleaved()
@@ -336,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 // AC scans may have only one component.
-                if (this.componentsCount != 1)
+                if (this.scanComponentCount != 1)
                 {
                     invalid = true;
                 }
@@ -368,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.CheckProgressiveData();
 
-            if (this.componentsCount == 1)
+            if (this.scanComponentCount == 1)
             {
                 this.ParseProgressiveDataNonInterleaved();
             }
@@ -393,7 +391,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Scan an interleaved mcu... process components in order
                     int mcuRow = mcu / mcusPerLine;
                     int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < this.componentsCount; k++)
+                    for (int k = 0; k < this.scanComponentCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];

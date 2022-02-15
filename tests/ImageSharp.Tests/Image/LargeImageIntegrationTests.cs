@@ -51,8 +51,7 @@ namespace SixLabors.ImageSharp.Tests
         public void PreferContiguousImageBuffers_LoadImage_BufferIsContiguous(string formatOuter)
         {
             // Run remotely to avoid large allocation in the test process:
-            // RemoteExecutor.Invoke(RunTest).Dispose();
-            RunTest(formatOuter);
+            RemoteExecutor.Invoke(RunTest, formatOuter).Dispose();
 
             static void RunTest(string formatInner)
             {

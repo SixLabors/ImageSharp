@@ -770,20 +770,6 @@ namespace SixLabors.ImageSharp
                 throw new NotSupportedException("Cannot read from the stream.");
             }
 
-            // To make sure we don't trigger anything with aspnetcore then we just need to make sure we are
-            // seekable and we make the copy using CopyToAsync if the stream is seekable then we aren't using
-            // one of the aspnetcore wrapped streams that error on sync api calls and we can use it without
-            // having to further wrap
-            if (stream.CanSeek)
-            {
-                if (configuration.ReadOrigin == ReadOrigin.Begin)
-                {
-                    stream.Position = 0;
-                }
-
-                return await action(stream, cancellationToken).ConfigureAwait(false);
-            }
-
             using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
             await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;

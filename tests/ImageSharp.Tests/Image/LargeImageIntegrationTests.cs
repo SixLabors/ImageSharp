@@ -2,7 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -32,9 +35,41 @@ namespace SixLabors.ImageSharp.Tests
                 Configuration configuration = Configuration.Default.Clone();
                 configuration.PreferContiguousImageBuffers = true;
 
-                using var image = new Image<Rgba32>(configuration, 8192, 4096);
+                using var image = new Image<Rgba32>(configuration, 2048, 2048);
                 Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
                 Assert.Equal(8192 * 4096, mem.Length);
+            }
+        }
+
+        [Theory]
+        [InlineData("bmp")]
+        [InlineData("png")]
+        [InlineData("jpeg")]
+        [InlineData("gif")]
+        [InlineData("tiff")]
+        [InlineData("webp")]
+        public void PreferContiguousImageBuffers_LoadImage_BufferIsContiguous(string formatOuter)
+        {
+            // Run remotely to avoid large allocation in the test process:
+            // RemoteExecutor.Invoke(RunTest).Dispose();
+            RunTest(formatOuter);
+
+            static void RunTest(string formatInner)
+            {
+                Configuration configuration = Configuration.Default.Clone();
+                configuration.PreferContiguousImageBuffers = true;
+                IImageEncoder encoder = configuration.ImageFormatsManager.FindEncoder(
+                    configuration.ImageFormatsManager.FindFormatByFileExtension(formatInner));
+                string dir = TestEnvironment.CreateOutputDirectory(".Temp");
+                string path = Path.Combine(dir, $"{Guid.NewGuid().ToString()}.{formatInner}");
+                using (Image<Rgba32> temp = new(2048, 2048))
+                {
+                    temp.Save(path, encoder);
+                }
+
+                using var image = Image.Load<Rgba32>(configuration, path);
+                File.Delete(path);
+                Assert.Equal(1, image.GetPixelMemoryGroup().Count);
             }
         }
 

@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 using var image = new Image<Rgba32>(configuration, 2048, 2048);
                 Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
-                Assert.Equal(8192 * 4096, mem.Length);
+                Assert.Equal(2048 * 2048, mem.Length);
             }
         }
 

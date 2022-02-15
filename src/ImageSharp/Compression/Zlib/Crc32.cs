@@ -74,7 +74,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             {
                 return ~CalculateArm64(~crc, buffer);
             }
-            else if (ArmCrc32.IsSupported)
+
+            if (ArmCrc32.IsSupported)
             {
                 return ~CalculateArm(~crc, buffer);
             }

@@ -1,4 +1,4 @@
-FROM bpopow/dotnetsdkarm:v4
+FROM bpopow/dotnetsdkarm:v5
 MAINTAINER Brian Popow <popow@gmx.de>
 
 COPY . /app/

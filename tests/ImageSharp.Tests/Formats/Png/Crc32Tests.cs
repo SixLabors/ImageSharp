@@ -26,7 +26,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [InlineData(1024 + 15)]
         [InlineData(2034)]
         [InlineData(4096)]
-        public void CalculateCrc_MatchesReference(int length)
+        public void CalculateCrc_MatchesReference(int length) => CalculateCrcAndCompareToReference(length);
+
+        private static void CalculateCrcAndCompareToReference(int length)
         {
             // arrange
             byte[] data = GetBuffer(length);
@@ -56,21 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Fact]
         public void RunCalculateCrcTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateCrcTest, HwIntrinsics.DisableHWIntrinsic);
 
-        private static void RunCalculateCrcTest()
-        {
-            // arrange
-            int length = 4096;
-            byte[] data = GetBuffer(length);
-            var crc = new SharpCrc32();
-            crc.Update(data);
-            long expected = crc.Value;
-
-            // act
-            long actual = Crc32.Calculate(data);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        private static void RunCalculateCrcTest() => CalculateCrcAndCompareToReference(4096);
 #endif
     }
 }

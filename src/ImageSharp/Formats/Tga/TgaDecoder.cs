@@ -3,9 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tga
@@ -30,34 +27,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
             => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new TgaDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
-            .ConfigureAwait(false);
-
-        /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
         {
             Guard.NotNull(stream, nameof(stream));
 
             return new TgaDecoderCore(configuration, this).Identify(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc/>
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            return new TgaDecoderCore(configuration, this).IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

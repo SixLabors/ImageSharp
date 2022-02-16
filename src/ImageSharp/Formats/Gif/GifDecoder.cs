@@ -3,9 +3,7 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -39,19 +37,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var decoder = new GifDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
-            .ConfigureAwait(false);
-
-        /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
         {
             Guard.NotNull(stream, nameof(stream));
@@ -60,15 +45,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             using var bufferedStream = new BufferedReadStream(configuration, stream);
             return decoder.Identify(bufferedStream, cancellationToken);
-        }
-
-        /// <inheritdoc/>
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new GifDecoderCore(configuration, this);
-            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

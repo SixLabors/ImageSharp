@@ -64,7 +64,6 @@ namespace SixLabors.ImageSharp.Tests
 
                 var detector = new Mock<IImageInfoDetector>();
                 detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(this.localImageInfoMock.Object);
-                detector.Setup(x => x.IdentifyAsync(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(this.localImageInfoMock.Object);
 
                 this.localDecoder = detector.As<IImageDecoder>();
                 this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))

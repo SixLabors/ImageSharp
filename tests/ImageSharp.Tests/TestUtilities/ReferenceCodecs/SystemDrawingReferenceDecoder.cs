@@ -3,8 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,10 +12,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
     public class SystemDrawingReferenceDecoder : IImageDecoder, IImageInfoDetector
     {
         public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
-
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-            => Task.FromResult(this.Decode<TPixel>(configuration, stream, cancellationToken));
 
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -49,9 +43,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
         }
 
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => Task.FromResult(this.Identify(configuration, stream, cancellationToken));
-
         public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
@@ -62,8 +53,5 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
-
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
     }
 }

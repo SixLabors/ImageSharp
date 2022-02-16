@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -79,79 +78,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <inheritdoc/>
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            PngDecoderCore decoder = new(configuration, this);
-            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            PngDecoderCore decoder = new(configuration, true);
-            IImageInfo info = await decoder.IdentifyAsync(configuration, stream, cancellationToken).ConfigureAwait(false);
-            stream.Position = 0;
-
-            PngMetadata meta = info.Metadata.GetPngMetadata();
-            PngColorType color = meta.ColorType.GetValueOrDefault();
-            PngBitDepth bits = meta.BitDepth.GetValueOrDefault();
-            switch (color)
-            {
-                case PngColorType.Grayscale:
-                    if (bits == PngBitDepth.Bit16)
-                    {
-                        return !meta.HasTransparency
-                            ? await this.DecodeAsync<L16>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                            : await this.DecodeAsync<La32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    return !meta.HasTransparency
-                        ? await this.DecodeAsync<L8>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                        : await this.DecodeAsync<La16>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-                case PngColorType.Rgb:
-                    if (bits == PngBitDepth.Bit16)
-                    {
-                        return !meta.HasTransparency
-                            ? await this.DecodeAsync<Rgb48>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                            : await this.DecodeAsync<Rgba64>(configuration, stream, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    return !meta.HasTransparency
-                        ? await this.DecodeAsync<Rgb24>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                        : await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-                case PngColorType.Palette:
-                    return await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-                case PngColorType.GrayscaleWithAlpha:
-                    return (bits == PngBitDepth.Bit16)
-                        ? await this.DecodeAsync<La32>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                        : await this.DecodeAsync<La16>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-                case PngColorType.RgbWithAlpha:
-                    return (bits == PngBitDepth.Bit16)
-                        ? await this.DecodeAsync<Rgba64>(configuration, stream, cancellationToken).ConfigureAwait(false)
-                        : await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-                default:
-                    return await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
         {
             PngDecoderCore decoder = new(configuration, this);
             return decoder.Identify(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc/>
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            PngDecoderCore decoder = new(configuration, this);
-            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

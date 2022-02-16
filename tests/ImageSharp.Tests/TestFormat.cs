@@ -214,17 +214,14 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
-                => this.DecodeImpl<TPixel>(configuration, stream, cancellationToken).GetAwaiter().GetResult();
+                => this.DecodeImpl<TPixel>(configuration, stream);
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
-                => this.DecodeImpl<TPixel>(configuration, stream, cancellationToken);
 
-            private async Task<Image<TPixel>> DecodeImpl<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
+            private Image<TPixel> DecodeImpl<TPixel>(Configuration config, Stream stream)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 var ms = new MemoryStream();
-                await stream.CopyToAsync(ms, config.StreamProcessingBufferSize, cancellationToken);
+                stream.CopyTo(ms, config.StreamProcessingBufferSize);
                 byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
@@ -241,14 +238,8 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream, cancellationToken);
 
-            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                => await this.DecodeAsync<TestPixelForAgnosticDecode>(configuration, stream, cancellationToken);
-
             public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken) =>
-                this.IdentifyAsync(configuration, stream, cancellationToken).GetAwaiter().GetResult();
-
-            public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                => await this.DecodeImpl<Rgba32>(configuration, stream, cancellationToken);
+                this.DecodeImpl<Rgba32>(configuration, stream);
         }
 
         public class TestEncoder : IImageEncoder

@@ -3,8 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -50,39 +48,5 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
-
-        /// <inheritdoc />
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new WebpDecoderCore(configuration, this);
-
-            try
-            {
-                using var bufferedStream = new BufferedReadStream(configuration, stream);
-                return decoder.DecodeAsync<TPixel>(configuration, bufferedStream, cancellationToken);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                Size dims = decoder.Dimensions;
-
-                throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-        /// <inheritdoc />
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            using var bufferedStream = new BufferedReadStream(configuration, stream);
-            return new WebpDecoderCore(configuration, this).IdentifyAsync(configuration, bufferedStream, cancellationToken);
-        }
     }
 }

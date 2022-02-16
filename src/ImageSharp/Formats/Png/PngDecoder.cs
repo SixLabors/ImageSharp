@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool IgnoreMetadata { get; set; }
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             PngDecoderCore decoder = new(configuration, this);
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             PngDecoderCore decoder = new(configuration, true);
             IImageInfo info = decoder.Identify(configuration, stream, cancellationToken);
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             PngDecoderCore decoder = new(configuration, this);
             return decoder.Identify(configuration, stream, cancellationToken);

@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new GifDecoderCore(configuration, this);
@@ -33,11 +33,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 

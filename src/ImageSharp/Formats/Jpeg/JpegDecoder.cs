@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public bool IgnoreMetadata { get; set; }
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
@@ -26,11 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgb24>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 

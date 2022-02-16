@@ -313,7 +313,7 @@ namespace SixLabors.ImageSharp
         public static Image Load(Configuration configuration, Stream stream, IImageDecoder decoder)
         {
             Guard.NotNull(decoder, nameof(decoder));
-            return WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s));
+            return WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s, default));
         }
 
         /// <summary>
@@ -449,7 +449,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(Configuration.Default, stream, s => decoder.Decode<TPixel>(Configuration.Default, s));
+            => WithSeekableStream(Configuration.Default, stream, s => decoder.Decode<TPixel>(Configuration.Default, s, default));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -486,7 +486,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(configuration, stream, s => decoder.Decode<TPixel>(configuration, s));
+            => WithSeekableStream(configuration, stream, s => decoder.Decode<TPixel>(configuration, s, default));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.

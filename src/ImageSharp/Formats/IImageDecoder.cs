@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
-        Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+        Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
@@ -32,6 +32,6 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="Image"/>.</returns>
         // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
-        Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default);
+        Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken);
     }
 }

@@ -18,6 +18,6 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="PixelTypeInfo"/> object</returns>
-        IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default);
+        IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken);
     }
 }

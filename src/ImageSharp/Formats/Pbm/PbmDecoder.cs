@@ -30,18 +30,18 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     public sealed class PbmDecoder : IImageDecoder, IImageInfoDetector
     {
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new PbmDecoderCore(configuration);
-            return decoder.Decode<TPixel>(configuration, stream);
+            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream)
-            => this.Decode<Rgb24>(configuration, stream);
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
+            => this.Decode<Rgb24>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
@@ -59,12 +59,12 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             .ConfigureAwait(false);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new PbmDecoderCore(configuration);
-            return decoder.Identify(configuration, stream);
+            return decoder.Identify(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>

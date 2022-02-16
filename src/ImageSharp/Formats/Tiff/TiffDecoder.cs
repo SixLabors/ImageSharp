@@ -19,17 +19,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public bool IgnoreMetadata { get; set; }
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, "stream");
 
             var decoder = new TiffDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream);
+            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
@@ -47,12 +47,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             .ConfigureAwait(false);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new TiffDecoderCore(configuration, this);
-            return decoder.Identify(configuration, stream);
+            return decoder.Identify(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>

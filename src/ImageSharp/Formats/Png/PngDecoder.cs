@@ -17,18 +17,18 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool IgnoreMetadata { get; set; }
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             PngDecoderCore decoder = new(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream);
+            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream)
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
         {
             PngDecoderCore decoder = new(configuration, true);
-            IImageInfo info = decoder.Identify(configuration, stream);
+            IImageInfo info = decoder.Identify(configuration, stream, cancellationToken);
             stream.Position = 0;
 
             PngMetadata meta = info.Metadata.GetPngMetadata();
@@ -40,41 +40,41 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (bits == PngBitDepth.Bit16)
                     {
                         return !meta.HasTransparency
-                            ? this.Decode<L16>(configuration, stream)
-                            : this.Decode<La32>(configuration, stream);
+                            ? this.Decode<L16>(configuration, stream, cancellationToken)
+                            : this.Decode<La32>(configuration, stream, cancellationToken);
                     }
 
                     return !meta.HasTransparency
-                        ? this.Decode<L8>(configuration, stream)
-                        : this.Decode<La16>(configuration, stream);
+                        ? this.Decode<L8>(configuration, stream, cancellationToken)
+                        : this.Decode<La16>(configuration, stream, cancellationToken);
 
                 case PngColorType.Rgb:
                     if (bits == PngBitDepth.Bit16)
                     {
                         return !meta.HasTransparency
-                            ? this.Decode<Rgb48>(configuration, stream)
-                            : this.Decode<Rgba64>(configuration, stream);
+                            ? this.Decode<Rgb48>(configuration, stream, cancellationToken)
+                            : this.Decode<Rgba64>(configuration, stream, cancellationToken);
                     }
 
                     return !meta.HasTransparency
-                        ? this.Decode<Rgb24>(configuration, stream)
-                        : this.Decode<Rgba32>(configuration, stream);
+                        ? this.Decode<Rgb24>(configuration, stream, cancellationToken)
+                        : this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
                 case PngColorType.Palette:
-                    return this.Decode<Rgba32>(configuration, stream);
+                    return this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
                 case PngColorType.GrayscaleWithAlpha:
                     return (bits == PngBitDepth.Bit16)
-                    ? this.Decode<La32>(configuration, stream)
-                    : this.Decode<La16>(configuration, stream);
+                    ? this.Decode<La32>(configuration, stream, cancellationToken)
+                    : this.Decode<La16>(configuration, stream, cancellationToken);
 
                 case PngColorType.RgbWithAlpha:
                     return (bits == PngBitDepth.Bit16)
-                    ? this.Decode<Rgba64>(configuration, stream)
-                    : this.Decode<Rgba32>(configuration, stream);
+                    ? this.Decode<Rgba64>(configuration, stream, cancellationToken)
+                    : this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
                 default:
-                    return this.Decode<Rgba32>(configuration, stream);
+                    return this.Decode<Rgba32>(configuration, stream, cancellationToken);
             }
         }
 
@@ -141,10 +141,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
         {
             PngDecoderCore decoder = new(configuration, this);
-            return decoder.Identify(configuration, stream);
+            return decoder.Identify(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>

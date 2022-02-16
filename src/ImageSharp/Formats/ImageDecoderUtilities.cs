@@ -130,13 +130,14 @@ namespace SixLabors.ImageSharp.Formats
         public static IImageInfo Identify(
             this IImageDecoderInternals decoder,
             Configuration configuration,
-            Stream stream)
+            Stream stream,
+            CancellationToken cancellationToken = default)
         {
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);
 
             try
             {
-                return decoder.Identify(bufferedReadStream, default);
+                return decoder.Identify(bufferedReadStream, cancellationToken);
             }
             catch (InvalidMemoryOperationException ex)
             {
@@ -144,22 +145,27 @@ namespace SixLabors.ImageSharp.Formats
             }
         }
 
-        public static Image<TPixel> Decode<TPixel>(this IImageDecoderInternals decoder, Configuration configuration, Stream stream)
+        public static Image<TPixel> Decode<TPixel>(
+            this IImageDecoderInternals decoder,
+            Configuration configuration,
+            Stream stream,
+            CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
-            => decoder.Decode<TPixel>(configuration, stream, DefaultLargeImageExceptionFactory);
+            => decoder.Decode<TPixel>(configuration, stream, DefaultLargeImageExceptionFactory, cancellationToken);
 
         public static Image<TPixel> Decode<TPixel>(
             this IImageDecoderInternals decoder,
             Configuration configuration,
             Stream stream,
-            Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory)
+            Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory,
+            CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);
 
             try
             {
-                return decoder.Decode<TPixel>(bufferedReadStream, default);
+                return decoder.Decode<TPixel>(bufferedReadStream, cancellationToken);
             }
             catch (InvalidMemoryOperationException ex)
             {

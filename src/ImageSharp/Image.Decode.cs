@@ -148,11 +148,12 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(Stream stream, Configuration config)
+        private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(Stream stream, Configuration config, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
@@ -161,7 +162,7 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
+            Image<TPixel> img = decoder.Decode<TPixel>(config, stream, cancellationToken);
             return (img, format);
         }
 
@@ -191,7 +192,7 @@ namespace SixLabors.ImageSharp
             return (img, format);
         }
 
-        private static (Image Image, IImageFormat Format) Decode(Stream stream, Configuration config)
+        private static (Image Image, IImageFormat Format) Decode(Stream stream, Configuration config, CancellationToken cancellationToken = default)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)
@@ -199,7 +200,7 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            Image img = decoder.Decode(config, stream);
+            Image img = decoder.Decode(config, stream, cancellationToken);
             return (img, format);
         }
 
@@ -220,10 +221,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
-        private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(Stream stream, Configuration config)
+        private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(Stream stream, Configuration config, CancellationToken cancellationToken = default)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
 
@@ -232,7 +234,7 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            IImageInfo info = detector?.Identify(config, stream);
+            IImageInfo info = detector?.Identify(config, stream, cancellationToken);
             return (info, format);
         }
 

@@ -111,7 +111,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelHeight;
 
             // pixel buffer for resulting image
-            this.pixelBuffer = allocator.Allocate2D<TPixel>(frame.PixelWidth, frame.PixelHeight);
+            this.pixelBuffer = allocator.Allocate2D<TPixel>(
+                frame.PixelWidth,
+                frame.PixelHeight,
+                this.configuration.PreferContiguousImageBuffers);
             this.paddedProxyPixelRow = allocator.Allocate<TPixel>(frame.PixelWidth + 3);
 
             // component processors from spectral to Rgba32

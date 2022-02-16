@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, _) => InternalDetectFormatAsync(s, configuration),
+                (s, _) => InternalDetectFormat(s, configuration),
                 cancellationToken);
 
         /// <summary>
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => InternalIdentityAsync(s, configuration ?? Configuration.Default, ct),
+                (s, ct) => InternalIdentity(s, configuration ?? Configuration.Default, ct),
                 cancellationToken);
 
         /// <summary>
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp
             return WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => decoder.DecodeAsync(configuration, s, ct),
+                (s, ct) => decoder.Decode(configuration, s, ct),
                 cancellationToken);
         }
 
@@ -468,7 +468,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 Configuration.Default,
                 stream,
-                (s, ct) => decoder.DecodeAsync<TPixel>(Configuration.Default, s, ct),
+                (s, ct) => decoder.Decode<TPixel>(Configuration.Default, s, ct),
                 cancellationToken);
 
         /// <summary>
@@ -511,7 +511,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => decoder.DecodeAsync<TPixel>(configuration, s, ct),
+                (s, ct) => decoder.Decode<TPixel>(configuration, s, ct),
                 cancellationToken);
 
         /// <summary>
@@ -586,7 +586,7 @@ namespace SixLabors.ImageSharp
             (Image Image, IImageFormat Format) data = await WithSeekableStreamAsync(
                     configuration,
                     stream,
-                    async (s, ct) => await DecodeAsync(s, configuration, ct).ConfigureAwait(false),
+                    (s, ct) => Decode(s, configuration, ct),
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -629,7 +629,7 @@ namespace SixLabors.ImageSharp
                 await WithSeekableStreamAsync(
                     configuration,
                     stream,
-                    (s, ct) => DecodeAsync<TPixel>(s, configuration, ct),
+                    (s, ct) => Decode<TPixel>(s, configuration, ct),
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -759,7 +759,7 @@ namespace SixLabors.ImageSharp
         private static async Task<T> WithSeekableStreamAsync<T>(
             Configuration configuration,
             Stream stream,
-            Func<Stream, CancellationToken, Task<T>> action,
+            Func<Stream, CancellationToken, T> action,
             CancellationToken cancellationToken)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -774,7 +774,7 @@ namespace SixLabors.ImageSharp
             await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;
 
-            return await action(memoryStream, cancellationToken).ConfigureAwait(false);
+            return action(memoryStream, cancellationToken);
         }
     }
 }

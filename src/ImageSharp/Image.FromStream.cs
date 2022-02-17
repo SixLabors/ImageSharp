@@ -770,6 +770,18 @@ namespace SixLabors.ImageSharp
                 throw new NotSupportedException("Cannot read from the stream.");
             }
 
+            if (stream.CanSeek)
+            {
+                if (configuration.ReadOrigin == ReadOrigin.Begin)
+                {
+                    stream.Position = 0;
+                }
+
+                // NOTE: We are explicitly not executing the action against the stream here as we do in WithSeekableStream() because that
+                // would incur synchronous IO reads which must be avoided in this asynchronous method.  Instead, we will *always* run the
+                // code below to copy the stream to an in-memory buffer before invoking the action.
+            }
+
             using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
             await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;

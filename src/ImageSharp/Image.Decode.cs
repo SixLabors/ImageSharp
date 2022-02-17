@@ -37,8 +37,10 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Buffer2D<TPixel> uninitializedMemoryBuffer =
-                configuration.MemoryAllocator.Allocate2D<TPixel>(width, height);
+            Buffer2D<TPixel> uninitializedMemoryBuffer = configuration.MemoryAllocator.Allocate2D<TPixel>(
+                    width,
+                    height,
+                    configuration.PreferContiguousImageBuffers);
             return new Image<TPixel>(configuration, uninitializedMemoryBuffer.FastMemoryGroup, width, height, metadata);
         }
 

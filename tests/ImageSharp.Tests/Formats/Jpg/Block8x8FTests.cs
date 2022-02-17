@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 // Reference implementation quantizes given block via division
                 Block8x8 expected = default;
-                ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.ZigZagOrder);
+                ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.TransposingOrder);
 
                 // Actual current implementation quantizes given block via multiplication
                 // With quantization table reciprocal

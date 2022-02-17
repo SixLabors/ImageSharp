@@ -106,7 +106,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsBmp(this Image source, Stream stream, BmpEncoder encoder)
             => source.Save(
                 stream,
@@ -209,7 +208,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsGif(this Image source, Stream stream, GifEncoder encoder)
             => source.Save(
                 stream,
@@ -312,7 +310,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsJpeg(this Image source, Stream stream, JpegEncoder encoder)
             => source.Save(
                 stream,
@@ -415,7 +412,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsPbm(this Image source, Stream stream, PbmEncoder encoder)
             => source.Save(
                 stream,
@@ -518,7 +514,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsPng(this Image source, Stream stream, PngEncoder encoder)
             => source.Save(
                 stream,
@@ -621,7 +616,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsTga(this Image source, Stream stream, TgaEncoder encoder)
             => source.Save(
                 stream,
@@ -724,7 +718,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsWebp(this Image source, Stream stream, WebpEncoder encoder)
             => source.Save(
                 stream,
@@ -827,7 +820,6 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static void SaveAsTiff(this Image source, Stream stream, TiffEncoder encoder)
             => source.Save(
                 stream,

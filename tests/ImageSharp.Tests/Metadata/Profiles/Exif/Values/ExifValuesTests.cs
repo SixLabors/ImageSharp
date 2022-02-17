@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Text;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using Xunit;
 
@@ -23,11 +25,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.XMP },
             { ExifTag.CFAPattern2 },
             { ExifTag.TIFFEPStandardID },
-            { ExifTag.XPTitle },
-            { ExifTag.XPComment },
-            { ExifTag.XPAuthor },
-            { ExifTag.XPKeywords },
-            { ExifTag.XPSubject },
             { ExifTag.GPSVersionID },
         };
 
@@ -295,7 +292,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.GPSDestLongitudeRef },
             { ExifTag.GPSDestBearingRef },
             { ExifTag.GPSDestDistanceRef },
-            { ExifTag.GPSDateStamp }
+            { ExifTag.GPSDateStamp },
         };
 
         public static TheoryData<ExifTag> UndefinedTags => new TheoryData<ExifTag>
@@ -311,7 +308,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.ExifVersion },
             { ExifTag.ComponentsConfiguration },
             { ExifTag.MakerNote },
-            { ExifTag.UserComment },
             { ExifTag.FlashpixVersion },
             { ExifTag.SpatialFrequencyResponse },
             { ExifTag.SpatialFrequencyResponse2 },
@@ -319,8 +315,22 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.CFAPattern },
             { ExifTag.DeviceSettingDescription },
             { ExifTag.ImageSourceData },
+        };
+
+        public static TheoryData<ExifTag> EncodedStringTags => new TheoryData<ExifTag>
+        {
+            { ExifTag.UserComment },
             { ExifTag.GPSProcessingMethod },
             { ExifTag.GPSAreaInformation }
+        };
+
+        public static TheoryData<ExifTag> Ucs2StringTags => new TheoryData<ExifTag>
+        {
+            { ExifTag.XPTitle },
+            { ExifTag.XPComment },
+            { ExifTag.XPAuthor },
+            { ExifTag.XPKeywords },
+            { ExifTag.XPSubject },
         };
 
         [Theory]
@@ -394,6 +404,34 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             Assert.Equal(expected, typed.Value);
         }
 
+        [Fact]
+        public void NumberTests()
+        {
+            Number value1 = ushort.MaxValue;
+            Number value2 = ushort.MaxValue;
+            Assert.True(value1 == value2);
+
+            value2 = short.MaxValue;
+            Assert.True(value1 != value2);
+
+            value1 = -1;
+            value2 = -2;
+            Assert.True(value1 > value2);
+
+            value1 = -6;
+            Assert.True(value1 <= value2);
+
+            value1 = 10;
+            value2 = 10;
+            Assert.True(value1 >= value2);
+
+            Assert.True(value1.Equals(value2));
+            Assert.True(value1.GetHashCode() == value2.GetHashCode());
+
+            value1 = 1;
+            Assert.False(value1.Equals(value2));
+        }
+
         [Theory]
         [MemberData(nameof(NumberTags))]
         public void ExifNumberTests(ExifTag tag)
@@ -408,6 +446,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
 
             var typed = (ExifNumber)value;
             Assert.Equal(expected, typed.Value);
+
+            typed.Value = ushort.MaxValue + 1;
+            Assert.True(expected < typed.Value);
         }
 
         [Theory]
@@ -422,6 +463,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
 
             var typed = (ExifNumberArray)value;
             Assert.Equal(expected, typed.Value);
+
+            Assert.True(value.TrySetValue(int.MaxValue));
+            Assert.Equal(new[] { (Number)int.MaxValue }, value.GetValue());
+
+            Assert.True(value.TrySetValue(new[] { 1u, 2u, 5u }));
+            Assert.Equal(new[] { (Number)1u, (Number)2u, (Number)5u }, value.GetValue());
+
+            Assert.True(value.TrySetValue(new[] { (short)1, (short)2, (short)5 }));
+            Assert.Equal(new[] { (Number)(short)1, (Number)(short)2, (Number)(short)5 }, value.GetValue());
         }
 
         [Theory]
@@ -551,6 +601,47 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             Assert.True(value.TrySetValue(expected));
 
             var typed = (ExifByteArray)value;
+            Assert.Equal(expected, typed.Value);
+        }
+
+        [Theory]
+        [MemberData(nameof(EncodedStringTags))]
+        public void ExifEncodedStringTests(ExifTag tag)
+        {
+            foreach (object code in Enum.GetValues(typeof(EncodedString.CharacterCode)))
+            {
+                var charCode = (EncodedString.CharacterCode)code;
+
+                Assert.Equal(ExifEncodedStringHelpers.CharacterCodeBytesLength, ExifEncodedStringHelpers.GetCodeBytes(charCode).Length);
+
+                const string expectedText = "test string";
+                var expected = new EncodedString(charCode, expectedText);
+                ExifValue value = ExifValues.Create(tag);
+
+                Assert.False(value.TrySetValue(123));
+                Assert.True(value.TrySetValue(expected));
+
+                var typed = (ExifEncodedString)value;
+                Assert.Equal(expected, typed.Value);
+                Assert.Equal(expectedText, (string)typed.Value);
+                Assert.Equal(charCode, typed.Value.Code);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(Ucs2StringTags))]
+        public void ExifUcs2StringTests(ExifTag tag)
+        {
+            const string expected = "Dan Petitt";
+            ExifValue value = ExifValues.Create(tag);
+
+            Assert.False(value.TrySetValue(123));
+            Assert.True(value.TrySetValue(expected));
+
+            var typed = (ExifUcs2String)value;
+            Assert.Equal(expected, typed.Value);
+
+            Assert.True(value.TrySetValue(Encoding.GetEncoding("UCS-2").GetBytes(expected)));
             Assert.Equal(expected, typed.Value);
         }
     }

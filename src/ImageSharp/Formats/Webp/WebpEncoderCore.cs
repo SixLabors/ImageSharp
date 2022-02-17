@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// TODO: not used at the moment.
         /// Indicating whether the alpha plane should be compressed with Webp lossless format.
+        /// Defaults to true.
         /// </summary>
         private readonly bool alphaCompression;
 
@@ -70,6 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         /// <summary>
         /// Indicating what file format compression should be used.
+        /// Defaults to lossy.
         /// </summary>
         private readonly WebpFileFormatType? fileFormat;
 
@@ -99,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+        /// Encodes the image as webp to the specified stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
@@ -112,32 +113,18 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
-            bool lossy;
+            bool lossless;
             if (this.fileFormat is not null)
             {
-                lossy = this.fileFormat == WebpFileFormatType.Lossy;
+                lossless = this.fileFormat == WebpFileFormatType.Lossless;
             }
             else
             {
                 WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
-                lossy = webpMetadata.FileFormat == WebpFileFormatType.Lossy;
+                lossless = webpMetadata.FileFormat == WebpFileFormatType.Lossless;
             }
 
-            if (lossy)
-            {
-                using var enc = new Vp8Encoder(
-                    this.memoryAllocator,
-                    this.configuration,
-                    image.Width,
-                    image.Height,
-                    this.quality,
-                    this.method,
-                    this.entropyPasses,
-                    this.filterStrength,
-                    this.spatialNoiseShaping);
-                enc.Encode(image, stream);
-            }
-            else
+            if (lossless)
             {
                 using var enc = new Vp8LEncoder(
                     this.memoryAllocator,
@@ -149,6 +136,21 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     this.transparentColorMode,
                     this.nearLossless,
                     this.nearLosslessQuality);
+                enc.Encode(image, stream);
+            }
+            else
+            {
+                using var enc = new Vp8Encoder(
+                    this.memoryAllocator,
+                    this.configuration,
+                    image.Width,
+                    image.Height,
+                    this.quality,
+                    this.method,
+                    this.entropyPasses,
+                    this.filterStrength,
+                    this.spatialNoiseShaping,
+                    this.alphaCompression);
                 enc.Encode(image, stream);
             }
         }

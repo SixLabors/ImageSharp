@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -18,6 +19,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -187,20 +189,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
                                     byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
@@ -297,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                this.ReadTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.CompressedText:
                                 if (this.colorMetadataOnly)
@@ -306,7 +308,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.InternationalText:
                                 if (this.colorMetadataOnly)
@@ -315,7 +317,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.GetSpan());
+                                this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
                                 if (this.colorMetadataOnly)
@@ -328,7 +330,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 {
                                     byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
@@ -967,9 +969,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a text chunk containing image properties from the data.
         /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object.</param>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -992,15 +995,19 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             string value = PngConstants.Encoding.GetString(data.Slice(zeroIndex + 1));
 
-            metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            if (!this.TryReadTextChunkMetadata(baseMetadata, name, value))
+            {
+                metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            }
         }
 
         /// <summary>
         /// Reads the compressed text chunk. Contains a uncompressed keyword and a compressed text string.
         /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object.</param>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadCompressedTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadCompressedTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -1028,9 +1035,182 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
 
-            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed))
+            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed) &&
+                !this.TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
             {
                 metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
+            }
+        }
+
+        /// <summary>
+        /// Checks if the given text chunk is actually storing parsable metadata.
+        /// </summary>
+        /// <param name="baseMetadata">The <see cref="ImageMetadata"/> object to store the parsed metadata in.</param>
+        /// <param name="chunkName">The name of the text chunk.</param>
+        /// <param name="chunkText">The contents of the text chunk.</param>
+        /// <returns>True if metadata was successfully parsed from the text chunk. False if the
+        /// text chunk was not identified as metadata, and should be stored in the metadata
+        /// object unmodified.</returns>
+        private bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
+        {
+            if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
+                this.TryReadLegacyExifTextChunk(baseMetadata, chunkText))
+            {
+                // Successfully parsed legacy exif data from text
+                return true;
+            }
+
+            // TODO: "Raw profile type iptc", potentially others?
+
+            // No special chunk data identified
+            return false;
+        }
+
+        /// <summary>
+        /// Reads exif data encoded into a text chunk with the name "raw profile type exif".
+        /// This method was used by ImageMagick, exiftool, exiv2, digiKam, etc, before the
+        /// 2017 update to png that allowed a true exif chunk.
+        /// </summary>
+        /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
+        /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>
+        private bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string data)
+        {
+            ReadOnlySpan<char> dataSpan = data.AsSpan();
+            dataSpan = dataSpan.TrimStart();
+
+            if (!StringEqualsInsensitive(dataSpan.Slice(0, 4), "exif".AsSpan()))
+            {
+                // "exif" identifier is missing from the beginning of the text chunk
+                return false;
+            }
+
+            // Skip to the data length
+            dataSpan = dataSpan.Slice(4).TrimStart();
+            int dataLengthEnd = dataSpan.IndexOf('\n');
+            int dataLength = ParseInt32(dataSpan.Slice(0, dataSpan.IndexOf('\n')));
+
+            // Skip to the hex-encoded data
+            dataSpan = dataSpan.Slice(dataLengthEnd).Trim();
+
+            // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
+            // This doesn't actually allocate.
+            ReadOnlySpan<byte> exifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+
+            if (dataLength < exifHeader.Length)
+            {
+                // Not enough room for the required exif header, this data couldn't possibly be valid
+                return false;
+            }
+
+            // Parse the hex-encoded data into the byte array we are going to hand off to ExifProfile
+            byte[] exifBlob = new byte[dataLength - exifHeader.Length];
+
+            try
+            {
+                // Check for the presence of the exif header in the hex-encoded binary data
+                byte[] tempExifBuf = exifBlob;
+                if (exifBlob.Length < exifHeader.Length)
+                {
+                    // Need to allocate a temporary array, this should be an extremely uncommon (TODO: impossible?) case
+                    tempExifBuf = new byte[exifHeader.Length];
+                }
+
+                HexConverter.HexStringToBytes(dataSpan.Slice(0, exifHeader.Length * 2), tempExifBuf);
+                if (!tempExifBuf.AsSpan().Slice(0, exifHeader.Length).SequenceEqual(exifHeader))
+                {
+                    // Exif header in the hex data is not valid
+                    return false;
+                }
+
+                // Skip over the exif header we just tested
+                dataSpan = dataSpan.Slice(exifHeader.Length * 2);
+                dataLength -= exifHeader.Length;
+
+                // Load the hex-encoded data, one line at a time
+                for (int i = 0; i < dataLength;)
+                {
+                    ReadOnlySpan<char> lineSpan = dataSpan;
+
+                    int newlineIndex = dataSpan.IndexOf('\n');
+                    if (newlineIndex != -1)
+                    {
+                        lineSpan = dataSpan.Slice(0, newlineIndex);
+                    }
+
+                    i += HexConverter.HexStringToBytes(lineSpan, exifBlob.AsSpan().Slice(i));
+
+                    dataSpan = dataSpan.Slice(newlineIndex + 1);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            this.MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
+            return true;
+        }
+
+        /// <summary>
+        /// Compares two ReadOnlySpan&lt;char&gt;s in a case-insensitive method.
+        /// This is only needed because older frameworks are missing the extension method.
+        /// </summary>
+        /// <param name="span1">The first <see cref="Span{T}"/> to compare.</param>
+        /// <param name="span2">The second <see cref="Span{T}"/> to compare.</param>
+        /// <returns>True if the spans were identical, false otherwise.</returns>
+        private static bool StringEqualsInsensitive(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2)
+        {
+#pragma warning disable IDE0022 // Use expression body for methods
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+            return span1.Equals(span2, StringComparison.OrdinalIgnoreCase);
+#else
+            return span1.ToString().Equals(span2.ToString(), StringComparison.OrdinalIgnoreCase);
+#endif
+#pragma warning restore IDE0022 // Use expression body for methods
+        }
+
+        /// <summary>
+        /// int.Parse() a ReadOnlySpan&lt;char&gt;, with a fallback for older frameworks.
+        /// </summary>
+        /// <param name="span">The <see cref="int"/> to parse.</param>
+        /// <returns>The parsed <see cref="int"/>.</returns>
+        private static int ParseInt32(ReadOnlySpan<char> span)
+        {
+#pragma warning disable IDE0022 // Use expression body for methods
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+            return int.Parse(span);
+#else
+            return int.Parse(span.ToString());
+#endif
+#pragma warning restore IDE0022 // Use expression body for methods
+        }
+
+        /// <summary>
+        /// Sets the <see cref="ExifProfile"/> in <paramref name="metadata"/> to <paramref name="newProfile"/>,
+        /// or copies exif tags if <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>.
+        /// </summary>
+        /// <param name="metadata">The <see cref="ImageMetadata"/> to store the exif data in.</param>
+        /// <param name="newProfile">The <see cref="ExifProfile"/> to copy exif tags from.</param>
+        /// <param name="replaceExistingKeys">If <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>,
+        /// controls whether existing exif tags in <paramref name="metadata"/> will be overwritten with any conflicting
+        /// tags from <paramref name="newProfile"/>.</param>
+        private void MergeOrSetExifProfile(ImageMetadata metadata, ExifProfile newProfile, bool replaceExistingKeys)
+        {
+            if (metadata.ExifProfile is null)
+            {
+                // No exif metadata was loaded yet, so just assign it
+                metadata.ExifProfile = newProfile;
+            }
+            else
+            {
+                // Try to merge existing keys with the ones from the new profile
+                foreach (IExifValue newKey in newProfile.Values)
+                {
+                    if (replaceExistingKeys || metadata.ExifProfile.GetValueInternal(newKey.Tag) is null)
+                    {
+                        metadata.ExifProfile.SetValueInternal(newKey.Tag, newKey.GetValue());
+                    }
+                }
             }
         }
 
@@ -1045,13 +1225,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadInternationalTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadInternationalTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
                 return;
             }
 
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
             int zeroIndexKeyword = data.IndexOf((byte)0);
             if (zeroIndexKeyword < PngConstants.MinTextKeywordLength || zeroIndexKeyword > PngConstants.MaxTextKeywordLength)
             {
@@ -1097,13 +1278,18 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
                 {
-                    metadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
+                    pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
                 }
+            }
+            else if (this.IsXmpTextData(keywordBytes))
+            {
+                XmpProfile xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
+                metadata.XmpProfile = xmpProfile;
             }
             else
             {
                 string value = PngConstants.TranslatedEncoding.GetString(data.Slice(dataStartIdx));
-                metadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
+                pngMetadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
             }
         }
 
@@ -1370,6 +1556,8 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             return true;
         }
+
+        private bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes) => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
 
         private void SwapScanlineBuffers()
         {

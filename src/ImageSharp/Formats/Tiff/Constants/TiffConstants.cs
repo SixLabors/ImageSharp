@@ -36,6 +36,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         public const ushort HeaderMagicNumber = 42;
 
         /// <summary>
+        /// The big tiff header magic number
+        /// </summary>
+        public const ushort BigTiffHeaderMagicNumber = 43;
+
+        /// <summary>
+        /// The big tiff bytesize of offsets value.
+        /// </summary>
+        public const ushort BigTiffBytesize = 8;
+
+        /// <summary>
         /// RowsPerStrip default value, which is effectively infinity.
         /// </summary>
         public const int RowsPerStripInfinity = 2147483647;

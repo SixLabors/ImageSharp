@@ -135,10 +135,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
                     srcBlock.MultiplyInPlace(ref dequantMatrix);
 
+                    // testee
                     // IDCT implementation tranforms blocks after transposition
                     srcBlock.TransposeInplace();
-
-                    // IDCT calculation
                     FastFloatingPointDCT.TransformIDCT(ref srcBlock);
 
                     float[] actualDest = srcBlock.ToArray();
@@ -149,12 +148,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // 4 paths:
                 // 1. AllowAll - call avx/fma implementation
                 // 2. DisableFMA - call avx without fma implementation
-                // 3. DisableAvx - call sse Vector4 implementation
-                // 4. DisableHWIntrinsic - call scalar fallback implementation
+                // 3. DisableAvx - call sse implementation
+                // 4. DisableSIMD - call Vector4 fallback implementation
                 FeatureTestRunner.RunWithHwIntrinsicsFeature(
                     RunTest,
                     seed,
-                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSIMD);
             }
 
             // Forward transform
@@ -180,7 +179,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
 
                     // testee
+                    // Second transpose call is done by Quantize step
+                    // Do this manually here just to be complient to the reference implementation
                     FastFloatingPointDCT.TransformFDCT(ref block);
+                    block.TransposeInplace();
 
                     // Part of the IDCT calculations is fused into the quantization step
                     // We must multiply input block with adjusted no-quantization matrix
@@ -197,12 +199,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // 4 paths:
                 // 1. AllowAll - call avx/fma implementation
                 // 2. DisableFMA - call avx without fma implementation
-                // 3. DisableAvx - call sse Vector4 implementation
-                // 4. DisableHWIntrinsic - call scalar fallback implementation
+                // 3. DisableAvx - call Vector4 implementation
+                // 4. DisableSIMD - call scalar fallback implementation
                 FeatureTestRunner.RunWithHwIntrinsicsFeature(
                     RunTest,
                     seed,
-                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                    HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSIMD);
             }
         }
     }

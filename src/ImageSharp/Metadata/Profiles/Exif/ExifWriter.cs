@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
@@ -46,23 +45,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public byte[] GetData()
         {
             const uint startIndex = 0;
-            uint length;
 
             IExifValue exifOffset = GetOffsetValue(this.ifdValues, this.exifValues, ExifTag.SubIFDOffset);
             IExifValue gpsOffset = GetOffsetValue(this.ifdValues, this.gpsValues, ExifTag.GPSIFDOffset);
 
-            if (this.ifdValues.Count == 0 && this.exifValues.Count == 0 && this.gpsValues.Count == 0)
-            {
-                return Array.Empty<byte>();
-            }
-
-            uint ifdLength = this.GetLength(this.ifdValues) + 4U;
+            uint ifdLength = this.GetLength(this.ifdValues);
             uint exifLength = this.GetLength(this.exifValues);
             uint gpsLength = this.GetLength(this.gpsValues);
 
-            length = ifdLength + exifLength + gpsLength;
+            uint length = ifdLength + exifLength + gpsLength;
 
-            if (length == 4U)
+            if (length == 0)
             {
                 return Array.Empty<byte>();
             }
@@ -70,9 +63,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             // two bytes for the byte Order marker 'II' or 'MM', followed by the number 42 (0x2A) and a 0, making 4 bytes total
             length += (uint)ExifConstants.LittleEndianByteOrderMarker.Length;
 
-            length += 4 + 2;
+            // first IFD offset
+            length += 4;
 
-            var result = new byte[length];
+            byte[] result = new byte[length];
 
             int i = 0;
 
@@ -80,15 +74,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             ExifConstants.LittleEndianByteOrderMarker.CopyTo(result.AsSpan(start: i));
             i += ExifConstants.LittleEndianByteOrderMarker.Length;
 
-            uint ifdOffset = ((uint)i - startIndex) + 4U;
-            uint thumbnailOffset = ifdOffset + ifdLength + exifLength + gpsLength;
+            uint ifdOffset = (uint)i - startIndex + 4U;
 
             exifOffset?.TrySetValue(ifdOffset + ifdLength);
             gpsOffset?.TrySetValue(ifdOffset + ifdLength + exifLength);
 
             i = WriteUInt32(ifdOffset, result, i);
             i = this.WriteHeaders(this.ifdValues, result, i);
-            i = WriteUInt32(thumbnailOffset, result, i);
             i = this.WriteData(startIndex, this.ifdValues, result, i);
 
             if (exifLength > 0)
@@ -102,8 +94,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 i = this.WriteHeaders(this.gpsValues, result, i);
                 i = this.WriteData(startIndex, this.gpsValues, result, i);
             }
-
-            WriteUInt16(0, result, i);
 
             return result;
         }
@@ -148,6 +138,20 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(offset, 4), value);
 
             return offset + 4;
+        }
+
+        private static int WriteInt64(long value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(destination.Slice(offset, 8), value);
+
+            return offset + 8;
+        }
+
+        private static int WriteUInt64(ulong value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(destination.Slice(offset, 8), value);
+
+            return offset + 8;
         }
 
         private static int WriteInt32(int value, Span<byte> destination, int offset)
@@ -249,13 +253,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             {
                 uint valueLength = GetLength(value);
 
-                length += 2 + 2 + 4 + 4;
+                length += 12;
 
                 if (valueLength > 4)
                 {
                     length += valueLength;
                 }
             }
+
+            // next IFD offset
+            length += 4;
 
             return length;
         }
@@ -266,9 +273,19 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         {
             object value = exifValue.GetValue();
 
+            if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
+            {
+                return (uint)ExifUcs2StringHelpers.Ucs2Encoding.GetByteCount((string)value);
+            }
+
+            if (value is EncodedString encodedString)
+            {
+                return ExifEncodedStringHelpers.GetDataLength(encodedString);
+            }
+
             if (exifValue.DataType == ExifDataType.Ascii)
             {
-                return (uint)Encoding.UTF8.GetBytes((string)value).Length + 1;
+                return (uint)ExifConstants.DefaultEncoding.GetByteCount((string)value) + 1;
             }
 
             if (value is Array arrayValue)
@@ -281,11 +298,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static int WriteArray(IExifValue value, Span<byte> destination, int offset)
         {
-            if (value.DataType == ExifDataType.Ascii)
-            {
-                return WriteValue(ExifDataType.Ascii, value.GetValue(), destination, offset);
-            }
-
             int newOffset = offset;
             foreach (object obj in (Array)value.GetValue())
             {
@@ -347,6 +359,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 newOffset += 4;
             }
 
+            // next IFD offset
+            newOffset = WriteUInt32(0, destination, newOffset);
+
             return newOffset;
         }
 
@@ -367,7 +382,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (dataType)
             {
                 case ExifDataType.Ascii:
-                    offset = Write(Encoding.UTF8.GetBytes((string)value), destination, offset);
+                    offset = Write(ExifConstants.DefaultEncoding.GetBytes((string)value), destination, offset);
                     destination[offset] = 0;
                     return offset + 1;
                 case ExifDataType.Byte:
@@ -390,6 +405,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     }
 
                     return WriteUInt32((uint)value, destination, offset);
+                case ExifDataType.Long8:
+                    return WriteUInt64((ulong)value, destination, offset);
+                case ExifDataType.SignedLong8:
+                    return WriteInt64((long)value, destination, offset);
                 case ExifDataType.Rational:
                     WriteRational(destination.Slice(offset, 8), (Rational)value);
                     return offset + 8;
@@ -410,14 +429,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
         }
 
-        internal static int WriteValue(IExifValue value, Span<byte> destination, int offset)
+        internal static int WriteValue(IExifValue exifValue, Span<byte> destination, int offset)
         {
-            if (value.IsArray && value.DataType != ExifDataType.Ascii)
+            object value = exifValue.GetValue();
+
+            if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
             {
-                return WriteArray(value, destination, offset);
+                return offset + ExifUcs2StringHelpers.Write((string)value, destination.Slice(offset));
+            }
+            else if (value is EncodedString encodedString)
+            {
+                return offset + ExifEncodedStringHelpers.Write(encodedString, destination.Slice(offset));
             }
 
-            return WriteValue(value.DataType, value.GetValue(), destination, offset);
+            if (exifValue.IsArray)
+            {
+                return WriteArray(exifValue, destination, offset);
+            }
+
+            return WriteValue(exifValue.DataType, value, destination, offset);
         }
     }
 }

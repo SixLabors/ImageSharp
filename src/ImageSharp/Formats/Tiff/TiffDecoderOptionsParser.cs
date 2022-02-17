@@ -24,12 +24,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="frameMetadata">The IFD entries container to read the image format information for current frame.</param>
         public static void VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
         {
-            if (exifProfile.GetValue(ExifTag.TileOffsets)?.Value != null)
+            if (exifProfile.GetValueInternal(ExifTag.TileOffsets) is not null || exifProfile.GetValueInternal(ExifTag.TileByteCounts) is not null)
             {
                 TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
             }
 
-            if (exifProfile.GetValue(ExifTag.ExtraSamples)?.Value != null)
+            if (exifProfile.GetValueInternal(ExifTag.ExtraSamples) is not null)
             {
                 TiffThrowHelper.ThrowNotSupported("ExtraSamples is not supported.");
             }
@@ -95,12 +95,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private static void VerifyRequiredFieldsArePresent(ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
         {
-            if (exifProfile.GetValue(ExifTag.StripOffsets) == null)
+            if (exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
             {
                 TiffThrowHelper.ThrowImageFormatException("StripOffsets are missing and are required for decoding the TIFF image!");
             }
 
-            if (exifProfile.GetValue(ExifTag.StripByteCounts) == null)
+            if (exifProfile.GetValueInternal(ExifTag.StripByteCounts) is null)
             {
                 TiffThrowHelper.ThrowImageFormatException("StripByteCounts are missing and are required for decoding the TIFF image!");
             }
@@ -384,7 +384,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private static void ParseCompression(this TiffDecoderCore options, TiffCompression? compression, ExifProfile exifProfile)
         {
-            switch (compression)
+            // Default 1 (No compression) https://www.awaresystems.be/imaging/tiff/tifftags/compression.html
+            switch (compression ?? TiffCompression.None)
             {
                 case TiffCompression.None:
                 {
@@ -441,7 +442,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 default:
                 {
-                    TiffThrowHelper.ThrowNotSupported($"The specified TIFF compression format {compression} is not supported");
+                    TiffThrowHelper.ThrowNotSupported($"The specified TIFF compression format '{compression}' is not supported");
                     break;
                 }
             }

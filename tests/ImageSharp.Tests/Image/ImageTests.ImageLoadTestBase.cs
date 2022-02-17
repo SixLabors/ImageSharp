@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.localDecoder = detector.As<IImageDecoder>();
                 this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                    .Callback<Configuration, Stream>((c, s) =>
+                    .Callback<Configuration, Stream, CancellationToken>((c, s, ct) =>
                         {
                             using (var ms = new MemoryStream())
                             {
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
                     .Returns(this.localStreamReturnImageRgba32);
 
                 this.localDecoder.Setup(x => x.Decode(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                    .Callback<Configuration, Stream>((c, s) =>
+                    .Callback<Configuration, Stream, CancellationToken>((c, s, ct) =>
                         {
                             using (var ms = new MemoryStream())
                             {

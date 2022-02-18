@@ -223,6 +223,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             uint s1 = crc & 0xFFFF;
             uint s2 = (crc >> 16) & 0xFFFF;
             int len = buffer.Length;
+            int bufferOffset = 0;
 
             // Process the data in blocks.
             long blocks = len / ArmBlockSize;
@@ -231,7 +232,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             {
                 while (blocks != 0)
                 {
-                    var n = Nmax / ArmBlockSize;
+                    uint n = Nmax / ArmBlockSize;
                     if (n > blocks)
                     {
                         n = (uint)blocks;

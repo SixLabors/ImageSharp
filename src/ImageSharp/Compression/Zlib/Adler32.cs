@@ -34,7 +34,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 #if SUPPORTS_RUNTIME_INTRINSICS
         private const int MinBufferSize = 64;
 
-        private const uint ArmBlockSize = 1 << 5;
+        // Data will be processed in blocks of 32 bytes.
+        private const int BlockSize = 1 << 5;
 
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         private static ReadOnlySpan<byte> Tap1Tap2 => new byte[]
@@ -91,18 +92,16 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             uint s2 = (adler >> 16) & 0xFFFF;
 
             // Process the data in blocks.
-            const int BLOCK_SIZE = 1 << 5;
-
             uint length = (uint)buffer.Length;
-            uint blocks = length / BLOCK_SIZE;
-            length -= blocks * BLOCK_SIZE;
+            uint blocks = length / BlockSize;
+            length -= blocks * BlockSize;
 
             int index = 0;
             fixed (byte* bufferPtr = buffer)
             {
                 fixed (byte* tapPtr = Tap1Tap2)
                 {
-                    index += (int)blocks * BLOCK_SIZE;
+                    index += (int)blocks * BlockSize;
                     byte* localBufferPtr = bufferPtr;
 
                     // _mm_setr_epi8 on x86
@@ -113,7 +112,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                     while (blocks > 0)
                     {
-                        uint n = Nmax / BLOCK_SIZE;  /* The NMAX constraint. */
+                        uint n = Nmax / BlockSize;  /* The NMAX constraint. */
                         if (n > blocks)
                         {
                             n = blocks;
@@ -146,7 +145,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                             Vector128<short> mad2 = Ssse3.MultiplyAddAdjacent(bytes2, tap2);
                             v_s2 = Sse2.Add(v_s2, Sse2.MultiplyAddAdjacent(mad2, ones).AsUInt32());
 
-                            localBufferPtr += BLOCK_SIZE;
+                            localBufferPtr += BlockSize;
                         }
                         while (--n > 0);
 
@@ -226,13 +225,13 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             int bufferOffset = 0;
 
             // Process the data in blocks.
-            long blocks = len / ArmBlockSize;
-            len -= (int)(blocks * ArmBlockSize);
+            long blocks = len / BlockSize;
+            len -= (int)(blocks * BlockSize);
             fixed (byte* bufferPtr = buffer)
             {
                 while (blocks != 0)
                 {
-                    uint n = Nmax / ArmBlockSize;
+                    uint n = Nmax / BlockSize;
                     if (n > blocks)
                     {
                         n = (uint)blocks;
@@ -269,7 +268,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                         vColumnSum3 = AdvSimd.AddWideningLower(vColumnSum3, bytes2.GetLower().AsByte());
                         vColumnSum4 = AdvSimd.AddWideningLower(vColumnSum4, bytes2.GetUpper().AsByte());
 
-                        bufferOffset += (int)ArmBlockSize;
+                        bufferOffset += BlockSize;
                     } while (--n > 0);
 
                     vs2 = AdvSimd.ShiftLeftLogical(vs2, 5);
@@ -352,7 +351,6 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         {
             uint s1 = adler & 0xFFFF;
             uint s2 = (adler >> 16) & 0xFFFF;
-            uint k;
 
             fixed (byte* bufferPtr = buffer)
             {
@@ -361,7 +359,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                 while (length > 0)
                 {
-                    k = length < Nmax ? length : Nmax;
+                    var k = length < Nmax ? length : Nmax;
                     length -= k;
 
                     while (k >= 16)

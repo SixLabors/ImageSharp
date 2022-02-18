@@ -6,6 +6,9 @@ using System.Runtime.CompilerServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+#if NET5_0_OR_GREATER
+using System.Runtime.Intrinsics.Arm;
+#endif
 #endif
 
 #pragma warning disable IDE0007 // Use implicit type
@@ -23,13 +26,15 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         public const uint SeedValue = 1U;
 
         // Largest prime smaller than 65536
-        private const uint BASE = 65521;
+        private const uint Base = 65521;
 
         // NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1
-        private const uint NMAX = 5552;
+        private const uint Nmax = 5552;
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         private const int MinBufferSize = 64;
+
+        private const uint ArmBlockSize = 1 << 5;
 
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         private static ReadOnlySpan<byte> Tap1Tap2 => new byte[]
@@ -67,11 +72,14 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             {
                 return CalculateSse(adler, buffer);
             }
-
-            return CalculateScalar(adler, buffer);
-#else
-            return CalculateScalar(adler, buffer);
+#if NET5_0_OR_GREATER
+            if (AdvSimd.IsSupported)
+            {
+                return CalculateArm(adler, buffer);
+            }
 #endif
+#endif
+            return CalculateScalar(adler, buffer);
         }
 
         // Based on https://github.com/chromium/chromium/blob/master/third_party/zlib/adler32_simd.c
@@ -95,7 +103,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 fixed (byte* tapPtr = Tap1Tap2)
                 {
                     index += (int)blocks * BLOCK_SIZE;
-                    var localBufferPtr = bufferPtr;
+                    byte* localBufferPtr = bufferPtr;
 
                     // _mm_setr_epi8 on x86
                     Vector128<sbyte> tap1 = Sse2.LoadVector128((sbyte*)tapPtr);
@@ -105,7 +113,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                     while (blocks > 0)
                     {
-                        uint n = NMAX / BLOCK_SIZE;  /* The NMAX constraint. */
+                        uint n = Nmax / BLOCK_SIZE;  /* The NMAX constraint. */
                         if (n > blocks)
                         {
                             n = blocks;
@@ -158,8 +166,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                         s2 = v_s2.ToScalar();
 
                         // Reduce.
-                        s1 %= BASE;
-                        s2 %= BASE;
+                        s1 %= Base;
+                        s2 %= Base;
                     }
 
                     if (length > 0)
@@ -192,18 +200,168 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                             s2 += s1 += *localBufferPtr++;
                         }
 
-                        if (s1 >= BASE)
+                        if (s1 >= Base)
                         {
-                            s1 -= BASE;
+                            s1 -= Base;
                         }
 
-                        s2 %= BASE;
+                        s2 %= Base;
                     }
 
                     return s1 | (s2 << 16);
                 }
             }
         }
+
+#if NET5_0_OR_GREATER
+
+        // Based on: https://github.com/chromium/chromium/blob/master/third_party/zlib/adler32_simd.c
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        private static unsafe uint CalculateArm(uint crc, ReadOnlySpan<byte> buffer)
+        {
+            // Split Adler-32 into component sums.
+            uint s1 = crc & 0xFFFF;
+            uint s2 = (crc >> 16) & 0xFFFF;
+            int len = buffer.Length;
+
+            // Serially compute s1 & s2, until the data is 16-byte aligned.
+            int bufferOffset = 0;
+            if ((bufferOffset & 15) != 0)
+            {
+                while ((bufferOffset & 15) != 0)
+                {
+                    s2 += s1 += buffer[bufferOffset++];
+                    --len;
+
+                    if (s1 >= Base)
+                    {
+                        s1 -= Base;
+                    }
+
+                    s2 %= Base;
+                }
+            }
+
+            // Process the data in blocks.
+            long blocks = len / ArmBlockSize;
+            len -= (int)(blocks * ArmBlockSize);
+            fixed (byte* bufferPtr = buffer)
+            {
+                while (blocks != 0)
+                {
+                    var n = Nmax / ArmBlockSize;
+                    if (n > blocks)
+                    {
+                        n = (uint)blocks;
+                    }
+
+                    blocks -= n;
+
+                    // Process n blocks of data. At most nMax data bytes can be
+                    // processed before s2 must be reduced modulo Base.
+                    var vs2 = Vector128.Create(0, 0, 0, s1 * n);
+                    Vector128<uint> vs1 = Vector128<uint>.Zero;
+                    Vector128<ushort> vColumnSum1 = Vector128<ushort>.Zero;
+                    Vector128<ushort> vColumnSum2 = Vector128<ushort>.Zero;
+                    Vector128<ushort> vColumnSum3 = Vector128<ushort>.Zero;
+                    Vector128<ushort> vColumnSum4 = Vector128<ushort>.Zero;
+
+                    do
+                    {
+                        // Load 32 input bytes.
+                        Vector128<ushort> bytes1 = AdvSimd.LoadVector128(bufferPtr + bufferOffset).AsUInt16();
+                        Vector128<ushort> bytes2 = AdvSimd.LoadVector128(bufferPtr + bufferOffset + 16).AsUInt16();
+
+                        // Add previous block byte sum to v_s2.
+                        vs2 = AdvSimd.Add(vs2, vs1);
+
+                        // Horizontally add the bytes for s1.
+                        vs1 = AdvSimd.AddPairwiseWideningAndAdd(
+                            vs1.AsUInt32(),
+                            AdvSimd.AddPairwiseWideningAndAdd(AdvSimd.AddPairwiseWidening(bytes1.AsByte()).AsUInt16(), bytes2.AsByte()));
+
+                        // Vertically add the bytes for s2.
+                        vColumnSum1 = AdvSimd.AddWideningLower(vColumnSum1, bytes1.GetLower().AsByte());
+                        vColumnSum2 = AdvSimd.AddWideningLower(vColumnSum2, bytes1.GetUpper().AsByte());
+                        vColumnSum3 = AdvSimd.AddWideningLower(vColumnSum3, bytes2.GetLower().AsByte());
+                        vColumnSum4 = AdvSimd.AddWideningLower(vColumnSum4, bytes2.GetUpper().AsByte());
+
+                        bufferOffset += (int)ArmBlockSize;
+                    } while (--n > 0);
+
+                    vs2 = AdvSimd.ShiftLeftLogical(vs2, 5);
+
+                    // Multiply-add bytes by [ 32, 31, 30, ... ] for s2.
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum1.GetLower(), Vector64.Create((ushort)32, 31, 30, 29));
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum1.GetUpper(), Vector64.Create((ushort)28, 27, 26, 25));
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum2.GetLower(), Vector64.Create((ushort)24, 23, 22, 21));
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum2.GetUpper(), Vector64.Create((ushort)20, 19, 18, 17));
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum3.GetLower(), Vector64.Create((ushort)16, 15, 14, 13));
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum3.GetUpper(), Vector64.Create((ushort)12, 11, 10, 9));
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum4.GetLower(), Vector64.Create((ushort)8, 7, 6, 5));
+                    vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum4.GetUpper(), Vector64.Create((ushort)4, 3, 2, 1));
+
+                    // Sum epi32 ints v_s1(s2) and accumulate in s1(s2).
+                    Vector64<uint> sum1 = AdvSimd.AddPairwise(vs1.GetLower(), vs1.GetUpper());
+                    Vector64<uint> sum2 = AdvSimd.AddPairwise(vs2.GetLower(), vs2.GetUpper());
+                    Vector64<uint> s1s2 = AdvSimd.AddPairwise(sum1, sum2);
+
+                    // Store the results.
+                    s1 = AdvSimd.Extract(s1s2, 0);
+                    s2 = AdvSimd.Extract(s1s2, 1);
+
+                    // Reduce.
+                    s1 %= Base;
+                    s2 %= Base;
+                }
+            }
+
+            // Handle leftover data.
+            if (len != 0)
+            {
+                if (len >= 16)
+                {
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+                    s2 += s1 += buffer[bufferOffset++];
+
+                    len -= 16;
+                }
+
+                while (len-- > 0)
+                {
+                    s2 += s1 += buffer[bufferOffset++];
+                }
+
+                if (s1 >= Base)
+                {
+                    s1 -= Base;
+                }
+
+                s2 %= Base;
+            }
+
+            // Return the recombined sums.
+            return s1 | (s2 << 16);
+        }
+
+#endif
 #endif
 
         [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
@@ -215,12 +373,12 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
             fixed (byte* bufferPtr = buffer)
             {
-                var localBufferPtr = bufferPtr;
+                byte* localBufferPtr = bufferPtr;
                 uint length = (uint)buffer.Length;
 
                 while (length > 0)
                 {
-                    k = length < NMAX ? length : NMAX;
+                    k = length < Nmax ? length : Nmax;
                     length -= k;
 
                     while (k >= 16)
@@ -251,8 +409,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                         s2 += s1 += *localBufferPtr++;
                     }
 
-                    s1 %= BASE;
-                    s2 %= BASE;
+                    s1 %= Base;
+                    s2 %= Base;
                 }
 
                 return (s2 << 16) | s1;

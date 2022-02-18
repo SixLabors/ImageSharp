@@ -486,15 +486,16 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             this.matchLen = Math.Max(this.matchLen, DeflaterConstants.MIN_MATCH - 1);
             int matchLength = this.matchLen;
 
-            if (scan + matchLength > scanMax)
+            int scanEndPosition = scan + matchLength;
+            if (scanEndPosition > scanMax)
             {
                 return false;
             }
 
             byte* pinnedWindow = this.pinnedWindowPointer;
             int scanStart = this.strstart;
-            byte scanEnd1 = pinnedWindow[scan + matchLength - 1];
-            byte scanEnd = pinnedWindow[scan + matchLength];
+            byte scanEnd1 = pinnedWindow[scanEndPosition - 1];
+            byte scanEnd = pinnedWindow[scanEndPosition];
 
             // Do not waste too much time if we already have a good match:
             if (matchLength >= this.goodLength)
@@ -508,8 +509,9 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 match = curMatch;
                 scan = scanStart;
 
-                if (pinnedWindow[match + matchLength] != scanEnd
-                 || pinnedWindow[match + matchLength - 1] != scanEnd1
+                int matchEndPosition = match + matchLength;
+                if (pinnedWindow[matchEndPosition] != scanEnd
+                 || pinnedWindow[matchEndPosition - 1] != scanEnd1
                  || pinnedWindow[match] != pinnedWindow[scan]
                  || pinnedWindow[++match] != pinnedWindow[++scan])
                 {
@@ -685,6 +687,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 return false;
             }
 
+            const int windowLen = (2 * DeflaterConstants.WSIZE) - DeflaterConstants.MIN_LOOKAHEAD;
             while (this.lookahead >= DeflaterConstants.MIN_LOOKAHEAD || flush)
             {
                 if (this.lookahead == 0)
@@ -695,7 +698,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     return false;
                 }
 
-                if (this.strstart > (2 * DeflaterConstants.WSIZE) - DeflaterConstants.MIN_LOOKAHEAD)
+                if (this.strstart > windowLen)
                 {
                     // slide window, as FindLongestMatch needs this.
                     // This should only happen when flushing and the window
@@ -766,6 +769,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 return false;
             }
 
+            const int windowLen = (2 * DeflaterConstants.WSIZE) - DeflaterConstants.MIN_LOOKAHEAD;
             while (this.lookahead >= DeflaterConstants.MIN_LOOKAHEAD || flush)
             {
                 if (this.lookahead == 0)
@@ -783,7 +787,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     return false;
                 }
 
-                if (this.strstart >= (2 * DeflaterConstants.WSIZE) - DeflaterConstants.MIN_LOOKAHEAD)
+                if (this.strstart >= windowLen)
                 {
                     // slide window, as FindLongestMatch needs this.
                     // This should only happen when flushing and the window

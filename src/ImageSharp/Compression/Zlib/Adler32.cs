@@ -224,24 +224,6 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             uint s2 = (crc >> 16) & 0xFFFF;
             int len = buffer.Length;
 
-            // Serially compute s1 & s2, until the data is 16-byte aligned.
-            int bufferOffset = 0;
-            if ((bufferOffset & 15) != 0)
-            {
-                while ((bufferOffset & 15) != 0)
-                {
-                    s2 += s1 += buffer[bufferOffset++];
-                    --len;
-
-                    if (s1 >= Base)
-                    {
-                        s1 -= Base;
-                    }
-
-                    s2 %= Base;
-                }
-            }
-
             // Process the data in blocks.
             long blocks = len / ArmBlockSize;
             len -= (int)(blocks * ArmBlockSize);

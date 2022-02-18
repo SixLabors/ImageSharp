@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="pixels">The pixel array to decode to.</param>
         public void DecodePixels(int dataSize, Buffer2D<byte> pixels)
         {
-            Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
+            Guard.MustBeLessThanOrEqualTo(1 << dataSize, MaxStackSize, nameof(dataSize));
 
             // The resulting index table length.
             int width = pixels.Width;

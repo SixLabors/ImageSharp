@@ -259,5 +259,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
         }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2012
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue2012EmptyXmp, PixelTypes.Rgba32)]
+        public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            image.DebugSave(provider);
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+        }
     }
 }

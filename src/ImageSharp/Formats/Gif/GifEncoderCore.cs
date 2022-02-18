@@ -123,7 +123,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteComments(gifMetadata, stream);
 
             // Write application extensions.
-            this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, metadata.XmpProfile);
+            XmpProfile xmpProfile = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
+            this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, xmpProfile);
 
             if (useGlobalTable)
             {
@@ -137,7 +138,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Clean up.
             quantized.Dispose();
 
-            // TODO: Write extension etc
             stream.WriteByte(GifConstants.EndIntroducer);
         }
 

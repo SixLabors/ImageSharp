@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 return CalculateSse(adler, buffer);
             }
 #if NET5_0_OR_GREATER
-            if (AdvSimd.IsSupported)
+            if (AdvSimd.IsSupported && buffer.Length >= MinBufferSize)
             {
                 return CalculateArm(adler, buffer);
             }
@@ -96,12 +96,10 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             uint blocks = length / BlockSize;
             length -= blocks * BlockSize;
 
-            int index = 0;
             fixed (byte* bufferPtr = buffer)
             {
                 fixed (byte* tapPtr = Tap1Tap2)
                 {
-                    index += (int)blocks * BlockSize;
                     byte* localBufferPtr = bufferPtr;
 
                     // _mm_setr_epi8 on x86
@@ -216,11 +214,11 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
         // Based on: https://github.com/chromium/chromium/blob/master/third_party/zlib/adler32_simd.c
         [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
-        private static unsafe uint CalculateArm(uint crc, ReadOnlySpan<byte> buffer)
+        private static unsafe uint CalculateArm(uint adler, ReadOnlySpan<byte> buffer)
         {
             // Split Adler-32 into component sums.
-            uint s1 = crc & 0xFFFF;
-            uint s2 = (crc >> 16) & 0xFFFF;
+            uint s1 = adler & 0xFFFF;
+            uint s2 = (adler >> 16) & 0xFFFF;
             int len = buffer.Length;
             int bufferOffset = 0;
 
@@ -269,7 +267,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                         vColumnSum4 = AdvSimd.AddWideningLower(vColumnSum4, bytes2.GetUpper().AsByte());
 
                         bufferOffset += BlockSize;
-                    } while (--n > 0);
+                    }
+                    while (--n > 0);
 
                     vs2 = AdvSimd.ShiftLeftLogical(vs2, 5);
 
@@ -359,7 +358,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                 while (length > 0)
                 {
-                    var k = length < Nmax ? length : Nmax;
+                    uint k = length < Nmax ? length : Nmax;
                     length -= k;
 
                     while (k >= 16)

@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     image.DebugSave(provider);
                 });
             Assert.NotNull(ex);
-            Assert.Contains("PNG Image does not contain palette chunk", ex.Message);
+            Assert.Contains("PNG Image does not contain a palette chunk", ex.Message);
         }
 
         [Theory]

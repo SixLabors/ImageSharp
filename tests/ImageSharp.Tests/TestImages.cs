@@ -453,6 +453,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string InvalidColorIndex = "Gif/issues/issue1668_invalidcolorindex.gif";
                 public const string Issue1962NoColorTable = "Gif/issues/issue1962_tiniest_gif_1st.gif";
                 public const string Issue2012EmptyXmp = "Gif/issues/issue2012_Stronghold-Crusader-Extreme-Cover.gif";
+                public const string Issue2012BadMinCode = "Gif/issues/issue2012_drona1.gif";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };

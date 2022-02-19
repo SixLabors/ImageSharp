@@ -68,15 +68,19 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="pixels">The pixel array to decode to.</param>
         public void DecodePixels(int dataSize, Buffer2D<byte> pixels)
         {
-            Guard.MustBeLessThanOrEqualTo(1 << dataSize, MaxStackSize, nameof(dataSize));
+            // Calculate the clear code. The value of the clear code is 2 ^ dataSize
+            int clearCode = 1 << dataSize;
+            if (clearCode > MaxStackSize)
+            {
+                // Don't attempt to decode the frame indices.
+                // The image is most likely corrupted.
+                return;
+            }
 
             // The resulting index table length.
             int width = pixels.Width;
             int height = pixels.Height;
             int length = width * height;
-
-            // Calculate the clear code. The value of the clear code is 2 ^ dataSize
-            int clearCode = 1 << dataSize;
 
             int codeSize = dataSize + 1;
 

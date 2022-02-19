@@ -378,8 +378,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 indices = this.Configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
-
                 this.ReadFrameIndices(indices);
+
                 Span<byte> rawColorTable = default;
                 if (localColorTable != null)
                 {

@@ -58,7 +58,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Fact]
         public void RunCalculateCrcTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateCrcTest, HwIntrinsics.DisableHWIntrinsic);
 
-        private static void RunCalculateCrcTest() => CalculateCrcAndCompareToReference(4096);
+        private static void RunCalculateCrcTest()
+        {
+            int[] testData = { 0, 8, 215, 1024, 1024 + 15, 2034, 4096 };
+            for (int i = 0; i < testData.Length; i++)
+            {
+                CalculateCrcAndCompareToReference(testData[i]);
+            }
+        }
 #endif
     }
 }

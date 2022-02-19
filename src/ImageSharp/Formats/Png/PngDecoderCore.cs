@@ -336,6 +336,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 break;
                             case PngChunkType.End:
                                 goto EOF;
+                            default:
+                                this.SkipChunkDataAndCrc(chunk);
+                                break;
                         }
                     }
                     finally

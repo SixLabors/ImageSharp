@@ -428,26 +428,31 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TGifExtension : struct, IGifExtension
         {
             IMemoryOwner<byte> owner = null;
-            Span<byte> buffer;
+            Span<byte> extensionBuffer;
             int extensionSize = extension.ContentLength;
-            if (extensionSize > this.buffer.Length - 3)
+
+            if (extensionSize == 0)
+            {
+                return;
+            }
+            else if (extensionSize > this.buffer.Length - 3)
             {
                 owner = this.memoryAllocator.Allocate<byte>(extensionSize + 3);
-                buffer = owner.GetSpan();
+                extensionBuffer = owner.GetSpan();
             }
             else
             {
-                buffer = this.buffer;
+                extensionBuffer = this.buffer;
             }
 
-            buffer[0] = GifConstants.ExtensionIntroducer;
-            buffer[1] = extension.Label;
+            extensionBuffer[0] = GifConstants.ExtensionIntroducer;
+            extensionBuffer[1] = extension.Label;
 
-            extension.WriteTo(buffer.Slice(2));
+            extension.WriteTo(extensionBuffer.Slice(2));
 
-            buffer[extensionSize + 2] = GifConstants.Terminator;
+            extensionBuffer[extensionSize + 2] = GifConstants.Terminator;
 
-            stream.Write(buffer, 0, extensionSize + 3);
+            stream.Write(extensionBuffer, 0, extensionSize + 3);
             owner?.Dispose();
         }
 

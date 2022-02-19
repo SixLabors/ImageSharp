@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         // size          : 1
         // identifier    : 11
         // magic trailer : 257
-        public int ContentLength => this.Data.Length + 269;
+        public int ContentLength => (this.Data.Length > 0) ? this.Data.Length + 269 : 0;
 
         /// <summary>
         /// Gets the raw Data.
@@ -50,12 +50,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         public int WriteTo(Span<byte> buffer)
         {
-            int totalSize = this.ContentLength;
-            if (buffer.Length < totalSize)
-            {
-                ThrowInsufficientMemory();
-            }
-
             int bytesWritten = 0;
             buffer[bytesWritten++] = GifConstants.ApplicationBlockSize;
 
@@ -77,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             buffer[bytesWritten++] = 0x00;
 
-            return totalSize;
+            return this.ContentLength;
         }
 
         private static byte[] ReadXmpData(Stream stream, MemoryAllocator allocator)
@@ -100,8 +94,5 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 bytes.WriteByte((byte)b);
             }
         }
-
-        private static void ThrowInsufficientMemory()
-            => throw new InsufficientMemoryException("Unable to write XMP metadata to GIF image");
     }
 }

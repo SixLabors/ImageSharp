@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             // Process the data in blocks.
             long blocks = len / BlockSize;
             len -= (int)(blocks * BlockSize);
-            fixed (byte* bufferPtr = buffer)
+            fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
             {
                 while (blocks != 0)
                 {
@@ -241,8 +241,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                     // Process n blocks of data. At most nMax data bytes can be
                     // processed before s2 must be reduced modulo Base.
-                    var vs2 = Vector128.Create(0, 0, 0, s1 * n);
                     Vector128<uint> vs1 = Vector128<uint>.Zero;
+                    Vector128<uint> vs2 = vs1.WithElement(3, s1 * n);
                     Vector128<ushort> vColumnSum1 = Vector128<ushort>.Zero;
                     Vector128<ushort> vColumnSum2 = Vector128<ushort>.Zero;
                     Vector128<ushort> vColumnSum3 = Vector128<ushort>.Zero;
@@ -352,7 +352,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             uint s1 = adler & 0xFFFF;
             uint s2 = (adler >> 16) & 0xFFFF;
 
-            fixed (byte* bufferPtr = buffer)
+            fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
             {
                 byte* localBufferPtr = bufferPtr;
                 uint length = (uint)buffer.Length;

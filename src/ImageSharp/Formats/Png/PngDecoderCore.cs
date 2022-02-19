@@ -336,9 +336,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 break;
                             case PngChunkType.End:
                                 goto EOF;
-                            default:
-                                this.SkipChunkDataAndCrc(chunk);
-                                break;
                         }
                     }
                     finally
@@ -1400,6 +1397,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency)
             {
                 chunk = new PngChunk(length, type);
+
+                this.SkipChunkDataAndCrc(chunk);
 
                 return true;
             }

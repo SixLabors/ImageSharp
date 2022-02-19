@@ -4,6 +4,20 @@ description: |
   Please contact help@sixlabors.com for issues requiring private support.
 labels: ["commercial", "needs triage"]
 body:
+- type: checkboxes
+  attributes:
+    label: Prerequisites
+    options:
+      - label: I have bought a Commercial License
+        required: true
+      - label: I have written a descriptive issue title
+        required: true
+      - label: I have verified that I am running the latest version of ImageSharp
+        required: true
+      - label: I have verified if the problem exist in both `DEBUG` and `RELEASE` mode
+        required: true
+      - label: I have searched [open](https://github.com/SixLabors/ImageSharp/issues) and [closed](https://github.com/SixLabors/ImageSharp/issues?q=is%3Aissue+is%3Aclosed) issues to ensure it has not already been reported
+        required: true
 - type: input
   attributes:
     label: ImageSharp version

@@ -170,45 +170,50 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                     if (length > 0)
                     {
-                        if (length >= 16)
-                        {
-                            s2 += s1 += localBufferPtr[0];
-                            s2 += s1 += localBufferPtr[1];
-                            s2 += s1 += localBufferPtr[2];
-                            s2 += s1 += localBufferPtr[3];
-                            s2 += s1 += localBufferPtr[4];
-                            s2 += s1 += localBufferPtr[5];
-                            s2 += s1 += localBufferPtr[6];
-                            s2 += s1 += localBufferPtr[7];
-                            s2 += s1 += localBufferPtr[8];
-                            s2 += s1 += localBufferPtr[9];
-                            s2 += s1 += localBufferPtr[10];
-                            s2 += s1 += localBufferPtr[11];
-                            s2 += s1 += localBufferPtr[12];
-                            s2 += s1 += localBufferPtr[13];
-                            s2 += s1 += localBufferPtr[14];
-                            s2 += s1 += localBufferPtr[15];
-
-                            localBufferPtr += 16;
-                            length -= 16;
-                        }
-
-                        while (length-- > 0)
-                        {
-                            s2 += s1 += *localBufferPtr++;
-                        }
-
-                        if (s1 >= Base)
-                        {
-                            s1 -= Base;
-                        }
-
-                        s2 %= Base;
+                        HandleLeftOver(localBufferPtr, length, ref s1, ref s2);
                     }
 
                     return s1 | (s2 << 16);
                 }
             }
+        }
+
+        private static unsafe void HandleLeftOver(byte* localBufferPtr, uint length, ref uint s1, ref uint s2)
+        {
+            if (length >= 16)
+            {
+                s2 += s1 += localBufferPtr[0];
+                s2 += s1 += localBufferPtr[1];
+                s2 += s1 += localBufferPtr[2];
+                s2 += s1 += localBufferPtr[3];
+                s2 += s1 += localBufferPtr[4];
+                s2 += s1 += localBufferPtr[5];
+                s2 += s1 += localBufferPtr[6];
+                s2 += s1 += localBufferPtr[7];
+                s2 += s1 += localBufferPtr[8];
+                s2 += s1 += localBufferPtr[9];
+                s2 += s1 += localBufferPtr[10];
+                s2 += s1 += localBufferPtr[11];
+                s2 += s1 += localBufferPtr[12];
+                s2 += s1 += localBufferPtr[13];
+                s2 += s1 += localBufferPtr[14];
+                s2 += s1 += localBufferPtr[15];
+
+                localBufferPtr += 16;
+                length -= 16;
+            }
+
+            while (length-- > 0)
+            {
+                s2 += s1 += *localBufferPtr++;
+            }
+
+            if (s1 >= Base)
+            {
+                s1 -= Base;
+            }
+
+            s2 %= Base;
         }
 
 #if NET5_0_OR_GREATER
@@ -220,14 +225,15 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             // Split Adler-32 into component sums.
             uint s1 = adler & 0xFFFF;
             uint s2 = (adler >> 16) & 0xFFFF;
-            int len = buffer.Length;
-            int bufferOffset = 0;
+            uint length = (uint)buffer.Length;
 
             // Process the data in blocks.
-            long blocks = len / BlockSize;
-            len -= (int)(blocks * BlockSize);
+            long blocks = length / BlockSize;
+            length -= (uint)(blocks * BlockSize);
             fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
             {
+                byte* localBufferPtr = bufferPtr;
+
                 while (blocks != 0)
                 {
                     uint n = Nmax / BlockSize;
@@ -250,8 +256,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     do
                     {
                         // Load 32 input bytes.
-                        Vector128<ushort> bytes1 = AdvSimd.LoadVector128(bufferPtr + bufferOffset).AsUInt16();
-                        Vector128<ushort> bytes2 = AdvSimd.LoadVector128(bufferPtr + bufferOffset + 16).AsUInt16();
+                        Vector128<ushort> bytes1 = AdvSimd.LoadVector128(localBufferPtr).AsUInt16();
+                        Vector128<ushort> bytes2 = AdvSimd.LoadVector128(localBufferPtr + 0x10).AsUInt16();
 
                         // Add previous block byte sum to v_s2.
                         vs2 = AdvSimd.Add(vs2, vs1);
@@ -267,7 +273,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                         vColumnSum3 = AdvSimd.AddWideningLower(vColumnSum3, bytes2.GetLower().AsByte());
                         vColumnSum4 = AdvSimd.AddWideningLower(vColumnSum4, bytes2.GetUpper().AsByte());
 
-                        bufferOffset += BlockSize;
+                        localBufferPtr += BlockSize;
                     }
                     while (--n > 0);
 
@@ -296,47 +302,11 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     s1 %= Base;
                     s2 %= Base;
                 }
-            }
 
-            // Handle leftover data.
-            if (len != 0)
-            {
-                if (len >= 16)
+                if (length != 0)
                 {
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-                    s2 += s1 += buffer[bufferOffset++];
-
-                    len -= 16;
+                    HandleLeftOver(localBufferPtr, length, ref s1, ref s2);
                 }
-
-                while (len-- > 0)
-                {
-                    s2 += s1 += buffer[bufferOffset++];
-                }
-
-                if (s1 >= Base)
-                {
-                    s1 -= Base;
-                }
-
-                s2 %= Base;
             }
 
             // Return the recombined sums.

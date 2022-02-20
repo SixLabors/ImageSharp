@@ -289,8 +289,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     Vector64<uint> s1s2 = AdvSimd.AddPairwise(sum1, sum2);
 
                     // Store the results.
-                    s1 = AdvSimd.Extract(s1s2, 0);
-                    s2 = AdvSimd.Extract(s1s2, 1);
+                    s1 += AdvSimd.Extract(s1s2, 0);
+                    s2 += AdvSimd.Extract(s1s2, 1);
 
                     // Reduce.
                     s1 %= Base;

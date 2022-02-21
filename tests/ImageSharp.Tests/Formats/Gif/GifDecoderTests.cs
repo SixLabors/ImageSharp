@@ -278,6 +278,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Issue2012BadMinCode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Exception ex = Record.Exception(
+                () =>
+                {
+                    using Image<TPixel> image = provider.GetImage();
+                    image.DebugSave(provider);
+                });
+
+            Assert.NotNull(ex);
+            Assert.Contains("Gif Image does not contain a valid LZW minimum code.", ex.Message);
+        }
+
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.DeferredClearCode, PixelTypes.Rgba32)]
+        public void IssueDeferredClearCode<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             using Image<TPixel> image = provider.GetImage();
 
             image.DebugSave(provider);

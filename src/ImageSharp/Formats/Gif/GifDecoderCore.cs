@@ -410,9 +410,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReadFrameIndices(Buffer2D<byte> indices)
         {
-            int dataSize = this.stream.ReadByte();
+            int minCodeSize = this.stream.ReadByte();
             using var lzwDecoder = new LzwDecoder(this.Configuration.MemoryAllocator, this.stream);
-            lzwDecoder.DecodePixels(dataSize, indices);
+            lzwDecoder.DecodePixels(minCodeSize, indices);
         }
 
         /// <summary>

@@ -432,7 +432,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (data.Length < 4)
             {
-                PngThrowHelper.ThrowInvalidGamma();
+                // Ignore invalid gamma chunks.
+                return;
             }
 
             // For example, a gamma of 1/2.2 would be stored as 45455.

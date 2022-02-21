@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithFile(TestImages.Png.Bad.InvalidGammaChunk, PixelTypes.Rgba32)]
-        public void Decode_InvalidGammaChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
+        public void Decode_InvalidGammaChunk_Ignored<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Exception ex = Record.Exception(
@@ -292,8 +292,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     using Image<TPixel> image = provider.GetImage(PngDecoder);
                     image.DebugSave(provider);
                 });
-            Assert.NotNull(ex);
-            Assert.Contains("PNG Image does not contain enough data for the gamma chunk", ex.Message);
+            Assert.Null(ex);
         }
 
         [Theory]

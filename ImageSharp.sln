@@ -142,6 +142,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gif", "Gif", "{EE3FB0B3-1C3
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{BF8DFDC1-CEE5-4A37-B216-D3085360C776}"
 	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Gif\issues\bugzilla-55918.gif = tests\Images\Input\Gif\issues\bugzilla-55918.gif
+		tests\Images\Input\Gif\issues\issue1505_argumentoutofrange.png = tests\Images\Input\Gif\issues\issue1505_argumentoutofrange.png
+		tests\Images\Input\Gif\issues\issue1530.gif = tests\Images\Input\Gif\issues\issue1530.gif
+		tests\Images\Input\Gif\issues\issue1668_invalidcolorindex.gif = tests\Images\Input\Gif\issues\issue1668_invalidcolorindex.gif
+		tests\Images\Input\Gif\issues\issue1962_tiniest_gif_1st.gif = tests\Images\Input\Gif\issues\issue1962_tiniest_gif_1st.gif
+		tests\Images\Input\Gif\issues\issue2012_drona1.gif = tests\Images\Input\Gif\issues\issue2012_drona1.gif
+		tests\Images\Input\Gif\issues\issue2012_Stronghold-Crusader-Extreme-Cover.gif = tests\Images\Input\Gif\issues\issue2012_Stronghold-Crusader-Extreme-Cover.gif
 		tests\Images\Input\Gif\issues\issue403_baddescriptorwidth.gif = tests\Images\Input\Gif\issues\issue403_baddescriptorwidth.gif
 		tests\Images\Input\Gif\issues\issue405_badappextlength252-2.gif = tests\Images\Input\Gif\issues\issue405_badappextlength252-2.gif
 		tests\Images\Input\Gif\issues\issue405_badappextlength252.gif = tests\Images\Input\Gif\issues\issue405_badappextlength252.gif

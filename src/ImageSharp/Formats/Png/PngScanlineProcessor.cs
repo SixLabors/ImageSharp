@@ -240,6 +240,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             byte[] paletteAlpha)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (palette.IsEmpty)
+            {
+                PngThrowHelper.ThrowMissingPalette();
+            }
+
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);

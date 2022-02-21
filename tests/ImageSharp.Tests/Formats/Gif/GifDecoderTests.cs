@@ -259,5 +259,46 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
         }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2012
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue2012EmptyXmp, PixelTypes.Rgba32)]
+        public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            image.DebugSave(provider);
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2012
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue2012BadMinCode, PixelTypes.Rgba32)]
+        public void Issue2012BadMinCode<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(
+                () =>
+                {
+                    using Image<TPixel> image = provider.GetImage();
+                    image.DebugSave(provider);
+                });
+
+            Assert.NotNull(ex);
+            Assert.Contains("Gif Image does not contain a valid LZW minimum code.", ex.Message);
+        }
+
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.DeferredClearCode, PixelTypes.Rgba32)]
+        public void IssueDeferredClearCode<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            image.DebugSave(provider);
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+        }
     }
 }

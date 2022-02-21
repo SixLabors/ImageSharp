@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // Don't attempt to decode the frame indices.
                 // Theoretically we could determine a min code size from the length of the provided
                 // color palette but we won't bother since the image is most likely corrupted.
-                ThrowBadMinimumCode();
+                GifThrowHelper.ThrowInvalidImageContentException("Gif Image does not contain a valid LZW minimum code.");
             }
 
             // The resulting index table length.
@@ -263,8 +263,5 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.suffix.Dispose();
             this.pixelStack.Dispose();
         }
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowBadMinimumCode() => throw new InvalidImageContentException("Gif Image does not contain a valid LZW minimum code.");
     }
 }

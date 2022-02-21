@@ -127,6 +127,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
                 public const string WrongCrcDataChunk = "Png/xcsn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+                public const string MissingPaletteChunk1 = "Png/missing_plte.png";
+                public const string MissingPaletteChunk2 = "Png/missing_plte_2.png";
 
                 // Zlib errors.
                 public const string ZlibOverflow = "Png/zlib-overflow.png";

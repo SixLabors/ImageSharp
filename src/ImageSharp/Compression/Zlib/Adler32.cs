@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 #if SUPPORTS_RUNTIME_INTRINSICS
         private const int MinBufferSize = 64;
 
-        private const int BLOCK_SIZE = 1 << 5;
+        private const int BlockSize = 1 << 5;
 
         // The C# compiler emits this as a compile-time constant embedded in the PE file.
         private static ReadOnlySpan<byte> Tap1Tap2 => new byte[]
@@ -91,15 +91,15 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
             // Process the data in blocks.
             uint length = (uint)buffer.Length;
-            uint blocks = length / BLOCK_SIZE;
-            length -= blocks * BLOCK_SIZE;
+            uint blocks = length / BlockSize;
+            length -= blocks * BlockSize;
 
             int index = 0;
             fixed (byte* bufferPtr = buffer)
             {
                 fixed (byte* tapPtr = Tap1Tap2)
                 {
-                    index += (int)blocks * BLOCK_SIZE;
+                    index += (int)blocks * BlockSize;
                     var localBufferPtr = bufferPtr;
 
                     // _mm_setr_epi8 on x86
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
                     while (blocks > 0)
                     {
-                        uint n = NMAX / BLOCK_SIZE;  /* The NMAX constraint. */
+                        uint n = NMAX / BlockSize;  /* The NMAX constraint. */
                         if (n > blocks)
                         {
                             n = blocks;
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                             Vector128<short> mad2 = Ssse3.MultiplyAddAdjacent(bytes2, tap2);
                             v_s2 = Sse2.Add(v_s2, Sse2.MultiplyAddAdjacent(mad2, ones).AsUInt32());
 
-                            localBufferPtr += BLOCK_SIZE;
+                            localBufferPtr += BlockSize;
                         }
                         while (--n > 0);
 
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                         vs2 = Avx2.Add(vsum2.AsUInt32(), vs2);
                         vs10 = vs1;
 
-                        localBufferPtr += BLOCK_SIZE;
+                        localBufferPtr += BlockSize;
                         k -= 32;
                     }
 

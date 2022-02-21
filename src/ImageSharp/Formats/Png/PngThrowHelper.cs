@@ -25,6 +25,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         public static void ThrowMissingPalette() => throw new InvalidImageContentException("PNG Image does not contain a palette chunk");
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidGamma() => throw new InvalidImageContentException("PNG Image does not contain enough data for the gamma chunk");
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowInvalidChunkType() => throw new InvalidImageContentException("Invalid PNG data.");
 
         [MethodImpl(InliningOptions.ColdPath)]

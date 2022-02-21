@@ -282,6 +282,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithFile(TestImages.Png.Bad.InvalidGammaChunk, PixelTypes.Rgba32)]
+        public void Decode_InvalidGammaChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(
+                () =>
+                {
+                    using Image<TPixel> image = provider.GetImage(PngDecoder);
+                    image.DebugSave(provider);
+                });
+            Assert.NotNull(ex);
+            Assert.Contains("PNG Image does not contain enough data for the gamma chunk", ex.Message);
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.Bad.BitDepthZero, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bad.BitDepthThree, PixelTypes.Rgba32)]
         public void Decode_InvalidBitDepth_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)

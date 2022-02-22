@@ -265,10 +265,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
                 bool isXmp = this.buffer.AsSpan().StartsWith(GifConstants.XmpApplicationIdentificationBytes);
 
-                if (isXmp)
+                if (isXmp && !this.IgnoreMetadata)
                 {
-                    var extension = GifXmpApplicationExtension.Read(this.stream);
-                    this.metadata.XmpProfile = new XmpProfile(extension.Data);
+                    var extension = GifXmpApplicationExtension.Read(this.stream, this.MemoryAllocator);
+                    if (extension.Data.Length > 0)
+                    {
+                        this.metadata.XmpProfile = new XmpProfile(extension.Data);
+                    }
+
                     return;
                 }
                 else
@@ -374,8 +378,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 indices = this.Configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
-
                 this.ReadFrameIndices(indices);
+
                 Span<byte> rawColorTable = default;
                 if (localColorTable != null)
                 {
@@ -406,9 +410,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReadFrameIndices(Buffer2D<byte> indices)
         {
-            int dataSize = this.stream.ReadByte();
+            int minCodeSize = this.stream.ReadByte();
             using var lzwDecoder = new LzwDecoder(this.Configuration.MemoryAllocator, this.stream);
-            lzwDecoder.DecodePixels(dataSize, indices);
+            lzwDecoder.DecodePixels(minCodeSize, indices);
         }
 
         /// <summary>

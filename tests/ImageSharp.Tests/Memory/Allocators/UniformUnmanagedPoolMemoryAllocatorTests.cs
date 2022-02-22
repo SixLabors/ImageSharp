@@ -379,5 +379,20 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 g1.GetSpan()[0] = 42;
             }
         }
+
+#if NETCOREAPP3_1_OR_GREATER
+        [Fact]
+        public void Issue2001_NegativeMemoryReportedByGc()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                // Emulate GC.GetGCMemoryInfo() issue https://github.com/dotnet/runtime/issues/65466
+                UniformUnmanagedMemoryPoolMemoryAllocator.GetTotalAvailableMemoryBytes = () => -402354176;
+                _ = MemoryAllocator.Create();
+            }
+        }
+#endif
     }
 }

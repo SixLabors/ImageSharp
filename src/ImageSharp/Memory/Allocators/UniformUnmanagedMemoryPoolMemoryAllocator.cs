@@ -1,11 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -22,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory
         private readonly int poolCapacity;
         private readonly UniformUnmanagedMemoryPool.TrimSettings trimSettings;
 
-        private UniformUnmanagedMemoryPool pool;
+        private readonly UniformUnmanagedMemoryPool pool;
         private readonly UnmanagedMemoryAllocator nonPoolAllocator;
 
         public UniformUnmanagedMemoryPoolMemoryAllocator(int? maxPoolSizeMegabytes)

@@ -127,6 +127,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
                 public const string WrongCrcDataChunk = "Png/xcsn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+                public const string MissingPaletteChunk1 = "Png/missing_plte.png";
+                public const string MissingPaletteChunk2 = "Png/missing_plte_2.png";
+                public const string InvalidGammaChunk = "Png/length_gama.png";
 
                 // Zlib errors.
                 public const string ZlibOverflow = "Png/zlib-overflow.png";
@@ -448,10 +451,13 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
                 public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+                public const string DeferredClearCode = "Gif/issues/bugzilla-55918.gif";
                 public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
                 public const string Issue1530 = "Gif/issues/issue1530.gif";
                 public const string InvalidColorIndex = "Gif/issues/issue1668_invalidcolorindex.gif";
                 public const string Issue1962NoColorTable = "Gif/issues/issue1962_tiniest_gif_1st.gif";
+                public const string Issue2012EmptyXmp = "Gif/issues/issue2012_Stronghold-Crusader-Extreme-Cover.gif";
+                public const string Issue2012BadMinCode = "Gif/issues/issue2012_drona1.gif";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };

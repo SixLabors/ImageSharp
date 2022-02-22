@@ -71,13 +71,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             dest = this;
 
-            return 5;
+            return ((IGifExtension)this).ContentLength;
         }
 
         public static GifGraphicControlExtension Parse(ReadOnlySpan<byte> buffer)
-        {
-            return MemoryMarshal.Cast<byte, GifGraphicControlExtension>(buffer)[0];
-        }
+            => MemoryMarshal.Cast<byte, GifGraphicControlExtension>(buffer)[0];
 
         public static byte GetPackedValue(GifDisposalMethod disposalMethod, bool userInputFlag = false, bool transparencyFlag = false)
         {

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -66,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Theory]
         [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, false)]
         [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, true)]
-        public async void IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
+        public async Task IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };

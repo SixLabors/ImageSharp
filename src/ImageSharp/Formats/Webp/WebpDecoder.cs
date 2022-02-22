@@ -49,6 +49,5 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             return new WebpDecoderCore(configuration, this).Identify(configuration, stream, cancellationToken);
         }
-
     }
 }

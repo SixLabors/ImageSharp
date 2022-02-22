@@ -30,118 +30,78 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         {
             DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
 
-            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
-            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
-
             // The Avg filter predicts each pixel as the (truncated) average of a and b:
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse2.IsSupported && bytesPerPixel is 3 or 4)
+            if (Sse2.IsSupported && bytesPerPixel is 4)
             {
-                if (bytesPerPixel is 3)
-                {
-                    Vector128<byte> a = Vector128<byte>.Zero;
-                    Vector128<byte> b = Vector128<byte>.Zero;
-                    Vector128<byte> d = Vector128<byte>.Zero;
-                    var ones = Vector128.Create((byte)1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
-
-                    Span<byte> scratch = stackalloc byte[4];
-                    ref byte scratchRef = ref MemoryMarshal.GetReference(scratch);
-                    int rb = scanline.Length;
-                    int offset = 0;
-                    while (rb >= 4)
-                    {
-                        ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
-                        a = d;
-                        b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
-                        d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
-
-                        d = AverageSubtractAdd(a, b, d, ones);
-
-                        // Store the result.
-                        int result = Sse2.ConvertToInt32(d.AsInt32());
-                        Unsafe.As<byte, int>(ref scanRef) = result;
-
-                        rb -= 3;
-                        offset += 3;
-                    }
-
-                    if (rb is 3)
-                    {
-                        a = d;
-                        scratch[3] = 0;
-                        previousScanline.Slice(offset, 3).CopyTo(scratch);
-                        b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scratchRef)).AsByte();
-                        scanline.Slice(offset, 3).CopyTo(scratch);
-                        d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scratchRef)).AsByte();
-
-                        d = AverageSubtractAdd(a, b, d, ones);
-
-                        // Store the result.
-                        int result = Sse2.ConvertToInt32(d.AsInt32());
-                        Unsafe.As<byte, int>(ref scratchRef) = result;
-                        scratch.Slice(0, 3).CopyTo(scanline.Slice(offset, 3));
-                    }
-                }
-                else
-                {
-                    Vector128<byte> a = Vector128<byte>.Zero;
-                    Vector128<byte> b = Vector128<byte>.Zero;
-                    Vector128<byte> d = Vector128<byte>.Zero;
-                    var ones = Vector128.Create((byte)1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
-
-                    int rb = scanline.Length;
-                    int offset = 0;
-                    while (rb >= 4)
-                    {
-                        ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
-                        a = d;
-                        b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
-                        d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref scanBaseRef, offset))).AsByte();
-
-                        d = AverageSubtractAdd(a, b, d, ones);
-
-                        // Store the result.
-                        int result = Sse2.ConvertToInt32(d.AsInt32());
-                        Unsafe.As<byte, int>(ref scanRef) = result;
-
-                        rb -= 4;
-                        offset += 4;
-                    }
-                }
+                DecodeSse2(scanline, previousScanline);
             }
             else
 #endif
             {
-                int x = 1;
-                for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x)
-                {
-                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    scan = (byte)(scan + (above >> 1));
-                }
-
-                for (; x < scanline.Length; ++x)
-                {
-                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-                    byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    scan = (byte)(scan + Average(left, above));
-                }
+                DecodeScalar(scanline, previousScanline, bytesPerPixel);
             }
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<byte> AverageSubtractAdd(Vector128<byte> a, Vector128<byte> b, Vector128<byte> d, Vector128<byte> ones)
+        private static void DecodeSse2(Span<byte> scanline, Span<byte> previousScanline)
         {
-            // PNG requires a truncating average, so we can't just use _mm_avg_epu8.
-            // ...but we can fix it up by subtracting off 1 if it rounded up.
-            Vector128<byte> avg = Sse2.Average(a, b);
-            avg = Sse2.Subtract(avg, Sse2.And(Sse2.Xor(a, b), ones));
-            return Sse2.Add(d, avg);
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            Vector128<byte> d = Vector128<byte>.Zero;
+            var ones = Vector128.Create((byte)1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+
+            int rb = scanline.Length;
+            int offset = 1;
+            while (rb >= 4)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector128<byte> a = d;
+                Vector128<byte> b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+                d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+
+                // PNG requires a truncating average, so we can't just use _mm_avg_epu8,
+                // but we can fix it up by subtracting off 1 if it rounded up.
+                Vector128<byte> avg = Sse2.Average(a, b);
+                Vector128<byte> xor = Sse2.Xor(a, b);
+                Vector128<byte> and = Sse2.And(xor, ones);
+                avg = Sse2.Subtract(avg, and);
+                d = Sse2.Add(d, avg);
+
+                // Store the result.
+                Unsafe.As<byte, int>(ref scanRef) = Sse2.ConvertToInt32(d.AsInt32());
+
+                rb -= 4;
+                offset += 4;
+            }
         }
 #endif
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            int x = 1;
+            for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x)
+            {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                scan = (byte)(scan + (above >> 1));
+            }
+
+            for (; x < scanline.Length; ++x)
+            {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                scan = (byte)(scan + Average(left, above));
+            }
+        }
 
         /// <summary>
         /// Encodes a scanline with the average filter applied.

@@ -74,9 +74,11 @@ namespace SixLabors.ImageSharp.Memory
             this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
         }
 
+#if NETCOREAPP3_1_OR_GREATER
         // This delegate allows overriding the method returning the available system memory,
         // so we can test our workaround for https://github.com/dotnet/runtime/issues/65466
         internal static Func<long> GetTotalAvailableMemoryBytes { get; set; } = () => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+#endif
 
         /// <inheritdoc />
         protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;

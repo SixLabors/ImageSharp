@@ -484,13 +484,14 @@ namespace SixLabors.ImageSharp.Compression.Zlib
 
             int matchStrt = this.matchStart;
             int matchLength = this.matchLen;
-            matchLength  = Math.Max(matchLength, DeflaterConstants.MIN_MATCH - 1);
+            matchLength = Math.Max(matchLength, DeflaterConstants.MIN_MATCH - 1);
             this.matchLen = matchLength;
 
             if (scan > scanMax - matchLength)
             {
                 return false;
             }
+
             int scanEndPosition = scan + matchLength;
 
             byte* pinnedWindow = this.pinnedWindowPointer;

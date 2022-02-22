@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp
         /// The image might be filled with memory garbage.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="configuration">The <see cref="ImageSharp.Configuration"/></param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
         /// <param name="width">The width of the image</param>
         /// <param name="height">The height of the image</param>
         /// <param name="metadata">The <see cref="ImageMetadata"/></param>
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
 
-            if (!(decoder is IImageInfoDetector detector))
+            if (decoder is not IImageInfoDetector detector)
             {
                 return (null, null);
             }

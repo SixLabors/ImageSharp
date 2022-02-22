@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -42,9 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new GifDecoderCore(configuration, this);
-
-            using var bufferedStream = new BufferedReadStream(configuration, stream);
-            return decoder.Identify(bufferedStream, cancellationToken);
+            return decoder.Identify(configuration, stream, cancellationToken);
         }
     }
 }

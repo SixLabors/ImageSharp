@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats
             this IImageDecoderInternals decoder,
             Configuration configuration,
             Stream stream,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
         {
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);
 
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats
             this IImageDecoderInternals decoder,
             Configuration configuration,
             Stream stream,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
             => decoder.Decode<TPixel>(configuration, stream, DefaultLargeImageExceptionFactory, cancellationToken);
 
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats
             Configuration configuration,
             Stream stream,
             Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);
@@ -61,6 +61,6 @@ namespace SixLabors.ImageSharp.Formats
         private static InvalidImageContentException DefaultLargeImageExceptionFactory(
             InvalidMemoryOperationException memoryOperationException,
             Size dimensions) =>
-            new InvalidImageContentException(dimensions, memoryOperationException);
+            new(dimensions, memoryOperationException);
     }
 }

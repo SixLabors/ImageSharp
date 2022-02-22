@@ -21,14 +21,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
 
             var decoder = new TiffDecoderCore(configuration, this);
             return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)

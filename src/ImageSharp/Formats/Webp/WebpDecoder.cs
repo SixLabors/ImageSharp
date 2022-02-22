@@ -38,6 +38,10 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
         }
 
+        /// <inheritdoc />
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
+
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
@@ -46,7 +50,5 @@ namespace SixLabors.ImageSharp.Formats.Webp
             return new WebpDecoderCore(configuration, this).Identify(configuration, stream, cancellationToken);
         }
 
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
     }
 }

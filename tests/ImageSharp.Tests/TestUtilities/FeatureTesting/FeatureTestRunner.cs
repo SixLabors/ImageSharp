@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
     /// </summary>
     public static class FeatureTestRunner
     {
-        private static readonly char[] SplitChars = new[] { ',', ' ' };
+        private static readonly char[] SplitChars = { ',', ' ' };
 
         /// <summary>
         /// Allows the deserialization of parameters passed to the feature test.
@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         internal static Dictionary<HwIntrinsics, string> ToFeatureKeyValueCollection(this HwIntrinsics intrinsics)
         {
-            // Loop through and translate the given values into COMPlus equivaluents
+            // Loop through and translate the given values into COMPlus equivalents.
             var features = new Dictionary<HwIntrinsics, string>();
             foreach (string intrinsic in intrinsics.ToString("G").Split(SplitChars, StringSplitOptions.RemoveEmptyEntries))
             {
@@ -407,6 +407,12 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         DisableBMI1 = 1 << 14,
         DisableBMI2 = 1 << 15,
         DisableLZCNT = 1 << 16,
-        AllowAll = 1 << 17
+        DisableArm64AdvSimd = 1 << 17,
+        DisableArm64Crc32 = 1 << 18,
+        DisableArm64Dp = 1 << 19,
+        DisableArm64Aes = 1 << 20,
+        DisableArm64Sha1 = 1 << 21,
+        DisableArm64Sha256 = 1 << 22,
+        AllowAll = 1 << 23
     }
 }

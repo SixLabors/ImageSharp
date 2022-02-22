@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -94,13 +95,11 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             uint blocks = length / BlockSize;
             length -= blocks * BlockSize;
 
-            int index = 0;
-            fixed (byte* bufferPtr = buffer)
+            fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
             {
-                fixed (byte* tapPtr = Tap1Tap2)
+                fixed (byte* tapPtr = &MemoryMarshal.GetReference(Tap1Tap2))
                 {
-                    index += (int)blocks * BlockSize;
-                    var localBufferPtr = bufferPtr;
+                    byte* localBufferPtr = bufferPtr;
 
                     // _mm_setr_epi8 on x86
                     Vector128<sbyte> tap1 = Sse2.LoadVector128((sbyte*)tapPtr);
@@ -185,7 +184,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             uint s2 = (adler >> 16) & 0xFFFF;
             uint length = (uint)buffer.Length;
 
-            fixed (byte* bufferPtr = buffer)
+            fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
             {
                 byte* localBufferPtr = bufferPtr;
 

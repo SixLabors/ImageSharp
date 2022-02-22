@@ -380,6 +380,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
+#if NETCOREAPP3_1_OR_GREATER
         [Fact]
         public void Issue2001_NegativeMemoryReportedByGc()
         {
@@ -392,5 +393,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 _ = MemoryAllocator.Create();
             }
         }
+#endif
     }
 }

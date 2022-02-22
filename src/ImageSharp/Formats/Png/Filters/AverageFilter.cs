@@ -51,16 +51,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     int offset = 0;
                     while (rb >= 4)
                     {
+                        ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
                         a = d;
                         b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
-                        d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref scanBaseRef, offset))).AsByte();
+                        d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
 
                         d = AverageSubtractAdd(a, b, d, ones);
 
                         // Store the result.
                         int result = Sse2.ConvertToInt32(d.AsInt32());
-                        Unsafe.As<byte, int>(ref scratchRef) = result;
-                        scratch.Slice(0, 3).CopyTo(scanline.Slice(offset, 3));
+                        Unsafe.As<byte, int>(ref scanRef) = result;
 
                         rb -= 3;
                         offset += 3;
@@ -90,22 +90,20 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     Vector128<byte> d = Vector128<byte>.Zero;
                     var ones = Vector128.Create((byte)1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
-                    Span<byte> scratch = stackalloc byte[4];
-                    ref byte scratchRef = ref MemoryMarshal.GetReference(scratch);
                     int rb = scanline.Length;
                     int offset = 0;
                     while (rb >= 4)
                     {
+                        ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
                         a = d;
-                        b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+                        b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
                         d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref scanBaseRef, offset))).AsByte();
 
                         d = AverageSubtractAdd(a, b, d, ones);
 
                         // Store the result.
                         int result = Sse2.ConvertToInt32(d.AsInt32());
-                        Unsafe.As<byte, int>(ref scratchRef) = result;
-                        scratch.CopyTo(scanline.Slice(offset, 4));
+                        Unsafe.As<byte, int>(ref scanRef) = result;
 
                         rb -= 4;
                         offset += 4;

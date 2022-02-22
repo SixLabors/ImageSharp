@@ -64,21 +64,30 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Decodes and decompresses all pixel indices from the stream.
         /// </summary>
-        /// <param name="dataSize">Size of the data.</param>
+        /// <param name="minCodeSize">Minimum code size of the data.</param>
         /// <param name="pixels">The pixel array to decode to.</param>
-        public void DecodePixels(int dataSize, Buffer2D<byte> pixels)
+        public void DecodePixels(int minCodeSize, Buffer2D<byte> pixels)
         {
-            Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
+            // Calculate the clear code. The value of the clear code is 2 ^ minCodeSize
+            int clearCode = 1 << minCodeSize;
+
+            // It is possible to specify a larger LZW minimum code size than the palette length in bits
+            // which may leave a gap in the codes where no colors are assigned.
+            // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
+            if (minCodeSize < 2 || clearCode > MaxStackSize)
+            {
+                // Don't attempt to decode the frame indices.
+                // Theoretically we could determine a min code size from the length of the provided
+                // color palette but we won't bother since the image is most likely corrupted.
+                GifThrowHelper.ThrowInvalidImageContentException("Gif Image does not contain a valid LZW minimum code.");
+            }
 
             // The resulting index table length.
             int width = pixels.Width;
             int height = pixels.Height;
             int length = width * height;
 
-            // Calculate the clear code. The value of the clear code is 2 ^ dataSize
-            int clearCode = 1 << dataSize;
-
-            int codeSize = dataSize + 1;
+            int codeSize = minCodeSize + 1;
 
             // Calculate the end code
             int endCode = clearCode + 1;
@@ -165,7 +174,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     if (code == clearCode)
                     {
                         // Reset the decoder
-                        codeSize = dataSize + 1;
+                        codeSize = minCodeSize + 1;
                         codeMask = (1 << codeSize) - 1;
                         availableCode = clearCode + 2;
                         oldCode = NullCode;

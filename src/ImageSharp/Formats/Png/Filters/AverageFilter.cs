@@ -32,6 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 
             // The Avg filter predicts each pixel as the (truncated) average of a and b:
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
+            // With pixels positioned like this:
+            //  prev:  c b
+            //  row:   a d
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported && bytesPerPixel is 4)
             {

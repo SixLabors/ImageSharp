@@ -112,6 +112,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithFile(TestImages.Png.AverageFilter3BytesPerPixel, PixelTypes.Rgba64)]
+        [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.Rgba64)]
+        public void Decode_WithAverageFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.GrayA8Bit, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Gray1BitTrans, PixelTypes.Rgba32)]
         public void Decode_GrayWithAlpha<TPixel>(TestImageProvider<TPixel> provider)

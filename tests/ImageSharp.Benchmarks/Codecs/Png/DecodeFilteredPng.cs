@@ -26,8 +26,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             this.filter1 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter1));
             this.filter2 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter2));
             this.filter3 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter4));
-            this.averageFilter3bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter3bpp));
-            this.averageFilter4bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter4bpp));
+            this.averageFilter3bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter3BytesPerPixel));
+            this.averageFilter4bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter4BytesPerPixel));
         }
 
         [Benchmark(Baseline = true, Description = "None-filtered PNG file")]

@@ -68,8 +68,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Filter0 = "Png/filter0.png";
             public const string Filter1 = "Png/filter1.png";
             public const string Filter2 = "Png/filter2.png";
-            public const string Filter3 = "Png/filter3.png";
+            public const string AverageFilter3bpp = "Png/filter3.png";
             public const string Filter4 = "Png/filter4.png";
+
+            public const string AverageFilter4bpp = "Png/AverageFilter4Bpp.png";
 
             // Paletted images also from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string PalettedTwoColor = "Png/basn3p01.png";
@@ -159,7 +161,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 P1, Pd, Blur, Splash, Cross,
                 Powerpoint, SplashInterlaced, Interlaced,
-                Filter0, Filter1, Filter2, Filter3, Filter4,
+                Filter0, Filter1, Filter2, AverageFilter3bpp, Filter4,
                 FilterVar, VimImage1, VimImage2, VersioningImage1,
                 VersioningImage2, Ratio4x1, Ratio1x4
             };

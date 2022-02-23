@@ -49,14 +49,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Fact]
-        public void AverageInverse_Works() => RunAverageFilterTest();
+        public void AverageFilter_Works() => RunAverageFilterTest();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
-        public void AverageInverse_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.AllowAll);
+        public void AverageFilter_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void AverageInverse_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.DisableHWIntrinsic);
+        public void AverageFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.DisableHWIntrinsic);
 #endif
     }
 }

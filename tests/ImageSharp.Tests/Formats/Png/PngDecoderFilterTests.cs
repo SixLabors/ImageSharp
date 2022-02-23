@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void AverageInverse_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void AverageInverse__WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.DisableSSE2);
+        public void AverageInverse_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.DisableHWIntrinsic);
 #endif
     }
 }

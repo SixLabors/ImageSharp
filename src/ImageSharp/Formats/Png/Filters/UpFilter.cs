@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
     internal static class UpFilter
     {
         /// <summary>
-        /// Decodes the scanline
+        /// Decodes a scanline, which was filtered with the up filter.
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
@@ -30,6 +30,55 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         {
             DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                DecodeSse2(scanline, previousScanline);
+            }
+            else
+#endif
+            {
+                DecodeScalar(scanline, previousScanline);
+            }
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static void DecodeSse2(Span<byte> scanline, Span<byte> previousScanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            // Up(x) + Prior(x)
+            int rb = scanline.Length;
+            int offset = 1;
+            const int bytesPerBatch = 16;
+            while (rb >= bytesPerBatch)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector128<byte> current = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
+                Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
+
+                Vector128<byte> sum = Sse2.Add(up, current);
+                Unsafe.As<byte, Vector128<byte>>(ref scanRef) = sum;
+
+                offset += bytesPerBatch;
+                rb -= bytesPerBatch;
+            }
+
+            // Handle left over.
+            for (int i = offset; i < scanline.Length; i++)
+            {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
+                byte above = Unsafe.Add(ref prevBaseRef, offset);
+                scan = (byte)(scan + above);
+                offset++;
+            }
+        }
+#endif
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline)
+        {
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
@@ -43,12 +92,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         }
 
         /// <summary>
-        /// Encodes the scanline
+        /// Encodes a scanline with the up filter applied.
         /// </summary>
-        /// <param name="scanline">The scanline to encode</param>
+        /// <param name="scanline">The scanline to encode.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
-        /// <param name="sum">The sum of the total variance of the filtered row</param>
+        /// <param name="sum">The sum of the total variance of the filtered row.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, out int sum)
         {

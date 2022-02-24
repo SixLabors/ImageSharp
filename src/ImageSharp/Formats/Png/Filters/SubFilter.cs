@@ -21,12 +21,52 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
     internal static class SubFilter
     {
         /// <summary>
-        /// Decodes the scanline
+        /// Decodes a scanline, which was filtered with the sub filter.
         /// </summary>
-        /// <param name="scanline">The scanline to decode</param>
+        /// <param name="scanline">The scanline to decode.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(Span<byte> scanline, int bytesPerPixel)
+        {
+            // The Sub filter predicts each pixel as the previous pixel.
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported && bytesPerPixel is 4)
+            {
+                DecodeSse2(scanline);
+            }
+            else
+#endif
+            {
+                DecodeScalar(scanline, bytesPerPixel);
+            }
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static void DecodeSse2(Span<byte> scanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+
+            Vector128<byte> d = Vector128<byte>.Zero;
+
+            int rb = scanline.Length;
+            int offset = 1;
+            while (rb >= 4)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector128<byte> a = d;
+                d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+
+                d = Sse2.Add(d, a);
+
+                Unsafe.As<byte, int>(ref scanRef) = Sse2.ConvertToInt32(d.AsInt32());
+
+                rb -= 4;
+                offset += 4;
+            }
+        }
+#endif
+
+        private static void DecodeScalar(Span<byte> scanline, int bytesPerPixel)
         {
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
 
@@ -42,12 +82,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         }
 
         /// <summary>
-        /// Encodes the scanline
+        /// Encodes a scanline with the sup filter applied.
         /// </summary>
-        /// <param name="scanline">The scanline to encode</param>
+        /// <param name="scanline">The scanline to encode.</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
-        /// <param name="sum">The sum of the total variance of the filtered row</param>
+        /// <param name="sum">The sum of the total variance of the filtered row.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> result, int bytesPerPixel, out int sum)
         {

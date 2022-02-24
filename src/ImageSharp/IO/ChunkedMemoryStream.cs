@@ -17,9 +17,19 @@ namespace SixLabors.ImageSharp.IO
     internal sealed class ChunkedMemoryStream : Stream
     {
         /// <summary>
-        /// The default length in bytes of each buffer chunk.
+        /// The default length in bytes of each buffer chunk when allocating large buffers.
         /// </summary>
-        public const int DefaultBufferLength = 128 * 1024;
+        public const int DefaultLargeChunkSize = 1024 * 1024 * 4; // 4 Mb
+
+        /// <summary>
+        /// The threshold at which to switch to using the large buffer.
+        /// </summary>
+        public const int DefaultLargeChunkThreshold = DefaultLargeChunkSize / 4; // 1 Mb
+
+        /// <summary>
+        /// The default length in bytes of each buffer chunk when allocating small buffers.
+        /// </summary>
+        public const int DefaultSmallChunkSize = DefaultLargeChunkSize / 32; // 128 Kb
 
         // The memory allocator.
         private readonly MemoryAllocator allocator;
@@ -27,8 +37,18 @@ namespace SixLabors.ImageSharp.IO
         // Data
         private MemoryChunk memoryChunk;
 
-        // The length of each buffer chunk
-        private readonly int chunkLength;
+        // The length, in bytes, of each large buffer chunk
+        private readonly int largeChunkSize;
+
+        // The length, in bytes of the total allocation threshold that triggers switching from
+        // small to large buffer chunks.
+        private readonly int largeChunkThreshold;
+
+        // The current length, in bytes, of each buffer chunk
+        private int chunkSize;
+
+        // The total allocation length, in bytes
+        private int totalAllocation;
 
         // Has the stream been disposed.
         private bool isDisposed;
@@ -49,21 +69,15 @@ namespace SixLabors.ImageSharp.IO
         /// Initializes a new instance of the <see cref="ChunkedMemoryStream"/> class.
         /// </summary>
         public ChunkedMemoryStream(MemoryAllocator allocator)
-            : this(DefaultBufferLength, allocator)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ChunkedMemoryStream"/> class.
-        /// </summary>
-        /// <param name="bufferLength">The length, in bytes of each buffer chunk.</param>
-        /// <param name="allocator">The memory allocator.</param>
-        public ChunkedMemoryStream(int bufferLength, MemoryAllocator allocator)
-        {
-            Guard.MustBeGreaterThan(bufferLength, 0, nameof(bufferLength));
             Guard.NotNull(allocator, nameof(allocator));
 
-            this.chunkLength = bufferLength;
+            // Tweak our buffer sizes to take the minimum of the provided buffer sizes
+            // or values scaled from the allocator buffer capacity which provides us with the largest
+            // available contiguous buffer size.
+            this.largeChunkSize = Math.Min(DefaultLargeChunkSize, allocator.GetBufferCapacityInBytes());
+            this.largeChunkThreshold = Math.Min(DefaultLargeChunkThreshold, this.largeChunkSize / 4);
+            this.chunkSize = Math.Min(DefaultSmallChunkSize, this.largeChunkSize / 32);
             this.allocator = allocator;
         }
 
@@ -191,6 +205,9 @@ namespace SixLabors.ImageSharp.IO
                 case SeekOrigin.End:
                     this.Position = this.Length + offset;
                     break;
+                default:
+                    ThrowInvalidSeek();
+                    break;
             }
 
             return this.Position;
@@ -219,6 +236,7 @@ namespace SixLabors.ImageSharp.IO
                 this.memoryChunk = null;
                 this.writeChunk = null;
                 this.readChunk = null;
+                this.totalAllocation = 0;
             }
             finally
             {
@@ -519,17 +537,25 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void ThrowDisposed()
-            => throw new ObjectDisposedException(null, "The stream is closed.");
+        private static void ThrowDisposed() => throw new ObjectDisposedException(null, "The stream is closed.");
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void ThrowArgumentOutOfRange(string value)
-            => throw new ArgumentOutOfRangeException(value);
+        private static void ThrowArgumentOutOfRange(string value) => throw new ArgumentOutOfRangeException(value);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowInvalidSeek() => throw new ArgumentException("Invalid seek origin.");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private MemoryChunk AllocateMemoryChunk()
         {
-            IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(this.chunkLength);
+            if (this.totalAllocation >= this.largeChunkThreshold)
+            {
+                this.chunkSize = this.largeChunkSize;
+            }
+
+            IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(this.chunkSize);
+            this.totalAllocation += this.chunkSize;
+
             return new MemoryChunk
             {
                 Buffer = buffer,

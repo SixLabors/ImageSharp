@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 
             // Up(x) + Prior(x)
             int rb = scanline.Length;
-            int offset = 1;
+            nint offset = 1;
             const int bytesPerBatch = 32;
             while (rb >= bytesPerBatch)
             {
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
 
             // Handle left over.
-            for (int i = offset; i < scanline.Length; i++)
+            for (nint i = offset; i < scanline.Length; i++)
             {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
                 byte above = Unsafe.Add(ref prevBaseRef, offset);
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 
             // Up(x) + Prior(x)
             int rb = scanline.Length;
-            int offset = 1;
+            nint offset = 1;
             const int bytesPerBatch = 16;
             while (rb >= bytesPerBatch)
             {
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
 
             // Handle left over.
-            for (int i = offset; i < scanline.Length; i++)
+            for (nint i = offset; i < scanline.Length; i++)
             {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
                 byte above = Unsafe.Add(ref prevBaseRef, offset);

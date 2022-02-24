@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
             Vector128<byte> d = Vector128<byte>.Zero;
-            var ones = Vector128.Create((byte)1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+            var ones = Vector128.Create((byte)1);
 
             int rb = scanline.Length;
             int offset = 1;
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
-            int x = 1;
+            nint x = 1;
             for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x)
             {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);

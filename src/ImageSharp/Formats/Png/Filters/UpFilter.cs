@@ -31,7 +31,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse2.IsSupported)
+            if (Avx2.IsSupported)
+            {
+                DecodeAvx2(scanline, previousScanline);
+            }
+            else if (Sse2.IsSupported)
             {
                 DecodeSse2(scanline, previousScanline);
             }
@@ -43,6 +47,38 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+        private static void DecodeAvx2(Span<byte> scanline, Span<byte> previousScanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            // Up(x) + Prior(x)
+            int rb = scanline.Length;
+            int offset = 1;
+            const int bytesPerBatch = 32;
+            while (rb >= bytesPerBatch)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector256<byte> current = Unsafe.As<byte, Vector256<byte>>(ref scanRef);
+                Vector256<byte> up = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
+
+                Vector256<byte> sum = Avx2.Add(up, current);
+                Unsafe.As<byte, Vector256<byte>>(ref scanRef) = sum;
+
+                offset += bytesPerBatch;
+                rb -= bytesPerBatch;
+            }
+
+            // Handle left over.
+            for (int i = offset; i < scanline.Length; i++)
+            {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
+                byte above = Unsafe.Add(ref prevBaseRef, offset);
+                scan = (byte)(scan + above);
+                offset++;
+            }
+        }
+
         private static void DecodeSse2(Span<byte> scanline, Span<byte> previousScanline)
         {
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);

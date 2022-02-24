@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             var ones = Vector128.Create((byte)1);
 
             int rb = scanline.Length;
-            int offset = 1;
+            nint offset = 1;
             while (rb >= 4)
             {
                 ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);

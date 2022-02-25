@@ -23,9 +23,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void ReadImages()
         {
             this.filter0 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter0));
-            this.filter1 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter1));
-            this.filter2 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter2));
-            this.filter3 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.Filter4));
+            this.filter1 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.SubFilter3BytesPerPixel));
+            this.filter2 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.UpFilter));
+            this.filter3 = File.ReadAllBytes(TestImageFullPath(TestImages.Png.PaethFilter3BytesPerPixel));
             this.averageFilter3bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter3BytesPerPixel));
             this.averageFilter4bpp = File.ReadAllBytes(TestImageFullPath(TestImages.Png.AverageFilter4BytesPerPixel));
         }

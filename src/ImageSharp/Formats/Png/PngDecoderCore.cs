@@ -336,6 +336,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 break;
                             case PngChunkType.End:
                                 goto EOF;
+
+                            default:
+                                if (this.colorMetadataOnly)
+                                {
+                                    this.SkipChunkDataAndCrc(chunk);
+                                }
+
+                                break;
                         }
                     }
                     finally

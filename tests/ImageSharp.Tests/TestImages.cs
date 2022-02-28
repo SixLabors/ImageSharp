@@ -772,6 +772,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+            public const string GrayscaleJpegCompressed = "Tiff/JpegCompressedGray.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
             public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
             public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
@@ -873,6 +874,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
+            public const string MultiFrameMipMap = "Tiff/SKC1H3.tiff";
 
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 

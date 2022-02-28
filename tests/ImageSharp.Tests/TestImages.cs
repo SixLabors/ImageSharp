@@ -772,6 +772,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+            public const string GrayscaleJpegCompressed = "Tiff/JpegCompressedGray.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
             public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
             public const string RgbDeflate = "Tiff/rgb_deflate.tiff";

@@ -874,6 +874,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
+            public const string MultiFrameMipMap = "Tiff/SKC1H3.tiff";
 
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 

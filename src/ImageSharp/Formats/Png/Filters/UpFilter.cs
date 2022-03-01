@@ -7,6 +7,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+#if NET5_0_OR_GREATER
+using System.Runtime.Intrinsics.Arm;
+#endif
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -23,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <summary>
         /// Decodes a scanline, which was filtered with the up filter.
         /// </summary>
-        /// <param name="scanline">The scanline to decode</param>
+        /// <param name="scanline">The scanline to decode.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(Span<byte> scanline, Span<byte> previousScanline)
@@ -39,6 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             {
                 DecodeSse2(scanline, previousScanline);
             }
+#if NET5_0_OR_GREATER
+            else if (AdvSimd.IsSupported)
+            {
+                DecodeArm(scanline, previousScanline);
+            }
+#endif
             else
 #endif
             {
@@ -59,10 +68,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             while (rb >= bytesPerBatch)
             {
                 ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
-                Vector256<byte> current = Unsafe.As<byte, Vector256<byte>>(ref scanRef);
+                Vector256<byte> prior = Unsafe.As<byte, Vector256<byte>>(ref scanRef);
                 Vector256<byte> up = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
 
-                Vector256<byte> sum = Avx2.Add(up, current);
+                Vector256<byte> sum = Avx2.Add(up, prior);
                 Unsafe.As<byte, Vector256<byte>>(ref scanRef) = sum;
 
                 offset += bytesPerBatch;
@@ -91,10 +100,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             while (rb >= bytesPerBatch)
             {
                 ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
-                Vector128<byte> current = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
+                Vector128<byte> prior = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
                 Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
 
-                Vector128<byte> sum = Sse2.Add(up, current);
+                Vector128<byte> sum = Sse2.Add(up, prior);
                 Unsafe.As<byte, Vector128<byte>>(ref scanRef) = sum;
 
                 offset += bytesPerBatch;
@@ -110,6 +119,42 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 offset++;
             }
         }
+
+#if NET5_0_OR_GREATER
+
+        private static void DecodeArm(Span<byte> scanline, Span<byte> previousScanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            // Up(x) + Prior(x)
+            int rb = scanline.Length;
+            nint offset = 1;
+            const int bytesPerBatch = 16;
+            while (rb >= bytesPerBatch)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector128<byte> prior = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
+                Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
+
+                Vector128<byte> sum = AdvSimd.Add(prior, up);
+
+                Unsafe.As<byte, Vector128<byte>>(ref scanRef) = sum;
+
+                offset += bytesPerBatch;
+                rb -= bytesPerBatch;
+            }
+
+            // Handle left over.
+            for (nint i = offset; i < scanline.Length; i++)
+            {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
+                byte above = Unsafe.Add(ref prevBaseRef, offset);
+                scan = (byte)(scan + above);
+                offset++;
+            }
+        }
+#endif
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

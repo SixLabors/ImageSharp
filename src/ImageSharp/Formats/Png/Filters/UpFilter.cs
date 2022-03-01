@@ -121,7 +121,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         }
 
 #if NET5_0_OR_GREATER
-
         private static void DecodeArm(Span<byte> scanline, Span<byte> previousScanline)
         {
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);

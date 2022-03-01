@@ -4,8 +4,10 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 #if SUPPORTS_RUNTIME_INTRINSICS
+#if NET5_0_OR_GREATER
+using System.Runtime.Intrinsics.Arm;
+#endif
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -40,6 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             {
                 DecodeSse2(scanline, previousScanline);
             }
+#if NET5_0_OR_GREATER
+            else if (AdvSimd.IsSupported && bytesPerPixel is 4)
+            {
+                DecodeArm(scanline, previousScanline);
+            }
+#endif
             else
 #endif
             {
@@ -81,6 +89,35 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 offset += 4;
             }
         }
+
+#if NET5_0_OR_GREATER
+        public static void DecodeArm(Span<byte> scanline, Span<byte> previousScanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            Vector128<byte> d = Vector128<byte>.Zero;
+
+            int rb = scanline.Length;
+            int offset = 1;
+            const int bytesPerBatch = 4;
+            while (rb >= bytesPerBatch)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector128<byte> a = d;
+                Vector128<byte> b = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+                d = Vector128.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+
+                Vector128<byte> avg = AdvSimd.FusedAddHalving(a, b);
+                d = AdvSimd.Add(d, avg);
+
+                Unsafe.As<byte, int>(ref scanRef) = d.AsInt32().ToScalar();
+
+                rb -= bytesPerBatch;
+                offset += bytesPerBatch;
+            }
+        }
+#endif
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

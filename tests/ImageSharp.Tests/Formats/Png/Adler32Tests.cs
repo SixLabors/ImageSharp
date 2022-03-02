@@ -56,6 +56,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void RunCalculateAdlerTest_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateAdlerTest, HwIntrinsics.AllowAll);
 
         [Fact]
+        public void RunCalculateAdlerTest_WithAvxDisabled_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateAdlerTest, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+
+        [Fact]
         public void RunCalculateAdlerTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateAdlerTest, HwIntrinsics.DisableHWIntrinsic);
 
         private static void RunCalculateAdlerTest()

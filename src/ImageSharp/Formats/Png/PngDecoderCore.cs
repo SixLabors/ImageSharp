@@ -429,10 +429,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pngMetadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
         private void ReadGammaChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
+        {
+            if (data.Length < 4)
+            {
+                // Ignore invalid gamma chunks.
+                return;
+            }
 
-            // The value is encoded as a 4-byte unsigned integer, representing gamma times 100000.
             // For example, a gamma of 1/2.2 would be stored as 45455.
-            => pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) * 1e-5F;
+            // The value is encoded as a 4-byte unsigned integer, representing gamma times 100000.
+            pngMetadata.Gamma = BinaryPrimitives.ReadUInt32BigEndian(data) * 1e-5F;
+        }
 
         /// <summary>
         /// Initializes the image and various buffers needed for processing

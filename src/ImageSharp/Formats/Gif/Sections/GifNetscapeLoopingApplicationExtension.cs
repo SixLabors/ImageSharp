@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // 0 means loop indefinitely. Count is set as play n + 1 times.
             BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(14, 2), this.RepeatCount);
 
-            return 16; // Length - Introducer + Label + Terminator.
+            return this.ContentLength; // Length - Introducer + Label + Terminator.
         }
     }
 }

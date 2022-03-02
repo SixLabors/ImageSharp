@@ -7,6 +7,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+#if NET5_0_OR_GREATER
+using System.Runtime.Intrinsics.Arm;
+#endif
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -43,6 +46,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             {
                 DecodeSse41(scanline, previousScanline);
             }
+#if NET5_0_OR_GREATER
+            else if (AdvSimd.Arm64.IsSupported && bytesPerPixel is 4)
+            {
+                DecodeArm(scanline, previousScanline);
+            }
+#endif
             else
 #endif
             {
@@ -107,6 +116,82 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
         }
 
+#if NET5_0_OR_GREATER
+        public static void DecodeArm(Span<byte> scanline, Span<byte> previousScanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            Vector128<byte> b = Vector128<byte>.Zero;
+            Vector128<byte> d = Vector128<byte>.Zero;
+
+            int rb = scanline.Length;
+            nint offset = 1;
+            const int bytesPerBatch = 4;
+            while (rb >= bytesPerBatch)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector128<byte> c = b;
+                Vector128<byte> a = d;
+                b = AdvSimd.Arm64.ZipLow(
+                    Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte(),
+                    Vector128<byte>.Zero).AsByte();
+                d = AdvSimd.Arm64.ZipLow(
+                    Vector128.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte(),
+                    Vector128<byte>.Zero).AsByte();
+
+                // (p-a) == (a+b-c - a) == (b-c)
+                Vector128<short> pa = AdvSimd.Subtract(b.AsInt16(), c.AsInt16());
+
+                // (p-b) == (a+b-c - b) == (a-c)
+                Vector128<short> pb = AdvSimd.Subtract(a.AsInt16(), c.AsInt16());
+
+                // (p-c) == (a+b-c - c) == (a+b-c-c) == (b-c)+(a-c)
+                Vector128<short> pc = AdvSimd.Add(pa.AsInt16(), pb.AsInt16());
+
+                pa = AdvSimd.Abs(pa.AsInt16()).AsInt16(); /* |p-a| */
+                pb = AdvSimd.Abs(pb.AsInt16()).AsInt16(); /* |p-b| */
+                pc = AdvSimd.Abs(pc.AsInt16()).AsInt16(); /* |p-c| */
+
+                Vector128<short> smallest = AdvSimd.Min(pc, AdvSimd.Min(pa, pb));
+
+                // Paeth breaks ties favoring a over b over c.
+                Vector128<byte> mask = BlendVariable(c, b, AdvSimd.CompareEqual(smallest, pb).AsByte());
+                Vector128<byte> nearest = BlendVariable(mask, a, AdvSimd.CompareEqual(smallest, pa).AsByte());
+
+                d = AdvSimd.Add(d, nearest);
+
+                Vector64<byte> e = AdvSimd.ExtractNarrowingSaturateUnsignedLower(d.AsInt16());
+
+                Unsafe.As<byte, int>(ref scanRef) = Vector128.Create(e, e).AsInt32().ToScalar();
+
+                rb -= bytesPerBatch;
+                offset += bytesPerBatch;
+            }
+        }
+
+        /// <summary>
+        /// Equivalent of Sse41.BlendVariable:
+        /// Blend packed 8-bit integers from a and b using mask, and store the results in
+        /// dst.
+        ///
+        ///   FOR j := 0 to 15
+        ///       i := j*8
+        ///       IF mask[i+7]
+        ///           dst[i+7:i] := b[i+7:i]
+        ///       ELSE
+        ///           dst[i+7:i] := a[i+7:i]
+        ///       FI
+        ///   ENDFOR
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector128<byte> BlendVariable(Vector128<byte> a, Vector128<byte> b, Vector128<byte> c)
+        {
+            // Use a signed shift right to create a mask with the sign bit.
+            Vector128<short> mask = AdvSimd.ShiftRightArithmetic(c.AsInt16(), 7);
+            return AdvSimd.BitwiseSelect(mask, b.AsInt16(), a.AsInt16()).AsByte();
+        }
+#endif
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

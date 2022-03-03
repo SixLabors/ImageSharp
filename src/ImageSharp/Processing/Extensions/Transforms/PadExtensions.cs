@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing
@@ -34,9 +34,10 @@ namespace SixLabors.ImageSharp.Processing
                 Size = new Size(width, height),
                 Mode = ResizeMode.BoxPad,
                 Sampler = KnownResamplers.NearestNeighbor,
+                PadColor = color
             };
 
-            return color.Equals(default) ? source.Resize(options) : source.Resize(options).BackgroundColor(color);
+            return source.Resize(options);
         }
     }
 }

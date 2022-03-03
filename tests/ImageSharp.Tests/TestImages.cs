@@ -66,10 +66,13 @@ namespace SixLabors.ImageSharp.Tests
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
-            public const string Filter1 = "Png/filter1.png";
-            public const string Filter2 = "Png/filter2.png";
-            public const string Filter3 = "Png/filter3.png";
-            public const string Filter4 = "Png/filter4.png";
+            public const string SubFilter3BytesPerPixel = "Png/filter1.png";
+            public const string SubFilter4BytesPerPixel = "Png/SubFilter4Bpp.png";
+            public const string UpFilter = "Png/filter2.png";
+            public const string AverageFilter3BytesPerPixel = "Png/filter3.png";
+            public const string AverageFilter4BytesPerPixel = "Png/AverageFilter4Bpp.png";
+            public const string PaethFilter3BytesPerPixel = "Png/filter4.png";
+            public const string PaethFilter4BytesPerPixel = "Png/PaethFilter4Bpp.png";
 
             // Paletted images also from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string PalettedTwoColor = "Png/basn3p01.png";
@@ -127,6 +130,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
                 public const string WrongCrcDataChunk = "Png/xcsn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+                public const string MissingPaletteChunk1 = "Png/missing_plte.png";
+                public const string MissingPaletteChunk2 = "Png/missing_plte_2.png";
+                public const string InvalidGammaChunk = "Png/length_gama.png";
 
                 // Zlib errors.
                 public const string ZlibOverflow = "Png/zlib-overflow.png";
@@ -151,15 +157,6 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ColorTypeOne = "Png/xc1n0g08.png";
                 public const string ColorTypeNine = "Png/xc9n2c08.png";
             }
-
-            public static readonly string[] All =
-            {
-                P1, Pd, Blur, Splash, Cross,
-                Powerpoint, SplashInterlaced, Interlaced,
-                Filter0, Filter1, Filter2, Filter3, Filter4,
-                FilterVar, VimImage1, VimImage2, VersioningImage1,
-                VersioningImage2, Ratio4x1, Ratio1x4
-            };
         }
 
         public static class Jpeg
@@ -448,10 +445,13 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
                 public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+                public const string DeferredClearCode = "Gif/issues/bugzilla-55918.gif";
                 public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
                 public const string Issue1530 = "Gif/issues/issue1530.gif";
                 public const string InvalidColorIndex = "Gif/issues/issue1668_invalidcolorindex.gif";
                 public const string Issue1962NoColorTable = "Gif/issues/issue1962_tiniest_gif_1st.gif";
+                public const string Issue2012EmptyXmp = "Gif/issues/issue2012_Stronghold-Crusader-Extreme-Cover.gif";
+                public const string Issue2012BadMinCode = "Gif/issues/issue2012_drona1.gif";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
@@ -766,6 +766,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+            public const string GrayscaleJpegCompressed = "Tiff/JpegCompressedGray.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
             public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
             public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
@@ -867,6 +868,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
+            public const string MultiFrameMipMap = "Tiff/SKC1H3.tiff";
 
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 

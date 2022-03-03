@@ -25,7 +25,7 @@
 
 ## Implementation Status
 
-- The Decoder currently only supports a single frame per image.
+- The Decoder currently only supports decoding multiframe images, which have the same dimensions.
 - Some compression formats are not yet supported. See the list below.
 
 ### Deviations from the TIFF spec (to be fixed)

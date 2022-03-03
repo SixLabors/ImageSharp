@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -17,12 +16,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly ResizeOptions options;
         private readonly int destinationWidth;
         private readonly int destinationHeight;
         private readonly IResampler resampler;
         private readonly Rectangle destinationRectangle;
-        private readonly bool compand;
-        private readonly bool premultiplyAlpha;
         private Image<TPixel> destination;
 
         public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
@@ -31,13 +29,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.destinationWidth = definition.DestinationWidth;
             this.destinationHeight = definition.DestinationHeight;
             this.destinationRectangle = definition.DestinationRectangle;
-            this.resampler = definition.Sampler;
-            this.premultiplyAlpha = definition.PremultiplyAlpha;
-            this.compand = definition.Compand;
+            this.options = definition.Options;
+            this.resampler = definition.Options.Sampler;
         }
 
         /// <inheritdoc/>
-        protected override Size GetDestinationSize() => new Size(this.destinationWidth, this.destinationHeight);
+        protected override Size GetDestinationSize() => new(this.destinationWidth, this.destinationHeight);
 
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> destination)
@@ -62,8 +59,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Image<TPixel> destination = this.destination;
             Rectangle sourceRectangle = this.SourceRectangle;
             Rectangle destinationRectangle = this.destinationRectangle;
-            bool compand = this.compand;
-            bool premultiplyAlpha = this.premultiplyAlpha;
+            bool compand = this.options.Compand;
+            bool premultiplyAlpha = this.options.PremultiplyAlpha;
+            bool shouldFill = (this.options.Mode == ResizeMode.BoxPad || this.options.Mode == ResizeMode.Pad)
+                              && this.options.PadColor != default;
+            TPixel fillColor = this.options.PadColor.ToPixel<TPixel>();
 
             // Handle resize dimensions identical to the original
             if (source.Width == destination.Width
@@ -90,6 +90,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 {
                     ImageFrame<TPixel> sourceFrame = source.Frames[i];
                     ImageFrame<TPixel> destinationFrame = destination.Frames[i];
+
+                    if (shouldFill)
+                    {
+                        destinationFrame.Clear(fillColor);
+                    }
 
                     ApplyNNResizeFrameTransform(
                         configuration,
@@ -122,6 +127,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 ImageFrame<TPixel> sourceFrame = source.Frames[i];
                 ImageFrame<TPixel> destinationFrame = destination.Frames[i];
+
+                if (shouldFill)
+                {
+                    destinationFrame.Clear(fillColor);
+                }
 
                 ApplyResizeFrameTransform(
                     configuration,

@@ -112,6 +112,49 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithFile(TestImages.Png.AverageFilter3BytesPerPixel, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.Rgba32)]
+        public void Decode_WithAverageFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.SubFilter3BytesPerPixel, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.SubFilter4BytesPerPixel, PixelTypes.Rgba32)]
+        public void Decode_WithSubFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.UpFilter, PixelTypes.Rgba32)]
+        public void Decode_WithUpFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.PaethFilter3BytesPerPixel, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.PaethFilter4BytesPerPixel, PixelTypes.Rgba32)]
+        public void Decode_WithPaethFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.GrayA8Bit, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Gray1BitTrans, PixelTypes.Rgba32)]
         public void Decode_GrayWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
@@ -263,6 +306,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 });
             Assert.NotNull(ex);
             Assert.Contains("PNG Image does not contain a data chunk", ex.Message);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Bad.MissingPaletteChunk1, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Bad.MissingPaletteChunk2, PixelTypes.Rgba32)]
+        public void Decode_MissingPaletteChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(
+                () =>
+                {
+                    using Image<TPixel> image = provider.GetImage(PngDecoder);
+                    image.DebugSave(provider);
+                });
+            Assert.NotNull(ex);
+            Assert.Contains("PNG Image does not contain a palette chunk", ex.Message);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Bad.InvalidGammaChunk, PixelTypes.Rgba32)]
+        public void Decode_InvalidGammaChunk_Ignored<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(
+                () =>
+                {
+                    using Image<TPixel> image = provider.GetImage(PngDecoder);
+                    image.DebugSave(provider);
+                });
+            Assert.Null(ex);
         }
 
         [Theory]

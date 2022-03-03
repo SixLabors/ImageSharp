@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
-            Vector128<byte> d = Vector128<byte>.Zero;
+            Vector64<byte> d = Vector64<byte>.Zero;
 
             int rb = scanline.Length;
             int offset = 1;
@@ -104,11 +104,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             while (rb >= bytesPerBatch)
             {
                 ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
-                Vector128<byte> a = d;
-                Vector128<byte> b = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
-                d = Vector128.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+                Vector64<byte> a = d;
+                Vector64<byte> b = Vector64.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+                d = Vector64.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
 
-                Vector128<byte> avg = AdvSimd.FusedAddHalving(a, b);
+                Vector64<byte> avg = AdvSimd.FusedAddHalving(a, b);
                 d = AdvSimd.Add(d, avg);
 
                 Unsafe.As<byte, int>(ref scanRef) = d.AsInt32().ToScalar();

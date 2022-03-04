@@ -4,6 +4,7 @@
 // ReSharper disable InconsistentNaming
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -366,10 +367,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(MultiFrameMipMap, PixelTypes.Rgba32)]
+        public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TiffDecoder() { DecodingMode = FrameDecodingMode.First }))
+            {
+                Assert.Equal(1, image.Frames.Count);
+            }
+        }
+
+        [Theory]
         [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
         [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
         [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
         [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
+        [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
 

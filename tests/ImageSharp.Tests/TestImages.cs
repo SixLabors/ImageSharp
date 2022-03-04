@@ -831,6 +831,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower2BitPalette = "Tiff/flower-palette-02.tiff";
             public const string Flower4BitPalette = "Tiff/flower-palette-04.tiff";
             public const string Flower4BitPaletteGray = "Tiff/flower-minisblack-04.tiff";
+            public const string FLowerRgb3Bit = "Tiff/flower-rgb-3bit.tiff";
+            public const string FLowerRgb5Bit = "Tiff/flower-rgb-5bit.tiff";
+            public const string FLowerRgb6Bit = "Tiff/flower-rgb-6bit.tiff";
             public const string Flower6BitGray = "Tiff/flower-minisblack-06.tiff";
             public const string Flower8BitGray = "Tiff/flower-minisblack-08.tiff";
             public const string Flower10BitGray = "Tiff/flower-minisblack-10.tiff";
@@ -854,6 +857,26 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower32BitGrayMinIsWhiteLittleEndian = "Tiff/flower-miniswhite-32_lsb.tiff";
             public const string Flower32BitGrayPredictorBigEndian = "Tiff/flower-minisblack-32_msb_deflate_predictor.tiff";
             public const string Flower32BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-32_lsb_deflate_predictor.tiff";
+
+            // Images with alpha channel.
+            public const string Rgba2BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha2bit.tiff";
+            public const string Rgba3BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha3bit.tiff";
+            public const string Rgba4BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha4bit.tiff";
+            public const string Rgba5BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha5bit.tiff";
+            public const string Rgba6BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha6bit.tiff";
+            public const string Rgba8BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha8bit.tiff";
+            public const string Rgba10BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha10bit_msb.tiff";
+            public const string Rgba10BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha10bit_msb.tiff";
+            public const string Rgba12BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha12bit_msb.tiff";
+            public const string Rgba12BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha12bit_msb.tiff";
+            public const string Rgba14BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha14bit_msb.tiff";
+            public const string Rgba14BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha14bit_msb.tiff";
+            public const string Rgba16BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha16bit_msb.tiff";
+            public const string Rgba16BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha16bit_msb.tiff";
+            public const string Rgba24BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha24bit_msb.tiff";
+            public const string Rgba24BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha24bit_msb.tiff";
+            public const string Rgba32BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha32bit_msb.tiff";
+            public const string Rgba32BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha32bit_msb.tiff";
 
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
             public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";

@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets the decoding mode for multi-frame images
         /// </summary>
-        private FrameDecodingMode decodingMode;
+        private readonly FrameDecodingMode decodingMode;
 
         /// <summary>
         /// The stream to decode from.
@@ -116,6 +116,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Gets or sets the the logical order of bits within a byte.
         /// </summary>
         public TiffFillOrder FillOrder { get; set; }
+
+        /// <summary>
+        /// Gets or sets the extra samples, which can contain the alpha channel data.
+        /// </summary>
+        public TiffExtraSampleType? ExtraSamples { get; set; }
 
         /// <summary>
         /// Gets or sets the JPEG tables when jpeg compression is used.

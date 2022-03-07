@@ -406,6 +406,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
 
+                case TiffColorType.Rgba8888Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaPlanarTiffColor<TPixel>(bitsPerSample);
+
                 case TiffColorType.YCbCrPlanar:
                     return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
@@ -413,13 +417,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.Rgba16161616Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.Rgb242424Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb24PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.Rgba24242424Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba24PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.Rgb323232Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
+                case TiffColorType.Rgba32323232Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());

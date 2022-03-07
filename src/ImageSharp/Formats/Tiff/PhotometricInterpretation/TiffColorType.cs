@@ -234,9 +234,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         Rgb888Planar,
 
         /// <summary>
+        /// RGBA color image with an alpha channel. Planar configuration of data. 8 Bit per color channel.
+        /// </summary>
+        Rgba8888Planar,
+
+        /// <summary>
         /// RGB Full Color. Planar configuration of data. 16 Bit per color channel.
         /// </summary>
         Rgb161616Planar,
+
+        /// <summary>
+        /// RGB Color with an alpha channel. Planar configuration of data. 16 Bit per color channel.
+        /// </summary>
+        Rgba16161616Planar,
 
         /// <summary>
         /// RGB Full Color. Planar configuration of data. 24 Bit per color channel.
@@ -244,9 +254,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         Rgb242424Planar,
 
         /// <summary>
+        /// RGB Color with an alpha channel. Planar configuration of data. 24 Bit per color channel.
+        /// </summary>
+        Rgba24242424Planar,
+
+        /// <summary>
         /// RGB Full Color. Planar configuration of data. 32 Bit per color channel.
         /// </summary>
         Rgb323232Planar,
+
+        /// <summary>
+        /// RGB Color with an alpha channel. Planar configuration of data. 32 Bit per color channel.
+        /// </summary>
+        Rgba32323232Planar,
 
         /// <summary>
         /// The pixels are stored in YCbCr format.

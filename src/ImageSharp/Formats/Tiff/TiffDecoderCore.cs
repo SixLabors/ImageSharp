@@ -280,12 +280,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 return memory;
             }
-            else
-            {
-                DebugGuard.IsTrue(array is ulong[], $"Expected {nameof(UInt64)} array.");
-                span = (ulong[])array;
-                return null;
-            }
+
+            DebugGuard.IsTrue(array is ulong[], $"Expected {nameof(UInt64)} array.");
+            span = (ulong[])array;
+            return null;
         }
 
         /// <summary>
@@ -319,8 +317,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     case 2:
                         bitsPerPixel = this.BitsPerSample.Channel2;
                         break;
+                    case 3:
+                        bitsPerPixel = this.BitsPerSample.Channel2;
+                        break;
                     default:
-                        TiffThrowHelper.ThrowNotSupported("More then 3 color channels are not supported");
+                        TiffThrowHelper.ThrowNotSupported("More then 4 color channels are not supported");
                         break;
                 }
             }

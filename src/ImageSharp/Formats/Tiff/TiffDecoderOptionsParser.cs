@@ -339,16 +339,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         switch (bitsPerChannel)
                         {
                             case 32:
-                                options.ColorType = TiffColorType.Rgb323232Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb323232Planar : TiffColorType.Rgba32323232Planar;
                                 break;
                             case 24:
-                                options.ColorType = TiffColorType.Rgb242424Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb242424Planar : TiffColorType.Rgba24242424Planar;
                                 break;
                             case 16:
-                                options.ColorType = TiffColorType.Rgb161616Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb161616Planar : TiffColorType.Rgba16161616Planar;
                                 break;
                             default:
-                                options.ColorType = TiffColorType.Rgb888Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb888Planar : TiffColorType.Rgba8888Planar;
                                 break;
                         }
                     }

@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ulong a = TiffUtils.ConvertToUIntBigEndian(buffer);
                         offset += 3;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, a, color);
                     }
                 }
                 else
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ulong a = TiffUtils.ConvertToUIntLittleEndian(buffer);
                         offset += 3;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, a, color);
                     }
                 }
             }

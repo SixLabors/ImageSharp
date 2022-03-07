@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 3;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, a, color);
                     }
                 }
                 else
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 3;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
+                        pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, a, color);
                     }
                 }
             }

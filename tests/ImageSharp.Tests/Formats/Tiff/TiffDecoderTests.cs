@@ -164,12 +164,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(FLowerRgb3Bit, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_9Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
-            using Image<TPixel> image = provider.GetImage();
-            image.DebugSave(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(Flower10BitGray, PixelTypes.Rgba32)]
@@ -190,12 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Rgba3BitUnassociatedAlpha, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_12Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
-            using Image<TPixel> image = provider.GetImage();
-            image.DebugSave(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
@@ -205,12 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(FLowerRgb5Bit, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_15Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
-            using Image<TPixel> image = provider.GetImage();
-            image.DebugSave(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(Flower16BitGrayLittleEndian, PixelTypes.Rgba32)]
@@ -239,12 +224,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Rgba5BitUnassociatedAlpha, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_20Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
-            using Image<TPixel> image = provider.GetImage();
-            image.DebugSave(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(FlowerRgb888Contiguous, PixelTypes.Rgba32)]

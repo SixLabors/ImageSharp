@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 MemoryGroup<TPixel> framePixels = frame.PixelBuffer.FastMemoryGroup;
 
                 using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
-                if (magicFrame.Depth is 8 or 6 or 4 or 2 or 1 or 10 or 12)
+                if (magicFrame.Depth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1)
                 {
                     byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 

@@ -30,10 +30,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
             int offset = 0;
-            byte[] buffer = new byte[4];
+            Span<byte> buffer = stackalloc byte[4];
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
-            Span<byte> bufferSpan = buffer.AsSpan(bufferStartIdx);
+            Span<byte> bufferSpan = buffer.Slice(bufferStartIdx);
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);

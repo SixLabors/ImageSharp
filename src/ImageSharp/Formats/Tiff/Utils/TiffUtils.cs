@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 
         private const float Scale32Bit = 1.0f / 0xFFFFFFFF;
 
-        public static Vector4 Vector4Default { get; } = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+        public static Vector4 Vector4Default { get; } = new(0.0f, 0.0f, 0.0f, 0.0f);
 
-        public static Rgba64 Rgba64Default { get; } = new Rgba64(0, 0, 0, 0);
+        public static Rgba64 Rgba64Default { get; } = new(0, 0, 0, 0);
 
-        public static L16 L16Default { get; } = new L16(0);
+        public static L16 L16Default { get; } = new(0);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort ConvertToUShortBigEndian(ReadOnlySpan<byte> buffer) => BinaryPrimitives.ReadUInt16BigEndian(buffer);

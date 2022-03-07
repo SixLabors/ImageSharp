@@ -30,13 +30,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
-            byte[] buffer = new byte[4];
+            Span<byte> buffer = stackalloc byte[4];
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
             Span<byte> redData = data[0].GetSpan();
             Span<byte> greenData = data[1].GetSpan();
             Span<byte> blueData = data[2].GetSpan();
-            Span<byte> bufferSpan = buffer.AsSpan(bufferStartIdx);
+            Span<byte> bufferSpan = buffer.Slice(bufferStartIdx);
 
             int offset = 0;
             for (int y = top; y < top + height; y++)

@@ -132,9 +132,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             Vector256<byte> rgb, rg, bx;
 
             const int bytesPerRgbStride = 24;
-            for (int i = 0; i < 8; i++)
+            for (nint i = 0; i < 8; i++)
             {
-                rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
+                rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, bytesPerRgbStride * i).AsUInt32(), extractToLanesMask).AsByte();
 
                 rgb = Avx2.Shuffle(rgb, extractRgbMask);
 

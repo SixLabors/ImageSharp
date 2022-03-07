@@ -103,9 +103,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Vector256<float> destRef = ref yBlock.V0;
 
             const int bytesPerL8Stride = 8;
-            for (int i = 0; i < 8; i++)
+            for (nint i = 0; i < 8; i++)
             {
-                Unsafe.Add(ref destRef, i) = Avx2.ConvertToVector256Single(Avx2.ConvertToVector256Int32(Unsafe.AddByteOffset(ref l8ByteSpan, (IntPtr)(bytesPerL8Stride * i))));
+                Unsafe.Add(ref destRef, i) = Avx2.ConvertToVector256Single(Avx2.ConvertToVector256Int32(Unsafe.AddByteOffset(ref l8ByteSpan, bytesPerL8Stride * i)));
             }
 #endif
         }

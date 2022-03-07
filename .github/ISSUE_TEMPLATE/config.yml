@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
     - name: Feature Request
-      url: https://github.com/SixLabors/ImageSharp/discussions?discussions_q=category%3AIdeas
+      url: https://github.com/SixLabors/ImageSharp/discussions/categories/ideas
       about: Share ideas for new features for this project.

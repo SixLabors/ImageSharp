@@ -26,7 +26,7 @@ Built against [.NET Standard 2.0](https://docs.microsoft.com/en-us/dotnet/standa
 ## License
   
 - ImageSharp is licensed under the [Apache License, Version 2.0](https://opensource.org/licenses/Apache-2.0)  
-- An alternative Commercial Support License can be purchased **for projects and applications requiring support**.
+- An alternative Six Labors License can be purchased **for projects and applications requiring developer support**.
 Please visit https://sixlabors.com/pricing for details.
 
 ## Support Six Labors
@@ -43,7 +43,8 @@ Support the efforts of the development of the Six Labors projects.
 
 ## Questions
 
-- Do you have questions? We are happy to help! Please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/category_choices), or ask them on [Stack Overflow](https://stackoverflow.com) using the `ImageSharp` tag. Please do not open issues for questions.
+- Do you have questions? We are happy to help! Simply purchase [Six Labors License](https://sixlabors.com/pricing) for developer support. Please do not open issues for questions or misuse our [Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions).
+- For feature ideas please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/categories/ideas) and we'll be happy to discuss.  
 - Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening issues or pull requests!
 
 ## Code of Conduct  

@@ -2,8 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -74,6 +79,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Block8x8F yBlock = ref this.Y;
             ref L8 l8Start = ref MemoryMarshal.GetReference(this.l8Span);
 
+            if (RgbToYCbCrConverterVectorized.IsSupported)
+            {
+                ConvertAvx(ref l8Start, ref yBlock);
+            }
+            else
+            {
+                ConvertScalar(ref l8Start, ref yBlock);
+            }
+        }
+
+        /// <summary>
+        /// Converts 8x8 L8 pixel matrix to 8x8 Block of floats using Avx2 Intrinsics.
+        /// </summary>
+        /// <param name="l8Start">Start of span of L8 pixels with size of 64</param>
+        /// <param name="yBlock">8x8 destination matrix of Luminance(Y) converted data</param>
+        private static void ConvertAvx(ref L8 l8Start, ref Block8x8F yBlock)
+        {
+            Debug.Assert(RgbToYCbCrConverterVectorized.IsSupported, "AVX2 is required to run this converter");
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            ref Vector128<byte> l8ByteSpan = ref Unsafe.As<L8, Vector128<byte>>(ref l8Start);
+            ref Vector256<float> destRef = ref yBlock.V0;
+
+            const int bytesPerL8Stride = 8;
+            for (nint i = 0; i < 8; i++)
+            {
+                Unsafe.Add(ref destRef, i) = Avx2.ConvertToVector256Single(Avx2.ConvertToVector256Int32(Unsafe.AddByteOffset(ref l8ByteSpan, bytesPerL8Stride * i)));
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Converts 8x8 L8 pixel matrix to 8x8 Block of floats.
+        /// </summary>
+        /// <param name="l8Start">Start of span of L8 pixels with size of 64</param>
+        /// <param name="yBlock">8x8 destination matrix of Luminance(Y) converted data</param>
+        private static void ConvertScalar(ref L8 l8Start, ref Block8x8F yBlock)
+        {
             for (int i = 0; i < Block8x8F.Size; i++)
             {
                 ref L8 c = ref Unsafe.Add(ref l8Start, i);

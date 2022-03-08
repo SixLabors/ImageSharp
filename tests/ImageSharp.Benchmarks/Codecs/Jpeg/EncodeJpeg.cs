@@ -26,8 +26,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         // ImageSharp
         private Image<Rgba32> bmpCore;
+        private Image<L8> bmpLuminance;
+        private JpegEncoder encoder400;
         private JpegEncoder encoder420;
         private JpegEncoder encoder444;
+        private JpegEncoder encoderRgb;
 
         private MemoryStream destinationStream;
 
@@ -40,8 +43,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
                 this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpCore.Metadata.ExifProfile = null;
+                this.bmpLuminance = this.bmpCore.CloneAs<L8>();
+                this.encoder400 = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.Luminance };
                 this.encoder420 = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio420 };
                 this.encoder444 = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio444 };
+                this.encoderRgb = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.Rgb };
 
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = SDImage.FromStream(this.bmpStream);
@@ -79,6 +85,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             this.destinationStream.Seek(0, SeekOrigin.Begin);
         }
 
+        [Benchmark(Description = "ImageSharp (greyscale) Jpeg 4:0:0")]
+        public void JpegCore400()
+        {
+            this.bmpLuminance.SaveAsJpeg(this.destinationStream, this.encoder400);
+            this.destinationStream.Seek(0, SeekOrigin.Begin);
+        }
+
+
         [Benchmark(Description = "ImageSharp Jpeg 4:2:0")]
         public void JpegCore420()
         {
@@ -90,6 +104,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public void JpegCore444()
         {
             this.bmpCore.SaveAsJpeg(this.destinationStream, this.encoder444);
+            this.destinationStream.Seek(0, SeekOrigin.Begin);
+        }
+
+        [Benchmark(Description = "ImageSharp Jpeg rgb")]
+        public void JpegRgb()
+        {
+            this.bmpCore.SaveAsJpeg(this.destinationStream, this.encoderRgb);
             this.destinationStream.Seek(0, SeekOrigin.Begin);
         }
 
@@ -111,24 +132,30 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 }
 
 /*
-BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042
-Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
-.NET SDK=6.0.100-preview.3.21202.5
-  [Host]     : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
-  DefaultJob : .NET Core 3.1.18 (CoreCLR 4.700.21.35901, CoreFX 4.700.21.36305), X64 RyuJIT
+BenchmarkDotNet=v0.13.0, OS=linuxmint 20.3
+AMD Ryzen 7 5800X, 1 CPU, 16 logical and 8 physical cores
+.NET SDK=6.0.200
+  [Host]     : .NET Core 3.1.22 (CoreCLR 4.700.21.56803, CoreFX 4.700.21.57101), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.22 (CoreCLR 4.700.21.56803, CoreFX 4.700.21.57101), X64 RyuJIT
 
 
-|                      Method | Quality |     Mean |    Error |   StdDev | Ratio |
-|---------------------------- |-------- |---------:|---------:|---------:|------:|
-| 'System.Drawing Jpeg 4:2:0' |      75 | 30.04 ms | 0.540 ms | 0.479 ms |  1.00 |
-|     'ImageSharp Jpeg 4:2:0' |      75 | 19.32 ms | 0.290 ms | 0.257 ms |  0.64 |
-|     'ImageSharp Jpeg 4:4:4' |      75 | 26.76 ms | 0.332 ms | 0.294 ms |  0.89 |
-|                             |         |          |          |          |       |
-| 'System.Drawing Jpeg 4:2:0' |      90 | 32.82 ms | 0.184 ms | 0.163 ms |  1.00 |
-|     'ImageSharp Jpeg 4:2:0' |      90 | 25.00 ms | 0.408 ms | 0.361 ms |  0.76 |
-|     'ImageSharp Jpeg 4:4:4' |      90 | 31.83 ms | 0.636 ms | 0.595 ms |  0.97 |
-|                             |         |          |          |          |       |
-| 'System.Drawing Jpeg 4:2:0' |     100 | 39.30 ms | 0.359 ms | 0.318 ms |  1.00 |
-|     'ImageSharp Jpeg 4:2:0' |     100 | 34.49 ms | 0.265 ms | 0.235 ms |  0.88 |
-|     'ImageSharp Jpeg 4:4:4' |     100 | 56.40 ms | 0.565 ms | 0.501 ms |  1.44 |
+|                              Method | Quality |      Mean |     Error |    StdDev | Ratio | RatioSD |
+|------------------------------------ |-------- |----------:|----------:|----------:|------:|--------:|
+|         'System.Drawing Jpeg 4:2:0' |      75 |  9.157 ms | 0.0138 ms | 0.0123 ms |  1.00 |    0.00 |
+| 'ImageSharp (greyscale) Jpeg 4:0:0' |      75 | 12.142 ms | 0.1321 ms | 0.1236 ms |  1.33 |    0.01 |
+|             'ImageSharp Jpeg 4:2:0' |      75 | 19.655 ms | 0.1057 ms | 0.0883 ms |  2.15 |    0.01 |
+|             'ImageSharp Jpeg 4:4:4' |      75 | 19.157 ms | 0.2852 ms | 0.2668 ms |  2.09 |    0.03 |
+|               'ImageSharp Jpeg rgb' |      75 | 26.404 ms | 0.3803 ms | 0.3557 ms |  2.89 |    0.04 |
+|                                     |         |           |           |           |       |         |
+|         'System.Drawing Jpeg 4:2:0' |      90 | 10.828 ms | 0.0727 ms | 0.0680 ms |  1.00 |    0.00 |
+| 'ImageSharp (greyscale) Jpeg 4:0:0' |      90 | 14.918 ms | 0.1089 ms | 0.1019 ms |  1.38 |    0.01 |
+|             'ImageSharp Jpeg 4:2:0' |      90 | 23.718 ms | 0.0301 ms | 0.0267 ms |  2.19 |    0.02 |
+|             'ImageSharp Jpeg 4:4:4' |      90 | 23.857 ms | 0.2387 ms | 0.2233 ms |  2.20 |    0.03 |
+|               'ImageSharp Jpeg rgb' |      90 | 34.700 ms | 0.2207 ms | 0.2064 ms |  3.20 |    0.03 |
+|                                     |         |           |           |           |       |         |
+|         'System.Drawing Jpeg 4:2:0' |     100 | 13.478 ms | 0.0054 ms | 0.0048 ms |  1.00 |    0.00 |
+| 'ImageSharp (greyscale) Jpeg 4:0:0' |     100 | 19.446 ms | 0.0803 ms | 0.0751 ms |  1.44 |    0.01 |
+|             'ImageSharp Jpeg 4:2:0' |     100 | 30.339 ms | 0.4578 ms | 0.4282 ms |  2.25 |    0.03 |
+|             'ImageSharp Jpeg 4:4:4' |     100 | 39.056 ms | 0.1779 ms | 0.1664 ms |  2.90 |    0.01 |
+|               'ImageSharp Jpeg rgb' |     100 | 51.828 ms | 0.3336 ms | 0.3121 ms |  3.85 |    0.02 |
 */

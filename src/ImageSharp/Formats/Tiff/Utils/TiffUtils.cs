@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 
         private const float Scale32Bit = 1.0f / 0xFFFFFFFF;
 
-        public static Vector4 Vector4Default { get; } = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+        public static Vector4 Vector4Default { get; } = new(0.0f, 0.0f, 0.0f, 0.0f);
 
-        public static Rgba64 Rgba64Default { get; } = new Rgba64(0, 0, 0, 0);
+        public static Rgba64 Rgba64Default { get; } = new(0, 0, 0, 0);
 
-        public static L16 L16Default { get; } = new L16(0);
+        public static L16 L16Default { get; } = new(0);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort ConvertToUShortBigEndian(ReadOnlySpan<byte> buffer) => BinaryPrimitives.ReadUInt16BigEndian(buffer);
@@ -55,6 +55,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorFromRgba64<TPixel>(Rgba64 rgba, ulong r, ulong g, ulong b, ulong a, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            rgba.PackedValue = r | (g << 16) | (b << 32) | (a << 48);
+            color.FromRgba64(rgba);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ColorScaleTo24Bit<TPixel>(ulong r, ulong g, ulong b, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -64,10 +73,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorScaleTo24Bit<TPixel>(ulong r, ulong g, ulong b, ulong a, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var colorVector = new Vector4(r * Scale24Bit, g * Scale24Bit, b * Scale24Bit, a * Scale24Bit);
+            color.FromVector4(colorVector);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ColorScaleTo32Bit<TPixel>(ulong r, ulong g, ulong b, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(r * Scale32Bit, g * Scale32Bit, b * Scale32Bit, 1.0f);
+            color.FromVector4(colorVector);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorScaleTo32Bit<TPixel>(ulong r, ulong g, ulong b, ulong a, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var colorVector = new Vector4(r * Scale32Bit, g * Scale32Bit, b * Scale32Bit, a * Scale32Bit);
             color.FromVector4(colorVector);
             return color;
         }

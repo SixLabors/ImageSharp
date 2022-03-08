@@ -26,6 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public readonly ushort Channel2;
 
         /// <summary>
+        /// The bits for the alpha channel.
+        /// </summary>
+        public readonly ushort Channel3;
+
+        /// <summary>
         /// The number of channels.
         /// </summary>
         public readonly byte Channels;
@@ -36,16 +41,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="channel0">The bits for the channel 0.</param>
         /// <param name="channel1">The bits for the channel 1.</param>
         /// <param name="channel2">The bits for the channel 2.</param>
-        public TiffBitsPerSample(ushort channel0, ushort channel1, ushort channel2)
+        /// <param name="channel3">The bits for the channel 3.</param>
+        public TiffBitsPerSample(ushort channel0, ushort channel1, ushort channel2, ushort channel3 = 0)
         {
             this.Channel0 = (ushort)Numerics.Clamp(channel0, 0, 32);
             this.Channel1 = (ushort)Numerics.Clamp(channel1, 0, 32);
             this.Channel2 = (ushort)Numerics.Clamp(channel2, 0, 32);
+            this.Channel3 = (ushort)Numerics.Clamp(channel3, 0, 32);
 
             this.Channels = 0;
             this.Channels += (byte)(this.Channel0 != 0 ? 1 : 0);
             this.Channels += (byte)(this.Channel1 != 0 ? 1 : 0);
             this.Channels += (byte)(this.Channel2 != 0 ? 1 : 0);
+            this.Channels += (byte)(this.Channel3 != 0 ? 1 : 0);
         }
 
         /// <summary>
@@ -62,11 +70,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return false;
             }
 
+            ushort c3 = 0;
             ushort c2;
             ushort c1;
             ushort c0;
             switch (value.Length)
             {
+                case 4:
+                    c3 = value[3];
+                    c2 = value[2];
+                    c1 = value[1];
+                    c0 = value[0];
+                    break;
+
                 case 3:
                     c2 = value[2];
                     c1 = value[1];
@@ -84,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
             }
 
-            sample = new TiffBitsPerSample(c0, c1, c2);
+            sample = new TiffBitsPerSample(c0, c1, c2, c3);
             return true;
         }
 
@@ -96,11 +112,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public bool Equals(TiffBitsPerSample other)
             => this.Channel0 == other.Channel0
                && this.Channel1 == other.Channel1
-               && this.Channel2 == other.Channel2;
+               && this.Channel2 == other.Channel2
+               && this.Channel3 == other.Channel3;
 
         /// <inheritdoc/>
         public override int GetHashCode()
-            => HashCode.Combine(this.Channel0, this.Channel1, this.Channel2);
+            => HashCode.Combine(this.Channel0, this.Channel1, this.Channel2, this.Channel3);
 
         /// <summary>
         /// Converts the bits per sample struct to an ushort array.
@@ -118,7 +135,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return new[] { this.Channel0, this.Channel1 };
             }
 
-            return new[] { this.Channel0, this.Channel1, this.Channel2 };
+            if (this.Channel3 == 0)
+            {
+                return new[] { this.Channel0, this.Channel1, this.Channel2 };
+            }
+
+            return new[] { this.Channel0, this.Channel1, this.Channel2, this.Channel3 };
         }
 
         /// <summary>
@@ -127,12 +149,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <returns>Bits per pixel.</returns>
         public TiffBitsPerPixel BitsPerPixel()
         {
-            int bitsPerPixel = this.Channel0 + this.Channel1 + this.Channel2;
+            int bitsPerPixel = this.Channel0 + this.Channel1 + this.Channel2 + this.Channel3;
             return (TiffBitsPerPixel)bitsPerPixel;
         }
 
         /// <inheritdoc/>
         public override string ToString()
-            => $"TiffBitsPerSample({this.Channel0}, {this.Channel1}, {this.Channel2})";
+            => this.Channel3 is 0 ?
+                $"TiffBitsPerSample({this.Channel0}, {this.Channel1}, {this.Channel2})"
+                : $"TiffBitsPerSample({this.Channel0}, {this.Channel1}, {this.Channel2}, {this.Channel3})";
     }
 }

@@ -60,13 +60,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
 #if SUPPORTS_RUNTIME_INTRINSICS
 
-        private static ReadOnlySpan<byte> MoveFirst24BytesToSeparateLanes => new byte[]
+        internal static ReadOnlySpan<byte> MoveFirst24BytesToSeparateLanes => new byte[]
         {
             0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0,
             3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0
         };
 
-        private static ReadOnlySpan<byte> ExtractRgb => new byte[]
+        internal static ReadOnlySpan<byte> ExtractRgb => new byte[]
         {
             0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF,
             0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF

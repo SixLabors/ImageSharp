@@ -209,21 +209,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             // To reintroduce parallel processing, we would launch multiple workers
             // for different row intervals of the image.
-            using (var worker = new ResizeWorker<TPixel>(
+            using var worker = new ResizeWorker<TPixel>(
                 configuration,
                 sourceRegion,
                 conversionModifiers,
                 horizontalKernelMap,
                 verticalKernelMap,
-                destination.Width,
                 interest,
-                destinationRectangle.Location))
-            {
-                worker.Initialize();
+                destinationRectangle.Location);
+            worker.Initialize();
 
-                var workingInterval = new RowInterval(interest.Top, interest.Bottom);
-                worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
-            }
+            var workingInterval = new RowInterval(interest.Top, interest.Bottom);
+            worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
         }
 
         private readonly struct NNRowOperation : IRowOperation

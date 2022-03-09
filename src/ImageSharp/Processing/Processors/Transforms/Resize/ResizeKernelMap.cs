@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Returns a <see cref="ResizeKernel"/> for an index value between 0 and DestinationSize - 1.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal ref ResizeKernel GetKernel(int destIdx) => ref this.kernels[destIdx];
+        internal ref ResizeKernel GetKernel(nint destIdx) => ref this.kernels[destIdx];
 
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.

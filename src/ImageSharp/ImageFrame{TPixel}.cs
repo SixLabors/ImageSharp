@@ -362,10 +362,8 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d) =>
-            {
-                PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d);
-            });
+            this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d)
+                => PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d));
         }
 
         /// <inheritdoc/>

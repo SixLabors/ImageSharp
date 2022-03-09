@@ -80,14 +80,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
                 this.windowBandHeight,
-                targetWorkingRect.Width,
+                destWidth,
                 workingBufferLimitHintInBytes);
 
             this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 
             this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.workerHeight,
-                targetWorkingRect.Width,
+                destWidth,
                 preferContiguosImageBuffers: true,
                 options: AllocationOptions.Clean);
 

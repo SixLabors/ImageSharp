@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit.Abstractions;
 
@@ -16,6 +17,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public TestPixel(float red, float green, float blue, float alpha)
         {
+            Guard.MustBeBetweenOrEqualTo(red, 0F, 1F, nameof(red));
+            Guard.MustBeBetweenOrEqualTo(green, 0F, 1F, nameof(green));
+            Guard.MustBeBetweenOrEqualTo(blue, 0F, 1F, nameof(blue));
+            Guard.MustBeBetweenOrEqualTo(alpha, 0F, 1F, nameof(alpha));
+
             this.Red = red;
             this.Green = green;
             this.Blue = blue;
@@ -33,14 +39,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         public TPixel AsPixel()
         {
             var pix = default(TPixel);
-            pix.FromVector4(new System.Numerics.Vector4(this.Red, this.Green, this.Blue, this.Alpha));
+            pix.FromScaledVector4(new Vector4(this.Red, this.Green, this.Blue, this.Alpha));
             return pix;
         }
 
-        internal Span<TPixel> AsSpan()
-        {
-            return new Span<TPixel>(new[] { this.AsPixel() });
-        }
+        internal Span<TPixel> AsSpan() => new(new[] { this.AsPixel() });
 
         public void Deserialize(IXunitSerializationInfo info)
         {
@@ -58,9 +61,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             info.AddValue("alpha", this.Alpha);
         }
 
-        public override string ToString()
-        {
-            return $"{typeof(TPixel).Name}{this.AsPixel().ToString()}";
-        }
+        public override string ToString() => $"{typeof(TPixel).Name}{this.AsPixel()}";
     }
 }

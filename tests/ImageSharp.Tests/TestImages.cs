@@ -865,6 +865,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgba5BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha5bit.tiff";
             public const string Rgba6BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha6bit.tiff";
             public const string Rgba8BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha8bit.tiff";
+            public const string Rgba8BitUnassociatedAlphaWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor8bit.tiff";
             public const string Rgba8BitPlanarUnassociatedAlpha = "Tiff/RgbaUnassociatedAlphaPlanar8bit.tiff";
             public const string Rgba10BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha10bit_msb.tiff";
             public const string Rgba10BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha10bit_lsb.tiff";
@@ -874,6 +875,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgba14BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha14bit_lsb.tiff";
             public const string Rgba16BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha16bit_msb.tiff";
             public const string Rgba16BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha16bit_lsb.tiff";
+            public const string Rgba16BitUnassociatedAlphaBigEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor16bit_msb.tiff";
+            public const string Rgba16BitUnassociatedAlphaLittleEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor16bit_lsb.tiff";
             public const string Rgba16BitPlanarUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlphaPlanar16bit_msb.tiff";
             public const string Rgba16BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar16bit_lsb.tiff";
             public const string Rgba24BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha24bit_msb.tiff";
@@ -882,6 +885,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgba24BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar24bit_lsb.tiff";
             public const string Rgba32BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha32bit_msb.tiff";
             public const string Rgba32BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha32bit_lsb.tiff";
+            public const string Rgba32BitUnassociatedAlphaBigEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor32bit_msb.tiff";
+            public const string Rgba32BitUnassociatedAlphaLittleEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor32bit_lsb.tiff";
             public const string Rgba32BitPlanarUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_msb.tiff";
             public const string Rgba32BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_lsb.tiff";
 

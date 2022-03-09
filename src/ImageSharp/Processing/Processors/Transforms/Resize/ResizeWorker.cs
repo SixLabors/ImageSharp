@@ -80,19 +80,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
                 this.windowBandHeight,
-                destWidth,
+                targetWorkingRect.Width,
                 workingBufferLimitHintInBytes);
 
             this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 
             this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.workerHeight,
-                destWidth,
+                targetWorkingRect.Width,
                 preferContiguosImageBuffers: true,
                 options: AllocationOptions.Clean);
 
             this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
-            this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(destWidth);
+            this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
 
             this.currentWindow = new RowInterval(0, this.workerHeight);
         }
@@ -118,6 +118,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // When creating transposedFirstPassBuffer, we made sure it's contiguous:
             Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
+            int left = this.targetWorkingRect.Left;
+            int right = this.targetWorkingRect.Right;
+            int width = this.targetWorkingRect.Width;
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
                 // Ensure offsets are normalized for cropping and padding.
@@ -131,17 +134,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
 
                 int top = kernel.StartIndex - this.currentWindow.Min;
+
                 ref Vector4 fpBase = ref transposedFirstPassBufferSpan[top];
 
-                for (int x = 0; x < this.destWidth; x++)
+                for (int x = left; x < right; x++)
                 {
                     ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * this.workerHeight);
 
                     // Destination color components
-                    Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
+                    Unsafe.Add(ref tempRowBase, x - left) = kernel.ConvolveCore(ref firstPassColumnBase);
                 }
 
-                Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y);
+                Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempColSpan, targetRowSpan, this.conversionModifiers);
             }

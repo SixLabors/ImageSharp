@@ -61,6 +61,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle destinationRectangle = this.destinationRectangle;
             bool compand = this.options.Compand;
             bool premultiplyAlpha = this.options.PremultiplyAlpha;
+
+            this.options.PadColor = Color.GreenYellow;
+
             bool shouldFill = (this.options.Mode == ResizeMode.BoxPad || this.options.Mode == ResizeMode.Pad)
                               && this.options.PadColor != default;
             TPixel fillColor = this.options.PadColor.ToPixel<TPixel>();

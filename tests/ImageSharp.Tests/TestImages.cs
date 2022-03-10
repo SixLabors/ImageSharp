@@ -262,6 +262,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MalformedUnsupportedComponentCount = "Jpg/issues/issue-1900-malformed-unsupported-255-components.jpg";
                 public const string MultipleApp01932 = "Jpg/issues/issue-1932-app0-resolution.jpg";
                 public const string InvalidIptcTag = "Jpg/issues/Issue1942InvalidIptcTag.jpg";
+                public const string Issue2057App1Parsing = "Jpg/issues/Issue2057-App1Parsing.jpg";
 
                 public static class Fuzz
                 {

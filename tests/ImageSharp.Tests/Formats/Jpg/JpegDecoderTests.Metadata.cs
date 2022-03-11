@@ -302,6 +302,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Null(ex);
         }
 
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.ExifNullArrayTag, PixelTypes.Rgba32)]
+        public void Clone_WithNullRationalArrayTag_DoesNotThrowException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+                var clone = image.Metadata.ExifProfile.DeepClone();
+            });
+            Assert.Null(ex);
+        }
+
         [Fact]
         public void EncodedStringTags_WriteAndRead()
         {

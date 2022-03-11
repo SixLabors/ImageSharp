@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             {
                 // All array types are value types so Clone() is sufficient here.
                 var array = (Array)other.GetValue();
-                this.TrySetValue(array.Clone());
+                this.TrySetValue(array?.Clone());
             }
         }
 

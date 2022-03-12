@@ -21,7 +21,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
-     [Trait("Format", "Jpg")]
+    [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;

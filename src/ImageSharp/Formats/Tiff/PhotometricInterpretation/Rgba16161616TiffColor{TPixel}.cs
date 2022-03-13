@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
             int offset = 0;
 
-            System.Buffers.IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
+            using System.Buffers.IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
             Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors.GetSpan() : Span<Vector4>.Empty;
             for (int y = top; y < top + height; y++)
             {

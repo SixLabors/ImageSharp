@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             private static readonly Lazy<PixelTypeInfo> LazyInfo =
-                new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<RgbaVector>(PixelAlphaRepresentation.Unassociated), true);
+                new(() => PixelTypeInfo.Create<RgbaVector>(PixelAlphaRepresentation.Unassociated), true);
 
             /// <inheritdoc />
             public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 Span<Vector4> destinationVectors = MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels);
 
-                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, sourcePixels, destinationVectors);
+                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, sourcePixels, destinationVectors, PixelConversionModifiers.Scale);
             }
 
             /// <inheritdoc />

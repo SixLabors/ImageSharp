@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// Gets the MDFileUnits exif tag.
         /// </summary>
-        public static ExifTag<string> MDFileUnits => new ExifTag<string>(ExifTagValue.MDFileUnits);
+        public static ExifTag<string> MDFileUnits { get; } = new ExifTag<string>(ExifTagValue.MDFileUnits);
 
         /// <summary>
         /// Gets the SEMInfo exif tag.

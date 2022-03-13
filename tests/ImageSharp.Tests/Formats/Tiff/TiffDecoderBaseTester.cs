@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     public abstract class TiffDecoderBaseTester
     {
-        protected static TiffDecoder TiffDecoder => new TiffDecoder();
+        protected static TiffDecoder TiffDecoder => new();
 
-        protected static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
+        protected static MagickReferenceDecoder ReferenceDecoder => new();
 
         protected static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider, IImageDecoder referenceDecoder = null, bool useExactComparer = true, float compareTolerance = 0.001f)
             where TPixel : unmanaged, IPixel<TPixel>

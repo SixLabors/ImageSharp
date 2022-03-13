@@ -104,6 +104,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private void CorrectBorder(Span<int> span, int kernelSize, int min, int max, BorderWrappingMode borderMode)
         {
             var affectedSize = (kernelSize >> 1) * kernelSize;
+            ref int spanBase = ref MemoryMarshal.GetReference(span);
             if (affectedSize > 0)
             {
                 switch (borderMode)
@@ -113,32 +114,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         Numerics.Clamp(span.Slice(span.Length - affectedSize), min, max);
                         break;
                     case BorderWrappingMode.Mirror:
+                        var min2 = min + min;
                         for (int i = 0; i < affectedSize; i++)
                         {
                             var value = span[i];
                             if (value < min)
                             {
-                                span[i] = min - value + min;
+                                span[i] = min2 - value;
                             }
                         }
 
+                        var max2 = max + max;
                         for (int i = span.Length - affectedSize; i < span.Length; i++)
                         {
                             var value = span[i];
                             if (value > max)
                             {
-                                span[i] = max - value + max;
+                                span[i] = max2 - value;
                             }
                         }
 
                         break;
                     case BorderWrappingMode.Wrap:
+                        var diff = max - min + 1;
                         for (int i = 0; i < affectedSize; i++)
                         {
                             var value = span[i];
                             if (value < min)
                             {
-                                span[i] = max - min + value + 1;
+                                span[i] = diff + value;
                             }
                         }
 
@@ -147,7 +151,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             var value = span[i];
                             if (value > max)
                             {
-                                span[i] = min + value - max - 1;
+                                span[i] = value - diff;
                             }
                         }
 

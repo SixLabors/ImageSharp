@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         Wrap = 1,
 
         /// <summary>Mirror the last few border values: fedcb|abcdefgh|gfedcb</summary>
-        /// <remarks>Please note this mode doe not repeat the very border pixel, as this gives better image quality.</remarks>
+        /// <remarks>Please note this mode does not repeat the very border pixel, as this gives better image quality.</remarks>
         Mirror = 2
     }
 }

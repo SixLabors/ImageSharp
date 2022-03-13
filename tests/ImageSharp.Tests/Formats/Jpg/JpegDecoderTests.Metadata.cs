@@ -4,7 +4,6 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;
@@ -298,6 +297,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Exception ex = Record.Exception(() =>
             {
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            });
+            Assert.Null(ex);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.ExifNullArrayTag, PixelTypes.Rgba32)]
+        public void Clone_WithNullRationalArrayTag_DoesNotThrowException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+                var clone = image.Metadata.ExifProfile.DeepClone();
             });
             Assert.Null(ex);
         }

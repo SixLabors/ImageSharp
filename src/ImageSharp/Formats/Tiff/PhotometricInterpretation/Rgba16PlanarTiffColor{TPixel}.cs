@@ -17,11 +17,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     {
         private readonly bool isBigEndian;
 
+        private readonly TiffExtraSampleType? extraSamplesType;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba16PlanarTiffColor{TPixel}" /> class.
         /// </summary>
-        /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public Rgba16PlanarTiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        /// <param name="extraSamplesType">The extra samples type.</param>
+        /// <param name="isBigEndian">If set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
+        public Rgba16PlanarTiffColor(TiffExtraSampleType? extraSamplesType, bool isBigEndian)
+        {
+            this.extraSamplesType = extraSamplesType;
+            this.isBigEndian = isBigEndian;
+        }
 
         /// <inheritdoc/>
         public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -37,6 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             Span<byte> blueData = data[2].GetSpan();
             Span<byte> alphaData = data[3].GetSpan();
 
+            bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {
@@ -52,7 +60,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 2;
 
-                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, a, color);
+                        pixelRow[x] = hasAssociatedAlpha ?
+                           TiffUtils.ColorFromRgba64Premultiplied(rgba, r, g, b, a, color) :
+                           TiffUtils.ColorFromRgba64(rgba, r, g, b, a, color);
                     }
                 }
                 else
@@ -62,11 +72,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ulong r = TiffUtils.ConvertToUShortLittleEndian(redData.Slice(offset, 2));
                         ulong g = TiffUtils.ConvertToUShortLittleEndian(greenData.Slice(offset, 2));
                         ulong b = TiffUtils.ConvertToUShortLittleEndian(blueData.Slice(offset, 2));
-                        ulong a = TiffUtils.ConvertToUShortBigEndian(alphaData.Slice(offset, 2));
+                        ulong a = TiffUtils.ConvertToUShortLittleEndian(alphaData.Slice(offset, 2));
 
                         offset += 2;
 
-                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, a, color);
+                        pixelRow[x] = hasAssociatedAlpha ?
+                            TiffUtils.ColorFromRgba64Premultiplied(rgba, r, g, b, a, color) :
+                            TiffUtils.ColorFromRgba64(rgba, r, g, b, a, color);
                     }
                 }
             }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -18,15 +19,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private readonly Configuration configuration;
 
+        private readonly MemoryAllocator memoryAllocator;
+
+        private readonly TiffExtraSampleType? extraSamplesType;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba16161616TiffColor{TPixel}" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
+        /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public Rgba16161616TiffColor(Configuration configuration, bool isBigEndian)
+        /// <param name="extraSamplesType">The type of the extra samples.</param>
+        public Rgba16161616TiffColor(Configuration configuration, MemoryAllocator memoryAllocator, TiffExtraSampleType? extraSamplesType, bool isBigEndian)
         {
             this.configuration = configuration;
             this.isBigEndian = isBigEndian;
+            this.memoryAllocator = memoryAllocator;
+            this.extraSamplesType = extraSamplesType;
         }
 
         /// <inheritdoc/>
@@ -38,8 +47,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
 
+            bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
             int offset = 0;
 
+            System.Buffers.IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
+            Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors.GetSpan() : Span<Vector4>.Empty;
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
@@ -57,7 +69,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ulong a = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
 
-                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, a, color);
+                        pixelRow[x] = hasAssociatedAlpha ?
+                            TiffUtils.ColorFromRgba64Premultiplied(rgba, r, g, b, a, color) :
+                            TiffUtils.ColorFromRgba64(rgba, r, g, b, a, color);
                     }
                 }
                 else
@@ -68,6 +82,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         data.Slice(offset, byteCount),
                         pixelRow,
                         pixelRow.Length);
+
+                    if (hasAssociatedAlpha)
+                    {
+                        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorsSpan);
+                        TiffUtils.UnPremultiplyRow(vectorsSpan, pixelRow, color);
+                    }
 
                     offset += byteCount;
                 }

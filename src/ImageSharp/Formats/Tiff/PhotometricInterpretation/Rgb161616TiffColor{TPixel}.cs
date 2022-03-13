@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ulong b = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
 
-                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                        pixelRow[x] = TiffUtils.ColorFromRgb64(rgba, r, g, b, color);
                     }
                 }
                 else

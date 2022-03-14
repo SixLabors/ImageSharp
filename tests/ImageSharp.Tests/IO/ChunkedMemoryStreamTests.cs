@@ -18,6 +18,16 @@ namespace SixLabors.ImageSharp.Tests.IO
     /// </summary>
     public class ChunkedMemoryStreamTests
     {
+        /// <summary>
+        /// The default length in bytes of each buffer chunk when allocating large buffers.
+        /// </summary>
+        private const int DefaultLargeChunkSize = 1024 * 1024 * 4; // 4 Mb
+
+        /// <summary>
+        /// The default length in bytes of each buffer chunk when allocating small buffers.
+        /// </summary>
+        private const int DefaultSmallChunkSize = DefaultLargeChunkSize / 32; // 128 Kb
+
         private readonly MemoryAllocator allocator;
 
         public ChunkedMemoryStreamTests() => this.allocator = Configuration.Default.MemoryAllocator;
@@ -51,11 +61,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultSmallChunkSize * 1.5))]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize * 4)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultSmallChunkSize * 5.5))]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize * 16)]
+        [InlineData(DefaultSmallChunkSize)]
+        [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+        [InlineData(DefaultSmallChunkSize * 4)]
+        [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+        [InlineData(DefaultSmallChunkSize * 16)]
         public void MemoryStream_ReadByteTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);
@@ -72,11 +82,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultSmallChunkSize * 1.5))]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize * 4)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultSmallChunkSize * 5.5))]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize * 16)]
+        [InlineData(DefaultSmallChunkSize)]
+        [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+        [InlineData(DefaultSmallChunkSize * 4)]
+        [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+        [InlineData(DefaultSmallChunkSize * 16)]
         public void MemoryStream_ReadByteBufferTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);
@@ -95,11 +105,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultSmallChunkSize * 1.5))]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize * 4)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultSmallChunkSize * 5.5))]
-        [InlineData(ChunkedMemoryStream.DefaultSmallChunkSize * 16)]
+        [InlineData(DefaultSmallChunkSize)]
+        [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+        [InlineData(DefaultSmallChunkSize * 4)]
+        [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+        [InlineData(DefaultSmallChunkSize * 16)]
         public void MemoryStream_ReadByteBufferSpanTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);

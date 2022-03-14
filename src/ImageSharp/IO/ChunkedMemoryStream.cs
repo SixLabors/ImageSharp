@@ -16,39 +16,17 @@ namespace SixLabors.ImageSharp.IO
     /// </summary>
     internal sealed class ChunkedMemoryStream : Stream
     {
-        /// <summary>
-        /// The default length in bytes of each buffer chunk when allocating large buffers.
-        /// </summary>
-        public const int DefaultLargeChunkSize = 1024 * 1024 * 4; // 4 Mb
-
-        /// <summary>
-        /// The threshold at which to switch to using the large buffer.
-        /// </summary>
-        public const int DefaultLargeChunkThreshold = DefaultLargeChunkSize / 4; // 1 Mb
-
-        /// <summary>
-        /// The default length in bytes of each buffer chunk when allocating small buffers.
-        /// </summary>
-        public const int DefaultSmallChunkSize = DefaultLargeChunkSize / 32; // 128 Kb
-
         // The memory allocator.
         private readonly MemoryAllocator allocator;
 
         // Data
         private MemoryChunk memoryChunk;
 
-        // The length, in bytes, of each large buffer chunk
-        private readonly int largeChunkSize;
+        // The total number of allocated chunks
+        private int chunkCount;
 
-        // The length, in bytes of the total allocation threshold that triggers switching from
-        // small to large buffer chunks.
-        private readonly int largeChunkThreshold;
-
-        // The current length, in bytes, of each buffer chunk
-        private int chunkSize;
-
-        // The total allocation length, in bytes
-        private int totalAllocation;
+        // The length of the largest contiguous buffer that can be handled by the allocator.
+        private readonly int allocatorCapacity;
 
         // Has the stream been disposed.
         private bool isDisposed;
@@ -72,12 +50,7 @@ namespace SixLabors.ImageSharp.IO
         {
             Guard.NotNull(allocator, nameof(allocator));
 
-            // Tweak our buffer sizes to take the minimum of the provided buffer sizes
-            // or values scaled from the allocator buffer capacity which provides us with the largest
-            // available contiguous buffer size.
-            this.largeChunkSize = Math.Min(DefaultLargeChunkSize, allocator.GetBufferCapacityInBytes());
-            this.largeChunkThreshold = Math.Min(DefaultLargeChunkThreshold, this.largeChunkSize / 4);
-            this.chunkSize = Math.Min(DefaultSmallChunkSize, this.largeChunkSize / 32);
+            this.allocatorCapacity = allocator.GetBufferCapacityInBytes();
             this.allocator = allocator;
         }
 
@@ -236,7 +209,7 @@ namespace SixLabors.ImageSharp.IO
                 this.memoryChunk = null;
                 this.writeChunk = null;
                 this.readChunk = null;
-                this.totalAllocation = 0;
+                this.chunkCount = 0;
             }
             finally
             {
@@ -548,13 +521,10 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private MemoryChunk AllocateMemoryChunk()
         {
-            if (this.totalAllocation >= this.largeChunkThreshold)
-            {
-                this.chunkSize = this.largeChunkSize;
-            }
-
-            IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(this.chunkSize);
-            this.totalAllocation += this.chunkSize;
+            // Tweak our buffer sizes to take the minimum of the provided buffer sizes
+            // or the allocator buffer capacity which provides us with the largest
+            // available contiguous buffer size.
+            IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(Math.Min(this.allocatorCapacity, GetChunkSize(this.chunkCount++)));
 
             return new MemoryChunk
             {
@@ -571,6 +541,16 @@ namespace SixLabors.ImageSharp.IO
                 chunk.Dispose();
                 chunk = chunk.Next;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetChunkSize(int i)
+        {
+#pragma warning disable IDE1006 // Naming Styles
+            const int _128K = 1 << 17;
+            const int _4M = 1 << 22;
+            return i < 16 ? _128K * (1 << (i / 4)) : _4M;
+#pragma warning restore IDE1006 // Naming Styles
         }
 
         private sealed class MemoryChunk : IDisposable

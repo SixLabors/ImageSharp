@@ -133,12 +133,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 ref Vector4 fpBase = ref transposedFirstPassBufferSpan[top];
 
-                for (nint x = left; x < right; x++)
+                for (nint x = 0; x < (right - left); x++)
                 {
-                    ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, (x - left) * this.workerHeight);
+                    ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * this.workerHeight);
 
                     // Destination color components
-                    Unsafe.Add(ref tempRowBase, x - left) = kernel.ConvolveCore(ref firstPassColumnBase);
+                    Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
                 }
 
                 Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
@@ -172,6 +172,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             int left = this.targetWorkingRect.Left;
             int right = this.targetWorkingRect.Right;
+            int targetOriginX = left > this.targetOrigin.X ? left - this.targetOrigin.X : this.targetOrigin.X;
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {
                 Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
@@ -186,13 +187,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Span<Vector4> firstPassSpan = transposedFirstPassBufferSpan.Slice(y - this.currentWindow.Min);
                 ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - this.currentWindow.Min];
 
-                for (nint x = left; x < right; x++)
+                for (nint x = 0; x < (right - left); x++)
                 {
-                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.targetOrigin.X);
+                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - targetOriginX);
 
                     // optimization for:
                     // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
-                    Unsafe.Add(ref firstPassBaseRef, (x - left) * this.workerHeight) = kernel.Convolve(tempRowSpan);
+                    Unsafe.Add(ref firstPassBaseRef, x * this.workerHeight) = kernel.Convolve(tempRowSpan);
                 }
             }
         }

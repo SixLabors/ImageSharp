@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             int left = this.targetWorkingRect.Left;
             int right = this.targetWorkingRect.Right;
-            int targetOriginX = left > this.targetOrigin.X ? left - this.targetOrigin.X : this.targetOrigin.X;
+            int targetOriginX = this.targetOrigin.X;
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {
                 Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
@@ -187,13 +187,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Span<Vector4> firstPassSpan = transposedFirstPassBufferSpan.Slice(y - this.currentWindow.Min);
                 ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - this.currentWindow.Min];
 
-                for (nint x = 0; x < (right - left); x++)
+                for (nint x = left, z = 0; x < right; x++, z++)
                 {
                     ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - targetOriginX);
 
                     // optimization for:
                     // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
-                    Unsafe.Add(ref firstPassBaseRef, x * this.workerHeight) = kernel.Convolve(tempRowSpan);
+                    Unsafe.Add(ref firstPassBaseRef, z * this.workerHeight) = kernel.Convolve(tempRowSpan);
                 }
             }
         }

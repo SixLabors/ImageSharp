@@ -3,8 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -28,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
@@ -37,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             try
             {
-                return decoder.Decode<TPixel>(configuration, stream);
+                return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
             }
             catch (InvalidMemoryOperationException ex)
             {
@@ -46,50 +44,17 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
             }
         }
+
+        /// <inheritdoc />
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new WebpDecoderCore(configuration, this).Identify(configuration, stream);
-        }
-
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
-
-        /// <inheritdoc />
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            using var decoder = new WebpDecoderCore(configuration, this);
-
-            try
-            {
-                using var bufferedStream = new BufferedReadStream(configuration, stream);
-                return decoder.DecodeAsync<TPixel>(configuration, bufferedStream, cancellationToken);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                Size dims = decoder.Dimensions;
-
-                throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-        /// <inheritdoc />
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            using var bufferedStream = new BufferedReadStream(configuration, stream);
-            return new WebpDecoderCore(configuration, this).IdentifyAsync(configuration, bufferedStream, cancellationToken);
+            return new WebpDecoderCore(configuration, this).Identify(configuration, stream, cancellationToken);
         }
     }
 }

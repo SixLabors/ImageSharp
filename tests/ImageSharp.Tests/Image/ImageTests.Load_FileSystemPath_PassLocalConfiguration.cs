@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.MockFilePath, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, this.DataStream));
+                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, this.DataStream, default));
             }
 
             [Fact]
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load(this.TopLevelConfiguration, this.MockFilePath, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, this.DataStream));
+                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, this.DataStream, default));
             }
 
             [Fact]

@@ -105,7 +105,7 @@
 |Artist                     |   Y   |   Y   |                          |
 |HostComputer               |   Y   |   Y   |                          |
 |ColorMap                   |   Y   |   Y   |                          |
-|ExtraSamples               |       |   -   |                          |
+|ExtraSamples               |       |  (Y)  | Only UnassociatedAlphaData is supported so far |
 |Copyright                  |   Y   |   Y   |                          |
 
 ### Extension TIFF Tags

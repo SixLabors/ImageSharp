@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, _) => InternalDetectFormatAsync(s, configuration),
+                (s, _) => InternalDetectFormat(s, configuration),
                 cancellationToken);
 
         /// <summary>
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => InternalIdentityAsync(s, configuration ?? Configuration.Default, ct),
+                (s, ct) => InternalIdentity(s, configuration ?? Configuration.Default, ct),
                 cancellationToken);
 
         /// <summary>
@@ -313,7 +313,7 @@ namespace SixLabors.ImageSharp
         public static Image Load(Configuration configuration, Stream stream, IImageDecoder decoder)
         {
             Guard.NotNull(decoder, nameof(decoder));
-            return WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s));
+            return WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s, default));
         }
 
         /// <summary>
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp
             return WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => decoder.DecodeAsync(configuration, s, ct),
+                (s, ct) => decoder.Decode(configuration, s, ct),
                 cancellationToken);
         }
 
@@ -432,9 +432,9 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
-        public static async Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Stream stream, CancellationToken cancellationToken = default)
+        public static Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Stream stream, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
-            => await LoadWithFormatAsync<TPixel>(Configuration.Default, stream, cancellationToken).ConfigureAwait(false);
+            => LoadWithFormatAsync<TPixel>(Configuration.Default, stream, cancellationToken);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -449,7 +449,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(Configuration.Default, stream, s => decoder.Decode<TPixel>(Configuration.Default, s));
+            => WithSeekableStream(Configuration.Default, stream, s => decoder.Decode<TPixel>(Configuration.Default, s, default));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -468,7 +468,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 Configuration.Default,
                 stream,
-                (s, ct) => decoder.DecodeAsync<TPixel>(Configuration.Default, s, ct),
+                (s, ct) => decoder.Decode<TPixel>(Configuration.Default, s, ct),
                 cancellationToken);
 
         /// <summary>
@@ -486,7 +486,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(configuration, stream, s => decoder.Decode<TPixel>(configuration, s));
+            => WithSeekableStream(configuration, stream, s => decoder.Decode<TPixel>(configuration, s, default));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -511,7 +511,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => decoder.DecodeAsync<TPixel>(configuration, s, ct),
+                (s, ct) => decoder.Decode<TPixel>(configuration, s, ct),
                 cancellationToken);
 
         /// <summary>
@@ -586,7 +586,7 @@ namespace SixLabors.ImageSharp
             (Image Image, IImageFormat Format) data = await WithSeekableStreamAsync(
                     configuration,
                     stream,
-                    async (s, ct) => await DecodeAsync(s, configuration, ct).ConfigureAwait(false),
+                    (s, ct) => Decode(s, configuration, ct),
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -629,7 +629,7 @@ namespace SixLabors.ImageSharp
                 await WithSeekableStreamAsync(
                     configuration,
                     stream,
-                    (s, ct) => DecodeAsync<TPixel>(s, configuration, ct),
+                    (s, ct) => Decode<TPixel>(s, configuration, ct),
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -759,7 +759,7 @@ namespace SixLabors.ImageSharp
         private static async Task<T> WithSeekableStreamAsync<T>(
             Configuration configuration,
             Stream stream,
-            Func<Stream, CancellationToken, Task<T>> action,
+            Func<Stream, CancellationToken, T> action,
             CancellationToken cancellationToken)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -770,10 +770,6 @@ namespace SixLabors.ImageSharp
                 throw new NotSupportedException("Cannot read from the stream.");
             }
 
-            // To make sure we don't trigger anything with aspnetcore then we just need to make sure we are
-            // seekable and we make the copy using CopyToAsync if the stream is seekable then we aren't using
-            // one of the aspnetcore wrapped streams that error on sync api calls and we can use it without
-            // having to further wrap
             if (stream.CanSeek)
             {
                 if (configuration.ReadOrigin == ReadOrigin.Begin)
@@ -781,14 +777,16 @@ namespace SixLabors.ImageSharp
                     stream.Position = 0;
                 }
 
-                return await action(stream, cancellationToken).ConfigureAwait(false);
+                // NOTE: We are explicitly not executing the action against the stream here as we do in WithSeekableStream() because that
+                // would incur synchronous IO reads which must be avoided in this asynchronous method.  Instead, we will *always* run the
+                // code below to copy the stream to an in-memory buffer before invoking the action.
             }
 
             using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
             await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;
 
-            return await action(memoryStream, cancellationToken).ConfigureAwait(false);
+            return action(memoryStream, cancellationToken);
         }
     }
 }

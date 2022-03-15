@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             var color = default(TPixel);
-            color.FromVector4(TiffUtils.Vector4Default);
+            color.FromScaledVector4(TiffUtils.Vector4Default);
             int offset = 0;
             byte[] buffer = new byte[4];
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         offset += 4;
 
                         var colorVector = new Vector4(r, g, b, 1.0f);
-                        color.FromVector4(colorVector);
+                        color.FromScaledVector4(colorVector);
                         pixelRow[x] = color;
                     }
                 }
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         offset += 4;
 
                         var colorVector = new Vector4(r, g, b, 1.0f);
-                        color.FromVector4(colorVector);
+                        color.FromScaledVector4(colorVector);
                         pixelRow[x] = color;
                     }
                 }

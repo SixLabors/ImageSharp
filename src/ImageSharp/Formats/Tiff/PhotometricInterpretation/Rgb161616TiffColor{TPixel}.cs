@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             Rgba64 rgba = TiffUtils.Rgba64Default;
             var color = default(TPixel);
-            color.FromVector4(TiffUtils.Vector4Default);
+            color.FromScaledVector4(TiffUtils.Vector4Default);
 
             int offset = 0;
 
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         ulong b = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
                         offset += 2;
 
-                        pixelRow[x] = TiffUtils.ColorFromRgba64(rgba, r, g, b, color);
+                        pixelRow[x] = TiffUtils.ColorFromRgb64(rgba, r, g, b, color);
                     }
                 }
                 else

@@ -546,6 +546,8 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetChunkSize(int i)
         {
+            // Increment chunks sizes with moderate speed, but without using too many buffers from the same ArrayPool bucket of the default MemoryAllocator.
+            // https://github.com/SixLabors/ImageSharp/pull/2006#issuecomment-1066244720
 #pragma warning disable IDE1006 // Naming Styles
             const int _128K = 1 << 17;
             const int _4M = 1 << 22;

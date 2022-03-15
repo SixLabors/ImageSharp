@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(r * Scale24Bit, g * Scale24Bit, b * Scale24Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Vector4 colorVector = new Vector4(r, g, b, a) * Scale24Bit;
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(r * Scale32Bit, g * Scale32Bit, b * Scale32Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Vector4 colorVector = new Vector4(r, g, b, a) * Scale32Bit;
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(intensity * Scale24Bit, intensity * Scale24Bit, intensity * Scale24Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(intensity * Scale32Bit, intensity * Scale32Bit, intensity * Scale32Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Numerics.UnPremultiply(ref vector);
-            color.FromVector4(vector);
+            color.FromScaledVector4(vector);
 
             return color;
         }
@@ -174,8 +174,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
                 return 0;
             }
 
-            int padding = subSampling - (valueToRoundUp % subSampling);
-            return padding;
+            return subSampling - (valueToRoundUp % subSampling);
         }
     }
 }

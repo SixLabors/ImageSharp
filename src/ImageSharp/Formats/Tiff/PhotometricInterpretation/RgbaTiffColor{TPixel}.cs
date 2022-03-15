@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     }
                     else
                     {
-                        color.FromVector4(vec);
+                        color.FromScaledVector4(vec);
                         pixelRow[x] = color;
                     }
                 }

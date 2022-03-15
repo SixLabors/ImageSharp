@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             Rgba64 rgba = TiffUtils.Rgba64Default;
             var color = default(TPixel);
-            color.FromVector4(TiffUtils.Vector4Default);
+            color.FromScaledVector4(TiffUtils.Vector4Default);
 
             int offset = 0;
 

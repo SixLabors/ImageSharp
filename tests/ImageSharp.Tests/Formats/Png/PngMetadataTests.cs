@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 input.Save(memoryStream, new PngEncoder());
 
                 memoryStream.Position = 0;
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream, default))
                 {
                     PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
                     VerifyTextDataIsPresent(meta);
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 });
 
                 memoryStream.Position = 0;
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream, default))
                 {
                     PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
                     Assert.Contains(meta.TextData, m => m.Equals(expectedText));
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new PngDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
                 {
                     ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new PngDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 ImageMetadata meta = image.Metadata;
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);

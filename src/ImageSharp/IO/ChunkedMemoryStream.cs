@@ -16,19 +16,17 @@ namespace SixLabors.ImageSharp.IO
     /// </summary>
     internal sealed class ChunkedMemoryStream : Stream
     {
-        /// <summary>
-        /// The default length in bytes of each buffer chunk.
-        /// </summary>
-        public const int DefaultBufferLength = 128 * 1024;
-
         // The memory allocator.
         private readonly MemoryAllocator allocator;
 
         // Data
         private MemoryChunk memoryChunk;
 
-        // The length of each buffer chunk
-        private readonly int chunkLength;
+        // The total number of allocated chunks
+        private int chunkCount;
+
+        // The length of the largest contiguous buffer that can be handled by the allocator.
+        private readonly int allocatorCapacity;
 
         // Has the stream been disposed.
         private bool isDisposed;
@@ -49,21 +47,10 @@ namespace SixLabors.ImageSharp.IO
         /// Initializes a new instance of the <see cref="ChunkedMemoryStream"/> class.
         /// </summary>
         public ChunkedMemoryStream(MemoryAllocator allocator)
-            : this(DefaultBufferLength, allocator)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ChunkedMemoryStream"/> class.
-        /// </summary>
-        /// <param name="bufferLength">The length, in bytes of each buffer chunk.</param>
-        /// <param name="allocator">The memory allocator.</param>
-        public ChunkedMemoryStream(int bufferLength, MemoryAllocator allocator)
-        {
-            Guard.MustBeGreaterThan(bufferLength, 0, nameof(bufferLength));
             Guard.NotNull(allocator, nameof(allocator));
 
-            this.chunkLength = bufferLength;
+            this.allocatorCapacity = allocator.GetBufferCapacityInBytes();
             this.allocator = allocator;
         }
 
@@ -191,6 +178,9 @@ namespace SixLabors.ImageSharp.IO
                 case SeekOrigin.End:
                     this.Position = this.Length + offset;
                     break;
+                default:
+                    ThrowInvalidSeek();
+                    break;
             }
 
             return this.Position;
@@ -219,6 +209,7 @@ namespace SixLabors.ImageSharp.IO
                 this.memoryChunk = null;
                 this.writeChunk = null;
                 this.readChunk = null;
+                this.chunkCount = 0;
             }
             finally
             {
@@ -519,17 +510,22 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void ThrowDisposed()
-            => throw new ObjectDisposedException(null, "The stream is closed.");
+        private static void ThrowDisposed() => throw new ObjectDisposedException(null, "The stream is closed.");
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void ThrowArgumentOutOfRange(string value)
-            => throw new ArgumentOutOfRangeException(value);
+        private static void ThrowArgumentOutOfRange(string value) => throw new ArgumentOutOfRangeException(value);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowInvalidSeek() => throw new ArgumentException("Invalid seek origin.");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private MemoryChunk AllocateMemoryChunk()
         {
-            IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(this.chunkLength);
+            // Tweak our buffer sizes to take the minimum of the provided buffer sizes
+            // or the allocator buffer capacity which provides us with the largest
+            // available contiguous buffer size.
+            IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(Math.Min(this.allocatorCapacity, GetChunkSize(this.chunkCount++)));
+
             return new MemoryChunk
             {
                 Buffer = buffer,
@@ -545,6 +541,18 @@ namespace SixLabors.ImageSharp.IO
                 chunk.Dispose();
                 chunk = chunk.Next;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetChunkSize(int i)
+        {
+            // Increment chunks sizes with moderate speed, but without using too many buffers from the same ArrayPool bucket of the default MemoryAllocator.
+            // https://github.com/SixLabors/ImageSharp/pull/2006#issuecomment-1066244720
+#pragma warning disable IDE1006 // Naming Styles
+            const int _128K = 1 << 17;
+            const int _4M = 1 << 22;
+            return i < 16 ? _128K * (1 << (i / 4)) : _4M;
+#pragma warning restore IDE1006 // Naming Styles
         }
 
         private sealed class MemoryChunk : IDisposable

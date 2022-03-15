@@ -557,7 +557,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new BmpDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
                 {
                     ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);

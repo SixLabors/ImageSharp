@@ -118,9 +118,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffFillOrder FillOrder { get; set; }
 
         /// <summary>
-        /// Gets or sets the extra samples, which can contain the alpha channel data.
+        /// Gets or sets the extra samples type.
         /// </summary>
-        public TiffExtraSampleType? ExtraSamples { get; set; }
+        public TiffExtraSampleType? ExtraSamplesType { get; set; }
 
         /// <summary>
         /// Gets or sets the JPEG tables when jpeg compression is used.
@@ -375,6 +375,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
                     this.ColorType,
                     this.BitsPerSample,
+                    this.ExtraSamplesType,
                     this.ColorMap,
                     this.ReferenceBlackAndWhite,
                     this.YcbcrCoefficients,
@@ -456,6 +457,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.memoryAllocator,
                 this.ColorType,
                 this.BitsPerSample,
+                this.ExtraSamplesType,
                 this.ColorMap,
                 this.ReferenceBlackAndWhite,
                 this.YcbcrCoefficients,

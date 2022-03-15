@@ -17,11 +17,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     {
         private readonly bool isBigEndian;
 
+        private readonly TiffExtraSampleType? extraSamplesType;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba32PlanarTiffColor{TPixel}" /> class.
         /// </summary>
+        /// <param name="extraSamplesType">The extra samples type.</param>
         /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-        public Rgba32PlanarTiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+        public Rgba32PlanarTiffColor(TiffExtraSampleType? extraSamplesType, bool isBigEndian)
+        {
+            this.extraSamplesType = extraSamplesType;
+            this.isBigEndian = isBigEndian;
+        }
 
         /// <inheritdoc/>
         public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -29,13 +36,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
             // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             var color = default(TPixel);
-            color.FromVector4(TiffUtils.Vector4Default);
+            color.FromScaledVector4(TiffUtils.Vector4Default);
 
             Span<byte> redData = data[0].GetSpan();
             Span<byte> greenData = data[1].GetSpan();
             Span<byte> blueData = data[2].GetSpan();
             Span<byte> alphaData = data[3].GetSpan();
 
+            bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {
@@ -51,7 +59,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 4;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
+                        pixelRow[x] = hasAssociatedAlpha ?
+                            TiffUtils.ColorScaleTo32BitPremultiplied(r, g, b, a, color) :
+                            TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
                     }
                 }
                 else
@@ -65,7 +75,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
                         offset += 4;
 
-                        pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
+                        pixelRow[x] = hasAssociatedAlpha ?
+                            TiffUtils.ColorScaleTo32BitPremultiplied(r, g, b, a, color) :
+                            TiffUtils.ColorScaleTo32Bit(r, g, b, a, color);
                     }
                 }
             }

@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
-        internal static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        internal static bool IsMacOS => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
         internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 

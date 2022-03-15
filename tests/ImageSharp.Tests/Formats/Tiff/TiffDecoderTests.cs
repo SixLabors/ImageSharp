@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
-            // converting the pixel data from Magick.Net to our format with YCbCr?
+            // converting the pixel data from Magick.NET to our format with YCbCr?
             using Image<TPixel> image = provider.GetImage();
             image.DebugSave(provider);
         }

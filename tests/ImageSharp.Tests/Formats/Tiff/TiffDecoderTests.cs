@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffDecoder_CanDecode_12Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
                 // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
                 using Image<TPixel> image = provider.GetImage(TiffDecoder);
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
                 // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
                 using Image<TPixel> image = provider.GetImage(TiffDecoder);
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffDecoder_CanDecode_24Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)            
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
                 // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
                 using Image<TPixel> image = provider.GetImage(TiffDecoder);
@@ -313,7 +313,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
-            // converting the pixel data from Magick.Net to our format with YCbCr?
+            // converting the pixel data from Magick.NET to our format with YCbCr?
             using Image<TPixel> image = provider.GetImage();
             image.DebugSave(provider);
         }
@@ -353,7 +353,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffDecoder_CanDecode_32Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
                 // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
                 using Image<TPixel> image = provider.GetImage(TiffDecoder);
@@ -393,7 +393,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffDecoder_CanDecode_40Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
                 // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
                 using Image<TPixel> image = provider.GetImage(TiffDecoder);
@@ -432,7 +432,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffDecoder_CanDecode_48Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
                 // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
                 using Image<TPixel> image = provider.GetImage(TiffDecoder);
@@ -462,7 +462,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffDecoder_CanDecode_56Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
                 // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
                 using Image<TPixel> image = provider.GetImage(TiffDecoder);

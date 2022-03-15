@@ -3,8 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -26,48 +24,24 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new GifDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream);
+            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream)
-            => this.Decode<Rgba32>(configuration, stream);
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var decoder = new GifDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
-            .ConfigureAwait(false);
-
-        /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new GifDecoderCore(configuration, this);
-
-            using var bufferedStream = new BufferedReadStream(configuration, stream);
-            return decoder.Identify(bufferedStream, default);
-        }
-
-        /// <inheritdoc/>
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new GifDecoderCore(configuration, this);
-            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
+            return decoder.Identify(configuration, stream, cancellationToken);
         }
     }
 }

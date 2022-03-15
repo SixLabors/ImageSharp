@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Pbm
@@ -30,50 +29,26 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     public sealed class PbmDecoder : IImageDecoder, IImageInfoDetector
     {
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new PbmDecoderCore(configuration);
-            return decoder.Decode<TPixel>(configuration, stream);
+            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream)
-            => this.Decode<Rgb24>(configuration, stream);
+        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgb24>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new PbmDecoderCore(configuration);
-            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
-            .ConfigureAwait(false);
-
-        /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new PbmDecoderCore(configuration);
-            return decoder.Identify(configuration, stream);
-        }
-
-        /// <inheritdoc/>
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new PbmDecoderCore(configuration);
-            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
+            return decoder.Identify(configuration, stream, cancellationToken);
         }
     }
 }

@@ -139,27 +139,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
-        [Theory]
-        [InlineData(0)]
-        [InlineData(0.5)]
-        [InlineData(0.9)]
-        public async Task DecodeAsync_IsCancellable(int percentageOfStreamReadToCancel)
+        [Fact]
+        public async Task DecodeAsync_IsCancellable()
         {
             var cts = new CancellationTokenSource();
             string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
             pausedStream.OnWaiting(s =>
             {
-                if (s.Position >= s.Length * percentageOfStreamReadToCancel)
-                {
-                    cts.Cancel();
-                    pausedStream.Release();
-                }
-                else
-                {
-                    // allows this/next wait to unblock
-                    pausedStream.Next();
-                }
+                cts.Cancel();
+                pausedStream.Release();
             });
 
             var config = Configuration.CreateDefaultInstance();

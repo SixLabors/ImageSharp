@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 using (var stream = new UnmanagedMemoryStream(data, length))
                 {
-                    using (Image<Rgba32> image = GifDecoder.Decode<Rgba32>(Configuration.Default, stream))
+                    using (Image<Rgba32> image = GifDecoder.Decode<Rgba32>(Configuration.Default, stream, default))
                     {
                         Assert.Equal((200, 200), (image.Width, image.Height));
                     }

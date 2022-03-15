@@ -472,7 +472,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 var options = new ResizeOptions
                 {
                     Size = new Size(image.Width + 200, image.Height + 200),
-                    Mode = ResizeMode.BoxPad
+                    Mode = ResizeMode.BoxPad,
+                    PadColor = Color.HotPink
                 };
 
                 image.Mutate(x => x.Resize(options));
@@ -580,7 +581,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 var options = new ResizeOptions
                 {
                     Size = new Size(image.Width + 200, image.Height),
-                    Mode = ResizeMode.Pad
+                    Mode = ResizeMode.Pad,
+                    PadColor = Color.Lavender
                 };
 
                 image.Mutate(x => x.Resize(options));

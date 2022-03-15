@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">Image format is not supported.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image> LoadAsync(
+        public static async Task<Image> LoadAsync(
             Configuration configuration,
             string path,
             IImageDecoder decoder,
@@ -308,7 +308,8 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(path, nameof(path));
 
             using Stream stream = configuration.FileSystem.OpenRead(path);
-            return LoadAsync(configuration, stream, decoder, cancellationToken);
+            return await LoadAsync(configuration, stream, decoder, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -326,7 +327,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-        public static Task<Image<TPixel>> LoadAsync<TPixel>(
+        public static async Task<Image<TPixel>> LoadAsync<TPixel>(
             Configuration configuration,
             string path,
             IImageDecoder decoder,
@@ -337,7 +338,8 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(path, nameof(path));
 
             using Stream stream = configuration.FileSystem.OpenRead(path);
-            return LoadAsync<TPixel>(configuration, stream, decoder, cancellationToken);
+            return await LoadAsync<TPixel>(configuration, stream, decoder, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         /// <summary>

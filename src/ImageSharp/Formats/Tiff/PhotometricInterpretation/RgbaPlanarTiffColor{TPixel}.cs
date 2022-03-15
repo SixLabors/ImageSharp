@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     var vec = new Vector4(r, g, b, a);
                     if (hasAssociatedAlpha)
                     {
-                        color = TiffUtils.UnPremultiply(vec, color);
+                        color = TiffUtils.UnPremultiply(ref vec, color);
                     }
                     else
                     {

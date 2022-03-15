@@ -362,7 +362,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
 
             // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-            TestTiffDecoder(provider, useExactComparer: false);
+            TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
         }
 
         [Theory]

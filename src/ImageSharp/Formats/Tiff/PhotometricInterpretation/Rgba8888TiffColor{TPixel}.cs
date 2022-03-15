@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
@@ -36,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             var color = default(TPixel);
             color.FromVector4(TiffUtils.Vector4Default);
-            using System.Buffers.IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
+            using IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
             Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors.GetSpan() : Span<Vector4>.Empty;
             for (int y = top; y < top + height; y++)
             {
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 if (hasAssociatedAlpha)
                 {
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorsSpan);
-                    TiffUtils.UnPremultiplyRow(vectorsSpan, pixelRow, color);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorsSpan, pixelRow, PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale);
                 }
 
                 offset += byteCount;

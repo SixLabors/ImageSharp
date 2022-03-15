@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     var vec = new Vector4(r, g, b, a);
                     if (hasAssociatedAlpha)
                     {
-                        pixelRow[x] = TiffUtils.UnPremultiply(vec, color);
+                        pixelRow[x] = TiffUtils.UnPremultiply(ref vec, color);
                     }
                     else
                     {

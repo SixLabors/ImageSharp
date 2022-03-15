@@ -287,8 +287,7 @@ namespace SixLabors.ImageSharp.Advanced
            where TPixel : unmanaged, IPixel<TPixel>
            where TDecoder : class, IImageDecoder
         {
-            default(TDecoder).Decode<TPixel>(default, default);
-            default(TDecoder).DecodeAsync<TPixel>(default, default, default);
+            default(TDecoder).Decode<TPixel>(default, default, default);
         }
 
         /// <summary>

@@ -29,11 +29,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
         }
 
         [Fact]
-        public void KernalSamplingMap_Kernel5Image7x7MirrorBorder()
+        public void KernalSamplingMap_Kernel5Image7x7BounceBorder()
         {
             var kernelSize = new Size(5, 5);
             var bounds = new Rectangle(0, 0, 7, 7);
-            var mode = BorderWrappingMode.Mirror;
+            var mode = BorderWrappingMode.Bounce;
             int[] expected =
             {
                 2, 1, 0, 1, 2,
@@ -43,6 +43,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
                 2, 3, 4, 5, 6,
                 3, 4, 5, 6, 5,
                 4, 5, 6, 5, 4,
+            };
+            this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
+        }
+
+        [Fact]
+        public void KernalSamplingMap_Kernel5Image7x7MirrorBorder()
+        {
+            var kernelSize = new Size(5, 5);
+            var bounds = new Rectangle(0, 0, 7, 7);
+            var mode = BorderWrappingMode.Mirror;
+            int[] expected =
+            {
+                1, 0, 0, 1, 2,
+                0, 0, 1, 2, 3,
+                0, 1, 2, 3, 4,
+                1, 2, 3, 4, 5,
+                2, 3, 4, 5, 6,
+                3, 4, 5, 6, 6,
+                4, 5, 6, 6, 5,
             };
             this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
         }
@@ -67,11 +86,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
         }
 
         [Fact]
-        public void KernalSamplingMap_Kernel5Image9x9MirrorBorder()
+        public void KernalSamplingMap_Kernel5Image9x9BounceBorder()
         {
             var kernelSize = new Size(5, 5);
             var bounds = new Rectangle(1, 1, 9, 9);
-            var mode = BorderWrappingMode.Mirror;
+            var mode = BorderWrappingMode.Bounce;
             int[] expected =
             {
                 3, 2, 1, 2, 3,
@@ -83,6 +102,27 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
                 5, 6, 7, 8, 9,
                 6, 7, 8, 9, 8,
                 7, 8, 9, 8, 7,
+            };
+            this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
+        }
+
+        [Fact]
+        public void KernalSamplingMap_Kernel5Image9x9MirrorBorder()
+        {
+            var kernelSize = new Size(5, 5);
+            var bounds = new Rectangle(1, 1, 9, 9);
+            var mode = BorderWrappingMode.Mirror;
+            int[] expected =
+            {
+                2, 1, 1, 2, 3,
+                1, 1, 2, 3, 4,
+                1, 2, 3, 4, 5,
+                2, 3, 4, 5, 6,
+                3, 4, 5, 6, 7,
+                4, 5, 6, 7, 8,
+                5, 6, 7, 8, 9,
+                6, 7, 8, 9, 9,
+                7, 8, 9, 9, 8,
             };
             this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
         }
@@ -128,11 +168,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
         }
 
         [Fact]
-        public void KernalSamplingMap_Kernel5Image7x7MirrorBorderTile()
+        public void KernalSamplingMap_Kernel5Image7x7BounceBorderTile()
         {
             var kernelSize = new Size(5, 5);
             var bounds = new Rectangle(2, 2, 7, 7);
-            var mode = BorderWrappingMode.Mirror;
+            var mode = BorderWrappingMode.Bounce;
             int[] expected =
             {
                 4, 3, 2, 3, 4,
@@ -142,6 +182,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
                 4, 5, 6, 7, 8,
                 5, 6, 7, 8, 7,
                 6, 7, 8, 7, 6,
+            };
+            this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
+        }
+
+        [Fact]
+        public void KernalSamplingMap_Kernel5Image7x7MirrorBorderTile()
+        {
+            var kernelSize = new Size(5, 5);
+            var bounds = new Rectangle(2, 2, 7, 7);
+            var mode = BorderWrappingMode.Mirror;
+            int[] expected =
+            {
+                3, 2, 2, 3, 4,
+                2, 2, 3, 4, 5,
+                2, 3, 4, 5, 6,
+                3, 4, 5, 6, 7,
+                4, 5, 6, 7, 8,
+                5, 6, 7, 8, 8,
+                6, 7, 8, 8, 7,
             };
             this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
         }
@@ -185,11 +244,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
         }
 
         [Fact]
-        public void KernalSamplingMap_Kernel3Image7x7MirrorBorder()
+        public void KernalSamplingMap_Kernel3Image7x7BounceBorder()
         {
             var kernelSize = new Size(3, 3);
             var bounds = new Rectangle(0, 0, 7, 7);
-            var mode = BorderWrappingMode.Mirror;
+            var mode = BorderWrappingMode.Bounce;
             int[] expected =
             {
                 1, 0, 1,
@@ -199,6 +258,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
                 3, 4, 5,
                 4, 5, 6,
                 5, 6, 5,
+            };
+            this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
+        }
+
+        [Fact]
+        public void KernalSamplingMap_Kernel3Image7x7MirrorBorder()
+        {
+            var kernelSize = new Size(3, 3);
+            var bounds = new Rectangle(0, 0, 7, 7);
+            var mode = BorderWrappingMode.Mirror;
+            int[] expected =
+            {
+                0, 0, 1,
+                0, 1, 2,
+                1, 2, 3,
+                2, 3, 4,
+                3, 4, 5,
+                4, 5, 6,
+                5, 6, 6,
             };
             this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
         }
@@ -242,11 +320,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
         }
 
         [Fact]
-        public void KernalSamplingMap_Kernel3Image7MirrorBorderTile()
+        public void KernalSamplingMap_Kernel3Image7BounceBorderTile()
         {
             var kernelSize = new Size(3, 3);
             var bounds = new Rectangle(2, 2, 7, 7);
-            var mode = BorderWrappingMode.Mirror;
+            var mode = BorderWrappingMode.Bounce;
             int[] expected =
             {
                 3, 2, 3,
@@ -256,6 +334,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
                 5, 6, 7,
                 6, 7, 8,
                 7, 8, 7,
+            };
+            this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
+        }
+
+        [Fact]
+        public void KernalSamplingMap_Kernel3Image7MirrorBorderTile()
+        {
+            var kernelSize = new Size(3, 3);
+            var bounds = new Rectangle(2, 2, 7, 7);
+            var mode = BorderWrappingMode.Mirror;
+            int[] expected =
+            {
+                2, 2, 3,
+                2, 3, 4,
+                3, 4, 5,
+                4, 5, 6,
+                5, 6, 7,
+                6, 7, 8,
+                7, 8, 8,
             };
             this.AssertOffsets(kernelSize, bounds, mode, mode, expected, expected);
         }

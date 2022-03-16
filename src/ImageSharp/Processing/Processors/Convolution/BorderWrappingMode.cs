@@ -14,8 +14,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>Take values from the opposite edge: cdefgh|abcdefgh|abcdefg</summary>
         Wrap = 1,
 
-        /// <summary>Mirror the last few border values: fedcb|abcdefgh|gfedcb</summary>
-        /// <remarks>Please note this mode does not repeat the very border pixel, as this gives better image quality.</remarks>
-        Mirror = 2
+        /// <summary>Mirror the last few border values: fedcba|abcdefgh|hgfedcb</summary>
+        /// <remarks>This Mode is similar to <see cref="Bounce"/>, but here the very border pixel is repeated.</remarks>
+        Mirror = 2,
+
+        /// <summary>Bounce off the border: fedcb|abcdefgh|gfedcb</summary>
+        /// <remarks>This Mode is similar to <see cref="Mirror"/>, but here the very border pixel is not repeated.</remarks>
+        Bounce = 3
     }
 }

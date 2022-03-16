@@ -114,6 +114,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         Numerics.Clamp(span.Slice(span.Length - affectedSize), min, max);
                         break;
                     case BorderWrappingMode.Mirror:
+                        var min2dec = min + min - 1;
+                        for (int i = 0; i < affectedSize; i++)
+                        {
+                            var value = span[i];
+                            if (value < min)
+                            {
+                                span[i] = min2dec - value;
+                            }
+                        }
+
+                        var max2inc = max + max + 1;
+                        for (int i = span.Length - affectedSize; i < span.Length; i++)
+                        {
+                            var value = span[i];
+                            if (value > max)
+                            {
+                                span[i] = max2inc - value;
+                            }
+                        }
+
+                        break;
+                    case BorderWrappingMode.Bounce:
                         var min2 = min + min;
                         for (int i = 0; i < affectedSize; i++)
                         {

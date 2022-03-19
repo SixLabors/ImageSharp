@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Threading;
-using SixLabors.ImageSharp.Memory.Internals;
-using SixLabors.ImageSharp.Tests.Formats.Jpg;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
 using Xunit.Abstractions;
@@ -25,31 +26,91 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             public void WriteLine(string format, params object[] args) => Console.WriteLine(format, args);
         }
 
-        /// <summary>
-        /// The main entry point. Useful for executing benchmarks and performance unit tests manually,
-        /// when the IDE test runners lack some of the functionality. Eg.: it's not possible to run JetBrains memory profiler for unit tests.
-        /// </summary>
-        /// <param name="args">
-        /// The arguments to pass to the program.
-        /// </param>
         public static void Main(string[] args)
         {
-            try
-            {
-                LoadResizeSaveParallelMemoryStress.Run(args);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
+            ReEncodeImage("Calliphora");
 
-            // RunJpegEncoderProfilingTests();
-            // RunJpegColorProfilingTests();
-            // RunDecodeJpegProfilingTests();
-            // RunToVector4ProfilingTest();
-            // RunResizeProfilingTest();
+            // Decoding - Master
+            // Elapsed: 7609ms across 1000 iterations
+            // Average: 7,609ms
+            //BenchmarkDecoder("Calliphora", 1000);
 
-            // Console.ReadLine();
+            // Decoding - Kiryu
+            // Elapsed: 7392ms across 1000 iterations
+            // Average: 7,392ms
+            //BenchmarkDecoder("Calliphora", 1000);
+
+            Console.WriteLine("Done.");
+        }
+
+        const string pathTemplate = "C:\\Users\\pl4nu\\Downloads\\{0}.jpg";
+
+        private static void BenchmarkEncoder(string fileName, int iterations, int quality, JpegColorType color)
+        {
+            string loadPath = String.Format(pathTemplate, fileName);
+
+            using var inputStream = new FileStream(loadPath, FileMode.Open);
+            using var saveStream = new MemoryStream();
+
+            var decoder = new JpegDecoder { IgnoreMetadata = true };
+            using Image img = decoder.Decode(Configuration.Default, inputStream, CancellationToken.None);
+
+            var encoder = new JpegEncoder()
+            {
+                Quality = quality,
+                ColorType = color
+            };
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < iterations; i++)
+            {
+                img.SaveAsJpeg(saveStream, encoder);
+                saveStream.Position = 0;
+            }
+            sw.Stop();
+
+            Console.WriteLine($"// Encoding q={quality} | color={color}\n" +
+                $"// Elapsed: {sw.ElapsedMilliseconds}ms across {iterations} iterations\n" +
+                $"// Average: {(double)sw.ElapsedMilliseconds / iterations}ms");
+        }
+
+        private static void BenchmarkDecoder(string fileName, int iterations)
+        {
+            string loadPath = String.Format(pathTemplate, fileName);
+
+            using var fileStream = new FileStream(loadPath, FileMode.Open);
+            using var inputStream = new MemoryStream();
+            fileStream.CopyTo(inputStream);
+
+            var decoder = new JpegDecoder { IgnoreMetadata = true };
+
+            var sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < iterations; i++)
+            {
+                inputStream.Position = 0;
+                using Image img = decoder.Decode(Configuration.Default, inputStream, CancellationToken.None);
+            }
+            sw.Stop();
+
+            Console.WriteLine($"// Decoding\n" +
+                $"// Elapsed: {sw.ElapsedMilliseconds}ms across {iterations} iterations\n" +
+                $"// Average: {(double)sw.ElapsedMilliseconds / iterations}ms");
+        }
+
+        private static void ReEncodeImage(string fileName, int? quality = null)
+        {
+            string loadPath = String.Format(pathTemplate, fileName);
+            using Image img = Image.Load(loadPath);
+
+            string savePath = String.Format(pathTemplate, $"q{quality}_test_{fileName}");
+            var encoder = new JpegEncoder()
+            {
+                Quality = quality,
+                ColorType = JpegColorType.YCbCrRatio444
+            };
+            img.SaveAsJpeg(savePath, encoder);
         }
 
         private static Version GetNetCoreVersion()

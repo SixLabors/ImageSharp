@@ -22,11 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly JpegFrame frame;
 
         /// <summary>
-        /// Gets the maximal number of block rows being processed in one step.
-        /// </summary>
-        private readonly int blockRowsPerStep;
-
-        /// <summary>
         /// Gets the <see cref="IJpegComponent"/> component containing decoding meta information.
         /// </summary>
         private readonly IJpegComponent component;
@@ -50,8 +45,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 postProcessorBufferSize.Width,
                 postProcessorBufferSize.Height,
                 this.blockAreaSize.Height);
-
-            this.blockRowsPerStep = postProcessorBufferSize.Height / 8 / this.component.SubSamplingDivisors.Height;
         }
 
         /// <summary>
@@ -73,14 +66,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             int destAreaStride = this.ColorBuffer.Width;
 
-            int yBlockStart = spectralStep * this.blockRowsPerStep;
+            int blocksRowsPerStep = this.component.SamplingFactors.Height;
+
+            int yBlockStart = spectralStep * blocksRowsPerStep;
 
             Size subSamplingDivisors = this.component.SubSamplingDivisors;
 
             Block8x8F dequantTable = this.rawJpeg.QuantizationTables[this.component.QuantizationTableIndex];
             Block8x8F workspaceBlock = default;
 
-            for (int y = 0; y < this.blockRowsPerStep; y++)
+            for (int y = 0; y < blocksRowsPerStep; y++)
             {
                 int yBuffer = y * this.blockAreaSize.Height;
 

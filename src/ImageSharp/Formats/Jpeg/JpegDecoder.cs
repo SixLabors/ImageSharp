@@ -3,6 +3,9 @@
 
 using System.IO;
 using System.Threading;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -28,6 +31,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgb24>(configuration, stream, cancellationToken);
+
+        // TODO: this implementation is experimental
+        public Image<TPixel> experimental__DecodeInto<TPixel>(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            using var decoder = new JpegDecoderCore(configuration, this);
+
+            // Copied from ImageDecoderUtilities.cs
+            // TODO: interface cast druing exception handling and code duplication is not okay
+            using var bufferedReadStream = new BufferedReadStream(configuration, stream);
+            try
+            {
+                return decoder.experimental__DecodeInto<TPixel>(bufferedReadStream, targetSize, cancellationToken);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                throw new InvalidImageContentException(((IImageDecoderInternals)decoder).Dimensions, ex);
+            }
+        }
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)

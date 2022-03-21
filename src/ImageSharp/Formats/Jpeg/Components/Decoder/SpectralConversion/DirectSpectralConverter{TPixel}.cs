@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </listheader>
     /// </list>
     /// </remarks>
-    internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
+    internal class DirectSpectralConverter<TPixel> : SpectralConverter<TPixel>, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
@@ -67,22 +67,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int pixelRowCounter;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SpectralConverter{TPixel}" /> class.
+        /// Initializes a new instance of the <see cref="DirectSpectralConverter{TPixel}" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public SpectralConverter(Configuration configuration) =>
+        public DirectSpectralConverter(Configuration configuration) =>
             this.configuration = configuration;
 
-        /// <summary>
-        /// Gets converted pixel buffer.
-        /// </summary>
+        /// <inheritdoc/>
         /// <remarks>
         /// For non-baseline interleaved jpeg this method does a 'lazy' spectral
         /// conversion from spectral to color.
         /// </remarks>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Pixel buffer.</returns>
-        public Buffer2D<TPixel> GetPixelBuffer(CancellationToken cancellationToken)
+        public override Buffer2D<TPixel> GetPixelBuffer(CancellationToken cancellationToken)
         {
             if (!this.Converted)
             {

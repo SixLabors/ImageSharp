@@ -233,6 +233,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.Component3 = this.ComponentCount > 3 ? processors[3].GetColorBufferRowSpan(row) : Span<float>.Empty;
             }
 
+            // TODO: experimental
+            public ComponentValues(IReadOnlyList<JpegComponentPostProcessor8> processors, int row)
+            {
+                DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
+
+                this.ComponentCount = processors.Count;
+
+                this.Component0 = processors[0].GetColorBufferRowSpan(row);
+
+                // In case of grayscale, Component1 and Component2 point to Component0 memory area
+                this.Component1 = this.ComponentCount > 1 ? processors[1].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? processors[2].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? processors[3].GetColorBufferRowSpan(row) : Span<float>.Empty;
+            }
+
             internal ComponentValues(
                 int componentCount,
                 Span<float> c0,

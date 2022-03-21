@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
             // Decoding
-            using var converter = new SpectralConverter<TPixel>(Configuration.Default);
+            using var converter = new DirectSpectralConverter<TPixel>(Configuration.Default);
             using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, converter, cancellationToken: default);
             decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);

@@ -31,6 +31,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private readonly IRawJpegData rawJpeg;
 
+        private readonly float dcDequantizer;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegComponentPostProcessor8"/> class.
         /// </summary>
@@ -40,6 +42,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             const int blockSize = 1;
 
             this.frame = frame;
+
+            this.dcDequantizer = this.rawJpeg.QuantizationTables[this.component.QuantizationTableIndex][0];
 
             this.component = component;
             this.rawJpeg = rawJpeg;
@@ -67,18 +71,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             float maximumValue = this.frame.MaxColorChannelValue;
 
-            int destAreaStride = this.ColorBuffer.Width;
-
             int blocksRowsPerStep = this.component.SamplingFactors.Height;
 
             int yBlockStart = spectralStep * blocksRowsPerStep;
-
-            Size subSamplingDivisors = this.component.SubSamplingDivisors;
-
-            Block8x8F dequantTable = this.rawJpeg.QuantizationTables[this.component.QuantizationTableIndex];
-            Block8x8F workspaceBlock = default;
-
-            return;
 
             for (int y = 0; y < blocksRowsPerStep; y++)
             {
@@ -89,27 +84,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
-                    // Integer to float
-                    workspaceBlock.LoadFrom(ref blockRow[xBlock]);
+                    // get DC - averaged 8x8 pixel value
+                    float DC = blockRow[xBlock][0];
 
-                    // Dequantize
-                    workspaceBlock.MultiplyInPlace(ref dequantTable);
+                    // dequantization
+                    DC *= this.dcDequantizer;
 
-                    // Convert from spectral to color
-                    FastFloatingPointDCT.TransformIDCT(ref workspaceBlock);
+                    // Normalize & round
+                    DC = (float)Math.Round(Numerics.Clamp(DC + MathF.Ceiling(maximumValue / 2), 0, maximumValue));
 
-                    // To conform better to libjpeg we actually NEED TO loose precision here.
-                    // This is because they store blocks as Int16 between all the operations.
-                    // To be "more accurate", we need to emulate this by rounding!
-                    workspaceBlock.NormalizeColorsAndRoundInPlace(maximumValue);
-
-                    // Write to color buffer acording to sampling factors
+                    // Save to the intermediate buffer
                     int xColorBufferStart = xBlock * this.blockAreaSize.Width;
-                    workspaceBlock.ScaledCopyTo(
-                        ref colorBufferRow[xColorBufferStart],
-                        destAreaStride,
-                        subSamplingDivisors.Width,
-                        subSamplingDivisors.Height);
+                    colorBufferRow[xColorBufferStart] = DC;
+
+                    //// Integer to float
+                    //workspaceBlock.LoadFrom(ref blockRow[xBlock]);
+
+                    //// Dequantize
+                    //workspaceBlock.MultiplyInPlace(ref dequantTable);
+
+                    //// Convert from spectral to color
+                    //FastFloatingPointDCT.TransformIDCT(ref workspaceBlock);
+
+                    //// To conform better to libjpeg we actually NEED TO loose precision here.
+                    //// This is because they store blocks as Int16 between all the operations.
+                    //// To be "more accurate", we need to emulate this by rounding!
+                    //workspaceBlock.NormalizeColorsAndRoundInPlace(maximumValue);
+
+                    //// Write to color buffer acording to sampling factors
+                    //int xColorBufferStart = xBlock * this.blockAreaSize.Width;
+                    //workspaceBlock.ScaledCopyTo(
+                    //    ref colorBufferRow[xColorBufferStart],
+                    //    destAreaStride,
+                    //    subSamplingDivisors.Width,
+                    //    subSamplingDivisors.Height);
                 }
             }
         }

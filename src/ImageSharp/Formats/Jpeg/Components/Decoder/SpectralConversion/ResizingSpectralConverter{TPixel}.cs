@@ -195,6 +195,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     cpp.Dispose();
                 }
             }
+
+            this.rgbBuffer?.Dispose();
+            this.paddedProxyPixelRow?.Dispose();
         }
 
         // TODO: docs, code formatting

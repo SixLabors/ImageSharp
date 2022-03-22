@@ -43,10 +43,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.frame = frame;
 
-            this.dcDequantizer = this.rawJpeg.QuantizationTables[this.component.QuantizationTableIndex][0];
-
             this.component = component;
+
             this.rawJpeg = rawJpeg;
+
+            this.dcDequantizer = rawJpeg.QuantizationTables[this.component.QuantizationTableIndex][0];
+
             this.blockAreaSize = this.component.SubSamplingDivisors * blockSize;
             this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
                 postProcessorBufferSize.Width,

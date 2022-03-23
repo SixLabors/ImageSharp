@@ -91,10 +91,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int blockPixelSize = 8 / scaleDenominator;
             this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelSize;
 
-            // BUFFER SIZE MUST BE DIVISIBLE BY 8 ATM
-            // TODO: fix this mess
+            // color converter
+            JpegColorConverterBase converter = this.GetColorConverter(frame, jpegData);
+            this.colorConverter = converter;
+
             int bufferWidth = majorBlockWidth * blockPixelSize;
-            int correctedBufferWidth = bufferWidth + (8 - (bufferWidth % 8));
+            int batchSize = converter.ElementsPerBatch;
+            int correctedBufferWidth = bufferWidth + (batchSize - (bufferWidth % batchSize));
             var postProcessorBufferSize = new Size(correctedBufferWidth, this.pixelRowsPerStep);
 
             this.componentProcessors = new JpegComponentPostProcessor8[frame.Components.Length];
@@ -102,9 +105,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 this.componentProcessors[i] = new JpegComponentPostProcessor8(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
             }
-
-            // color converter
-            this.colorConverter = this.GetColorConverter(frame, jpegData);
         }
 
         public override void ConvertStrideBaseline()

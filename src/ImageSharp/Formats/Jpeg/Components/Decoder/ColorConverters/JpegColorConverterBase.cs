@@ -36,6 +36,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         public abstract bool IsAvailable { get; }
 
         /// <summary>
+        /// Gets a value indicating how many pixels are processed in a single batch.
+        /// </summary>
+        /// <remarks>
+        /// This generaly should be equal to register size,
+        /// e.g. 1 for scalar implementation, 8 for AVX implementation and so on.
+        /// </remarks>
+        public abstract int ElementsPerBatch { get; }
+
+        /// <summary>
         /// Gets the <see cref="JpegColorSpace"/> of this converter.
         /// </summary>
         public JpegColorSpace ColorSpace { get; }

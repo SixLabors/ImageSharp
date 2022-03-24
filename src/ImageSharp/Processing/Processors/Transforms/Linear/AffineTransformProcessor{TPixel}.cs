@@ -187,12 +187,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     && RuntimeEnvironment.IsNetCore)
                 {
                     // There's something wrong with the JIT in .NET Core 3.1 on certain
-                    // MacOSX machines so we have to use different pipelines.
+                    // macOS machines so we have to use different pipelines.
                     // It's:
                     // - Not reproducable locally
                     // - Doesn't seem to be triggered by the bulk Numerics.UnPremultiply method but by caller.
                     // https://github.com/SixLabors/ImageSharp/pull/1591
-                    this.InvokeMacOSX(in rows, span);
+                    this.InvokeMacOS(in rows, span);
                     return;
                 }
 
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             [ExcludeFromCodeCoverage]
             [MethodImpl(InliningOptions.ShortMethod)]
-            private void InvokeMacOSX(in RowInterval rows, Span<Vector4> span)
+            private void InvokeMacOS(in RowInterval rows, Span<Vector4> span)
             {
                 Matrix3x2 matrix = this.matrix;
                 TResampler sampler = this.sampler;

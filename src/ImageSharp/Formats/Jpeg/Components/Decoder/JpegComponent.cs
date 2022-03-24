@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// <summary>
     /// Represents a single frame component.
     /// </summary>
-    internal sealed class JpegComponent : IDisposable, IJpegComponent
+    internal class JpegComponent : IDisposable, IJpegComponent
     {
         private readonly MemoryAllocator memoryAllocator;
 
@@ -78,12 +78,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets or sets the index for the DC Huffman table.
         /// </summary>
-        public int DCHuffmanTableId { get; set; }
+        public int DcTableId { get; set; }
 
         /// <summary>
         /// Gets or sets the index for the AC Huffman table.
         /// </summary>
-        public int ACHuffmanTableId { get; set; }
+        public int AcTableId { get; set; }
 
         public JpegFrame Frame { get; }
 
@@ -119,11 +119,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
+        /// <inheritdoc/>
         public void AllocateSpectral(bool fullScan)
         {
             if (this.SpectralBlocks != null)
             {
-                // this method will be called each scan marker so we need to allocate only once
+                // This method will be called each scan marker so we need to allocate only once.
                 return;
             }
 

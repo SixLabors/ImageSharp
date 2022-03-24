@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.continueSemaphore.Release();
             }
 
-            protected override Stream CreateStream() => this.TestFormat.CreateAsyncSamaphoreStream(this.notifyWaitPositionReachedSemaphore, this.continueSemaphore, this.isTestStreamSeekable);
+            protected override Stream CreateStream() => this.TestFormat.CreateAsyncSemaphoreStream(this.notifyWaitPositionReachedSemaphore, this.continueSemaphore, this.isTestStreamSeekable);
         }
     }
 }

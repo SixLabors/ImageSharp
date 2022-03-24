@@ -72,10 +72,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Issues.Fuzz.NullReferenceException823,
             TestImages.Jpeg.Issues.MalformedUnsupportedComponentCount,
 
-            // Arithmetic coding
-            TestImages.Jpeg.Baseline.ArithmeticCoding,
-            TestImages.Jpeg.Baseline.ArithmeticCodingProgressive,
-
             // Lossless jpeg
             TestImages.Jpeg.Baseline.Lossless
         };

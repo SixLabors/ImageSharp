@@ -117,8 +117,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public int Receive(int nbits)
         {
             this.CheckBits();
-            int bits = Extend(this.GetBits(nbits), nbits);
-            return bits;
+            return Extend(this.GetBits(nbits), nbits);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

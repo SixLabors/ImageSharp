@@ -106,6 +106,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private List<ArithmeticDecodingTable> arithmeticDecodingTables;
 
         /// <summary>
+        /// The restart interval.
+        /// </summary>
+        private int? resetInterval;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -292,6 +297,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             bool metadataOnly = spectralConverter == null;
 
+            this.scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
+
             this.Metadata = new ImageMetadata();
 
             // Check for the Start Of Image marker.
@@ -324,7 +331,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOF0:
                         case JpegConstants.Markers.SOF1:
                         case JpegConstants.Markers.SOF2:
-                            this.scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
                             this.ProcessStartOfFrameMarker(stream, remaining, fileMarker, ComponentType.Huffman, metadataOnly);
                             break;
 
@@ -333,6 +339,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOF13:
                         case JpegConstants.Markers.SOF14:
                             this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, cancellationToken);
+                            if (this.resetInterval.HasValue)
+                            {
+                                this.scanDecoder.ResetInterval = this.resetInterval.Value;
+                            }
+
                             this.ProcessStartOfFrameMarker(stream, remaining, fileMarker, ComponentType.Arithmetic, metadataOnly);
                             break;
 
@@ -871,6 +882,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
+        /// <summary>
+        /// Processes a DAC marker, decoding the arithmetic tables.
+        /// </summary>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessArithmeticTable(BufferedReadStream stream, int remaining)
         {
             this.arithmeticDecodingTables ??= new List<ArithmeticDecodingTable>(4);
@@ -1297,7 +1313,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DRI), remaining);
             }
 
-            this.scanDecoder.ResetInterval = this.ReadUint16(stream);
+            // Save the reset interval, because it can come before or after the SOF marker.
+            // If the reset interval comes after the SOF marker, the scanDecoder has not been created.
+            this.resetInterval = this.ReadUint16(stream);
+
+            if (this.scanDecoder != null)
+            {
+                this.scanDecoder.ResetInterval = this.resetInterval.Value;
+            }
         }
 
         /// <summary>

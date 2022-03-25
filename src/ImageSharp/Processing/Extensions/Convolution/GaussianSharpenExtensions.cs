@@ -42,5 +42,26 @@ namespace SixLabors.ImageSharp.Processing
             float sigma,
             Rectangle rectangle) =>
             source.ApplyProcessor(new GaussianSharpenProcessor(sigma), rectangle);
+
+        /// <summary>
+        /// Applies a Gaussian sharpening filter to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="borderWrapModeX">
+        /// The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.
+        /// </param>
+        /// <param name="borderWrapModeY">
+        /// The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.
+        /// </param>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+        public static IImageProcessingContext GaussianSharpen(this IImageProcessingContext source, float sigma, Rectangle rectangle, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
+        {
+            var processor = new GaussianSharpenProcessor(sigma, borderWrapModeX, borderWrapModeY);
+            return source.ApplyProcessor(processor, rectangle);
+        }
     }
 }

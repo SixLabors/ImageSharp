@@ -182,6 +182,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             return new JpegFileMarker(marker[1], stream.Position - 2, true);
         }
 
+        /// <inheritdoc/>
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration);
+            return this.Decode(stream, spectralConverter, cancellationToken);
+        }
+
+        // TODO: docs
+        public Image<TPixel> Experimental__DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, targetSize);
+            return this.Decode(stream, spectralConverter, cancellationToken);
+        }
+
         // TODO: docs
         private Image<TPixel> Decode<TPixel>(BufferedReadStream stream, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -199,22 +215,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Configuration,
                 converter.GetPixelBuffer(cancellationToken),
                 this.Metadata);
-        }
-
-        // TODO: docs
-        public Image<TPixel> experimental__DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var converter = new ResizingSpectralConverter<TPixel>(this.Configuration, targetSize);
-            return this.Decode(stream, converter, cancellationToken);
-        }
-
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var converter = new DirectSpectralConverter<TPixel>(this.Configuration);
-            return this.Decode(stream, converter, cancellationToken);
         }
 
         /// <inheritdoc/>

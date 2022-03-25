@@ -32,8 +32,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgb24>(configuration, stream, cancellationToken);
 
-        // TODO: this implementation is experimental
-        public Image<TPixel> experimental__DecodeInto<TPixel>(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
+        /// <summary>
+        /// TODO: this implementation is experimental
+        /// </summary>
+        /// <typeparam name="TPixel">Placeholder1</typeparam>
+        /// <param name="configuration">Placeholder2</param>
+        /// <param name="stream">Placeholder3</param>
+        /// <param name="targetSize">Placeholder4</param>
+        /// <param name="cancellationToken">Placeholder5</param>
+        /// <returns>Placeholder6</returns>
+        public Image<TPixel> Experimental__DecodeInto<TPixel>(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
@@ -45,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);
             try
             {
-                return decoder.experimental__DecodeInto<TPixel>(bufferedReadStream, targetSize, cancellationToken);
+                return decoder.Experimental__DecodeInto<TPixel>(bufferedReadStream, targetSize, cancellationToken);
             }
             catch (InvalidMemoryOperationException ex)
             {

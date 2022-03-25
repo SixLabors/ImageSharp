@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     case TiffPhotometricInterpretation.BlackIsZero:
                     case TiffPhotometricInterpretation.WhiteIsZero:
                     {
-                        using DirectSpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(this.configuration);
+                        using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(this.configuration);
                         var scanDecoderGray = new HuffmanScanDecoder(stream, spectralConverterGray, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
                         jpegDecoder.ParseStream(stream, scanDecoderGray, CancellationToken.None);
@@ -74,8 +74,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     case TiffPhotometricInterpretation.YCbCr:
                     case TiffPhotometricInterpretation.Rgb:
                     {
-                        using DirectSpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
-                            new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new DirectSpectralConverter<Rgb24>(this.configuration);
+                        using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
+                            new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
                         var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                         jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// The jpeg data should be always treated as RGB color space.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    internal sealed class RgbJpegSpectralConverter<TPixel> : DirectSpectralConverter<TPixel>
+    internal sealed class RgbJpegSpectralConverter<TPixel> : SpectralConverter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>

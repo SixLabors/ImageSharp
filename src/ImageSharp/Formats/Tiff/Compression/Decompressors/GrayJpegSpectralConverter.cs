@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// Spectral converter for gray TIFF's which use the JPEG compression.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    internal sealed class GrayJpegSpectralConverter<TPixel> : DirectSpectralConverter<TPixel>
+    internal sealed class GrayJpegSpectralConverter<TPixel> : SpectralConverter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>

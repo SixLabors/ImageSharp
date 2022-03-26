@@ -241,9 +241,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
             // component processors from spectral to RGB
+            // TODO: refactor this mess
             int bufferWidth = majorBlockWidth * blockPixelSize;
             int batchSize = converter.ElementsPerBatch;
-            int converterAlignedBufferWidth = bufferWidth + (batchSize - (bufferWidth % batchSize));
+            int batchRemainder = bufferWidth % batchSize;
+            int converterAlignedBufferWidth = bufferWidth + (batchRemainder != 0 ? batchSize - batchRemainder : 0);
             var postProcessorBufferSize = new Size(converterAlignedBufferWidth, this.pixelRowsPerStep);
             this.componentProcessors = new ComponentProcessor[frame.Components.Length];
             switch (blockPixelSize)
@@ -262,8 +264,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     }
 
                     break;
-
-                // TODO: default?
+                default:
+                    throw new Exception("This is a debug message which should NEVER be seen in release build");
             }
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel

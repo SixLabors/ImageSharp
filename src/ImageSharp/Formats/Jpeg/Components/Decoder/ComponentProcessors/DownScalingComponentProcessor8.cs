@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -19,8 +20,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
 
             float maximumValue = this.Frame.MaxColorChannelValue;
+            float normalizationValue = MathF.Ceiling(maximumValue / 2);
+
+            int destAreaStride = this.ColorBuffer.Width;
 
             int blocksRowsPerStep = this.Component.SamplingFactors.Height;
+            Size subSamplingDivisors = this.Component.SubSamplingDivisors;
 
             int yBlockStart = spectralStep * blocksRowsPerStep;
 
@@ -33,19 +38,54 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
-                    // get Direct current term - averaged 8x8 pixel value
+                    // get direct current term - averaged 8x8 pixel value
                     float dc = blockRow[xBlock][0];
 
                     // dequantization
                     dc *= this.dcDequantizer;
 
                     // Normalize & round
-                    dc = (float)Math.Round(Numerics.Clamp(dc + MathF.Ceiling(maximumValue / 2), 0, maximumValue));
+                    dc = (float)Math.Round(Numerics.Clamp(dc + normalizationValue, 0, maximumValue));
 
                     // Save to the intermediate buffer
                     int xColorBufferStart = xBlock * this.BlockAreaSize.Width;
-                    colorBufferRow[xColorBufferStart] = dc;
+                    ScaledCopyTo(
+                        dc,
+                        ref colorBufferRow[xColorBufferStart],
+                        destAreaStride,
+                        subSamplingDivisors.Width,
+                        subSamplingDivisors.Height);
                 }
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void ScaledCopyTo(float value, ref float destRef, int destStrideWidth, int horizontalScale, int verticalScale)
+        {
+            if (horizontalScale == 1 && verticalScale == 1)
+            {
+                Unsafe.Add(ref destRef, 0) = value;
+                return;
+            }
+
+            if (horizontalScale == 2 && verticalScale == 2)
+            {
+                Unsafe.Add(ref destRef, 0) = value;
+                Unsafe.Add(ref destRef, 1) = value;
+                Unsafe.Add(ref destRef, 0 + destStrideWidth) = value;
+                Unsafe.Add(ref destRef, 1 + destStrideWidth) = value;
+                return;
+            }
+
+            // TODO: Optimize: implement all cases with scale-specific, loopless code!
+            for (int y = 0; y < verticalScale; y++)
+            {
+                for (int x = 0; x < horizontalScale; x++)
+                {
+                    Unsafe.Add(ref destRef, x) = value;
+                }
+
+                destRef = ref Unsafe.Add(ref destRef, destStrideWidth);
             }
         }
     }

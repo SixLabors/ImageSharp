@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - main
+      # TODO: remove this branch again, only for testing
+      - bp/armexperiments
     tags:
       - "v*"
   pull_request:
     branches:
       - main
+      # TODO: remove this branch again, only for testing
+      - bp/armexperiments
 jobs:
   TestsWithArm:
       runs-on: ubuntu-latest

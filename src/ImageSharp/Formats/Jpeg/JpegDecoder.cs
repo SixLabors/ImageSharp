@@ -3,10 +3,10 @@
 
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
@@ -33,7 +33,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             => this.Decode<Rgb24>(configuration, stream, cancellationToken);
 
         /// <summary>
-        /// TODO: this implementation is experimental
+        /// Placeholder summary.
+        /// </summary>
+        /// <param name="configuration">Placeholder2</param>
+        /// <param name="stream">Placeholder3</param>
+        /// <param name="targetSize">Placeholder4</param>
+        /// <param name="cancellationToken">Placeholder5</param>
+        /// <returns>Placeholder6</returns>
+        public Image Experimental__DecodeInto(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
+            => this.Experimental__DecodeInto<Rgb24>(configuration, stream, targetSize, cancellationToken);
+
+        /// <summary>
+        /// Placeholder summary.
         /// </summary>
         /// <typeparam name="TPixel">Placeholder1</typeparam>
         /// <param name="configuration">Placeholder2</param>
@@ -48,12 +59,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             using var decoder = new JpegDecoderCore(configuration, this);
 
-            // Copied from ImageDecoderUtilities.cs
-            // TODO: interface cast druing exception handling and code duplication is not okay
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);
             try
             {
-                return decoder.Experimental__DecodeInto<TPixel>(bufferedReadStream, targetSize, cancellationToken);
+                Image<TPixel> img = decoder.Experimental__DecodeInto<TPixel>(bufferedReadStream, targetSize, cancellationToken);
+                if (img.Size() != targetSize)
+                {
+                    img.Mutate(ctx => ctx.Resize(targetSize, KnownResamplers.Box, compand: false));
+                }
+
+                return img;
             }
             catch (InvalidMemoryOperationException ex)
             {

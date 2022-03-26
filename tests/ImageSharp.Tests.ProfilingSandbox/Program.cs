@@ -7,6 +7,8 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
 using Xunit.Abstractions;
@@ -28,17 +30,21 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         public static void Main(string[] args)
         {
-            ReEncodeImage("Calliphora");
+            //ReEncodeImage("Calliphora");
 
-            // Decoding - Master
-            // Elapsed: 7609ms across 1000 iterations
-            // Average: 7,609ms
-            //BenchmarkDecoder("Calliphora", 1000);
+            // DecodeImageResize__explicit("Calliphora", new Size(101, 150));
+            // DecodeImageResize__experimental("Calliphora_aligned_size", new Size(101, 150));
+            //DecodeImageResize__experimental("winter420_noninterleaved", new Size(80, 120));
 
-            // Decoding - Kiryu
-            // Elapsed: 7392ms across 1000 iterations
-            // Average: 7,392ms
-            //BenchmarkDecoder("Calliphora", 1000);
+            // Decode-Resize-Encode w/ Mutate()
+            // Elapsed: 2504ms across 250 iterations
+            // Average: 10,016ms
+            BenchmarkResizingLoop__explicit("Calliphora", new Size(80, 120), 250);
+
+            // Decode-Resize-Encode w/ downscaling decoder
+            // Elapsed: 1157ms across 250 iterations
+            // Average: 4,628ms
+            BenchmarkResizingLoop__experimental("Calliphora", new Size(80, 120), 250);
 
             Console.WriteLine("Done.");
         }
@@ -99,10 +105,99 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                 $"// Average: {(double)sw.ElapsedMilliseconds / iterations}ms");
         }
 
+        private static void BenchmarkResizingLoop__experimental(string fileName, Size targetSize, int iterations)
+        {
+            string loadPath = String.Format(pathTemplate, fileName);
+
+            using var fileStream = new FileStream(loadPath, FileMode.Open);
+            using var saveStream = new MemoryStream();
+            using var inputStream = new MemoryStream();
+            fileStream.CopyTo(inputStream);
+
+            var decoder = new JpegDecoder { IgnoreMetadata = true };
+            var encoder = new JpegEncoder { ColorType = JpegColorType.YCbCrRatio444 };
+
+            var sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < iterations; i++)
+            {
+                inputStream.Position = 0;
+                using Image img = decoder.Experimental__DecodeInto<Rgb24>(Configuration.Default, inputStream, targetSize, CancellationToken.None);
+                img.SaveAsJpeg(saveStream, encoder);
+            }
+            sw.Stop();
+
+            Console.WriteLine($"// Decode-Resize-Encode w/ downscaling decoder\n" +
+                $"// Elapsed: {sw.ElapsedMilliseconds}ms across {iterations} iterations\n" +
+                $"// Average: {(double)sw.ElapsedMilliseconds / iterations}ms");
+        }
+
+        private static void BenchmarkResizingLoop__explicit(string fileName, Size targetSize, int iterations)
+        {
+            string loadPath = String.Format(pathTemplate, fileName);
+
+            using var fileStream = new FileStream(loadPath, FileMode.Open);
+            using var saveStream = new MemoryStream();
+            using var inputStream = new MemoryStream();
+            fileStream.CopyTo(inputStream);
+
+            var decoder = new JpegDecoder { IgnoreMetadata = true };
+            var encoder = new JpegEncoder { ColorType = JpegColorType.YCbCrRatio444 };
+
+            var sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < iterations; i++)
+            {
+                inputStream.Position = 0;
+                using Image img = decoder.Decode<Rgb24>(Configuration.Default, inputStream, CancellationToken.None);
+                img.Mutate(ctx => ctx.Resize(targetSize, KnownResamplers.Box, false));
+                img.SaveAsJpeg(saveStream, encoder);
+            }
+            sw.Stop();
+
+            Console.WriteLine($"// Decode-Resize-Encode w/ Mutate()\n" +
+                $"// Elapsed: {sw.ElapsedMilliseconds}ms across {iterations} iterations\n" +
+                $"// Average: {(double)sw.ElapsedMilliseconds / iterations}ms");
+        }
+
         private static void ReEncodeImage(string fileName, int? quality = null)
         {
             string loadPath = String.Format(pathTemplate, fileName);
             using Image img = Image.Load(loadPath);
+
+            string savePath = String.Format(pathTemplate, $"q{quality}_test_{fileName}");
+            var encoder = new JpegEncoder()
+            {
+                Quality = quality,
+                ColorType = JpegColorType.YCbCrRatio444
+            };
+            img.SaveAsJpeg(savePath, encoder);
+        }
+
+        private static void DecodeImageResize__explicit(string fileName, Size targetSize, int? quality = null)
+        {
+            string loadPath = String.Format(pathTemplate, fileName);
+            string savePath = String.Format(pathTemplate, $"q{quality}_test_{fileName}");
+
+            var decoder = new JpegDecoder();
+            var encoder = new JpegEncoder()
+            {
+                Quality = quality,
+                ColorType = JpegColorType.YCbCrRatio444
+            };
+
+            using Image img = decoder.Decode<Rgb24>(Configuration.Default, File.OpenRead(loadPath), CancellationToken.None);
+            img.Mutate(ctx => ctx.Resize(targetSize, KnownResamplers.Box, false));
+            img.SaveAsJpeg(savePath, encoder);
+
+        }
+
+        private static void DecodeImageResize__experimental(string fileName, Size targetSize, int? quality = null)
+        {
+            string loadPath = String.Format(pathTemplate, fileName);
+
+            var decoder = new JpegDecoder();
+            using Image img = decoder.Experimental__DecodeInto<Rgb24>(Configuration.Default, File.OpenRead(loadPath), targetSize, CancellationToken.None);
 
             string savePath = String.Format(pathTemplate, $"q{quality}_test_{fileName}");
             var encoder = new JpegEncoder()

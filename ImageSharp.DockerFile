@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0.406-buster-slim-arm64v8
+FROM mcr.microsoft.com/dotnet/sdk:5.0.406-bullseye-slim-arm64v8
 MAINTAINER Brian Popow <popow@gmx.de>
 
 RUN apt-get update

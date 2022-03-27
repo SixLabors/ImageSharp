@@ -1362,7 +1362,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         [MethodImpl(InliningOptions.ShortMethod)]
         private ushort ReadUint16(BufferedReadStream stream)
         {
-            stream.Read(this.markerBuffer, 0, 2);
+            int bytesRead = stream.Read(this.markerBuffer, 0, 2);
+            if (bytesRead != 2)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("jpeg stream does not contain enough data, could not read ushort.");
+            }
+
             return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
         }
     }

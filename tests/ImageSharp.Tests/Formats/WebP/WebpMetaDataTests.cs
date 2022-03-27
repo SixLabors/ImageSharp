@@ -150,5 +150,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.NotNull(actualExif);
             Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);
         }
+
+        [Theory]
+        [WithFile(TestImages.Webp.Lossy.WithExifNotEnoughData, PixelTypes.Rgba32)]
+        public void WebpDecoder_ThrowInvalidImageContentException_OnWithInvalidExifData<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            Assert.Throws<InvalidImageContentException>(
+                () =>
+                {
+                    using (provider.GetImage(WebpDecoder))
+                    {
+                    }
+                });
     }
 }

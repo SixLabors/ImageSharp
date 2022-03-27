@@ -450,68 +450,17 @@ namespace SixLabors.ImageSharp.Formats.Webp
             switch (chunkType)
             {
                 case WebpChunkType.Iccp:
-                    uint iccpChunkSize = this.ReadChunkSize();
-                    if (this.IgnoreMetadata)
-                    {
-                        this.currentStream.Skip((int)iccpChunkSize);
-                    }
-                    else
-                    {
-                        byte[] iccpData = new byte[iccpChunkSize];
-                        bytesRead = this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
-                        if (bytesRead != iccpChunkSize)
-                        {
-                            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
-                        }
-
-                        var profile = new IccProfile(iccpData);
-                        if (profile.CheckIsValid())
-                        {
-                            this.Metadata.IccProfile = profile;
-                        }
-                    }
+                    this.ReadIccProfile();
 
                     break;
 
                 case WebpChunkType.Exif:
-                    uint exifChunkSize = this.ReadChunkSize();
-                    if (this.IgnoreMetadata)
-                    {
-                        this.currentStream.Skip((int)exifChunkSize);
-                    }
-                    else
-                    {
-                        byte[] exifData = new byte[exifChunkSize];
-                        bytesRead = this.currentStream.Read(exifData, 0, (int)exifChunkSize);
-                        if (bytesRead != exifChunkSize)
-                        {
-                            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the exif chunk");
-                        }
-
-                        var profile = new ExifProfile(exifData);
-                        this.Metadata.ExifProfile = profile;
-                    }
+                    this.ReadExifProfile();
 
                     break;
 
                 case WebpChunkType.Xmp:
-                    uint xmpChunkSize = this.ReadChunkSize();
-                    if (this.IgnoreMetadata)
-                    {
-                        this.currentStream.Skip((int)xmpChunkSize);
-                    }
-                    else
-                    {
-                        byte[] xmpData = new byte[xmpChunkSize];
-                        bytesRead = this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
-                        if (bytesRead != xmpChunkSize)
-                        {
-                            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the xmp chunk");
-                        }
-
-                        var profile = new XmpProfile(xmpData);
-                        this.Metadata.XmpProfile = profile;
-                    }
+                    this.ReadXmpProfile();
 
                     break;
 
@@ -555,18 +504,94 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 // Read chunk header.
                 WebpChunkType chunkType = this.ReadChunkType();
-                uint chunkLength = this.ReadChunkSize();
-
                 if (chunkType == WebpChunkType.Exif && this.Metadata.ExifProfile == null)
                 {
-                    byte[] exifData = new byte[chunkLength];
-                    this.currentStream.Read(exifData, 0, (int)chunkLength);
-                    this.Metadata.ExifProfile = new ExifProfile(exifData);
+                    this.ReadExifProfile();
+                }
+                else if (chunkType == WebpChunkType.Xmp && this.Metadata.XmpProfile == null)
+                {
+                    this.ReadXmpProfile();
                 }
                 else
                 {
-                    // Skip XMP chunk data or any duplicate EXIF chunk.
+                    // Skip duplicate XMP or EXIF chunk.
+                    uint chunkLength = this.ReadChunkSize();
                     this.currentStream.Skip((int)chunkLength);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads the EXIF profile from the stream.
+        /// </summary>
+        private void ReadExifProfile()
+        {
+            uint exifChunkSize = this.ReadChunkSize();
+            if (this.IgnoreMetadata)
+            {
+                this.currentStream.Skip((int)exifChunkSize);
+            }
+            else
+            {
+                byte[] exifData = new byte[exifChunkSize];
+                int bytesRead = this.currentStream.Read(exifData, 0, (int)exifChunkSize);
+                if (bytesRead != exifChunkSize)
+                {
+                    WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the exif chunk");
+                }
+
+                var profile = new ExifProfile(exifData);
+                this.Metadata.ExifProfile = profile;
+            }
+        }
+
+        /// <summary>
+        /// Reads the XMP profile the stream.
+        /// </summary>
+        private void ReadXmpProfile()
+        {
+            uint xmpChunkSize = this.ReadChunkSize();
+            if (this.IgnoreMetadata)
+            {
+                this.currentStream.Skip((int)xmpChunkSize);
+            }
+            else
+            {
+                byte[] xmpData = new byte[xmpChunkSize];
+                int bytesRead = this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
+                if (bytesRead != xmpChunkSize)
+                {
+                    WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the xmp chunk");
+                }
+
+                var profile = new XmpProfile(xmpData);
+                this.Metadata.XmpProfile = profile;
+            }
+        }
+
+        /// <summary>
+        /// Reads the ICCP chunk from the stream.
+        /// </summary>
+        private void ReadIccProfile()
+        {
+            uint iccpChunkSize = this.ReadChunkSize();
+            if (this.IgnoreMetadata)
+            {
+                this.currentStream.Skip((int)iccpChunkSize);
+            }
+            else
+            {
+                byte[] iccpData = new byte[iccpChunkSize];
+                int bytesRead = this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                if (bytesRead != iccpChunkSize)
+                {
+                    WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
+                }
+
+                var profile = new IccProfile(iccpData);
+                if (profile.CheckIsValid())
+                {
+                    this.Metadata.IccProfile = profile;
                 }
             }
         }

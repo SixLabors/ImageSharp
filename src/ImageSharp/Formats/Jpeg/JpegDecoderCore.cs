@@ -232,7 +232,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             using var stream = new BufferedReadStream(this.Configuration, ms);
 
             // Check for the Start Of Image marker.
-            stream.Read(this.markerBuffer, 0, 2);
+            int bytesRead = stream.Read(this.markerBuffer, 0, 2);
+            if (bytesRead != 2)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read the SOI marker");
+            }
+
             var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
@@ -240,7 +245,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             // Read next marker.
-            stream.Read(this.markerBuffer, 0, 2);
+            bytesRead = stream.Read(this.markerBuffer, 0, 2);
+            if (bytesRead != 2)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
+            }
+
             byte marker = this.markerBuffer[1];
             fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
 
@@ -273,7 +283,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // Read next marker.
-                stream.Read(this.markerBuffer, 0, 2);
+                bytesRead = stream.Read(this.markerBuffer, 0, 2);
+                if (bytesRead != 2)
+                {
+                    JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
+                }
+
                 fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             }
         }

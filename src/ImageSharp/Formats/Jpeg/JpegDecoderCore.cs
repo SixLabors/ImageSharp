@@ -722,7 +722,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(0, ExifMarkerLength)))
             {
-                int remainingXmpMarkerBytes = XmpMarkerLength - ExifMarkerLength;
+                const int remainingXmpMarkerBytes = XmpMarkerLength - ExifMarkerLength;
+                if (remaining < remainingXmpMarkerBytes || this.IgnoreMetadata)
+                {
+                    // Skip the application header length.
+                    stream.Skip(remaining);
+                    return;
+                }
+
                 stream.Read(this.temp, ExifMarkerLength, remainingXmpMarkerBytes);
                 remaining -= remainingXmpMarkerBytes;
                 if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker))

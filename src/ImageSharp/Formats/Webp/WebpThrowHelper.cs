@@ -9,6 +9,13 @@ namespace SixLabors.ImageSharp.Formats.Webp
     internal static class WebpThrowHelper
     {
         /// <summary>
+        /// Cold path optimization for throwing <see cref="InvalidImageContentException"/>'s.
+        /// </summary>
+        /// <param name="errorMessage">The error message for the exception.</param>
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
+
+        /// <summary>
         /// Cold path optimization for throwing <see cref="ImageFormatException"/>-s
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>

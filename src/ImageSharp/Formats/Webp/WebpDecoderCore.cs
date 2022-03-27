@@ -426,6 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="features">The webp image features.</param>
         private void ParseOptionalExtendedChunks(WebpChunkType chunkType, WebpFeatures features)
         {
+            int bytesRead;
             switch (chunkType)
             {
                 case WebpChunkType.Iccp:
@@ -437,7 +438,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     else
                     {
                         byte[] iccpData = new byte[iccpChunkSize];
-                        this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                        bytesRead = this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                        if (bytesRead != iccpChunkSize)
+                        {
+                            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
+                        }
+
                         var profile = new IccProfile(iccpData);
                         if (profile.CheckIsValid())
                         {
@@ -456,7 +462,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     else
                     {
                         byte[] exifData = new byte[exifChunkSize];
-                        this.currentStream.Read(exifData, 0, (int)exifChunkSize);
+                        bytesRead = this.currentStream.Read(exifData, 0, (int)exifChunkSize);
+                        if (bytesRead != exifChunkSize)
+                        {
+                            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the exif chunk");
+                        }
+
                         var profile = new ExifProfile(exifData);
                         this.Metadata.ExifProfile = profile;
                     }
@@ -472,7 +483,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     else
                     {
                         byte[] xmpData = new byte[xmpChunkSize];
-                        this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
+                        bytesRead = this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
+                        if (bytesRead != xmpChunkSize)
+                        {
+                            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the xmp chunk");
+                        }
+
                         var profile = new XmpProfile(xmpData);
                         this.Metadata.XmpProfile = profile;
                     }
@@ -488,7 +504,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
                     int alphaDataSize = (int)(alphaChunkSize - 1);
                     features.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
-                    this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
+                    bytesRead = this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
+                    if (bytesRead != alphaDataSize)
+                    {
+                        WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the alpha chunk");
+                    }
+
                     break;
                 default:
                     WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");

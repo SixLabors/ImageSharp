@@ -190,7 +190,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
             uint fileSize = this.ReadChunkSize();
 
             // The first byte contains information about the image features used.
-            byte imageFeatures = (byte)this.currentStream.ReadByte();
+            int imageFeatures = this.currentStream.ReadByte();
+            if (imageFeatures == -1)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8X header doe not contain enough data");
+            }
 
             // The first two bit of it are reserved and should be 0.
             if (imageFeatures >> 6 != 0)
@@ -214,19 +218,34 @@ namespace SixLabors.ImageSharp.Formats.Webp
             features.Animation = (imageFeatures & (1 << 1)) != 0;
 
             // 3 reserved bytes should follow which are supposed to be zero.
-            this.currentStream.Read(this.buffer, 0, 3);
+            int bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8X header does not contain enough data");
+            }
+
             if (this.buffer[0] != 0 || this.buffer[1] != 0 || this.buffer[2] != 0)
             {
                 WebpThrowHelper.ThrowImageFormatException("reserved bytes should be zero");
             }
 
             // 3 bytes for the width.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8 header does not contain enough data to read the width");
+            }
+
             this.buffer[3] = 0;
             uint width = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
             // 3 bytes for the height.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8 header does not contain enough data to read the height");
+            }
+
             this.buffer[3] = 0;
             uint height = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 

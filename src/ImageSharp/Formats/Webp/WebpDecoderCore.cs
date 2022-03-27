@@ -272,7 +272,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.webpMetadata.FileFormat = WebpFileFormatType.Lossy;
 
             // VP8 data size (not including this 4 bytes).
-            this.currentStream.Read(this.buffer, 0, 4);
+            int bytesRead = this.currentStream.Read(this.buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 data size");
+            }
+
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
             // remaining counts the available image data payload.
@@ -284,7 +289,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
             // - A 3-bit version number.
             // - A 1-bit show_frame flag.
             // - A 19-bit field containing the size of the first data partition in bytes.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 frame tag");
+            }
+
             uint frameTag = (uint)(this.buffer[0] | (this.buffer[1] << 8) | (this.buffer[2] << 16));
             remaining -= 3;
             bool isNoKeyFrame = (frameTag & 0x1) == 1;
@@ -312,13 +322,23 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
 
             // Check for VP8 magic bytes.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
+            }
+
             if (!this.buffer.AsSpan(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
             {
                 WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
             }
 
-            this.currentStream.Read(this.buffer, 0, 4);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8 header does not contain enough data to read the image width and height");
+            }
+
             uint tmp = (uint)BinaryPrimitives.ReadInt16LittleEndian(this.buffer);
             uint width = tmp & 0x3fff;
             sbyte xScale = (sbyte)(tmp >> 6);

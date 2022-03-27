@@ -1334,8 +1334,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 component.ACHuffmanTableId = acTableIndex;
             }
 
-            // 3 bytes: Progressive scan decoding data
-            stream.Read(this.temp, 0, 3);
+            // 3 bytes: Progressive scan decoding data.
+            int bytesRead = stream.Read(this.temp, 0, 3);
+            if (bytesRead != 3)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read progressive scan decoding data");
+            }
 
             int spectralStart = this.temp[0];
             this.scanDecoder.SpectralStart = spectralStart;

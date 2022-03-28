@@ -465,22 +465,18 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="features">The webp image features.</param>
         private void ParseOptionalExtendedChunks(WebpChunkType chunkType, WebpFeatures features)
         {
-            int bytesRead;
             switch (chunkType)
             {
                 case WebpChunkType.Iccp:
                     this.ReadIccProfile();
-
                     break;
 
                 case WebpChunkType.Exif:
                     this.ReadExifProfile();
-
                     break;
 
                 case WebpChunkType.Xmp:
                     this.ReadXmpProfile();
-
                     break;
 
                 case WebpChunkType.Animation:
@@ -492,7 +488,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
                     int alphaDataSize = (int)(alphaChunkSize - 1);
                     features.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
-                    bytesRead = this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
+                    int bytesRead = this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
                     if (bytesRead != alphaDataSize)
                     {
                         WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the alpha chunk");
@@ -556,7 +552,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 int bytesRead = this.currentStream.Read(exifData, 0, (int)exifChunkSize);
                 if (bytesRead != exifChunkSize)
                 {
-                    WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the exif chunk");
+                    // Ignore invalid chunk.
+                    return;
                 }
 
                 var profile = new ExifProfile(exifData);
@@ -580,7 +577,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 int bytesRead = this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
                 if (bytesRead != xmpChunkSize)
                 {
-                    WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the xmp chunk");
+                    // Ignore invalid chunk.
+                    return;
                 }
 
                 var profile = new XmpProfile(xmpData);

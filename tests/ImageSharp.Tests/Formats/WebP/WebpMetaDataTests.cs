@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -153,14 +154,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Theory]
         [WithFile(TestImages.Webp.Lossy.WithExifNotEnoughData, PixelTypes.Rgba32)]
-        public void WebpDecoder_ThrowInvalidImageContentException_OnWithInvalidExifData<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> =>
-            Assert.Throws<InvalidImageContentException>(
-                () =>
-                {
-                    using (provider.GetImage(WebpDecoder))
-                    {
-                    }
-                });
+        public void WebpDecoder_IgnoresInvalidExifChunk<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(() =>
+            {
+                using Image<TPixel> image = provider.GetImage();
+            });
+            Assert.Null(ex);
+        }
     }
 }

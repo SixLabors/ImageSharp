@@ -3,6 +3,7 @@
 
 using System;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
@@ -14,8 +15,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public static class DCTTests
     {
-        private const int MaxAllowedValue = short.MaxValue;
-        private const int MinAllowedValue = short.MinValue;
+        // size of input values is 10 bit max
+        private const float MaxInputValue = 1023;
+        private const float MinInputValue = -1024;
+
+        // output value range is 12 bit max
+        private const float MaxOutputValue = 4096;
+        private const float NormalizationValue = MaxOutputValue / 2;
 
         internal static Block8x8F CreateBlockFromScalar(float value)
         {
@@ -41,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(3)]
             public void LLM_TransformIDCT_CompareToNonOptimized(int seed)
             {
-                float[] sourceArray = Create8x8RoundedRandomFloatData(MinAllowedValue, MaxAllowedValue, seed);
+                float[] sourceArray = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
 
                 var srcBlock = Block8x8F.Load(sourceArray);
 
@@ -74,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(3)]
             public void LLM_TransformIDCT_CompareToAccurate(int seed)
             {
-                float[] sourceArray = Create8x8RoundedRandomFloatData(MinAllowedValue, MaxAllowedValue, seed);
+                float[] sourceArray = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
 
                 var srcBlock = Block8x8F.Load(sourceArray);
 
@@ -113,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     int seed = FeatureTestRunner.Deserialize<int>(serialized);
 
-                    Span<float> src = Create8x8RoundedRandomFloatData(MinAllowedValue, MaxAllowedValue, seed);
+                    Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
                     var srcBlock = default(Block8x8F);
                     srcBlock.LoadFrom(src);
 
@@ -156,6 +162,147 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSIMD);
             }
 
+            //[Theory]
+            //[InlineData(1)]
+            //[InlineData(2)]
+            //public void TranformIDCT_4x4(int seed)
+            //{
+            //    Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed, 4, 4);
+            //    var srcBlock = default(Block8x8F);
+            //    srcBlock.LoadFrom(src);
+
+            //    float[] expectedDest = new float[64];
+            //    float[] temp = new float[64];
+
+            //    // reference
+            //    ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(src, expectedDest, temp);
+
+            //    // testee
+            //    // Part of the IDCT calculations is fused into the quantization step
+            //    // We must multiply input block with adjusted no-quantization matrix
+            //    // before applying IDCT
+            //    Block8x8F dequantMatrix = CreateBlockFromScalar(1);
+
+            //    // Dequantization using unit matrix - no values are upscaled
+            //    // as quant matrix is all 1's
+            //    // This step is needed to apply adjusting multipliers to the input block
+            //    FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
+
+            //    // testee
+            //    // IDCT implementation tranforms blocks after transposition
+            //    srcBlock.TransposeInplace();
+            //    DownScalingComponentProcessor2.TransformIDCT_4x4(ref srcBlock, ref dequantMatrix, NormalizationValue, MaxOutputValue);
+
+            //    var comparer = new ApproximateFloatComparer(1f);
+
+            //    Span<float> expectedSpan = expectedDest.AsSpan();
+            //    Span<float> actualSpan = srcBlock.ToArray().AsSpan();
+
+            //    AssertEquality(expectedSpan, actualSpan, comparer);
+            //    AssertEquality(expectedSpan.Slice(8), actualSpan.Slice(8), comparer);
+            //    AssertEquality(expectedSpan.Slice(16), actualSpan.Slice(16), comparer);
+            //    AssertEquality(expectedSpan.Slice(24), actualSpan.Slice(24), comparer);
+
+            //    static void AssertEquality(Span<float> expected, Span<float> actual, ApproximateFloatComparer comparer)
+            //    {
+            //        for (int x = 0; x < 4; x++)
+            //        {
+            //            float expectedValue = (float)Math.Round(Numerics.Clamp(expected[x] + NormalizationValue, 0, MaxOutputValue));
+            //            Assert.Equal(expectedValue, actual[x], comparer);
+            //        }
+            //    }
+            //}
+
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void TranformIDCT_2x2(int seed)
+            {
+                Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed, 2, 2);
+                var srcBlock = default(Block8x8F);
+                srcBlock.LoadFrom(src);
+
+                float[] expectedDest = new float[64];
+                float[] temp = new float[64];
+
+                // reference
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(src, expectedDest, temp);
+
+                // testee
+                // Part of the IDCT calculations is fused into the quantization step
+                // We must multiply input block with adjusted no-quantization matrix
+                // before applying IDCT
+                Block8x8F dequantMatrix = CreateBlockFromScalar(1);
+
+                // Dequantization using unit matrix - no values are upscaled
+                // as quant matrix is all 1's
+                // This step is needed to apply adjusting multipliers to the input block
+                FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
+
+                // testee
+                // IDCT implementation tranforms blocks after transposition
+                srcBlock.TransposeInplace();
+                DownScalingComponentProcessor4.TransformIDCT_2x2(ref srcBlock, ref dequantMatrix, NormalizationValue, MaxOutputValue);
+
+                var comparer = new ApproximateFloatComparer(0.1f);
+
+                // top-left
+                float topLeftExpected = (float)Math.Round(Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue));
+                Assert.Equal(topLeftExpected, srcBlock[0], comparer);
+
+                // top-right
+                float topRightExpected = (float)Math.Round(Numerics.Clamp(expectedDest[7] + NormalizationValue, 0, MaxOutputValue));
+                Assert.Equal(topRightExpected, srcBlock[1], comparer);
+
+                // bot-left
+                float botLeftExpected = (float)Math.Round(Numerics.Clamp(expectedDest[56] + NormalizationValue, 0, MaxOutputValue));
+                Assert.Equal(botLeftExpected, srcBlock[8], comparer);
+
+                // bot-right
+                float botRightExpected = (float)Math.Round(Numerics.Clamp(expectedDest[63] + NormalizationValue, 0, MaxOutputValue));
+                Assert.Equal(botRightExpected, srcBlock[9], comparer);
+            }
+
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void TranformIDCT_1x1(int seed)
+            {
+                Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed, 1, 1);
+                var srcBlock = default(Block8x8F);
+                srcBlock.LoadFrom(src);
+
+                float[] expectedDest = new float[64];
+                float[] temp = new float[64];
+
+                // reference
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(src, expectedDest, temp);
+
+                // testee
+                // Part of the IDCT calculations is fused into the quantization step
+                // We must multiply input block with adjusted no-quantization matrix
+                // before applying IDCT
+                Block8x8F dequantMatrix = CreateBlockFromScalar(1);
+
+                // Dequantization using unit matrix - no values are upscaled
+                // as quant matrix is all 1's
+                // This step is needed to apply adjusting multipliers to the input block
+                FastFloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
+
+                // testee
+                // IDCT implementation tranforms blocks after transposition
+                srcBlock.TransposeInplace();
+                float actual = DownScalingComponentProcessor8.TransformIDCT_1x1(
+                    srcBlock[0],
+                    dequantMatrix[0],
+                    NormalizationValue,
+                    MaxOutputValue);
+
+                float expected = (float)Math.Round(Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue));
+
+                Assert.Equal(actual, expected, new ApproximateFloatComparer(0.1f));
+            }
+
             // Forward transform
             // This test covers entire FDCT conversion chain
             // This test checks all hardware implementations
@@ -168,7 +315,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     int seed = FeatureTestRunner.Deserialize<int>(serialized);
 
-                    Span<float> src = Create8x8RoundedRandomFloatData(MinAllowedValue, MaxAllowedValue, seed);
+                    Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
                     var block = default(Block8x8F);
                     block.LoadFrom(src);
 

@@ -33,6 +33,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // 8 => 8, no scaling
             8,
 
+            // 8 => 4, 1/2 of the original size
+            4,
+
+            // 8 => 2, 1/4 of the original size
+            2,
+
             // 8 => 1, 1/8 of the original size
             1,
         };
@@ -254,6 +260,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     for (int i = 0; i < this.componentProcessors.Length; i++)
                     {
                         this.componentProcessors[i] = new DirectComponentProcessor(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
+                    }
+
+                    break;
+                case 4:
+                    for (int i = 0; i < this.componentProcessors.Length; i++)
+                    {
+                        this.componentProcessors[i] = new DownScalingComponentProcessor2(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
+                    }
+
+                    break;
+                case 2:
+                    for (int i = 0; i < this.componentProcessors.Length; i++)
+                    {
+                        this.componentProcessors[i] = new DownScalingComponentProcessor4(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
                     }
 
                     break;

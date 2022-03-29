@@ -38,14 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
-                    // get direct current term - averaged 8x8 pixel value
-                    float dc = blockRow[xBlock][0];
-
-                    // dequantization
-                    dc *= this.dcDequantizer;
-
-                    // Normalize & round
-                    dc = (float)Math.Round(Numerics.Clamp(dc + normalizationValue, 0, maximumValue));
+                    float dc = TransformIDCT_1x1(blockRow[xBlock][0], this.dcDequantizer, normalizationValue, maximumValue);
 
                     // Save to the intermediate buffer
                     int xColorBufferStart = xBlock * this.BlockAreaSize.Width;
@@ -57,6 +50,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         subSamplingDivisors.Height);
                 }
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static float TransformIDCT_1x1(float dc, float dequantizer, float normalizationValue, float maxValue)
+        {
+            dc *= dequantizer;
+            return (float)Math.Round(Numerics.Clamp(dc + normalizationValue, 0, maxValue));
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

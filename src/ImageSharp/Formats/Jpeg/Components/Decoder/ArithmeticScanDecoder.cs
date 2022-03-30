@@ -57,9 +57,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private readonly CancellationToken cancellationToken;
 
-        // Uses C# compiler's optimization to refer to static data segement directly, without any further allocation.
-        private static ReadOnlySpan<byte> FixedBin => new byte[] { 113, 0, 0, 0 };
-
         private static readonly int[] ArithmeticTable =
         {
             Pack(0x5a1d,   1,   1, 1),
@@ -199,6 +196,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.a = 0;
             this.ct = -16; // Force reading 2 initial bytes to fill C.
         }
+
+        // Uses C# compiler's optimization to refer to static data segment directly, without any further allocation.
+        private static ReadOnlySpan<byte> FixedBin => new byte[] { 113, 0, 0, 0 };
 
         /// <inheritdoc/>
         public int ResetInterval
@@ -916,7 +916,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     if (this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1)) != 0)
                     {
-                        bool flag = this.DecodeBinaryDecision(ref reader, ref this.GetFixedBinReference()) != 0)
+                        bool flag = this.DecodeBinaryDecision(ref reader, ref this.GetFixedBinReference()) != 0;
                         coef = (short)(coef + (flag ? m1 : p1));
 
                         break;

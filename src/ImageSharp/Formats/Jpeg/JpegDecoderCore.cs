@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             bool metadataOnly = spectralConverter == null;
 
-            this.scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
+            this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
             this.Metadata = new ImageMetadata();
 

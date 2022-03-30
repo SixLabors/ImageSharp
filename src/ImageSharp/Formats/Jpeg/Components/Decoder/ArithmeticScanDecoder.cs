@@ -57,7 +57,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private readonly CancellationToken cancellationToken;
 
-        private readonly byte[] fixedBin = { 113, 0, 0, 0 };
+        // Uses C# compiler's optimization to refer to static data segement directly, without any further allocation.
+        private static ReadOnlySpan<byte> FixedBin => new byte[] { 113, 0, 0, 0 };
 
         private static readonly int[] ArithmeticTable =
         {
@@ -233,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private ref byte GetFixedBinReference() => ref this.fixedBin[0];
+        private ref byte GetFixedBinReference() => ref MemoryMarshal.GetReference(FixedBin);
 
         /// <summary>
         /// Decodes the entropy coded data.
@@ -580,8 +581,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order.
-                    int mcuRow = mcu / mcusPerLine;
-                    int mcuCol = mcu % mcusPerLine;
+                    int mcuRow = Math.DivRem(mcu, mcusPerLine, out int mcuCol);
                     for (int k = 0; k < this.scanComponentCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
@@ -908,14 +908,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     {
                         if (this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 2)) != 0)
                         {
-                            if (coef < 0)
-                            {
-                                coef = (short)(coef + m1);
-                            }
-                            else
-                            {
-                                coef = (short)(coef + p1);
-                            }
+                            coef = (short)(coef + (coef < 0 ? m1 : p1));
                         }
 
                         break;
@@ -923,14 +916,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     if (this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1)) != 0)
                     {
-                        if (this.DecodeBinaryDecision(ref reader, ref this.GetFixedBinReference()) != 0)
-                        {
-                            coef = (short)(coef + m1);
-                        }
-                        else
-                        {
-                            coef = (short)(coef + p1);
-                        }
+                        bool flag = this.DecodeBinaryDecision(ref reader, ref this.GetFixedBinReference()) != 0)
+                        coef = (short)(coef + (flag ? m1 : p1));
 
                         break;
                     }

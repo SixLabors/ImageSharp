@@ -451,6 +451,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                         // Scan out an mcu's worth of this component; that's just determined
                         // by the basic H and V specified for the component.
+                        int mcuColMulh = mcuCol * h;
                         for (int y = 0; y < v; y++)
                         {
                             Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
@@ -466,11 +467,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int blockCol = (mcuCol * h) + x;
+                                int blockCol = mcuColMulh + x;
 
                                 this.DecodeBlockBaseline(
                                     component,
-                                    ref Unsafe.Add(ref blockRef, blockCol),
+                                    ref Unsafe.Add(ref blockRef, (nint)(uint)blockCol),
                                     ref acDecodingTable,
                                     ref dcDecodingTable);
                             }
@@ -521,7 +522,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                         this.DecodeBlockBaseline(
                             component,
-                            ref Unsafe.Add(ref blockRef, k),
+                            ref Unsafe.Add(ref blockRef, (nint)(uint)k),
                             ref acDecodingTable,
                             ref dcDecodingTable);
 
@@ -560,7 +561,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     this.DecodeBlockBaseline(
                         component,
-                        ref Unsafe.Add(ref blockRef, i),
+                        ref Unsafe.Add(ref blockRef, (nint)(uint)i),
                         ref acDecodingTable,
                         ref dcDecodingTable);
 
@@ -593,6 +594,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                         // Scan out an mcu's worth of this component; that's just determined
                         // by the basic H and V specified for the component.
+                        int mcuColMulh = mcuCol * h;
                         for (int y = 0; y < v; y++)
                         {
                             int blockRow = (mcuRow * v) + y;
@@ -606,11 +608,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int blockCol = (mcuCol * h) + x;
+                                int blockCol = mcuColMulh + x;
 
                                 this.DecodeBlockProgressiveDc(
                                     component,
-                                    ref Unsafe.Add(ref blockRef, blockCol),
+                                    ref Unsafe.Add(ref blockRef, (nint)(uint)blockCol),
                                     ref dcDecodingTable);
                             }
                         }
@@ -652,7 +654,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                         this.DecodeBlockProgressiveDc(
                             component,
-                            ref Unsafe.Add(ref blockRef, i),
+                            ref Unsafe.Add(ref blockRef, (nint)(uint)i),
                             ref dcDecodingTable);
 
                         this.HandleRestart();
@@ -679,7 +681,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                         this.DecodeBlockProgressiveAc(
                                 component,
-                                ref Unsafe.Add(ref blockRef, i),
+                                ref Unsafe.Add(ref blockRef, (nint)(uint)i),
                                 ref acDecodingTable);
 
                         this.HandleRestart();
@@ -716,7 +718,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Figure F.21: Decoding nonzero value v.
                     // Figure F.22: Decoding the sign of v.
                     int sign = this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1));
-                    st = ref Unsafe.Add(ref st, 2 + sign);
+                    st = ref Unsafe.Add(ref st, (nint)(uint)(2 + sign));
 
                     // Figure F.23: Decoding the magnitude category of v.
                     int m = this.DecodeBinaryDecision(ref reader, ref st);
@@ -966,7 +968,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // Figure F.21: Decoding nonzero value v
                 // Figure F.22: Decoding the sign of v
                 int sign = this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1));
-                st = ref Unsafe.Add(ref st, 2 + sign);
+                st = ref Unsafe.Add(ref st, (nint)(uint)(2 + sign));
 
                 // Figure F.23: Decoding the magnitude category of v.
                 int m = this.DecodeBinaryDecision(ref reader, ref st);

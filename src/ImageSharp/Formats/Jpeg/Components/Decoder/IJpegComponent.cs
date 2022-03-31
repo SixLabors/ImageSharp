@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the component id.
         /// </summary>
-        public byte Id { get; }
+        byte Id { get; }
 
         /// <summary>
         /// Gets the component's position in the components array.
@@ -33,12 +33,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the horizontal sampling factor.
         /// </summary>
-        public int HorizontalSamplingFactor { get; }
+        int HorizontalSamplingFactor { get; }
 
         /// <summary>
         /// Gets the vertical sampling factor.
         /// </summary>
-        public int VerticalSamplingFactor { get; }
+        int VerticalSamplingFactor { get; }
 
         /// <summary>
         /// Gets the divisors needed to apply when calculating colors.
@@ -63,34 +63,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets or sets DC coefficient predictor.
         /// </summary>
-        public int DcPredictor { get; set; }
+        int DcPredictor { get; set; }
 
         /// <summary>
         /// Gets or sets the index for the DC table.
         /// </summary>
-        public int DcTableId { get; set; }
+        int DcTableId { get; set; }
 
         /// <summary>
         /// Gets or sets the index for the AC table.
         /// </summary>
-        public int AcTableId { get; set; }
+        int AcTableId { get; set; }
 
         /// <summary>
         /// Initializes component for future buffers initialization.
         /// </summary>
         /// <param name="maxSubFactorH">Maximal horizontal subsampling factor among all the components.</param>
         /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
-        public void Init(int maxSubFactorH, int maxSubFactorV);
+        void Init(int maxSubFactorH, int maxSubFactorV);
 
         /// <summary>
         /// Allocates the spectral blocks.
         /// </summary>
         /// <param name="fullScan">if set to true, use the full height of a block, otherwise use the vertical sampling factor.</param>
-        public void AllocateSpectral(bool fullScan);
+        void AllocateSpectral(bool fullScan);
 
         /// <summary>
         /// Releases resources.
         /// </summary>
-        public void Dispose();
+        void Dispose();
     }
 }

@@ -55,6 +55,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private ArithmeticDecodingTable[] acDecodingTables;
 
+        private readonly byte[] fixedBin = { 113, 0, 0, 0 };
+
         private readonly CancellationToken cancellationToken;
 
         private static readonly int[] ArithmeticTable =
@@ -197,9 +199,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.ct = -16; // Force reading 2 initial bytes to fill C.
         }
 
-        // Uses C# compiler's optimization to refer to static data segment directly, without any further allocation.
-        private static ReadOnlySpan<byte> FixedBin => new byte[] { 113, 0, 0, 0 };
-
         /// <inheritdoc/>
         public int ResetInterval
         {
@@ -234,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private ref byte GetFixedBinReference() => ref MemoryMarshal.GetReference(FixedBin);
+        private ref byte GetFixedBinReference() => ref this.fixedBin[0];
 
         /// <summary>
         /// Decodes the entropy coded data.

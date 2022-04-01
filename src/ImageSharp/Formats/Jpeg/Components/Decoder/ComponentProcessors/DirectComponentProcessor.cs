@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     workspaceBlock.MultiplyInPlace(ref dequantTable);
 
                     // Convert from spectral to color
-                    FastFloatingPointDCT.TransformIDCT(ref workspaceBlock);
+                    FloatingPointDCT.TransformIDCT(ref workspaceBlock);
 
                     // To conform better to libjpeg we actually NEED TO loose precision here.
                     // This is because they store blocks as Int16 between all the operations.

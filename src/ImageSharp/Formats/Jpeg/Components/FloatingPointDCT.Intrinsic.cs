@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
-    internal static partial class FastFloatingPointDCT
+    internal static partial class FloatingPointDCT
     {
 #pragma warning disable SA1310, SA1311, IDE1006 // naming rule violation warnings
         private static readonly Vector256<float> mm256_F_0_7071 = Vector256.Create(0.707106781f);

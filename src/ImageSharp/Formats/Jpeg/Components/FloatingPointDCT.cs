@@ -12,9 +12,12 @@ using System.Runtime.Intrinsics.X86;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
-    /// Contains inaccurate, but fast forward and inverse DCT implementations.
+    /// Contains floating point forward and inverse DCT implementations
     /// </summary>
-    internal static partial class FastFloatingPointDCT
+    /// <remarks>
+    /// Based on "Arai, Agui and Nakajima" algorithm.
+    /// </remarks>
+    internal static partial class FloatingPointDCT
     {
 #pragma warning disable SA1310, SA1311, IDE1006 // naming rules violation warnings
         private static readonly Vector4 mm128_F_0_7071 = new(0.707106781f);
@@ -70,8 +73,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref float multipliersRef = ref MemoryMarshal.GetReference<float>(AdjustmentCoefficients);
             for (nint i = 0; i < Block8x8F.Size; i++)
             {
-                tableRef = 0.125f * tableRef * Unsafe.Add(ref multipliersRef, i);
-                tableRef = ref Unsafe.Add(ref tableRef, 1);
+                ref float elemRef = ref Unsafe.Add(ref tableRef, i);
+                elemRef = 0.125f * elemRef * Unsafe.Add(ref multipliersRef, i);
             }
 
             // Spectral macroblocks are transposed before quantization
@@ -89,8 +92,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref float multipliersRef = ref MemoryMarshal.GetReference<float>(AdjustmentCoefficients);
             for (nint i = 0; i < Block8x8F.Size; i++)
             {
-                tableRef = 0.125f / (tableRef * Unsafe.Add(ref multipliersRef, i));
-                tableRef = ref Unsafe.Add(ref tableRef, 1);
+                ref float elemRef = ref Unsafe.Add(ref tableRef, i);
+                elemRef = 0.125f / (elemRef * Unsafe.Add(ref multipliersRef, i));
             }
 
             // Spectral macroblocks are not transposed before quantization
@@ -103,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Apply 2D floating point IDCT inplace.
         /// </summary>
         /// <remarks>
-        /// Input block must be dequantized before this method with table
+        /// Input block must be dequantized with quantization table
         /// adjusted by <see cref="AdjustToIDCT"/>.
         /// </remarks>
         /// <param name="block">Input block.</param>
@@ -125,8 +128,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Apply 2D floating point IDCT inplace.
         /// </summary>
         /// <remarks>
-        /// Input block must be quantized after this method with table adjusted
-        /// by <see cref="AdjustToFDCT"/>.
+        /// Input block must be quantized after this method with quantization
+        /// table adjusted by <see cref="AdjustToFDCT"/>.
         /// </remarks>
         /// <param name="block">Input block.</param>
         public static void TransformFDCT(ref Block8x8F block)
@@ -221,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Apply floating point FDCT inplace using <see cref="Vector4"/> API.
         /// </summary>
         /// <param name="block">Input block.</param>
-        public static void FDCT_Vector4(ref Block8x8F block)
+        private static void FDCT_Vector4(ref Block8x8F block)
         {
             // First pass - process columns
             FDCT8x4_Vector4(ref block.V0L);

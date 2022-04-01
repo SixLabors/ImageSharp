@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     workspaceBlock.LoadFrom(ref blockRow[xBlock]);
 
                     // IDCT/Normalization/Range
-                    TransformIDCT_2x2(ref workspaceBlock, ref dequantTable, normalizationValue, maximumValue);
+                    ScaledFloatingPointDCT.TransformIDCT_2x2(ref workspaceBlock, ref dequantTable, normalizationValue, maximumValue);
 
                     // Save to the intermediate buffer
                     int xColorBufferStart = xBlock * this.BlockAreaSize.Width;
@@ -57,36 +57,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         subSamplingDivisors.Height);
                 }
             }
-        }
-
-        public static void TransformIDCT_2x2(ref Block8x8F block, ref Block8x8F dequantTable, float normalizationValue, float maxValue)
-        {
-            // input block is transposed so term indices must be tranposed too
-            float tmp0, tmp1, tmp2, tmp3, tmp4, tmp5;
-
-            // 0
-            //   => 0 1
-            // 8
-            tmp4 = block[0] * dequantTable[0];
-            tmp5 = block[1] * dequantTable[1];
-            tmp0 = tmp4 + tmp5;
-            tmp2 = tmp4 - tmp5;
-
-            // 1
-            //   => 8 9
-            // 9
-            tmp4 = block[8] * dequantTable[8];
-            tmp5 = block[9] * dequantTable[9];
-            tmp1 = tmp4 + tmp5;
-            tmp3 = tmp4 - tmp5;
-
-            // Row 0
-            block[0] = (float)Math.Round(Numerics.Clamp(tmp0 + tmp1 + normalizationValue, 0, maxValue));
-            block[1] = (float)Math.Round(Numerics.Clamp(tmp0 - tmp1 + normalizationValue, 0, maxValue));
-
-            // Row 1
-            block[8] = (float)Math.Round(Numerics.Clamp(tmp2 + tmp3 + normalizationValue, 0, maxValue));
-            block[9] = (float)Math.Round(Numerics.Clamp(tmp2 - tmp3 + normalizationValue, 0, maxValue));
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

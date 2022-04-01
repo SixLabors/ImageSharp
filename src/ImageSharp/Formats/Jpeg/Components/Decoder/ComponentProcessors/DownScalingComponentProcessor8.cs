@@ -9,11 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
     {
-        private readonly float dcDequantizer;
+        private readonly float dcDequantizatizer;
 
         public DownScalingComponentProcessor8(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
             : base(memoryAllocator, frame, postProcessorBufferSize, component, 1)
-            => this.dcDequantizer = rawJpeg.QuantizationTables[component.QuantizationTableIndex][0];
+            => this.dcDequantizatizer = 0.125f * rawJpeg.QuantizationTables[component.QuantizationTableIndex][0];
 
         public override void CopyBlocksToColorBuffer(int spectralStep)
         {
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
-                    float dc = ScaledFloatingPointDCT.TransformIDCT_1x1(blockRow[xBlock][0], this.dcDequantizer, normalizationValue, maximumValue);
+                    float dc = ScaledFloatingPointDCT.TransformIDCT_1x1(blockRow[xBlock][0], this.dcDequantizatizer, normalizationValue, maximumValue);
 
                     // Save to the intermediate buffer
                     int xColorBufferStart = xBlock * this.BlockAreaSize.Width;

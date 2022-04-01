@@ -9,11 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     internal sealed class DownScalingComponentProcessor4 : ComponentProcessor
     {
-        private readonly IRawJpegData rawJpeg;
+        private Block8x8F dequantizationTable;
 
         public DownScalingComponentProcessor4(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
             : base(memoryAllocator, frame, postProcessorBufferSize, component, 2)
-            => this.rawJpeg = rawJpeg;
+        {
+            this.dequantizationTable = rawJpeg.QuantizationTables[component.QuantizationTableIndex];
+            ScaledFloatingPointDCT.AdjustToIDCT(ref this.dequantizationTable);
+        }
 
         public override void CopyBlocksToColorBuffer(int spectralStep)
         {
@@ -27,7 +30,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int blocksRowsPerStep = this.Component.SamplingFactors.Height;
             Size subSamplingDivisors = this.Component.SubSamplingDivisors;
 
-            Block8x8F dequantTable = this.rawJpeg.QuantizationTables[this.Component.QuantizationTableIndex];
             Block8x8F workspaceBlock = default;
 
             int yBlockStart = spectralStep * blocksRowsPerStep;
@@ -45,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     workspaceBlock.LoadFrom(ref blockRow[xBlock]);
 
                     // IDCT/Normalization/Range
-                    ScaledFloatingPointDCT.TransformIDCT_2x2(ref workspaceBlock, ref dequantTable, normalizationValue, maximumValue);
+                    ScaledFloatingPointDCT.TransformIDCT_2x2(ref workspaceBlock, ref this.dequantizationTable, normalizationValue, maximumValue);
 
                     // Save to the intermediate buffer
                     int xColorBufferStart = xBlock * this.BlockAreaSize.Width;

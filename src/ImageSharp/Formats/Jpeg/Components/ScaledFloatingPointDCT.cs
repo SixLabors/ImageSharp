@@ -14,6 +14,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </remarks>
     internal static class ScaledFloatingPointDCT
     {
+#pragma warning disable SA1310 // naming rules violation warnings
+        private const float F32_0_541196100 = 0.541196100f;
+        private const float F32_0_765366865 = 0.765366865f;
+        private const float F32_1_847759065 = 1.847759065f;
+#pragma warning restore SA1310
+
         /// <summary>
         /// Adjusts given quantization table for usage with IDCT algorithms
         /// from <see cref="ScaledFloatingPointDCT"/>.
@@ -56,27 +62,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public static void TransformIDCT_4x4(ref Block8x8F block, ref Block8x8F dequantTable, float normalizationValue, float maxValue)
         {
-            const int DCTSIZE = 8;
-            const float FIX_0_541196100 = 0.541196100f;
-            const float FIX_0_765366865 = 0.765366865f;
-            const float FIX_1_847759065 = 1.847759065f;
-
             for (int ctr = 0; ctr < 4; ctr++)
             {
                 // Even part
-                float tmp0 = block[ctr * DCTSIZE] * dequantTable[ctr * DCTSIZE];
-                float tmp2 = block[(ctr * DCTSIZE) + 2] * dequantTable[(ctr * DCTSIZE) + 2];
+                float tmp0 = block[ctr * 8] * dequantTable[ctr * 8];
+                float tmp2 = block[(ctr * 8) + 2] * dequantTable[(ctr * 8) + 2];
 
                 float tmp10 = tmp0 + tmp2;
                 float tmp12 = tmp0 - tmp2;
 
                 // Odd part
-                float z2 = block[(ctr * DCTSIZE) + 1] * dequantTable[(ctr * DCTSIZE) + 1];
-                float z3 = block[(ctr * DCTSIZE) + 3] * dequantTable[(ctr * DCTSIZE) + 3];
+                float z2 = block[(ctr * 8) + 1] * dequantTable[(ctr * 8) + 1];
+                float z3 = block[(ctr * 8) + 3] * dequantTable[(ctr * 8) + 3];
 
-                float z1 = (z2 + z3) * FIX_0_541196100;
-                tmp0 = z1 + (z2 * FIX_0_765366865);
-                tmp2 = z1 - (z3 * FIX_1_847759065);
+                float z1 = (z2 + z3) * F32_0_541196100;
+                tmp0 = z1 + (z2 * F32_0_765366865);
+                tmp2 = z1 - (z3 * F32_1_847759065);
 
                 /* Final output stage */
                 block[ctr + 4] = tmp10 + tmp0;
@@ -98,9 +99,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 float z2 = block[(ctr * 8) + 1 + 4];
                 float z3 = block[(ctr * 8) + 3 + 4];
 
-                float z1 = (z2 + z3) * FIX_0_541196100;
-                tmp0 = z1 + (z2 * FIX_0_765366865);
-                tmp2 = z1 - (z3 * FIX_1_847759065);
+                float z1 = (z2 + z3) * F32_0_541196100;
+                tmp0 = z1 + (z2 * F32_0_765366865);
+                tmp2 = z1 - (z3 * F32_1_847759065);
 
                 /* Final output stage */
                 block[(ctr * 8) + 0] = MathF.Round(Numerics.Clamp(tmp10 + tmp0 + normalizationValue, 0, maxValue));

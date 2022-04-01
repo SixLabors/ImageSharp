@@ -1025,9 +1025,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         break;
                     }
                 }
-
-                // Adjusting table for IDCT step during decompression
-                FloatingPointDCT.AdjustToIDCT(ref table);
             }
         }
 

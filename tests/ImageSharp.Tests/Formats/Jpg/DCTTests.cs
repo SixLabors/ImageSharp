@@ -107,9 +107,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.CompareBlocks(expected, srcBlock, 1f);
             }
 
-            // Inverse transform
-            // This test covers entire IDCT conversion chain
-            // This test checks all hardware implementations
             [Theory]
             [InlineData(1)]
             [InlineData(2)]
@@ -193,32 +190,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 srcBlock.TransposeInplace();
                 ScaledFloatingPointDCT.TransformIDCT_4x4(ref srcBlock, ref dequantMatrix, NormalizationValue, MaxOutputValue);
 
-                Block8x8F DEBUG_VARIABLE = Block8x8F.Load(expectedDest);
-
-                var comparer = new ApproximateFloatComparer(1f);
-
                 Span<float> expectedSpan = expectedDest.AsSpan();
                 Span<float> actualSpan = srcBlock.ToArray().AsSpan();
 
-                AssertEquality_4x4(expectedSpan, actualSpan, comparer);
-                AssertEquality_4x4(expectedSpan.Slice(2), actualSpan.Slice(8), comparer);
-                AssertEquality_4x4(expectedSpan.Slice(4), actualSpan.Slice(16), comparer);
-                AssertEquality_4x4(expectedSpan.Slice(6), actualSpan.Slice(24), comparer);
-
-                static void AssertEquality_4x4(Span<float> expected, Span<float> actual, ApproximateFloatComparer comparer)
+                // resulting matrix is 4x4
+                for (int y = 0; y < 4; y++)
                 {
-                    float average_4x4 = 0f;
+                    for (int x = 0; x < 4; x++)
+                    {
+                        AssertScaledElementEquality(expectedSpan.Slice((y * 16) + (x * 2)), actualSpan.Slice((y * 8) + x));
+                    }
+                }
+
+                static void AssertScaledElementEquality(Span<float> expected, Span<float> actual)
+                {
+                    float average2x2 = 0f;
                     for (int y = 0; y < 2; y++)
                     {
                         int y8 = y * 8;
                         for (int x = 0; x < 2; x++)
                         {
                             float clamped = Numerics.Clamp(expected[y8 + x] + NormalizationValue, 0, MaxOutputValue);
-                            average_4x4 += clamped;
+                            average2x2 += clamped;
                         }
                     }
 
-                    average_4x4 /= 4f;
+                    average2x2 = MathF.Round(average2x2 / 4f);
+
+                    Assert.Equal((int)average2x2, (int)actual[0]);
                 }
             }
 
@@ -253,25 +252,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 srcBlock.TransposeInplace();
                 ScaledFloatingPointDCT.TransformIDCT_2x2(ref srcBlock, ref dequantMatrix, NormalizationValue, MaxOutputValue);
 
-                Block8x8F DEBUG_VARIABLE = Block8x8F.Load(expectedDest);
+                Span<float> expectedSpan = expectedDest.AsSpan();
+                Span<float> actualSpan = srcBlock.ToArray().AsSpan();
 
-                var comparer = new ApproximateFloatComparer(0.1f);
+                // resulting matrix is 2x2
+                for (int y = 0; y < 2; y++)
+                {
+                    for (int x = 0; x < 2; x++)
+                    {
+                        AssertScaledElementEquality(expectedSpan.Slice((y * 32) + (x * 4)), actualSpan.Slice((y * 8) + x));
+                    }
+                }
 
-                // top-left
-                float topLeftExpected = (float)Math.Round(Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue));
-                Assert.Equal(topLeftExpected, srcBlock[0], comparer);
+                static void AssertScaledElementEquality(Span<float> expected, Span<float> actual)
+                {
+                    float average4x4 = 0f;
+                    for (int y = 0; y < 4; y++)
+                    {
+                        int y8 = y * 8;
+                        for (int x = 0; x < 4; x++)
+                        {
+                            float clamped = Numerics.Clamp(expected[y8 + x] + NormalizationValue, 0, MaxOutputValue);
+                            average4x4 += clamped;
+                        }
+                    }
 
-                // top-right
-                float topRightExpected = (float)Math.Round(Numerics.Clamp(expectedDest[7] + NormalizationValue, 0, MaxOutputValue));
-                Assert.Equal(topRightExpected, srcBlock[1], comparer);
+                    average4x4 = MathF.Round(average4x4 / 16f);
 
-                // bot-left
-                float botLeftExpected = (float)Math.Round(Numerics.Clamp(expectedDest[56] + NormalizationValue, 0, MaxOutputValue));
-                Assert.Equal(botLeftExpected, srcBlock[8], comparer);
-
-                // bot-right
-                float botRightExpected = (float)Math.Round(Numerics.Clamp(expectedDest[63] + NormalizationValue, 0, MaxOutputValue));
-                Assert.Equal(botRightExpected, srcBlock[9], comparer);
+                    Assert.Equal((int)average4x4, (int)actual[0]);
+                }
             }
 
             [Theory]
@@ -302,21 +311,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 // testee
                 // IDCT implementation tranforms blocks after transposition
-                srcBlock.TransposeInplace();
+                // But DC lays on main diagonal which is not changed by transposition
                 float actual = ScaledFloatingPointDCT.TransformIDCT_1x1(
                     srcBlock[0],
                     dequantMatrix[0],
                     NormalizationValue,
                     MaxOutputValue);
 
-                float expected = (float)Math.Round(Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue));
+                float expected = MathF.Round(Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue));
 
-                Assert.Equal(actual, expected, new ApproximateFloatComparer(0.1f));
+                Assert.Equal((int)actual, (int)expected);
             }
 
-            // Forward transform
-            // This test covers entire FDCT conversion chain
-            // This test checks all hardware implementations
             [Theory]
             [InlineData(1)]
             [InlineData(2)]

@@ -125,6 +125,9 @@ namespace SixLabors.ImageSharp.Tests
             // Discussion 1875: https://github.com/SixLabors/ImageSharp/discussions/1875
             public const string Issue1875 = "Png/raw-profile-type-exif.png";
 
+            // Issue 2080; https://github.com/SixLabors/ImageSharp/issues/2080
+            public const string Issue2080 = "Png/issues/Issue_2080.png";
+
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";

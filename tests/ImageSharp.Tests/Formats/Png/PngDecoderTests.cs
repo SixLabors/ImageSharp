@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.DotNet.RemoteExecutor;
 
+using SixLabors.ImageSharp.Diagnostics;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -489,6 +490,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 });
             Assert.NotNull(ex);
             Assert.Contains("Proprietary Apple PNG detected!", ex.Message);
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2080
+        [Theory]
+        [WithFile(TestImages.Png.Issue2080, PixelTypes.Rgba32)]
+        public void Issue2080_MemoryLeakIn(TestImageProvider<Rgba32> provider)
+        {
+            static void RunTest(string providerDump)
+            {
+                TestImageProvider<Rgba32> provider
+                    = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
+
+                provider.Configuration = Configuration.CreateDefaultInstance();
+
+                // Replace memory allocator to bypass image cache.
+                // Allocator must be unmanaged to enable allocation tracing.
+                provider.Configuration.MemoryAllocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null);
+
+                int undisposedAllocationCount = MemoryDiagnostics.TotalUndisposedAllocationCount;
+                {
+                    using Image<Rgba32> image = provider.GetImage(PngDecoder);
+                }
+
+                Assert.Equal(undisposedAllocationCount, MemoryDiagnostics.TotalUndisposedAllocationCount);
+            }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(RunTest, providerDump).Dispose();
         }
 
         [Theory]

@@ -151,11 +151,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     }
                 }
             }
-            //catch
-            //{
-            //    image?.Dispose();
-            //    throw;
-            //}
             finally
             {
                 this.globalColorTable?.Dispose();

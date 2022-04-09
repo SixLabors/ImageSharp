@@ -157,40 +157,52 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.inputStream = stream;
-            var reader = new DirectoryReader(stream, this.Configuration.MemoryAllocator);
-
-            IEnumerable<ExifProfile> directories = reader.Read();
-            this.byteOrder = reader.ByteOrder;
-            this.isBigTiff = reader.IsBigTiff;
-
             var frames = new List<ImageFrame<TPixel>>();
-            foreach (ExifProfile ifd in directories)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
-                frames.Add(frame);
+                this.inputStream = stream;
+                var reader = new DirectoryReader(stream, this.Configuration.MemoryAllocator);
 
-                if (this.decodingMode is FrameDecodingMode.First)
+                IEnumerable<ExifProfile> directories = reader.Read();
+                this.byteOrder = reader.ByteOrder;
+                this.isBigTiff = reader.IsBigTiff;
+
+                foreach (ExifProfile ifd in directories)
                 {
-                    break;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
+                    frames.Add(frame);
+
+                    if (this.decodingMode is FrameDecodingMode.First)
+                    {
+                        break;
+                    }
                 }
+
+                ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.ignoreMetadata, reader.ByteOrder, reader.IsBigTiff);
+
+                // TODO: Tiff frames can have different sizes.
+                ImageFrame<TPixel> root = frames[0];
+                this.Dimensions = root.Size();
+                foreach (ImageFrame<TPixel> frame in frames)
+                {
+                    if (frame.Size() != root.Size())
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Images with different sizes are not supported");
+                    }
+                }
+
+                return new Image<TPixel>(this.Configuration, metadata, frames);
             }
-
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.ignoreMetadata, reader.ByteOrder, reader.IsBigTiff);
-
-            // TODO: Tiff frames can have different sizes.
-            ImageFrame<TPixel> root = frames[0];
-            this.Dimensions = root.Size();
-            foreach (ImageFrame<TPixel> frame in frames)
+            catch
             {
-                if (frame.Size() != root.Size())
+                foreach (ImageFrame<TPixel> f in frames)
                 {
-                    TiffThrowHelper.ThrowNotSupported("Images with different sizes are not supported");
+                    f.Dispose();
                 }
-            }
 
-            return new Image<TPixel>(this.Configuration, metadata, frames);
+                throw;
+            }
         }
 
         /// <inheritdoc/>

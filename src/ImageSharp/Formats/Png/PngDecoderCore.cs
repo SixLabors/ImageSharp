@@ -1367,6 +1367,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 if (chunk.Type == PngChunkType.Data)
                 {
+                    chunk.Data?.Dispose();
                     return chunk.Length;
                 }
 

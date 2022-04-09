@@ -240,8 +240,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
             var stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts).GetValue();
 
-            IMemoryOwner<ulong> stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
-            IMemoryOwner<ulong> stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
+            using IMemoryOwner<ulong> stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
+            using IMemoryOwner<ulong> stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
@@ -262,8 +262,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     cancellationToken);
             }
 
-            stripOffsetsMemory?.Dispose();
-            stripByteCountsMemory?.Dispose();
             return frame;
         }
 

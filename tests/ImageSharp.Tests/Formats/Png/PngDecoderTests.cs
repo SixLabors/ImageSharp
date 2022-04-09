@@ -19,6 +19,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     [Trait("Format", "Png")]
+    [ValidateDisposedMemoryAllocations]
     public partial class PngDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
@@ -103,7 +104,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
-        [ValidateDisposedMemoryAllocations]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

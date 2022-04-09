@@ -16,6 +16,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
     [Trait("Format", "Tga")]
+    [ValidateDisposedMemoryAllocations]
     public class TgaDecoderTests
     {
         private static TgaDecoder TgaDecoder => new();

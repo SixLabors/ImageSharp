@@ -82,38 +82,48 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.Metadata = new ImageMetadata();
-            this.currentStream = stream;
-
-            uint fileSize = this.ReadImageHeader();
-
-            using (this.webImageInfo = this.ReadVp8Info())
+            Image<TPixel> image = null;
+            try
             {
-                if (this.webImageInfo.Features is { Animation: true })
-                {
-                    WebpThrowHelper.ThrowNotSupportedException("Animations are not supported");
-                }
 
-                var image = new Image<TPixel>(this.Configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.Metadata);
-                Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-                if (this.webImageInfo.IsLossless)
-                {
-                    var losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
-                    losslessDecoder.Decode(pixels, image.Width, image.Height);
-                }
-                else
-                {
-                    var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
-                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo);
-                }
+                this.Metadata = new ImageMetadata();
+                this.currentStream = stream;
 
-                // There can be optional chunks after the image data, like EXIF and XMP.
-                if (this.webImageInfo.Features != null)
-                {
-                    this.ParseOptionalChunks(this.webImageInfo.Features);
-                }
+                uint fileSize = this.ReadImageHeader();
 
-                return image;
+                using (this.webImageInfo = this.ReadVp8Info())
+                {
+                    if (this.webImageInfo.Features is { Animation: true })
+                    {
+                        WebpThrowHelper.ThrowNotSupportedException("Animations are not supported");
+                    }
+
+                    image = new Image<TPixel>(this.Configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.Metadata);
+                    Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+                    if (this.webImageInfo.IsLossless)
+                    {
+                        var losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
+                        losslessDecoder.Decode(pixels, image.Width, image.Height);
+                    }
+                    else
+                    {
+                        var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
+                        lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo);
+                    }
+
+                    // There can be optional chunks after the image data, like EXIF and XMP.
+                    if (this.webImageInfo.Features != null)
+                    {
+                        this.ParseOptionalChunks(this.webImageInfo.Features);
+                    }
+
+                    return image;
+                }
+            }
+            catch
+            {
+                image?.Dispose();
+                throw;
             }
         }
 

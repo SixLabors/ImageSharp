@@ -85,7 +85,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Image<TPixel> image = null;
             try
             {
-
                 this.Metadata = new ImageMetadata();
                 this.currentStream = stream;
 

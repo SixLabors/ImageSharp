@@ -103,10 +103,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
+        [ValidateDisposedMemoryAllocations]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage(PngDecoder);
+            //var testFile = TestFile.Create(provider.SourceFileOrDescription);
+            //using Image<TPixel> image = Image.Load<TPixel>(provider.Configuration, testFile.Bytes, PngDecoder);
+
             image.DebugSave(provider);
             image.CompareToOriginal(provider, ImageComparer.Exact);
         }

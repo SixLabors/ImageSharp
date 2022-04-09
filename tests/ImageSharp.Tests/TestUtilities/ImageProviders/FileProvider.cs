@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Diagnostics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -158,8 +159,13 @@ namespace SixLabors.ImageSharp.Tests
                     return this.LoadImage(decoder);
                 }
 
-                var key = new Key(this.PixelType, this.FilePath, decoder);
+                // do cache so we can track allocation correctly when validating memory
+                if (MemoryDiagnostics.Current != MemoryDiagnostics.Default)
+                {
+                    return this.LoadImage(decoder);
+                }
 
+                var key = new Key(this.PixelType, this.FilePath, decoder);
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 
                 return cachedImage.Clone(this.Configuration);

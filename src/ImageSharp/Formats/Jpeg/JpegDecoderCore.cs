@@ -187,27 +187,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration);
-            try
-            {
-                var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
-                this.ParseStream(stream, scanDecoder, cancellationToken);
-                this.InitExifProfile();
-                this.InitIccProfile();
-                this.InitIptcProfile();
-                this.InitXmpProfile();
-                this.InitDerivedMetadataProperties();
+            var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
-                return new Image<TPixel>(
-                    this.Configuration,
-                    spectralConverter.GetPixelBuffer(cancellationToken),
-                    this.Metadata);
-            }
-            catch
-            {
-                this.Frame?.Dispose();
-                throw;
-            }
+            this.ParseStream(stream, scanDecoder, cancellationToken);
+            this.InitExifProfile();
+            this.InitIccProfile();
+            this.InitIptcProfile();
+            this.InitXmpProfile();
+            this.InitDerivedMetadataProperties();
+
+            return new Image<TPixel>(
+                this.Configuration,
+                spectralConverter.GetPixelBuffer(cancellationToken),
+                this.Metadata);
         }
 
         /// <inheritdoc/>

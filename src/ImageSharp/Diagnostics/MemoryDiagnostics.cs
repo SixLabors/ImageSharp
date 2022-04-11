@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Diagnostics
         internal static event Action MemoryAllocated;
 
         /// <summary>
-        /// Fires when ImageSharp releases allocated from a MemoryAllocator
+        /// Fires when ImageSharp releases memory allocated from a MemoryAllocator
         /// </summary>
         internal static event Action MemoryReleased;
 

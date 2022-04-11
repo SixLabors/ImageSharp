@@ -159,8 +159,8 @@ namespace SixLabors.ImageSharp.Tests
                     return this.LoadImage(decoder);
                 }
 
-                // do cache so we can track allocation correctly when validating memory
-                if (MemoryDiagnostics.Current != MemoryDiagnostics.Default)
+                // do not cache so we can track allocation correctly when validating memory
+                if (MemoryAllocatorValidator.MonitoringAllocations)
                 {
                     return this.LoadImage(decoder);
                 }

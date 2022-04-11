@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Threading;
 
 namespace SixLabors.ImageSharp.Diagnostics
@@ -15,10 +16,8 @@ namespace SixLabors.ImageSharp.Diagnostics
     /// </summary>
     public static class MemoryDiagnostics
     {
-        internal static readonly InteralMemoryDiagnostics Default = new();
-        private static AsyncLocal<InteralMemoryDiagnostics> localInstance = null;
+        private static int totalUndisposedAllocationCount;
 
-        // the async local end up out of scope during finalizers so putting into thte internal class is useless
         private static UndisposedAllocationDelegate undisposedAllocation;
         private static int undisposedAllocationSubscriptionCounter;
         private static readonly object SyncRoot = new();
@@ -49,42 +48,34 @@ namespace SixLabors.ImageSharp.Diagnostics
             }
         }
 
-        internal static InteralMemoryDiagnostics Current
-        {
-            get
-            {
-                if (localInstance != null && localInstance.Value != null)
-                {
-                    return localInstance.Value;
-                }
+        /// <summary>
+        /// Fires when ImageSharp allocates memory from a MemoryAllocator
+        /// </summary>
+        internal static event Action MemoryAllocated;
 
-                return Default;
-            }
-
-            set
-            {
-                if (localInstance == null)
-                {
-                    lock (SyncRoot)
-                    {
-                        localInstance ??= new AsyncLocal<InteralMemoryDiagnostics>();
-                    }
-                }
-
-                localInstance.Value = value;
-            }
-        }
+        /// <summary>
+        /// Fires when ImageSharp releases allocated from a MemoryAllocator
+        /// </summary>
+        internal static event Action MemoryReleased;
 
         /// <summary>
         /// Gets a value indicating the total number of memory resource objects leaked to the finalizer.
         /// </summary>
-        public static int TotalUndisposedAllocationCount => Current.TotalUndisposedAllocationCount;
+        public static int TotalUndisposedAllocationCount => totalUndisposedAllocationCount;
 
         internal static bool UndisposedAllocationSubscribed => Volatile.Read(ref undisposedAllocationSubscriptionCounter) > 0;
 
-        internal static void IncrementTotalUndisposedAllocationCount() => Current.IncrementTotalUndisposedAllocationCount();
+        internal static void IncrementTotalUndisposedAllocationCount()
+        {
+            Interlocked.Increment(ref totalUndisposedAllocationCount);
+            MemoryAllocated?.Invoke();
+        }
 
-        internal static void DecrementTotalUndisposedAllocationCount() => Current.DecrementTotalUndisposedAllocationCount();
+        internal static void DecrementTotalUndisposedAllocationCount()
+        {
+            Interlocked.Decrement(ref totalUndisposedAllocationCount);
+            MemoryReleased?.Invoke();
+        }
 
         internal static void RaiseUndisposedMemoryResource(string allocationStackTrace)
         {
@@ -104,22 +95,6 @@ namespace SixLabors.ImageSharp.Diagnostics
                 stackTrace => undisposedAllocation?.Invoke((string)stackTrace),
                 allocationStackTrace);
 #endif
-        }
-
-        internal class InteralMemoryDiagnostics
-        {
-            private int totalUndisposedAllocationCount;
-
-            /// <summary>
-            /// Gets a value indicating the total number of memory resource objects leaked to the finalizer.
-            /// </summary>
-            public int TotalUndisposedAllocationCount => this.totalUndisposedAllocationCount;
-
-            internal void IncrementTotalUndisposedAllocationCount() =>
-                Interlocked.Increment(ref this.totalUndisposedAllocationCount);
-
-            internal void DecrementTotalUndisposedAllocationCount() =>
-                Interlocked.Decrement(ref this.totalUndisposedAllocationCount);
         }
     }
 }

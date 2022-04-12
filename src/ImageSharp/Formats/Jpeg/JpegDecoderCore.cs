@@ -1160,7 +1160,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (!metadataOnly)
             {
                 this.Frame.Init(maxH, maxV);
-                this.scanDecoder.InjectFrameData(this.Frame, this);
             }
         }
 
@@ -1336,7 +1335,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
             this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
 
-            this.scanDecoder.ParseEntropyCodedData(selectorsCount);
+            this.scanDecoder.ParseEntropyCodedData(selectorsCount, this.Frame, this);
         }
 
         /// <summary>

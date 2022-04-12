@@ -113,16 +113,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Decodes the entropy coded data.
         /// </summary>
         /// <param name="scanComponentCount">Component count in the current scan.</param>
-        public void ParseEntropyCodedData(int scanComponentCount)
+        public void ParseEntropyCodedData(int scanComponentCount, JpegFrame frame, IRawJpegData jpegData)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
 
             this.scanComponentCount = scanComponentCount;
-
             this.scanBuffer = new HuffmanScanBuffer(this.stream);
 
-            bool fullScan = this.frame.Progressive || this.frame.MultiScan;
-            this.frame.AllocateComponents(fullScan);
+            // Decoder can encounter markers which would alter parameters
+            // needed for spectral buffers allocation and for spectral
+            // converter allocation
+            if (this.frame == null)
+            {
+                frame.AllocateComponents();
+
+                this.frame = frame;
+                this.components = frame.Components;
+                this.spectralConverter.InjectFrameData(frame, jpegData);
+            }
 
             if (!this.frame.Progressive)
             {
@@ -137,14 +145,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 this.stream.Position = this.scanBuffer.MarkerPosition;
             }
-        }
-
-        public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
-        {
-            this.frame = frame;
-            this.components = frame.Components;
-
-            this.spectralConverter.InjectFrameData(frame, jpegData);
         }
 
         private void ParseBaselineData()

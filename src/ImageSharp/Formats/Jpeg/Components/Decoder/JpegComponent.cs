@@ -121,12 +121,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public void AllocateSpectral(bool fullScan)
         {
-            if (this.SpectralBlocks != null)
-            {
-                // this method will be called each scan marker so we need to allocate only once
-                return;
-            }
-
             int spectralAllocWidth = this.SizeInBlocks.Width;
             int spectralAllocHeight = fullScan ? this.SizeInBlocks.Height : this.VerticalSamplingFactor;
 

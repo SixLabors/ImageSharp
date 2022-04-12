@@ -20,6 +20,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     [Trait("Format", "Bmp")]
+    [ValidateDisposedMemoryAllocations]
     public class BmpDecoderTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;

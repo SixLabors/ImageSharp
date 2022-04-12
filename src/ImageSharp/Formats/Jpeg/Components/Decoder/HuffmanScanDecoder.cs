@@ -113,6 +113,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Decodes the entropy coded data.
         /// </summary>
         /// <param name="scanComponentCount">Component count in the current scan.</param>
+        /// <param name="frame">Frame containing decoding data about the frame.</param>
+        /// <param name="jpegData">Decoding data about the jpeg.</param>
         public void ParseEntropyCodedData(int scanComponentCount, JpegFrame frame, IRawJpegData jpegData)
         {
             this.cancellationToken.ThrowIfCancellationRequested();

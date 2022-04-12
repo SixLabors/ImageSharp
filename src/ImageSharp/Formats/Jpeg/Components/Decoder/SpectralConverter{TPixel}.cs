@@ -126,7 +126,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            return this.pixelBuffer;
+            var buffer = this.pixelBuffer;
+            this.pixelBuffer = null;
+            return buffer;
         }
 
         /// <summary>
@@ -318,6 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.rgbBuffer?.Dispose();
             this.paddedProxyPixelRow?.Dispose();
+            this.pixelBuffer?.Dispose();
         }
     }
 }

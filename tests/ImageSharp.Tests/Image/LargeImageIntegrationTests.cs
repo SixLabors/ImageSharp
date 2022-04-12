@@ -55,6 +55,8 @@ namespace SixLabors.ImageSharp.Tests
 
             static void RunTest(string formatInner)
             {
+                using IDisposable mem = MemoryAllocatorValidator.MonitorAllocations();
+
                 Configuration configuration = Configuration.Default.Clone();
                 configuration.PreferContiguousImageBuffers = true;
                 IImageEncoder encoder = configuration.ImageFormatsManager.FindEncoder(

@@ -227,10 +227,16 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 return image;
             }
+            catch
+            {
+                image?.Dispose();
+                throw;
+            }
             finally
             {
                 this.scanline?.Dispose();
                 this.previousScanline?.Dispose();
+                this.nextChunk?.Data?.Dispose();
             }
         }
 
@@ -472,6 +478,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
+            this.previousScanline?.Dispose();
+            this.scanline?.Dispose();
             this.previousScanline = this.memoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
             this.scanline = this.Configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
         }
@@ -1359,6 +1367,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 if (chunk.Type == PngChunkType.Data)
                 {
+                    chunk.Data?.Dispose();
                     return chunk.Length;
                 }
 
@@ -1453,6 +1462,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 if (validCrc != inputCrc)
                 {
                     string chunkTypeName = Encoding.ASCII.GetString(chunkType);
+
+                    // ensure when throwing we dispose the data back to the memory allocator
+                    chunk.Data?.Dispose();
                     PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
                 }
             }

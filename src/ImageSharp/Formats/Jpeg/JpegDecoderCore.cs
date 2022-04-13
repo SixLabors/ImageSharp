@@ -315,14 +315,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 if (!fileMarker.Invalid)
                 {
                     // Get the marker length.
-                    int remaining = this.ReadUint16(stream) - 2;
+                    int markerContentByteSize = this.ReadUint16(stream) - 2;
+
+                    // Check whether stream actually has enought bytes to read
+                    // markerContentByteSize is always positive so we cast
+                    // to uint to avoid sign extension
+                    if (stream.RemainingBytes < (uint)markerContentByteSize)
+                    {
+                        JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
+                    }
 
                     switch (fileMarker.Marker)
                     {
                         case JpegConstants.Markers.SOF0:
                         case JpegConstants.Markers.SOF1:
                         case JpegConstants.Markers.SOF2:
-                            this.ProcessStartOfFrameMarker(stream, remaining, fileMarker, metadataOnly);
+                            this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, metadataOnly);
                             break;
 
                         case JpegConstants.Markers.SOF5:
@@ -350,7 +358,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker(stream, remaining);
+                                this.ProcessStartOfScanMarker(stream, markerContentByteSize);
                                 break;
                             }
                             else
@@ -364,41 +372,41 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                             if (metadataOnly)
                             {
-                                stream.Skip(remaining);
+                                stream.Skip(markerContentByteSize);
                             }
                             else
                             {
-                                this.ProcessDefineHuffmanTablesMarker(stream, remaining);
+                                this.ProcessDefineHuffmanTablesMarker(stream, markerContentByteSize);
                             }
 
                             break;
 
                         case JpegConstants.Markers.DQT:
-                            this.ProcessDefineQuantizationTablesMarker(stream, remaining);
+                            this.ProcessDefineQuantizationTablesMarker(stream, markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.DRI:
                             if (metadataOnly)
                             {
-                                stream.Skip(remaining);
+                                stream.Skip(markerContentByteSize);
                             }
                             else
                             {
-                                this.ProcessDefineRestartIntervalMarker(stream, remaining);
+                                this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize);
                             }
 
                             break;
 
                         case JpegConstants.Markers.APP0:
-                            this.ProcessApplicationHeaderMarker(stream, remaining);
+                            this.ProcessApplicationHeaderMarker(stream, markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.APP1:
-                            this.ProcessApp1Marker(stream, remaining);
+                            this.ProcessApp1Marker(stream, markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.APP2:
-                            this.ProcessApp2Marker(stream, remaining);
+                            this.ProcessApp2Marker(stream, markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.APP3:
@@ -411,20 +419,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.APP10:
                         case JpegConstants.Markers.APP11:
                         case JpegConstants.Markers.APP12:
-                            stream.Skip(remaining);
+                            stream.Skip(markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.APP13:
-                            this.ProcessApp13Marker(stream, remaining);
+                            this.ProcessApp13Marker(stream, markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.APP14:
-                            this.ProcessApp14Marker(stream, remaining);
+                            this.ProcessApp14Marker(stream, markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.APP15:
                         case JpegConstants.Markers.COM:
-                            stream.Skip(remaining);
+                            stream.Skip(markerContentByteSize);
                             break;
 
                         case JpegConstants.Markers.DAC:
@@ -1260,7 +1268,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int selectorsBytes = selectorsCount * 2;
             if (remaining != 4 + selectorsBytes)
             {
-                JpegThrowHelper.ThrowBadMarker("SOS", remaining);
+                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.SOS), remaining);
             }
 
             // selectorsCount*2 bytes: component index + huffman tables indices

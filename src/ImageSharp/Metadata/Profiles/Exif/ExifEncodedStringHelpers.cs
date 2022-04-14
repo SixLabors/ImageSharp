@@ -79,8 +79,20 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return CharacterCodeBytesLength + count;
         }
 
-        public static unsafe int Write(Encoding encoding, string value, Span<byte> destination) =>
-            encoding.GetBytes(value.AsSpan(), destination);
+        public static unsafe int Write(Encoding encoding, string value, Span<byte> destination)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER || NET
+            => encoding.GetBytes(value.AsSpan(), destination);
+#else
+        {
+            fixed (char* c = value)
+            {
+                fixed (byte* b = destination)
+                {
+                    return encoding.GetBytes(c, value.Length, b, destination.Length);
+                }
+            }
+        }
+#endif
 
         private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)
         {

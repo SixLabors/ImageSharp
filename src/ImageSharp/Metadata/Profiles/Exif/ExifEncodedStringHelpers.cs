@@ -79,16 +79,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return CharacterCodeBytesLength + count;
         }
 
-        public static unsafe int Write(Encoding encoding, string value, Span<byte> destination)
-        {
-            fixed (char* c = value)
-            {
-                fixed (byte* b = destination)
-                {
-                    return encoding.GetBytes(c, value.Length, b, destination.Length);
-                }
-            }
-        }
+        public static unsafe int Write(Encoding encoding, string value, Span<byte> destination) =>
+            encoding.GetBytes(value.AsSpan(), destination);
 
         private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)
         {

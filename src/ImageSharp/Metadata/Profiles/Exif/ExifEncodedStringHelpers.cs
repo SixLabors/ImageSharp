@@ -84,6 +84,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             => encoding.GetBytes(value.AsSpan(), destination);
 #else
         {
+            if (value.Length == 0)
+            {
+                return 0;
+            }
+
             fixed (char* c = value)
             {
                 fixed (byte* b = destination)

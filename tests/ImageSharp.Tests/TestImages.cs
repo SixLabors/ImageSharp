@@ -264,6 +264,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string InvalidIptcTag = "Jpg/issues/Issue1942InvalidIptcTag.jpg";
                 public const string Issue2057App1Parsing = "Jpg/issues/Issue2057-App1Parsing.jpg";
                 public const string ExifNullArrayTag = "Jpg/issues/issue-2056-exif-null-array.jpg";
+                public const string ValidExifArgumentNullExceptionOnEncode = "Jpg/issues/Issue2087-exif-null-reference-on-encode.jpg";
 
                 public static class Fuzz
                 {

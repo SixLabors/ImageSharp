@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Encode_WithValidExifProfile_DoesNotThrowException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Exception exception = Record.Exception(() =>
+            Exception ex = Record.Exception(() =>
             {
                 var encoder = new JpegEncoder();
                 var stream = new MemoryStream();
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.Save(stream, encoder);
             });
 
-            Assert.Null(exception);
+            Assert.Null(ex);
         }
     }
 }

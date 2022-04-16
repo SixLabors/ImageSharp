@@ -228,16 +228,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.Metadata = new ImageMetadata();
             this.QuantizationTables = new Block8x8F[4];
             this.scanDecoder = huffmanScanDecoder;
+
+            if (tableBytes.Length < 4)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
+            }
+
             using var ms = new MemoryStream(tableBytes);
             using var stream = new BufferedReadStream(this.Configuration, ms);
 
             // Check for the Start Of Image marker.
             int bytesRead = stream.Read(this.markerBuffer, 0, 2);
-            if (bytesRead != 2)
-            {
-                JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read the SOI marker");
-            }
-
             var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
@@ -246,20 +247,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Read next marker.
             bytesRead = stream.Read(this.markerBuffer, 0, 2);
-            if (bytesRead != 2)
-            {
-                JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
-            }
-
-            byte marker = this.markerBuffer[1];
-            fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
+            fileMarker = new JpegFileMarker(this.markerBuffer[1], (int)stream.Position - 2);
 
             while (fileMarker.Marker != JpegConstants.Markers.EOI || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
             {
                 if (!fileMarker.Invalid)
                 {
                     // Get the marker length.
-                    int remaining = this.ReadUint16(stream) - 2;
+                    int markerContentByteSize = this.ReadUint16(stream) - 2;
+
+                    // Check whether stream actually has enought bytes to read
+                    // markerContentByteSize is always positive so we cast
+                    // to uint to avoid sign extension
+                    if (stream.RemainingBytes < (uint)markerContentByteSize)
+                    {
+                        JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
+                    }
 
                     switch (fileMarker.Marker)
                     {
@@ -269,13 +272,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.RST7:
                             break;
                         case JpegConstants.Markers.DHT:
-                            this.ProcessDefineHuffmanTablesMarker(stream, remaining);
+                            this.ProcessDefineHuffmanTablesMarker(stream, markerContentByteSize);
                             break;
                         case JpegConstants.Markers.DQT:
-                            this.ProcessDefineQuantizationTablesMarker(stream, remaining);
+                            this.ProcessDefineQuantizationTablesMarker(stream, markerContentByteSize);
                             break;
                         case JpegConstants.Markers.DRI:
-                            this.ProcessDefineRestartIntervalMarker(stream, remaining);
+                            this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize);
                             break;
                         case JpegConstants.Markers.EOI:
                             return;

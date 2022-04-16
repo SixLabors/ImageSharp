@@ -293,6 +293,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string AccessViolationException922 = "Jpg/issues/fuzz/Issue922-AccessViolationException.jpg";
                     public const string IndexOutOfRangeException1693A = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-A.jpg";
                     public const string IndexOutOfRangeException1693B = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-B.jpg";
+                    public const string NullReferenceException2085 = "Jpg/issues/fuzz/Issue2085-NullReferenceException.jpg";
                 }
             }
 

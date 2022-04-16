@@ -115,6 +115,15 @@ namespace SixLabors.ImageSharp.IO
         public override bool CanWrite { get; } = false;
 
         /// <summary>
+        /// Gets remaining byte count available to read.
+        /// </summary>
+        public long RemainingBytes
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.Length - this.Position;
+        }
+
+        /// <summary>
         /// Gets the underlying stream.
         /// </summary>
         public Stream BaseStream

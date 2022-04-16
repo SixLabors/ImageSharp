@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests
 
             protected Mock<IImageFormat> localImageFormatMock;
 
-            protected Mock<IImageInfo> localImageInfoMock;
+            protected IImageInfo localImageInfo = new ImageInfo(null, 0, 0, new ImageSharp.Metadata.ImageMetadata());
 
             protected readonly string MockFilePath = Guid.NewGuid().ToString();
 
@@ -59,11 +59,10 @@ namespace SixLabors.ImageSharp.Tests
                 this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
                 this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
 
-                this.localImageInfoMock = new Mock<IImageInfo>();
                 this.localImageFormatMock = new Mock<IImageFormat>();
 
                 var detector = new Mock<IImageInfoDetector>();
-                detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(this.localImageInfoMock.Object);
+                detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(() => this.localImageInfo);
 
                 this.localDecoder = detector.As<IImageDecoder>();
                 this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))

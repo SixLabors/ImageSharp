@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats;
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
             this.PixelType = pixelType;
             this.Width = width;
             this.Height = height;
-            this.Metadata = metadata;
+            this.Metadata = metadata ?? new ImageMetadata();
         }
 
         /// <inheritdoc />

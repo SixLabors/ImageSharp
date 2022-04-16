@@ -25,8 +25,6 @@ namespace SixLabors.ImageSharp.Tests
 
             private static byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
-            private IImageInfo LocalImageInfo => this.localImageInfoMock.Object;
-
             private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 
             private static readonly IImageFormat ExpectedGlobalFormat =
@@ -46,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 IImageInfo info = Image.Identify(this.LocalConfiguration, this.ByteArray);
 
-                Assert.Equal(this.LocalImageInfo, info);
+                Assert.Equal(this.localImageInfo, info);
                 Assert.Equal(this.LocalImageFormat, info.Metadata.OrigionalImageFormat);
             }
 
@@ -64,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 IImageInfo info = Image.Identify(this.LocalConfiguration, this.MockFilePath);
 
-                Assert.Equal(this.LocalImageInfo, info);
+                Assert.Equal(this.localImageInfo, info);
                 Assert.Equal(this.LocalImageFormat, info.Metadata.OrigionalImageFormat);
             }
 
@@ -120,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 IImageInfo info = Image.Identify(this.LocalConfiguration, this.DataStream);
 
-                Assert.Equal(this.LocalImageInfo, info);
+                Assert.Equal(this.localImageInfo, info);
                 Assert.Equal(this.LocalImageFormat, info.Metadata.OrigionalImageFormat);
             }
 
@@ -129,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 IImageInfo info = Image.Identify(this.LocalConfiguration, this.DataStream);
 
-                Assert.Equal(this.LocalImageInfo, info);
+                Assert.Equal(this.localImageInfo, info);
             }
 
             [Fact]
@@ -248,7 +246,7 @@ namespace SixLabors.ImageSharp.Tests
             public async Task FromPathAsync_CustomConfiguration()
             {
                 IImageInfo info = await Image.IdentifyAsync(this.LocalConfiguration, this.MockFilePath);
-                Assert.Equal(this.LocalImageInfo, info);
+                Assert.Equal(this.localImageInfo, info);
             }
 
             [Fact]
@@ -282,7 +280,7 @@ namespace SixLabors.ImageSharp.Tests
                 var asyncStream = new AsyncStreamWrapper(this.DataStream, () => false);
                 IImageInfo info = await Image.IdentifyAsync(this.LocalConfiguration, asyncStream);
 
-                Assert.Equal(this.LocalImageInfo, info);
+                Assert.Equal(this.localImageInfo, info);
                 Assert.Equal(this.LocalImageFormat, info.Metadata.OrigionalImageFormat);
             }
 

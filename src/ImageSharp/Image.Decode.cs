@@ -166,8 +166,13 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            IImageInfo info = detector?.Identify(config, stream, cancellationToken);
-            info.Metadata.OrigionalImageFormat = format;
+            IImageInfo info = detector.Identify(config, stream, cancellationToken);
+
+            if (info is not null)
+            {
+                info.Metadata.OrigionalImageFormat = format;
+            }
+
             return info;
         }
     }

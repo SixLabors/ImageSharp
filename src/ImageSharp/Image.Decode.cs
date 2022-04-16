@@ -121,29 +121,31 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(Stream stream, Configuration config, CancellationToken cancellationToken = default)
+        private static Image<TPixel> Decode<TPixel>(Stream stream, Configuration config, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)
             {
-                return (null, null);
+                return null;
             }
 
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream, cancellationToken);
-            return (img, format);
+            img.Metadata.OrigionalImageFormat = format;
+            return img;
         }
 
-        private static (Image Image, IImageFormat Format) Decode(Stream stream, Configuration config, CancellationToken cancellationToken = default)
+        private static Image Decode(Stream stream, Configuration config, CancellationToken cancellationToken = default)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)
             {
-                return (null, null);
+                return null;
             }
 
             Image img = decoder.Decode(config, stream, cancellationToken);
-            return (img, format);
+            img.Metadata.OrigionalImageFormat = format;
+            return img;
         }
 
         /// <summary>
@@ -155,17 +157,18 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
-        private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(Stream stream, Configuration config, CancellationToken cancellationToken = default)
+        private static IImageInfo InternalIdentity(Stream stream, Configuration config, CancellationToken cancellationToken = default)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
 
             if (decoder is not IImageInfoDetector detector)
             {
-                return (null, null);
+                return null;
             }
 
             IImageInfo info = detector?.Identify(config, stream, cancellationToken);
-            return (info, format);
+            info.Metadata.OrigionalImageFormat = format;
+            return info;
         }
     }
 }

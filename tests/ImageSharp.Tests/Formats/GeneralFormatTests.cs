@@ -168,10 +168,10 @@ namespace SixLabors.ImageSharp.Tests.Formats
             foreach (TestFile file in Files)
             {
                 byte[] serialized;
-                using (var image = Image.Load(file.Bytes, out IImageFormat mimeType))
+                using (var image = Image.Load(file.Bytes))
                 using (var memoryStream = new MemoryStream())
                 {
-                    image.Save(memoryStream, mimeType);
+                    image.Save(memoryStream, image.Metadata.OrigionalImageFormat);
                     memoryStream.Flush();
                     serialized = memoryStream.ToArray();
                 }
@@ -210,7 +210,6 @@ namespace SixLabors.ImageSharp.Tests.Formats
         [InlineData(100, 100, "tiff")]
         [InlineData(100, 10, "tiff")]
         [InlineData(10, 100, "tiff")]
-
         public void CanIdentifyImageLoadedFromBytes(int width, int height, string extension)
         {
             using (var image = Image.LoadPixelData(new Rgba32[width * height], width, height))
@@ -227,15 +226,28 @@ namespace SixLabors.ImageSharp.Tests.Formats
                     Assert.Equal(imageInfo.Height, height);
                     memoryStream.Position = 0;
 
-                    imageInfo = Image.Identify(memoryStream, out IImageFormat detectedFormat);
-
-                    Assert.Equal(format, detectedFormat);
+                    imageInfo = Image.Identify(memoryStream);
+                    Assert.Equal(format, imageInfo.Metadata.OrigionalImageFormat);
                 }
             }
         }
 
         [Fact]
         public void IdentifyReturnsNullWithInvalidStream()
+        {
+            var invalid = new byte[10];
+
+            using (var memoryStream = new MemoryStream(invalid))
+            {
+                IImageInfo imageInfo = Image.Identify(memoryStream);
+
+                Assert.Null(imageInfo);
+            }
+        }
+
+        [Fact]
+        [Obsolete]
+        public void IdentifyReturnsNullWithInvalidStream_Obsolete()
         {
             var invalid = new byte[10];
 

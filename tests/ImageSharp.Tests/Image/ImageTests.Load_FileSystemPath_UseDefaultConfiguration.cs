@@ -86,6 +86,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            [Obsolete]
             public void Path_OutFormat_Specific()
             {
                 using var img = Image.Load<Rgba32>(this.Path, out IImageFormat format);
@@ -94,11 +95,28 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void Path_Format_Specific()
+            {
+                using var img = Image.Load<Rgba32>(this.Path);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(img.Metadata.OrigionalImageFormat);
+            }
+
+            [Fact]
+            [Obsolete]
             public void Path_OutFormat_Agnostic()
             {
                 using var img = Image.Load(this.Path, out IImageFormat format);
                 VerifyDecodedImage(img);
                 Assert.IsType<BmpFormat>(format);
+            }
+
+            [Fact]
+            public void Path_Format_Agnostic()
+            {
+                using var img = Image.Load(this.Path);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(img.Metadata.OrigionalImageFormat);
             }
 
             [Fact]

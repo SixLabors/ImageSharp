@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -23,10 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 image.SaveAsTga(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -40,10 +37,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 await image.SaveAsTgaAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -57,10 +52,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 image.SaveAsTga(file, new TgaEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -74,10 +67,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 await image.SaveAsTgaAsync(file, new TgaEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -92,10 +83,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -110,10 +99,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -128,10 +115,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -146,10 +131,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/tga", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
     }
 }

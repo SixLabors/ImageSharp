@@ -54,12 +54,23 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            [Obsolete]
             public void Stream_OutFormat_Specific()
             {
                 using (var img = Image.Load<Rgba32>(this.Stream, out IImageFormat format))
                 {
                     VerifyDecodedImage(img);
                     Assert.IsType<BmpFormat>(format);
+                }
+            }
+
+            [Fact]
+            public void Stream_Format_Specific()
+            {
+                using (var img = Image.Load<Rgba32>(this.Stream))
+                {
+                    VerifyDecodedImage(img);
+                    Assert.IsType<BmpFormat>(img.Metadata.OrigionalImageFormat);
                 }
             }
 
@@ -82,6 +93,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            [Obsolete]
             public void Stream_OutFormat_Agnostic()
             {
                 using (var img = Image.Load(this.Stream, out IImageFormat format))
@@ -92,6 +104,17 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void Stream_Format_Agnostic()
+            {
+                using (var img = Image.Load(this.Stream))
+                {
+                    VerifyDecodedImage(img);
+                    Assert.IsType<BmpFormat>(img.Metadata.OrigionalImageFormat);
+                }
+            }
+
+            [Fact]
+            [Obsolete]
             public async Task Async_Stream_OutFormat_Agnostic()
             {
                 this.AllowSynchronousIO = false;
@@ -101,6 +124,15 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(formattedImage.Image);
                     Assert.IsType<BmpFormat>(formattedImage.Format);
                 }
+            }
+
+            [Fact]
+            public async Task Async_Stream_Format_Agnostic()
+            {
+                this.AllowSynchronousIO = false;
+                using var formattedImage = await Image.LoadAsync(this.Stream);
+                VerifyDecodedImage(formattedImage);
+                Assert.IsType<BmpFormat>(formattedImage.Metadata.OrigionalImageFormat);
             }
 
             [Fact]
@@ -124,6 +156,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            [Obsolete]
             public async Task Async_Stream_OutFormat_Specific()
             {
                 this.AllowSynchronousIO = false;
@@ -133,6 +166,15 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(formattedImage.Image);
                     Assert.IsType<BmpFormat>(formattedImage.Format);
                 }
+            }
+
+            [Fact]
+            public async Task Async_Stream_Format_Specific()
+            {
+                this.AllowSynchronousIO = false;
+                using var formattedImage = await Image.LoadAsync<Rgba32>(this.Stream);
+                VerifyDecodedImage(formattedImage);
+                Assert.IsType<BmpFormat>(formattedImage.Metadata.OrigionalImageFormat);
             }
 
             [Fact]

@@ -78,6 +78,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
+            [Obsolete]
             public void Configuration_Bytes_OutFormat_Specific(bool useSpan)
             {
                 IImageFormat format;
@@ -94,6 +95,22 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
+            public void Configuration_Bytes_Format_Specific(bool useSpan)
+            {
+                var img = useSpan ?
+                              Image.Load<Bgr24>(this.TopLevelConfiguration, this.ByteSpan) :
+                              Image.Load<Bgr24>(this.TopLevelConfiguration, this.ByteArray);
+
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.OrigionalImageFormat);
+
+                this.TestFormat.VerifySpecificDecodeCall<Bgr24>(this.Marker, this.TopLevelConfiguration);
+            }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            [Obsolete]
             public void Configuration_Bytes_OutFormat_Agnostic(bool useSpan)
             {
                 IImageFormat format;
@@ -103,6 +120,21 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
+
+                this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
+            }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void Configuration_Bytes_Format_Agnostic(bool useSpan)
+            {
+                var img = useSpan ?
+                              Image.Load(this.TopLevelConfiguration, this.ByteSpan) :
+                              Image.Load(this.TopLevelConfiguration, this.ByteArray);
+
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.OrigionalImageFormat);
 
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
             }

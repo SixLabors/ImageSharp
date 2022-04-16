@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -23,10 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 image.SaveAsGif(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -40,10 +37,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 await image.SaveAsGifAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -57,10 +52,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 image.SaveAsGif(file, new GifEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -74,10 +67,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 await image.SaveAsGifAsync(file, new GifEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -92,10 +83,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -109,11 +98,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
 
             memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -127,11 +113,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
 
             memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -145,11 +128,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
 
             memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/gif", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/gif", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
     }
 }

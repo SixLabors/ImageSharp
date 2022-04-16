@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
@@ -79,6 +80,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            [Obsolete]
             public void Configuration_Stream_OutFormat_Specific()
             {
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.DataStream, out IImageFormat format);
@@ -90,12 +92,35 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void Configuration_Stream_Format_Specific()
+            {
+                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.DataStream);
+
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.OrigionalImageFormat);
+
+                this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
+            }
+
+            [Fact]
+            [Obsolete]
             public void Configuration_Stream_OutFormat_Agnostic()
             {
                 var img = Image.Load(this.TopLevelConfiguration, this.DataStream, out IImageFormat format);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
+
+                this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
+            }
+
+            [Fact]
+            public void Configuration_Stream_Format_Agnostic()
+            {
+                var img = Image.Load(this.TopLevelConfiguration, this.DataStream);
+
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.OrigionalImageFormat);
 
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
             }

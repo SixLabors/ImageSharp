@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Throws<UnknownImageFormatException>(() =>
                 {
-                    using (Image.Load(Configuration.Default, this.Stream, out IImageFormat format))
+                    using (Image.Load(Configuration.Default, this.Stream))
                     {
                     }
                 });
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Throws<UnknownImageFormatException>(() =>
                 {
-                    using (Image.Load<Rgba32>(Configuration.Default, this.Stream, out IImageFormat format))
+                    using (Image.Load<Rgba32>(Configuration.Default, this.Stream))
                     {
                     }
                 });

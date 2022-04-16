@@ -27,10 +27,8 @@ namespace SixLabors.ImageSharp.Tests
                     image.Save(file);
                 }
 
-                using (Image.Load(file, out IImageFormat mime))
-                {
-                    Assert.Equal("image/png", mime.DefaultMimeType);
-                }
+                using var img = Image.Load(file);
+                Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
             }
 
             [Fact]
@@ -60,10 +58,8 @@ namespace SixLabors.ImageSharp.Tests
                     image.Save(file, new PngEncoder());
                 }
 
-                using (Image.Load(file, out IImageFormat mime))
-                {
-                    Assert.Equal("image/png", mime.DefaultMimeType);
-                }
+                using var img = Image.Load(file);
+                Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
             }
 
             [Fact]

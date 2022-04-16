@@ -24,10 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.SaveAsJpeg(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -41,10 +39,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 await image.SaveAsJpegAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -58,10 +54,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.SaveAsJpeg(file, new JpegEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -75,10 +69,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 await image.SaveAsJpegAsync(file, new JpegEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -93,10 +85,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -111,10 +101,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -129,10 +117,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -147,10 +133,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/jpeg", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/jpeg", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
     }
 }

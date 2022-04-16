@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -24,10 +23,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 image.SaveAsPng(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -41,10 +38,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 await image.SaveAsPngAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -58,10 +53,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 image.SaveAsPng(file, new PngEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -75,10 +68,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 await image.SaveAsPngAsync(file, new PngEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -93,10 +84,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -111,10 +100,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -129,10 +116,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -147,10 +132,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/png", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
     }
 }

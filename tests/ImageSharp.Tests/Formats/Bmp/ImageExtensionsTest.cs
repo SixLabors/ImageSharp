@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -23,10 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 image.SaveAsBmp(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -40,10 +37,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 await image.SaveAsBmpAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -57,10 +52,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 image.SaveAsBmp(file, new BmpEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -74,10 +67,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 await image.SaveAsBmpAsync(file, new BmpEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -92,10 +83,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -109,11 +98,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
 
             memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -127,11 +113,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
 
             memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -145,11 +128,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
 
             memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/bmp", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/bmp", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
     }
 }

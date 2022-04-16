@@ -70,6 +70,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
+            [Obsolete]
             public void Bytes_OutFormat_Specific(bool useSpan)
             {
                 IImageFormat format;
@@ -83,6 +84,19 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
+            public void Bytes_Format_Specific(bool useSpan)
+            {
+                using (var img = useSpan ? Image.Load<Rgba32>(ByteSpan) : Image.Load<Rgba32>(ByteArray))
+                {
+                    VerifyDecodedImage(img);
+                    Assert.IsType<BmpFormat>(img.Metadata.OrigionalImageFormat);
+                }
+            }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            [Obsolete]
             public void Bytes_OutFormat_Agnostic(bool useSpan)
             {
                 IImageFormat format;
@@ -90,6 +104,18 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     VerifyDecodedImage(img);
                     Assert.IsType<BmpFormat>(format);
+                }
+            }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void Bytes_Out_Agnostic(bool useSpan)
+            {
+                using (var img = useSpan ? Image.Load(ByteSpan) : Image.Load(ByteArray))
+                {
+                    VerifyDecodedImage(img);
+                    Assert.IsType<BmpFormat>(img.Metadata.OrigionalImageFormat);
                 }
             }
         }

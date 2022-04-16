@@ -69,6 +69,8 @@ namespace SixLabors.ImageSharp.Metadata
             this.IccProfile = other.IccProfile?.DeepClone();
             this.IptcProfile = other.IptcProfile?.DeepClone();
             this.XmpProfile = other.XmpProfile?.DeepClone();
+
+            this.OrigionalImageFormat = other.OrigionalImageFormat;
         }
 
         /// <summary>
@@ -153,6 +155,11 @@ namespace SixLabors.ImageSharp.Metadata
         /// Gets or sets the IPTC profile.
         /// </summary>
         public IptcProfile IptcProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the origional format the image was decode from.
+        /// </summary>
+        public IImageFormat OrigionalImageFormat { get; set; }
 
         /// <summary>
         /// Gets the metadata value associated with the specified key.

@@ -23,10 +23,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
                 image.SaveAsPbm(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -40,10 +38,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
                 await image.SaveAsPbmAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -57,10 +53,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
                 image.SaveAsPbm(file, new PbmEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -74,10 +68,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
                 await image.SaveAsPbmAsync(file, new PbmEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(file);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -92,10 +84,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -110,10 +100,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -128,10 +116,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
 
         [Fact]
@@ -146,10 +132,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/x-portable-pixmap", mime.DefaultMimeType);
-            }
+            using var img = Image.Load(memoryStream);
+            Assert.Equal("image/x-portable-pixmap", img.Metadata.OrigionalImageFormat.DefaultMimeType);
         }
     }
 }

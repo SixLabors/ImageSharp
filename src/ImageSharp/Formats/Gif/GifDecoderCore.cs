@@ -221,7 +221,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         private void ReadGraphicalControlExtension()
         {
-            this.stream.Read(this.buffer, 0, 6);
+            int bytesRead = this.stream.Read(this.buffer, 0, 6);
+            if (bytesRead != 6)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the graphic control extension");
+            }
 
             this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer);
         }
@@ -231,7 +235,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         private void ReadImageDescriptor()
         {
-            this.stream.Read(this.buffer, 0, 9);
+            int bytesRead = this.stream.Read(this.buffer, 0, 9);
+            if (bytesRead != 9)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the image descriptor");
+            }
 
             this.imageDescriptor = GifImageDescriptor.Parse(this.buffer);
             if (this.imageDescriptor.Height == 0 || this.imageDescriptor.Width == 0)
@@ -245,7 +253,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         private void ReadLogicalScreenDescriptor()
         {
-            this.stream.Read(this.buffer, 0, 7);
+            int bytesRead = this.stream.Read(this.buffer, 0, 7);
+            if (bytesRead != 7)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the logical screen descriptor");
+            }
 
             this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
         }

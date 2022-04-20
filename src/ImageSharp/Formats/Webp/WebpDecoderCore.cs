@@ -199,7 +199,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
             uint fileSize = this.ReadChunkSize();
 
             // The first byte contains information about the image features used.
-            byte imageFeatures = (byte)this.currentStream.ReadByte();
+            int imageFeatures = this.currentStream.ReadByte();
+            if (imageFeatures == -1)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8X header doe not contain enough data");
+            }
 
             // The first two bit of it are reserved and should be 0.
             if (imageFeatures >> 6 != 0)
@@ -223,19 +227,34 @@ namespace SixLabors.ImageSharp.Formats.Webp
             features.Animation = (imageFeatures & (1 << 1)) != 0;
 
             // 3 reserved bytes should follow which are supposed to be zero.
-            this.currentStream.Read(this.buffer, 0, 3);
+            int bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8X header does not contain enough data");
+            }
+
             if (this.buffer[0] != 0 || this.buffer[1] != 0 || this.buffer[2] != 0)
             {
                 WebpThrowHelper.ThrowImageFormatException("reserved bytes should be zero");
             }
 
             // 3 bytes for the width.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8 header does not contain enough data to read the width");
+            }
+
             this.buffer[3] = 0;
             uint width = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
             // 3 bytes for the height.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8 header does not contain enough data to read the height");
+            }
+
             this.buffer[3] = 0;
             uint height = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
@@ -281,7 +300,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.webpMetadata.FileFormat = WebpFileFormatType.Lossy;
 
             // VP8 data size (not including this 4 bytes).
-            this.currentStream.Read(this.buffer, 0, 4);
+            int bytesRead = this.currentStream.Read(this.buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 data size");
+            }
+
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
             // remaining counts the available image data payload.
@@ -293,7 +317,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
             // - A 3-bit version number.
             // - A 1-bit show_frame flag.
             // - A 19-bit field containing the size of the first data partition in bytes.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 frame tag");
+            }
+
             uint frameTag = (uint)(this.buffer[0] | (this.buffer[1] << 8) | (this.buffer[2] << 16));
             remaining -= 3;
             bool isNoKeyFrame = (frameTag & 0x1) == 1;
@@ -321,13 +350,23 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
 
             // Check for VP8 magic bytes.
-            this.currentStream.Read(this.buffer, 0, 3);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
+            }
+
             if (!this.buffer.AsSpan(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
             {
                 WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
             }
 
-            this.currentStream.Read(this.buffer, 0, 4);
+            bytesRead = this.currentStream.Read(this.buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("VP8 header does not contain enough data to read the image width and height");
+            }
+
             uint tmp = (uint)BinaryPrimitives.ReadInt16LittleEndian(this.buffer);
             uint width = tmp & 0x3fff;
             sbyte xScale = (sbyte)(tmp >> 6);
@@ -438,54 +477,15 @@ namespace SixLabors.ImageSharp.Formats.Webp
             switch (chunkType)
             {
                 case WebpChunkType.Iccp:
-                    uint iccpChunkSize = this.ReadChunkSize();
-                    if (this.IgnoreMetadata)
-                    {
-                        this.currentStream.Skip((int)iccpChunkSize);
-                    }
-                    else
-                    {
-                        byte[] iccpData = new byte[iccpChunkSize];
-                        this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
-                        var profile = new IccProfile(iccpData);
-                        if (profile.CheckIsValid())
-                        {
-                            this.Metadata.IccProfile = profile;
-                        }
-                    }
-
+                    this.ReadIccProfile();
                     break;
 
                 case WebpChunkType.Exif:
-                    uint exifChunkSize = this.ReadChunkSize();
-                    if (this.IgnoreMetadata)
-                    {
-                        this.currentStream.Skip((int)exifChunkSize);
-                    }
-                    else
-                    {
-                        byte[] exifData = new byte[exifChunkSize];
-                        this.currentStream.Read(exifData, 0, (int)exifChunkSize);
-                        var profile = new ExifProfile(exifData);
-                        this.Metadata.ExifProfile = profile;
-                    }
-
+                    this.ReadExifProfile();
                     break;
 
                 case WebpChunkType.Xmp:
-                    uint xmpChunkSize = this.ReadChunkSize();
-                    if (this.IgnoreMetadata)
-                    {
-                        this.currentStream.Skip((int)xmpChunkSize);
-                    }
-                    else
-                    {
-                        byte[] xmpData = new byte[xmpChunkSize];
-                        this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
-                        var profile = new XmpProfile(xmpData);
-                        this.Metadata.XmpProfile = profile;
-                    }
-
+                    this.ReadXmpProfile();
                     break;
 
                 case WebpChunkType.Animation:
@@ -497,7 +497,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
                     int alphaDataSize = (int)(alphaChunkSize - 1);
                     features.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
-                    this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
+                    int bytesRead = this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
+                    if (bytesRead != alphaDataSize)
+                    {
+                        WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the alpha chunk");
+                    }
+
                     break;
                 default:
                     WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
@@ -523,18 +528,96 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 // Read chunk header.
                 WebpChunkType chunkType = this.ReadChunkType();
-                uint chunkLength = this.ReadChunkSize();
-
                 if (chunkType == WebpChunkType.Exif && this.Metadata.ExifProfile == null)
                 {
-                    byte[] exifData = new byte[chunkLength];
-                    this.currentStream.Read(exifData, 0, (int)chunkLength);
-                    this.Metadata.ExifProfile = new ExifProfile(exifData);
+                    this.ReadExifProfile();
+                }
+                else if (chunkType == WebpChunkType.Xmp && this.Metadata.XmpProfile == null)
+                {
+                    this.ReadXmpProfile();
                 }
                 else
                 {
-                    // Skip XMP chunk data or any duplicate EXIF chunk.
+                    // Skip duplicate XMP or EXIF chunk.
+                    uint chunkLength = this.ReadChunkSize();
                     this.currentStream.Skip((int)chunkLength);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads the EXIF profile from the stream.
+        /// </summary>
+        private void ReadExifProfile()
+        {
+            uint exifChunkSize = this.ReadChunkSize();
+            if (this.IgnoreMetadata)
+            {
+                this.currentStream.Skip((int)exifChunkSize);
+            }
+            else
+            {
+                byte[] exifData = new byte[exifChunkSize];
+                int bytesRead = this.currentStream.Read(exifData, 0, (int)exifChunkSize);
+                if (bytesRead != exifChunkSize)
+                {
+                    // Ignore invalid chunk.
+                    return;
+                }
+
+                var profile = new ExifProfile(exifData);
+                this.Metadata.ExifProfile = profile;
+            }
+        }
+
+        /// <summary>
+        /// Reads the XMP profile the stream.
+        /// </summary>
+        private void ReadXmpProfile()
+        {
+            uint xmpChunkSize = this.ReadChunkSize();
+            if (this.IgnoreMetadata)
+            {
+                this.currentStream.Skip((int)xmpChunkSize);
+            }
+            else
+            {
+                byte[] xmpData = new byte[xmpChunkSize];
+                int bytesRead = this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
+                if (bytesRead != xmpChunkSize)
+                {
+                    // Ignore invalid chunk.
+                    return;
+                }
+
+                var profile = new XmpProfile(xmpData);
+                this.Metadata.XmpProfile = profile;
+            }
+        }
+
+        /// <summary>
+        /// Reads the ICCP chunk from the stream.
+        /// </summary>
+        private void ReadIccProfile()
+        {
+            uint iccpChunkSize = this.ReadChunkSize();
+            if (this.IgnoreMetadata)
+            {
+                this.currentStream.Skip((int)iccpChunkSize);
+            }
+            else
+            {
+                byte[] iccpData = new byte[iccpChunkSize];
+                int bytesRead = this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                if (bytesRead != iccpChunkSize)
+                {
+                    WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
+                }
+
+                var profile = new IccProfile(iccpData);
+                if (profile.CheckIsValid())
+                {
+                    this.Metadata.IccProfile = profile;
                 }
             }
         }

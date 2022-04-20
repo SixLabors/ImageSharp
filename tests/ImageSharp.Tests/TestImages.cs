@@ -637,6 +637,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public const string Earth = "Webp/earth_lossy.webp";
                 public const string WithExif = "Webp/exif_lossy.webp";
+                public const string WithExifNotEnoughData = "Webp/exif_lossy_not_enough_data.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
                 public const string WithXmp = "Webp/xmp_lossy.webp";
                 public const string BikeSmall = "Webp/bike_lossless_small.webp";

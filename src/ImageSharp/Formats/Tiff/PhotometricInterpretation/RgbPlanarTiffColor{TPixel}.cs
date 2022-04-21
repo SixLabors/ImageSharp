@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     float g = gBitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                     float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
-                    color.FromVector4(new Vector4(r, g, b, 1.0f));
+                    color.FromScaledVector4(new Vector4(r, g, b, 1.0f));
                     pixelRow[x] = color;
                 }
 

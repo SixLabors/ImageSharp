@@ -65,7 +65,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         jpegDecoder.ParseStream(stream, scanDecoderGray, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        CopyImageBytesToBuffer(buffer, spectralConverterGray.GetPixelBuffer(CancellationToken.None));
+                        using var decompressedBuffer = spectralConverterGray.GetPixelBuffer(CancellationToken.None);
+                        CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }
 
@@ -81,7 +82,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        CopyImageBytesToBuffer(buffer, spectralConverter.GetPixelBuffer(CancellationToken.None));
+                        using var decompressedBuffer = spectralConverter.GetPixelBuffer(CancellationToken.None);
+                        CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }
 

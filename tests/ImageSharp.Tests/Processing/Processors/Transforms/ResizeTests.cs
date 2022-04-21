@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             };
 
         private static readonly ImageComparer ValidatorComparer =
-            ImageComparer.TolerantPercentage(TestEnvironment.IsOSX && TestEnvironment.RunsOnCI ? 0.26F : 0.07F);
+            ImageComparer.TolerantPercentage(TestEnvironment.IsMacOS && TestEnvironment.RunsOnCI ? 0.26F : 0.07F);
 
         [Fact]
         public void Resize_PixelAgnostic()

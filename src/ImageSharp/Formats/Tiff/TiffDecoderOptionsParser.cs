@@ -39,10 +39,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
 
                 var extraSamplesType = (TiffExtraSampleType)extraSamples[0];
-                options.ExtraSamples = extraSamplesType;
-                if (extraSamplesType is not TiffExtraSampleType.UnassociatedAlphaData)
+                options.ExtraSamplesType = extraSamplesType;
+                if (extraSamplesType is not (TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData))
                 {
-                    TiffThrowHelper.ThrowNotSupported("Decoding Tiff images with ExtraSamples is only supported with UnassociatedAlphaData.");
+                    TiffThrowHelper.ThrowNotSupported("Decoding Tiff images with ExtraSamples is not supported with UnspecifiedData.");
                 }
             }
 

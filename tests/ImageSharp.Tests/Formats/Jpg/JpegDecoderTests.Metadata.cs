@@ -179,11 +179,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo imageInfo = useIdentify
-                ? ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream, default)
-                : decoder.Decode<Rgba32>(Configuration.Default, stream, default);
-
-                test(imageInfo);
+                if (useIdentify)
+                {
+                    IImageInfo imageInfo = ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream, default);
+                    test(imageInfo);
+                }
+                else
+                {
+                    using var img = decoder.Decode<Rgba32>(Configuration.Default, stream, default);
+                    test(img);
+                }
             }
         }
 

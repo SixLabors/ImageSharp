@@ -27,6 +27,7 @@
     <InternalsVisibleTo Include="ImageSharp.Benchmarks" Key="$(SixLaborsPublicKey)" />
     <InternalsVisibleTo Include="ImageSharp.Tests.ProfilingSandbox" Key="$(SixLaborsPublicKey)" />
     <InternalsVisibleTo Include="SixLabors.ImageSharp.Tests" Key="$(SixLaborsPublicKey)" />
+    <InternalsVisibleTo Include="SixLabors.ImageSharp.Drawing.Tests" Key="$(SixLaborsPublicKey)" />
   </ItemGroup>
 
 </Project>

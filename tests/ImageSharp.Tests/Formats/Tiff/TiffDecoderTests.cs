@@ -14,6 +14,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     [Trait("Format", "Tiff")]
+    [ValidateDisposedMemoryAllocations]
     public class TiffDecoderTests : TiffDecoderBaseTester
     {
         public static readonly string[] MultiframeTestImages = Multiframes;

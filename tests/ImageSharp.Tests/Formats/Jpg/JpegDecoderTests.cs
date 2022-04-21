@@ -22,6 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
     [Trait("Format", "Jpg")]
+    [ValidateDisposedMemoryAllocations]
     public partial class JpegDecoderTests
     {
         private static MagickReferenceDecoder ReferenceDecoder => new();

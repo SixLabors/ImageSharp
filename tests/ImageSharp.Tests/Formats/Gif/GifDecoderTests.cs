@@ -18,6 +18,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
     [Trait("Format", "Gif")]
+    [ValidateDisposedMemoryAllocations]
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;

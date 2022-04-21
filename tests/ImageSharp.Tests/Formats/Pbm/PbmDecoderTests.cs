@@ -11,6 +11,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 {
     [Trait("Format", "Pbm")]
+    [ValidateDisposedMemoryAllocations]
     public class PbmDecoderTests
     {
         [Theory]

@@ -271,6 +271,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string InvalidIptcTag = "Jpg/issues/Issue1942InvalidIptcTag.jpg";
                 public const string Issue2057App1Parsing = "Jpg/issues/Issue2057-App1Parsing.jpg";
                 public const string ExifNullArrayTag = "Jpg/issues/issue-2056-exif-null-array.jpg";
+                public const string ValidExifArgumentNullExceptionOnEncode = "Jpg/issues/Issue2087-exif-null-reference-on-encode.jpg";
 
                 public static class Fuzz
                 {
@@ -299,6 +300,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string AccessViolationException922 = "Jpg/issues/fuzz/Issue922-AccessViolationException.jpg";
                     public const string IndexOutOfRangeException1693A = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-A.jpg";
                     public const string IndexOutOfRangeException1693B = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-B.jpg";
+                    public const string NullReferenceException2085 = "Jpg/issues/fuzz/Issue2085-NullReferenceException.jpg";
                 }
             }
 
@@ -642,6 +644,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public const string Earth = "Webp/earth_lossy.webp";
                 public const string WithExif = "Webp/exif_lossy.webp";
+                public const string WithExifNotEnoughData = "Webp/exif_lossy_not_enough_data.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
                 public const string WithXmp = "Webp/xmp_lossy.webp";
                 public const string BikeSmall = "Webp/bike_lossless_small.webp";

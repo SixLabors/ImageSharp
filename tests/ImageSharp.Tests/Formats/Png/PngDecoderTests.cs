@@ -19,6 +19,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     [Trait("Format", "Png")]
+    [ValidateDisposedMemoryAllocations]
     public partial class PngDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;

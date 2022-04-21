@@ -122,11 +122,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Image<TPixel> image = null;
             try
             {
                 int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                var image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+                image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -193,7 +194,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
             catch (IndexOutOfRangeException e)
             {
+                image?.Dispose();
                 throw new ImageFormatException("Bitmap does not have a valid format.", e);
+            }
+            catch
+            {
+                image?.Dispose();
+                throw;
             }
         }
 

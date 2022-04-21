@@ -7,6 +7,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+#if NET5_0_OR_GREATER
+using System.Runtime.Intrinsics.Arm;
+#endif
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -34,6 +37,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             {
                 DecodeSse2(scanline);
             }
+#if NET5_0_OR_GREATER
+            else if (AdvSimd.IsSupported && bytesPerPixel is 4)
+            {
+                DecodeArm(scanline);
+            }
+#endif
             else
 #endif
             {
@@ -64,6 +73,32 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 offset += 4;
             }
         }
+
+#if NET5_0_OR_GREATER
+        public static void DecodeArm(Span<byte> scanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+
+            Vector64<byte> d = Vector64<byte>.Zero;
+
+            int rb = scanline.Length;
+            int offset = 1;
+            const int bytesPerBatch = 4;
+            while (rb >= bytesPerBatch)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector64<byte> a = d;
+                d = Vector64.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+
+                d = AdvSimd.Add(d, a);
+
+                Unsafe.As<byte, int>(ref scanRef) = d.AsInt32().ToScalar();
+
+                rb -= bytesPerBatch;
+                offset += bytesPerBatch;
+            }
+        }
+#endif
 #endif
 
         private static void DecodeScalar(Span<byte> scanline, int bytesPerPixel)

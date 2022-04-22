@@ -55,6 +55,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                 HwIntrinsics.AllowAll);
         }
 
+#if !NET7_0_OR_GREATER
+        // COMPlus_EnableSIMD isn't thing anymore.
+        // https://github.com/dotnet/runtime/issues/66206
         [Fact]
         public void CanLimitHwIntrinsicSIMDFeatures()
         {
@@ -62,6 +65,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                 () => Assert.False(Vector.IsHardwareAccelerated),
                 HwIntrinsics.DisableSIMD);
         }
+#endif
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
@@ -101,9 +105,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
                 switch ((HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic))
                 {
+#if !NET7_0_OR_GREATER
+                    // COMPlus_EnableSIMD isn't thing anymore.
+                    // https://github.com/dotnet/runtime/issues/66206
                     case HwIntrinsics.DisableSIMD:
                         Assert.False(Vector.IsHardwareAccelerated);
                         break;
+#endif
 #if SUPPORTS_RUNTIME_INTRINSICS
                     case HwIntrinsics.DisableHWIntrinsic:
                         Assert.False(Sse.IsSupported);
@@ -206,9 +214,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
                 switch ((HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic))
                 {
+#if !NET7_0_OR_GREATER
+                    // COMPlus_EnableSIMD isn't thing anymore.
+                    // https://github.com/dotnet/runtime/issues/66206
                     case HwIntrinsics.DisableSIMD:
                         Assert.False(Vector.IsHardwareAccelerated, nameof(Vector.IsHardwareAccelerated));
                         break;
+#endif
 #if SUPPORTS_RUNTIME_INTRINSICS
                     case HwIntrinsics.DisableHWIntrinsic:
                         Assert.False(Sse.IsSupported);

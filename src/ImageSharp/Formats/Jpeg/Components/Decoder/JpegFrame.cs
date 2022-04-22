@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets or sets the frame component collection.
         /// </summary>
-        public IJpegComponent[] Components { get; set; }
+        public JpegComponent[] Components { get; set; }
 
         /// <summary>
         /// Gets or sets the number of MCU's per line.

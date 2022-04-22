@@ -148,10 +148,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets the components.
         /// </summary>
-        public IJpegComponent[] Components => this.Frame.Components;
+        public JpegComponent[] Components => this.Frame.Components;
 
         /// <inheritdoc/>
-        IJpegComponent[] IRawJpegData.Components => this.Components;
+        JpegComponent[] IRawJpegData.Components => this.Components;
 
         /// <inheritdoc/>
         public Block8x8F[] QuantizationTables { get; private set; }
@@ -1244,7 +1244,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i) :
                             new ArithmeticDecodingComponent(this.Configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i);
 
-                this.Frame.Components[i] = component;
+                this.Frame.Components[i] = (JpegComponent)component;
                 this.Frame.ComponentIds[i] = componentId;
 
                 index += componentBytes;

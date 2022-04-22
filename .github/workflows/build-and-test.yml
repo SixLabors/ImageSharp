@@ -91,6 +91,7 @@ jobs:
       - name: DotNet Setup
         uses: actions/setup-dotnet@v1
         with:
+          include-prerelease: true
           dotnet-version: |
             7.0.x
             6.0.x

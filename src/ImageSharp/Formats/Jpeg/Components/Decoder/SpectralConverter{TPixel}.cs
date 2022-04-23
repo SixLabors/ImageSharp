@@ -28,19 +28,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Supported scaling factors for DCT jpeg scaling.
         /// </summary>
-        private static readonly int[] ScalingFactors = new int[]
+        private static readonly int[] ScaledBlockSizes = new int[]
         {
-            // 8 => 8, no scaling
-            8,
-
-            // 8 => 4, 1/2 of the original size
-            4,
+            // 8 => 1, 1/8 of the original size
+            1,
 
             // 8 => 2, 1/4 of the original size
             2,
 
-            // 8 => 1, 1/8 of the original size
-            1,
+            // 8 => 4, 1/2 of the original size
+            4,
+
+            // 8 => 8, no scaling
+            8,
         };
 
         /// <summary>
@@ -132,45 +132,73 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Calculates resulting image size and jpeg block scaling.
+        /// Calculates resulting image size.
         /// </summary>
-        /// <param name="nativeSize">Native size of the image.</param>
-        /// <param name="blockPixelSize">Resulting jpeg block pixel size.</param>
+        /// <remarks>
+        /// If <paramref name="targetSize"/> is null, unchanged <paramref name="size"/> is returned.
+        /// </remarks>
+        /// <param name="size">Size of the image.</param>
+        /// <param name="targetSize">Target image size, can be null.</param>
+        /// <param name="outputBlockSize">Scaled spectral block size if IDCT scaling should be applied</param>
         /// <returns>Scaled jpeg image size.</returns>
-        private Size GetResultingImageSize(Size nativeSize, out int blockPixelSize)
+        // TODO: describe ALL outcomes of the built-in IDCT downscaling
+        public static Size GetResultingImageSize(Size size, Size? targetSize, out int outputBlockSize)
         {
-            if (this.targetSize == null)
-            {
-                blockPixelSize = 8;
-                return nativeSize;
-            }
-            else
-            {
-                const uint jpegBlockPixelSize = 8;
+            const int jpegBlockPixelSize = 8;
 
-                Size targetSize = this.targetSize.Value;
-                int outputWidth = nativeSize.Width;
-                int outputHeight = nativeSize.Height;
-                blockPixelSize = 1;
+            // must be at least 5% smaller than current IDCT scaled size
+            // to perform second pass resizing
+            // this is a highly experimental value
+            const float secondPassThresholdRatio = 0.95f;
 
-                for (int i = 1; i < ScalingFactors.Length; i++)
+            outputBlockSize = jpegBlockPixelSize;
+            if (targetSize != null)
+            {
+                Size tSize = targetSize.Value;
+
+                int widthInBlocks = (int)Numerics.DivideCeil((uint)size.Width, jpegBlockPixelSize);
+                int heightInBlocks = (int)Numerics.DivideCeil((uint)size.Height, jpegBlockPixelSize);
+
+                for (int i = 0; i < ScaledBlockSizes.Length; i++)
                 {
-                    int scale = ScalingFactors[i];
-                    int scaledw = (int)Numerics.DivideCeil((uint)(nativeSize.Width * scale), jpegBlockPixelSize);
-                    int scaledh = (int)Numerics.DivideCeil((uint)(nativeSize.Height * scale), jpegBlockPixelSize);
+                    int blockSize = ScaledBlockSizes[i];
+                    int scaledWidth = widthInBlocks * blockSize;
+                    int scaledHeight = heightInBlocks * blockSize;
 
-                    if (scaledw < targetSize.Width || scaledh < targetSize.Height)
+                    // skip to next IDCT scaling
+                    if (scaledWidth < tSize.Width || scaledHeight < tSize.Height)
                     {
-                        blockPixelSize = ScalingFactors[i - 1];
-                        break;
+                        // this if segment can be safely removed
+                        continue;
                     }
 
-                    outputWidth = scaledw;
-                    outputHeight = scaledh;
-                }
+                    // exact match
+                    if (scaledWidth == tSize.Width && scaledHeight == tSize.Height)
+                    {
+                        outputBlockSize = blockSize;
+                        return new Size(scaledWidth, scaledHeight);
+                    }
 
-                return new Size(outputWidth, outputHeight);
+                    // center cropping
+                    int widthDiff = Math.Abs(tSize.Width - scaledWidth);
+                    int heightDiff = Math.Abs(tSize.Height - scaledHeight);
+                    if (widthDiff < blockSize && heightDiff < blockSize)
+                    {
+                        throw new NotSupportedException($"Central cropping is not supported yet");
+                    }
+
+                    // small enough for second pass
+                    float secondPassWidthRatio = (float)tSize.Width / scaledWidth;
+                    float secondPassHeightRatio = (float)tSize.Height / scaledHeight;
+                    if (secondPassWidthRatio <= secondPassThresholdRatio && secondPassHeightRatio <= secondPassThresholdRatio)
+                    {
+                        outputBlockSize = blockSize;
+                        return new Size(scaledWidth, scaledHeight);
+                    }
+                }
             }
+
+            return size;
         }
 
         /// <summary>
@@ -233,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.colorConverter = converter;
 
             // Resulting image size
-            Size pixelSize = this.GetResultingImageSize(frame.PixelSize, out int blockPixelSize);
+            Size pixelSize = GetResultingImageSize(frame.PixelSize, this.targetSize, out int blockPixelSize);
 
             // iteration data
             int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);

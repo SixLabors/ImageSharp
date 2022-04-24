@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
     public class FeatureTestRunnerTests
     {
         public static TheoryData<HwIntrinsics, string[]> Intrinsics =>
-            new TheoryData<HwIntrinsics, string[]>
+            new()
             {
                 { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, new string[] { "EnableAES", "AllowAll" } },
-                { HwIntrinsics.DisableSIMD | HwIntrinsics.DisableHWIntrinsic, new string[] { "FeatureSIMD", "EnableHWIntrinsic" } },
+                { HwIntrinsics.DisableHWIntrinsic, new string[] { "EnableHWIntrinsic" } },
                 { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, new string[] { "EnableSSE42", "EnableAVX" } }
             };
 
@@ -53,14 +53,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 () => Assert.True(Vector.IsHardwareAccelerated),
                 HwIntrinsics.AllowAll);
-        }
-
-        [Fact]
-        public void CanLimitHwIntrinsicSIMDFeatures()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(
-                () => Assert.False(Vector.IsHardwareAccelerated),
-                HwIntrinsics.DisableSIMD);
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -101,9 +93,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
                 switch ((HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic))
                 {
-                    case HwIntrinsics.DisableSIMD:
-                        Assert.False(Vector.IsHardwareAccelerated);
-                        break;
 #if SUPPORTS_RUNTIME_INTRINSICS
                     case HwIntrinsics.DisableHWIntrinsic:
                         Assert.False(Sse.IsSupported);
@@ -206,9 +195,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
                 switch ((HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic))
                 {
-                    case HwIntrinsics.DisableSIMD:
-                        Assert.False(Vector.IsHardwareAccelerated, nameof(Vector.IsHardwareAccelerated));
-                        break;
 #if SUPPORTS_RUNTIME_INTRINSICS
                     case HwIntrinsics.DisableHWIntrinsic:
                         Assert.False(Sse.IsSupported);

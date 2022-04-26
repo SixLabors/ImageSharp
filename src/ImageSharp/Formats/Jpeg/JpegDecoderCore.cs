@@ -185,24 +185,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration);
-            return this.Decode(stream, spectralConverter, cancellationToken);
-        }
+            => this.Decode<TPixel>(stream, targetSize: null, cancellationToken);
+
+        /// <summary>
+        /// Decodes and downscales the image from the specified stream if possible.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">Stream.</param>
+        /// <param name="targetSize">Target size.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public Image<TPixel> DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => this.Decode<TPixel>(stream, targetSize, cancellationToken);
 
         // TODO: docs
-        public Image<TPixel> Experimental__DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
+        private Image<TPixel> Decode<TPixel>(BufferedReadStream stream, Size? targetSize, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, targetSize);
-            return this.Decode(stream, spectralConverter, cancellationToken);
-        }
-
-        // TODO: docs
-        private Image<TPixel> Decode<TPixel>(BufferedReadStream stream, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var scanDecoder = new HuffmanScanDecoder(stream, converter, cancellationToken);
+            var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
             this.ParseStream(stream, scanDecoder, cancellationToken);
             this.InitExifProfile();
@@ -213,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             return new Image<TPixel>(
                 this.Configuration,
-                converter.GetPixelBuffer(cancellationToken),
+                spectralConverter.GetPixelBuffer(cancellationToken),
                 this.Metadata);
         }
 

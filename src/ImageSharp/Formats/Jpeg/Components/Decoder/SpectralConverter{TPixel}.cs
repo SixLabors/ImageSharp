@@ -26,24 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
-        /// Supported scaling factors for DCT jpeg scaling.
-        /// </summary>
-        private static readonly int[] ScaledBlockSizes = new int[]
-        {
-            // 8 => 1, 1/8 of the original size
-            1,
-
-            // 8 => 2, 1/4 of the original size
-            2,
-
-            // 8 => 4, 1/2 of the original size
-            4,
-
-            // 8 => 8, no scaling
-            8,
-        };
-
-        /// <summary>
         /// <see cref="Configuration"/> instance associated with current
         /// decoding routine.
         /// </summary>
@@ -126,79 +108,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            var buffer = this.pixelBuffer;
+            Buffer2D<TPixel> buffer = this.pixelBuffer;
             this.pixelBuffer = null;
             return buffer;
-        }
-
-        /// <summary>
-        /// Calculates resulting image size.
-        /// </summary>
-        /// <remarks>
-        /// If <paramref name="targetSize"/> is null, unchanged <paramref name="size"/> is returned.
-        /// </remarks>
-        /// <param name="size">Size of the image.</param>
-        /// <param name="targetSize">Target image size, can be null.</param>
-        /// <param name="outputBlockSize">Scaled spectral block size if IDCT scaling should be applied</param>
-        /// <returns>Scaled jpeg image size.</returns>
-        // TODO: describe ALL outcomes of the built-in IDCT downscaling
-        public static Size GetResultingImageSize(Size size, Size? targetSize, out int outputBlockSize)
-        {
-            const int jpegBlockPixelSize = 8;
-
-            // must be at least 5% smaller than current IDCT scaled size
-            // to perform second pass resizing
-            // this is a highly experimental value
-            const float secondPassThresholdRatio = 0.95f;
-
-            outputBlockSize = jpegBlockPixelSize;
-            if (targetSize != null)
-            {
-                Size tSize = targetSize.Value;
-
-                int widthInBlocks = (int)Numerics.DivideCeil((uint)size.Width, jpegBlockPixelSize);
-                int heightInBlocks = (int)Numerics.DivideCeil((uint)size.Height, jpegBlockPixelSize);
-
-                for (int i = 0; i < ScaledBlockSizes.Length; i++)
-                {
-                    int blockSize = ScaledBlockSizes[i];
-                    int scaledWidth = widthInBlocks * blockSize;
-                    int scaledHeight = heightInBlocks * blockSize;
-
-                    // skip to next IDCT scaling
-                    if (scaledWidth < tSize.Width || scaledHeight < tSize.Height)
-                    {
-                        // this if segment can be safely removed
-                        continue;
-                    }
-
-                    // exact match
-                    if (scaledWidth == tSize.Width && scaledHeight == tSize.Height)
-                    {
-                        outputBlockSize = blockSize;
-                        return new Size(scaledWidth, scaledHeight);
-                    }
-
-                    // center cropping
-                    int widthDiff = Math.Abs(tSize.Width - scaledWidth);
-                    int heightDiff = Math.Abs(tSize.Height - scaledHeight);
-                    if (widthDiff < blockSize && heightDiff < blockSize)
-                    {
-                        throw new NotSupportedException($"Central cropping is not supported yet");
-                    }
-
-                    // small enough for second pass
-                    float secondPassWidthRatio = (float)tSize.Width / scaledWidth;
-                    float secondPassHeightRatio = (float)tSize.Height / scaledHeight;
-                    if (secondPassWidthRatio <= secondPassThresholdRatio && secondPassHeightRatio <= secondPassThresholdRatio)
-                    {
-                        outputBlockSize = blockSize;
-                        return new Size(scaledWidth, scaledHeight);
-                    }
-                }
-            }
-
-            return size;
         }
 
         /// <summary>
@@ -260,8 +172,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             JpegColorConverterBase converter = this.GetColorConverter(frame, jpegData);
             this.colorConverter = converter;
 
-            // Resulting image size
-            Size pixelSize = GetResultingImageSize(frame.PixelSize, this.targetSize, out int blockPixelSize);
+            // resulting image size
+            Size pixelSize = CalculateResultingImageSize(frame.PixelSize, this.targetSize, out int blockPixelSize);
 
             // iteration data
             int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);
@@ -277,46 +189,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
             // component processors from spectral to RGB
-            // TODO: refactor this mess
             int bufferWidth = majorBlockWidth * blockPixelSize;
             int batchSize = converter.ElementsPerBatch;
-            int batchRemainder = bufferWidth % batchSize;
-            int converterAlignedBufferWidth = bufferWidth + (batchRemainder != 0 ? batchSize - batchRemainder : 0);
-            var postProcessorBufferSize = new Size(converterAlignedBufferWidth, this.pixelRowsPerStep);
-            this.componentProcessors = new ComponentProcessor[frame.Components.Length];
-            switch (blockPixelSize)
-            {
-                case 8:
-                    for (int i = 0; i < this.componentProcessors.Length; i++)
-                    {
-                        this.componentProcessors[i] = new DirectComponentProcessor(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
-                    }
-
-                    break;
-                case 4:
-                    for (int i = 0; i < this.componentProcessors.Length; i++)
-                    {
-                        this.componentProcessors[i] = new DownScalingComponentProcessor2(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
-                    }
-
-                    break;
-                case 2:
-                    for (int i = 0; i < this.componentProcessors.Length; i++)
-                    {
-                        this.componentProcessors[i] = new DownScalingComponentProcessor4(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
-                    }
-
-                    break;
-                case 1:
-                    for (int i = 0; i < this.componentProcessors.Length; i++)
-                    {
-                        this.componentProcessors[i] = new DownScalingComponentProcessor8(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
-                    }
-
-                    break;
-                default:
-                    throw new Exception("This is a debug message which should NEVER be seen in release build");
-            }
+            int batchRemainder = bufferWidth & (batchSize - 1);
+            var postProcessorBufferSize = new Size(bufferWidth + (batchSize - batchRemainder), this.pixelRowsPerStep);
+            this.componentProcessors = this.CreateComponentProcessors(frame, jpegData, blockPixelSize, postProcessorBufferSize);
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel
             this.rgbBuffer = allocator.Allocate<byte>(pixelSize.Width * 3);
@@ -333,6 +210,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 cpp.ClearSpectralBuffers();
             }
+        }
+
+        protected ComponentProcessor[] CreateComponentProcessors(JpegFrame frame, IRawJpegData jpegData, int blockPixelSize, Size processorBufferSize)
+        {
+            MemoryAllocator allocator = this.configuration.MemoryAllocator;
+            var componentProcessors = new ComponentProcessor[frame.Components.Length];
+            for (int i = 0; i < componentProcessors.Length; i++)
+            {
+                componentProcessors[i] = blockPixelSize switch
+                {
+                    4 => new DownScalingComponentProcessor2(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                    2 => new DownScalingComponentProcessor4(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                    1 => new DownScalingComponentProcessor8(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                    _ => new DirectComponentProcessor(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                };
+            }
+
+            return componentProcessors;
         }
 
         /// <inheritdoc/>

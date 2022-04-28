@@ -15,6 +15,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     [Trait("Format", "Webp")]
+    [ValidateDisposedMemoryAllocations]
     public class WebpDecoderTests
     {
         private static WebpDecoder WebpDecoder => new();

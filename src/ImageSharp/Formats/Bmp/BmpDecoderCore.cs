@@ -122,11 +122,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Image<TPixel> image = null;
             try
             {
                 int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                var image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+                image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -193,7 +194,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
             catch (IndexOutOfRangeException e)
             {
+                image?.Dispose();
                 throw new ImageFormatException("Bitmap does not have a valid format.", e);
+            }
+            catch
+            {
+                image?.Dispose();
+                throw;
             }
         }
 
@@ -323,12 +330,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
                                         break;
                                     case RleSkippedPixelHandling.Transparent:
-                                        color.FromVector4(Vector4.Zero);
+                                        color.FromScaledVector4(Vector4.Zero);
                                         break;
 
                                     // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
                                     default:
-                                        color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+                                        color.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
                                         break;
                                 }
                             }
@@ -395,12 +402,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                                         break;
                                     case RleSkippedPixelHandling.Transparent:
-                                        color.FromVector4(Vector4.Zero);
+                                        color.FromScaledVector4(Vector4.Zero);
                                         break;
 
                                     // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
                                     default:
-                                        color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+                                        color.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
                                         break;
                                 }
                             }
@@ -1127,7 +1134,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             g * invMaxValueGreen,
                             b * invMaxValueBlue,
                             alpha);
-                        color.FromVector4(vector4);
+                        color.FromScaledVector4(vector4);
                     }
                     else
                     {

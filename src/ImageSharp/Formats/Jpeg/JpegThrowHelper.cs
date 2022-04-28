@@ -26,6 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowBadMarker(string marker, int length) => throw new InvalidImageContentException($"Marker {marker} has bad length {length}.");
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNotEnoughBytesForMarker(byte marker) => throw new InvalidImageContentException($"Input stream does not have enough bytes to parse declared contents of the {marker:X2} marker.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowBadQuantizationTableIndex(int index) => throw new InvalidImageContentException($"Bad Quantization Table index {index}.");
 
         [MethodImpl(InliningOptions.ColdPath)]

@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             sb.Append(Environment.NewLine);
 
-            // TODO: We should add OSX.
+            // TODO: We should add macOS.
             sb.AppendFormat("Test Environment OS : {0}", TestEnvironment.IsWindows ? "Windows" : "Linux");
             sb.Append(Environment.NewLine);
 

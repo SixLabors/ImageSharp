@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
+            [ValidateDisposedMemoryAllocations]
             public void FromPixels(bool useSpan)
             {
                 Rgba32[] data = { Color.Black, Color.White, Color.White, Color.Black, };

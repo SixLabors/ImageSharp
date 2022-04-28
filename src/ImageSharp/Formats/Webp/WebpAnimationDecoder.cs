@@ -248,16 +248,29 @@ namespace SixLabors.ImageSharp.Formats.Webp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decodedImage = new Image<TPixel>((int)frameData.Width, (int)frameData.Height);
-            Buffer2D<TPixel> pixelBufferDecoded = decodedImage.Frames.RootFrame.PixelBuffer;
-            if (webpInfo.IsLossless)
+
+            try
             {
-                var losslessDecoder = new WebpLosslessDecoder(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
-                losslessDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height);
+                Buffer2D<TPixel> pixelBufferDecoded = decodedImage.Frames.RootFrame.PixelBuffer;
+                if (webpInfo.IsLossless)
+                {
+                    var losslessDecoder = new WebpLosslessDecoder(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                    losslessDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height);
+                }
+                else
+                {
+                    var lossyDecoder = new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                    lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.AlphaData);
+                }
             }
-            else
+            catch
             {
-                var lossyDecoder = new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
-                lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.AlphaData);
+                decodedImage?.Dispose();
+                throw;
+            }
+            finally
+            {
+                webpInfo.Dispose();
             }
 
             return decodedImage;

@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(this.configuration);
                         var scanDecoderGray = new HuffmanScanDecoder(stream, spectralConverterGray, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
-                        jpegDecoder.ParseStream(stream, scanDecoderGray, CancellationToken.None);
+                        jpegDecoder.ParseStream(stream, spectralConverterGray, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
                         using var decompressedBuffer = spectralConverterGray.GetPixelBuffer(CancellationToken.None);
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                             new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
                         var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
-                        jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
+                        jpegDecoder.ParseStream(stream, spectralConverter, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
                         using var decompressedBuffer = spectralConverter.GetPixelBuffer(CancellationToken.None);

@@ -10,12 +10,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
 using SkiaSharp;
@@ -228,8 +226,9 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
         public async Task ImageSharpResizeAsync(string input)
         {
             using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
-            // Resize it to fit a 150x150 square
-            using var image = await ImageSharpImage.LoadAsync(input);
+
+            // Resize it to fit a 150x150 square.
+            using ImageSharpImage image = await ImageSharpImage.LoadAsync(input);
             this.LogImageProcessed(image.Width, image.Height);
 
             image.Mutate(i => i.Resize(new ResizeOptions

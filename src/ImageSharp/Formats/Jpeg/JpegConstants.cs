@@ -306,17 +306,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             public const int RegisterSize = 64;
 
             /// <summary>
-            /// The number of bits to fetch when filling the <see cref="HuffmanScanBuffer"/> buffer.
+            /// The number of bits to fetch when filling the <see cref="JpegBitReader"/> buffer.
             /// </summary>
             public const int FetchBits = 48;
 
             /// <summary>
-            /// The number of times to read the input stream when filling the <see cref="HuffmanScanBuffer"/> buffer.
+            /// The number of times to read the input stream when filling the <see cref="JpegBitReader"/> buffer.
             /// </summary>
             public const int FetchLoop = FetchBits / 8;
 
             /// <summary>
-            /// The minimum number of bits allowed before by the <see cref="HuffmanScanBuffer"/> before fetching.
+            /// The minimum number of bits allowed before by the <see cref="JpegBitReader"/> before fetching.
             /// </summary>
             public const int MinBits = RegisterSize - FetchBits;
 

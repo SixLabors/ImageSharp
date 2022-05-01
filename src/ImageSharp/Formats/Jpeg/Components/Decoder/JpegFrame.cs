@@ -6,14 +6,14 @@ using System;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Represent a single jpeg frame
+    /// Represent a single jpeg frame.
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
         public JpegFrame(JpegFileMarker sofMarker, byte precision, int width, int height, byte componentCount)
         {
-            this.Extended = sofMarker.Marker == JpegConstants.Markers.SOF1;
-            this.Progressive = sofMarker.Marker == JpegConstants.Markers.SOF2;
+            this.Extended = sofMarker.Marker is JpegConstants.Markers.SOF1 or JpegConstants.Markers.SOF9;
+            this.Progressive = sofMarker.Marker is JpegConstants.Markers.SOF2 or JpegConstants.Markers.SOF10;
 
             this.Precision = precision;
             this.MaxColorChannelValue = MathF.Pow(2, precision) - 1;
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the pixel size of the image.
         /// </summary>
-        public Size PixelSize => new Size(this.PixelWidth, this.PixelHeight);
+        public Size PixelSize => new(this.PixelWidth, this.PixelHeight);
 
         /// <summary>
         /// Gets the number of components within a frame.
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the mcu size of the image.
         /// </summary>
-        public Size McuSize => new Size(this.McusPerLine, this.McusPerColumn);
+        public Size McuSize => new(this.McusPerLine, this.McusPerColumn);
 
         /// <summary>
         /// Gets the color depth, in number of bits per pixel.
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                JpegComponent component = this.Components[i];
+                IJpegComponent component = this.Components[i];
                 component.Init(maxSubFactorH, maxSubFactorV);
             }
         }
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             bool fullScan = this.Progressive || this.MultiScan;
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                JpegComponent component = this.Components[i];
+                IJpegComponent component = this.Components[i];
                 component.AllocateSpectral(fullScan);
             }
         }

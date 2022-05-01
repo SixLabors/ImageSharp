@@ -67,7 +67,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                 lrs.leakFrequency = options.LeakFrequency;
                 lrs.gcFrequency = options.GcFrequency;
 
-
                 timer = Stopwatch.StartNew();
                 try
                 {

@@ -7,6 +7,9 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
+    /// <summary>
+    /// Processes component spectral data and converts it to color data in 4-to-1 scale.
+    /// </summary>
     internal sealed class DownScalingComponentProcessor4 : ComponentProcessor
     {
         private Block8x8F dequantizationTable;
@@ -88,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             for (int j = 0; j < horizontalScale; j++)
                             {
                                 // area[xx + j, yy + i] = value;
-                                Unsafe.Add(ref areaOrigin, baseIdx + j) = value;
+                                Unsafe.Add(ref areaOrigin, (nint)(uint)(baseIdx + j)) = value;
                             }
                         }
                     }

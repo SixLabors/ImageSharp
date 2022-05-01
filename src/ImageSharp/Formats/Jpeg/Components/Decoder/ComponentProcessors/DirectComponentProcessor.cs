@@ -6,6 +6,9 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
+    /// <summary>
+    /// Processes component spectral data and converts it to color data in 1-to-1 scale.
+    /// </summary>
     internal sealed class DirectComponentProcessor : ComponentProcessor
     {
         private Block8x8F dequantizationTable;

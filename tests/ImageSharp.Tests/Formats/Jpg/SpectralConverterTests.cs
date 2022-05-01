@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public class SpectralConverterTests
     {
+        // Test for null target size, i.e. when no scaling is needed
         [Theory]
         [InlineData(1, 1)]
         [InlineData(800, 400)]

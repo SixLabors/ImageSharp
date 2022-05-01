@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (horizontalScale == 1 && verticalScale == 1)
             {
-                Unsafe.Add(ref destRef, 0) = value;
+                destRef = value;
                 return;
             }
 

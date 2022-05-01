@@ -31,6 +31,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private readonly Configuration configuration;
 
+        private JpegFrame frame;
+
+        private IRawJpegData jpegData;
+
         /// <summary>
         /// Jpeg component converters from decompressed spectral to color data.
         /// </summary>
@@ -99,6 +103,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (!this.Converted)
             {
+                this.PrepareForDecoding();
+
                 int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.pixelRowsPerStep);
 
                 for (int step = 0; step < steps; step++)
@@ -166,18 +172,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <inheritdoc/>
         public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {
+            this.frame = frame;
+            this.jpegData = jpegData;
+        }
+
+        /// <inheritdoc/>
+        public override void PrepareForDecoding()
+        {
+            DebugGuard.IsTrue(this.colorConverter == null, "SpectralConverter.PrepareForDecoding() must be called once.");
+
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
 
             // color converter from RGB to TPixel
-            JpegColorConverterBase converter = this.GetColorConverter(frame, jpegData);
+            JpegColorConverterBase converter = this.GetColorConverter(this.frame, this.jpegData);
             this.colorConverter = converter;
 
             // resulting image size
-            Size pixelSize = CalculateResultingImageSize(frame.PixelSize, this.targetSize, out int blockPixelSize);
+            Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, out int blockPixelSize);
 
             // iteration data
-            int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);
-            int majorVerticalSamplingFactor = frame.Components.Max((component) => component.SamplingFactors.Height);
+            int majorBlockWidth = this.frame.Components.Max((component) => component.SizeInBlocks.Width);
+            int majorVerticalSamplingFactor = this.frame.Components.Max((component) => component.SamplingFactors.Height);
 
             this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelSize;
 
@@ -193,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int batchSize = converter.ElementsPerBatch;
             int batchRemainder = bufferWidth & (batchSize - 1);
             var postProcessorBufferSize = new Size(bufferWidth + (batchSize - batchRemainder), this.pixelRowsPerStep);
-            this.componentProcessors = this.CreateComponentProcessors(frame, jpegData, blockPixelSize, postProcessorBufferSize);
+            this.componentProcessors = this.CreateComponentProcessors(this.frame, this.jpegData, blockPixelSize, postProcessorBufferSize);
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel
             this.rgbBuffer = allocator.Allocate<byte>(pixelSize.Width * 3);

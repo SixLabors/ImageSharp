@@ -57,6 +57,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
             {
             }
+
+            public override void PrepareForDecoding()
+            {
+            }
         }
     }
 }

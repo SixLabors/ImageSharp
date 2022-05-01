@@ -35,11 +35,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Injects jpeg image decoding metadata.
         /// </summary>
         /// <remarks>
-        /// This is guaranteed to be called only once at SOF marker by <see cref="HuffmanScanDecoder"/>.
+        /// This should be called exactly once during SOF (Start Of Frame) marker.
         /// </remarks>
-        /// <param name="frame"><see cref="JpegFrame"/> instance containing decoder-specific parameters.</param>
-        /// <param name="jpegData"><see cref="IRawJpegData"/> instance containing decoder-specific parameters.</param>
+        /// <param name="frame"><see cref="JpegFrame"/>Instance containing decoder-specific parameters.</param>
+        /// <param name="jpegData"><see cref="IRawJpegData"/>Instance containing decoder-specific parameters.</param>
         public abstract void InjectFrameData(JpegFrame frame, IRawJpegData jpegData);
+
+        /// <summary>
+        /// Initializes this spectral decoder instance for decoding.
+        /// This should be called exactly once after all markers which can alter
+        /// spectral decoding parameters.
+        /// </summary>
+        public abstract void PrepareForDecoding();
 
         /// <summary>
         /// Converts single spectral jpeg stride to color stride in baseline

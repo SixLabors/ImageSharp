@@ -109,13 +109,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // The successive approximation low bit end.
         public int SuccessiveLow { get; set; }
 
-        /// <summary>
-        /// Decodes the entropy coded data.
-        /// </summary>
-        /// <param name="scanComponentCount">Component count in the current scan.</param>
-        /// <param name="frame">Frame containing decoding data about the frame.</param>
-        /// <param name="jpegData">Decoding data about the jpeg.</param>
-        public void ParseEntropyCodedData(int scanComponentCount, JpegFrame frame, IRawJpegData jpegData)
+        /// <inheritdoc/>
+        public void ParseEntropyCodedData(int scanComponentCount)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
 
@@ -123,17 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.scanBuffer = new JpegBitReader(this.stream);
 
-            // Decoder can encounter markers which would alter parameters
-            // needed for spectral buffers allocation and for spectral
-            // converter allocation
-            if (this.frame == null)
-            {
-                frame.AllocateComponents();
-
-                this.frame = frame;
-                this.components = frame.Components;
-                this.spectralConverter.InjectFrameData(frame, jpegData);
-            }
+            this.frame.AllocateComponents();
 
             if (!this.frame.Progressive)
             {
@@ -163,11 +148,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (this.scanComponentCount != 1)
             {
+                this.spectralConverter.PrepareForDecoding();
                 this.ParseBaselineDataInterleaved();
                 this.spectralConverter.CommitConversion();
             }
             else if (this.frame.ComponentCount == 1)
             {
+                this.spectralConverter.PrepareForDecoding();
                 this.ParseBaselineDataSingleComponent();
                 this.spectralConverter.CommitConversion();
             }
@@ -280,7 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineDataSingleComponent()
         {
-            var component = this.frame.Components[0] as JpegComponent;
+            JpegComponent component = this.frame.Components[0];
             int mcuLines = this.frame.McusPerColumn;
             int w = component.WidthInBlocks;
             int h = component.SamplingFactors.Height;

@@ -198,30 +198,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             where TPixel : unmanaged, IPixel<TPixel>
             => this.Decode<TPixel>(stream, targetSize: null, cancellationToken);
 
-        /// <summary>
-        /// Decodes and downscales the image from the specified stream if possible.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">Stream.</param>
-        /// <param name="targetSize">Target size.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public Image<TPixel> DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-            => this.Decode<TPixel>(stream, targetSize, cancellationToken);
-
-            this.ParseStream(stream, spectralConverter, cancellationToken);
-            this.InitExifProfile();
-            this.InitIccProfile();
-            this.InitIptcProfile();
-            this.InitXmpProfile();
-            this.InitDerivedMetadataProperties();
-
-            return new Image<TPixel>(
-                this.Configuration,
-                spectralConverter.GetPixelBuffer(cancellationToken),
-                this.Metadata);
-        }
-
         /// <inheritdoc/>
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
@@ -234,6 +210,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             Size pixelSize = this.Frame.PixelSize;
             return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), pixelSize.Width, pixelSize.Height, this.Metadata);
+        }
+
+        /// <summary>
+        /// Decodes and downscales the image from the specified stream if possible.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">Stream.</param>
+        /// <param name="targetSize">Target size.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        internal Image<TPixel> DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => this.Decode<TPixel>(stream, targetSize, cancellationToken);
+
+        private Image<TPixel> Decode<TPixel>(BufferedReadStream stream, Size? targetSize, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, targetSize);
+            this.ParseStream(stream, spectralConverter, cancellationToken);
+            this.InitExifProfile();
+            this.InitIccProfile();
+            this.InitIptcProfile();
+            this.InitXmpProfile();
+            this.InitDerivedMetadataProperties();
+
+            return new Image<TPixel>(
+                this.Configuration,
+                spectralConverter.GetPixelBuffer(cancellationToken),
+                this.Metadata);
         }
 
         /// <summary>
@@ -1263,6 +1267,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (!metadataOnly)
             {
                 this.Frame.Init(maxH, maxV);
+                this.scanDecoder.InjectFrameData(this.Frame, this);
             }
         }
 

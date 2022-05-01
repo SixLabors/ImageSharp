@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     internal unsafe struct Vp8Matrix
@@ -12,10 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             new[] { 96, 108 },
             new[] { 110, 115 }
         };
-
-        // Sharpening by (slightly) raising the hi-frequency coeffs.
-        // Hack-ish but helpful for mid-bitrate range. Use with care.
-        private static readonly byte[] FreqSharpening = { 0, 30, 60, 90, 30, 60, 90, 90, 60, 90, 90, 90, 90, 90, 90, 90 };
 
         /// <summary>
         /// Number of descaling bits for sharpening bias.
@@ -46,6 +44,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// The frequency boosters for slight sharpening.
         /// </summary>
         public fixed short Sharpen[16];
+
+        // Sharpening by (slightly) raising the hi-frequency coeffs.
+        // Hack-ish but helpful for mid-bitrate range. Use with care.
+        // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
+        private static ReadOnlySpan<byte> FreqSharpening => new byte[] { 0, 30, 60, 90, 30, 60, 90, 90, 60, 90, 90, 90, 90, 90, 90, 90 };
 
         /// <summary>
         /// Returns the average quantizer.

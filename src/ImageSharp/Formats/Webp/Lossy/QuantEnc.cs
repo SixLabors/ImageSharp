@@ -16,8 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     /// </summary>
     internal static unsafe class QuantEnc
     {
-        private static readonly byte[] Zigzag = { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
-
         private static readonly ushort[] WeightY = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
 
         private const int MaxLevel = 2047;
@@ -46,6 +44,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private const int C2 = 8;    // fraction of error sent to the 4x4 block on the right
         private const int DSHIFT = 4;
         private const int DSCALE = 1;   // storage descaling, needed to make the error fit byte
+
+        // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
+        private static ReadOnlySpan<byte> Zigzag => new byte[] { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
 
         public static void PickBestIntra16(Vp8EncIterator it, ref Vp8ModeScore rd, Vp8SegmentInfo[] segmentInfos, Vp8EncProba proba)
         {

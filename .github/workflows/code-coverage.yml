@@ -10,7 +10,7 @@ jobs:
       matrix:
         options:
           - os: ubuntu-latest
-            framework: netcoreapp3.1
+            framework: net6.0
             runtime: -x64
             codecov: true
 
@@ -53,6 +53,12 @@ jobs:
           path: ~/.nuget
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
           restore-keys: ${{ runner.os }}-nuget-
+
+      - name: DotNet Setup
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: |
+            6.0.x
 
       - name: DotNet Build
         shell: pwsh

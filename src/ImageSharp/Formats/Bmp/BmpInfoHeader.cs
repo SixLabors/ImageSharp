@@ -501,9 +501,35 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="buffer">The buffer to write to.</param>
         public void WriteV4Header(Span<byte> buffer)
         {
-            ref BmpInfoHeader dest = ref Unsafe.As<byte, BmpInfoHeader>(ref MemoryMarshal.GetReference(buffer));
-
-            dest = this;
+            buffer.Clear();
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(0, 4), SizeV4);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(4, 4), this.Width);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(8, 4), this.Height);
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(14, 2), this.BitsPerPixel);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(16, 4), (int)this.Compression);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(20, 4), this.ImageSize);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(24, 4), this.XPelsPerMeter);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(28, 4), this.YPelsPerMeter);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(32, 4), this.ClrUsed);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(36, 4), this.ClrImportant);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(40, 4), this.RedMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(44, 4), this.GreenMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(48, 4), this.BlueMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(52, 4), this.AlphaMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(56, 4), (int)this.CsType);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(60, 4), this.RedX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(64, 4), this.RedY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(68, 4), this.RedZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(72, 4), this.GreenX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(76, 4), this.GreenY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(80, 4), this.GreenZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(84, 4), this.BlueX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(88, 4), this.BlueY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(92, 4), this.BlueZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(96, 4), this.GammaRed);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(100, 4), this.GammaGreen);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(104, 4), this.GammaBlue);
         }
 
         internal void VerifyDimensions()

@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -185,7 +186,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         break;
 
                     default:
-                        BmpThrowHelper.ThrowNotSupportedException("Does not support this kind of bitmap files.");
+                        BmpThrowHelper.ThrowNotSupportedException("ImageSharp does not support this kind of bitmap files.");
 
                         break;
                 }
@@ -1199,6 +1200,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadInfoHeader()
         {
             Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
+            var infoHeaderStart = this.stream.Position;
+
+            // Resolution is stored in PPM.
+            this.metadata = new ImageMetadata
+            {
+                ResolutionUnits = PixelResolutionUnit.PixelsPerMeter
+            };
 
             // Read the header size.
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
@@ -1282,30 +1290,33 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // > 108 bytes
                 infoHeaderType = BmpInfoHeaderType.WinVersion5;
                 this.infoHeader = BmpInfoHeader.ParseV5(buffer);
+                if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+                {
+                    // Read color profile.
+                    long streamPosition = this.stream.Position;
+                    byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
+                    this.stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+                    this.stream.Read(iccProfileData);
+                    this.metadata.IccProfile = new IccProfile(iccProfileData);
+                    this.stream.Position = streamPosition;
+                }
             }
             else
             {
                 BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. HeaderSize '{headerSize}'.");
             }
 
-            // Resolution is stored in PPM.
-            var meta = new ImageMetadata
-            {
-                ResolutionUnits = PixelResolutionUnit.PixelsPerMeter
-            };
             if (this.infoHeader.XPelsPerMeter > 0 && this.infoHeader.YPelsPerMeter > 0)
             {
-                meta.HorizontalResolution = this.infoHeader.XPelsPerMeter;
-                meta.VerticalResolution = this.infoHeader.YPelsPerMeter;
+                this.metadata.HorizontalResolution = this.infoHeader.XPelsPerMeter;
+                this.metadata.VerticalResolution = this.infoHeader.YPelsPerMeter;
             }
             else
             {
                 // Convert default metadata values to PPM.
-                meta.HorizontalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultHorizontalResolution));
-                meta.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultVerticalResolution));
+                this.metadata.HorizontalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultHorizontalResolution));
+                this.metadata.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultVerticalResolution));
             }
-
-            this.metadata = meta;
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
             this.bmpMetadata = this.metadata.GetBmpMetadata();
@@ -1376,9 +1387,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int colorMapSizeBytes = -1;
             if (this.infoHeader.ClrUsed == 0)
             {
-                if (this.infoHeader.BitsPerPixel == 1
-                    || this.infoHeader.BitsPerPixel == 4
-                    || this.infoHeader.BitsPerPixel == 8)
+                if (this.infoHeader.BitsPerPixel is 1 or 4 or 8)
                 {
                     switch (this.fileMarkerType)
                     {
@@ -1430,7 +1439,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int skipAmount = this.fileHeader.Offset - (int)this.stream.Position;
             if ((skipAmount + (int)this.stream.Position) > this.stream.Length)
             {
-                BmpThrowHelper.ThrowInvalidImageContentException("Invalid fileheader offset found. Offset is greater than the stream length.");
+                BmpThrowHelper.ThrowInvalidImageContentException("Invalid file header offset found. Offset is greater than the stream length.");
             }
 
             if (skipAmount > 0)

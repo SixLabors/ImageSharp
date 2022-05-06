@@ -57,10 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         public int Offset { get; }
 
-        public static BmpFileHeader Parse(Span<byte> data)
-        {
-            return MemoryMarshal.Cast<byte, BmpFileHeader>(data)[0];
-        }
+        public static BmpFileHeader Parse(Span<byte> data) => MemoryMarshal.Cast<byte, BmpFileHeader>(data)[0];
 
         public void WriteTo(Span<byte> buffer)
         {

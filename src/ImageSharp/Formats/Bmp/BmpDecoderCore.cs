@@ -1271,11 +1271,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeaderType = BmpInfoHeaderType.Os2Version2;
                 this.infoHeader = BmpInfoHeader.ParseOs2Version2(buffer);
             }
-            else if (headerSize >= BmpInfoHeader.SizeV4)
+            else if (headerSize == BmpInfoHeader.SizeV4)
             {
-                // >= 108 bytes
-                infoHeaderType = headerSize == BmpInfoHeader.SizeV4 ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion5;
+                // == 108 bytes
+                infoHeaderType = BmpInfoHeaderType.WinVersion4;
                 this.infoHeader = BmpInfoHeader.ParseV4(buffer);
+            }
+            else if (headerSize > BmpInfoHeader.SizeV4)
+            {
+                // > 108 bytes
+                infoHeaderType = BmpInfoHeaderType.WinVersion5;
+                this.infoHeader = BmpInfoHeader.ParseV5(buffer);
             }
             else
             {

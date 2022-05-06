@@ -777,7 +777,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         /// <summary>
         /// Flushes spectral data bytes after encoding all channel blocks
-        /// in a single jpeg macroblock using <see cref="WriteBlock"/>.
+        /// in a single jpeg macroblock using <see cref="WriteBlock(JpegComponent, ref Block8x8, ref HuffmanLut, ref HuffmanLut)"/>.
         /// </summary>
         /// <remarks>
         /// This must be called only if <see cref="IsStreamFlushNeeded"/> is true

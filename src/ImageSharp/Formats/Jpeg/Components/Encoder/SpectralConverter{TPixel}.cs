@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
-
     /// <inheritdoc/>
     internal class SpectralConverter<TPixel> : SpectralConverter
         where TPixel : unmanaged, IPixel<TPixel>
@@ -77,7 +76,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // 2. Byte r/g/b planes to normalized float r/g/b planes
             // 3. Convert from r/g/b planes to target pixel type with JpegColorConverter
             // 4. Convert color buffer to spectral blocks with component post processors
-
             int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
             int width = this.pixelBuffer.Width;

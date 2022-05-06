@@ -39,19 +39,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// </summary>
         public int VerticalSamplingFactor { get; }
 
-        /// <inheritdoc />
         public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 
-        /// <inheritdoc />
         public Size SubSamplingDivisors { get; private set; }
 
-        /// <inheritdoc />
         public int QuantizationTableIndex { get; }
 
-        /// <inheritdoc />
         public Size SizeInBlocks { get; private set; }
 
-        /// <inheritdoc />
         public Size SamplingFactors { get; set; }
 
         /// <summary>
@@ -84,6 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Initializes component for future buffers initialization.
         /// </summary>
+        /// <param name="frame">asdfasdf.</param>
         /// <param name="maxSubFactorH">Maximal horizontal subsampling factor among all the components.</param>
         /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
         public void Init(JpegFrame frame, int maxSubFactorH, int maxSubFactorV)

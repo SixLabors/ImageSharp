@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
@@ -19,6 +20,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             ref float areaOrigin = ref region.GetReferenceToOrigin();
             this.ScaledCopyTo(ref areaOrigin, region.Stride, horizontalScale, verticalScale);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void ScaledCopyFrom(ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
+        {
+            if (horizontalScale == 1 && verticalScale == 1)
+            {
+                ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
+                ref byte destBase = ref Unsafe.As<float, byte>(ref areaOrigin);
+                int destStride = areaStride * sizeof(float);
+
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 0);
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 1);
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 2);
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 3);
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 4);
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 5);
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 6);
+                CopyRowImplFromStrides(ref selfBase, ref destBase, destStride, 7);
+                return;
+            }
+
+            throw new NotImplementedException("This is a test setup!");
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void CopyRowImplFromStrides(ref byte src, ref byte dst, int srcStride, int row)
+            {
+                ref byte s = ref Unsafe.Add(ref dst, row * srcStride);
+                ref byte d = ref Unsafe.Add(ref src, row * 8 * sizeof(float));
+                Unsafe.CopyBlock(ref d, ref s, 8 * sizeof(float));
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -79,6 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
         public abstract void ConvertToRgbInplace(in ComponentValues values);
 
+        public virtual void ConvertFromRgbInplace(in ComponentValues values) => throw new NotImplementedException("This is a test exception");
+
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for all supported colorspaces and precisions.
         /// </summary>
@@ -220,6 +222,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <param name="processors">List of component color processors.</param>
             /// <param name="row">Row to convert</param>
             public ComponentValues(IReadOnlyList<JpegComponentPostProcessor> processors, int row)
+            {
+                DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
+
+                this.ComponentCount = processors.Count;
+
+                this.Component0 = processors[0].GetColorBufferRowSpan(row);
+
+                // In case of grayscale, Component1 and Component2 point to Component0 memory area
+                this.Component1 = this.ComponentCount > 1 ? processors[1].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component2 = this.ComponentCount > 2 ? processors[2].GetColorBufferRowSpan(row) : this.Component0;
+                this.Component3 = this.ComponentCount > 3 ? processors[3].GetColorBufferRowSpan(row) : Span<float>.Empty;
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ComponentValues"/> struct.
+            /// </summary>
+            /// <param name="processors">List of component color processors.</param>
+            /// <param name="row">Row to convert</param>
+            public ComponentValues(IReadOnlyList<Encoder.JpegComponentPostProcessor> processors, int row)
             {
                 DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
 

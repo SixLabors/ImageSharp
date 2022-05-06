@@ -198,6 +198,43 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
         }
 
+        /// <summary>
+        /// Bulk operation that unpacks pixels from <paramref name="source"/>
+        /// into 3 seperate RGB channels. The destination must have a padding of 3.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
+        /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
+        /// <param name="blueChannel">A <see cref="ReadOnlySpan{T}"/> to the blue values.</param>
+        /// <param name="source">A <see cref="Span{T}"/> to the destination pixels.</param>
+        internal virtual void UnpackIntoRgbPlanes(
+            Configuration configuration,
+            ReadOnlySpan<byte> redChannel,
+            ReadOnlySpan<byte> greenChannel,
+            ReadOnlySpan<byte> blueChannel,
+            Span<TPixel> source)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+
+            int count = redChannel.Length;
+
+            Rgba32 rgba32 = default;
+            ref byte r = ref MemoryMarshal.GetReference(redChannel);
+            ref byte g = ref MemoryMarshal.GetReference(greenChannel);
+            ref byte b = ref MemoryMarshal.GetReference(blueChannel);
+            ref TPixel d = ref MemoryMarshal.GetReference(source);
+
+            for (int i = 0; i < count; i++)
+            {
+                // TODO: Create ToRgb24 method in IPixel
+                // TODO: create a fast intrinsic accelerated Rgb24 -> r/g/b planes overload
+                Unsafe.Add(ref d, i).ToRgba32(ref rgba32);
+                Unsafe.Add(ref r, i) = rgba32.R;
+                Unsafe.Add(ref g, i) = rgba32.G;
+                Unsafe.Add(ref b, i) = rgba32.B;
+            }
+        }
+
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void GuardPackFromRgbPlanes(ReadOnlySpan<byte> greenChannel, ReadOnlySpan<byte> blueChannel, Span<TPixel> destination, int count)
         {

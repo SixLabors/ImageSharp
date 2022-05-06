@@ -68,6 +68,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     c2 = b;
                 }
             }
+
+            public override void ConvertFromRgbInplace(in ComponentValues values)
+            {
+                return;
+            }
         }
     }
 }

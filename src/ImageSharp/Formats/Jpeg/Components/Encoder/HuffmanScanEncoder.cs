@@ -132,6 +132,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // DEBUG INITIALIZATION SETUP
+            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+
             var frame = new JpegFrame(configuration.MemoryAllocator, image, componentCount: 3);
             frame.Init(1, 1);
             frame.AllocateComponents(fullScan: false);
@@ -188,6 +190,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                     // After all interleaved components, that's an interleaved MCU
                     mcu++;
+                    if (this.IsStreamFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
                 }
             }
 

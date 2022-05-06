@@ -352,6 +352,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
+        public void DE_NormalizeColors(float maximum)
+        {
+            if (SimdUtils.HasVector8)
+            {
+                this.NormalizeColorsAndRoundInPlaceVector8(maximum);
+            }
+            else
+            {
+                this.NormalizeColorsInPlace(maximum);
+                this.RoundInPlace();
+            }
+        }
+
         /// <summary>
         /// Rounds all values in the block.
         /// </summary>

@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.Components = new JpegComponent[]
             {
                 new JpegComponent(allocator, 1, 1, 0),
-                new JpegComponent(allocator, 1, 1, 1),
-                new JpegComponent(allocator, 1, 1, 1),
+                new JpegComponent(allocator, 1, 1, 0),
+                new JpegComponent(allocator, 1, 1, 0),
             };
         }
 

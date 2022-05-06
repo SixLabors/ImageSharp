@@ -131,28 +131,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the scan header.
             this.WriteStartOfScan(componentCount, componentIds);
 
-            var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
-            new HuffmanScanEncoder(3, stream).Encode(image, quantTables, Configuration.Default, cancellationToken);
+            //var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
+            //new HuffmanScanEncoder(3, stream).Encode(image, quantTables, Configuration.Default, cancellationToken);
 
             // Write the scan compressed data.
-            //switch (this.colorType)
-            //{
-            //    case JpegColorType.YCbCrRatio444:
-            //        new HuffmanScanEncoder(3, stream).Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
-            //        break;
-            //    case JpegColorType.YCbCrRatio420:
-            //        new HuffmanScanEncoder(6, stream).Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
-            //        break;
-            //    case JpegColorType.Luminance:
-            //        new HuffmanScanEncoder(1, stream).EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
-            //        break;
-            //    case JpegColorType.Rgb:
-            //        new HuffmanScanEncoder(3, stream).EncodeRgb(image, ref luminanceQuantTable, cancellationToken);
-            //        break;
-            //    default:
-            //        // all other non-supported color types are checked at the start of this method
-            //        break;
-            //}
+            switch (this.colorType)
+            {
+                case JpegColorType.YCbCrRatio444:
+                    new HuffmanScanEncoder(3, stream).Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                    break;
+                case JpegColorType.YCbCrRatio420:
+                    new HuffmanScanEncoder(6, stream).Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
+                    break;
+                case JpegColorType.Luminance:
+                    new HuffmanScanEncoder(1, stream).EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
+                    break;
+                case JpegColorType.Rgb:
+                    new HuffmanScanEncoder(3, stream).EncodeRgb(image, ref luminanceQuantTable, cancellationToken);
+                    break;
+                default:
+                    // all other non-supported color types are checked at the start of this method
+                    break;
+            }
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();

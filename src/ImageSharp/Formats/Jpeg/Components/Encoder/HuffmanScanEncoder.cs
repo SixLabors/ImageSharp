@@ -128,6 +128,72 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
         }
 
+        public void Encode<TPixel>(Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // DEBUG INITIALIZATION SETUP
+            var frame = new JpegFrame(configuration.MemoryAllocator, image, componentCount: 3);
+            frame.Init(1, 1);
+            frame.AllocateComponents(fullScan: false);
+
+            var spectralConverter = new SpectralConverter<TPixel>(configuration);
+            spectralConverter.InjectFrameData(frame, image, quantTables);
+
+            // DEBUG ENCODING SETUP
+            int mcu = 0;
+            int mcusPerColumn = frame.McusPerColumn;
+            int mcusPerLine = frame.McusPerLine;
+
+            for (int j = 0; j < mcusPerColumn; j++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Convert from pixels to spectral via given converter
+                spectralConverter.ConvertStrideBaseline();
+
+                // decode from binary to spectral
+                for (int i = 0; i < mcusPerLine; i++)
+                {
+                    // Scan an interleaved mcu... process components in order
+                    int mcuCol = mcu % mcusPerLine;
+                    for (int k = 0; k < frame.ComponentCount; k++)
+                    {
+                        JpegComponent component = frame.Components[k];
+
+                        ref HuffmanLut dcHuffmanTable = ref this.huffmanTables[component.DcTableId];
+                        ref HuffmanLut acHuffmanTable = ref this.huffmanTables[component.AcTableId];
+
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
+
+                        // Scan out an mcu's worth of this component; that's just determined
+                        // by the basic H and V specified for the component
+                        for (int y = 0; y < v; y++)
+                        {
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
+                            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                            for (int x = 0; x < h; x++)
+                            {
+                                int blockCol = (mcuCol * h) + x;
+
+                                this.WriteBlock(
+                                    component,
+                                    ref Unsafe.Add(ref blockRef, blockCol),
+                                    ref dcHuffmanTable,
+                                    ref acHuffmanTable);
+                            }
+                        }
+                    }
+
+                    // After all interleaved components, that's an interleaved MCU
+                    mcu++;
+                }
+            }
+
+            this.FlushRemainingBytes();
+        }
+
         /// <summary>
         /// Encodes the image with no subsampling.
         /// </summary>
@@ -439,6 +505,56 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 
             return dc;
+        }
+
+        private void WriteBlock(
+            JpegComponent component,
+            ref Block8x8 block,
+            ref HuffmanLut dcTable,
+            ref HuffmanLut acTable)
+        {
+            // Emit the DC delta.
+            int dc = block[0];
+            this.EmitHuffRLE(dcTable.Values, 0, dc - component.DcPredictor);
+            component.DcPredictor = dc;
+
+            // Emit the AC components.
+            int[] acHuffTable = acTable.Values;
+
+            nint lastValuableIndex = block.GetLastNonZeroIndex();
+
+            int runLength = 0;
+            ref short blockRef = ref Unsafe.As<Block8x8, short>(ref block);
+            for (nint zig = 1; zig <= lastValuableIndex; zig++)
+            {
+                const int zeroRun1 = 1 << 4;
+                const int zeroRun16 = 16 << 4;
+
+                int ac = Unsafe.Add(ref blockRef, zig);
+                if (ac == 0)
+                {
+                    runLength += zeroRun1;
+                }
+                else
+                {
+                    while (runLength >= zeroRun16)
+                    {
+                        this.EmitHuff(acHuffTable, 0xf0);
+                        runLength -= zeroRun16;
+                    }
+
+                    this.EmitHuffRLE(acHuffTable, runLength, ac);
+                    runLength = 0;
+                }
+            }
+
+            // if mcu block contains trailing zeros - we must write end of block (EOB) value indicating that current block is over
+            // this can be done for any number of trailing zeros, even when all 63 ac values are zero
+            // (Block8x8F.Size - 1) == 63 - last index of the mcu elements
+            if (lastValuableIndex != Block8x8F.Size - 1)
+            {
+                this.EmitHuff(acHuffTable, 0x00);
+            }
         }
 
         /// <summary>

@@ -532,6 +532,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(104, 4), this.GammaBlue);
         }
 
+        /// <summary>
+        /// Writes a complete Bitmap V5 header to a buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to write to.</param>
+        public void WriteV5Header(Span<byte> buffer)
+        {
+            ref BmpInfoHeader dest = ref Unsafe.As<byte, BmpInfoHeader>(ref MemoryMarshal.GetReference(buffer));
+
+            dest = this;
+        }
+
         internal void VerifyDimensions()
         {
             const int MaximumBmpDimension = 65535;

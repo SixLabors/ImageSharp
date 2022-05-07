@@ -1200,7 +1200,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadInfoHeader()
         {
             Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
-            var infoHeaderStart = this.stream.Position;
+            long infoHeaderStart = this.stream.Position;
 
             // Resolution is stored in PPM.
             this.metadata = new ImageMetadata

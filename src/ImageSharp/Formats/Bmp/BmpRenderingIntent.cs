@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         Invalid = 0,
 
         /// <summary>
-        /// TMaintains saturation. Used for business charts and other situations in which undithered colors are required.
+        /// Maintains saturation. Used for business charts and other situations in which undithered colors are required.
         /// </summary>
         LCS_GM_BUSINESS = 1,
 

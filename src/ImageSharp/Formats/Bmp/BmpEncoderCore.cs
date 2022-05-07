@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -79,9 +80,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// A bitmap v4 header will only be written, if the user explicitly wants support for transparency.
         /// In this case the compression type BITFIELDS will be used.
+        /// If the image contains a color profile, a bitmap v5 header is written, which is needed to write this info.
         /// Otherwise a bitmap v3 header will be written, which is supported by almost all decoders.
         /// </summary>
-        private readonly bool writeV4Header;
+        private BmpInfoHeaderType infoHeaderType;
 
         /// <summary>
         /// The quantizer for reducing the color count for 8-Bit, 4-Bit and 1-Bit images.
@@ -97,8 +99,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
-            this.writeV4Header = options.SupportTransparency;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
+            this.infoHeaderType = options.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
         }
 
         /// <summary>
@@ -123,7 +125,62 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
             this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 
-            // Set Resolution.
+            int colorPaletteSize = 0;
+            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel8)
+            {
+                colorPaletteSize = ColorPaletteSize8Bit;
+            }
+            else if (this.bitsPerPixel == BmpBitsPerPixel.Pixel4)
+            {
+                colorPaletteSize = ColorPaletteSize4Bit;
+            }
+            else if (this.bitsPerPixel == BmpBitsPerPixel.Pixel1)
+            {
+                colorPaletteSize = ColorPaletteSize1Bit;
+            }
+
+            byte[] iccProfileData = null;
+            int iccProfileSize = 0;
+            if (metadata.IccProfile != null)
+            {
+                this.infoHeaderType = BmpInfoHeaderType.WinVersion5;
+                iccProfileData = metadata.IccProfile.ToByteArray();
+                iccProfileSize = iccProfileData.Length;
+            }
+
+            int infoHeaderSize = this.infoHeaderType switch
+            {
+                BmpInfoHeaderType.WinVersion3 => BmpInfoHeader.SizeV3,
+                BmpInfoHeaderType.WinVersion4 => BmpInfoHeader.SizeV4,
+                BmpInfoHeaderType.WinVersion5 => BmpInfoHeader.SizeV5,
+                _ => BmpInfoHeader.SizeV3
+            };
+
+            BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(image.Width, image.Height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
+
+            Span<byte> buffer = stackalloc byte[infoHeaderSize];
+
+            this.WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+            this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
+            this.WriteImage(stream, image.Frames.RootFrame);
+            this.WriteColorProfile(stream, iccProfileData, buffer);
+
+            stream.Flush();
+        }
+
+        /// <summary>
+        /// Creates the bitmap information header.
+        /// </summary>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="infoHeaderSize">Size of the information header.</param>
+        /// <param name="bpp">The bits per pixel.</param>
+        /// <param name="bytesPerLine">The bytes per line.</param>
+        /// <param name="metadata">The metadata.</param>
+        /// <param name="iccProfileData">The icc profile data.</param>
+        /// <returns>The bitmap information header.</returns>
+        private BmpInfoHeader CreateBmpInfoHeader(int width, int height, int infoHeaderSize, short bpp, int bytesPerLine, ImageMetadata metadata, byte[] iccProfileData)
+        {
             int hResolution = 0;
             int vResolution = 0;
 
@@ -154,20 +211,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
-            int infoHeaderSize = this.writeV4Header ? BmpInfoHeader.SizeV4 : BmpInfoHeader.SizeV3;
             var infoHeader = new BmpInfoHeader(
                 headerSize: infoHeaderSize,
-                height: image.Height,
-                width: image.Width,
+                height: height,
+                width: width,
                 bitsPerPixel: bpp,
                 planes: 1,
-                imageSize: image.Height * bytesPerLine,
+                imageSize: height * bytesPerLine,
                 clrUsed: 0,
                 clrImportant: 0,
                 xPelsPerMeter: hResolution,
                 yPelsPerMeter: vResolution);
 
-            if (this.writeV4Header && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+            if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
             {
                 infoHeader.AlphaMask = Rgba32AlphaMask;
                 infoHeader.RedMask = Rgba32RedMask;
@@ -176,45 +232,79 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeader.Compression = BmpCompression.BitFields;
             }
 
-            int colorPaletteSize = 0;
-            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel8)
+            if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && metadata.IccProfile != null)
             {
-                colorPaletteSize = ColorPaletteSize8Bit;
-            }
-            else if (this.bitsPerPixel == BmpBitsPerPixel.Pixel4)
-            {
-                colorPaletteSize = ColorPaletteSize4Bit;
-            }
-            else if (this.bitsPerPixel == BmpBitsPerPixel.Pixel1)
-            {
-                colorPaletteSize = ColorPaletteSize1Bit;
+                infoHeader.ProfileSize = iccProfileData.Length;
+                infoHeader.CsType = BmpColorSpace.PROFILE_EMBEDDED;
+                infoHeader.Intent = BmpRenderingIntent.LCS_GM_IMAGES;
             }
 
+            return infoHeader;
+        }
+
+        /// <summary>
+        /// Writes the color profile to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="iccProfileData">The color profile data.</param>
+        /// <param name="buffer">The buffer.</param>
+        private void WriteColorProfile(Stream stream, byte[] iccProfileData, Span<byte> buffer)
+        {
+            if (iccProfileData != null)
+            {
+                // The offset, in bytes, from the beginning of the BITMAPV5HEADER structure to the start of the profile data.
+                int streamPositionAfterImageData = (int)stream.Position - BmpFileHeader.Size;
+                stream.Write(iccProfileData);
+                BinaryPrimitives.WriteInt32LittleEndian(buffer, streamPositionAfterImageData);
+                stream.Position = BmpFileHeader.Size + 112;
+                stream.Write(buffer.Slice(0, 4));
+            }
+        }
+
+        /// <summary>
+        /// Writes the bitmap file header.
+        /// </summary>
+        /// <param name="stream">The stream to write the header to.</param>
+        /// <param name="infoHeaderSize">Size of the bitmap information header.</param>
+        /// <param name="colorPaletteSize">Size of the color palette.</param>
+        /// <param name="iccProfileSize">The size in bytes of the color profile.</param>
+        /// <param name="infoHeader">The information header to write.</param>
+        /// <param name="buffer">The buffer to write to.</param>
+        private void WriteBitmapFileHeader(Stream stream, int infoHeaderSize, int colorPaletteSize, int iccProfileSize, BmpInfoHeader infoHeader, Span<byte> buffer)
+        {
             var fileHeader = new BmpFileHeader(
                 type: BmpConstants.TypeMarkers.Bitmap,
-                fileSize: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + infoHeader.ImageSize,
+                fileSize: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + infoHeader.ImageSize,
                 reserved: 0,
                 offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
 
-            Span<byte> buffer = stackalloc byte[infoHeaderSize];
             fileHeader.WriteTo(buffer);
-
             stream.Write(buffer, 0, BmpFileHeader.Size);
+        }
 
-            if (this.writeV4Header)
+        /// <summary>
+        /// Writes the bitmap information header.
+        /// </summary>
+        /// <param name="stream">The stream to write info header into.</param>
+        /// <param name="infoHeader">The information header.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="infoHeaderSize">Size of the information header.</param>
+        private void WriteBitmapInfoHeader(Stream stream, BmpInfoHeader infoHeader, Span<byte> buffer, int infoHeaderSize)
+        {
+            switch (this.infoHeaderType)
             {
-                infoHeader.WriteV4Header(buffer);
-            }
-            else
-            {
-                infoHeader.WriteV3Header(buffer);
+                case BmpInfoHeaderType.WinVersion3:
+                    infoHeader.WriteV3Header(buffer);
+                    break;
+                case BmpInfoHeaderType.WinVersion4:
+                    infoHeader.WriteV4Header(buffer);
+                    break;
+                case BmpInfoHeaderType.WinVersion5:
+                    infoHeader.WriteV5Header(buffer);
+                    break;
             }
 
             stream.Write(buffer, 0, infoHeaderSize);
-
-            this.WriteImage(stream, image.Frames.RootFrame);
-
-            stream.Flush();
         }
 
         /// <summary>

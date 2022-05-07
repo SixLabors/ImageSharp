@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the components.
         /// </summary>
-        IJpegComponent[] Components { get; }
+        JpegComponent[] Components { get; }
 
         /// <summary>
         /// Gets the quantization tables, in natural order.

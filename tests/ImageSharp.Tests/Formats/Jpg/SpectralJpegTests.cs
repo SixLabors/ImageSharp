@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
             // This would parse entire image
-            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+            decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
             VerifyJpeg.SaveSpectralImage(provider, debugConverter.SpectralData);
         }
 
@@ -85,10 +85,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // internal scan decoder which we substitute to assert spectral correctness
             var debugConverter = new DebugSpectralConverter<TPixel>();
-            var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
             // This would parse entire image
-            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+            decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
 
             // Actual verification
             this.VerifySpectralCorrectnessImpl(libJpegData, debugConverter.SpectralData);
@@ -195,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var spectralComponents = new LibJpegTools.ComponentData[frame.ComponentCount];
                 for (int i = 0; i < spectralComponents.Length; i++)
                 {
-                    JpegComponent component = frame.Components[i];
+                    var component = frame.Components[i] as JpegComponent;
                     spectralComponents[i] = new LibJpegTools.ComponentData(component.WidthInBlocks, component.HeightInBlocks, component.Index);
                 }
 

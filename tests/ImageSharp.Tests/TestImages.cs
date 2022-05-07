@@ -214,13 +214,20 @@ namespace SixLabors.ImageSharp.Tests
                 public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
                 public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
                 public const string ForestBridgeDifferentComponentsQuality = "Jpg/baseline/forest_bridge.jpg";
-                public const string ArithmeticCoding = "Jpg/baseline/arithmetic_coding.jpg";
-                public const string ArithmeticCodingProgressive = "Jpg/progressive/arithmetic_progressive.jpg";
                 public const string Lossless = "Jpg/baseline/lossless.jpg";
                 public const string Winter444_Interleaved = "Jpg/baseline/winter444_interleaved.jpg";
                 public const string Metadata = "Jpg/baseline/Metadata-test-file.jpg";
                 public const string ExtendedXmp = "Jpg/baseline/extended-xmp.jpg";
                 public const string GrayscaleSampling2x2 = "Jpg/baseline/grayscale_sampling22.jpg";
+
+                // Jpeg's with arithmetic coding.
+                public const string ArithmeticCoding01 = "Jpg/baseline/Calliphora_arithmetic.jpg";
+                public const string ArithmeticCoding02 = "Jpg/baseline/arithmetic_coding.jpg";
+                public const string ArithmeticCodingProgressive01 = "Jpg/progressive/arithmetic_progressive.jpg";
+                public const string ArithmeticCodingProgressive02 = "Jpg/progressive/Calliphora-arithmetic-progressive-interleaved.jpg";
+                public const string ArithmeticCodingGray = "Jpg/baseline/Calliphora-arithmetic-grayscale.jpg";
+                public const string ArithmeticCodingInterleaved = "Jpg/baseline/Calliphora-arithmetic-interleaved.jpg";
+                public const string ArithmeticCodingWithRestart = "Jpg/baseline/Calliphora-arithmetic-restart.jpg";
 
                 public static readonly string[] All =
                 {

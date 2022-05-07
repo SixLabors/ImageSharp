@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -47,6 +47,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             //         providerDump,
             //         enforceDiscontiguousBuffers ? "Disco" : string.Empty)
             //     .Dispose();
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCoding01, PixelTypes.Rgb24)]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCoding02, PixelTypes.Rgb24)]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingGray, PixelTypes.Rgb24)]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingInterleaved, PixelTypes.Rgb24)]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingWithRestart, PixelTypes.Rgb24)]
+        public void DecodeJpeg_WithArithmeticCoding<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Tolerant(0.002f), ReferenceDecoder);
         }
 
         [Theory]

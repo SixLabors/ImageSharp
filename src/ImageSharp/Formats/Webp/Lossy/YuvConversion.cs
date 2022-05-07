@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static void UpSampleSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
         {
             const int xStep = 3;
-            Array.Clear(uvBuffer, 0, uvBuffer.Length);
+            Array.Clear(uvBuffer);
             Span<byte> ru = uvBuffer.AsSpan(15);
             Span<byte> rv = ru.Slice(32);
 

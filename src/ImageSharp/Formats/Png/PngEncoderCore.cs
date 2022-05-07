@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The color profile name.
         /// </summary>
-        private const string ProfileName = "ICC Profile";
+        private const string ColorProfileName = "ICC Profile";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
@@ -718,16 +718,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            string profileName = "ICC Profile";
             byte[] iccProfileBytes = metaData.IccProfile.ToByteArray();
 
             byte[] compressedData = this.GetZlibCompressedBytes(iccProfileBytes);
-            int payloadLength = profileName.Length + compressedData.Length + 2;
+            int payloadLength = ColorProfileName.Length + compressedData.Length + 2;
             using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
             {
                 Span<byte> outputBytes = owner.GetSpan();
-                PngConstants.Encoding.GetBytes(profileName).CopyTo(outputBytes);
-                int bytesWritten = profileName.Length;
+                PngConstants.Encoding.GetBytes(ColorProfileName).CopyTo(outputBytes);
+                int bytesWritten = ColorProfileName.Length;
                 outputBytes[bytesWritten++] = 0; // Null separator.
                 outputBytes[bytesWritten++] = 0; // Compression.
                 compressedData.CopyTo(outputBytes.Slice(bytesWritten));

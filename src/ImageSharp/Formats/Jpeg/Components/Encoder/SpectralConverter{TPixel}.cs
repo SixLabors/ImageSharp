@@ -25,6 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private Buffer2D<TPixel> pixelBuffer;
 
+        private int alignedPixelWidth;
+
         private Decoder.ColorConverters.JpegColorConverterBase colorConverter;
 
         public SpectralConverter(Configuration configuration) =>
@@ -47,7 +49,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             // component processors from spectral to Rgba32
             const int blockPixelWidth = 8;
-            var postProcessorBufferSize = new Size(majorBlockWidth * blockPixelWidth, this.pixelRowsPerStep);
+            this.alignedPixelWidth = majorBlockWidth * blockPixelWidth;
+            var postProcessorBufferSize = new Size(this.alignedPixelWidth, this.pixelRowsPerStep);
             this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
@@ -56,10 +59,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 
             // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            this.rgbBuffer = allocator.Allocate<byte>(frame.PixelWidth * 3);
+            this.rgbBuffer = allocator.Allocate<byte>(this.alignedPixelWidth * 3);
 
             // color converter from Rgb24 to YCbCr
-            this.colorConverter = Decoder.ColorConverters.JpegColorConverterBase.GetConverter(colorSpace: Decoder.JpegColorSpace.YCbCr, precision: 8);
+            this.colorConverter = Decoder.ColorConverters.JpegColorConverterBase.GetConverter(colorSpace: frame.ColorSpace, precision: 8);
         }
 
         public void ConvertStrideBaseline()
@@ -80,18 +83,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             int width = this.pixelBuffer.Width;
 
-            // unpack TPixel to r/g/b planes
-            Span<byte> r = this.rgbBuffer.Slice(0, width);
-            Span<byte> g = this.rgbBuffer.Slice(width, width);
-            Span<byte> b = this.rgbBuffer.Slice(width * 2, width);
+            Span<byte> r = this.rgbBuffer.Slice(0, this.alignedPixelWidth);
+            Span<byte> g = this.rgbBuffer.Slice(this.alignedPixelWidth, this.alignedPixelWidth);
+            Span<byte> b = this.rgbBuffer.Slice(this.alignedPixelWidth * 2, this.alignedPixelWidth);
 
             for (int yy = this.pixelRowCounter; yy < maxY; yy++)
             {
                 int y = yy - this.pixelRowCounter;
 
-                // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
-                // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,
-                // pack pixels to a temporary, padded proxy buffer, then copy the relevant values to the destination row.
+                // unpack TPixel to r/g/b planes
                 Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(yy);
                 PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(this.configuration, r, g, b, sourceRow);
 

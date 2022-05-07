@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private readonly JpegComponent component;
 
-        private readonly int blockRowsPerStep;
-
         private Block8x8F quantTable;
 
         public JpegComponentPostProcessor(MemoryAllocator memoryAllocator, JpegComponent component, Size postProcessorBufferSize, Block8x8F quantTable)
@@ -27,9 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
                 postProcessorBufferSize.Width,
                 postProcessorBufferSize.Height,
-                this.blockAreaSize.Height);
-
-            this.blockRowsPerStep = postProcessorBufferSize.Height / 8 / this.component.SubSamplingDivisors.Height;
+                this.blockAreaSize.Height,
+                AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -42,21 +39,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             Buffer2D<Block8x8> spectralBuffer = this.component.SpectralBlocks;
 
             // should be this.frame.MaxColorChannelValue
-            // but currently 12-bit jpegs are not supported
-            float maximumValue = 255f;
+            // but 12-bit jpegs are not supported currently
             float normalizationValue = -128f;
 
             int blocksRowsPerStep = this.component.SamplingFactors.Height;
 
             int destAreaStride = this.ColorBuffer.Width;
 
-            int yBlockStart = spectralStep * this.blockRowsPerStep;
+            int yBlockStart = spectralStep * blocksRowsPerStep;
 
             Size subSamplingDivisors = this.component.SubSamplingDivisors;
 
             Block8x8F workspaceBlock = default;
 
-            for (int y = 0; y < this.blockRowsPerStep; y++)
+            for (int y = 0; y < blocksRowsPerStep; y++)
             {
                 int yBuffer = y * this.blockAreaSize.Height;
 
@@ -72,9 +68,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         destAreaStride,
                         subSamplingDivisors.Width,
                         subSamplingDivisors.Height);
-
-                    // multiply by maximum (for debug only, should be done in color converter)
-                    workspaceBlock.MultiplyInPlace(maximumValue);
 
                     // level shift via -128f
                     workspaceBlock.AddInPlace(normalizationValue);

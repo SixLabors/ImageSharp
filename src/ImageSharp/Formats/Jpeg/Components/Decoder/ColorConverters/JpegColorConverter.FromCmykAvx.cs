@@ -18,6 +18,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
+            public override void ConvertFromRgbInplace(in ComponentValues values) => throw new System.NotImplementedException();
+
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
                 ref Vector256<float> c0Base =

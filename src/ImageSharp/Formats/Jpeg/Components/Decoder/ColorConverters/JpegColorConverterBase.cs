@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
         public abstract void ConvertToRgbInplace(in ComponentValues values);
 
-        public virtual void ConvertFromRgbInplace(in ComponentValues values) => throw new NotImplementedException("This is a test exception");
+        public abstract void ConvertFromRgbInplace(in ComponentValues values);
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for all supported colorspaces and precisions.

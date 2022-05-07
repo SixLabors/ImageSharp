@@ -11,55 +11,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
-        public JpegFrame(MemoryAllocator allocator, Image image, byte componentCount)
+        public JpegFrame(MemoryAllocator allocator, Image image, Decoder.JpegColorSpace colorSpace)
         {
+            this.ColorSpace = colorSpace;
+
             this.PixelWidth = image.Width;
             this.PixelHeight = image.Height;
 
-            if (componentCount != 3)
-            {
-                throw new ArgumentException("This is YCbCr debug path only.");
-            }
-
+            // int componentCount = 3;
             this.Components = new JpegComponent[]
             {
-                new JpegComponent(allocator, 1, 1, 0),
-                new JpegComponent(allocator, 1, 1, 0),
-                new JpegComponent(allocator, 1, 1, 0),
+                // RGB
+                new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
+                new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
+                new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
+
+                // YCbCr
+                //new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
+                //new JpegComponent(allocator, 1, 1, 1) { DcTableId = 2, AcTableId = 3 },
+                //new JpegComponent(allocator, 1, 1, 1) { DcTableId = 2, AcTableId = 3 },
+
+                // Luminance
+                //new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 }
             };
         }
 
-        /// <summary>
-        /// Gets the number of pixel per row.
-        /// </summary>
+        public Decoder.JpegColorSpace ColorSpace { get; }
+
         public int PixelHeight { get; private set; }
 
-        /// <summary>
-        /// Gets the number of pixels per line.
-        /// </summary>
         public int PixelWidth { get; private set; }
 
-        /// <summary>
-        /// Gets the number of components within a frame.
-        /// </summary>
         public int ComponentCount => this.Components.Length;
 
-        /// <summary>
-        /// Gets the frame component collection.
-        /// </summary>
         public JpegComponent[] Components { get; }
 
-        /// <summary>
-        /// Gets or sets the number of MCU's per line.
-        /// </summary>
         public int McusPerLine { get; set; }
 
-        /// <summary>
-        /// Gets or sets the number of MCU's per column.
-        /// </summary>
         public int McusPerColumn { get; set; }
 
-        /// <inheritdoc/>
         public void Dispose()
         {
             for (int i = 0; i < this.Components.Length; i++)
@@ -68,11 +58,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
         }
 
-        /// <summary>
-        /// Allocates the frame component blocks.
-        /// </summary>
-        /// <param name="maxSubFactorH">Maximal horizontal subsampling factor among all the components.</param>
-        /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
         public void Init(int maxSubFactorH, int maxSubFactorV)
         {
             this.McusPerLine = (int)Numerics.DivideCeil((uint)this.PixelWidth, (uint)maxSubFactorH * 8);

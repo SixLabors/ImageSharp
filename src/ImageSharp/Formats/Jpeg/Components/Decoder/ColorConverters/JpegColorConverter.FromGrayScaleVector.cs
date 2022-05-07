@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
             {
                 ref Vector<float> cBase =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -31,8 +31,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
-            protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromGrayscaleScalar.ConvertCoreInplace(values.Component0, this.MaximumValue);
+            protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
+                => FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component0, this.MaximumValue);
+
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
+            {
+                ref Vector<float> cBase =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
+
+                var scale = new Vector<float>(this.MaximumValue);
+
+                nint n = values.Component0.Length / Vector<float>.Count;
+                for (nint i = 0; i < n; i++)
+                {
+                    ref Vector<float> c0 = ref Unsafe.Add(ref cBase, i);
+                    c0 *= scale;
+                }
+            }
+
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
+                => FromGrayscaleScalar.ConvertCoreInplaceFromRgb(values.Component0, this.MaximumValue);
         }
     }
 }

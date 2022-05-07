@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
             {
                 ref Vector<float> c0Base =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -67,8 +67,56 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
-            protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromYCbCrScalar.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+            protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
+                => FromYCbCrScalar.ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
+
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
+            {
+                ref Vector<float> c0Base =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
+                ref Vector<float> c1Base =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
+                ref Vector<float> c2Base =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
+
+                var chromaOffset = new Vector<float>(this.HalfValue);
+
+                var scale = new Vector<float>(this.MaximumValue);
+
+                var rYMult = new Vector<float>(0.299f);
+                var gYMult = new Vector<float>(0.587f);
+                var bYMult = new Vector<float>(0.114f);
+
+                var rCbMult = new Vector<float>(0.168736f);
+                var gCbMult = new Vector<float>(0.331264f);
+                var bCbMult = new Vector<float>(0.5f);
+
+                var rCrMult = new Vector<float>(0.5f);
+                var gCrMult = new Vector<float>(0.418688f);
+                var bCrMult = new Vector<float>(0.081312f);
+
+                nint n = values.Component0.Length / Vector<float>.Count;
+                for (nint i = 0; i < n; i++)
+                {
+                    ref Vector<float> c0 = ref Unsafe.Add(ref c0Base, i);
+                    ref Vector<float> c1 = ref Unsafe.Add(ref c1Base, i);
+                    ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
+
+                    Vector<float> r = c0 * scale;
+                    Vector<float> g = c1 * scale;
+                    Vector<float> b = c2 * scale;
+
+                    // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
+                    // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
+                    // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
+                    c0 = (rYMult * r) + (gYMult * g) + (bYMult * b);
+                    c1 = chromaOffset - (rCbMult * r) - (gCbMult * g) + (bCbMult * b);
+                    c2 = chromaOffset + (rCrMult * r) - (gCrMult * g) - (bCrMult * b);
+                }
+            }
+
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
+                => FromYCbCrScalar.ConvertCoreInplaceFromRgb(values, this.MaximumValue, this.HalfValue);
         }
     }
 }

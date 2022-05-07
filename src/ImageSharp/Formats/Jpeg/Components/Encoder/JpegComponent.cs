@@ -62,12 +62,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Gets or sets the index for the DC Huffman table.
         /// </summary>
-        public int DcTableId { get; set; } = 0; // TODO: DEBUG!!!
+        public int DcTableId { get; set; }
 
         /// <summary>
         /// Gets or sets the index for the AC Huffman table.
         /// </summary>
-        public int AcTableId { get; set; } = 1; // TODO: DEBUG!!!
+        public int AcTableId { get; set; }
 
         /// <inheritdoc/>
         public void Dispose()

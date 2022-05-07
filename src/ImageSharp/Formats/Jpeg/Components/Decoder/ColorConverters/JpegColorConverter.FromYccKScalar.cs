@@ -38,6 +38,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     c2[i] = (maxValue - MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * scaledK;
                 }
             }
+
+            public override void ConvertFromRgbInplace(in ComponentValues values) => throw new NotImplementedException();
         }
     }
 }

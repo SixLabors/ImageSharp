@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
             {
                 ref Vector<float> c0Base =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -68,8 +68,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
-            protected override void ConvertCoreInplace(in ComponentValues values) =>
+            protected override void ConvertCoreInplaceToRgb(in ComponentValues values) =>
                 FromYccKScalar.ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values) => throw new System.NotImplementedException();
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values) => throw new System.NotImplementedException();
         }
     }
 }

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            protected override void ConvertCoreVectorizedInplace(in ComponentValues values)
+            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
             {
                 ref Vector<float> rBase =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -39,8 +39,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
-            protected override void ConvertCoreInplace(in ComponentValues values) =>
-                FromRgbScalar.ConvertCoreInplace(values, this.MaximumValue);
+            protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
+                => FromRgbScalar.ConvertCoreInplaceToRgb(values, this.MaximumValue);
+
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
+            {
+                ref Vector<float> rBase =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
+                ref Vector<float> gBase =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
+                ref Vector<float> bBase =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
+
+                var scale = new Vector<float>(this.MaximumValue);
+
+                nint n = values.Component0.Length / Vector<float>.Count;
+                for (nint i = 0; i < n; i++)
+                {
+                    ref Vector<float> r = ref Unsafe.Add(ref rBase, i);
+                    ref Vector<float> g = ref Unsafe.Add(ref gBase, i);
+                    ref Vector<float> b = ref Unsafe.Add(ref bBase, i);
+                    r *= scale;
+                    g *= scale;
+                    b *= scale;
+                }
+            }
+
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
+                => FromRgbScalar.ConvertCoreInplaceFromRgb(values, this.MaximumValue);
         }
     }
 }

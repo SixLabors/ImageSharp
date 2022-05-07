@@ -128,13 +128,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
         }
 
-        public void Encode<TPixel>(Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
+        public void EncodeScan<TPixel>(JpegFrame frame, Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // DEBUG INITIALIZATION SETUP
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
-            var frame = new JpegFrame(configuration.MemoryAllocator, image, componentCount: 3);
             frame.Init(1, 1);
             frame.AllocateComponents(fullScan: false);
 

@@ -21,9 +21,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             public override void ConvertToRgbInplace(in ComponentValues values)
-                => ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+                => ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
 
-            internal static void ConvertCoreInplace(in ComponentValues values, float maxValue, float halfValue)
+            public override void ConvertFromRgbInplace(in ComponentValues values)
+                => ConvertCoreInplaceFromRgb(values, this.MaximumValue, this.HalfValue);
+
+            public static void ConvertCoreInplaceToRgb(in ComponentValues values, float maxValue, float halfValue)
             {
                 Span<float> c0 = values.Component0;
                 Span<float> c1 = values.Component1;
@@ -43,6 +46,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     c0[i] = MathF.Round(y + (RCrMult * cr), MidpointRounding.AwayFromZero) * scale;
                     c1[i] = MathF.Round(y - (GCbMult * cb) - (GCrMult * cr), MidpointRounding.AwayFromZero) * scale;
                     c2[i] = MathF.Round(y + (BCbMult * cb), MidpointRounding.AwayFromZero) * scale;
+                }
+            }
+
+            public static void ConvertCoreInplaceFromRgb(in ComponentValues values, float maxValue, float halfValue)
+            {
+                Span<float> c0 = values.Component0;
+                Span<float> c1 = values.Component1;
+                Span<float> c2 = values.Component2;
+
+                float scale = maxValue;
+
+                for (int i = 0; i < c0.Length; i++)
+                {
+                    float r = c0[i] * scale;
+                    float g = c1[i] * scale;
+                    float b = c2[i] * scale;
+
+                    // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
+                    // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
+                    // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
+                    c0[i] = (0.299f * r) + (0.587f * g) + (0.114f * b);
+                    c1[i] = 128 - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
+                    c2[i] = 128 + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
                 }
             }
         }

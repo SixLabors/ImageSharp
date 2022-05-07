@@ -12,14 +12,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRgbInplace(in ComponentValues values) =>
-                ConvertCoreInplace(values, this.MaximumValue);
+            public override void ConvertToRgbInplace(in ComponentValues values)
+                => ConvertCoreInplaceFromRgb(values, this.MaximumValue);
 
-            internal static void ConvertCoreInplace(ComponentValues values, float maxValue)
+            public override void ConvertFromRgbInplace(in ComponentValues values)
+                => ConvertCoreInplaceFromRgb(values, this.MaximumValue);
+
+            internal static void ConvertCoreInplaceToRgb(ComponentValues values, float maxValue)
             {
-                FromGrayscaleScalar.ConvertCoreInplace(values.Component0, maxValue);
-                FromGrayscaleScalar.ConvertCoreInplace(values.Component1, maxValue);
-                FromGrayscaleScalar.ConvertCoreInplace(values.Component2, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component0, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component1, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component2, maxValue);
+            }
+
+            internal static void ConvertCoreInplaceFromRgb(ComponentValues values, float maxValue)
+            {
+                FromGrayscaleScalar.ConvertCoreInplaceFromRgb(values.Component0, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplaceFromRgb(values.Component1, maxValue);
+                FromGrayscaleScalar.ConvertCoreInplaceFromRgb(values.Component2, maxValue);
             }
         }
     }

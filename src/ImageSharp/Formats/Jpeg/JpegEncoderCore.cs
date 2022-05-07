@@ -131,13 +131,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the scan header.
             this.WriteStartOfScan(componentCount, componentIds);
 
+            var frame = new Components.Encoder.JpegFrame(Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.colorType.Value));
             var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
-            new HuffmanScanEncoder(3, stream).Encode(image, quantTables, Configuration.Default, cancellationToken);
+            new HuffmanScanEncoder(3, stream).EncodeScan(frame, image, quantTables, Configuration.Default, cancellationToken);
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();
 
             stream.Flush();
+
+            static JpegColorSpace GetTargetColorSpace(JpegColorType colorType)
+            {
+                switch (colorType)
+                {
+                    case JpegColorType.YCbCrRatio444:
+                    case JpegColorType.YCbCrRatio422:
+                    case JpegColorType.YCbCrRatio420:
+                    case JpegColorType.YCbCrRatio411:
+                    case JpegColorType.YCbCrRatio410:
+                        return JpegColorSpace.YCbCr;
+                    case JpegColorType.Rgb:
+                        return JpegColorSpace.RGB;
+                    case JpegColorType.Cmyk:
+                        return JpegColorSpace.Cmyk;
+                    case JpegColorType.Luminance:
+                        return JpegColorSpace.Grayscale;
+                    default:
+                        throw new NotImplementedException($"Unknown output color space: {colorType}");
+                }
+            }
         }
 
         /// <summary>

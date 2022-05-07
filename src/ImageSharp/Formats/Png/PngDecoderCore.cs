@@ -19,6 +19,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -205,6 +206,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
+                                break;
+                            case PngChunkType.EmbeddedColorProfile:
+                                this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.End:
                                 goto EOF;
@@ -1172,6 +1176,58 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
             return true;
+        }
+
+        /// <summary>
+        /// Reads the color profile chunk. The data is stored similar to the zTXt chunk.
+        /// </summary>
+        /// <param name="metadata">The metadata.</param>
+        /// <param name="data">The bytes containing the profile.</param>
+        private void ReadColorProfileChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        {
+            int zeroIndex = data.IndexOf((byte)0);
+            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
+            {
+                return;
+            }
+
+            byte compressionMethod = data[zeroIndex + 1];
+            if (compressionMethod != 0)
+            {
+                // Only compression method 0 is supported (zlib datastream with deflate compression).
+                return;
+            }
+
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
+            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            {
+                return;
+            }
+
+            ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
+
+            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
+            using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
+            using (var inflateStream = new ZlibInflateStream(bufferedStream))
+            {
+                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+                {
+                    return;
+                }
+
+                var uncompressedBytes = new List<byte>();
+
+                // Note: this uses a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
+                int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                while (bytesRead != 0)
+                {
+                    uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
+                    bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                }
+
+                byte[] iccpProfileBytes = uncompressedBytes.ToArray();
+                metadata.IccProfile = new IccProfile(iccpProfileBytes);
+            }
         }
 
         /// <summary>

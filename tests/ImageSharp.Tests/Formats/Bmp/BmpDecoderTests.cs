@@ -29,10 +29,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         public static readonly string[] BitfieldsBmpFiles = BitFields;
 
-        private static BmpDecoder BmpDecoder => new BmpDecoder();
+        private static BmpDecoder BmpDecoder => new();
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
+        new()
         {
             { Car, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
             { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },

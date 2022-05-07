@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
             this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
             this.WriteImage(stream, image.Frames.RootFrame);
-            this.WriteColorProfile(stream, metadata, buffer);
+            this.WriteColorProfile(stream, iccProfileData, buffer);
 
             stream.Flush();
         }
@@ -246,14 +246,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Writes the color profile to the stream.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
-        /// <param name="metadata">The metadata.</param>
+        /// <param name="iccProfileData">The color profile data.</param>
         /// <param name="buffer">The buffer.</param>
-        private void WriteColorProfile(Stream stream, ImageMetadata metadata, Span<byte> buffer)
+        private void WriteColorProfile(Stream stream, byte[] iccProfileData, Span<byte> buffer)
         {
-            if (metadata.IccProfile != null)
+            if (iccProfileData != null)
             {
-                int streamPositionAfterImageData = (int)stream.Position;
-                stream.Write(metadata.IccProfile.ToByteArray());
+                // The offset, in bytes, from the beginning of the BITMAPV5HEADER structure to the start of the profile data.
+                int streamPositionAfterImageData = (int)stream.Position - BmpFileHeader.Size;
+                stream.Write(iccProfileData);
                 BinaryPrimitives.WriteInt32LittleEndian(buffer, streamPositionAfterImageData);
                 stream.Position = BmpFileHeader.Size + 112;
                 stream.Write(buffer.Slice(0, 4));

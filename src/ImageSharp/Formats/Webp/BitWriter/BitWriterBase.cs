@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         }
 
         /// <summary>
-        /// Calculates the chunk size of EXIF or XMP metadata.
+        /// Calculates the chunk size of EXIF, XMP or ICCP metadata.
         /// </summary>
         /// <param name="metadataBytes">The metadata profile bytes.</param>
         /// <returns>The metadata chunk size in bytes.</returns>
@@ -209,11 +209,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="stream">The stream to write to.</param>
         /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
         /// <param name="xmpProfile">A XMP profile or null, if it does not exist.</param>
-        /// <param name="iccProfile">The color profile.</param>
+        /// <param name="iccProfileBytes">The color profile bytes.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, IccProfile iccProfile, uint width, uint height, bool hasAlpha)
+        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, byte[] iccProfileBytes, uint width, uint height, bool hasAlpha)
         {
             if (width > MaxDimension || height > MaxDimension)
             {
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                 flags |= 16;
             }
 
-            if (iccProfile != null)
+            if (iccProfileBytes != null)
             {
                 // Set iccp flag.
                 flags |= 32;

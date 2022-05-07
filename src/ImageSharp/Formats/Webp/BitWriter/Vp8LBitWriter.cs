@@ -149,7 +149,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             if (exifProfile != null)
             {
                 isVp8X = true;
-                riffSize += ExtendedFileChunkSize;
                 exifBytes = exifProfile.ToByteArray();
                 riffSize += this.MetadataChunkSize(exifBytes);
             }
@@ -157,7 +156,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             if (xmpProfile != null)
             {
                 isVp8X = true;
-                riffSize += ExtendedFileChunkSize;
                 xmpBytes = xmpProfile.Data;
                 riffSize += this.MetadataChunkSize(xmpBytes);
             }
@@ -165,9 +163,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             if (iccProfile != null)
             {
                 isVp8X = true;
-                riffSize += ExtendedFileChunkSize;
                 iccBytes = iccProfile.ToByteArray();
                 riffSize += this.MetadataChunkSize(iccBytes);
+            }
+
+            if (isVp8X)
+            {
+                riffSize += ExtendedFileChunkSize;
             }
 
             this.Finish();
@@ -182,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             // Write VP8X, header if necessary.
             if (isVp8X)
             {
-                this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha);
+                this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccBytes, width, height, hasAlpha);
 
                 if (iccBytes != null)
                 {

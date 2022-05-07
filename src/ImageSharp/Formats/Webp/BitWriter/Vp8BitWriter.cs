@@ -481,7 +481,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
 
             // Emit headers and partition #0
-            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, iccProfile, hasAlpha, alphaData, alphaDataIsCompressed);
+            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, iccProfileBytes, hasAlpha, alphaData, alphaDataIsCompressed);
             bitWriterPartZero.WriteToStream(stream);
 
             // Write the encoded image to the stream.
@@ -679,7 +679,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             uint height,
             ExifProfile exifProfile,
             XmpProfile xmpProfile,
-            IccProfile iccProfile,
+            byte[] iccProfileBytes,
             bool hasAlpha,
             Span<byte> alphaData,
             bool alphaDataIsCompressed)
@@ -689,11 +689,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             // Write VP8X, header if necessary.
             if (isVp8X)
             {
-                this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha);
+                this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfileBytes, width, height, hasAlpha);
 
-                if (iccProfile != null)
+                if (iccProfileBytes != null)
                 {
-                    this.WriteColorProfile(stream, iccProfile.ToByteArray());
+                    this.WriteColorProfile(stream, iccProfileBytes);
                 }
 
                 if (hasAlpha)

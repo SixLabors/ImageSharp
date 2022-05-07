@@ -88,6 +88,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IMemoryOwner<byte> currentScanline;
 
         /// <summary>
+        /// The color profile name.
+        /// </summary>
+        private const string ProfileName = "ICC Profile";
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
@@ -134,6 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.WriteHeaderChunk(stream);
             this.WriteGammaChunk(stream);
+            this.WriteColorProfileChunk(stream, metadata);
             this.WritePaletteChunk(stream, quantized);
             this.WriteTransparencyChunk(stream, pngMetadata);
             this.WritePhysicalChunk(stream, metadata);
@@ -656,7 +662,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Writes an iTXT chunk, containing the XMP metdata to the stream, if such profile is present in the metadata.
+        /// Writes an iTXT chunk, containing the XMP metadata to the stream, if such profile is present in the metadata.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="meta">The image metadata.</param>
@@ -673,7 +679,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            var xmpData = meta.XmpProfile.Data;
+            byte[] xmpData = meta.XmpProfile.Data;
 
             if (xmpData.Length == 0)
             {
@@ -687,16 +693,45 @@ namespace SixLabors.ImageSharp.Formats.Png
                 PngConstants.XmpKeyword.CopyTo(payload);
                 int bytesWritten = PngConstants.XmpKeyword.Length;
 
-                // Write the iTxt header (all zeros in this case)
+                // Write the iTxt header (all zeros in this case).
                 payload[bytesWritten++] = 0;
                 payload[bytesWritten++] = 0;
                 payload[bytesWritten++] = 0;
                 payload[bytesWritten++] = 0;
                 payload[bytesWritten++] = 0;
 
-                // And the XMP data itself
+                // And the XMP data itself.
                 xmpData.CopyTo(payload.Slice(bytesWritten));
                 this.WriteChunk(stream, PngChunkType.InternationalText, payload);
+            }
+        }
+
+        /// <summary>
+        /// Writes the color profile chunk.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="metaData">The image meta data.</param>
+        private void WriteColorProfileChunk(Stream stream, ImageMetadata metaData)
+        {
+            if (metaData.IccProfile is null)
+            {
+                return;
+            }
+
+            string profileName = "ICC Profile";
+            byte[] iccProfileBytes = metaData.IccProfile.ToByteArray();
+
+            byte[] compressedData = this.GetZlibCompressedBytes(iccProfileBytes);
+            int payloadLength = profileName.Length + compressedData.Length + 2;
+            using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
+            {
+                Span<byte> outputBytes = owner.GetSpan();
+                PngConstants.Encoding.GetBytes(profileName).CopyTo(outputBytes);
+                int bytesWritten = profileName.Length;
+                outputBytes[bytesWritten++] = 0; // Null separator.
+                outputBytes[bytesWritten++] = 0; // Compression.
+                compressedData.CopyTo(outputBytes.Slice(bytesWritten));
+                this.WriteChunk(stream, PngChunkType.EmbeddedColorProfile, outputBytes);
             }
         }
 
@@ -727,13 +762,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
-                if (hasUnicodeCharacters || (!string.IsNullOrWhiteSpace(textData.LanguageTag) ||
-                                             !string.IsNullOrWhiteSpace(textData.TranslatedKeyword)))
+                if (hasUnicodeCharacters || (!string.IsNullOrWhiteSpace(textData.LanguageTag) || !string.IsNullOrWhiteSpace(textData.TranslatedKeyword)))
                 {
                     // Write iTXt chunk.
                     byte[] keywordBytes = PngConstants.Encoding.GetBytes(textData.Keyword);
                     byte[] textBytes = textData.Value.Length > this.options.TextCompressionThreshold
-                        ? this.GetCompressedTextBytes(PngConstants.TranslatedEncoding.GetBytes(textData.Value))
+                        ? this.GetZlibCompressedBytes(PngConstants.TranslatedEncoding.GetBytes(textData.Value))
                         : PngConstants.TranslatedEncoding.GetBytes(textData.Value);
 
                     byte[] translatedKeyword = PngConstants.TranslatedEncoding.GetBytes(textData.TranslatedKeyword);
@@ -772,18 +806,17 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (textData.Value.Length > this.options.TextCompressionThreshold)
                     {
                         // Write zTXt chunk.
-                        byte[] compressedData =
-                            this.GetCompressedTextBytes(PngConstants.Encoding.GetBytes(textData.Value));
+                        byte[] compressedData = this.GetZlibCompressedBytes(PngConstants.Encoding.GetBytes(textData.Value));
                         int payloadLength = textData.Keyword.Length + compressedData.Length + 2;
                         using (IMemoryOwner<byte> owner = this.memoryAllocator.Allocate<byte>(payloadLength))
                         {
                             Span<byte> outputBytes = owner.GetSpan();
                             PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
                             int bytesWritten = textData.Keyword.Length;
-                            outputBytes[bytesWritten++] = 0;
-                            outputBytes[bytesWritten++] = 0;
+                            outputBytes[bytesWritten++] = 0; // Null separator.
+                            outputBytes[bytesWritten++] = 0; // Compression.
                             compressedData.CopyTo(outputBytes.Slice(bytesWritten));
-                            this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes.ToArray());
+                            this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes);
                         }
                     }
                     else
@@ -796,9 +829,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                             PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
                             int bytesWritten = textData.Keyword.Length;
                             outputBytes[bytesWritten++] = 0;
-                            PngConstants.Encoding.GetBytes(textData.Value)
-                                .CopyTo(outputBytes.Slice(bytesWritten));
-                            this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
+                            PngConstants.Encoding.GetBytes(textData.Value).CopyTo(outputBytes.Slice(bytesWritten));
+                            this.WriteChunk(stream, PngChunkType.Text, outputBytes);
                         }
                     }
                 }
@@ -808,15 +840,15 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Compresses a given text using Zlib compression.
         /// </summary>
-        /// <param name="textBytes">The text bytes to compress.</param>
-        /// <returns>The compressed text byte array.</returns>
-        private byte[] GetCompressedTextBytes(byte[] textBytes)
+        /// <param name="dataBytes">The bytes to compress.</param>
+        /// <returns>The compressed byte array.</returns>
+        private byte[] GetZlibCompressedBytes(byte[] dataBytes)
         {
             using (var memoryStream = new MemoryStream())
             {
                 using (var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, this.options.CompressionLevel))
                 {
-                    deflateStream.Write(textBytes);
+                    deflateStream.Write(dataBytes);
                 }
 
                 return memoryStream.ToArray();

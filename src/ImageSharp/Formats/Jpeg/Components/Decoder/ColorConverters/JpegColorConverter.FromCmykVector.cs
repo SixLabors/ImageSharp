@@ -46,7 +46,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values) =>
                 FromCmykScalar.ConvertCoreInplace(values, this.MaximumValue);
+
             protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values) => throw new System.NotImplementedException();
+
             protected override void ConvertCoreInplaceFromRgb(in ComponentValues values) => throw new System.NotImplementedException();
         }
     }

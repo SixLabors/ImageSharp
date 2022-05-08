@@ -44,6 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private JpegColorType? colorType;
 
+        private JpegFrameConfig frameConfig;
+
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
@@ -53,14 +55,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options.</param>
-        public JpegEncoderCore(IJpegEncoderOptions options)
+        public JpegEncoderCore(IJpegEncoderOptions options, JpegFrameConfig frameConfig)
         {
             this.quality = options.Quality;
 
-            if (IsSupportedColorType(options.ColorType))
-            {
-                this.colorType = options.ColorType;
-            }
+            this.frameConfig = frameConfig;
+            this.colorType = frameConfig.ColorType;
         }
 
         /// <summary>
@@ -86,12 +86,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
-
-            // If the color type was not specified by the user, preserve the color type of the input image.
-            if (!this.colorType.HasValue)
-            {
-                this.colorType = GetFallbackColorType(image);
-            }
 
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
@@ -131,9 +125,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the scan header.
             this.WriteStartOfScan(componentCount, componentIds);
 
-            var frame = new Components.Encoder.JpegFrame(Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.colorType.Value));
+            var frame = new Components.Encoder.JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.ColorType));
             var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
-            new HuffmanScanEncoder(3, stream).EncodeScan(frame, image, quantTables, Configuration.Default, cancellationToken);
+            new HuffmanScanEncoder(3, stream).EncodeInterleavedScan(frame, image, quantTables, Configuration.Default, cancellationToken);
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();

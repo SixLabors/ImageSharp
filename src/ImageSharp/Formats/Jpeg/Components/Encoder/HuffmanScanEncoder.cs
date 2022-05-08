@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
         }
 
-        public void EncodeScan<TPixel>(JpegFrame frame, Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
+        public void EncodeInterleavedScan<TPixel>(JpegFrame frame, Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // DEBUG INITIALIZATION SETUP
@@ -197,6 +197,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
 
             this.FlushRemainingBytes();
+        }
+
+        public void EncodeSingleComponentScan<TPixel>(JpegFrame frame, Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
         }
 
         /// <summary>

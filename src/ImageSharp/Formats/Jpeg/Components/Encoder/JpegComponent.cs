@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     {
         private readonly MemoryAllocator memoryAllocator;
 
-        public JpegComponent(MemoryAllocator memoryAllocator, int horizontalFactor, int verticalFactor, byte quantizationTableIndex)
+        public JpegComponent(MemoryAllocator memoryAllocator, int horizontalFactor, int verticalFactor, int quantizationTableIndex)
         {
             this.memoryAllocator = memoryAllocator;
 

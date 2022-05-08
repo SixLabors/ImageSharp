@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
-        public JpegFrame(MemoryAllocator allocator, Image image, Decoder.JpegColorSpace colorSpace)
+        public JpegFrame(Jpeg.JpegFrameConfig frameConfig, MemoryAllocator allocator, Image image, Decoder.JpegColorSpace colorSpace)
         {
             this.ColorSpace = colorSpace;
 
@@ -19,21 +19,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.PixelHeight = image.Height;
 
             // int componentCount = 3;
-            this.Components = new JpegComponent[]
+            var componentConfigs = frameConfig.Components;
+            this.Components = new JpegComponent[componentConfigs.Length];
+            for (int i = 0; i < this.Components.Length; i++)
             {
-                // RGB
-                new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
-                new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
-                new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
-
-                // YCbCr
-                //new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 },
-                //new JpegComponent(allocator, 1, 1, 1) { DcTableId = 2, AcTableId = 3 },
-                //new JpegComponent(allocator, 1, 1, 1) { DcTableId = 2, AcTableId = 3 },
-
-                // Luminance
-                //new JpegComponent(allocator, 1, 1, 0) { DcTableId = 0, AcTableId = 1 }
-            };
+                var componentConfig = componentConfigs[i];
+                this.Components[i] = new JpegComponent(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
+                {
+                    DcTableId = componentConfig.dcTableSelector,
+                    AcTableId = componentConfig.acTableSelector,
+                };
+            }
         }
 
         public Decoder.JpegColorSpace ColorSpace { get; }

@@ -41,8 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
         /// This ratio uses half of the vertical and one-fourth the horizontal color resolutions.
-        ///
-        /// Note: Not supported by the encoder.
         /// </summary>
         YCbCrRatio410 = 4,
 
@@ -58,9 +56,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <summary>
         /// CMYK colorspace (cyan, magenta, yellow, and key black) intended for printing.
-        ///
-        /// Note: Not supported by the encoder.
         /// </summary>
         Cmyk = 7,
+
+        /// <summary>
+        /// YCCK colorspace.
+        /// </summary>
+        YccK = 8,
     }
 }

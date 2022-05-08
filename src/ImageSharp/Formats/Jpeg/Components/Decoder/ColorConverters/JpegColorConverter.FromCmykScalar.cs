@@ -15,9 +15,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             public override void ConvertToRgbInplace(in ComponentValues values) =>
-                ConvertCoreInplace(values, this.MaximumValue);
+                ConvertToRgbInplace(values, this.MaximumValue);
 
-            internal static void ConvertCoreInplace(in ComponentValues values, float maxValue)
+            public override void ConvertFromRgbInplace(in ComponentValues values)
+                => ConvertFromRgbInplace(values, this.MaximumValue);
+
+            public static void ConvertToRgbInplace(in ComponentValues values, float maxValue)
             {
                 Span<float> c0 = values.Component0;
                 Span<float> c1 = values.Component1;
@@ -39,7 +42,39 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values) => throw new NotImplementedException();
+            public static void ConvertFromRgbInplace(in ComponentValues values, float maxValue)
+            {
+                Span<float> c0 = values.Component0;
+                Span<float> c1 = values.Component1;
+                Span<float> c2 = values.Component2;
+                Span<float> c3 = values.Component3;
+
+                for (int i = 0; i < c0.Length; i++)
+                {
+                    float ctmp = 1f - c0[i];
+                    float mtmp = 1f - c1[i];
+                    float ytmp = 1f - c2[i];
+                    float ktmp = MathF.Min(MathF.Min(ctmp, mtmp), ytmp);
+
+                    if (1f - ktmp <= float.Epsilon)
+                    {
+                        ctmp = 0f;
+                        mtmp = 0f;
+                        ytmp = 0f;
+                    }
+                    else
+                    {
+                        ctmp = (ctmp - ktmp) / (1f - ktmp);
+                        mtmp = (mtmp - ktmp) / (1f - ktmp);
+                        ytmp = (ytmp - ktmp) / (1f - ktmp);
+                    }
+
+                    c0[i] = maxValue - (ctmp * maxValue);
+                    c1[i] = maxValue - (mtmp * maxValue);
+                    c2[i] = maxValue - (ytmp * maxValue);
+                    c3[i] = maxValue - (ktmp * maxValue);
+                }
+            }
         }
     }
 }

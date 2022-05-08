@@ -44,12 +44,51 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 }
             }
 
-            protected override void ConvertCoreInplaceToRgb(in ComponentValues values) =>
-                FromCmykScalar.ConvertCoreInplace(values, this.MaximumValue);
+            protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
+                 => FromCmykScalar.ConvertToRgbInplace(values, this.MaximumValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values) => throw new System.NotImplementedException();
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
+            {
+                ref Vector<float> c0Base =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
+                ref Vector<float> c1Base =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
+                ref Vector<float> c2Base =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
+                ref Vector<float> c3Base =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values) => throw new System.NotImplementedException();
+                // Used for the color conversion
+                var scale = new Vector<float>(this.MaximumValue);
+                var one = new Vector<float>(1f);
+
+                nint n = values.Component0.Length / Vector<float>.Count;
+                for (nint i = 0; i < n; i++)
+                {
+                    ref Vector<float> c0 = ref Unsafe.Add(ref c0Base, i);
+                    ref Vector<float> c1 = ref Unsafe.Add(ref c1Base, i);
+                    ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
+                    ref Vector<float> c3 = ref Unsafe.Add(ref c3Base, i);
+
+                    Vector<float> ctmp = one - c0;
+                    Vector<float> mtmp = one - c1;
+                    Vector<float> ytmp = one - c2;
+                    Vector<float> ktmp = Vector.Min(ctmp, Vector.Min(mtmp, ytmp));
+
+                    var kMask = Vector.Equals(ktmp, Vector<float>.One);
+                    ctmp = Vector.AndNot((ctmp - ktmp) / (one - ktmp), kMask.As<int, float>());
+                    mtmp = Vector.AndNot((mtmp - ktmp) / (one - ktmp), kMask.As<int, float>());
+                    ytmp = Vector.AndNot((ytmp - ktmp) / (one - ktmp), kMask.As<int, float>());
+
+                    c0 = scale - (ctmp * scale);
+                    c1 = scale - (mtmp * scale);
+                    c2 = scale - (ytmp * scale);
+                    c3 = scale - (ktmp * scale);
+                }
+            }
+
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
+                => FromCmykScalar.ConvertFromRgbInplace(values, this.MaximumValue);
         }
     }
 }

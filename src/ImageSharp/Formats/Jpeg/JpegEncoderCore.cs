@@ -87,12 +87,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
 
-            // Compute number of components based on color type in options.
-            int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
-
             // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
             // Initialize the quantization tables.
-            this.InitQuantizationTables(componentCount, jpegMetadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable);
+            this.InitQuantizationTables(this.frameConfig.Components.Length, jpegMetadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable);
 
             // Write the Start Of Image marker.
             this.WriteStartOfImage();
@@ -116,13 +113,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
 
             // Write the image dimensions.
-            this.WriteStartOfFrame(image.Width, image.Height, this.frameConfig.Components);
+            this.WriteStartOfFrame(image.Width, image.Height, this.frameConfig);
 
             // Write the Huffman tables.
-            this.WriteDefineHuffmanTables(componentCount);
+            this.WriteDefineHuffmanTables(this.frameConfig.Components.Length);
 
             // Write the scan header.
-            this.WriteStartOfScan(componentCount, this.frameConfig.Components);
+            this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
 
             var frame = new Components.Encoder.JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.ColorType));
             var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
@@ -636,8 +633,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="height">The height of the image.</param>
         /// <param name="componentCount">The number of components in a pixel.</param>
         /// <param name="componentIds">The component Id's.</param>
-        private void WriteStartOfFrame(int width, int height, JpegComponentConfig[] components)
+        private void WriteStartOfFrame(int width, int height, JpegFrameConfig frame)
         {
+            JpegComponentConfig[] components = frame.Components;
+
             // Length (high byte, low byte), 8 + components * 3.
             int markerlen = 8 + (3 * components.Length);
             this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen);

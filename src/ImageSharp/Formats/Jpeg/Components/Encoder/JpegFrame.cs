@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
-        public JpegFrame(Jpeg.JpegFrameConfig frameConfig, MemoryAllocator allocator, Image image, Decoder.JpegColorSpace colorSpace)
+        public JpegFrame(JpegFrameConfig frameConfig, MemoryAllocator allocator, Image image, Decoder.JpegColorSpace colorSpace)
         {
             this.ColorSpace = colorSpace;
 

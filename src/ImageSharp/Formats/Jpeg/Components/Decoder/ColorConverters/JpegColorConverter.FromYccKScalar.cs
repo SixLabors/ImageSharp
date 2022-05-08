@@ -15,9 +15,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             public override void ConvertToRgbInplace(in ComponentValues values) =>
-                ConvertCoreInplace(values, this.MaximumValue, this.HalfValue);
+                ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
 
-            internal static void ConvertCoreInplace(in ComponentValues values, float maxValue, float halfValue)
+            public override void ConvertFromRgbInplace(in ComponentValues values)
+                => throw new NotImplementedException();
+
+            public static void ConvertToRgpInplace(in ComponentValues values, float maxValue, float halfValue)
             {
                 Span<float> c0 = values.Component0;
                 Span<float> c1 = values.Component1;
@@ -38,8 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     c2[i] = (maxValue - MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * scaledK;
                 }
             }
-
-            public override void ConvertFromRgbInplace(in ComponentValues values) => throw new NotImplementedException();
         }
     }
 }

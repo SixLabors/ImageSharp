@@ -67,8 +67,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
                     // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
                     c0[i] = (0.299f * r) + (0.587f * g) + (0.114f * b);
-                    c1[i] = 128 - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
-                    c2[i] = 128 + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
+                    c1[i] = halfValue - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
+                    c2[i] = halfValue + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
                 }
             }
         }

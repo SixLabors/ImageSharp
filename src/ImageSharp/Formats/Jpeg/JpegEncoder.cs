@@ -53,10 +53,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
     public class JpegFrameConfig
     {
-        public JpegFrameConfig(JpegColorType colorType, int precision)
+        public JpegFrameConfig(JpegColorType colorType)
         {
             this.ColorType = colorType;
-            this.Precision = precision;
 
             int componentCount = GetComponentCountFromColorType(colorType);
             this.Components = new JpegComponentConfig[componentCount];
@@ -84,8 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         public JpegColorType ColorType { get; }
-
-        public int Precision { get; }
 
         public JpegComponentConfig[] Components { get; }
 

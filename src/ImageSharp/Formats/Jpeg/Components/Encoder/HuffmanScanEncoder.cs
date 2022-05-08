@@ -132,8 +132,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // DEBUG INITIALIZATION SETUP
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
-
             frame.Init(1, 1);
             frame.AllocateComponents(fullScan: false);
 
@@ -161,8 +159,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     {
                         JpegComponent component = frame.Components[k];
 
-                        ref HuffmanLut dcHuffmanTable = ref this.huffmanTables[component.DcTableId];
-                        ref HuffmanLut acHuffmanTable = ref this.huffmanTables[component.AcTableId];
+                        ref HuffmanLut dcHuffmanTable = ref HuffmanLut.DcHuffmanLut[component.DcTableId];
+                        ref HuffmanLut acHuffmanTable = ref HuffmanLut.AcHuffmanLut[component.AcTableId];
 
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;

@@ -89,7 +89,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Compute number of components based on color type in options.
             int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
-            ReadOnlySpan<byte> componentIds = this.GetComponentIds();
 
             // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
             // Initialize the quantization tables.
@@ -117,13 +116,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
 
             // Write the image dimensions.
-            this.WriteStartOfFrame(image.Width, image.Height, componentCount, componentIds);
+            this.WriteStartOfFrame(image.Width, image.Height, this.frameConfig.Components);
 
             // Write the Huffman tables.
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the scan header.
-            this.WriteStartOfScan(componentCount, componentIds);
+            this.WriteStartOfScan(componentCount, this.frameConfig.Components);
 
             var frame = new Components.Encoder.JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.ColorType));
             var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
@@ -199,15 +198,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             || colorType == JpegColorType.YCbCrRatio420
             || colorType == JpegColorType.Luminance
             || colorType == JpegColorType.Rgb;
-
-        /// <summary>
-        /// Gets the component ids.
-        /// For color space RGB this will be RGB as ASCII, otherwise 1, 2, 3.
-        /// </summary>
-        /// <returns>The component Ids.</returns>
-        private ReadOnlySpan<byte> GetComponentIds() => this.colorType == JpegColorType.Rgb
-                ? new ReadOnlySpan<byte>(new byte[] { 82, 71, 66 })
-                : new ReadOnlySpan<byte>(new byte[] { 1, 2, 3 });
 
         /// <summary>
         /// Writes data to "Define Quantization Tables" block for QuantIndex.
@@ -646,91 +636,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="height">The height of the image.</param>
         /// <param name="componentCount">The number of components in a pixel.</param>
         /// <param name="componentIds">The component Id's.</param>
-        private void WriteStartOfFrame(int width, int height, int componentCount, ReadOnlySpan<byte> componentIds)
+        private void WriteStartOfFrame(int width, int height, JpegComponentConfig[] components)
         {
-            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
-            // and doesn't incur any allocation at all.
-            // "default" to 4:2:0
-            ReadOnlySpan<byte> subsamples = new byte[]
-            {
-                0x22,
-                0x11,
-                0x11
-            };
-
-            ReadOnlySpan<byte> chroma = new byte[]
-            {
-                0x00,
-                0x01,
-                0x01
-            };
-
-            if (this.colorType == JpegColorType.Luminance)
-            {
-                subsamples = new byte[]
-                {
-                    0x11,
-                    0x00,
-                    0x00
-                };
-            }
-            else
-            {
-                switch (this.colorType)
-                {
-                    case JpegColorType.YCbCrRatio444:
-                    case JpegColorType.Rgb:
-                        subsamples = new byte[]
-                        {
-                            0x11,
-                            0x11,
-                            0x11
-                        };
-
-                        if (this.colorType == JpegColorType.Rgb)
-                        {
-                            chroma = new byte[]
-                            {
-                                0x00,
-                                0x00,
-                                0x00
-                            };
-                        }
-
-                        break;
-                    case JpegColorType.YCbCrRatio420:
-                        subsamples = new byte[]
-                        {
-                            0x22,
-                            0x11,
-                            0x11
-                        };
-                        break;
-                }
-            }
-
             // Length (high byte, low byte), 8 + components * 3.
-            int markerlen = 8 + (3 * componentCount);
+            int markerlen = 8 + (3 * components.Length);
             this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen);
             this.buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
             this.buffer[1] = (byte)(height >> 8);
             this.buffer[2] = (byte)(height & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
             this.buffer[3] = (byte)(width >> 8);
             this.buffer[4] = (byte)(width & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
-            this.buffer[5] = (byte)componentCount;
+            this.buffer[5] = (byte)components.Length;
 
-            for (int i = 0; i < componentCount; i++)
+            // Components data
+            for (int i = 0; i < components.Length; i++)
             {
                 int i3 = 3 * i;
-
-                // Component ID.
                 Span<byte> bufferSpan = this.buffer.AsSpan(i3 + 6, 3);
-                bufferSpan[2] = chroma[i];
-                bufferSpan[1] = subsamples[i];
-                bufferSpan[0] = componentIds[i];
+
+                // Quantization table selector
+                bufferSpan[2] = (byte)components[i].QuantizatioTableIndex;
+
+                // Sampling factors
+                // 4 bits
+                int samplingFactors = components[i].HorizontalSampleFactor | (components[i].VerticalSampleFactor << 4);
+                bufferSpan[1] = (byte)samplingFactors;
+
+                // Id
+                bufferSpan[0] = components[i].Id;
             }
 
-            this.outputStream.Write(this.buffer, 0, (3 * (componentCount - 1)) + 9);
+            this.outputStream.Write(this.buffer, 0, (3 * (components.Length - 1)) + 9);
         }
 
         /// <summary>
@@ -738,28 +674,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="componentCount">The number of components in a pixel.</param>
         /// <param name="componentIds">The componentId's.</param>
-        private void WriteStartOfScan(int componentCount, ReadOnlySpan<byte> componentIds)
+        private void WriteStartOfScan(int componentCount, JpegComponentConfig[] components)
         {
-            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
-            // and doesn't incur any allocation at all.
-            ReadOnlySpan<byte> huffmanId = new byte[]
-            {
-                0x00,
-                0x11,
-                0x11
-            };
-
-            // Use the same DC/AC tables for all channels for RGB.
-            if (this.colorType == JpegColorType.Rgb)
-            {
-                huffmanId = new byte[]
-                {
-                    0x00,
-                    0x00,
-                    0x00
-                };
-            }
-
             // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
             // - the marker length "\x00\x0c",
             // - the number of components "\x03",
@@ -777,11 +693,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[2] = 0x00;
             this.buffer[3] = (byte)sosSize;
             this.buffer[4] = (byte)componentCount; // Number of components in a scan
+
+            // Components data
             for (int i = 0; i < componentCount; i++)
             {
                 int i2 = 2 * i;
-                this.buffer[i2 + 5] = componentIds[i]; // Component Id
-                this.buffer[i2 + 6] = huffmanId[i]; // DC/AC Huffman table
+
+                // Id
+                this.buffer[i2 + 5] = components[i].Id;
+
+                // Table selectors
+                int tableSelectors = (components[i].dcTableSelector << 4) | (components[i].acTableSelector);
+                this.buffer[i2 + 6] = (byte)tableSelectors;
             }
 
             this.buffer[sosSize - 1] = 0x00; // Ss - Start of spectral selection.

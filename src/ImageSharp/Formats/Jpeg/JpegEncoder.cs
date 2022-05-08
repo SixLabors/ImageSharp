@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         public JpegComponentConfig[] Components { get; }
 
-        public JpegFrameConfig PopulateComponent(int index, int id, int hsf, int vsf, int quantIndex, int dcIndex, int acIndex)
+        public JpegFrameConfig PopulateComponent(int index, byte id, int hsf, int vsf, int quantIndex, int dcIndex, int acIndex)
         {
             this.Components[index] = new JpegComponentConfig
             {
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
     public class JpegComponentConfig
     {
-        public int Id { get; set; }
+        public byte Id { get; set; }
 
         public int HorizontalSampleFactor { get; set; }
 

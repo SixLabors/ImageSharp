@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {

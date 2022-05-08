@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -46,7 +44,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void GetConverterThrowsExceptionOnInvalidColorSpace()
         {
-            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.Undefined, 8));
+            var invalidColorSpace = (JpegColorSpace)(-1);
+            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(invalidColorSpace, 8));
         }
 
         [Fact]
@@ -357,7 +356,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 case JpegColorSpace.YCbCr:
                     ValidateYCbCr(original, result, i);
                     break;
-                case JpegColorSpace.Undefined:
                 default:
                     Assert.True(false, $"Invalid Colorspace enum value: {colorSpace}.");
                     break;

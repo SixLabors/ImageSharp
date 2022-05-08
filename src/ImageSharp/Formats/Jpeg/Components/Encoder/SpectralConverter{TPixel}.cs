@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private int alignedPixelWidth;
 
-        private Decoder.ColorConverters.JpegColorConverterBase colorConverter;
+        private JpegColorConverterBase colorConverter;
 
         public SpectralConverter(Configuration configuration) =>
             this.configuration = configuration;
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.rgbBuffer = allocator.Allocate<byte>(this.alignedPixelWidth * 3);
 
             // color converter from Rgb24 to YCbCr
-            this.colorConverter = Decoder.ColorConverters.JpegColorConverterBase.GetConverter(colorSpace: frame.ColorSpace, precision: 8);
+            this.colorConverter = JpegColorConverterBase.GetConverter(colorSpace: frame.ColorSpace, precision: 8);
         }
 
         public void ConvertStrideBaseline()
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(yy);
                 PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(this.configuration, r, g, b, sourceRow);
 
-                var values = new Decoder.ColorConverters.JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
+                var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
 
                 SimdUtils.ByteToNormalizedFloat(r, values.Component0);
                 SimdUtils.ByteToNormalizedFloat(g, values.Component1);

@@ -33,18 +33,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 { TestImages.Jpeg.Progressive.Fb, 75 }
             };
 
-        public static readonly TheoryData<JpegColorType, int> BitsPerPixel_Quality =
+        public static readonly TheoryData<JpegEncodingMode, int> BitsPerPixel_Quality =
             new()
             {
-                { JpegColorType.YCbCrRatio420, 40 },
-                { JpegColorType.YCbCrRatio420, 60 },
-                { JpegColorType.YCbCrRatio420, 100 },
-                { JpegColorType.YCbCrRatio444, 40 },
-                { JpegColorType.YCbCrRatio444, 60 },
-                { JpegColorType.YCbCrRatio444, 100 },
-                { JpegColorType.Rgb, 40 },
-                { JpegColorType.Rgb, 60 },
-                { JpegColorType.Rgb, 100 }
+                { JpegEncodingMode.YCbCrRatio420, 40 },
+                { JpegEncodingMode.YCbCrRatio420, 60 },
+                { JpegEncodingMode.YCbCrRatio420, 100 },
+                { JpegEncodingMode.YCbCrRatio444, 40 },
+                { JpegEncodingMode.YCbCrRatio444, 60 },
+                { JpegEncodingMode.YCbCrRatio444, 100 },
+                { JpegEncodingMode.Rgb, 40 },
+                { JpegEncodingMode.Rgb, 60 },
+                { JpegEncodingMode.Rgb, 100 }
             };
 
         public static readonly TheoryData<int> Grayscale_Quality =
@@ -64,11 +64,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             };
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32, JpegColorType.Luminance)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgba32, JpegColorType.YCbCrRatio420)]
-        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, JpegColorType.Rgb)]
-        public void Encode_PreservesColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32, JpegEncodingMode.Luminance)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32, JpegEncodingMode.YCbCrRatio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgba32, JpegEncodingMode.YCbCrRatio420)]
+        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgba32, JpegEncodingMode.Rgb)]
+        public void Encode_PreservesColorType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingMode expectedColorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
@@ -107,15 +107,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             memoryStream.Position = 0;
             using var output = Image.Load<Rgba32>(memoryStream);
             JpegMetadata meta = output.Metadata.GetJpegMetadata();
-            Assert.Equal(JpegColorType.YCbCrRatio420, meta.ColorType);
+            Assert.Equal(JpegEncodingMode.YCbCrRatio420, meta.ColorType);
         }
 
         [Theory]
-        [InlineData(JpegColorType.Cmyk)]
-        [InlineData(JpegColorType.YCbCrRatio410)]
-        [InlineData(JpegColorType.YCbCrRatio411)]
-        [InlineData(JpegColorType.YCbCrRatio422)]
-        public void Encode_WithUnsupportedColorType_DefaultsToYCbCr420(JpegColorType colorType)
+        [InlineData(JpegEncodingMode.Cmyk)]
+        [InlineData(JpegEncodingMode.YCbCrRatio410)]
+        [InlineData(JpegEncodingMode.YCbCrRatio411)]
+        [InlineData(JpegEncodingMode.YCbCrRatio422)]
+        public void Encode_WithUnsupportedColorType_DefaultsToYCbCr420(JpegEncodingMode colorType)
         {
             // arrange
             var jpegEncoder = new JpegEncoder() { ColorType = colorType };
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             memoryStream.Position = 0;
             using var output = Image.Load<Rgba32>(memoryStream);
             JpegMetadata meta = output.Metadata.GetJpegMetadata();
-            Assert.Equal(JpegColorType.YCbCrRatio420, meta.ColorType);
+            Assert.Equal(JpegEncodingMode.YCbCrRatio420, meta.ColorType);
         }
 
         [Theory]
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
-        public void EncodeBaseline_CalliphoraPartial<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+        public void EncodeBaseline_CalliphoraPartial<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingMode colorType, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
         [Theory]
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 153, 21, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 600, 400, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 138, 24, PixelTypes.Rgba32)]
-        public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+        public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingMode colorType, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
         [Theory]
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
-        public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+        public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingMode colorType, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.12f));
 
         [Theory]
@@ -188,27 +188,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La16, 100)]
         [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La32, 100)]
         public void EncodeBaseline_Grayscale<TPixel>(TestImageProvider<TPixel> provider, int quality)
-            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, JpegColorType.Luminance, quality);
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, JpegEncodingMode.Luminance, quality);
 
         [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 96, 96, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
-        public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+        public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingMode colorType, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
         [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
-        public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
+        public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingMode colorType, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.06f));
 
         [Theory]
-        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
-        [WithTestPatternImages(587, 821, PixelTypes.Rgba32, JpegColorType.YCbCrRatio444)]
-        [WithTestPatternImages(677, 683, PixelTypes.Bgra32, JpegColorType.YCbCrRatio420)]
-        [WithSolidFilledImages(400, 400, "Red", PixelTypes.Bgr24, JpegColorType.YCbCrRatio420)]
-        public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType)
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, JpegEncodingMode.YCbCrRatio444)]
+        [WithTestPatternImages(587, 821, PixelTypes.Rgba32, JpegEncodingMode.YCbCrRatio444)]
+        [WithTestPatternImages(677, 683, PixelTypes.Bgra32, JpegEncodingMode.YCbCrRatio420)]
+        [WithSolidFilledImages(400, 400, "Red", PixelTypes.Bgr24, JpegEncodingMode.YCbCrRatio420)]
+        public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingMode colorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ImageComparer comparer = colorType == JpegColorType.YCbCrRatio444
+            ImageComparer comparer = colorType == JpegEncodingMode.YCbCrRatio444
                 ? ImageComparer.TolerantPercentage(0.1f)
                 : ImageComparer.TolerantPercentage(5f);
 
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         /// <summary>
         /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
         /// </summary>
-        private static ImageComparer GetComparer(int quality, JpegColorType? colorType)
+        private static ImageComparer GetComparer(int quality, JpegEncodingMode? colorType)
         {
             float tolerance = 0.015f; // ~1.5%
 
@@ -227,10 +227,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 tolerance *= 4.5f;
             }
-            else if (quality < 75 || colorType == JpegColorType.YCbCrRatio420)
+            else if (quality < 75 || colorType == JpegEncodingMode.YCbCrRatio420)
             {
                 tolerance *= 2.0f;
-                if (colorType == JpegColorType.YCbCrRatio420)
+                if (colorType == JpegEncodingMode.YCbCrRatio420)
                 {
                     tolerance *= 2.0f;
                 }
@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static void TestJpegEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
-            JpegColorType colorType = JpegColorType.YCbCrRatio420,
+            JpegEncodingMode colorType = JpegEncodingMode.YCbCrRatio420,
             int quality = 100,
             ImageComparer comparer = null)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -396,9 +396,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(JpegColorType.YCbCrRatio420)]
-        [InlineData(JpegColorType.YCbCrRatio444)]
-        public async Task Encode_IsCancellable(JpegColorType colorType)
+        [InlineData(JpegEncodingMode.YCbCrRatio420)]
+        [InlineData(JpegEncodingMode.YCbCrRatio444)]
+        public async Task Encode_IsCancellable(JpegEncodingMode colorType)
         {
             var cts = new CancellationTokenSource();
             using var pausedStream = new PausedStream(new MemoryStream());

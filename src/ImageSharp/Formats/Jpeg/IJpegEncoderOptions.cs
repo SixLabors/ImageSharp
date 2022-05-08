@@ -18,6 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets the color type, that will be used to encode the image.
         /// </summary>
-        JpegColorType? ColorType { get; }
+        JpegEncodingMode? ColorType { get; }
     }
 }

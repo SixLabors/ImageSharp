@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using static SixLabors.ImageSharp.SimdUtils;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {

@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets or sets the colorspace to use.
         /// </summary>
-        private JpegColorType? colorType;
+        private JpegEncodingMode? colorType;
 
         private JpegFrameConfig frameConfig;
 
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfImage();
 
             // Do not write APP0 marker for RGB colorspace.
-            if (this.colorType != JpegColorType.Rgb)
+            if (this.colorType != JpegEncodingMode.Rgb)
             {
                 this.WriteJfifApplicationHeader(metadata);
             }
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write Exif, XMP, ICC and IPTC profiles
             this.WriteProfiles(metadata);
 
-            if (this.colorType == JpegColorType.Rgb)
+            if (this.colorType == JpegEncodingMode.Rgb)
             {
                 // Write App14 marker to indicate RGB color space.
                 this.WriteApp14Marker();
@@ -130,21 +130,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             stream.Flush();
 
-            static JpegColorSpace GetTargetColorSpace(JpegColorType colorType)
+            static JpegColorSpace GetTargetColorSpace(JpegEncodingMode colorType)
             {
                 switch (colorType)
                 {
-                    case JpegColorType.YCbCrRatio444:
-                    case JpegColorType.YCbCrRatio422:
-                    case JpegColorType.YCbCrRatio420:
-                    case JpegColorType.YCbCrRatio411:
-                    case JpegColorType.YCbCrRatio410:
+                    case JpegEncodingMode.YCbCrRatio444:
+                    case JpegEncodingMode.YCbCrRatio422:
+                    case JpegEncodingMode.YCbCrRatio420:
+                    case JpegEncodingMode.YCbCrRatio411:
+                    case JpegEncodingMode.YCbCrRatio410:
                         return JpegColorSpace.YCbCr;
-                    case JpegColorType.Rgb:
+                    case JpegEncodingMode.Rgb:
                         return JpegColorSpace.RGB;
-                    case JpegColorType.Cmyk:
+                    case JpegEncodingMode.Cmyk:
                         return JpegColorSpace.Cmyk;
-                    case JpegColorType.Luminance:
+                    case JpegEncodingMode.Luminance:
                         return JpegColorSpace.Grayscale;
                     default:
                         throw new NotImplementedException($"Unknown output color space: {colorType}");
@@ -158,11 +158,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// returns <see langword="null"/> defering the field assignment
         /// to <see cref="InitQuantizationTables(int, JpegMetadata, out Block8x8F, out Block8x8F)"/>.
         /// </summary>
-        private static JpegColorType? GetFallbackColorType<TPixel>(Image<TPixel> image)
+        private static JpegEncodingMode? GetFallbackColorType<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // First inspect the image metadata.
-            JpegColorType? colorType = null;
+            JpegEncodingMode? colorType = null;
             JpegMetadata metadata = image.Metadata.GetJpegMetadata();
             if (IsSupportedColorType(metadata.ColorType))
             {
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // the quality in InitQuantizationTables.
             if (isGrayscale)
             {
-                colorType = JpegColorType.Luminance;
+                colorType = JpegEncodingMode.Luminance;
             }
 
             return colorType;
@@ -190,11 +190,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="colorType">The color type.</param>
         /// <returns>true, if color type is supported.</returns>
-        private static bool IsSupportedColorType(JpegColorType? colorType)
-            => colorType == JpegColorType.YCbCrRatio444
-            || colorType == JpegColorType.YCbCrRatio420
-            || colorType == JpegColorType.Luminance
-            || colorType == JpegColorType.Rgb;
+        private static bool IsSupportedColorType(JpegEncodingMode? colorType)
+            => colorType == JpegEncodingMode.YCbCrRatio444
+            || colorType == JpegEncodingMode.YCbCrRatio420
+            || colorType == JpegEncodingMode.Luminance
+            || colorType == JpegEncodingMode.Rgb;
 
         /// <summary>
         /// Writes data to "Define Quantization Tables" block for QuantIndex.
@@ -783,7 +783,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (!this.colorType.HasValue)
                 {
-                    this.colorType = chromaQuality >= 91 ? JpegColorType.YCbCrRatio444 : JpegColorType.YCbCrRatio420;
+                    this.colorType = chromaQuality >= 91 ? JpegEncodingMode.YCbCrRatio444 : JpegEncodingMode.YCbCrRatio420;
                 }
             }
         }

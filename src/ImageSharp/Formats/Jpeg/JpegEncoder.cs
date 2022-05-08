@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int? Quality { get; set; }
 
         /// <inheritdoc/>
-        public JpegColorType? ColorType { get; set; }
+        public JpegEncodingMode? ColorType { get; set; }
 
         public JpegFrameConfig JpegFrameConfig { get; set; }
 
@@ -53,28 +53,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
     public class JpegFrameConfig
     {
-        public JpegFrameConfig(JpegColorType colorType)
+        public JpegFrameConfig(JpegEncodingMode colorType)
         {
             this.ColorType = colorType;
 
             int componentCount = GetComponentCountFromColorType(colorType);
             this.Components = new JpegComponentConfig[componentCount];
 
-            static int GetComponentCountFromColorType(JpegColorType colorType)
+            static int GetComponentCountFromColorType(JpegEncodingMode colorType)
             {
                 switch (colorType)
                 {
-                    case JpegColorType.Luminance:
+                    case JpegEncodingMode.Luminance:
                         return 1;
-                    case JpegColorType.YCbCrRatio444:
-                    case JpegColorType.YCbCrRatio422:
-                    case JpegColorType.YCbCrRatio420:
-                    case JpegColorType.YCbCrRatio411:
-                    case JpegColorType.YCbCrRatio410:
-                    case JpegColorType.Rgb:
+                    case JpegEncodingMode.YCbCrRatio444:
+                    case JpegEncodingMode.YCbCrRatio422:
+                    case JpegEncodingMode.YCbCrRatio420:
+                    case JpegEncodingMode.YCbCrRatio411:
+                    case JpegEncodingMode.YCbCrRatio410:
+                    case JpegEncodingMode.Rgb:
                         return 3;
-                    case JpegColorType.Cmyk:
-                    case JpegColorType.YccK:
+                    case JpegEncodingMode.Cmyk:
                         return 4;
                     default:
                         throw new ArgumentException($"Unknown jpeg color space: {colorType}");
@@ -82,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
-        public JpegColorType ColorType { get; }
+        public JpegEncodingMode ColorType { get; }
 
         public JpegComponentConfig[] Components { get; }
 

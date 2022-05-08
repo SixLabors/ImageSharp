@@ -4,7 +4,7 @@
 using System;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {

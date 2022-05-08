@@ -60,10 +60,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private const int OutputBufferLengthMultiplier = 2;
 
         /// <summary>
-        /// Compiled huffman tree to encode given values.
+        /// The DC Huffman tables.
         /// </summary>
-        /// <remarks>Yields codewords by index consisting of [run length | bitsize].</remarks>
-        private HuffmanLut[] huffmanTables;
+        private readonly HuffmanLut[] dcHuffmanTables;
+
+        /// <summary>
+        /// The AC Huffman tables.
+        /// </summary>
+        private readonly HuffmanLut[] acHuffmanTables;
 
         /// <summary>
         /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
@@ -115,6 +119,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.streamWriteBuffer = new byte[emitBufferByteLength * OutputBufferLengthMultiplier];
 
             this.target = outputStream;
+
+            this.dcHuffmanTables = new HuffmanLut[4];
+            this.acHuffmanTables = new HuffmanLut[4];
         }
 
         /// <summary>
@@ -126,6 +133,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
+        }
+
+        public void BuildHuffmanTable(JpegHuffmanTableConfig table)
+        {
+            HuffmanLut[] tables = table.Class == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
+            tables[table.DestinationIndex] = new HuffmanLut(table.TableSpec);
         }
 
         public void EncodeInterleavedScan<TPixel>(JpegFrame frame, Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
@@ -159,8 +172,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     {
                         JpegComponent component = frame.Components[k];
 
-                        ref HuffmanLut dcHuffmanTable = ref HuffmanLut.DcHuffmanLut[component.DcTableId];
-                        ref HuffmanLut acHuffmanTable = ref HuffmanLut.AcHuffmanLut[component.AcTableId];
+                        ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+                        ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -201,6 +214,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
         }
+
+        private HuffmanLut[] huffmanTables;
 
         /// <summary>
         /// Encodes the image with no subsampling.

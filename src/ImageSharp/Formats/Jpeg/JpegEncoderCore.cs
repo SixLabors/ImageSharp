@@ -46,6 +46,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         private JpegFrameConfig frameConfig;
 
+        private JpegScanConfig scanConfig;
+
+        private HuffmanScanEncoder scanEncoder;
+
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
@@ -55,12 +59,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options.</param>
-        public JpegEncoderCore(IJpegEncoderOptions options, JpegFrameConfig frameConfig)
+        public JpegEncoderCore(IJpegEncoderOptions options, JpegFrameConfig frameConfig, JpegScanConfig scanConfig)
         {
             this.quality = options.Quality;
 
             this.frameConfig = frameConfig;
             this.colorType = frameConfig.ColorType;
+
+            this.scanConfig = scanConfig;
         }
 
         /// <summary>
@@ -82,6 +88,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+
+            this.scanEncoder = new HuffmanScanEncoder(3, stream);
 
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
@@ -116,14 +124,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfFrame(image.Width, image.Height, this.frameConfig);
 
             // Write the Huffman tables.
-            this.WriteDefineHuffmanTables(this.frameConfig.Components.Length);
+            this.WriteDefineHuffmanTables(this.scanConfig.HuffmanTables);
 
             // Write the scan header.
             this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
 
             var frame = new Components.Encoder.JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.ColorType));
             var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
-            new HuffmanScanEncoder(3, stream).EncodeInterleavedScan(frame, image, quantTables, Configuration.Default, cancellationToken);
+            this.scanEncoder.EncodeInterleavedScan(frame, image, quantTables, Configuration.Default, cancellationToken);
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();
@@ -273,40 +281,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
         /// <param name="componentCount">The number of components to write.</param>
-        private void WriteDefineHuffmanTables(int componentCount)
+        private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tables)
         {
-            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
-            // and doesn't incur any allocation at all.
-            // Table identifiers.
-            ReadOnlySpan<byte> headers = new byte[]
-            {
-                0x00,
-                0x10,
-                0x01,
-                0x11
-            };
-
             int markerlen = 2;
-            HuffmanSpec[] specs = HuffmanSpec.TheHuffmanSpecs;
 
-            if (componentCount == 1)
+            for (int i = 0; i < tables.Length; i++)
             {
-                // Drop the Chrominance tables.
-                specs = new[] { HuffmanSpec.TheHuffmanSpecs[0], HuffmanSpec.TheHuffmanSpecs[1] };
-            }
-
-            for (int i = 0; i < specs.Length; i++)
-            {
-                ref HuffmanSpec s = ref specs[i];
-                markerlen += 1 + 16 + s.Values.Length;
+                markerlen += 1 + 16 + tables[i].TableSpec.Values.Length;
             }
 
             this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
-            for (int i = 0; i < specs.Length; i++)
+            for (int i = 0; i < tables.Length; i++)
             {
-                this.outputStream.WriteByte(headers[i]);
-                this.outputStream.Write(specs[i].Count);
-                this.outputStream.Write(specs[i].Values);
+                JpegHuffmanTableConfig table = tables[i];
+
+                int header = (table.Class << 4) | table.DestinationIndex;
+                this.outputStream.WriteByte((byte)header);
+                this.outputStream.Write(table.TableSpec.Count);
+                this.outputStream.Write(table.TableSpec.Values);
+
+                this.scanEncoder.BuildHuffmanTable(table);
             }
         }
 

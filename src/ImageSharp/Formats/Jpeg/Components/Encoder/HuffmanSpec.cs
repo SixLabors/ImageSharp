@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// <summary>
     ///     The Huffman encoding specifications.
     /// </summary>
-    internal readonly struct HuffmanSpec
+    public readonly struct HuffmanSpec
     {
 #pragma warning disable SA1118 // ParameterMustNotSpanMultipleLines
 

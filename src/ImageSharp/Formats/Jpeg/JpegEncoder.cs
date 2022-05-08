@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -22,6 +23,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         public JpegFrameConfig JpegFrameConfig { get; set; }
 
+        public JpegScanConfig JpegScanConfig { get; set; }
+
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
@@ -31,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new JpegEncoderCore(this, this.JpegFrameConfig);
+            var encoder = new JpegEncoderCore(this, this.JpegFrameConfig, this.JpegScanConfig);
             encoder.Encode(image, stream);
         }
 
@@ -46,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new JpegEncoderCore(this, this.JpegFrameConfig);
+            var encoder = new JpegEncoderCore(this, this.JpegFrameConfig, this.JpegScanConfig);
             return encoder.EncodeAsync(image, stream, cancellationToken);
         }
     }
@@ -114,5 +117,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int dcTableSelector { get; set; }
 
         public int acTableSelector { get; set; }
+    }
+
+    public class JpegHuffmanTableConfig
+    {
+        public int Class { get; set; }
+
+        public int DestinationIndex { get; set; }
+
+        public HuffmanSpec TableSpec { get; set; }
+    }
+
+    public class JpegScanConfig
+    {
+        public JpegHuffmanTableConfig[] HuffmanTables { get; set; }
     }
 }

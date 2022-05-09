@@ -378,6 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 stream,
                 metadata.ExifProfile,
                 metadata.XmpProfile,
+                metadata.IccProfile,
                 (uint)width,
                 (uint)height,
                 hasAlpha,

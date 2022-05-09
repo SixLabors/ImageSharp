@@ -21,11 +21,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             FastFloatingPointDCT.AdjustToFDCT(ref this.quantTable);
 
             this.component = component;
-            this.blockAreaSize = this.component.SubSamplingDivisors * 8;
+            this.blockAreaSize = component.SubSamplingDivisors * 8;
             this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
                 postProcessorBufferSize.Width,
                 postProcessorBufferSize.Height,
-                this.blockAreaSize.Height,
+                8 * component.SubSamplingDivisors.Height,
                 AllocationOptions.Clean);
         }
 
@@ -42,32 +42,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // but 12-bit jpegs are not supported currently
             float normalizationValue = -128f;
 
-            int blocksRowsPerStep = this.component.SamplingFactors.Height;
+            int destAreaStride = this.ColorBuffer.Width * this.component.SubSamplingDivisors.Height;
 
-            int destAreaStride = this.ColorBuffer.Width;
-
-            int yBlockStart = spectralStep * blocksRowsPerStep;
-
-            Size subSamplingDivisors = this.component.SubSamplingDivisors;
+            int yBlockStart = spectralStep * this.component.SamplingFactors.Height;
 
             Block8x8F workspaceBlock = default;
 
-            for (int y = 0; y < blocksRowsPerStep; y++)
+            // handle subsampling
+            this.PackColorBuffer();
+
+            for (int y = 0; y < spectralBuffer.Height; y++)
             {
                 int yBuffer = y * this.blockAreaSize.Height;
-
                 for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
                     Span<float> colorBufferRow = this.ColorBuffer.DangerousGetRowSpan(yBuffer);
                     Span<Block8x8> blockRow = spectralBuffer.DangerousGetRowSpan(yBlockStart + y);
 
                     // load 8x8 block from 8 pixel strides
-                    int xColorBufferStart = xBlock * this.blockAreaSize.Width;
+                    int xColorBufferStart = xBlock * 8;
                     workspaceBlock.ScaledCopyFrom(
                         ref colorBufferRow[xColorBufferStart],
-                        destAreaStride,
-                        subSamplingDivisors.Width,
-                        subSamplingDivisors.Height);
+                        destAreaStride);
 
                     // level shift via -128f
                     workspaceBlock.AddInPlace(normalizationValue);
@@ -86,5 +82,61 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         public void Dispose()
             => this.ColorBuffer.Dispose();
+
+        private void PackColorBuffer()
+        {
+            Size factors = this.component.SubSamplingDivisors;
+
+            if (factors.Width == 1 && factors.Height == 1)
+            {
+                return;
+            }
+
+            for (int i = 0; i < this.ColorBuffer.Height; i += factors.Height)
+            {
+                Span<float> targetBufferRow = this.ColorBuffer.DangerousGetRowSpan(i);
+
+                // vertical sum
+                for (int j = 1; j < factors.Height; j++)
+                {
+                    SumVertical(targetBufferRow, this.ColorBuffer.DangerousGetRowSpan(i + j));
+                }
+
+                // horizontal sum
+                SumHorizontal(targetBufferRow, factors.Width);
+
+                // calculate average
+                float multiplier = 1f / (factors.Width * factors.Height);
+                MultiplyToAverage(targetBufferRow, multiplier);
+            }
+
+            static void SumVertical(Span<float> target, Span<float> source)
+            {
+                for (int i = 0; i < target.Length; i++)
+                {
+                    target[i] += source[i];
+                }
+            }
+
+            static void SumHorizontal(Span<float> target, int factor)
+            {
+                for (int i = 0; i < target.Length / factor; i++)
+                {
+                    target[i] = target[i * factor];
+                    for (int j = 1; j < factor; j++)
+                    {
+                        target[i] += target[(i * factor) + j];
+                    }
+                }
+            }
+
+            static void MultiplyToAverage(Span<float> target, float multiplier)
+            {
+                for (int i = 0; i < target.Length; i++)
+                {
+                    target[i] *= multiplier;
+                }
+            }
+        }
     }
 }

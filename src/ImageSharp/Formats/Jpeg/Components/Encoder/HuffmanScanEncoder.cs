@@ -142,7 +142,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // DEBUG INITIALIZATION SETUP
-            frame.Init(1, 1);
             frame.AllocateComponents(fullScan: false);
 
             var spectralConverter = new SpectralConverter<TPixel>(configuration);

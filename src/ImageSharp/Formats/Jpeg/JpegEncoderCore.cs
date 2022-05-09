@@ -91,7 +91,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            this.scanEncoder = new HuffmanScanEncoder(3, stream);
+            var frame = new Components.Encoder.JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.ColorType));
+            this.scanEncoder = new HuffmanScanEncoder(frame.BlocksPerMcu, stream);
 
             this.outputStream = stream;
             ImageMetadata metadata = image.Metadata;
@@ -127,7 +128,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the scan header.
             this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
 
-            var frame = new Components.Encoder.JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.ColorType));
             this.scanEncoder.EncodeInterleavedScan(frame, image, this.QuantizationTables, Configuration.Default, cancellationToken);
 
             // Write the End Of Image marker.
@@ -649,7 +649,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 // Sampling factors
                 // 4 bits
-                int samplingFactors = components[i].HorizontalSampleFactor | (components[i].VerticalSampleFactor << 4);
+                int samplingFactors = (components[i].HorizontalSampleFactor << 4) | components[i].VerticalSampleFactor;
                 bufferSpan[1] = (byte)samplingFactors;
 
                 // Id
@@ -748,7 +748,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="chrominanceQuantTable">Output chrominance quantization table.</param>
         private void InitQuantizationTables(JpegQuantizationTableConfig[] configs, JpegMetadata metadata)
         {
-            int dataLen = configs.Length * (1 + Block8x8F.Size);
+            int dataLen = configs.Length * (1 + Block8x8.Size);
 
             // Marker + quantization table lengths.
             int markerlen = 2 + dataLen;
@@ -761,16 +761,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 JpegQuantizationTableConfig config = configs[i];
 
+                int quality = GetQualityForTable(config.DestinationIndex, this.quality, metadata);
+                Block8x8 scaledTable = Quantization.ScaleQuantizationTable(quality, config.Table);
+
                 // write to the output stream
                 buffer[offset++] = (byte)config.DestinationIndex;
-                for (int j = 0; j < Block8x8F.Size; j++)
+
+                for (int j = 0; j < Block8x8.Size; j++)
                 {
-                    buffer[offset++] = (byte)(uint)config.Table[ZigZag.ZigZagOrder[j]];
+                    buffer[offset++] = (byte)(uint)scaledTable[ZigZag.ZigZagOrder[j]];
                 }
 
                 // apply scaling and save into buffer
-                int quality = GetQualityForTable(config.DestinationIndex, this.quality, metadata);
-                this.QuantizationTables[config.DestinationIndex] = Quantization.ScaleQuantizationTable(quality, config.Table);
+                this.QuantizationTables[config.DestinationIndex].LoadFromInt16Scalar(ref scaledTable);
             }
 
             // write filled buffer to the stream

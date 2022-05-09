@@ -18,17 +18,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.PixelWidth = image.Width;
             this.PixelHeight = image.Height;
 
-            // int componentCount = 3;
-            var componentConfigs = frameConfig.Components;
+            JpegComponentConfig[] componentConfigs = frameConfig.Components;
             this.Components = new JpegComponent[componentConfigs.Length];
             for (int i = 0; i < this.Components.Length; i++)
             {
-                var componentConfig = componentConfigs[i];
+                JpegComponentConfig componentConfig = componentConfigs[i];
                 this.Components[i] = new JpegComponent(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
                 {
                     DcTableId = componentConfig.dcTableSelector,
                     AcTableId = componentConfig.acTableSelector,
                 };
+
+                this.BlocksPerMcu += componentConfig.HorizontalSampleFactor * componentConfig.VerticalSampleFactor;
+            }
+
+            int maxSubFactorH = frameConfig.MaxHorizontalSamplingFactor;
+            int maxSubFactorV = frameConfig.MaxVerticalSamplingFactor;
+            this.McusPerLine = (int)Numerics.DivideCeil((uint)image.Width, (uint)maxSubFactorH * 8);
+            this.McusPerColumn = (int)Numerics.DivideCeil((uint)image.Height, (uint)maxSubFactorV * 8);
+
+            for (int i = 0; i < this.ComponentCount; i++)
+            {
+                JpegComponent component = this.Components[i];
+                component.Init(this, maxSubFactorH, maxSubFactorV);
             }
         }
 
@@ -42,27 +54,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         public JpegComponent[] Components { get; }
 
-        public int McusPerLine { get; set; }
+        public int McusPerLine { get; }
 
-        public int McusPerColumn { get; set; }
+        public int McusPerColumn { get; }
+
+        public int BlocksPerMcu { get; }
 
         public void Dispose()
         {
             for (int i = 0; i < this.Components.Length; i++)
             {
                 this.Components[i]?.Dispose();
-            }
-        }
-
-        public void Init(int maxSubFactorH, int maxSubFactorV)
-        {
-            this.McusPerLine = (int)Numerics.DivideCeil((uint)this.PixelWidth, (uint)maxSubFactorH * 8);
-            this.McusPerColumn = (int)Numerics.DivideCeil((uint)this.PixelHeight, (uint)maxSubFactorV * 8);
-
-            for (int i = 0; i < this.ComponentCount; i++)
-            {
-                JpegComponent component = this.Components[i];
-                component.Init(this, maxSubFactorH, maxSubFactorV);
             }
         }
 

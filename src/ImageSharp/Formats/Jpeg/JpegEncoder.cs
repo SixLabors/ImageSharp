@@ -89,6 +89,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         public JpegComponentConfig[] Components { get; }
 
+        public int MaxHorizontalSamplingFactor { get; set; } = 1;
+
+        public int MaxVerticalSamplingFactor { get; set; } = 1;
+
         public JpegFrameConfig PopulateComponent(int index, byte id, int hsf, int vsf, int quantIndex, int dcIndex, int acIndex)
         {
             this.Components[index] = new JpegComponentConfig
@@ -100,6 +104,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 dcTableSelector = dcIndex,
                 acTableSelector = acIndex,
             };
+
+            this.MaxHorizontalSamplingFactor = Math.Max(this.MaxHorizontalSamplingFactor, hsf);
+            this.MaxVerticalSamplingFactor = Math.Max(this.MaxVerticalSamplingFactor, vsf);
 
             return this;
         }

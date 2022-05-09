@@ -50,6 +50,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         private HuffmanScanEncoder scanEncoder;
 
+        public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
+
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
         /// </summary>
@@ -95,10 +97,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
 
-            // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
-            // Initialize the quantization tables.
-            this.InitQuantizationTables(this.frameConfig.Components.Length, jpegMetadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable);
-
             // Write the Start Of Image marker.
             this.WriteStartOfImage();
 
@@ -117,21 +115,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.WriteApp14Marker();
             }
 
-            // Write the quantization tables.
-            this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
-
             // Write the image dimensions.
             this.WriteStartOfFrame(image.Width, image.Height, this.frameConfig);
 
             // Write the Huffman tables.
             this.WriteDefineHuffmanTables(this.scanConfig.HuffmanTables);
 
+            // Write the quantization tables.
+            this.InitQuantizationTables(this.scanConfig.QuantizationTables, jpegMetadata);
+
             // Write the scan header.
             this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
 
             var frame = new Components.Encoder.JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.ColorType));
-            var quantTables = new Block8x8F[] { luminanceQuantTable, chrominanceQuantTable };
-            this.scanEncoder.EncodeInterleavedScan(frame, image, quantTables, Configuration.Default, cancellationToken);
+            this.scanEncoder.EncodeInterleavedScan(frame, image, this.QuantizationTables, Configuration.Default, cancellationToken);
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();
@@ -281,26 +278,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
         /// <param name="componentCount">The number of components to write.</param>
-        private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tables)
+        private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs)
         {
             int markerlen = 2;
 
-            for (int i = 0; i < tables.Length; i++)
+            for (int i = 0; i < tableConfigs.Length; i++)
             {
-                markerlen += 1 + 16 + tables[i].TableSpec.Values.Length;
+                markerlen += 1 + 16 + tableConfigs[i].Table.Values.Length;
             }
 
             this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
-            for (int i = 0; i < tables.Length; i++)
+            for (int i = 0; i < tableConfigs.Length; i++)
             {
-                JpegHuffmanTableConfig table = tables[i];
+                JpegHuffmanTableConfig tableConfig = tableConfigs[i];
 
-                int header = (table.Class << 4) | table.DestinationIndex;
+                int header = (tableConfig.Class << 4) | tableConfig.DestinationIndex;
                 this.outputStream.WriteByte((byte)header);
-                this.outputStream.Write(table.TableSpec.Count);
-                this.outputStream.Write(table.TableSpec.Values);
+                this.outputStream.Write(tableConfig.Table.Count);
+                this.outputStream.Write(tableConfig.Table.Values);
 
-                this.scanEncoder.BuildHuffmanTable(table);
+                this.scanEncoder.BuildHuffmanTable(tableConfig);
             }
         }
 
@@ -749,37 +746,42 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="metadata">Jpeg metadata instance.</param>
         /// <param name="luminanceQuantTable">Output luminance quantization table.</param>
         /// <param name="chrominanceQuantTable">Output chrominance quantization table.</param>
-        private void InitQuantizationTables(int componentCount, JpegMetadata metadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable)
+        private void InitQuantizationTables(JpegQuantizationTableConfig[] configs, JpegMetadata metadata)
         {
-            int lumaQuality;
-            int chromaQuality;
-            if (this.quality.HasValue)
-            {
-                lumaQuality = this.quality.Value;
-                chromaQuality = this.quality.Value;
-            }
-            else
-            {
-                lumaQuality = metadata.LuminanceQuality;
-                chromaQuality = metadata.ChrominanceQuality;
-            }
+            int dataLen = configs.Length * (1 + Block8x8F.Size);
 
-            // Luminance
-            lumaQuality = Numerics.Clamp(lumaQuality, 1, 100);
-            luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+            // Marker + quantization table lengths.
+            int markerlen = 2 + dataLen;
+            this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
 
-            // Chrominance
-            chrominanceQuantTable = default;
-            if (componentCount > 1)
+            byte[] buffer = new byte[dataLen];
+            int offset = 0;
+
+            for (int i = 0; i < configs.Length; i++)
             {
-                chromaQuality = Numerics.Clamp(chromaQuality, 1, 100);
-                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
+                JpegQuantizationTableConfig config = configs[i];
 
-                if (!this.colorType.HasValue)
+                // write to the output stream
+                buffer[offset++] = (byte)config.DestinationIndex;
+                for (int j = 0; j < Block8x8F.Size; j++)
                 {
-                    this.colorType = chromaQuality >= 91 ? JpegEncodingMode.YCbCrRatio444 : JpegEncodingMode.YCbCrRatio420;
+                    buffer[offset++] = (byte)(uint)config.Table[ZigZag.ZigZagOrder[j]];
                 }
+
+                // apply scaling and save into buffer
+                int quality = GetQualityForTable(config.DestinationIndex, this.quality, metadata);
+                this.QuantizationTables[config.DestinationIndex] = Quantization.ScaleQuantizationTable(quality, config.Table);
             }
+
+            // write filled buffer to the stream
+            this.outputStream.Write(buffer);
+
+            static int GetQualityForTable(int destIndex, int? encoderQuality, JpegMetadata metadata) => destIndex switch
+            {
+                0 => encoderQuality ?? metadata.LuminanceQuality,
+                1 => encoderQuality ?? metadata.ChrominanceQuality,
+                _ => encoderQuality ?? metadata.Quality,
+            };
         }
     }
 }

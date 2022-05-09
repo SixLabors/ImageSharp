@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -125,11 +126,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         public int DestinationIndex { get; set; }
 
-        public HuffmanSpec TableSpec { get; set; }
+        public HuffmanSpec Table { get; set; }
+    }
+
+    public class JpegQuantizationTableConfig
+    {
+        public int DestinationIndex { get; set; }
+
+        public Block8x8 Table { get; set; }
     }
 
     public class JpegScanConfig
     {
         public JpegHuffmanTableConfig[] HuffmanTables { get; set; }
+
+        public JpegQuantizationTableConfig[] QuantizationTables { get; set; }
     }
 }

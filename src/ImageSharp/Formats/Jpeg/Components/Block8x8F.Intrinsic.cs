@@ -11,7 +11,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
-    internal partial struct Block8x8F
+    public partial struct Block8x8F
     {
         /// <summary>
         /// A number of rows of 8 scalar coefficients each in <see cref="Block8x8F"/>

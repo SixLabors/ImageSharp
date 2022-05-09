@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Memory;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
-    internal partial struct Block8x8F
+    public partial struct Block8x8F
     {
         /// <summary>
         /// Copy block data into the destination color buffer pixel area with the provided horizontal and vertical scale factors.

@@ -62,12 +62,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// The DC Huffman tables.
         /// </summary>
-        private readonly HuffmanLut[] dcHuffmanTables;
+        private readonly HuffmanLut[] dcHuffmanTables = new HuffmanLut[4];
 
         /// <summary>
         /// The AC Huffman tables.
         /// </summary>
-        private readonly HuffmanLut[] acHuffmanTables;
+        private readonly HuffmanLut[] acHuffmanTables = new HuffmanLut[4];
 
         /// <summary>
         /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
@@ -119,9 +119,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.streamWriteBuffer = new byte[emitBufferByteLength * OutputBufferLengthMultiplier];
 
             this.target = outputStream;
-
-            this.dcHuffmanTables = new HuffmanLut[4];
-            this.acHuffmanTables = new HuffmanLut[4];
         }
 
         /// <summary>
@@ -135,10 +132,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
         }
 
-        public void BuildHuffmanTable(JpegHuffmanTableConfig table)
+        public void BuildHuffmanTable(JpegHuffmanTableConfig tableConfig)
         {
-            HuffmanLut[] tables = table.Class == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
-            tables[table.DestinationIndex] = new HuffmanLut(table.TableSpec);
+            HuffmanLut[] tables = tableConfig.Class == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
+            tables[tableConfig.DestinationIndex] = new HuffmanLut(tableConfig.Table);
         }
 
         public void EncodeInterleavedScan<TPixel>(JpegFrame frame, Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)

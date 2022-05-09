@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// 8x8 matrix of <see cref="float"/> coefficients.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
-    internal partial struct Block8x8F : IEquatable<Block8x8F>
+    public partial struct Block8x8F : IEquatable<Block8x8F>
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>

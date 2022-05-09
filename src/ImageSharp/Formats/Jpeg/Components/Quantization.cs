@@ -176,7 +176,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             return quality < 50 ? (5000 / quality) : (200 - (quality * 2));
         }
 
-        private static Block8x8F ScaleQuantizationTable(int scale, ReadOnlySpan<byte> unscaledTable)
+        public static Block8x8F ScaleQuantizationTable(int scale, ReadOnlySpan<byte> unscaledTable)
+        {
+            Block8x8F table = default;
+            for (int j = 0; j < Block8x8F.Size; j++)
+            {
+                int x = ((unscaledTable[j] * scale) + 50) / 100;
+                table[j] = Numerics.Clamp(x, 1, 255);
+            }
+
+            return table;
+        }
+
+        public static Block8x8F ScaleQuantizationTable(int scale, Block8x8 unscaledTable)
         {
             Block8x8F table = default;
             for (int j = 0; j < Block8x8F.Size; j++)

@@ -67,41 +67,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Gets or sets the encoded quality.
+        /// Gets the encoded quality.
         /// </summary>
         /// <remarks>
         /// Note that jpeg image can have different quality for luminance and chrominance components.
-        /// This property returns maximum value of luma/chroma qualities.
+        /// This property returns maximum value of luma/chroma qualities if both are present.
         /// </remarks>
         public int Quality
         {
             get
             {
-                // Jpeg always has a luminance table thus it must have a luminance quality derived from it
-                if (!this.luminanceQuality.HasValue)
+                if (this.luminanceQuality.HasValue)
                 {
+                    if (this.chrominanceQuality.HasValue)
+                    {
+                        return Math.Max(this.luminanceQuality.Value, this.chrominanceQuality.Value);
+                    }
+
+                    return this.luminanceQuality.Value;
+                }
+                else
+                {
+                    if (this.chrominanceQuality.HasValue)
+                    {
+                        return this.chrominanceQuality.Value;
+                    }
+
                     return Quantization.DefaultQualityFactor;
                 }
-
-                int lumaQuality = this.luminanceQuality.Value;
-
-                // Jpeg might not have a chrominance table - return luminance quality (grayscale images)
-                if (!this.chrominanceQuality.HasValue)
-                {
-                    return lumaQuality;
-                }
-
-                int chromaQuality = this.chrominanceQuality.Value;
-
-                // Theoretically, luma quality would always be greater or equal to chroma quality
-                // But we've already encountered images which can have higher quality of chroma components
-                return Math.Max(lumaQuality, chromaQuality);
-            }
-
-            set
-            {
-                this.LuminanceQuality = value;
-                this.ChrominanceQuality = value;
             }
         }
 

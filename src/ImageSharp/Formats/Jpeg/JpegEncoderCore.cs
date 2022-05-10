@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteDefineHuffmanTables(this.scanConfig.HuffmanTables);
 
             // Write the quantization tables.
-            this.InitQuantizationTables(this.scanConfig.QuantizationTables, jpegMetadata);
+            this.WriteDefineQuantizationTables(this.scanConfig.QuantizationTables, jpegMetadata);
 
             // Write the scan header.
             this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
@@ -187,22 +187,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             || colorType == JpegEncodingColor.YCbCrRatio420
             || colorType == JpegEncodingColor.Luminance
             || colorType == JpegEncodingColor.Rgb;
-
-        /// <summary>
-        /// Writes data to "Define Quantization Tables" block for QuantIndex.
-        /// </summary>
-        /// <param name="dqt">The "Define Quantization Tables" block.</param>
-        /// <param name="offset">Offset in "Define Quantization Tables" block.</param>
-        /// <param name="i">The quantization index.</param>
-        /// <param name="quant">The quantization table to copy data from.</param>
-        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F quant)
-        {
-            dqt[offset++] = (byte)i;
-            for (int j = 0; j < Block8x8F.Size; j++)
-            {
-                dqt[offset++] = (byte)quant[ZigZag.ZigZagOrder[j]];
-            }
-        }
 
         /// <summary>
         /// Write the start of image marker.
@@ -707,7 +691,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </remarks>
         /// <param name="configs">Quantization tables configs.</param>
         /// <param name="metadata">Jpeg metadata instance.</param>
-        private void InitQuantizationTables(JpegQuantizationTableConfig[] configs, JpegMetadata metadata)
+        private void WriteDefineQuantizationTables(JpegQuantizationTableConfig[] configs, JpegMetadata metadata)
         {
             int dataLen = configs.Length * (1 + Block8x8.Size);
 

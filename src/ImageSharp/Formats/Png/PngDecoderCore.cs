@@ -1206,27 +1206,45 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
 
-            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
-            using (var inflateStream = new ZlibInflateStream(bufferedStream))
+            if (this.TryUncompressZlibData(compressedData, out byte[] iccpProfileBytes))
             {
-                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
-                {
-                    return;
-                }
-
-                var uncompressedBytes = new List<byte>();
-
-                // Note: this uses a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
-                int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
-                while (bytesRead != 0)
-                {
-                    uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
-                    bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
-                }
-
-                byte[] iccpProfileBytes = uncompressedBytes.ToArray();
                 metadata.IccProfile = new IccProfile(iccpProfileBytes);
+            }
+        }
+
+        /// <summary>
+        /// Tries to un-compress zlib compressed data.
+        /// </summary>
+        /// <param name="compressedData">The compressed data.</param>
+        /// <param name="uncompressedBytesArray">The uncompressed bytes array.</param>
+        /// <returns>True, if de-compressing was successful.</returns>
+        private unsafe bool TryUncompressZlibData(ReadOnlySpan<byte> compressedData, out byte[] uncompressedBytesArray)
+        {
+            fixed (byte* compressedDataBase = compressedData)
+            {
+                using (var memoryStream = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
+                using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
+                using (var inflateStream = new ZlibInflateStream(bufferedStream))
+                {
+                    if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+                    {
+                        uncompressedBytesArray = Array.Empty<byte>();
+                        return false;
+                    }
+
+                    var uncompressedBytes = new List<byte>(compressedData.Length);
+
+                    // Note: this uses a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
+                    int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                    while (bytesRead != 0)
+                    {
+                        uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
+                        bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                    }
+
+                    uncompressedBytesArray = uncompressedBytes.ToArray();
+                    return true;
+                }
             }
         }
 
@@ -1362,7 +1380,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else if (this.IsXmpTextData(keywordBytes))
             {
-                XmpProfile xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
+                var xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
                 metadata.XmpProfile = xmpProfile;
             }
             else
@@ -1381,29 +1399,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="bool"/>.</returns>
         private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
-            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
-            using (var inflateStream = new ZlibInflateStream(bufferedStream))
+            if (this.TryUncompressZlibData(compressedData, out byte[] uncompressedData))
             {
-                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
-                {
-                    value = null;
-                    return false;
-                }
-
-                var uncompressedBytes = new List<byte>();
-
-                // Note: this uses a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
-                int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
-                while (bytesRead != 0)
-                {
-                    uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
-                    bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
-                }
-
-                value = encoding.GetString(uncompressedBytes.ToArray());
+                value = encoding.GetString(uncompressedData);
                 return true;
             }
+
+            value = null;
+            return false;
         }
 
         /// <summary>

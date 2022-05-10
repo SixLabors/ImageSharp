@@ -128,7 +128,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
 
             var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables, Configuration.Default);
-            this.scanEncoder.EncodeInterleavedBaselineScan(frame, spectralConverter, cancellationToken);
+
+            if (frame.ComponentCount > 1)
+            {
+                this.scanEncoder.EncodeScanBaselineInterleaved(frame, spectralConverter, cancellationToken);
+            }
+            else
+            {
+                this.scanEncoder.EncodeScanBaselineSingleComponent(frame, spectralConverter, cancellationToken);
+            }
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();

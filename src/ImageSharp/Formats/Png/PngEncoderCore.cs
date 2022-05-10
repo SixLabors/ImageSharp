@@ -694,11 +694,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int bytesWritten = PngConstants.XmpKeyword.Length;
 
                 // Write the iTxt header (all zeros in this case).
-                payload[bytesWritten++] = 0;
-                payload[bytesWritten++] = 0;
-                payload[bytesWritten++] = 0;
-                payload[bytesWritten++] = 0;
-                payload[bytesWritten++] = 0;
+                Span<byte> iTxtHeader = payload.Slice(bytesWritten);
+                iTxtHeader[4] = 0;
+                iTxtHeader[3] = 0;
+                iTxtHeader[2] = 0;
+                iTxtHeader[1] = 0;
+                iTxtHeader[0] = 0;
+                bytesWritten += 5;
 
                 // And the XMP data itself.
                 xmpData.CopyTo(payload.Slice(bytesWritten));

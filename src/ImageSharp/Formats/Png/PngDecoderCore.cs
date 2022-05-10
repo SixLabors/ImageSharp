@@ -1186,7 +1186,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ReadColorProfileChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
             int zeroIndex = data.IndexOf((byte)0);
-            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
+            if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }

@@ -22,14 +22,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         // No metadata
         private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
 
-        public static IEnumerable<JpegEncodingMode> ColorSpaceValues =>
-            new[] { JpegEncodingMode.Luminance, JpegEncodingMode.Rgb, JpegEncodingMode.YCbCrRatio420, JpegEncodingMode.YCbCrRatio444 };
+        public static IEnumerable<JpegEncodingColor> ColorSpaceValues =>
+            new[] { JpegEncodingColor.Luminance, JpegEncodingColor.Rgb, JpegEncodingColor.YCbCrRatio420, JpegEncodingColor.YCbCrRatio444 };
 
         [Params(75, 90, 100)]
         public int Quality;
 
         [ParamsSource(nameof(ColorSpaceValues), Priority = -100)]
-        public JpegEncodingMode TargetColorSpace;
+        public JpegEncodingColor TargetColorSpace;
 
         private Image<Rgb24> bmpCore;
         private JpegEncoder encoder;

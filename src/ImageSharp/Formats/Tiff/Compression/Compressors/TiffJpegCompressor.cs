@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             var image = Image.LoadPixelData<Rgb24>(rows, width, height);
             image.Save(memoryStream, new JpegEncoder()
             {
-                ColorType = JpegEncodingMode.Rgb
+                ColorType = JpegEncodingColor.Rgb
             });
             memoryStream.Position = 0;
             memoryStream.WriteTo(this.Output);

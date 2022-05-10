@@ -138,14 +138,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             tables[tableConfig.DestinationIndex] = new HuffmanLut(tableConfig.Table);
         }
 
-        public void EncodeInterleavedScan<TPixel>(JpegFrame frame, Image<TPixel> image, Block8x8F[] quantTables, Configuration configuration, CancellationToken cancellationToken)
+        public void EncodeInterleavedBaselineScan<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // DEBUG INITIALIZATION SETUP
             frame.AllocateComponents(fullScan: false);
-
-            var spectralConverter = new SpectralConverter<TPixel>(configuration);
-            spectralConverter.InjectFrameData(frame, image, quantTables);
 
             // DEBUG ENCODING SETUP
             int mcu = 0;
@@ -157,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Convert from pixels to spectral via given converter
-                spectralConverter.ConvertStrideBaseline();
+                converter.ConvertStrideBaseline();
 
                 // decode from binary to spectral
                 for (int i = 0; i < mcusPerLine; i++)

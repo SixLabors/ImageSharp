@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets or sets the color type.
         /// </summary>
-        public JpegEncodingMode? ColorType { get; set; }
+        public JpegEncodingColor? ColorType { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new JpegMetadata(this);

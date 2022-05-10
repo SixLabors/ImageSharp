@@ -16,15 +16,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
     {
+        /// <summary>
+        /// The available encodable frame configs.
+        /// </summary>
+        private static readonly JpegFrameConfig[] FrameConfigs = CreateFrameConfigs();
+
         /// <inheritdoc/>
         public int? Quality { get; set; }
 
-        /// <inheritdoc/>
-        public JpegEncodingMode? ColorType { get; set; }
+        public JpegEncodingColor ColorType
+        {
+            set
+            {
+                JpegFrameConfig frameConfig = Array.Find(
+                    FrameConfigs,
+                    cfg => cfg.EncodingColor == value);
 
-        public JpegFrameConfig JpegFrameConfig { get; set; }
+                if (frameConfig is null)
+                {
+                    throw new ArgumentException(nameof(value));
+                }
 
-        public JpegScanConfig JpegScanConfig { get; set; }
+                this.FrameConfig = frameConfig;
+            }
+        }
+
+        internal JpegFrameConfig FrameConfig { get; set; }
+
+        public JpegScanConfig ScanConfig { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -35,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new JpegEncoderCore(this, this.JpegFrameConfig, this.JpegScanConfig);
+            var encoder = new JpegEncoderCore(this, this.FrameConfig, this.ScanConfig);
             encoder.Encode(image, stream);
         }
 
@@ -50,81 +69,153 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new JpegEncoderCore(this, this.JpegFrameConfig, this.JpegScanConfig);
+            var encoder = new JpegEncoderCore(this, this.FrameConfig, this.ScanConfig);
             return encoder.EncodeAsync(image, stream, cancellationToken);
         }
+
+        private static JpegFrameConfig[] CreateFrameConfigs() => new JpegFrameConfig[]
+        {
+            // YCbCr 4:4:4
+            new JpegFrameConfig(
+                JpegColorSpace.YCbCr,
+                JpegEncodingColor.YCbCrRatio444,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                }),
+
+            // YCbCr 4:2:2
+            new JpegFrameConfig(
+                JpegColorSpace.YCbCr,
+                JpegEncodingColor.YCbCrRatio422,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 1, hsf: 2, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                }),
+
+            // YCbCr 4:2:0
+            new JpegFrameConfig(
+                JpegColorSpace.YCbCr,
+                JpegEncodingColor.YCbCrRatio420,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 1, hsf: 2, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                }),
+
+            // YCbCr 4:1:1
+            new JpegFrameConfig(
+                JpegColorSpace.YCbCr,
+                JpegEncodingColor.YCbCrRatio411,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 1, hsf: 4, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                }),
+
+            // YCbCr 4:1:0
+            new JpegFrameConfig(
+                JpegColorSpace.YCbCr,
+                JpegEncodingColor.YCbCrRatio410,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 1, hsf: 4, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                }),
+
+            // Luminance
+            new JpegFrameConfig(
+                JpegColorSpace.Grayscale,
+                JpegEncodingColor.Luminance,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                }),
+
+            // Rgb
+            new JpegFrameConfig(
+                JpegColorSpace.RGB,
+                JpegEncodingColor.Rgb,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 82, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 71, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 66, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                }),
+
+            // Cmyk
+            new JpegFrameConfig(
+                JpegColorSpace.Cmyk,
+                JpegEncodingColor.Cmyk,
+                new JpegComponentConfig[]
+                {
+                    new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                }),
+        };
     }
 
-    public class JpegFrameConfig
+    internal class JpegFrameConfig
     {
-        public JpegFrameConfig(JpegEncodingMode colorType)
+        public JpegFrameConfig(JpegColorSpace colorType, JpegEncodingColor encodingColor, JpegComponentConfig[] components)
         {
             this.ColorType = colorType;
+            this.EncodingColor = encodingColor;
+            this.Components = components;
 
-            int componentCount = GetComponentCountFromColorType(colorType);
-            this.Components = new JpegComponentConfig[componentCount];
-
-            static int GetComponentCountFromColorType(JpegEncodingMode colorType)
+            this.MaxHorizontalSamplingFactor = components[0].HorizontalSampleFactor;
+            this.MaxVerticalSamplingFactor = components[0].VerticalSampleFactor;
+            for (int i = 1; i < components.Length; i++)
             {
-                switch (colorType)
-                {
-                    case JpegEncodingMode.Luminance:
-                        return 1;
-                    case JpegEncodingMode.YCbCrRatio444:
-                    case JpegEncodingMode.YCbCrRatio422:
-                    case JpegEncodingMode.YCbCrRatio420:
-                    case JpegEncodingMode.YCbCrRatio411:
-                    case JpegEncodingMode.YCbCrRatio410:
-                    case JpegEncodingMode.Rgb:
-                        return 3;
-                    case JpegEncodingMode.Cmyk:
-                        return 4;
-                    default:
-                        throw new ArgumentException($"Unknown jpeg color space: {colorType}");
-                }
+                JpegComponentConfig component = components[i];
+                this.MaxHorizontalSamplingFactor = Math.Max(this.MaxHorizontalSamplingFactor, component.HorizontalSampleFactor);
+                this.MaxVerticalSamplingFactor = Math.Max(this.MaxVerticalSamplingFactor, component.VerticalSampleFactor);
             }
         }
 
-        public JpegEncodingMode ColorType { get; }
+        public JpegColorSpace ColorType { get; }
+
+        public JpegEncodingColor EncodingColor { get; }
 
         public JpegComponentConfig[] Components { get; }
 
-        public int MaxHorizontalSamplingFactor { get; set; } = 1;
+        public int MaxHorizontalSamplingFactor { get; }
 
-        public int MaxVerticalSamplingFactor { get; set; } = 1;
-
-        public JpegFrameConfig PopulateComponent(int index, byte id, int hsf, int vsf, int quantIndex, int dcIndex, int acIndex)
-        {
-            this.Components[index] = new JpegComponentConfig
-            {
-                Id = id,
-                HorizontalSampleFactor = hsf,
-                VerticalSampleFactor = vsf,
-                QuantizatioTableIndex = quantIndex,
-                dcTableSelector = dcIndex,
-                acTableSelector = acIndex,
-            };
-
-            this.MaxHorizontalSamplingFactor = Math.Max(this.MaxHorizontalSamplingFactor, hsf);
-            this.MaxVerticalSamplingFactor = Math.Max(this.MaxVerticalSamplingFactor, vsf);
-
-            return this;
-        }
+        public int MaxVerticalSamplingFactor { get; }
     }
 
-    public class JpegComponentConfig
+    internal class JpegComponentConfig
     {
-        public byte Id { get; set; }
+        public JpegComponentConfig(byte id, int hsf, int vsf, int quantIndex, int dcIndex, int acIndex)
+        {
+            this.Id = id;
+            this.HorizontalSampleFactor = hsf;
+            this.VerticalSampleFactor = vsf;
+            this.QuantizatioTableIndex = quantIndex;
+            this.dcTableSelector = dcIndex;
+            this.acTableSelector = acIndex;
+        }
 
-        public int HorizontalSampleFactor { get; set; }
+        public byte Id { get; }
 
-        public int VerticalSampleFactor { get; set; }
+        public int HorizontalSampleFactor { get; }
 
-        public int QuantizatioTableIndex { get; set; }
+        public int VerticalSampleFactor { get; }
 
-        public int dcTableSelector { get; set; }
+        public int QuantizatioTableIndex { get; }
 
-        public int acTableSelector { get; set; }
+        public int dcTableSelector { get; }
+
+        public int acTableSelector { get; }
     }
 
     public class JpegHuffmanTableConfig

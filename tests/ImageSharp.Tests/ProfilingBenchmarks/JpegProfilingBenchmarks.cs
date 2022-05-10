@@ -91,11 +91,11 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 
         // Benchmark, enable manually!
         [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
-        [InlineData(1, 75, JpegEncodingMode.YCbCrRatio420)]
-        [InlineData(30, 75, JpegEncodingMode.YCbCrRatio420)]
-        [InlineData(30, 75, JpegEncodingMode.YCbCrRatio444)]
-        [InlineData(30, 100, JpegEncodingMode.YCbCrRatio444)]
-        public void EncodeJpeg(int executionCount, int quality, JpegEncodingMode colorType)
+        [InlineData(1, 75, JpegEncodingColor.YCbCrRatio420)]
+        [InlineData(30, 75, JpegEncodingColor.YCbCrRatio420)]
+        [InlineData(30, 75, JpegEncodingColor.YCbCrRatio444)]
+        [InlineData(30, 100, JpegEncodingColor.YCbCrRatio444)]
+        public void EncodeJpeg(int executionCount, int quality, JpegEncodingColor colorType)
         {
             // do not run this on CI even by accident
             if (TestEnvironment.RunsOnCI)

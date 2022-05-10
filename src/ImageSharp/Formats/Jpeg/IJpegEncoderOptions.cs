@@ -14,10 +14,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Defaults to <value>75</value>.
         /// </summary>
         public int? Quality { get; set; }
-
-        /// <summary>
-        /// Gets the color type, that will be used to encode the image.
-        /// </summary>
-        JpegEncodingMode? ColorType { get; }
     }
 }

@@ -29,11 +29,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private JpegColorConverterBase colorConverter;
 
-        public SpectralConverter(Configuration configuration) =>
+        public SpectralConverter(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables, Configuration configuration)
+        {
             this.configuration = configuration;
 
-        public void InjectFrameData(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables)
-        {
             MemoryAllocator allocator = this.configuration.MemoryAllocator;
 
             // iteration data

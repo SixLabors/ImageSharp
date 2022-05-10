@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var frame = new JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, GetTargetColorSpace(this.frameConfig.EncodingColor));
+            var frame = new JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, this.frameConfig.ColorType);
             this.scanEncoder = new HuffmanScanEncoder(frame.BlocksPerMcu, stream);
 
             this.outputStream = stream;
@@ -142,27 +142,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteEndOfImageMarker();
 
             stream.Flush();
-
-            static JpegColorSpace GetTargetColorSpace(JpegEncodingColor colorType)
-            {
-                switch (colorType)
-                {
-                    case JpegEncodingColor.YCbCrRatio444:
-                    case JpegEncodingColor.YCbCrRatio422:
-                    case JpegEncodingColor.YCbCrRatio420:
-                    case JpegEncodingColor.YCbCrRatio411:
-                    case JpegEncodingColor.YCbCrRatio410:
-                        return JpegColorSpace.YCbCr;
-                    case JpegEncodingColor.Rgb:
-                        return JpegColorSpace.RGB;
-                    case JpegEncodingColor.Cmyk:
-                        return JpegColorSpace.Cmyk;
-                    case JpegEncodingColor.Luminance:
-                        return JpegColorSpace.Grayscale;
-                    default:
-                        throw new NotImplementedException($"Unknown output color space: {colorType}");
-                }
-            }
         }
 
         /// <summary>

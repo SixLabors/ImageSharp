@@ -138,10 +138,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void EncodeScanBaselineInterleaved<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // DEBUG INITIALIZATION SETUP
-            frame.AllocateComponents(fullScan: false);
-
-            // DEBUG ENCODING SETUP
             int mcu = 0;
             int mcusPerColumn = frame.McusPerColumn;
             int mcusPerLine = frame.McusPerLine;

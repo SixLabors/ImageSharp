@@ -126,6 +126,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables, Configuration.Default);
 
+            // TODO: change this for non-interleaved scans
+            frame.AllocateComponents(fullScan: false);
             if (frame.ComponentCount > 1)
             {
                 this.scanEncoder.EncodeScanBaselineInterleaved(frame, spectralConverter, cancellationToken);

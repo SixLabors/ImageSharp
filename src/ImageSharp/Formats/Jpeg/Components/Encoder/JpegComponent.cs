@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int spectralAllocWidth = this.SizeInBlocks.Width;
             int spectralAllocHeight = fullScan ? this.SizeInBlocks.Height : this.VerticalSamplingFactor;
 
-            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(spectralAllocWidth, spectralAllocHeight, AllocationOptions.Clean);
+            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(spectralAllocWidth, spectralAllocHeight);
         }
     }
 }

@@ -45,11 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         private JpegFrameConfig frameConfig;
 
-        private JpegScanConfig scanConfig;
-
         private HuffmanScanEncoder scanEncoder;
-
-        public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -60,15 +56,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options.</param>
-        public JpegEncoderCore(IJpegEncoderOptions options, JpegFrameConfig frameConfig, JpegScanConfig scanConfig)
+        /// <param name="frameConfig">Frame config.</param>
+        public JpegEncoderCore(IJpegEncoderOptions options, JpegFrameConfig frameConfig)
         {
             this.quality = options.Quality;
 
             this.frameConfig = frameConfig;
             this.colorType = frameConfig.EncodingColor;
-
-            this.scanConfig = scanConfig;
         }
+
+        public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
 
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
@@ -119,10 +116,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteStartOfFrame(image.Width, image.Height, this.frameConfig);
 
             // Write the Huffman tables.
-            this.WriteDefineHuffmanTables(this.scanConfig.HuffmanTables);
+            this.WriteDefineHuffmanTables(this.frameConfig.HuffmanTables);
 
             // Write the quantization tables.
-            this.WriteDefineQuantizationTables(this.scanConfig.QuantizationTables, jpegMetadata);
+            this.WriteDefineQuantizationTables(this.frameConfig.QuantizationTables, jpegMetadata);
 
             // Write the scan header.
             this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
@@ -148,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// If color type was not set, set it based on the given image.
         /// Note, if there is no metadata and the image has multiple components this method
         /// returns <see langword="null"/> defering the field assignment
-        /// to <see cref="InitQuantizationTables(int, JpegMetadata, out Block8x8F, out Block8x8F)"/>.
+        /// to <see cref="WriteDefineQuantizationTables"/>.
         /// </summary>
         private static JpegEncodingColor? GetFallbackColorType<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -248,9 +245,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
-        /// <param name="componentCount">The number of components to write.</param>
         private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs)
         {
+            if (tableConfigs is null)
+            {
+                throw new ArgumentNullException(nameof(tableConfigs));
+            }
+
             int markerlen = 2;
 
             for (int i = 0; i < tableConfigs.Length; i++)
@@ -570,10 +571,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the Start Of Frame (Baseline) marker.
         /// </summary>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        /// <param name="componentCount">The number of components in a pixel.</param>
-        /// <param name="componentIds">The component Id's.</param>
         private void WriteStartOfFrame(int width, int height, JpegFrameConfig frame)
         {
             JpegComponentConfig[] components = frame.Components;
@@ -612,8 +609,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <param name="componentCount">The number of components in a pixel.</param>
-        /// <param name="componentIds">The componentId's.</param>
         private void WriteStartOfScan(int componentCount, JpegComponentConfig[] components)
         {
             // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
@@ -643,7 +638,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.buffer[i2 + 5] = components[i].Id;
 
                 // Table selectors
-                int tableSelectors = (components[i].dcTableSelector << 4) | (components[i].acTableSelector);
+                int tableSelectors = (components[i].DcTableSelector << 4) | components[i].AcTableSelector;
                 this.buffer[i2 + 6] = (byte)tableSelectors;
             }
 

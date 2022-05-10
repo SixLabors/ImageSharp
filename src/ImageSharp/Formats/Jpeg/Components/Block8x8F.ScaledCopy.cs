@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Memory;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
-    public partial struct Block8x8F
+    internal partial struct Block8x8F
     {
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ScaledCopyFrom(ref float areaOrigin, int areaStride) =>

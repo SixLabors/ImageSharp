@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     // ReSharper disable once InconsistentNaming
     [StructLayout(LayoutKind.Explicit)]
-    public unsafe partial struct Block8x8
+    internal unsafe partial struct Block8x8
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>

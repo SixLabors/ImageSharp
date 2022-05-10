@@ -24,6 +24,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public int? Quality { get; set; }
 
+        /// <summary>
+        /// Sets jpeg color for encoding.
+        /// </summary>
         public JpegEncodingColor ColorType
         {
             set
@@ -43,8 +46,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         internal JpegFrameConfig FrameConfig { get; set; }
 
-        public JpegScanConfig ScanConfig { get; set; }
-
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new JpegEncoderCore(this, this.FrameConfig, this.ScanConfig);
+            var encoder = new JpegEncoderCore(this, this.FrameConfig);
             encoder.Encode(image, stream);
         }
 
@@ -69,108 +70,172 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new JpegEncoderCore(this, this.FrameConfig, this.ScanConfig);
+            var encoder = new JpegEncoderCore(this, this.FrameConfig);
             return encoder.EncodeAsync(image, stream, cancellationToken);
         }
 
-        private static JpegFrameConfig[] CreateFrameConfigs() => new JpegFrameConfig[]
+        private static JpegFrameConfig[] CreateFrameConfigs()
         {
-            // YCbCr 4:4:4
-            new JpegFrameConfig(
-                JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio444,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                }),
+            var defaultLuminanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 0, HuffmanSpec.TheHuffmanSpecs[0]);
+            var defaultLuminanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 0, HuffmanSpec.TheHuffmanSpecs[1]);
+            var defaultChrominanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 1, HuffmanSpec.TheHuffmanSpecs[2]);
+            var defaultChrominanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 1, HuffmanSpec.TheHuffmanSpecs[3]);
 
-            // YCbCr 4:2:2
-            new JpegFrameConfig(
-                JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio422,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 1, hsf: 2, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                }),
+            var defaultLuminanceQuantTable = new JpegQuantizationTableConfig(0, Block8x8.Load(Quantization.LuminanceTable));
+            var defaultChrominanceQuantTable = new JpegQuantizationTableConfig(1, Block8x8.Load(Quantization.ChrominanceTable));
 
-            // YCbCr 4:2:0
-            new JpegFrameConfig(
-                JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio420,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 1, hsf: 2, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                }),
+            var yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
+            {
+                defaultLuminanceHuffmanDC,
+                defaultLuminanceHuffmanAC,
+                defaultChrominanceHuffmanDC,
+                defaultChrominanceHuffmanAC,
+            };
 
-            // YCbCr 4:1:1
-            new JpegFrameConfig(
-                JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio411,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 1, hsf: 4, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                }),
+            var yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
+            {
+                defaultLuminanceQuantTable,
+                defaultChrominanceQuantTable,
+            };
 
-            // YCbCr 4:1:0
-            new JpegFrameConfig(
-                JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio410,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 1, hsf: 4, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                }),
+            return new JpegFrameConfig[]
+            {
+                // YCbCr 4:4:4
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio444,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
 
-            // Luminance
-            new JpegFrameConfig(
-                JpegColorSpace.Grayscale,
-                JpegEncodingColor.Luminance,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                }),
+                // YCbCr 4:2:2
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio422,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 2, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
 
-            // Rgb
-            new JpegFrameConfig(
-                JpegColorSpace.RGB,
-                JpegEncodingColor.Rgb,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 82, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 71, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 66, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                }),
+                // YCbCr 4:2:0
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio420,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 2, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
 
-            // Cmyk
-            new JpegFrameConfig(
-                JpegColorSpace.Cmyk,
-                JpegEncodingColor.Cmyk,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                }),
-        };
+                // YCbCr 4:1:1
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio411,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 4, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
+
+                // YCbCr 4:1:0
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio410,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 4, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
+
+                // Luminance
+                new JpegFrameConfig(
+                    JpegColorSpace.Grayscale,
+                    JpegEncodingColor.Luminance,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    },
+                    new JpegHuffmanTableConfig[]
+                    {
+                        defaultLuminanceHuffmanDC,
+                        defaultLuminanceHuffmanAC
+                    },
+                    new JpegQuantizationTableConfig[]
+                    {
+                        defaultLuminanceQuantTable
+                    }),
+
+                // Rgb
+                new JpegFrameConfig(
+                    JpegColorSpace.RGB,
+                    JpegEncodingColor.Rgb,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 82, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 71, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 66, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    },
+                    new JpegHuffmanTableConfig[]
+                    {
+                        defaultLuminanceHuffmanDC,
+                        defaultLuminanceHuffmanAC
+                    },
+                    new JpegQuantizationTableConfig[]
+                    {
+                        defaultLuminanceQuantTable
+                    }),
+
+                // Cmyk
+                new JpegFrameConfig(
+                    JpegColorSpace.Cmyk,
+                    JpegEncodingColor.Cmyk,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    },
+                    new JpegHuffmanTableConfig[]
+                    {
+                        defaultLuminanceHuffmanDC,
+                        defaultLuminanceHuffmanAC
+                    },
+                    new JpegQuantizationTableConfig[]
+                    {
+                        defaultLuminanceQuantTable
+                    }),
+            };
+        }
     }
 
     internal class JpegFrameConfig
     {
-        public JpegFrameConfig(JpegColorSpace colorType, JpegEncodingColor encodingColor, JpegComponentConfig[] components)
+        public JpegFrameConfig(JpegColorSpace colorType, JpegEncodingColor encodingColor, JpegComponentConfig[] components, JpegHuffmanTableConfig[] huffmanTables, JpegQuantizationTableConfig[] quantTables)
         {
             this.ColorType = colorType;
             this.EncodingColor = encodingColor;
             this.Components = components;
+            this.HuffmanTables = huffmanTables;
+            this.QuantizationTables = quantTables;
 
             this.MaxHorizontalSamplingFactor = components[0].HorizontalSampleFactor;
             this.MaxVerticalSamplingFactor = components[0].VerticalSampleFactor;
@@ -188,6 +253,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         public JpegComponentConfig[] Components { get; }
 
+        public JpegHuffmanTableConfig[] HuffmanTables { get; }
+
+        public JpegQuantizationTableConfig[] QuantizationTables { get; }
+
         public int MaxHorizontalSamplingFactor { get; }
 
         public int MaxVerticalSamplingFactor { get; }
@@ -201,8 +270,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.HorizontalSampleFactor = hsf;
             this.VerticalSampleFactor = vsf;
             this.QuantizatioTableIndex = quantIndex;
-            this.dcTableSelector = dcIndex;
-            this.acTableSelector = acIndex;
+            this.DcTableSelector = dcIndex;
+            this.AcTableSelector = acIndex;
         }
 
         public byte Id { get; }
@@ -213,31 +282,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         public int QuantizatioTableIndex { get; }
 
-        public int dcTableSelector { get; }
+        public int DcTableSelector { get; }
 
-        public int acTableSelector { get; }
+        public int AcTableSelector { get; }
     }
 
-    public class JpegHuffmanTableConfig
+    internal class JpegHuffmanTableConfig
     {
-        public int Class { get; set; }
+        public JpegHuffmanTableConfig(int @class, int destIndex, HuffmanSpec table)
+        {
+            this.Class = @class;
+            this.DestinationIndex = destIndex;
+            this.Table = table;
+        }
 
-        public int DestinationIndex { get; set; }
+        public int Class { get; }
 
-        public HuffmanSpec Table { get; set; }
+        public int DestinationIndex { get; }
+
+        public HuffmanSpec Table { get; }
     }
 
-    public class JpegQuantizationTableConfig
+    internal class JpegQuantizationTableConfig
     {
-        public int DestinationIndex { get; set; }
+        public JpegQuantizationTableConfig(int destIndex, Block8x8 table)
+        {
+            this.DestinationIndex = destIndex;
+            this.Table = table;
+        }
 
-        public Block8x8 Table { get; set; }
-    }
+        public int DestinationIndex { get; }
 
-    public class JpegScanConfig
-    {
-        public JpegHuffmanTableConfig[] HuffmanTables { get; set; }
-
-        public JpegQuantizationTableConfig[] QuantizationTables { get; set; }
+        public Block8x8 Table { get; }
     }
 }

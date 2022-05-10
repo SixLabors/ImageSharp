@@ -25,8 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 JpegComponentConfig componentConfig = componentConfigs[i];
                 this.Components[i] = new JpegComponent(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
                 {
-                    DcTableId = componentConfig.dcTableSelector,
-                    AcTableId = componentConfig.acTableSelector,
+                    DcTableId = componentConfig.DcTableSelector,
+                    AcTableId = componentConfig.AcTableSelector,
                 };
 
                 this.BlocksPerMcu += componentConfig.HorizontalSampleFactor * componentConfig.VerticalSampleFactor;

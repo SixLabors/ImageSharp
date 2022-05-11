@@ -2,6 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
@@ -49,7 +54,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             Block8x8F workspaceBlock = default;
 
             // handle subsampling
-            this.PackColorBuffer();
+            Size subsamplingFactors = this.component.SubSamplingDivisors;
+            if (subsamplingFactors.Width != 1 || subsamplingFactors.Height != 1)
+            {
+                this.PackColorBuffer();
+            }
 
             for (int y = 0; y < spectralBuffer.Height; y++)
             {
@@ -87,11 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             Size factors = this.component.SubSamplingDivisors;
 
-            if (factors.Width == 1 && factors.Height == 1)
-            {
-                return;
-            }
-
+            float averageMultiplier = 1f / (factors.Width * factors.Height);
             for (int i = 0; i < this.ColorBuffer.Height; i += factors.Height)
             {
                 Span<float> targetBufferRow = this.ColorBuffer.DangerousGetRowSpan(i);
@@ -106,20 +111,74 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 SumHorizontal(targetBufferRow, factors.Width);
 
                 // calculate average
-                float multiplier = 1f / (factors.Width * factors.Height);
-                MultiplyToAverage(targetBufferRow, multiplier);
+                MultiplyToAverage(targetBufferRow, averageMultiplier);
             }
 
             static void SumVertical(Span<float> target, Span<float> source)
             {
-                for (int i = 0; i < target.Length; i++)
+                if (Avx.IsSupported)
                 {
-                    target[i] += source[i];
+                    ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
+                    ref Vector256<float> sourceVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
+
+                    // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                    nint count = source.Length / Vector256<float>.Count;
+                    for (nint i = 0; i < count; i++)
+                    {
+                        Unsafe.Add(ref targetVectorRef, i) = Avx.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
+                    }
+                }
+                else
+                {
+                    ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
+                    ref Vector<float> sourceVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
+
+                    nint count = source.Length / Vector<float>.Count;
+                    for (nint i = 0; i < count; i++)
+                    {
+                        Unsafe.Add(ref targetVectorRef, i) += Unsafe.Add(ref sourceVectorRef, i);
+                    }
+
+                    ref float targetRef = ref MemoryMarshal.GetReference(target);
+                    ref float sourceRef = ref MemoryMarshal.GetReference(source);
+                    for (nint i = count * Vector<float>.Count; i < source.Length; i++)
+                    {
+                        Unsafe.Add(ref targetRef, i) += Unsafe.Add(ref sourceRef, i);
+                    }
                 }
             }
 
             static void SumHorizontal(Span<float> target, int factor)
             {
+                if (Avx2.IsSupported)
+                {
+                    ref Vector256<float> targetRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
+
+                    // Ideally we need to use log2: Numerics.Log2((uint)factor)
+                    // but division by 2 works just fine in this case
+                    // because factor value range is [1, 2, 4]
+                    // log2(1) == 1 / 2 == 0
+                    // log2(2) == 2 / 2 == 1
+                    // log2(4) == 4 / 2 == 2
+                    int haddIterationsCount = (int)((uint)factor / 2);
+                    int length = target.Length / Vector256<float>.Count;
+                    for (int i = 0; i < haddIterationsCount; i++)
+                    {
+                        length /= 2;
+                        for (int j = 0; j < length; j++)
+                        {
+                            int indexLeft = j * 2;
+                            int indexRight = indexLeft + 1;
+                            Vector256<float> sum = Avx.HorizontalAdd(Unsafe.Add(ref targetRef, indexLeft), Unsafe.Add(ref targetRef, indexRight));
+                            Unsafe.Add(ref targetRef, j) = Avx2.Permute4x64(sum.AsDouble(), 0b11_01_10_00).AsSingle();
+                        }
+                    }
+
+                    int summedCount = length * factor * Vector256<float>.Count;
+                    target = target.Slice(summedCount);
+                }
+
+                // scalar remainder
                 for (int i = 0; i < target.Length / factor; i++)
                 {
                     target[i] = target[i * factor];
@@ -132,9 +191,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             static void MultiplyToAverage(Span<float> target, float multiplier)
             {
-                for (int i = 0; i < target.Length; i++)
+                if (Avx.IsSupported)
                 {
-                    target[i] *= multiplier;
+                    ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
+
+                    // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                    nint count = target.Length / Vector256<float>.Count;
+                    var multiplierVector = Vector256.Create(multiplier);
+                    for (nint i = 0; i < count; i++)
+                    {
+                        Unsafe.Add(ref targetVectorRef, i) = Avx.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
+                    }
+                }
+                else
+                {
+                    ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
+
+                    nint count = target.Length / Vector<float>.Count;
+                    var multiplierVector = new Vector<float>(multiplier);
+                    for (nint i = 0; i < count; i++)
+                    {
+                        Unsafe.Add(ref targetVectorRef, i) *= multiplierVector;
+                    }
+
+                    ref float targetRef = ref MemoryMarshal.GetReference(target);
+                    for (nint i = count * Vector<float>.Count; i < target.Length; i++)
+                    {
+                        Unsafe.Add(ref targetRef, i) *= multiplier;
+                    }
                 }
             }
         }

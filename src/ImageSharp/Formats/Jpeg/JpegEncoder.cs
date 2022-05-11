@@ -24,6 +24,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public int? Quality { get; set; }
 
+        /// <inheritdoc/>
+        public bool? Interleaved { get; set; }
+
         /// <summary>
         /// Sets jpeg color for encoding.
         /// </summary>

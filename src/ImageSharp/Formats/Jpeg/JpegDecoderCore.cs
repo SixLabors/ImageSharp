@@ -488,6 +488,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 // Read on.
                 fileMarker = FindNextFileMarker(this.markerBuffer, stream);
             }
+
+            this.Metadata.GetJpegMetadata().Interleaved = this.Frame.Interleaved;
         }
 
         /// <inheritdoc/>
@@ -1178,6 +1180,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
+            this.Metadata.GetJpegMetadata().Progressive = this.Frame.Progressive;
 
             remaining -= length;
 
@@ -1386,7 +1389,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // selectorsCount*2 bytes: component index + huffman tables indices
             stream.Read(this.temp, 0, selectorsBytes);
 
-            this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
+            this.Frame.Interleaved = this.Frame.ComponentCount == selectorsCount;
             for (int i = 0; i < selectorsBytes; i += 2)
             {
                 // 1 byte: Component id

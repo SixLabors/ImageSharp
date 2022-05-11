@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     {
         public JpegFrame(JpegFileMarker sofMarker, byte precision, int width, int height, byte componentCount)
         {
-            this.Extended = sofMarker.Marker is JpegConstants.Markers.SOF1 or JpegConstants.Markers.SOF9;
+            this.IsExtended = sofMarker.Marker is JpegConstants.Markers.SOF1 or JpegConstants.Markers.SOF9;
             this.Progressive = sofMarker.Marker is JpegConstants.Markers.SOF2 or JpegConstants.Markers.SOF10;
 
             this.Precision = precision;
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets a value indicating whether the frame uses the extended specification.
         /// </summary>
-        public bool Extended { get; private set; }
+        public bool IsExtended { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the frame uses the progressive specification.
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <remarks>
         /// This is true for progressive and baseline non-interleaved images.
         /// </remarks>
-        public bool MultiScan { get; set; }
+        public bool Interleaved { get; set; }
 
         /// <summary>
         /// Gets the precision.

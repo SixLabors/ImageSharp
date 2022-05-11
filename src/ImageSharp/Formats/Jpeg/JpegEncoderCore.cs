@@ -38,9 +38,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private readonly int? quality;
 
-        /// <summary>
-        /// Gets or sets the colorspace to use.
-        /// </summary>
+        private readonly bool? interleaved;
+
         private JpegEncodingColor? colorType;
 
         private JpegFrameConfig frameConfig;
@@ -60,6 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public JpegEncoderCore(IJpegEncoderOptions options, JpegFrameConfig frameConfig)
         {
             this.quality = options.Quality;
+            this.interleaved = options.Interleaved;
 
             this.frameConfig = frameConfig;
             this.colorType = frameConfig.EncodingColor;
@@ -121,20 +121,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the quantization tables.
             this.WriteDefineQuantizationTables(this.frameConfig.QuantizationTables, jpegMetadata);
 
-            // Write the scan header.
-            this.WriteStartOfScan(this.frameConfig.Components.Length, this.frameConfig.Components);
-
             var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables, Configuration.Default);
 
-            // TODO: change this for non-interleaved scans
-            frame.AllocateComponents(fullScan: false);
-            if (frame.ComponentCount > 1)
+            if (frame.Components.Length == 1)
             {
-                this.scanEncoder.EncodeScanBaselineInterleaved(frame, spectralConverter, cancellationToken);
+                frame.AllocateComponents(fullScan: false);
+
+                this.WriteStartOfScan(this.frameConfig.Components);
+                this.scanEncoder.EncodeScanBaselineSingleComponent(frame, spectralConverter, cancellationToken);
+            }
+            else if (this.interleaved ?? jpegMetadata.Interleaved ?? true)
+            {
+                frame.AllocateComponents(fullScan: false);
+
+                this.WriteStartOfScan(this.frameConfig.Components);
+                this.scanEncoder.EncodeScanBaselineInterleaved(this.frameConfig.EncodingColor, frame, spectralConverter, cancellationToken);
             }
             else
             {
-                this.scanEncoder.EncodeScanBaselineSingleComponent(frame, spectralConverter, cancellationToken);
+                throw new NotImplementedException();
             }
 
             // Write the End Of Image marker.
@@ -142,50 +147,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             stream.Flush();
         }
-
-        /// <summary>
-        /// If color type was not set, set it based on the given image.
-        /// Note, if there is no metadata and the image has multiple components this method
-        /// returns <see langword="null"/> defering the field assignment
-        /// to <see cref="WriteDefineQuantizationTables"/>.
-        /// </summary>
-        private static JpegEncodingColor? GetFallbackColorType<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // First inspect the image metadata.
-            JpegEncodingColor? colorType = null;
-            JpegMetadata metadata = image.Metadata.GetJpegMetadata();
-            if (IsSupportedColorType(metadata.ColorType))
-            {
-                return metadata.ColorType;
-            }
-
-            // Secondly, inspect the pixel type.
-            // TODO: PixelTypeInfo should contain a component count!
-            bool isGrayscale =
-                typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
-                typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
-
-            // We don't set multi-component color types here since we can set it based upon
-            // the quality in InitQuantizationTables.
-            if (isGrayscale)
-            {
-                colorType = JpegEncodingColor.Luminance;
-            }
-
-            return colorType;
-        }
-
-        /// <summary>
-        /// Returns true, if the color type is supported by the encoder.
-        /// </summary>
-        /// <param name="colorType">The color type.</param>
-        /// <returns>true, if color type is supported.</returns>
-        private static bool IsSupportedColorType(JpegEncodingColor? colorType)
-            => colorType == JpegEncodingColor.YCbCrRatio444
-            || colorType == JpegEncodingColor.YCbCrRatio420
-            || colorType == JpegEncodingColor.Luminance
-            || colorType == JpegEncodingColor.Rgb;
 
         /// <summary>
         /// Write the start of image marker.
@@ -611,7 +572,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        private void WriteStartOfScan(int componentCount, JpegComponentConfig[] components)
+        private void WriteStartOfScan(Span<JpegComponentConfig> components)
         {
             // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
             // - the marker length "\x00\x0c",
@@ -626,13 +587,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[1] = JpegConstants.Markers.SOS;
 
             // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-            int sosSize = 6 + (2 * componentCount);
+            int sosSize = 6 + (2 * components.Length);
             this.buffer[2] = 0x00;
             this.buffer[3] = (byte)sosSize;
-            this.buffer[4] = (byte)componentCount; // Number of components in a scan
+            this.buffer[4] = (byte)components.Length; // Number of components in a scan
 
             // Components data
-            for (int i = 0; i < componentCount; i++)
+            for (int i = 0; i < components.Length; i++)
             {
                 int i2 = 2 * i;
 

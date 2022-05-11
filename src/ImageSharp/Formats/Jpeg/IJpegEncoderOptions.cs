@@ -14,5 +14,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Defaults to <value>75</value>.
         /// </summary>
         public int? Quality { get; set; }
+
+        /// <summary>
+        /// Gets or sets the component encoding mode.
+        /// </summary>
+        /// <remarks>
+        /// Interleaved encoding mode encodes all color components in a single scan.
+        /// Non-interleaved encoding mode encodes each color component in a separate scan.
+        /// </remarks>
+        public bool? Interleaved { get; set; }
     }
 }

@@ -99,9 +99,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Gets or sets the color type.
+        /// Gets the color type.
         /// </summary>
-        public JpegEncodingColor? ColorType { get; set; }
+        public JpegEncodingColor? ColorType { get; internal set; }
+
+        /// <summary>
+        /// Gets the component encoding mode.
+        /// </summary>
+        /// <remarks>
+        /// Interleaved encoding mode encodes all color components in a single scan.
+        /// Non-interleaved encoding mode encodes each color component in a separate scan.
+        /// </remarks>
+        public bool? Interleaved { get; internal set; }
+
+        /// <summary>
+        /// Gets the scan encoding mode.
+        /// </summary>
+        /// <remarks>
+        /// Progressive jpeg images encode component data across multiple scans.
+        /// </remarks>
+        public bool? Progressive { get; internal set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new JpegMetadata(this);

@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.scanBuffer = new JpegBitReader(this.stream);
 
-            bool fullScan = this.frame.Progressive || this.frame.MultiScan;
+            bool fullScan = this.frame.Progressive || !this.frame.Interleaved;
             this.frame.AllocateComponents(fullScan);
 
             if (!this.frame.Progressive)

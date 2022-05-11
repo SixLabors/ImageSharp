@@ -135,7 +135,65 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             tables[tableConfig.DestinationIndex] = new HuffmanLut(tableConfig.Table);
         }
 
-        public void EncodeScanBaselineInterleaved<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+        public void EncodeScanBaselineInterleaved<TPixel>(JpegEncodingColor color, JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            switch (color)
+            {
+                case JpegEncodingColor.YCbCrRatio444:
+                case JpegEncodingColor.Rgb:
+                    this.EncodeScanBaselineInterleaved444(frame, converter, cancellationToken);
+                    break;
+                case JpegEncodingColor.YCbCrRatio420:
+                    this.EncodeScanBaselineInterleaved420(frame, converter, cancellationToken);
+                    break;
+                default:
+                    this.EncodeScanBaselineInterleavedArbitrarySampling(frame, converter, cancellationToken);
+                    break;
+            }
+
+            this.FlushRemainingBytes();
+        }
+
+        public void EncodeScanBaselineSingleComponent<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            JpegComponent component = frame.Components[0];
+
+            int mcuLines = frame.McusPerColumn;
+            int w = component.WidthInBlocks;
+
+            ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+            ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
+
+            for (int i = 0; i < mcuLines; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Convert from pixels to spectral via given converter
+                converter.ConvertStrideBaseline();
+
+                // Encode spectral to binary
+                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: 0);
+                ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                for (int k = 0; k < w; k++)
+                {
+                    this.WriteBlock(
+                        component,
+                        ref Unsafe.Add(ref blockRef, k),
+                        ref dcHuffmanTable,
+                        ref acHuffmanTable);
+
+                    if (this.IsStreamFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
+                }
+            }
+        }
+
+        private void EncodeScanBaselineInterleavedArbitrarySampling<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int mcu = 0;
@@ -154,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 {
                     // Scan an interleaved mcu... process components in order
                     int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < frame.ComponentCount; k++)
+                    for (int k = 0; k < frame.Components.Length; k++)
                     {
                         JpegComponent component = frame.Components[k];
 
@@ -192,24 +250,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     }
                 }
             }
-
-            this.FlushRemainingBytes();
         }
 
-        public void EncodeScanBaselineSingleComponent<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+        private void EncodeScanBaselineInterleaved444<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // DEBUG INITIALIZATION SETUP
-            frame.AllocateComponents(fullScan: false);
+            int mcusPerColumn = frame.McusPerColumn;
+            int mcusPerLine = frame.McusPerLine;
 
-            JpegComponent component = frame.Components[0];
-            int mcuLines = frame.McusPerColumn;
-            int w = component.WidthInBlocks;
-            int h = component.SamplingFactors.Height;
-            ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
-            ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
+            JpegComponent c2 = frame.Components[2];
+            JpegComponent c1 = frame.Components[1];
+            JpegComponent c0 = frame.Components[0];
 
-            for (int i = 0; i < mcuLines; i++)
+            ref HuffmanLut c0dcHuffmanTable = ref this.dcHuffmanTables[c0.DcTableId];
+            ref HuffmanLut c0acHuffmanTable = ref this.acHuffmanTables[c0.AcTableId];
+            ref HuffmanLut c1dcHuffmanTable = ref this.dcHuffmanTables[c1.DcTableId];
+            ref HuffmanLut c1acHuffmanTable = ref this.acHuffmanTables[c1.AcTableId];
+            ref HuffmanLut c2dcHuffmanTable = ref this.dcHuffmanTables[c2.DcTableId];
+            ref HuffmanLut c2acHuffmanTable = ref this.acHuffmanTables[c2.AcTableId];
+
+            ref Block8x8 c0BlockRef = ref MemoryMarshal.GetReference(c0.SpectralBlocks.DangerousGetRowSpan(y: 0));
+            ref Block8x8 c1BlockRef = ref MemoryMarshal.GetReference(c1.SpectralBlocks.DangerousGetRowSpan(y: 0));
+            ref Block8x8 c2BlockRef = ref MemoryMarshal.GetReference(c2.SpectralBlocks.DangerousGetRowSpan(y: 0));
+
+            for (int j = 0; j < mcusPerColumn; j++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -217,26 +281,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 converter.ConvertStrideBaseline();
 
                 // Encode spectral to binary
-                for (int j = 0; j < h; j++)
+                for (int i = 0; i < mcusPerLine; i++)
                 {
-                    Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
-                    ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+                    this.WriteBlock(
+                        c0,
+                        ref Unsafe.Add(ref c0BlockRef, i),
+                        ref c0dcHuffmanTable,
+                        ref c0acHuffmanTable);
 
-                    for (int k = 0; k < w; k++)
+                    this.WriteBlock(
+                        c1,
+                        ref Unsafe.Add(ref c1BlockRef, i),
+                        ref c1dcHuffmanTable,
+                        ref c1acHuffmanTable);
+
+                    this.WriteBlock(
+                        c2,
+                        ref Unsafe.Add(ref c2BlockRef, i),
+                        ref c2dcHuffmanTable,
+                        ref c2acHuffmanTable);
+
+                    if (this.IsStreamFlushNeeded)
                     {
-                        this.WriteBlock(
-                            component,
-                            ref Unsafe.Add(ref blockRef, k),
-                            ref dcHuffmanTable,
-                            ref acHuffmanTable);
-
-                        if (this.IsStreamFlushNeeded)
-                        {
-                            this.FlushToStream();
-                        }
+                        this.FlushToStream();
                     }
                 }
             }
+        }
+
+        private void EncodeScanBaselineInterleaved420<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            throw new NotImplementedException();
         }
 
         private void WriteBlock(

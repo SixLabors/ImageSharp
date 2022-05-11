@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.McusPerLine = (int)Numerics.DivideCeil((uint)image.Width, (uint)maxSubFactorH * 8);
             this.McusPerColumn = (int)Numerics.DivideCeil((uint)image.Height, (uint)maxSubFactorV * 8);
 
-            for (int i = 0; i < this.ComponentCount; i++)
+            for (int i = 0; i < this.Components.Length; i++)
             {
                 JpegComponent component = this.Components[i];
                 component.Init(this, maxSubFactorH, maxSubFactorV);
@@ -49,8 +49,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public int PixelHeight { get; private set; }
 
         public int PixelWidth { get; private set; }
-
-        public int ComponentCount => this.Components.Length;
 
         public JpegComponent[] Components { get; }
 
@@ -70,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         public void AllocateComponents(bool fullScan)
         {
-            for (int i = 0; i < this.ComponentCount; i++)
+            for (int i = 0; i < this.Components.Length; i++)
             {
                 JpegComponent component = this.Components[i];
                 component.AllocateSpectral(fullScan);

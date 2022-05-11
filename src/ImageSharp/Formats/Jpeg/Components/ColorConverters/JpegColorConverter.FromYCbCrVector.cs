@@ -81,8 +81,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 var chromaOffset = new Vector<float>(this.HalfValue);
 
-                var scale = new Vector<float>(this.MaximumValue);
-
                 var rYMult = new Vector<float>(0.299f);
                 var gYMult = new Vector<float>(0.587f);
                 var bYMult = new Vector<float>(0.114f);
@@ -102,9 +100,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     ref Vector<float> c1 = ref Unsafe.Add(ref c1Base, i);
                     ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
 
-                    Vector<float> r = c0 * scale;
-                    Vector<float> g = c1 * scale;
-                    Vector<float> b = c2 * scale;
+                    Vector<float> r = c0;
+                    Vector<float> g = c1;
+                    Vector<float> b = c2;
 
                     // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                     // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)

@@ -24,24 +24,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             internal static void ConvertCoreInplaceToRgb(Span<float> values, float maxValue)
             {
-                ref float valuesRef = ref MemoryMarshal.GetReference(values);
-                float scale = 1 / maxValue;
-
-                for (nint i = 0; i < values.Length; i++)
-                {
-                    Unsafe.Add(ref valuesRef, i) *= scale;
-                }
             }
 
             internal static void ConvertCoreInplaceFromRgb(Span<float> values, float maxValue)
             {
-                ref float valuesRef = ref MemoryMarshal.GetReference(values);
-                float scale = maxValue;
-
-                for (nint i = 0; i < values.Length; i++)
-                {
-                    Unsafe.Add(ref valuesRef, i) *= scale;
-                }
             }
         }
     }

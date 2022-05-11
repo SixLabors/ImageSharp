@@ -81,7 +81,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 // Used for the color conversion
                 var chromaOffset = Vector256.Create(this.HalfValue);
 
-                var scale = Vector256.Create(this.MaximumValue);
                 var f0299 = Vector256.Create(0.299f);
                 var f0587 = Vector256.Create(0.587f);
                 var f0114 = Vector256.Create(0.114f);

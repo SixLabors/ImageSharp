@@ -60,7 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // Used for the color conversion
                 var scale = Vector256.Create(this.MaximumValue);
-                var one = Vector256.Create(1f);
 
                 nint n = values.Component0.Length / Vector256<float>.Count;
                 for (nint i = 0; i < n; i++)
@@ -70,21 +69,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     ref Vector256<float> c2 = ref Unsafe.Add(ref c2Base, i);
                     ref Vector256<float> c3 = ref Unsafe.Add(ref c3Base, i);
 
-                    Vector256<float> ctmp = Avx.Subtract(one, c0);
-                    Vector256<float> mtmp = Avx.Subtract(one, c1);
-                    Vector256<float> ytmp = Avx.Subtract(one, c2);
+                    Vector256<float> ctmp = Avx.Subtract(scale, c0);
+                    Vector256<float> mtmp = Avx.Subtract(scale, c1);
+                    Vector256<float> ytmp = Avx.Subtract(scale, c2);
                     Vector256<float> ktmp = Avx.Min(ctmp, Avx.Min(mtmp, ytmp));
 
-                    Vector256<float> kMask = Avx.CompareNotEqual(ktmp, one);
+                    Vector256<float> kMask = Avx.CompareNotEqual(ktmp, scale);
 
-                    ctmp = Avx.And(Avx.Divide(Avx.Subtract(ctmp, ktmp), Avx.Subtract(one, ktmp)), kMask);
-                    mtmp = Avx.And(Avx.Divide(Avx.Subtract(mtmp, ktmp), Avx.Subtract(one, ktmp)), kMask);
-                    ytmp = Avx.And(Avx.Divide(Avx.Subtract(ytmp, ktmp), Avx.Subtract(one, ktmp)), kMask);
+                    ctmp = Avx.And(Avx.Divide(Avx.Subtract(ctmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
+                    mtmp = Avx.And(Avx.Divide(Avx.Subtract(mtmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
+                    ytmp = Avx.And(Avx.Divide(Avx.Subtract(ytmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
 
                     c0 = Avx.Subtract(scale, Avx.Multiply(ctmp, scale));
                     c1 = Avx.Subtract(scale, Avx.Multiply(mtmp, scale));
                     c2 = Avx.Subtract(scale, Avx.Multiply(ytmp, scale));
-                    c3 = Avx.Subtract(scale, Avx.Multiply(ktmp, scale));
+                    c3 = Avx.Subtract(scale, ktmp);
                 }
             }
         }

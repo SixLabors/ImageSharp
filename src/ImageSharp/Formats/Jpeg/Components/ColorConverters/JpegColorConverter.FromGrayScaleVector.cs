@@ -36,21 +36,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
             {
-                ref Vector<float> cBase =
-                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
-
-                var scale = new Vector<float>(this.MaximumValue);
-
-                nint n = values.Component0.Length / Vector<float>.Count;
-                for (nint i = 0; i < n; i++)
-                {
-                    ref Vector<float> c0 = ref Unsafe.Add(ref cBase, i);
-                    c0 *= scale;
-                }
             }
 
             protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
-                => FromGrayscaleScalar.ConvertCoreInplaceFromRgb(values.Component0, this.MaximumValue);
+            {
+            }
         }
     }
 }

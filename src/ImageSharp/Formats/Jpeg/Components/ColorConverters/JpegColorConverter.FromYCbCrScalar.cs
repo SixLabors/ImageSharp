@@ -55,13 +55,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 Span<float> c1 = values.Component1;
                 Span<float> c2 = values.Component2;
 
-                float scale = maxValue;
-
                 for (int i = 0; i < c0.Length; i++)
                 {
-                    float r = c0[i] * scale;
-                    float g = c1[i] * scale;
-                    float b = c2[i] * scale;
+                    float r = c0[i];
+                    float g = c1[i];
+                    float b = c2[i];
 
                     // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                     // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)

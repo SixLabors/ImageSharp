@@ -60,7 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // Used for the color conversion
                 var scale = new Vector<float>(this.MaximumValue);
-                var one = new Vector<float>(1f);
 
                 nint n = values.Component0.Length / Vector<float>.Count;
                 for (nint i = 0; i < n; i++)
@@ -70,20 +69,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
                     ref Vector<float> c3 = ref Unsafe.Add(ref c3Base, i);
 
-                    Vector<float> ctmp = one - c0;
-                    Vector<float> mtmp = one - c1;
-                    Vector<float> ytmp = one - c2;
+                    Vector<float> ctmp = scale - c0;
+                    Vector<float> mtmp = scale - c1;
+                    Vector<float> ytmp = scale - c2;
                     Vector<float> ktmp = Vector.Min(ctmp, Vector.Min(mtmp, ytmp));
 
-                    var kMask = Vector.Equals(ktmp, Vector<float>.One);
-                    ctmp = Vector.AndNot((ctmp - ktmp) / (one - ktmp), kMask.As<int, float>());
-                    mtmp = Vector.AndNot((mtmp - ktmp) / (one - ktmp), kMask.As<int, float>());
-                    ytmp = Vector.AndNot((ytmp - ktmp) / (one - ktmp), kMask.As<int, float>());
+                    var kMask = Vector.Equals(ktmp, scale);
+                    ctmp = Vector.AndNot((ctmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
+                    mtmp = Vector.AndNot((mtmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
+                    ytmp = Vector.AndNot((ytmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
 
                     c0 = scale - (ctmp * scale);
                     c1 = scale - (mtmp * scale);
                     c2 = scale - (ytmp * scale);
-                    c3 = scale - (ktmp * scale);
+                    c3 = scale - ktmp;
                 }
             }
 

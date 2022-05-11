@@ -51,12 +51,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 for (int i = 0; i < c0.Length; i++)
                 {
-                    float ctmp = 1f - c0[i];
-                    float mtmp = 1f - c1[i];
-                    float ytmp = 1f - c2[i];
+                    float ctmp = 255f - c0[i];
+                    float mtmp = 255f - c1[i];
+                    float ytmp = 255f - c2[i];
                     float ktmp = MathF.Min(MathF.Min(ctmp, mtmp), ytmp);
 
-                    if (1f - ktmp <= float.Epsilon)
+                    if (255f - ktmp <= float.Epsilon)
                     {
                         ctmp = 0f;
                         mtmp = 0f;
@@ -64,15 +64,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     }
                     else
                     {
-                        ctmp = (ctmp - ktmp) / (1f - ktmp);
-                        mtmp = (mtmp - ktmp) / (1f - ktmp);
-                        ytmp = (ytmp - ktmp) / (1f - ktmp);
+                        ctmp = (ctmp - ktmp) / (255f - ktmp);
+                        mtmp = (mtmp - ktmp) / (255f - ktmp);
+                        ytmp = (ytmp - ktmp) / (255f - ktmp);
                     }
 
                     c0[i] = maxValue - (ctmp * maxValue);
                     c1[i] = maxValue - (mtmp * maxValue);
                     c2[i] = maxValue - (ytmp * maxValue);
-                    c3[i] = maxValue - (ktmp * maxValue);
+                    c3[i] = maxValue - ktmp;
                 }
             }
         }

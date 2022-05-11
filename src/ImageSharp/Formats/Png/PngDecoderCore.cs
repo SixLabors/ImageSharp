@@ -1222,10 +1222,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             fixed (byte* compressedDataBase = compressedData)
             {
+                using (IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.Configuration.StreamProcessingBufferSize))
                 using (var memoryStream = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
                 using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
                 using (var inflateStream = new ZlibInflateStream(bufferedStream))
                 {
+                    Span<byte> dest = destBuffer.GetSpan();
                     if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
                     {
                         uncompressedBytesArray = Array.Empty<byte>();
@@ -1233,13 +1235,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
 
                     var uncompressedBytes = new List<byte>(compressedData.Length);
-
-                    // Note: this uses a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
-                    int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                    int bytesRead = inflateStream.CompressedStream.Read(dest, 0, dest.Length);
                     while (bytesRead != 0)
                     {
-                        uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
-                        bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                        uncompressedBytes.AddRange(dest.Slice(0, bytesRead).ToArray());
+                        bytesRead = inflateStream.CompressedStream.Read(dest, 0, dest.Length);
                     }
 
                     uncompressedBytesArray = uncompressedBytes.ToArray();

@@ -1223,26 +1223,26 @@ namespace SixLabors.ImageSharp.Formats.Png
             fixed (byte* compressedDataBase = compressedData)
             {
                 using (IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.Configuration.StreamProcessingBufferSize))
-                using (var memoryStream = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
-                using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
+                using (var memoryStreamOutput = new MemoryStream(compressedData.Length))
+                using (var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
+                using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStreamInput))
                 using (var inflateStream = new ZlibInflateStream(bufferedStream))
                 {
-                    Span<byte> dest = destBuffer.GetSpan();
+                    Span<byte> destUncompressedData = destBuffer.GetSpan();
                     if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
                     {
                         uncompressedBytesArray = Array.Empty<byte>();
                         return false;
                     }
 
-                    var uncompressedBytes = new List<byte>(compressedData.Length);
-                    int bytesRead = inflateStream.CompressedStream.Read(dest, 0, dest.Length);
+                    int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
                     while (bytesRead != 0)
                     {
-                        uncompressedBytes.AddRange(dest.Slice(0, bytesRead).ToArray());
-                        bytesRead = inflateStream.CompressedStream.Read(dest, 0, dest.Length);
+                        memoryStreamOutput.Write(destUncompressedData.Slice(0, bytesRead));
+                        bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
                     }
 
-                    uncompressedBytesArray = uncompressedBytes.ToArray();
+                    uncompressedBytesArray = memoryStreamOutput.ToArray();
                     return true;
                 }
             }

@@ -80,6 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // Used for the color conversion
                 var chromaOffset = Vector256.Create(this.HalfValue);
+
                 var scale = Vector256.Create(this.MaximumValue);
                 var f0299 = Vector256.Create(0.299f);
                 var f0587 = Vector256.Create(0.587f);
@@ -97,9 +98,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     ref Vector256<float> c1 = ref Unsafe.Add(ref c1Base, i);
                     ref Vector256<float> c2 = ref Unsafe.Add(ref c2Base, i);
 
-                    Vector256<float> r = Avx.Multiply(c0, scale);
-                    Vector256<float> g = Avx.Multiply(c1, scale);
-                    Vector256<float> b = Avx.Multiply(c2, scale);
+                    // Vector256<float> r = Avx.Multiply(c0, scale);
+                    // Vector256<float> g = Avx.Multiply(c1, scale);
+                    // Vector256<float> b = Avx.Multiply(c2, scale);
+                    Vector256<float> r = c0;
+                    Vector256<float> g = c1;
+                    Vector256<float> b = c2;
 
                     // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                     // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)

@@ -209,9 +209,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">A <see cref="Span{T}"/> to the destination pixels.</param>
         internal virtual void UnpackIntoRgbPlanes(
             Configuration configuration,
-            ReadOnlySpan<byte> redChannel,
-            ReadOnlySpan<byte> greenChannel,
-            ReadOnlySpan<byte> blueChannel,
+            ReadOnlySpan<float> redChannel,
+            ReadOnlySpan<float> greenChannel,
+            ReadOnlySpan<float> blueChannel,
             Span<TPixel> source)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -219,15 +219,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             int count = redChannel.Length;
 
             Rgba32 rgba32 = default;
-            ref byte r = ref MemoryMarshal.GetReference(redChannel);
-            ref byte g = ref MemoryMarshal.GetReference(greenChannel);
-            ref byte b = ref MemoryMarshal.GetReference(blueChannel);
+            ref float r = ref MemoryMarshal.GetReference(redChannel);
+            ref float g = ref MemoryMarshal.GetReference(greenChannel);
+            ref float b = ref MemoryMarshal.GetReference(blueChannel);
             ref TPixel d = ref MemoryMarshal.GetReference(source);
 
             for (int i = 0; i < count; i++)
             {
                 // TODO: Create ToRgb24 method in IPixel
-                // TODO: create a fast intrinsic accelerated Rgb24 -> r/g/b planes overload
                 Unsafe.Add(ref d, i).ToRgba32(ref rgba32);
                 Unsafe.Add(ref r, i) = rgba32.R;
                 Unsafe.Add(ref g, i) = rgba32.G;

@@ -21,8 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private int pixelRowCounter;
 
-        private IMemoryOwner<byte> rgbBuffer;
-
         private Buffer2D<TPixel> pixelBuffer;
 
         private int alignedPixelWidth;
@@ -57,9 +55,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, component, postProcessorBufferSize, dequantTables[component.QuantizationTableIndex]);
             }
 
-            // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            this.rgbBuffer = allocator.Allocate<byte>(this.alignedPixelWidth * 3);
-
             // color converter from Rgb24 to YCbCr
             this.colorConverter = JpegColorConverterBase.GetConverter(colorSpace: frame.ColorSpace, precision: 8);
         }
@@ -80,25 +75,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // 4. Convert color buffer to spectral blocks with component post processors
             int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
-            int width = this.pixelBuffer.Width;
-
-            Span<byte> r = this.rgbBuffer.Slice(0, this.alignedPixelWidth);
-            Span<byte> g = this.rgbBuffer.Slice(this.alignedPixelWidth, this.alignedPixelWidth);
-            Span<byte> b = this.rgbBuffer.Slice(this.alignedPixelWidth * 2, this.alignedPixelWidth);
-
             for (int yy = this.pixelRowCounter; yy < maxY; yy++)
             {
                 int y = yy - this.pixelRowCounter;
 
                 // unpack TPixel to r/g/b planes
                 Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(yy);
-                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(this.configuration, r, g, b, sourceRow);
 
                 var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
-
-                SimdUtils.ByteToNormalizedFloat(r, values.Component0);
-                SimdUtils.ByteToNormalizedFloat(g, values.Component1);
-                SimdUtils.ByteToNormalizedFloat(b, values.Component2);
+                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(this.configuration, values.Component0, values.Component1, values.Component2, sourceRow);
 
                 this.colorConverter.ConvertFromRgbInplace(values);
             }

@@ -36,6 +36,15 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 SimdUtils.PackFromRgbPlanes(configuration, redChannel, greenChannel, blueChannel, destination);
             }
+
+            /// <inheritdoc />
+            internal override void UnpackIntoRgbPlanes(
+                Configuration configuration,
+                ReadOnlySpan<float> redChannel,
+                ReadOnlySpan<float> greenChannel,
+                ReadOnlySpan<float> blueChannel,
+                Span<Rgb24> source)
+                => SimdUtils.UnpackToRgbPlanes(redChannel, greenChannel, blueChannel, source);
         }
     }
 }

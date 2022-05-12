@@ -302,6 +302,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             {
                 PngChunkType.Header,
                 PngChunkType.Gamma,
+                PngChunkType.EmbeddedColorProfile,
                 PngChunkType.Palette,
                 PngChunkType.InternationalText,
                 PngChunkType.Text,

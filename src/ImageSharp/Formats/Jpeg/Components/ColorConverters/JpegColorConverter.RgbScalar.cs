@@ -7,9 +7,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromRgbScalar : JpegColorConverterScalar
+        internal sealed class RgbScalar : JpegColorConverterScalar
         {
-            public FromRgbScalar(int precision)
+            public RgbScalar(int precision)
                 : base(JpegColorSpace.RGB, precision)
             {
             }
@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             internal static void ConvertCoreInplaceToRgb(ComponentValues values, float maxValue)
             {
-                FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component0, maxValue);
-                FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component1, maxValue);
-                FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component2, maxValue);
+                GrayscaleScalar.ConvertCoreInplaceToRgb(values.Component0, maxValue);
+                GrayscaleScalar.ConvertCoreInplaceToRgb(values.Component1, maxValue);
+                GrayscaleScalar.ConvertCoreInplaceToRgb(values.Component2, maxValue);
             }
 
             internal static void ConvertCoreInplaceFromRgb(ComponentValues values, Span<float> r, Span<float> g, Span<float> b)

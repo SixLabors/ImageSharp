@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
@@ -11,19 +12,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
-        public JpegFrame(JpegFrameConfig frameConfig, MemoryAllocator allocator, Image image, JpegColorSpace colorSpace)
+        public JpegFrame(Image image, JpegFrameConfig frameConfig, bool interleaved)
         {
-            this.ColorSpace = colorSpace;
+            this.ColorSpace = frameConfig.ColorType;
+
+            this.Interleaved = interleaved;
 
             this.PixelWidth = image.Width;
             this.PixelHeight = image.Height;
 
+            MemoryAllocator allocator = image.GetConfiguration().MemoryAllocator;
+
             JpegComponentConfig[] componentConfigs = frameConfig.Components;
-            this.Components = new JpegComponent[componentConfigs.Length];
+            this.Components = new Component[componentConfigs.Length];
             for (int i = 0; i < this.Components.Length; i++)
             {
                 JpegComponentConfig componentConfig = componentConfigs[i];
-                this.Components[i] = new JpegComponent(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
+                this.Components[i] = new Component(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
                 {
                     DcTableId = componentConfig.DcTableSelector,
                     AcTableId = componentConfig.AcTableSelector,
@@ -39,18 +44,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             for (int i = 0; i < this.Components.Length; i++)
             {
-                JpegComponent component = this.Components[i];
+                Component component = this.Components[i];
                 component.Init(this, maxSubFactorH, maxSubFactorV);
             }
         }
 
         public JpegColorSpace ColorSpace { get; }
 
-        public int PixelHeight { get; private set; }
+        public bool Interleaved { get; }
 
-        public int PixelWidth { get; private set; }
+        public int PixelHeight { get; }
 
-        public JpegComponent[] Components { get; }
+        public int PixelWidth { get; }
+
+        public Component[] Components { get; }
 
         public int McusPerLine { get; }
 
@@ -62,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             for (int i = 0; i < this.Components.Length; i++)
             {
-                this.Components[i]?.Dispose();
+                this.Components[i].Dispose();
             }
         }
 
@@ -70,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             for (int i = 0; i < this.Components.Length; i++)
             {
-                JpegComponent component = this.Components[i];
+                Component component = this.Components[i];
                 component.AllocateSpectral(fullScan);
             }
         }

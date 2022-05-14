@@ -10,9 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromGrayScaleVector : JpegColorConverterVector
+        internal sealed class GrayScaleVector : JpegColorConverterVector
         {
-            public FromGrayScaleVector(int precision)
+            public GrayScaleVector(int precision)
                 : base(JpegColorSpace.Grayscale, precision)
             {
             }
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
-                => FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component0, this.MaximumValue);
+                => GrayscaleScalar.ConvertCoreInplaceToRgb(values.Component0, this.MaximumValue);
 
             protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => FromGrayscaleScalar.ConvertCoreInplaceFromRgb(values, r, g, b);
+                => GrayscaleScalar.ConvertCoreInplaceFromRgb(values, r, g, b);
         }
     }
 }

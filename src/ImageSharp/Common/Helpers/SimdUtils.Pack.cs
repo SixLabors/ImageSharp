@@ -67,10 +67,10 @@ namespace SixLabors.ImageSharp
 
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void UnpackToRgbPlanes(
-            ReadOnlySpan<float> redChannel,
-            ReadOnlySpan<float> greenChannel,
-            ReadOnlySpan<float> blueChannel,
-            Span<Rgb24> source)
+            Span<float> redChannel,
+            Span<float> greenChannel,
+            Span<float> blueChannel,
+            ReadOnlySpan<Rgb24> source)
         {
             DebugGuard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
             DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
@@ -221,11 +221,15 @@ namespace SixLabors.ImageSharp
         }
 
         private static void UnpackToRgbPlanesScalar(
-            ReadOnlySpan<float> redChannel,
-            ReadOnlySpan<float> greenChannel,
-            ReadOnlySpan<float> blueChannel,
-            Span<Rgb24> source)
+            Span<float> redChannel,
+            Span<float> greenChannel,
+            Span<float> blueChannel,
+            ReadOnlySpan<Rgb24> source)
         {
+            DebugGuard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(source.Length <= redChannel.Length, nameof(source), "'source' span should not be bigger than the destination channels!");
+
             ref float r = ref MemoryMarshal.GetReference(redChannel);
             ref float g = ref MemoryMarshal.GetReference(greenChannel);
             ref float b = ref MemoryMarshal.GetReference(blueChannel);

@@ -2,14 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromGrayscaleScalar : JpegColorConverterScalar
+        internal sealed class GrayscaleScalar : JpegColorConverterScalar
         {
-            public FromGrayscaleScalar(int precision)
+            public GrayscaleScalar(int precision)
                 : base(JpegColorSpace.Grayscale, precision)
             {
             }
@@ -22,6 +24,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             internal static void ConvertCoreInplaceToRgb(Span<float> values, float maxValue)
             {
+                ref float valuesRef = ref MemoryMarshal.GetReference(values);
+                float scale = 1 / maxValue;
+
+                for (nint i = 0; i < values.Length; i++)
+                {
+                    Unsafe.Add(ref valuesRef, i) *= scale;
+                }
             }
 
             internal static void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
@@ -35,7 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     float b = bLane[i];
 
                     // luminocity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                    c0[i] = (0.299f * r) + (0.587f * g) + (0.114f * b);
+                    float luma = (0.299f * r) + (0.587f * g) + (0.114f * b);
+                    c0[i] = luma;
                 }
             }
         }

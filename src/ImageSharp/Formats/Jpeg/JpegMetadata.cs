@@ -12,16 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     public class JpegMetadata : IDeepCloneable
     {
         /// <summary>
-        /// Backing field for <see cref="LuminanceQuality"/>
-        /// </summary>
-        private int? luminanceQuality;
-
-        /// <summary>
-        /// Backing field for <see cref="ChrominanceQuality"/>
-        /// </summary>
-        private int? chrominanceQuality;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
         /// </summary>
         public JpegMetadata()
@@ -36,8 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.ColorType = other.ColorType;
 
-            this.luminanceQuality = other.luminanceQuality;
-            this.chrominanceQuality = other.chrominanceQuality;
+            this.LuminanceQuality = other.LuminanceQuality;
+            this.ChrominanceQuality = other.ChrominanceQuality;
         }
 
         /// <summary>
@@ -47,11 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        internal int LuminanceQuality
-        {
-            get => this.luminanceQuality ?? Quantization.DefaultQualityFactor;
-            set => this.luminanceQuality = value;
-        }
+        internal int? LuminanceQuality { get; set; }
 
         /// <summary>
         /// Gets or sets the jpeg chrominance quality.
@@ -60,11 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// This value might not be accurate if it was calculated during jpeg decoding
         /// with non-complient ITU quantization tables.
         /// </remarks>
-        internal int ChrominanceQuality
-        {
-            get => this.chrominanceQuality ?? Quantization.DefaultQualityFactor;
-            set => this.chrominanceQuality = value;
-        }
+        internal int? ChrominanceQuality { get; set; }
 
         /// <summary>
         /// Gets the encoded quality.
@@ -77,20 +59,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             get
             {
-                if (this.luminanceQuality.HasValue)
+                if (this.LuminanceQuality.HasValue)
                 {
-                    if (this.chrominanceQuality.HasValue)
+                    if (this.ChrominanceQuality.HasValue)
                     {
-                        return Math.Max(this.luminanceQuality.Value, this.chrominanceQuality.Value);
+                        return Math.Max(this.LuminanceQuality.Value, this.ChrominanceQuality.Value);
                     }
 
-                    return this.luminanceQuality.Value;
+                    return this.LuminanceQuality.Value;
                 }
                 else
                 {
-                    if (this.chrominanceQuality.HasValue)
+                    if (this.ChrominanceQuality.HasValue)
                     {
-                        return this.chrominanceQuality.Value;
+                        return this.ChrominanceQuality.Value;
                     }
 
                     return Quantization.DefaultQualityFactor;

@@ -968,10 +968,10 @@ namespace SixLabors.ImageSharp
             }
 
             internal static void UnpackToRgbPlanesAvx2Reduce(
-                ref ReadOnlySpan<float> redChannel,
-                ref ReadOnlySpan<float> greenChannel,
-                ref ReadOnlySpan<float> blueChannel,
-                ref Span<Rgb24> source)
+                ref Span<float> redChannel,
+                ref Span<float> greenChannel,
+                ref Span<float> blueChannel,
+                ref ReadOnlySpan<Rgb24> source)
             {
                 ref Vector256<byte> rgbByteSpan = ref Unsafe.As<Rgb24, Vector256<byte>>(ref MemoryMarshal.GetReference(source));
                 ref Vector256<float> destRRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(redChannel));

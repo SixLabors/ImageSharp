@@ -110,9 +110,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         private static IEnumerable<JpegColorConverterBase> GetYCbCrConverters(int precision)
         {
-            yield return new FromYCbCrAvx(precision);
-            yield return new FromYCbCrVector(precision);
-            yield return new FromYCbCrScalar(precision);
+            yield return new YCbCrAvx(precision);
+            yield return new YCbCrVector(precision);
+            yield return new YCbCrScalar(precision);
         }
 
         /// <summary>
@@ -120,9 +120,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         private static IEnumerable<JpegColorConverterBase> GetYccKConverters(int precision)
         {
-            yield return new FromYccKAvx(precision);
-            yield return new FromYccKVector(precision);
-            yield return new FromYccKScalar(precision);
+            yield return new YccKAvx(precision);
+            yield return new YccKVector(precision);
+            yield return new YccKScalar(precision);
         }
 
         /// <summary>
@@ -130,9 +130,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         private static IEnumerable<JpegColorConverterBase> GetCmykConverters(int precision)
         {
-            yield return new FromCmykAvx(precision);
-            yield return new FromCmykVector(precision);
-            yield return new FromCmykScalar(precision);
+            yield return new CmykAvx(precision);
+            yield return new CmykVector(precision);
+            yield return new CmykScalar(precision);
         }
 
         /// <summary>
@@ -140,9 +140,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         private static IEnumerable<JpegColorConverterBase> GetGrayScaleConverters(int precision)
         {
-            yield return new FromGrayscaleAvx(precision);
-            yield return new FromGrayScaleVector(precision);
-            yield return new FromGrayscaleScalar(precision);
+            yield return new GrayscaleAvx(precision);
+            yield return new GrayScaleVector(precision);
+            yield return new GrayscaleScalar(precision);
         }
 
         /// <summary>
@@ -150,9 +150,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         private static IEnumerable<JpegColorConverterBase> GetRgbConverters(int precision)
         {
-            yield return new FromRgbAvx(precision);
-            yield return new FromRgbVector(precision);
-            yield return new FromRgbScalar(precision);
+            yield return new RgbAvx(precision);
+            yield return new RgbVector(precision);
+            yield return new RgbScalar(precision);
         }
 
         /// <summary>
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             /// </summary>
             /// <param name="processors">List of component color processors.</param>
             /// <param name="row">Row to convert</param>
-            public ComponentValues(IReadOnlyList<Encoder.JpegComponentPostProcessor> processors, int row)
+            public ComponentValues(IReadOnlyList<Encoder.ComponentProcessor> processors, int row)
             {
                 DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
 

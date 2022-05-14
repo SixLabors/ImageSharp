@@ -7,9 +7,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromCmykScalar : JpegColorConverterScalar
+        internal sealed class CmykScalar : JpegColorConverterScalar
         {
-            public FromCmykScalar(int precision)
+            public CmykScalar(int precision)
                 : base(JpegColorSpace.Cmyk, precision)
             {
             }

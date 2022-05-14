@@ -9,11 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// <summary>
     /// Represents a single frame component.
     /// </summary>
-    internal class JpegComponent : IDisposable
+    internal class Component : IDisposable
     {
         private readonly MemoryAllocator memoryAllocator;
 
-        public JpegComponent(MemoryAllocator memoryAllocator, int horizontalFactor, int verticalFactor, int quantizationTableIndex)
+        public Component(MemoryAllocator memoryAllocator, int horizontalFactor, int verticalFactor, int quantizationTableIndex)
         {
             this.memoryAllocator = memoryAllocator;
 

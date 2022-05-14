@@ -11,26 +11,27 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
-    internal class JpegComponentPostProcessor : IDisposable
+    internal class ComponentProcessor : IDisposable
     {
         private readonly Size blockAreaSize;
 
-        private readonly JpegComponent component;
+        private readonly Component component;
 
         private Block8x8F quantTable;
 
-        public JpegComponentPostProcessor(MemoryAllocator memoryAllocator, JpegComponent component, Size postProcessorBufferSize, Block8x8F quantTable)
+        public ComponentProcessor(MemoryAllocator memoryAllocator, Component component, Size postProcessorBufferSize, Block8x8F quantTable)
         {
             this.component = component;
             this.quantTable = quantTable;
-            FastFloatingPointDCT.AdjustToFDCT(ref this.quantTable);
 
             this.component = component;
             this.blockAreaSize = component.SubSamplingDivisors * 8;
+
+            // alignment of 8 so each block stride can be sampled from a single 'ref pointer'
             this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
                 postProcessorBufferSize.Width,
                 postProcessorBufferSize.Height,
-                8 * component.SubSamplingDivisors.Height,
+                8,
                 AllocationOptions.Clean);
         }
 
@@ -47,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // but 12-bit jpegs are not supported currently
             float normalizationValue = -128f;
 
-            int destAreaStride = this.ColorBuffer.Width * this.component.SubSamplingDivisors.Height;
+            int destAreaStride = this.ColorBuffer.Width;
 
             int yBlockStart = spectralStep * this.component.SamplingFactors.Height;
 
@@ -97,22 +98,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             Size factors = this.component.SubSamplingDivisors;
 
+            int packedWidth = this.ColorBuffer.Width / factors.Width;
+
             float averageMultiplier = 1f / (factors.Width * factors.Height);
             for (int i = 0; i < this.ColorBuffer.Height; i += factors.Height)
             {
-                Span<float> targetBufferRow = this.ColorBuffer.DangerousGetRowSpan(i);
+                Span<float> sourceRow = this.ColorBuffer.DangerousGetRowSpan(i);
 
                 // vertical sum
                 for (int j = 1; j < factors.Height; j++)
                 {
-                    SumVertical(targetBufferRow, this.ColorBuffer.DangerousGetRowSpan(i + j));
+                    SumVertical(sourceRow, this.ColorBuffer.DangerousGetRowSpan(i + j));
                 }
 
                 // horizontal sum
-                SumHorizontal(targetBufferRow, factors.Width);
+                SumHorizontal(sourceRow, factors.Width);
 
                 // calculate average
-                MultiplyToAverage(targetBufferRow, averageMultiplier);
+                MultiplyToAverage(sourceRow, averageMultiplier);
+
+                // copy to the first 8 slots
+                sourceRow.Slice(0, packedWidth).CopyTo(this.ColorBuffer.DangerousGetRowSpan(i / factors.Height));
             }
 
             static void SumVertical(Span<float> target, Span<float> source)

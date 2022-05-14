@@ -4,40 +4,37 @@
 using System;
 using System.Buffers;
 using System.Linq;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     /// <inheritdoc/>
-    internal class SpectralConverter<TPixel> : SpectralConverter
+    internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly Configuration configuration;
+        private readonly ComponentProcessor[] componentProcessors;
 
-        private JpegComponentPostProcessor[] componentProcessors;
-
-        private int pixelRowsPerStep;
+        private readonly int pixelRowsPerStep;
 
         private int pixelRowCounter;
 
-        private Buffer2D<TPixel> pixelBuffer;
+        private readonly Buffer2D<TPixel> pixelBuffer;
 
-        private IMemoryOwner<float> redLane;
+        private readonly IMemoryOwner<float> redLane;
 
-        private IMemoryOwner<float> greenLane;
+        private readonly IMemoryOwner<float> greenLane;
 
-        private IMemoryOwner<float> blueLane;
+        private readonly IMemoryOwner<float> blueLane;
 
-        private int alignedPixelWidth;
+        private readonly int alignedPixelWidth;
 
-        private JpegColorConverterBase colorConverter;
+        private readonly JpegColorConverterBase colorConverter;
 
-        public SpectralConverter(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables, Configuration configuration)
+        public SpectralConverter(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables)
         {
-            this.configuration = configuration;
-
-            MemoryAllocator allocator = this.configuration.MemoryAllocator;
+            MemoryAllocator allocator = image.GetConfiguration().MemoryAllocator;
 
             // iteration data
             int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);
@@ -47,23 +44,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelHeight;
 
             // pixel buffer of the image
-            // currently codec only supports encoding single frame jpegs
             this.pixelBuffer = image.GetRootFramePixelBuffer();
 
-            // component processors from spectral to Rgba32
+            // component processors from spectral to Rgb24
             const int blockPixelWidth = 8;
             this.alignedPixelWidth = majorBlockWidth * blockPixelWidth;
             var postProcessorBufferSize = new Size(this.alignedPixelWidth, this.pixelRowsPerStep);
-            this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
+            this.componentProcessors = new ComponentProcessor[frame.Components.Length];
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
-                JpegComponent component = frame.Components[i];
-                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, component, postProcessorBufferSize, dequantTables[component.QuantizationTableIndex]);
+                Component component = frame.Components[i];
+                this.componentProcessors[i] = new ComponentProcessor(
+                    allocator,
+                    component,
+                    postProcessorBufferSize,
+                    dequantTables[component.QuantizationTableIndex]);
             }
 
-            this.redLane = allocator.Allocate<float>(this.alignedPixelWidth);
-            this.greenLane = allocator.Allocate<float>(this.alignedPixelWidth);
-            this.blueLane = allocator.Allocate<float>(this.alignedPixelWidth);
+            this.redLane = allocator.Allocate<float>(this.alignedPixelWidth, AllocationOptions.Clean);
+            this.greenLane = allocator.Allocate<float>(this.alignedPixelWidth, AllocationOptions.Clean);
+            this.blueLane = allocator.Allocate<float>(this.alignedPixelWidth, AllocationOptions.Clean);
 
             // color converter from Rgb24 to YCbCr
             this.colorConverter = JpegColorConverterBase.GetConverter(colorSpace: frame.ColorSpace, precision: 8);
@@ -71,10 +71,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         public void ConvertStrideBaseline()
         {
+            // Codestyle suggests expression body but it
+            // also requires empty line before comments
+            // which looks ugly with expression bodies thus this warning disable
+#pragma warning disable IDE0022
             // Convert next pixel stride using single spectral `stride'
             // Note that zero passing eliminates the need of virtual call
             // from JpegComponentPostProcessor
             this.ConvertStride(spectralStep: 0);
+#pragma warning restore IDE0022
         }
 
         public void ConvertFull()
@@ -88,34 +93,48 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private void ConvertStride(int spectralStep)
         {
-            // 1. Unpack from TPixel to r/g/b planes
-            // 2. Byte r/g/b planes to normalized float r/g/b planes
-            // 3. Convert from r/g/b planes to target pixel type with JpegColorConverter
-            // 4. Convert color buffer to spectral blocks with component post processors
-            int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
+            int start = this.pixelRowCounter;
+            int end = start + this.pixelRowsPerStep;
+
+            int pixelBufferLastVerticalIndex = this.pixelBuffer.Height - 1;
 
             Span<float> rLane = this.redLane.GetSpan();
             Span<float> gLane = this.greenLane.GetSpan();
             Span<float> bLane = this.blueLane.GetSpan();
-            for (int yy = this.pixelRowCounter; yy < maxY; yy++)
+            for (int yy = start; yy < end; yy++)
             {
                 int y = yy - this.pixelRowCounter;
 
-                // unpack TPixel to r/g/b planes
-                Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(yy);
+                // Unpack TPixel to r/g/b planes
+                int srcIndex = Math.Min(yy, pixelBufferLastVerticalIndex);
+                Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
+                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);
 
-                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(this.configuration, rLane, gLane, bLane, sourceRow);
-
+                // Convert from rgb24 to target pixel type
                 var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
                 this.colorConverter.ConvertFromRgbInplace(values, rLane, gLane, bLane);
             }
 
+            // Convert pixels to spectral
             for (int i = 0; i < this.componentProcessors.Length; i++)
             {
                 this.componentProcessors[i].CopyColorBufferToBlocks(spectralStep);
             }
 
-            this.pixelRowCounter += this.pixelRowsPerStep;
+            this.pixelRowCounter = end;
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            foreach (ComponentProcessor cpp in this.componentProcessors)
+            {
+                cpp.Dispose();
+            }
+
+            this.redLane.Dispose();
+            this.greenLane.Dispose();
+            this.blueLane.Dispose();
         }
     }
 }

@@ -145,7 +145,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegEncodingColor.Rgb)]
         [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegEncodingColor.Cmyk)]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegEncodingColor.YCbCrRatio410)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg422, JpegEncodingColor.YCbCrRatio422)]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegEncodingColor.YCbCrRatio411)]
         public void Identify_DetectsCorrectColorType(string imagePath, JpegEncodingColor expectedColorType)
         {

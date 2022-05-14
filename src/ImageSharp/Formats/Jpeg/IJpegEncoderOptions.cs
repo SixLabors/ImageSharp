@@ -23,5 +23,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Non-interleaved encoding mode encodes each color component in a separate scan.
         /// </remarks>
         public bool? Interleaved { get; set; }
+
+        /// <summary>
+        /// Gets or sets jpeg color for encoding.
+        /// </summary>
+        public JpegEncodingColor? ColorType { get; set; }
     }
 }

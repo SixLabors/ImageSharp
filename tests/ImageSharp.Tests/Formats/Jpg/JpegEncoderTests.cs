@@ -86,53 +86,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg410, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg411, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg422, PixelTypes.Rgba32)]
-        public void Encode_WithUnsupportedColorType_FromInputImage_DefaultsToYCbCr420<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // arrange
-            using Image<TPixel> input = provider.GetImage(JpegDecoder);
-            using var memoryStream = new MemoryStream();
-
-            // act
-            input.Save(memoryStream, new JpegEncoder()
-            {
-                Quality = 75
-            });
-
-            // assert
-            memoryStream.Position = 0;
-            using var output = Image.Load<Rgba32>(memoryStream);
-            JpegMetadata meta = output.Metadata.GetJpegMetadata();
-            Assert.Equal(JpegEncodingColor.YCbCrRatio420, meta.ColorType);
-        }
-
-        [Theory]
-        [InlineData(JpegEncodingColor.Cmyk)]
-        [InlineData(JpegEncodingColor.YCbCrRatio410)]
-        [InlineData(JpegEncodingColor.YCbCrRatio411)]
-        [InlineData(JpegEncodingColor.YCbCrRatio422)]
-        public void Encode_WithUnsupportedColorType_DefaultsToYCbCr420(JpegEncodingColor colorType)
-        {
-            // arrange
-            var jpegEncoder = new JpegEncoder() { ColorType = colorType };
-            using var input = new Image<Rgb24>(10, 10);
-            using var memoryStream = new MemoryStream();
-
-            // act
-            input.Save(memoryStream, jpegEncoder);
-
-            // assert
-            memoryStream.Position = 0;
-            using var output = Image.Load<Rgba32>(memoryStream);
-            JpegMetadata meta = output.Metadata.GetJpegMetadata();
-            Assert.Equal(JpegEncodingColor.YCbCrRatio420, meta.ColorType);
-        }
-
-        [Theory]
         [MemberData(nameof(QualityFiles))]
         public void Encode_PreservesQuality(string imagePath, int quality)
         {
@@ -178,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
         public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality)
-            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.12f));
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.15f));
 
         [Theory]
         [WithFile(TestImages.Png.BikeGrayscale, nameof(Grayscale_Quality), PixelTypes.L8)]
@@ -265,34 +218,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void Quality_0_And_1_Are_Identical()
+        public void Quality_1_And_100_Are_Not_Identical()
         {
             var options = new JpegEncoder
             {
-                Quality = 0
-            };
-
-            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
-
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            using (var memStream0 = new MemoryStream())
-            using (var memStream1 = new MemoryStream())
-            {
-                input.SaveAsJpeg(memStream0, options);
-
-                options.Quality = 1;
-                input.SaveAsJpeg(memStream1, options);
-
-                Assert.Equal(memStream0.ToArray(), memStream1.ToArray());
-            }
-        }
-
-        [Fact]
-        public void Quality_0_And_100_Are_Not_Identical()
-        {
-            var options = new JpegEncoder
-            {
-                Quality = 0
+                Quality = 1
             };
 
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);

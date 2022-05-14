@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromYCbCrVector : JpegColorConverterVector
+        internal sealed class YCbCrVector : JpegColorConverterVector
         {
-            public FromYCbCrVector(int precision)
+            public YCbCrVector(int precision)
                 : base(JpegColorSpace.YCbCr, precision)
             {
             }
@@ -30,10 +30,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 var chromaOffset = new Vector<float>(-this.HalfValue);
 
                 var scale = new Vector<float>(1 / this.MaximumValue);
-                var rCrMult = new Vector<float>(FromYCbCrScalar.RCrMult);
-                var gCbMult = new Vector<float>(-FromYCbCrScalar.GCbMult);
-                var gCrMult = new Vector<float>(-FromYCbCrScalar.GCrMult);
-                var bCbMult = new Vector<float>(FromYCbCrScalar.BCbMult);
+                var rCrMult = new Vector<float>(YCbCrScalar.RCrMult);
+                var gCbMult = new Vector<float>(-YCbCrScalar.GCbMult);
+                var gCrMult = new Vector<float>(-YCbCrScalar.GCrMult);
+                var bCbMult = new Vector<float>(YCbCrScalar.BCbMult);
 
                 nint n = values.Component0.Length / Vector<float>.Count;
                 for (nint i = 0; i < n; i++)
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
-                => FromYCbCrScalar.ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
+                => YCbCrScalar.ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
 
             protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => FromYCbCrScalar.ConvertCoreInplaceFromRgb(values, this.HalfValue, r, g, b);
+                => YCbCrScalar.ConvertCoreInplaceFromRgb(values, this.HalfValue, r, g, b);
         }
     }
 }

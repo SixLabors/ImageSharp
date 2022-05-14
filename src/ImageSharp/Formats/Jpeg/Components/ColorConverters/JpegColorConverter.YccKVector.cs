@@ -10,9 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromYccKVector : JpegColorConverterVector
+        internal sealed class YccKVector : JpegColorConverterVector
         {
-            public FromYccKVector(int precision)
+            public YccKVector(int precision)
                 : base(JpegColorSpace.Ycck, precision)
             {
             }
@@ -31,10 +31,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 var chromaOffset = new Vector<float>(-this.HalfValue);
                 var scale = new Vector<float>(1 / (this.MaximumValue * this.MaximumValue));
                 var max = new Vector<float>(this.MaximumValue);
-                var rCrMult = new Vector<float>(FromYCbCrScalar.RCrMult);
-                var gCbMult = new Vector<float>(-FromYCbCrScalar.GCbMult);
-                var gCrMult = new Vector<float>(-FromYCbCrScalar.GCrMult);
-                var bCbMult = new Vector<float>(FromYCbCrScalar.BCbMult);
+                var rCrMult = new Vector<float>(YCbCrScalar.RCrMult);
+                var gCbMult = new Vector<float>(-YCbCrScalar.GCbMult);
+                var gCrMult = new Vector<float>(-YCbCrScalar.GCrMult);
+                var bCbMult = new Vector<float>(YCbCrScalar.BCbMult);
 
                 nint n = values.Component0.Length / Vector<float>.Count;
                 for (nint i = 0; i < n; i++)
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values) =>
-                FromYccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
+                YccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
 
             protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
                 => throw new System.NotImplementedException();

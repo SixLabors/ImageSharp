@@ -135,6 +135,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             tables[tableConfig.DestinationIndex] = new HuffmanLut(tableConfig.Table);
         }
 
+        /// <summary>
+        /// Encodes scan in baseline interleaved mode.
+        /// </summary>
+        /// <param name="color">Output color space.</param>
+        /// <param name="frame">Frame to encode.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
         public void EncodeScanBaselineInterleaved<TPixel>(JpegEncodingColor color, JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -142,20 +149,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             {
                 case JpegEncodingColor.YCbCrRatio444:
                 case JpegEncodingColor.Rgb:
-                    this.EncodeScanBaselineInterleaved444(frame, converter, cancellationToken);
-                    break;
-                case JpegEncodingColor.YCbCrRatio420:
-                    this.EncodeScanBaselineInterleaved420(frame, converter, cancellationToken);
+                    this.EncodeThreeComponentScanBaselineInterleaved444(frame, converter, cancellationToken);
                     break;
                 default:
-                    this.EncodeScanBaselineInterleavedArbitrarySampling(frame, converter, cancellationToken);
+                    this.EncodeScanBaselineInterleaved(frame, converter, cancellationToken);
                     break;
             }
-
-            this.FlushRemainingBytes();
         }
 
-        public void EncodeScanBaselineSingleComponent<TPixel>(JpegComponent component, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+        /// <summary>
+        /// Encodes grayscale scan in baseline interleaved mode.
+        /// </summary>
+        /// <param name="component">Component with grayscale data.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void EncodeScanBaselineSingleComponent<TPixel>(Component component, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int h = component.HeightInBlocks;
@@ -189,9 +197,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     }
                 }
             }
+
+            this.FlushRemainingBytes();
         }
 
-        public void EncodeScanBaseline(JpegComponent component, CancellationToken cancellationToken)
+        /// <summary>
+        /// Encodes scan with a single component in baseline non-interleaved mode.
+        /// </summary>
+        /// <param name="component">Component with grayscale data.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void EncodeScanBaseline(Component component, CancellationToken cancellationToken)
         {
             int h = component.HeightInBlocks;
             int w = component.WidthInBlocks;
@@ -225,7 +240,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.FlushRemainingBytes();
         }
 
-        private void EncodeScanBaselineInterleavedArbitrarySampling<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+        /// <summary>
+        /// Encodes scan in baseline interleaved mode for any amount of component with arbitrary sampling factors.
+        /// </summary>
+        /// <param name="frame">Frame to encode.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        private void EncodeScanBaselineInterleaved<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int mcu = 0;
@@ -246,7 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     int mcuCol = mcu % mcusPerLine;
                     for (int k = 0; k < frame.Components.Length; k++)
                     {
-                        JpegComponent component = frame.Components[k];
+                        Component component = frame.Components[k];
 
                         ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                         ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
@@ -282,17 +303,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     }
                 }
             }
+
+            this.FlushRemainingBytes();
         }
 
-        private void EncodeScanBaselineInterleaved444<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+        /// <summary>
+        /// Encodes scan in baseline interleaved mode with exactly 3 components with 4:4:4 sampling.
+        /// </summary>
+        /// <param name="frame">Frame to encode.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        private void EncodeThreeComponentScanBaselineInterleaved444<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int mcusPerColumn = frame.McusPerColumn;
             int mcusPerLine = frame.McusPerLine;
 
-            JpegComponent c2 = frame.Components[2];
-            JpegComponent c1 = frame.Components[1];
-            JpegComponent c0 = frame.Components[0];
+            Component c2 = frame.Components[2];
+            Component c1 = frame.Components[1];
+            Component c0 = frame.Components[0];
 
             ref HuffmanLut c0dcHuffmanTable = ref this.dcHuffmanTables[c0.DcTableId];
             ref HuffmanLut c0acHuffmanTable = ref this.acHuffmanTables[c0.AcTableId];
@@ -339,16 +368,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     }
                 }
             }
-        }
 
-        private void EncodeScanBaselineInterleaved420<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            throw new NotImplementedException();
+            this.FlushRemainingBytes();
         }
 
         private void WriteBlock(
-            JpegComponent component,
+            Component component,
             ref Block8x8 block,
             ref HuffmanLut dcTable,
             ref HuffmanLut acTable)
@@ -611,7 +636,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         /// <summary>
         /// Flushes spectral data bytes after encoding all channel blocks
-        /// in a single jpeg macroblock using <see cref="WriteBlock(JpegComponent, ref Block8x8, ref HuffmanLut, ref HuffmanLut)"/>.
+        /// in a single jpeg macroblock using <see cref="WriteBlock(Component, ref Block8x8, ref HuffmanLut, ref HuffmanLut)"/>.
         /// </summary>
         /// <remarks>
         /// This must be called only if <see cref="IsStreamFlushNeeded"/> is true
@@ -641,7 +666,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             int lastByteIndex = (this.emitWriteIndex * 4) - valuableBytesCount;
             this.FlushToStream(lastByteIndex);
 
-            // Clean huffman register
+            // Clear huffman register
             // This is needed for for images with multiples scans
             this.bitCount = 0;
             this.accumulatedBits = 0;

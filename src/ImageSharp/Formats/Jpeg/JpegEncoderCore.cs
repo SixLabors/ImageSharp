@@ -24,27 +24,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     internal sealed unsafe class JpegEncoderCore : IImageEncoderInternals
     {
         /// <summary>
-        /// The number of quantization tables.
+        /// The available encodable frame configs.
         /// </summary>
-        private const int QuantizationTableCount = 2;
+        private static readonly JpegFrameConfig[] FrameConfigs = CreateFrameConfigs();
 
         /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];
 
-        /// <summary>
-        /// The quality, that will be used to encode the image.
-        /// </summary>
-        private readonly int? quality;
-
-        private readonly bool? interleaved;
-
-        private JpegEncodingColor? colorType;
-
-        private JpegFrameConfig frameConfig;
-
-        private HuffmanScanEncoder scanEncoder;
+        private readonly IJpegEncoderOptions options;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -55,15 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options.</param>
-        /// <param name="frameConfig">Frame config.</param>
-        public JpegEncoderCore(IJpegEncoderOptions options, JpegFrameConfig frameConfig)
-        {
-            this.quality = options.Quality;
-            this.interleaved = options.Interleaved;
-
-            this.frameConfig = frameConfig;
-            this.colorType = frameConfig.EncodingColor;
-        }
+        public JpegEncoderCore(IJpegEncoderOptions options)
+            => this.options = options;
 
         public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
 
@@ -87,68 +69,46 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var frame = new JpegFrame(this.frameConfig, Configuration.Default.MemoryAllocator, image, this.frameConfig.ColorType);
-            this.scanEncoder = new HuffmanScanEncoder(frame.BlocksPerMcu, stream);
-
             this.outputStream = stream;
+
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
+            JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
+
+            bool interleaved = this.options.Interleaved ?? jpegMetadata.Interleaved ?? true;
+            using var frame = new JpegFrame(image, frameConfig, interleaved);
 
             // Write the Start Of Image marker.
             this.WriteStartOfImage();
 
-            // Do not write APP0 marker for RGB colorspace.
-            if (this.colorType != JpegEncodingColor.Rgb)
+            // Write APP0 marker for any non-RGB colorspace image.
+            if (frameConfig.EncodingColor != JpegEncodingColor.Rgb)
             {
                 this.WriteJfifApplicationHeader(metadata);
+            }
+
+            // Else write App14 marker to indicate RGB color space.
+            else
+            {
+                this.WriteApp14Marker();
             }
 
             // Write Exif, XMP, ICC and IPTC profiles
             this.WriteProfiles(metadata);
 
-            if (this.colorType == JpegEncodingColor.Rgb)
-            {
-                // Write App14 marker to indicate RGB color space.
-                this.WriteApp14Marker();
-            }
-
             // Write the image dimensions.
-            this.WriteStartOfFrame(image.Width, image.Height, this.frameConfig);
+            this.WriteStartOfFrame(image.Width, image.Height, frameConfig);
 
             // Write the Huffman tables.
-            this.WriteDefineHuffmanTables(this.frameConfig.HuffmanTables);
+            var scanEncoder = new HuffmanScanEncoder(frame.BlocksPerMcu, stream);
+            this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder);
 
             // Write the quantization tables.
-            this.WriteDefineQuantizationTables(this.frameConfig.QuantizationTables, jpegMetadata);
+            this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.options.Quality, jpegMetadata);
 
-            var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables, Configuration.Default);
-
-            if (frame.Components.Length == 1)
-            {
-                frame.AllocateComponents(fullScan: false);
-
-                this.WriteStartOfScan(this.frameConfig.Components);
-                this.scanEncoder.EncodeScanBaselineSingleComponent(frame.Components[0], spectralConverter, cancellationToken);
-            }
-            else if (this.interleaved ?? jpegMetadata.Interleaved ?? true)
-            {
-                frame.AllocateComponents(fullScan: false);
-
-                this.WriteStartOfScan(this.frameConfig.Components);
-                this.scanEncoder.EncodeScanBaselineInterleaved(this.frameConfig.EncodingColor, frame, spectralConverter, cancellationToken);
-            }
-            else
-            {
-                frame.AllocateComponents(fullScan: true);
-                spectralConverter.ConvertFull();
-
-                Span<JpegComponentConfig> components = this.frameConfig.Components;
-                for (int i = 0; i < frame.Components.Length; i++)
-                {
-                    this.WriteStartOfScan(components.Slice(i, 1));
-                    this.scanEncoder.EncodeScanBaseline(frame.Components[i], cancellationToken);
-                }
-            }
+            // Write scans with actual pixel data
+            using var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables);
+            this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, cancellationToken);
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();
@@ -216,7 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
-        private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs)
+        private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder)
         {
             if (tableConfigs is null)
             {
@@ -240,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.outputStream.Write(tableConfig.Table.Count);
                 this.outputStream.Write(tableConfig.Table.Values);
 
-                this.scanEncoder.BuildHuffmanTable(tableConfig);
+                scanEncoder.BuildHuffmanTable(tableConfig);
             }
         }
 
@@ -630,6 +590,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Writes scans for given config.
+        /// </summary>
+        private void WriteHuffmanScans<TPixel>(JpegFrame frame, JpegFrameConfig frameConfig, SpectralConverter<TPixel> spectralConverter, HuffmanScanEncoder encoder, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (frame.Components.Length == 1)
+            {
+                frame.AllocateComponents(fullScan: false);
+
+                this.WriteStartOfScan(frameConfig.Components);
+                encoder.EncodeScanBaselineSingleComponent(frame.Components[0], spectralConverter, cancellationToken);
+            }
+            else if (frame.Interleaved)
+            {
+                frame.AllocateComponents(fullScan: false);
+
+                this.WriteStartOfScan(frameConfig.Components);
+                encoder.EncodeScanBaselineInterleaved(frameConfig.EncodingColor, frame, spectralConverter, cancellationToken);
+            }
+            else
+            {
+                frame.AllocateComponents(fullScan: true);
+                spectralConverter.ConvertFull();
+
+                Span<JpegComponentConfig> components = frameConfig.Components;
+                for (int i = 0; i < frame.Components.Length; i++)
+                {
+                    this.WriteStartOfScan(components.Slice(i, 1));
+                    encoder.EncodeScanBaseline(frame.Components[i], cancellationToken);
+                }
+            }
+        }
+
+        /// <summary>
         /// Writes the header for a marker with the given length.
         /// </summary>
         /// <param name="marker">The marker to write.</param>
@@ -656,8 +650,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </list>
         /// </remarks>
         /// <param name="configs">Quantization tables configs.</param>
+        /// <param name="optionsQuality">Optional quality value from the options.</param>
         /// <param name="metadata">Jpeg metadata instance.</param>
-        private void WriteDefineQuantizationTables(JpegQuantizationTableConfig[] configs, JpegMetadata metadata)
+        private void WriteDefineQuantizationTables(JpegQuantizationTableConfig[] configs, int? optionsQuality, JpegMetadata metadata)
         {
             int dataLen = configs.Length * (1 + Block8x8.Size);
 
@@ -668,11 +663,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             byte[] buffer = new byte[dataLen];
             int offset = 0;
 
+            Block8x8F workspaceBlock = default;
+
             for (int i = 0; i < configs.Length; i++)
             {
                 JpegQuantizationTableConfig config = configs[i];
 
-                int quality = GetQualityForTable(config.DestinationIndex, this.quality, metadata);
+                int quality = GetQualityForTable(config.DestinationIndex, optionsQuality, metadata);
                 Block8x8 scaledTable = Quantization.ScaleQuantizationTable(quality, config.Table);
 
                 // write to the output stream
@@ -683,8 +680,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     buffer[offset++] = (byte)(uint)scaledTable[ZigZag.ZigZagOrder[j]];
                 }
 
-                // apply scaling and save into buffer
-                this.QuantizationTables[config.DestinationIndex].LoadFromInt16Scalar(ref scaledTable);
+                // apply FDCT multipliers and inject to the destination index
+                workspaceBlock.LoadFrom(ref scaledTable);
+                FastFloatingPointDCT.AdjustToFDCT(ref workspaceBlock);
+
+                this.QuantizationTables[config.DestinationIndex] = workspaceBlock;
             }
 
             // write filled buffer to the stream
@@ -692,9 +692,176 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             static int GetQualityForTable(int destIndex, int? encoderQuality, JpegMetadata metadata) => destIndex switch
             {
-                0 => encoderQuality ?? metadata.LuminanceQuality,
-                1 => encoderQuality ?? metadata.ChrominanceQuality,
+                0 => encoderQuality ?? metadata.LuminanceQuality ?? Quantization.DefaultQualityFactor,
+                1 => encoderQuality ?? metadata.ChrominanceQuality ?? Quantization.DefaultQualityFactor,
                 _ => encoderQuality ?? metadata.Quality,
+            };
+        }
+
+        private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
+        {
+            JpegEncodingColor color = this.options.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
+            JpegFrameConfig frameConfig = Array.Find(
+                FrameConfigs,
+                cfg => cfg.EncodingColor == color);
+
+            if (frameConfig == null)
+            {
+                throw new ArgumentException(nameof(color));
+            }
+
+            return frameConfig;
+        }
+
+        private static JpegFrameConfig[] CreateFrameConfigs()
+        {
+            var defaultLuminanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 0, HuffmanSpec.TheHuffmanSpecs[0]);
+            var defaultLuminanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 0, HuffmanSpec.TheHuffmanSpecs[1]);
+            var defaultChrominanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 1, HuffmanSpec.TheHuffmanSpecs[2]);
+            var defaultChrominanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 1, HuffmanSpec.TheHuffmanSpecs[3]);
+
+            var defaultLuminanceQuantTable = new JpegQuantizationTableConfig(0, Quantization.LuminanceTable);
+            var defaultChrominanceQuantTable = new JpegQuantizationTableConfig(1, Quantization.ChrominanceTable);
+
+            var yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
+            {
+                defaultLuminanceHuffmanDC,
+                defaultLuminanceHuffmanAC,
+                defaultChrominanceHuffmanDC,
+                defaultChrominanceHuffmanAC,
+            };
+
+            var yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
+            {
+                defaultLuminanceQuantTable,
+                defaultChrominanceQuantTable,
+            };
+
+            return new JpegFrameConfig[]
+            {
+                // YCbCr 4:4:4
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio444,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
+
+                // YCbCr 4:2:2
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio422,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 2, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
+
+                // YCbCr 4:2:0
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio420,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 2, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
+
+                // YCbCr 4:1:1
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio411,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 4, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
+
+                // YCbCr 4:1:0
+                new JpegFrameConfig(
+                    JpegColorSpace.YCbCr,
+                    JpegEncodingColor.YCbCrRatio410,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 4, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
+                    },
+                    yCbCrHuffmanConfigs,
+                    yCbCrQuantTableConfigs),
+
+                // Luminance
+                new JpegFrameConfig(
+                    JpegColorSpace.Grayscale,
+                    JpegEncodingColor.Luminance,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    },
+                    new JpegHuffmanTableConfig[]
+                    {
+                        defaultLuminanceHuffmanDC,
+                        defaultLuminanceHuffmanAC
+                    },
+                    new JpegQuantizationTableConfig[]
+                    {
+                        defaultLuminanceQuantTable
+                    }),
+
+                // Rgb
+                new JpegFrameConfig(
+                    JpegColorSpace.RGB,
+                    JpegEncodingColor.Rgb,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 82, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 71, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 66, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    },
+                    new JpegHuffmanTableConfig[]
+                    {
+                        defaultLuminanceHuffmanDC,
+                        defaultLuminanceHuffmanAC
+                    },
+                    new JpegQuantizationTableConfig[]
+                    {
+                        defaultLuminanceQuantTable
+                    }),
+
+                // Cmyk
+                new JpegFrameConfig(
+                    JpegColorSpace.Cmyk,
+                    JpegEncodingColor.Cmyk,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    },
+                    new JpegHuffmanTableConfig[]
+                    {
+                        defaultLuminanceHuffmanDC,
+                        defaultLuminanceHuffmanAC
+                    },
+                    new JpegQuantizationTableConfig[]
+                    {
+                        defaultLuminanceQuantTable
+                    }),
             };
         }
     }

@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
     {
-        internal sealed class FromYccKAvx : JpegColorConverterAvx
+        internal sealed class YccKAvx : JpegColorConverterAvx
         {
-            public FromYccKAvx(int precision)
+            public YccKAvx(int precision)
                 : base(JpegColorSpace.Ycck, precision)
             {
             }
@@ -35,10 +35,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 var chromaOffset = Vector256.Create(-this.HalfValue);
                 var scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
                 var max = Vector256.Create(this.MaximumValue);
-                var rCrMult = Vector256.Create(FromYCbCrScalar.RCrMult);
-                var gCbMult = Vector256.Create(-FromYCbCrScalar.GCbMult);
-                var gCrMult = Vector256.Create(-FromYCbCrScalar.GCrMult);
-                var bCbMult = Vector256.Create(FromYCbCrScalar.BCbMult);
+                var rCrMult = Vector256.Create(YCbCrScalar.RCrMult);
+                var gCbMult = Vector256.Create(-YCbCrScalar.GCbMult);
+                var gCrMult = Vector256.Create(-YCbCrScalar.GCrMult);
+                var bCbMult = Vector256.Create(YCbCrScalar.BCbMult);
 
                 // Walking 8 elements at one step:
                 nint n = values.Component0.Length / Vector256<float>.Count;

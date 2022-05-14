@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -69,14 +70,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values)
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
-                ref Vector256<float> c0Base =
+                ref Vector256<float> destY =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
-                ref Vector256<float> c1Base =
+                ref Vector256<float> destCb =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component1));
-                ref Vector256<float> c2Base =
+                ref Vector256<float> destCr =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component2));
+
+                ref Vector256<float> srcR =
+                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(rLane));
+                ref Vector256<float> srcG =
+                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(gLane));
+                ref Vector256<float> srcB =
+                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
 
                 // Used for the color conversion
                 var chromaOffset = Vector256.Create(this.HalfValue);
@@ -93,16 +101,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 nint n = values.Component0.Length / Vector256<float>.Count;
                 for (nint i = 0; i < n; i++)
                 {
-                    ref Vector256<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                    ref Vector256<float> c1 = ref Unsafe.Add(ref c1Base, i);
-                    ref Vector256<float> c2 = ref Unsafe.Add(ref c2Base, i);
-
-                    // Vector256<float> r = Avx.Multiply(c0, scale);
-                    // Vector256<float> g = Avx.Multiply(c1, scale);
-                    // Vector256<float> b = Avx.Multiply(c2, scale);
-                    Vector256<float> r = c0;
-                    Vector256<float> g = c1;
-                    Vector256<float> b = c2;
+                    Vector256<float> r = Unsafe.Add(ref srcR, i);
+                    Vector256<float> g = Unsafe.Add(ref srcG, i);
+                    Vector256<float> b = Unsafe.Add(ref srcB, i);
 
                     // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                     // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
@@ -111,9 +112,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     Vector256<float> cb = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
                     Vector256<float> cr = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
 
-                    c0 = y;
-                    c1 = cb;
-                    c2 = cr;
+                    Unsafe.Add(ref destY, i) = y;
+                    Unsafe.Add(ref destCb, i) = cb;
+                    Unsafe.Add(ref destCr, i) = cr;
                 }
             }
         }

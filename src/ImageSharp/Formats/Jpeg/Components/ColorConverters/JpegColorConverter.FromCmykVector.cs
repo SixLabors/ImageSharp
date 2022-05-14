@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -47,16 +48,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
                  => FromCmykScalar.ConvertToRgbInplace(values, this.MaximumValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
             {
-                ref Vector<float> c0Base =
+                ref Vector<float> destC =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
-                ref Vector<float> c1Base =
+                ref Vector<float> destM =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
-                ref Vector<float> c2Base =
+                ref Vector<float> destY =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
-                ref Vector<float> c3Base =
+                ref Vector<float> destK =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component3));
+
+                ref Vector<float> srcR =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(r));
+                ref Vector<float> srcG =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(g));
+                ref Vector<float> srcB =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(b));
 
                 // Used for the color conversion
                 var scale = new Vector<float>(this.MaximumValue);
@@ -64,14 +72,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 nint n = values.Component0.Length / Vector<float>.Count;
                 for (nint i = 0; i < n; i++)
                 {
-                    ref Vector<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                    ref Vector<float> c1 = ref Unsafe.Add(ref c1Base, i);
-                    ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
-                    ref Vector<float> c3 = ref Unsafe.Add(ref c3Base, i);
-
-                    Vector<float> ctmp = scale - c0;
-                    Vector<float> mtmp = scale - c1;
-                    Vector<float> ytmp = scale - c2;
+                    Vector<float> ctmp = scale - Unsafe.Add(ref srcR, i);
+                    Vector<float> mtmp = scale - Unsafe.Add(ref srcG, i);
+                    Vector<float> ytmp = scale - Unsafe.Add(ref srcB, i);
                     Vector<float> ktmp = Vector.Min(ctmp, Vector.Min(mtmp, ytmp));
 
                     var kMask = Vector.Equals(ktmp, scale);
@@ -79,15 +82,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     mtmp = Vector.AndNot((mtmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
                     ytmp = Vector.AndNot((ytmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
 
-                    c0 = scale - (ctmp * scale);
-                    c1 = scale - (mtmp * scale);
-                    c2 = scale - (ytmp * scale);
-                    c3 = scale - ktmp;
+                    Unsafe.Add(ref destC, i) = scale - (ctmp * scale);
+                    Unsafe.Add(ref destM, i) = scale - (mtmp * scale);
+                    Unsafe.Add(ref destY, i) = scale - (ytmp * scale);
+                    Unsafe.Add(ref destK, i) = scale - ktmp;
                 }
             }
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
-                => FromCmykScalar.ConvertFromRgbInplace(values, this.MaximumValue);
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => FromCmykScalar.ConvertFromRgbInplace(values, this.MaximumValue, r, g, b);
         }
     }
 }

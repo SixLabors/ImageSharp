@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             public override void ConvertToRgbInplace(in ComponentValues values) =>
                 ConvertToRgbInplace(values, this.MaximumValue);
 
-            public override void ConvertFromRgbInplace(in ComponentValues values)
-                => ConvertFromRgbInplace(values, this.MaximumValue);
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertFromRgbInplace(values, this.MaximumValue, r, g, b);
 
             public static void ConvertToRgbInplace(in ComponentValues values, float maxValue)
             {
@@ -42,21 +42,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public static void ConvertFromRgbInplace(in ComponentValues values, float maxValue)
+            public static void ConvertFromRgbInplace(in ComponentValues values, float maxValue, Span<float> r, Span<float> g, Span<float> b)
             {
-                Span<float> c0 = values.Component0;
-                Span<float> c1 = values.Component1;
-                Span<float> c2 = values.Component2;
-                Span<float> c3 = values.Component3;
+                Span<float> c = values.Component0;
+                Span<float> m = values.Component1;
+                Span<float> y = values.Component2;
+                Span<float> k = values.Component3;
 
-                for (int i = 0; i < c0.Length; i++)
+                for (int i = 0; i < c.Length; i++)
                 {
-                    float ctmp = 255f - c0[i];
-                    float mtmp = 255f - c1[i];
-                    float ytmp = 255f - c2[i];
+                    float ctmp = 255f - r[i];
+                    float mtmp = 255f - g[i];
+                    float ytmp = 255f - b[i];
                     float ktmp = MathF.Min(MathF.Min(ctmp, mtmp), ytmp);
 
-                    if (255f - ktmp <= float.Epsilon)
+                    if (ktmp >= 255f)
                     {
                         ctmp = 0f;
                         mtmp = 0f;
@@ -69,10 +69,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                         ytmp = (ytmp - ktmp) / (255f - ktmp);
                     }
 
-                    c0[i] = maxValue - (ctmp * maxValue);
-                    c1[i] = maxValue - (mtmp * maxValue);
-                    c2[i] = maxValue - (ytmp * maxValue);
-                    c3[i] = maxValue - ktmp;
+                    c[i] = maxValue - (ctmp * maxValue);
+                    m[i] = maxValue - (mtmp * maxValue);
+                    y[i] = maxValue - (ytmp * maxValue);
+                    k[i] = maxValue - ktmp;
                 }
             }
         }

@@ -23,8 +23,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             public override void ConvertToRgbInplace(in ComponentValues values)
                 => ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
 
-            public override void ConvertFromRgbInplace(in ComponentValues values)
-                => ConvertCoreInplaceFromRgb(values, this.MaximumValue, this.HalfValue);
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertCoreInplaceFromRgb(values, this.HalfValue, r, g, b);
 
             public static void ConvertCoreInplaceToRgb(in ComponentValues values, float maxValue, float halfValue)
             {
@@ -49,24 +49,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public static void ConvertCoreInplaceFromRgb(in ComponentValues values, float maxValue, float halfValue)
+            public static void ConvertCoreInplaceFromRgb(in ComponentValues values, float halfValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
-                Span<float> c0 = values.Component0;
-                Span<float> c1 = values.Component1;
-                Span<float> c2 = values.Component2;
+                Span<float> y = values.Component0;
+                Span<float> cb = values.Component1;
+                Span<float> cr = values.Component2;
 
-                for (int i = 0; i < c0.Length; i++)
+                for (int i = 0; i < y.Length; i++)
                 {
-                    float r = c0[i];
-                    float g = c1[i];
-                    float b = c2[i];
+                    float r = rLane[i];
+                    float g = gLane[i];
+                    float b = bLane[i];
 
                     // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                     // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
                     // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
-                    c0[i] = (0.299f * r) + (0.587f * g) + (0.114f * b);
-                    c1[i] = halfValue - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
-                    c2[i] = halfValue + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
+                    y[i] = (0.299f * r) + (0.587f * g) + (0.114f * b);
+                    cb[i] = halfValue - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
+                    cr[i] = halfValue + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
                 }
             }
         }

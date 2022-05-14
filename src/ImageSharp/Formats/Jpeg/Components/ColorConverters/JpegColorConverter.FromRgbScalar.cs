@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     internal abstract partial class JpegColorConverterBase
@@ -13,10 +15,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             public override void ConvertToRgbInplace(in ComponentValues values)
-                => ConvertCoreInplaceFromRgb(values, this.MaximumValue);
+                => ConvertCoreInplaceToRgb(values, this.MaximumValue);
 
-            public override void ConvertFromRgbInplace(in ComponentValues values)
-                => ConvertCoreInplaceFromRgb(values, this.MaximumValue);
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertCoreInplaceFromRgb(values, r, g, b);
 
             internal static void ConvertCoreInplaceToRgb(ComponentValues values, float maxValue)
             {
@@ -25,8 +27,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 FromGrayscaleScalar.ConvertCoreInplaceToRgb(values.Component2, maxValue);
             }
 
-            internal static void ConvertCoreInplaceFromRgb(ComponentValues values, float maxValue)
+            internal static void ConvertCoreInplaceFromRgb(ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
             {
+                r.CopyTo(values.Component0);
+                g.CopyTo(values.Component1);
+                b.CopyTo(values.Component2);
             }
         }
     }

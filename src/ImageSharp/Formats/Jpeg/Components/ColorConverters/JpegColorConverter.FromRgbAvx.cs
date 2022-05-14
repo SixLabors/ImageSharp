@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if SUPPORTS_RUNTIME_INTRINSICS
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -41,8 +42,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values)
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
+                rLane.CopyTo(values.Component0);
+                gLane.CopyTo(values.Component1);
+                bLane.CopyTo(values.Component2);
             }
         }
     }

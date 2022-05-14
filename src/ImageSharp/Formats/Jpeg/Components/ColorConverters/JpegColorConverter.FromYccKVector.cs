@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -71,10 +72,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values) =>
                 FromYccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
                 => throw new System.NotImplementedException();
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
                 => throw new System.NotImplementedException();
         }
     }

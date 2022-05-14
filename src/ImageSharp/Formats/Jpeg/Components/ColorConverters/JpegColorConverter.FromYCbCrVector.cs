@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -70,14 +71,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
                 => FromYCbCrScalar.ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values)
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
-                ref Vector<float> c0Base =
+                ref Vector<float> destY =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
-                ref Vector<float> c1Base =
+                ref Vector<float> destCb =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
-                ref Vector<float> c2Base =
+                ref Vector<float> destCr =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
+
+                ref Vector<float> srcR =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(rLane));
+                ref Vector<float> srcG =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(gLane));
+                ref Vector<float> srcB =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(bLane));
 
                 var chromaOffset = new Vector<float>(this.HalfValue);
 
@@ -96,25 +104,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 nint n = values.Component0.Length / Vector<float>.Count;
                 for (nint i = 0; i < n; i++)
                 {
-                    ref Vector<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                    ref Vector<float> c1 = ref Unsafe.Add(ref c1Base, i);
-                    ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
-
-                    Vector<float> r = c0;
-                    Vector<float> g = c1;
-                    Vector<float> b = c2;
+                    Vector<float> r = Unsafe.Add(ref srcR, i);
+                    Vector<float> g = Unsafe.Add(ref srcG, i);
+                    Vector<float> b = Unsafe.Add(ref srcB, i);
 
                     // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                     // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
                     // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
-                    c0 = (rYMult * r) + (gYMult * g) + (bYMult * b);
-                    c1 = chromaOffset - (rCbMult * r) - (gCbMult * g) + (bCbMult * b);
-                    c2 = chromaOffset + (rCrMult * r) - (gCrMult * g) - (bCrMult * b);
+                    Unsafe.Add(ref destY, i) = (rYMult * r) + (gYMult * g) + (bYMult * b);
+                    Unsafe.Add(ref destCb, i) = chromaOffset - (rCbMult * r) - (gCbMult * g) + (bCbMult * b);
+                    Unsafe.Add(ref destCr, i) = chromaOffset + (rCrMult * r) - (gCrMult * g) - (bCrMult * b);
                 }
             }
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values)
-                => FromYCbCrScalar.ConvertCoreInplaceFromRgb(values, this.MaximumValue, this.HalfValue);
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => FromYCbCrScalar.ConvertCoreInplaceFromRgb(values, this.HalfValue, r, g, b);
         }
     }
 }

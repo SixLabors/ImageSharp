@@ -60,14 +60,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 this.PackColorBuffer();
             }
 
-            for (int y = 0; y < spectralBuffer.Height; y++)
+            int blocksRowsPerStep = this.component.SamplingFactors.Height;
+
+            for (int y = 0; y < blocksRowsPerStep; y++)
             {
                 int yBuffer = y * this.blockAreaSize.Height;
+                Span<float> colorBufferRow = this.ColorBuffer.DangerousGetRowSpan(yBuffer);
+                Span<Block8x8> blockRow = spectralBuffer.DangerousGetRowSpan(yBlockStart + y);
                 for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
                 {
-                    Span<float> colorBufferRow = this.ColorBuffer.DangerousGetRowSpan(yBuffer);
-                    Span<Block8x8> blockRow = spectralBuffer.DangerousGetRowSpan(yBlockStart + y);
-
                     // load 8x8 block from 8 pixel strides
                     int xColorBufferStart = xBlock * 8;
                     workspaceBlock.ScaledCopyFrom(

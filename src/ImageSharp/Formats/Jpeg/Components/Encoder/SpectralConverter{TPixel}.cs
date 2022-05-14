@@ -23,6 +23,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         private Buffer2D<TPixel> pixelBuffer;
 
+        private IMemoryOwner<float> redLane;
+
+        private IMemoryOwner<float> greenLane;
+
+        private IMemoryOwner<float> blueLane;
+
         private int alignedPixelWidth;
 
         private JpegColorConverterBase colorConverter;
@@ -55,6 +61,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, component, postProcessorBufferSize, dequantTables[component.QuantizationTableIndex]);
             }
 
+            this.redLane = allocator.Allocate<float>(this.alignedPixelWidth);
+            this.greenLane = allocator.Allocate<float>(this.alignedPixelWidth);
+            this.blueLane = allocator.Allocate<float>(this.alignedPixelWidth);
+
             // color converter from Rgb24 to YCbCr
             this.colorConverter = JpegColorConverterBase.GetConverter(colorSpace: frame.ColorSpace, precision: 8);
         }
@@ -67,6 +77,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.ConvertStride(spectralStep: 0);
         }
 
+        public void ConvertFull()
+        {
+            int steps = (int)Numerics.DivideCeil((uint)this.pixelBuffer.Height, (uint)this.pixelRowsPerStep);
+            for (int i = 0; i < steps; i++)
+            {
+                this.ConvertStride(i);
+            }
+        }
+
         private void ConvertStride(int spectralStep)
         {
             // 1. Unpack from TPixel to r/g/b planes
@@ -75,6 +94,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // 4. Convert color buffer to spectral blocks with component post processors
             int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
+            Span<float> rLane = this.redLane.GetSpan();
+            Span<float> gLane = this.greenLane.GetSpan();
+            Span<float> bLane = this.blueLane.GetSpan();
             for (int yy = this.pixelRowCounter; yy < maxY; yy++)
             {
                 int y = yy - this.pixelRowCounter;
@@ -82,10 +104,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 // unpack TPixel to r/g/b planes
                 Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(yy);
 
-                var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
-                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(this.configuration, values.Component0, values.Component1, values.Component2, sourceRow);
+                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(this.configuration, rLane, gLane, bLane, sourceRow);
 
-                this.colorConverter.ConvertFromRgbInplace(values);
+                var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
+                this.colorConverter.ConvertFromRgbInplace(values, rLane, gLane, bLane);
             }
 
             for (int i = 0; i < this.componentProcessors.Length; i++)

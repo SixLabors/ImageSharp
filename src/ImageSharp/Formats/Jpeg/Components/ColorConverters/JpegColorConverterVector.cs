@@ -35,13 +35,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 int length = values.Component0.Length;
                 int remainder = (int)((uint)length % (uint)Vector<float>.Count);
 
-                // Jpeg images are guaranteed to have pixel strides at least 8 pixels wide
-                // Thus there's no need to check whether simdCount is greater than zero
                 int simdCount = length - remainder;
-                this.ConvertCoreVectorizedInplaceToRgb(values.Slice(0, simdCount));
+                if (simdCount > 0)
+                {
+                    this.ConvertCoreVectorizedInplaceToRgb(values.Slice(0, simdCount));
+                }
 
                 // Jpeg images width is always divisible by 8 without a remainder
-                // so it's safe to say SSE/AVX implementations would never have
+                // so it's safe to say SSE/AVX1/AVX2 implementations would never have
                 // 'remainder' pixels
                 // But some exotic simd implementations e.g. AVX-512 can have
                 // remainder pixels
@@ -51,26 +52,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values)
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
             {
                 DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
                 int length = values.Component0.Length;
                 int remainder = (int)((uint)length % (uint)Vector<float>.Count);
 
-                // Jpeg images are guaranteed to have pixel strides at least 8 pixels wide
-                // Thus there's no need to check whether simdCount is greater than zero
                 int simdCount = length - remainder;
-                this.ConvertCoreVectorizedInplaceFromRgb(values.Slice(0, simdCount));
+                if (simdCount > 0)
+                {
+                    this.ConvertCoreVectorizedInplaceFromRgb(
+                        values.Slice(0, simdCount),
+                        r.Slice(0, simdCount),
+                        g.Slice(0, simdCount),
+                        b.Slice(0, simdCount));
+                }
 
                 // Jpeg images width is always divisible by 8 without a remainder
-                // so it's safe to say SSE/AVX implementations would never have
+                // so it's safe to say SSE/AVX1/AVX2 implementations would never have
                 // 'remainder' pixels
                 // But some exotic simd implementations e.g. AVX-512 can have
                 // remainder pixels
                 if (remainder > 0)
                 {
-                    this.ConvertCoreInplaceFromRgb(values.Slice(simdCount, remainder));
+                    this.ConvertCoreInplaceFromRgb(
+                        values.Slice(simdCount, remainder),
+                        r.Slice(simdCount, remainder),
+                        g.Slice(simdCount, remainder),
+                        b.Slice(simdCount, remainder));
                 }
             }
 
@@ -78,9 +88,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             protected abstract void ConvertCoreInplaceToRgb(in ComponentValues values);
 
-            protected abstract void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values);
+            protected abstract void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b);
 
-            protected abstract void ConvertCoreInplaceFromRgb(in ComponentValues values);
+            protected abstract void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b);
         }
     }
 }

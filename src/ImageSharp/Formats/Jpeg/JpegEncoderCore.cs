@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 frame.AllocateComponents(fullScan: false);
 
                 this.WriteStartOfScan(this.frameConfig.Components);
-                this.scanEncoder.EncodeScanBaselineSingleComponent(frame, spectralConverter, cancellationToken);
+                this.scanEncoder.EncodeScanBaselineSingleComponent(frame.Components[0], spectralConverter, cancellationToken);
             }
             else if (this.interleaved ?? jpegMetadata.Interleaved ?? true)
             {
@@ -139,7 +139,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
             else
             {
-                throw new NotImplementedException();
+                frame.AllocateComponents(fullScan: true);
+                spectralConverter.ConvertFull();
+
+                Span<JpegComponentConfig> components = this.frameConfig.Components;
+                for (int i = 0; i < frame.Components.Length; i++)
+                {
+                    this.WriteStartOfScan(components.Slice(i, 1));
+                    this.scanEncoder.EncodeScanBaseline(frame.Components[i], cancellationToken);
+                }
             }
 
             // Write the End Of Image marker.

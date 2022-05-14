@@ -155,18 +155,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.FlushRemainingBytes();
         }
 
-        public void EncodeScanBaselineSingleComponent<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+        public void EncodeScanBaselineSingleComponent<TPixel>(JpegComponent component, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            JpegComponent component = frame.Components[0];
-
-            int mcuLines = frame.McusPerColumn;
+            int h = component.HeightInBlocks;
             int w = component.WidthInBlocks;
 
             ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
             ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
-            for (int i = 0; i < mcuLines; i++)
+            for (int i = 0; i < h; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -191,6 +189,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     }
                 }
             }
+        }
+
+        public void EncodeScanBaseline(JpegComponent component, CancellationToken cancellationToken)
+        {
+            int h = component.HeightInBlocks;
+            int w = component.WidthInBlocks;
+
+            ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+            ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
+
+            for (int i = 0; i < h; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Encode spectral to binary
+                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
+                ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                for (int k = 0; k < w; k++)
+                {
+                    this.WriteBlock(
+                        component,
+                        ref Unsafe.Add(ref blockRef, k),
+                        ref dcHuffmanTable,
+                        ref acHuffmanTable);
+
+                    if (this.IsStreamFlushNeeded)
+                    {
+                        this.FlushToStream();
+                    }
+                }
+            }
+
+            this.FlushRemainingBytes();
         }
 
         private void EncodeScanBaselineInterleavedArbitrarySampling<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
@@ -608,6 +640,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Flush cached bytes to the output stream with padding bits
             int lastByteIndex = (this.emitWriteIndex * 4) - valuableBytesCount;
             this.FlushToStream(lastByteIndex);
+
+            // Clean huffman register
+            // This is needed for for images with multiples scans
+            this.bitCount = 0;
+            this.accumulatedBits = 0;
         }
     }
 }

@@ -379,6 +379,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb24jpeg = "Bmp/rgb24jpeg.bmp";
             public const string Rgb24png = "Bmp/rgb24png.bmp";
             public const string Rgba32v4 = "Bmp/rgba32v4.bmp";
+            public const string IccProfile = "Bmp/BMP_v5_with_ICC_2.bmp";
 
             // Bitmap images with compression type BITFIELDS.
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";

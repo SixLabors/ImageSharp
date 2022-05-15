@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 this.RestoreToBackground(imageFrame, backgroundColor);
             }
 
-            using Image<TPixel> decodedImage = this.DecodeImageData<TPixel>(frameData, webpInfo);
+            using Buffer2D<TPixel> decodedImage = this.DecodeImageData<TPixel>(frameData, webpInfo);
             this.DrawDecodedImageOnCanvas(decodedImage, imageFrame, frameX, frameY, frameWidth, frameHeight);
 
             if (previousFrame != null && frameData.BlendingMethod is AnimationBlendingMethod.AlphaBlending)
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="frameData">The frame data.</param>
         /// <param name="webpInfo">The webp information.</param>
         /// <returns>A decoded image.</returns>
-        private Image<TPixel> DecodeImageData<TPixel>(AnimationFrameData frameData, WebpImageInfo webpInfo)
+        private Buffer2D<TPixel> DecodeImageData<TPixel>(AnimationFrameData frameData, WebpImageInfo webpInfo)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decodedImage = new Image<TPixel>((int)frameData.Width, (int)frameData.Height);
@@ -262,6 +262,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     var lossyDecoder = new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
                     lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.AlphaData);
                 }
+
+                return pixelBufferDecoded;
             }
             catch
             {
@@ -272,8 +274,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 webpInfo.Dispose();
             }
-
-            return decodedImage;
         }
 
         /// <summary>
@@ -286,16 +286,15 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="frameY">The frame y coordinate.</param>
         /// <param name="frameWidth">The width of the frame.</param>
         /// <param name="frameHeight">The height of the frame.</param>
-        private void DrawDecodedImageOnCanvas<TPixel>(Image<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, int frameX, int frameY, int frameWidth, int frameHeight)
+        private void DrawDecodedImageOnCanvas<TPixel>(Buffer2D<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, int frameX, int frameY, int frameWidth, int frameHeight)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Buffer2D<TPixel> decodedImagePixels = decodedImage.Frames.RootFrame.PixelBuffer;
             Buffer2D<TPixel> imageFramePixels = imageFrame.PixelBuffer;
             int decodedRowIdx = 0;
             for (int y = frameY; y < frameY + frameHeight; y++)
             {
                 Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
-                Span<TPixel> decodedPixelRow = decodedImagePixels.DangerousGetRowSpan(decodedRowIdx++).Slice(0, frameWidth);
+                Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++).Slice(0, frameWidth);
                 decodedPixelRow.TryCopyTo(framePixelRow.Slice(frameX));
             }
         }

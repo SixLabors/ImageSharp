@@ -3,9 +3,9 @@
 
 using System;
 using System.Buffers.Binary;
-using System.IO;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -19,10 +19,15 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Reads the header of a lossy webp image.
         /// </summary>
         /// <returns>Information about this webp image.</returns>
-        public static WebpImageInfo ReadVp8Header(MemoryAllocator memoryAllocator, Stream stream, byte[] buffer, WebpFeatures features)
+        public static WebpImageInfo ReadVp8Header(MemoryAllocator memoryAllocator, BufferedReadStream stream, byte[] buffer, WebpFeatures features)
         {
             // VP8 data size (not including this 4 bytes).
-            stream.Read(buffer, 0, 4);
+            int bytesRead = stream.Read(buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 header");
+            }
+
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
 
             // Remaining counts the available image data payload.
@@ -34,7 +39,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
             // - A 3-bit version number.
             // - A 1-bit show_frame flag.
             // - A 19-bit field containing the size of the first data partition in bytes.
-            stream.Read(buffer, 0, 3);
+            bytesRead = stream.Read(buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 header");
+            }
+
             uint frameTag = (uint)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16));
             remaining -= 3;
             bool isNoKeyFrame = (frameTag & 0x1) == 1;
@@ -62,17 +72,27 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
 
             // Check for VP8 magic bytes.
-            stream.Read(buffer, 0, 3);
+            bytesRead = stream.Read(buffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
+            }
+
             if (!buffer.AsSpan(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
             {
                 WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
             }
 
-            stream.Read(buffer, 0, 4);
-            uint tmp = (uint)BinaryPrimitives.ReadInt16LittleEndian(buffer);
+            bytesRead = stream.Read(buffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 header, could not read width and height");
+            }
+
+            uint tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
             uint width = tmp & 0x3fff;
             sbyte xScale = (sbyte)(tmp >> 6);
-            tmp = (uint)BinaryPrimitives.ReadInt16LittleEndian(buffer.AsSpan(2));
+            tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer.AsSpan(2));
             uint height = tmp & 0x3fff;
             sbyte yScale = (sbyte)(tmp >> 6);
             remaining -= 7;
@@ -121,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Reads the header of a lossless webp image.
         /// </summary>
         /// <returns>Information about this image.</returns>
-        public static WebpImageInfo ReadVp8LHeader(MemoryAllocator memoryAllocator, Stream stream, byte[] buffer, WebpFeatures features)
+        public static WebpImageInfo ReadVp8LHeader(MemoryAllocator memoryAllocator, BufferedReadStream stream, byte[] buffer, WebpFeatures features)
         {
             // VP8 data size.
             uint imageDataSize = ReadChunkSize(stream, buffer);
@@ -176,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// After the image header, image data will follow. After that optional image metadata chunks (EXIF and XMP) can follow.
         /// </summary>
         /// <returns>Information about this webp image.</returns>
-        public static WebpImageInfo ReadVp8XHeader(Stream stream, byte[] buffer, WebpFeatures features)
+        public static WebpImageInfo ReadVp8XHeader(BufferedReadStream stream, byte[] buffer, WebpFeatures features)
         {
             uint fileSize = ReadChunkSize(stream, buffer);
 
@@ -234,11 +254,15 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="stream">The stream to read from.</param>
         /// <param name="buffer">The buffer to store the read data into.</param>
         /// <returns>A unsigned 24 bit integer.</returns>
-        public static uint ReadUnsignedInt24Bit(Stream stream, byte[] buffer)
+        public static uint ReadUnsignedInt24Bit(BufferedReadStream stream, byte[] buffer)
         {
-            stream.Read(buffer, 0, 3);
-            buffer[3] = 0;
-            return (uint)BinaryPrimitives.ReadInt32LittleEndian(buffer);
+            if (stream.Read(buffer, 0, 3) == 3)
+            {
+                buffer[3] = 0;
+                return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
+            }
+
+            throw new ImageFormatException("Invalid Webp data, could not read unsigned integer.");
         }
 
         /// <summary>
@@ -248,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="stream">The stream to read the data from.</param>
         /// <param name="buffer">Buffer to store the data read from the stream.</param>
         /// <returns>The chunk size in bytes.</returns>
-        public static uint ReadChunkSize(Stream stream, byte[] buffer)
+        public static uint ReadChunkSize(BufferedReadStream stream, byte[] buffer)
         {
             if (stream.Read(buffer, 0, 4) == 4)
             {
@@ -267,7 +291,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>
-        public static WebpChunkType ReadChunkType(Stream stream, byte[] buffer)
+        public static WebpChunkType ReadChunkType(BufferedReadStream stream, byte[] buffer)
         {
             if (stream.Read(buffer, 0, 4) == 4)
             {
@@ -283,7 +307,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// If there are more such chunks, readers MAY ignore all except the first one.
         /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
         /// </summary>
-        public static void ParseOptionalChunks(Stream stream, WebpChunkType chunkType, ImageMetadata metadata, bool ignoreMetaData, byte[] buffer)
+        public static void ParseOptionalChunks(BufferedReadStream stream, WebpChunkType chunkType, ImageMetadata metadata, bool ignoreMetaData, byte[] buffer)
         {
             long streamLength = stream.Length;
             while (stream.Position < streamLength)

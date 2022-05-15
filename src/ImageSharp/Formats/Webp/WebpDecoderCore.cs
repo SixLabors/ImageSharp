@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// The stream to decode from.
         /// </summary>
-        private Stream currentStream;
+        private BufferedReadStream currentStream;
 
         /// <summary>
         /// The webp specific metadata.

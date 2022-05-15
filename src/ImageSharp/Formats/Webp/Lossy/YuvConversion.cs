@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static void UpSampleSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
         {
             const int xStep = 3;
-            Array.Clear(uvBuffer, 0, uvBuffer.Length);
+            Array.Clear(uvBuffer);
             Span<byte> ru = uvBuffer.AsSpan(15);
             Span<byte> rv = ru.Slice(32);
 
@@ -318,7 +318,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <param name="y">Span to store the luma component of the image.</param>
         /// <param name="u">Span to store the u component of the image.</param>
         /// <param name="v">Span to store the v component of the image.</param>
-        public static void ConvertRgbToYuv<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
+        /// <returns>true, if the image contains alpha data.</returns>
+        public static bool ConvertRgbToYuv<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
@@ -335,6 +336,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<Bgra32> bgraRow1 = bgraRow1Buffer.GetSpan();
             int uvRowIndex = 0;
             int rowIndex;
+            bool hasAlpha = false;
             for (rowIndex = 0; rowIndex < height - 1; rowIndex += 2)
             {
                 Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(rowIndex);
@@ -343,6 +345,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 PixelOperations<TPixel>.Instance.ToBgra32(configuration, nextRowSpan, bgraRow1);
 
                 bool rowsHaveAlpha = WebpCommonUtils.CheckNonOpaque(bgraRow0) && WebpCommonUtils.CheckNonOpaque(bgraRow1);
+                if (rowsHaveAlpha)
+                {
+                    hasAlpha = true;
+                }
 
                 // Downsample U/V planes, two rows at a time.
                 if (!rowsHaveAlpha)
@@ -375,10 +381,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 else
                 {
                     AccumulateRgba(bgraRow0, bgraRow0, tmpRgbSpan, width);
+                    hasAlpha = true;
                 }
 
                 ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
             }
+
+            return hasAlpha;
         }
 
         /// <summary>

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             Assert.Equal(width, resizeProcessor.DestinationWidth);
             Assert.Equal(height, resizeProcessor.DestinationHeight);
-            Assert.Equal(sampler, resizeProcessor.Sampler);
+            Assert.Equal(sampler, resizeProcessor.Options.Sampler);
         }
     }
 }

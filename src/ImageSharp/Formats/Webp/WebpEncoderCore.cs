@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// TODO: not used at the moment.
         /// Indicating whether the alpha plane should be compressed with Webp lossless format.
+        /// Defaults to true.
         /// </summary>
         private readonly bool alphaCompression;
 
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+        /// Encodes the image as webp to the specified stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
@@ -149,7 +149,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     this.method,
                     this.entropyPasses,
                     this.filterStrength,
-                    this.spatialNoiseShaping);
+                    this.spatialNoiseShaping,
+                    this.alphaCompression);
                 enc.Encode(image, stream);
             }
         }

@@ -71,12 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         private int uvAlpha;
 
-        /// <summary>
-        /// Scratch buffer to reduce allocations.
-        /// </summary>
-        private readonly int[] scratch = new int[16];
-
-        private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
+        private readonly bool alphaCompression;
 
         private const int NumMbSegments = 4;
 
@@ -105,6 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
         /// <param name="filterStrength">The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).</param>
         /// <param name="spatialNoiseShaping">The spatial noise shaping. 0=off, 100=maximum.</param>
+        /// <param name="alphaCompression">If true, the alpha channel will be compressed with the lossless compression.</param>
         public Vp8Encoder(
             MemoryAllocator memoryAllocator,
             Configuration configuration,
@@ -114,7 +110,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             WebpEncodingMethod method,
             int entropyPasses,
             int filterStrength,
-            int spatialNoiseShaping)
+            int spatialNoiseShaping,
+            bool alphaCompression)
         {
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
@@ -125,6 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
             this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
             this.spatialNoiseShaping = Numerics.Clamp(spatialNoiseShaping, 0, 100);
+            this.alphaCompression = alphaCompression;
             this.rdOptLevel = method is WebpEncodingMethod.BestQuality ? Vp8RdLevel.RdOptTrellisAll
                 : method >= WebpEncodingMethod.Level5 ? Vp8RdLevel.RdOptTrellis
                 : method >= WebpEncodingMethod.Level3 ? Vp8RdLevel.RdOptBasic
@@ -173,6 +171,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             this.ResetBoundaryPredictions();
         }
+
+        // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
+        private static ReadOnlySpan<byte> AverageBytesPerMb => new byte[] { 50, 24, 16, 9, 7, 5, 3, 2 };
 
         public int BaseQuant { get; set; }
 
@@ -297,10 +298,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int width = image.Width;
             int height = image.Height;
+            int pixelCount = width * height;
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
-            YuvConversion.ConvertRgbToYuv(image, this.configuration, this.memoryAllocator, y, u, v);
+            bool hasAlpha = YuvConversion.ConvertRgbToYuv(image, this.configuration, this.memoryAllocator, y, u, v);
 
             int yStride = width;
             int uvStride = (yStride + 1) >> 1;
@@ -318,12 +320,26 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.SetLoopParams(this.quality);
 
             // Initialize the bitwriter.
-            int averageBytesPerMacroBlock = this.averageBytesPerMb[this.BaseQuant >> 4];
+            int averageBytesPerMacroBlock = AverageBytesPerMb[this.BaseQuant >> 4];
             int expectedSize = this.Mbw * this.Mbh * averageBytesPerMacroBlock;
             this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
-            // TODO: EncodeAlpha();
-            bool hasAlpha = false;
+            // Extract and encode alpha channel data, if present.
+            int alphaDataSize = 0;
+            bool alphaCompressionSucceeded = false;
+            using var alphaEncoder = new AlphaEncoder();
+            Span<byte> alphaData = Span<byte>.Empty;
+            if (hasAlpha)
+            {
+                // TODO: This can potentially run in an separate task.
+                IMemoryOwner<byte> encodedAlphaData = alphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
+                alphaData = encodedAlphaData.GetSpan();
+                if (alphaDataSize < pixelCount)
+                {
+                    // Only use compressed data, if the compressed data is actually smaller then the uncompressed data.
+                    alphaCompressionSucceeded = true;
+                }
+            }
 
             // Stats-collection loop.
             this.StatLoop(width, height, yStride, uvStride);
@@ -358,7 +374,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Write bytes from the bitwriter buffer to the stream.
             ImageMetadata metadata = image.Metadata;
             metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha);
+            this.bitWriter.WriteEncodedImageToStream(
+                stream,
+                metadata.ExifProfile,
+                metadata.XmpProfile,
+                metadata.IccProfile,
+                (uint)width,
+                (uint)height,
+                hasAlpha,
+                alphaData,
+                this.alphaCompression && alphaCompressionSucceeded);
         }
 
         /// <inheritdoc/>

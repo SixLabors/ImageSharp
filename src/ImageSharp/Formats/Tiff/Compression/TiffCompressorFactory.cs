@@ -55,6 +55,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     return new T4BitCompressor(output, allocator, width, bitsPerPixel, false);
 
+                case TiffCompression.CcittGroup4Fax:
+                    DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
+                    return new T6BitCompressor(output, allocator, width, bitsPerPixel);
+
                 case TiffCompression.Ccitt1D:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

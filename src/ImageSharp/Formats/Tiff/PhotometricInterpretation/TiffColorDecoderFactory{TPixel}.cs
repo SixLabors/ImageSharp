@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             MemoryAllocator memoryAllocator,
             TiffColorType colorType,
             TiffBitsPerSample bitsPerSample,
+            TiffExtraSampleType? extraSampleType,
             ushort[] colorMap,
             Rational[] referenceBlackAndWhite,
             Rational[] ycbcrCoefficients,
@@ -116,6 +117,38 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);
 
+                case TiffColorType.Rgba2222:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 2
+                        && bitsPerSample.Channel2 == 2
+                        && bitsPerSample.Channel1 == 2
+                        && bitsPerSample.Channel0 == 2,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+
+                case TiffColorType.Rgb333:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 3
+                        && bitsPerSample.Channel2 == 3
+                        && bitsPerSample.Channel1 == 3
+                        && bitsPerSample.Channel0 == 3,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.Rgba3333:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 3
+                        && bitsPerSample.Channel2 == 3
+                        && bitsPerSample.Channel1 == 3
+                        && bitsPerSample.Channel0 == 3,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+
                 case TiffColorType.Rgb444:
                     DebugGuard.IsTrue(
                         bitsPerSample.Channels == 3
@@ -125,6 +158,59 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb444TiffColor<TPixel>();
+
+                case TiffColorType.Rgba4444:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 4
+                        && bitsPerSample.Channel2 == 4
+                        && bitsPerSample.Channel1 == 4
+                        && bitsPerSample.Channel0 == 4,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+
+                case TiffColorType.Rgb555:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 3
+                        && bitsPerSample.Channel2 == 5
+                        && bitsPerSample.Channel1 == 5
+                        && bitsPerSample.Channel0 == 5,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.Rgba5555:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 5
+                        && bitsPerSample.Channel2 == 5
+                        && bitsPerSample.Channel1 == 5
+                        && bitsPerSample.Channel0 == 5,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+
+                case TiffColorType.Rgb666:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 3
+                        && bitsPerSample.Channel2 == 6
+                        && bitsPerSample.Channel1 == 6
+                        && bitsPerSample.Channel0 == 6,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.Rgba6666:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 6
+                        && bitsPerSample.Channel2 == 6
+                        && bitsPerSample.Channel1 == 6
+                        && bitsPerSample.Channel0 == 6,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
 
                 case TiffColorType.Rgb888:
                     DebugGuard.IsTrue(
@@ -136,6 +222,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb888TiffColor<TPixel>(configuration);
 
+                case TiffColorType.Rgba8888:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 8
+                        && bitsPerSample.Channel2 == 8
+                        && bitsPerSample.Channel1 == 8
+                        && bitsPerSample.Channel0 == 8,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba8888TiffColor<TPixel>(configuration, memoryAllocator, extraSampleType);
+
                 case TiffColorType.Rgb101010:
                     DebugGuard.IsTrue(
                         bitsPerSample.Channels == 3
@@ -145,6 +242,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.Rgba10101010:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 10
+                        && bitsPerSample.Channel2 == 10
+                        && bitsPerSample.Channel1 == 10
+                        && bitsPerSample.Channel0 == 10,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
 
                 case TiffColorType.Rgb121212:
                     DebugGuard.IsTrue(
@@ -156,6 +264,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);
 
+                case TiffColorType.Rgba12121212:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 12
+                        && bitsPerSample.Channel2 == 12
+                        && bitsPerSample.Channel1 == 12
+                        && bitsPerSample.Channel0 == 12,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
+
                 case TiffColorType.Rgb141414:
                     DebugGuard.IsTrue(
                         bitsPerSample.Channels == 3
@@ -165,6 +284,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbTiffColor<TPixel>(bitsPerSample);
+
+                case TiffColorType.Rgba14141414:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 14
+                        && bitsPerSample.Channel2 == 14
+                        && bitsPerSample.Channel1 == 14
+                        && bitsPerSample.Channel0 == 14,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaTiffColor<TPixel>(extraSampleType, bitsPerSample);
 
                 case TiffColorType.Rgb161616:
                     DebugGuard.IsTrue(
@@ -176,6 +306,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb161616TiffColor<TPixel>(configuration, isBigEndian: byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.Rgba16161616:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 16
+                        && bitsPerSample.Channel2 == 16
+                        && bitsPerSample.Channel1 == 16
+                        && bitsPerSample.Channel0 == 16,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba16161616TiffColor<TPixel>(configuration, memoryAllocator, extraSampleType, isBigEndian: byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.Rgb242424:
                     DebugGuard.IsTrue(
                         bitsPerSample.Channels == 3
@@ -185,6 +326,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb242424TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+
+                case TiffColorType.Rgba24242424:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 24
+                        && bitsPerSample.Channel2 == 24
+                        && bitsPerSample.Channel1 == 24
+                        && bitsPerSample.Channel0 == 24,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba24242424TiffColor<TPixel>(extraSampleType, isBigEndian: byteOrder == ByteOrder.BigEndian);
 
                 case TiffColorType.Rgb323232:
                     DebugGuard.IsTrue(
@@ -196,6 +348,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.Rgba32323232:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 32
+                        && bitsPerSample.Channel2 == 32
+                        && bitsPerSample.Channel1 == 32
+                        && bitsPerSample.Channel0 == 32,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba32323232TiffColor<TPixel>(extraSampleType, isBigEndian: byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.RgbFloat323232:
                     DebugGuard.IsTrue(
                         bitsPerSample.Channels == 3
@@ -205,6 +368,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         "bitsPerSample");
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbFloat323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+
+                case TiffColorType.RgbaFloat32323232:
+                    DebugGuard.IsTrue(
+                        bitsPerSample.Channels == 4
+                        && bitsPerSample.Channel3 == 32
+                        && bitsPerSample.Channel2 == 32
+                        && bitsPerSample.Channel1 == 32
+                        && bitsPerSample.Channel0 == 32,
+                        "bitsPerSample");
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaFloat32323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
 
                 case TiffColorType.PaletteColor:
                     DebugGuard.NotNull(colorMap, "colorMap");
@@ -221,6 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(
             TiffColorType colorType,
             TiffBitsPerSample bitsPerSample,
+            TiffExtraSampleType? extraSampleType,
             ushort[] colorMap,
             Rational[] referenceBlackAndWhite,
             Rational[] ycbcrCoefficients,
@@ -233,6 +408,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
 
+                case TiffColorType.Rgba8888Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new RgbaPlanarTiffColor<TPixel>(extraSampleType, bitsPerSample);
+
                 case TiffColorType.YCbCrPlanar:
                     return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
@@ -240,13 +419,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.Rgba16161616Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba16PlanarTiffColor<TPixel>(extraSampleType, byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.Rgb242424Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb24PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
 
+                case TiffColorType.Rgba24242424Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba24PlanarTiffColor<TPixel>(extraSampleType, byteOrder == ByteOrder.BigEndian);
+
                 case TiffColorType.Rgb323232Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
+
+                case TiffColorType.Rgba32323232Planar:
+                    DebugGuard.IsTrue(colorMap == null, "colorMap");
+                    return new Rgba32PlanarTiffColor<TPixel>(extraSampleType, byteOrder == ByteOrder.BigEndian);
 
                 default:
                     throw TiffThrowHelper.InvalidColorType(colorType.ToString());

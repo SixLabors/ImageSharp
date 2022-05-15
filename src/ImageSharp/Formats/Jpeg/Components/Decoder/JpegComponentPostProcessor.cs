@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // To be "more accurate", we need to emulate this by rounding!
                     workspaceBlock.NormalizeColorsAndRoundInPlace(maximumValue);
 
-                    // Write to color buffer acording to sampling factors
+                    // Write to color buffer according to sampling factors
                     int xColorBufferStart = xBlock * this.blockAreaSize.Width;
                     workspaceBlock.ScaledCopyTo(
                         ref colorBufferRow[xColorBufferStart],

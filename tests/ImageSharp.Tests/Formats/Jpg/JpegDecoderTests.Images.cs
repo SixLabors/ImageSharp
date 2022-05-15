@@ -42,6 +42,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // High depth images
             TestImages.Jpeg.Baseline.Testorig12bit,
+
+            // Grayscale jpeg with 2x2 sampling factors (not a usual thing to encounter in the wild)
+            TestImages.Jpeg.Baseline.GrayscaleSampling2x2,
         };
 
         public static string[] ProgressiveTestJpegs =
@@ -68,10 +71,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // Invalid componentCount value (2 or > 4)
             TestImages.Jpeg.Issues.Fuzz.NullReferenceException823,
             TestImages.Jpeg.Issues.MalformedUnsupportedComponentCount,
-
-            // Arithmetic coding
-            TestImages.Jpeg.Baseline.ArithmeticCoding,
-            TestImages.Jpeg.Baseline.ArithmeticCodingProgressive,
 
             // Lossless jpeg
             TestImages.Jpeg.Baseline.Lossless
@@ -102,6 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693A,
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693B,
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824C,
+            TestImages.Jpeg.Issues.Fuzz.NullReferenceException2085,
         };
 
         private static readonly Dictionary<string, float> CustomToleranceValues = new()

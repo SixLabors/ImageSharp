@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                using (Image image = decoder.Decode(Configuration.Default, stream))
+                using (Image image = decoder.Decode(Configuration.Default, stream, default))
                 {
                     ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 ImageMetadata meta = image.Metadata;
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 JpegMetadata meta = image.Metadata.GetJpegMetadata();
                 Assert.Equal(quality, meta.Quality);
             }
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                using (Image image = JpegDecoder.Decode(Configuration.Default, stream))
+                using (Image image = JpegDecoder.Decode(Configuration.Default, stream, default))
                 {
                     JpegMetadata meta = image.Metadata.GetJpegMetadata();
                     Assert.Equal(quality, meta.Quality);
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream);
+                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream, default);
                 JpegMetadata meta = image.Metadata.GetJpegMetadata();
                 Assert.Equal(expectedColorType, meta.ColorType);
             }
@@ -179,11 +179,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo imageInfo = useIdentify
-                ? ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream)
-                : decoder.Decode<Rgba32>(Configuration.Default, stream);
-
-                test(imageInfo);
+                if (useIdentify)
+                {
+                    IImageInfo imageInfo = ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream, default);
+                    test(imageInfo);
+                }
+                else
+                {
+                    using var img = decoder.Decode<Rgba32>(Configuration.Default, stream, default);
+                    test(img);
+                }
             }
         }
 
@@ -299,6 +304,86 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
             });
             Assert.Null(ex);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.ExifNullArrayTag, PixelTypes.Rgba32)]
+        public void Clone_WithNullRationalArrayTag_DoesNotThrowException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+                var clone = image.Metadata.ExifProfile.DeepClone();
+            });
+            Assert.Null(ex);
+        }
+
+        [Fact]
+        public void EncodedStringTags_WriteAndRead()
+        {
+            using var memoryStream = new MemoryStream();
+            using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora)))
+            {
+                var exif = new ExifProfile();
+
+                exif.SetValue(ExifTag.GPSDateStamp, "2022-01-06");
+
+                exif.SetValue(ExifTag.XPTitle, "A bit of test metadata for image title");
+                exif.SetValue(ExifTag.XPComment, "A bit of test metadata for image comment");
+                exif.SetValue(ExifTag.XPAuthor, "Dan Petitt");
+                exif.SetValue(ExifTag.XPKeywords, "Keyword1;Keyword2");
+                exif.SetValue(ExifTag.XPSubject, "This is a subject");
+
+                // exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "ビッ"));
+                exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "eng comment text (JIS)"));
+
+                exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
+                exif.SetValue(ExifTag.GPSAreaInformation, new EncodedString(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
+
+                image.Metadata.ExifProfile = exif;
+
+                image.Save(memoryStream, new JpegEncoder());
+            }
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var image = Image.Load(memoryStream))
+            {
+                ExifProfile exif = image.Metadata.ExifProfile;
+                VerifyEncodedStrings(exif);
+            }
+        }
+
+        [Fact]
+        public void EncodedStringTags_Read()
+        {
+            using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora_EncodedStrings)))
+            {
+                ExifProfile exif = image.Metadata.ExifProfile;
+                VerifyEncodedStrings(exif);
+            }
+        }
+
+        private static void VerifyEncodedStrings(ExifProfile exif)
+        {
+            Assert.NotNull(exif);
+
+            Assert.Equal("2022-01-06", exif.GetValue(ExifTag.GPSDateStamp).Value);
+
+            Assert.Equal("A bit of test metadata for image title", exif.GetValue(ExifTag.XPTitle).Value);
+            Assert.Equal("A bit of test metadata for image comment", exif.GetValue(ExifTag.XPComment).Value);
+            Assert.Equal("Dan Petitt", exif.GetValue(ExifTag.XPAuthor).Value);
+            Assert.Equal("Keyword1;Keyword2", exif.GetValue(ExifTag.XPKeywords).Value);
+            Assert.Equal("This is a subject", exif.GetValue(ExifTag.XPSubject).Value);
+
+            Assert.Equal("eng comment text (JIS)", exif.GetValue(ExifTag.UserComment).Value.Text);
+            Assert.Equal(EncodedString.CharacterCode.JIS, exif.GetValue(ExifTag.UserComment).Value.Code);
+
+            Assert.Equal("GPS processing method (ASCII)", exif.GetValue(ExifTag.GPSProcessingMethod).Value.Text);
+            Assert.Equal(EncodedString.CharacterCode.ASCII, exif.GetValue(ExifTag.GPSProcessingMethod).Value.Code);
+
+            Assert.Equal("GPS area info (Unicode)", (string)exif.GetValue(ExifTag.GPSAreaInformation).Value);
+            Assert.Equal(EncodedString.CharacterCode.Unicode, exif.GetValue(ExifTag.GPSAreaInformation).Value.Code);
         }
     }
 }

@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             {
                 Assert.True(RuntimeEnvironment.IsOSPlatform(OSPlatform.Linux));
             }
-            else if (TestEnvironment.IsOSX)
+            else if (TestEnvironment.IsMacOS)
             {
                 Assert.True(RuntimeEnvironment.IsOSPlatform(OSPlatform.OSX));
             }

@@ -68,11 +68,12 @@ namespace SixLabors.ImageSharp.Metadata
             this.ExifProfile = other.ExifProfile?.DeepClone();
             this.IccProfile = other.IccProfile?.DeepClone();
             this.IptcProfile = other.IptcProfile?.DeepClone();
+            this.XmpProfile = other.XmpProfile?.DeepClone();
         }
 
         /// <summary>
         /// Gets or sets the resolution of the image in x- direction.
-        /// It is defined as the number of dots per inch and should be an positive value.
+        /// It is defined as the number of dots per <see cref="ResolutionUnits"/> and should be an positive value.
         /// </summary>
         /// <value>The density of the image in x- direction.</value>
         public double HorizontalResolution
@@ -90,7 +91,7 @@ namespace SixLabors.ImageSharp.Metadata
 
         /// <summary>
         /// Gets or sets the resolution of the image in y- direction.
-        /// It is defined as the number of dots per inch and should be an positive value.
+        /// It is defined as the number of dots per <see cref="ResolutionUnits"/> and should be an positive value.
         /// </summary>
         /// <value>The density of the image in y- direction.</value>
         public double VerticalResolution
@@ -108,10 +109,28 @@ namespace SixLabors.ImageSharp.Metadata
 
         /// <summary>
         /// Gets or sets unit of measure used when reporting resolution.
-        ///  00 : No units; width:height pixel aspect ratio = Ydensity:Xdensity
-        ///  01 : Pixels per inch (2.54 cm)
-        ///  02 : Pixels per centimeter
-        ///  03 : Pixels per meter
+        /// <list type="table">
+        ///   <listheader>
+        ///     <term>Value</term>
+        ///     <description>Unit</description>
+        ///   </listheader>
+        ///   <item>
+        ///     <term>AspectRatio (00)</term>
+        ///     <description>No units; width:height pixel aspect ratio = Ydensity:Xdensity</description>
+        ///   </item>
+        ///   <item>
+        ///     <term>PixelsPerInch (01)</term>
+        ///     <description>Pixels per inch (2.54 cm)</description>
+        ///   </item>
+        ///   <item>
+        ///     <term>PixelsPerCentimeter (02)</term>
+        ///     <description>Pixels per centimeter</description>
+        ///   </item>
+        ///   <item>
+        ///     <term>PixelsPerMeter (03)</term>
+        ///     <description>Pixels per meter (100 cm)</description>
+        ///   </item>
+        /// </list>
         /// </summary>
         public PixelResolutionUnit ResolutionUnits { get; set; }
 
@@ -157,7 +176,7 @@ namespace SixLabors.ImageSharp.Metadata
         }
 
         /// <inheritdoc/>
-        public ImageMetadata DeepClone() => new ImageMetadata(this);
+        public ImageMetadata DeepClone() => new(this);
 
         /// <summary>
         /// Synchronizes the profiles with the current metadata.

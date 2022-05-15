@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -66,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Theory]
         [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, false)]
         [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32, true)]
-        public async void IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
+        public async Task IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
@@ -148,6 +150,49 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             ExifProfile actualExif = image.Metadata.ExifProfile;
             Assert.NotNull(actualExif);
             Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Webp.Lossy.WithIccp, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
+        [WithFile(TestImages.Webp.Lossy.WithIccp, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
+        public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType fileFormat)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> input = provider.GetImage(new WebpDecoder()))
+            {
+                ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
+                byte[] expectedProfileBytes = expectedProfile.ToByteArray();
+
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, new WebpEncoder()
+                    {
+                        FileFormat = fileFormat
+                    });
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
+                        byte[] actualProfileBytes = actualProfile.ToByteArray();
+
+                        Assert.NotNull(actualProfile);
+                        Assert.Equal(expectedProfileBytes, actualProfileBytes);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Webp.Lossy.WithExifNotEnoughData, PixelTypes.Rgba32)]
+        public void WebpDecoder_IgnoresInvalidExifChunk<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(() =>
+            {
+                using Image<TPixel> image = provider.GetImage();
+            });
+            Assert.Null(ex);
         }
     }
 }

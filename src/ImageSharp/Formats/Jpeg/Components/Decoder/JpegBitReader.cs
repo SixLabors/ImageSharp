@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// <summary>
     /// Used to buffer and track the bits read from the Huffman entropy encoded data.
     /// </summary>
-    internal struct HuffmanScanBuffer
+    internal struct JpegBitReader
     {
         private readonly BufferedReadStream stream;
 
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // Whether there is no more good data to pull from the stream for the current mcu.
         private bool badData;
 
-        public HuffmanScanBuffer(BufferedReadStream stream)
+        public JpegBitReader(BufferedReadStream stream)
         {
             this.stream = stream;
             this.data = 0ul;

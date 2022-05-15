@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
@@ -46,6 +47,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         public void WriteToStream(Stream stream) => stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
+
+        /// <summary>
+        /// Writes the encoded bytes of the image to the given buffer. Call Finish() before this.
+        /// </summary>
+        /// <param name="dest">The destination buffer.</param>
+        public void WriteToBuffer(Span<byte> dest) => this.Buffer.AsSpan(0, this.NumBytes()).CopyTo(dest);
 
         /// <summary>
         /// Resizes the buffer to write to.
@@ -91,16 +98,29 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         }
 
         /// <summary>
-        /// Calculates the chunk size of EXIF or XMP metadata.
+        /// Calculates the chunk size of EXIF, XMP or ICCP metadata.
         /// </summary>
         /// <param name="metadataBytes">The metadata profile bytes.</param>
-        /// <returns>The exif chunk size in bytes.</returns>
+        /// <returns>The metadata chunk size in bytes.</returns>
         protected uint MetadataChunkSize(byte[] metadataBytes)
         {
             uint metaSize = (uint)metadataBytes.Length;
             uint metaChunkSize = WebpConstants.ChunkHeaderSize + metaSize + (metaSize & 1);
 
             return metaChunkSize;
+        }
+
+        /// <summary>
+        /// Calculates the chunk size of a alpha chunk.
+        /// </summary>
+        /// <param name="alphaBytes">The alpha chunk bytes.</param>
+        /// <returns>The alpha data chunk size in bytes.</returns>
+        protected uint AlphaChunkSize(Span<byte> alphaBytes)
+        {
+            uint alphaSize = (uint)alphaBytes.Length + 1;
+            uint alphaChunkSize = WebpConstants.ChunkHeaderSize + alphaSize + (alphaSize & 1);
+
+            return alphaChunkSize;
         }
 
         /// <summary>
@@ -129,15 +149,71 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         }
 
         /// <summary>
+        /// Writes the alpha chunk to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="dataBytes">The alpha channel data bytes.</param>
+        /// <param name="alphaDataIsCompressed">Indicates, if the alpha channel data is compressed.</param>
+        protected void WriteAlphaChunk(Stream stream, Span<byte> dataBytes, bool alphaDataIsCompressed)
+        {
+            uint size = (uint)dataBytes.Length + 1;
+            Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
+            BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Alpha);
+            stream.Write(buf);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
+            stream.Write(buf);
+
+            byte flags = 0;
+            if (alphaDataIsCompressed)
+            {
+                flags |= 1;
+            }
+
+            stream.WriteByte(flags);
+            stream.Write(dataBytes);
+
+            // Add padding byte if needed.
+            if ((size & 1) == 1)
+            {
+                stream.WriteByte(0);
+            }
+        }
+
+        /// <summary>
+        /// Writes the color profile to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="iccProfileBytes">The color profile bytes.</param>
+        protected void WriteColorProfile(Stream stream, byte[] iccProfileBytes)
+        {
+            uint size = (uint)iccProfileBytes.Length;
+
+            Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
+            BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Iccp);
+            stream.Write(buf);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
+            stream.Write(buf);
+
+            stream.Write(iccProfileBytes);
+
+            // Add padding byte if needed.
+            if ((size & 1) == 1)
+            {
+                stream.WriteByte(0);
+            }
+        }
+
+        /// <summary>
         /// Writes a VP8X header to the stream.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
         /// <param name="xmpProfile">A XMP profile or null, if it does not exist.</param>
+        /// <param name="iccProfileBytes">The color profile bytes.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, uint width, uint height, bool hasAlpha)
+        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, byte[] iccProfileBytes, uint width, uint height, bool hasAlpha)
         {
             if (width > MaxDimension || height > MaxDimension)
             {
@@ -167,6 +243,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             {
                 // Set alpha bit.
                 flags |= 16;
+            }
+
+            if (iccProfileBytes != null)
+            {
+                // Set iccp flag.
+                flags |= 32;
             }
 
             Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);

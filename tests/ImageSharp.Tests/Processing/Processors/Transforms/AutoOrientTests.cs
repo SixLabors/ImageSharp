@@ -18,42 +18,41 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public const string FlipTestFile = TestImages.Bmp.F;
 
         public static readonly TheoryData<ExifDataType, byte[]> InvalidOrientationValues
-            = new TheoryData<ExifDataType, byte[]>
-        {
-            { ExifDataType.Byte, new byte[] { 1 } },
-            { ExifDataType.SignedByte, new byte[] { 2 } },
-            { ExifDataType.SignedShort, BitConverter.GetBytes((short)3) },
-            { ExifDataType.Long, BitConverter.GetBytes(4U) },
-            { ExifDataType.SignedLong, BitConverter.GetBytes(5) }
-        };
+            = new()
+            {
+                { ExifDataType.Byte, new byte[] { 1 } },
+                { ExifDataType.SignedByte, new byte[] { 2 } },
+                { ExifDataType.SignedShort, BitConverter.GetBytes((short)3) },
+                { ExifDataType.Long, BitConverter.GetBytes(4U) },
+                { ExifDataType.SignedLong, BitConverter.GetBytes(5) }
+            };
 
-        public static readonly TheoryData<ushort> ExifOrientationValues = new TheoryData<ushort>
-                                                                              {
-                                                                                  0,
-                                                                                  1,
-                                                                                  2,
-                                                                                  3,
-                                                                                  4,
-                                                                                  5,
-                                                                                  6,
-                                                                                  7,
-                                                                                  8
-                                                                              };
+        public static readonly TheoryData<ushort> ExifOrientationValues
+            = new()
+            {
+                ExifOrientationMode.Unknown,
+                ExifOrientationMode.TopLeft,
+                ExifOrientationMode.TopRight,
+                ExifOrientationMode.BottomRight,
+                ExifOrientationMode.BottomLeft,
+                ExifOrientationMode.LeftTop,
+                ExifOrientationMode.RightTop,
+                ExifOrientationMode.RightBottom,
+                ExifOrientationMode.LeftBottom
+            };
 
         [Theory]
         [WithFile(FlipTestFile, nameof(ExifOrientationValues), PixelTypes.Rgba32)]
         public void AutoOrient_WorksForAllExifOrientations<TPixel>(TestImageProvider<TPixel> provider, ushort orientation)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Metadata.ExifProfile = new ExifProfile();
-                image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
+            using Image<TPixel> image = provider.GetImage();
+            image.Metadata.ExifProfile = new ExifProfile();
+            image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
 
-                image.Mutate(x => x.AutoOrient());
-                image.DebugSave(provider, orientation, appendPixelTypeToFileName: false);
-                image.CompareToReferenceOutput(provider, orientation, appendPixelTypeToFileName: false);
-            }
+            image.Mutate(x => x.AutoOrient());
+            image.DebugSave(provider, orientation, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(provider, orientation, appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -76,19 +75,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // Change the number of components
             bytes[20] = 1;
 
-            var orientationCodeData = new byte[8];
+            byte[] orientationCodeData = new byte[8];
             Array.Copy(orientation, orientationCodeData, orientation.Length);
 
             ulong orientationCode = BitConverter.ToUInt64(orientationCodeData, 0);
 
-            using (Image<TPixel> image = provider.GetImage())
-            using (Image<TPixel> reference = image.Clone())
-            {
-                image.Metadata.ExifProfile = new ExifProfile(bytes);
-                image.Mutate(x => x.AutoOrient());
-                image.DebugSave(provider, $"{dataType}-{orientationCode}", appendPixelTypeToFileName: false);
-                ImageComparer.Exact.VerifySimilarity(image, reference);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> reference = image.Clone();
+            image.Metadata.ExifProfile = new ExifProfile(bytes);
+            image.Mutate(x => x.AutoOrient());
+            image.DebugSave(provider, $"{dataType}-{orientationCode}", appendPixelTypeToFileName: false);
+            ImageComparer.Exact.VerifySimilarity(image, reference);
         }
     }
 }

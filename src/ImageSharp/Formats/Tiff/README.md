@@ -25,17 +25,8 @@
 
 ## Implementation Status
 
-- The Decoder currently only supports a single frame per image.
+- The Decoder currently only supports decoding multiframe images, which have the same dimensions.
 - Some compression formats are not yet supported. See the list below.
-
-### Deviations from the TIFF spec (to be fixed)
-
-- Decoder
-  - A Baseline TIFF reader must skip over extra components (e.g. RGB with 4 samples per pixels)
-    - NB: Need to handle this for both planar and chunky data
-  - If the SampleFormat field is present and not 1 - fail gracefully if you cannot handle this
-  - Compression=None should treat 16/32-BitsPerSample for all samples as SHORT/LONG (for byte order and padding rows)
-  - Check Planar format data - is this encoded as strips in order RGBRGBRGB or RRRGGGBBB?
 
 ### Compression Formats
 
@@ -45,7 +36,7 @@
 |Ccitt1D                    |   Y   |   Y   |                          |
 |PackBits                   |   Y   |   Y   |                          |
 |CcittGroup3Fax             |   Y   |   Y   |                          |
-|CcittGroup4Fax             |       |   Y   |                          |
+|CcittGroup4Fax             |   Y   |   Y   |                          |
 |Lzw                        |   Y   |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
 |Old Jpeg                   |       |       | We should not even try to support this |
 |Jpeg (Technote 2)          |   Y   |   Y   |                          |
@@ -87,7 +78,7 @@
 |Model                      |   Y   |   Y   |                          |
 |StripOffsets               |   Y   |   Y   |                          |
 |Orientation                |       |   -   | Ignore. Many readers ignore this tag. |
-|SamplesPerPixel            |   Y   |   -   | Currently ignored, as can be inferred from count of BitsPerSample |
+|SamplesPerPixel            |   Y   |   -   | Currently ignored, as can be inferred from count of BitsPerSample. |
 |RowsPerStrip               |   Y   |   Y   |                          |
 |StripByteCounts            |   Y   |   Y   |                          |
 |MinSampleValue             |       |       |                          |
@@ -105,7 +96,7 @@
 |Artist                     |   Y   |   Y   |                          |
 |HostComputer               |   Y   |   Y   |                          |
 |ColorMap                   |   Y   |   Y   |                          |
-|ExtraSamples               |       |   -   |                          |
+|ExtraSamples               |       |   Y   | Unspecified alpha data is not supported. |
 |Copyright                  |   Y   |   Y   |                          |
 
 ### Extension TIFF Tags

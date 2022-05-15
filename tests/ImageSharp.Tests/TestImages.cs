@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     {
         public static class Png
         {
+            public const string Transparency = "Png/transparency.png";
             public const string P1 = "Png/pl.png";
             public const string Pd = "Png/pd.png";
             public const string Blur = "Png/blur.png";
@@ -65,10 +66,13 @@ namespace SixLabors.ImageSharp.Tests
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
-            public const string Filter1 = "Png/filter1.png";
-            public const string Filter2 = "Png/filter2.png";
-            public const string Filter3 = "Png/filter3.png";
-            public const string Filter4 = "Png/filter4.png";
+            public const string SubFilter3BytesPerPixel = "Png/filter1.png";
+            public const string SubFilter4BytesPerPixel = "Png/SubFilter4Bpp.png";
+            public const string UpFilter = "Png/filter2.png";
+            public const string AverageFilter3BytesPerPixel = "Png/filter3.png";
+            public const string AverageFilter4BytesPerPixel = "Png/AverageFilter4Bpp.png";
+            public const string PaethFilter3BytesPerPixel = "Png/filter4.png";
+            public const string PaethFilter4BytesPerPixel = "Png/PaethFilter4Bpp.png";
 
             // Paletted images also from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string PalettedTwoColor = "Png/basn3p01.png";
@@ -126,6 +130,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
                 public const string WrongCrcDataChunk = "Png/xcsn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+                public const string MissingPaletteChunk1 = "Png/missing_plte.png";
+                public const string MissingPaletteChunk2 = "Png/missing_plte_2.png";
+                public const string InvalidGammaChunk = "Png/length_gama.png";
 
                 // Zlib errors.
                 public const string ZlibOverflow = "Png/zlib-overflow.png";
@@ -150,15 +157,6 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ColorTypeOne = "Png/xc1n0g08.png";
                 public const string ColorTypeNine = "Png/xc9n2c08.png";
             }
-
-            public static readonly string[] All =
-            {
-                P1, Pd, Blur, Splash, Cross,
-                Powerpoint, SplashInterlaced, Interlaced,
-                Filter0, Filter1, Filter2, Filter3, Filter4,
-                FilterVar, VimImage1, VimImage2, VersioningImage1,
-                VersioningImage2, Ratio4x1, Ratio1x4
-            };
         }
 
         public static class Jpeg
@@ -191,6 +189,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Exif = "Jpg/baseline/exif.jpg";
                 public const string Floorplan = "Jpg/baseline/Floorplan.jpg";
                 public const string Calliphora = "Jpg/baseline/Calliphora.jpg";
+                public const string Calliphora_EncodedStrings = "Jpg/baseline/Calliphora_encoded_strings.jpg";
                 public const string Ycck = "Jpg/baseline/ycck.jpg";
                 public const string Turtle420 = "Jpg/baseline/turtle.jpg";
                 public const string GammaDalaiLamaGray = "Jpg/baseline/gamma_dalai_lama_gray.jpg";
@@ -215,12 +214,20 @@ namespace SixLabors.ImageSharp.Tests
                 public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
                 public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
                 public const string ForestBridgeDifferentComponentsQuality = "Jpg/baseline/forest_bridge.jpg";
-                public const string ArithmeticCoding = "Jpg/baseline/arithmetic_coding.jpg";
-                public const string ArithmeticCodingProgressive = "Jpg/progressive/arithmetic_progressive.jpg";
                 public const string Lossless = "Jpg/baseline/lossless.jpg";
                 public const string Winter444_Interleaved = "Jpg/baseline/winter444_interleaved.jpg";
                 public const string Metadata = "Jpg/baseline/Metadata-test-file.jpg";
                 public const string ExtendedXmp = "Jpg/baseline/extended-xmp.jpg";
+                public const string GrayscaleSampling2x2 = "Jpg/baseline/grayscale_sampling22.jpg";
+
+                // Jpeg's with arithmetic coding.
+                public const string ArithmeticCoding01 = "Jpg/baseline/Calliphora_arithmetic.jpg";
+                public const string ArithmeticCoding02 = "Jpg/baseline/arithmetic_coding.jpg";
+                public const string ArithmeticCodingProgressive01 = "Jpg/progressive/arithmetic_progressive.jpg";
+                public const string ArithmeticCodingProgressive02 = "Jpg/progressive/Calliphora-arithmetic-progressive-interleaved.jpg";
+                public const string ArithmeticCodingGray = "Jpg/baseline/Calliphora-arithmetic-grayscale.jpg";
+                public const string ArithmeticCodingInterleaved = "Jpg/baseline/Calliphora-arithmetic-interleaved.jpg";
+                public const string ArithmeticCodingWithRestart = "Jpg/baseline/Calliphora-arithmetic-restart.jpg";
 
                 public static readonly string[] All =
                 {
@@ -262,6 +269,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MalformedUnsupportedComponentCount = "Jpg/issues/issue-1900-malformed-unsupported-255-components.jpg";
                 public const string MultipleApp01932 = "Jpg/issues/issue-1932-app0-resolution.jpg";
                 public const string InvalidIptcTag = "Jpg/issues/Issue1942InvalidIptcTag.jpg";
+                public const string Issue2057App1Parsing = "Jpg/issues/Issue2057-App1Parsing.jpg";
+                public const string ExifNullArrayTag = "Jpg/issues/issue-2056-exif-null-array.jpg";
+                public const string ValidExifArgumentNullExceptionOnEncode = "Jpg/issues/Issue2087-exif-null-reference-on-encode.jpg";
 
                 public static class Fuzz
                 {
@@ -290,6 +300,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string AccessViolationException922 = "Jpg/issues/fuzz/Issue922-AccessViolationException.jpg";
                     public const string IndexOutOfRangeException1693A = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-A.jpg";
                     public const string IndexOutOfRangeException1693B = "Jpg/issues/fuzz/Issue1693-IndexOutOfRangeException-B.jpg";
+                    public const string NullReferenceException2085 = "Jpg/issues/fuzz/Issue2085-NullReferenceException.jpg";
                 }
             }
 
@@ -368,6 +379,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb24jpeg = "Bmp/rgb24jpeg.bmp";
             public const string Rgb24png = "Bmp/rgb24png.bmp";
             public const string Rgba32v4 = "Bmp/rgba32v4.bmp";
+            public const string IccProfile = "Bmp/BMP_v5_with_ICC_2.bmp";
 
             // Bitmap images with compression type BITFIELDS.
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";
@@ -445,9 +457,13 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
                 public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+                public const string DeferredClearCode = "Gif/issues/bugzilla-55918.gif";
                 public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
                 public const string Issue1530 = "Gif/issues/issue1530.gif";
                 public const string InvalidColorIndex = "Gif/issues/issue1668_invalidcolorindex.gif";
+                public const string Issue1962NoColorTable = "Gif/issues/issue1962_tiniest_gif_1st.gif";
+                public const string Issue2012EmptyXmp = "Gif/issues/issue2012_Stronghold-Crusader-Extreme-Cover.gif";
+                public const string Issue2012BadMinCode = "Gif/issues/issue2012_drona1.gif";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
@@ -629,6 +645,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public const string Earth = "Webp/earth_lossy.webp";
                 public const string WithExif = "Webp/exif_lossy.webp";
+                public const string WithExifNotEnoughData = "Webp/exif_lossy_not_enough_data.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
                 public const string WithXmp = "Webp/xmp_lossy.webp";
                 public const string BikeSmall = "Webp/bike_lossless_small.webp";
@@ -762,6 +779,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+            public const string GrayscaleJpegCompressed = "Tiff/JpegCompressedGray.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
             public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
             public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
@@ -826,6 +844,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower2BitPalette = "Tiff/flower-palette-02.tiff";
             public const string Flower4BitPalette = "Tiff/flower-palette-04.tiff";
             public const string Flower4BitPaletteGray = "Tiff/flower-minisblack-04.tiff";
+            public const string FLowerRgb3Bit = "Tiff/flower-rgb-3bit.tiff";
+            public const string FLowerRgb5Bit = "Tiff/flower-rgb-5bit.tiff";
+            public const string FLowerRgb6Bit = "Tiff/flower-rgb-6bit.tiff";
             public const string Flower6BitGray = "Tiff/flower-minisblack-06.tiff";
             public const string Flower8BitGray = "Tiff/flower-minisblack-08.tiff";
             public const string Flower10BitGray = "Tiff/flower-minisblack-10.tiff";
@@ -850,6 +871,51 @@ namespace SixLabors.ImageSharp.Tests
             public const string Flower32BitGrayPredictorBigEndian = "Tiff/flower-minisblack-32_msb_deflate_predictor.tiff";
             public const string Flower32BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-32_lsb_deflate_predictor.tiff";
 
+            // Images with alpha channel.
+            public const string Rgba2BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha2bit.tiff";
+            public const string Rgba3BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha3bit.tiff";
+            public const string Rgba3BitAssociatedAlpha = "Tiff/RgbaAssociatedAlpha3bit.tiff";
+            public const string Rgba4BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha4bit.tiff";
+            public const string Rgba4BitAassociatedAlpha = "Tiff/RgbaAssociatedAlpha4bit.tiff";
+            public const string Rgba5BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha5bit.tiff";
+            public const string Rgba5BitAssociatedAlpha = "Tiff/RgbaAssociatedAlpha5bit.tiff";
+            public const string Rgba6BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha6bit.tiff";
+            public const string Rgba6BitAssociatedAlpha = "Tiff/RgbaAssociatedAlpha6bit.tiff";
+            public const string Rgba8BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha8bit.tiff";
+            public const string Rgba8BitAssociatedAlpha = "Tiff/RgbaAlpha8bit.tiff";
+            public const string Rgba8BitUnassociatedAlphaWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor8bit.tiff";
+            public const string Rgba8BitPlanarUnassociatedAlpha = "Tiff/RgbaUnassociatedAlphaPlanar8bit.tiff";
+            public const string Rgba10BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha10bit_msb.tiff";
+            public const string Rgba10BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha10bit_lsb.tiff";
+            public const string Rgba10BitAssociatedAlphaBigEndian = "Tiff/RgbaAssociatedAlpha10bit_msb.tiff";
+            public const string Rgba10BitAssociatedAlphaLittleEndian = "Tiff/RgbaAssociatedAlpha10bit_lsb.tiff";
+            public const string Rgba12BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha12bit_msb.tiff";
+            public const string Rgba12BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha12bit_lsb.tiff";
+            public const string Rgba12BitAssociatedAlphaBigEndian = "Tiff/RgbaAssociatedAlpha12bit_msb.tiff";
+            public const string Rgba12BitAssociatedAlphaLittleEndian = "Tiff/RgbaAssociatedAlpha12bit_lsb.tiff";
+            public const string Rgba14BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha14bit_msb.tiff";
+            public const string Rgba14BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha14bit_lsb.tiff";
+            public const string Rgba14BitAssociatedAlphaBigEndian = "Tiff/RgbaAssociatedAlpha14bit_msb.tiff";
+            public const string Rgba14BitAssociatedAlphaLittleEndian = "Tiff/RgbaAssociatedAlpha14bit_lsb.tiff";
+            public const string Rgba16BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha16bit_msb.tiff";
+            public const string Rgba16BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha16bit_lsb.tiff";
+            public const string Rgba16BitAssociatedAlphaBigEndian = "Tiff/RgbaAssociatedAlpha16bit_msb.tiff";
+            public const string Rgba16BitAssociatedAlphaLittleEndian = "Tiff/RgbaAssociatedAlpha16bit_lsb.tiff";
+            public const string Rgba16BitUnassociatedAlphaBigEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor16bit_msb.tiff";
+            public const string Rgba16BitUnassociatedAlphaLittleEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor16bit_lsb.tiff";
+            public const string Rgba16BitPlanarUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlphaPlanar16bit_msb.tiff";
+            public const string Rgba16BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar16bit_lsb.tiff";
+            public const string Rgba24BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha24bit_msb.tiff";
+            public const string Rgba24BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha24bit_lsb.tiff";
+            public const string Rgba24BitPlanarUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlphaPlanar24bit_msb.tiff";
+            public const string Rgba24BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar24bit_lsb.tiff";
+            public const string Rgba32BitUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlpha32bit_msb.tiff";
+            public const string Rgba32BitUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlpha32bit_lsb.tiff";
+            public const string Rgba32BitUnassociatedAlphaBigEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor32bit_msb.tiff";
+            public const string Rgba32BitUnassociatedAlphaLittleEndianWithPredictor = "Tiff/RgbaUnassociatedAlphaPredictor32bit_lsb.tiff";
+            public const string Rgba32BitPlanarUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_msb.tiff";
+            public const string Rgba32BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_lsb.tiff";
+
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
             public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
 
@@ -863,6 +929,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
+            public const string MultiFrameMipMap = "Tiff/SKC1H3.tiff";
 
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 

@@ -1,14 +1,14 @@
 <h1 align="center">
 
-<img src="https://github.com/SixLabors/Branding/raw/master/icons/imagesharp/sixlabors.imagesharp.svg?sanitize=true" alt="SixLabors.ImageSharp" width="256"/>
+<img src="https://github.com/SixLabors/Branding/raw/main/icons/imagesharp/sixlabors.imagesharp.svg?sanitize=true" alt="SixLabors.ImageSharp" width="256"/>
 <br/>
 SixLabors.ImageSharp
 </h1>
 
 <div align="center">
 
-[![Build Status](https://img.shields.io/github/workflow/status/SixLabors/ImageSharp/Build/master)](https://github.com/SixLabors/ImageSharp/actions)
-[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
+[![Build Status](https://img.shields.io/github/workflow/status/SixLabors/ImageSharp/Build/main)](https://github.com/SixLabors/ImageSharp/actions)
+[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/main/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
 
@@ -26,7 +26,7 @@ Built against [.NET Standard 2.0](https://docs.microsoft.com/en-us/dotnet/standa
 ## License
   
 - ImageSharp is licensed under the [Apache License, Version 2.0](https://opensource.org/licenses/Apache-2.0)  
-- An alternative Commercial Support License can be purchased **for projects and applications requiring support**.
+- An alternative Six Labors License can be purchased **for projects and applications requiring developer support**.
 Please visit https://sixlabors.com/pricing for details.
 
 ## Support Six Labors
@@ -39,12 +39,13 @@ Support the efforts of the development of the Six Labors projects.
 ## Documentation
 
 - [Detailed documentation](https://sixlabors.github.io/docs/) for the ImageSharp API is available. This includes additional conceptual documentation to help you get started.
-- Our [Samples Repository](https://github.com/SixLabors/Samples/tree/master/ImageSharp) is also available containing buildable code samples demonstrating common activities.
+- Our [Samples Repository](https://github.com/SixLabors/Samples/tree/main/ImageSharp) is also available containing buildable code samples demonstrating common activities.
 
 ## Questions
 
-- Do you have questions? We are happy to help! Please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/category_choices), or ask them on [Stack Overflow](https://stackoverflow.com) using the `ImageSharp` tag. Please do not open issues for questions.
-- Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening issues or pull requests!
+- Do you have questions? We are happy to help! Simply purchase a [Six Labors License](https://sixlabors.com/pricing) for developer support. Please do not open issues for questions or misuse our [Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions).
+- For feature ideas please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/categories/ideas) and we'll be happy to discuss.  
+- Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening issues or pull requests!
 
 ## Code of Conduct  
 This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/) to clarify expected behavior in our community.
@@ -93,7 +94,7 @@ git submodule update --init --recursive
 
 ## How can you help?
 
-Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening a PR.
+Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening a PR.
 
 ## The ImageSharp Team
 

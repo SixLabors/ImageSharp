@@ -20,6 +20,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     [Trait("Format", "Bmp")]
+    [ValidateDisposedMemoryAllocations]
     public class BmpDecoderTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
@@ -28,10 +29,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         public static readonly string[] BitfieldsBmpFiles = BitFields;
 
-        private static BmpDecoder BmpDecoder => new BmpDecoder();
+        private static BmpDecoder BmpDecoder => new();
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
+        new()
         {
             { Car, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
             { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
@@ -557,7 +558,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new BmpDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
                 {
                     ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);

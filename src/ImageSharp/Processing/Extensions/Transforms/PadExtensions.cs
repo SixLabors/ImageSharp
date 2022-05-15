@@ -1,5 +1,7 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
+
+using System;
 
 namespace SixLabors.ImageSharp.Processing
 {
@@ -29,14 +31,17 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Pad(this IImageProcessingContext source, int width, int height, Color color)
         {
+            Size size = source.GetCurrentSize();
             var options = new ResizeOptions
             {
-                Size = new Size(width, height),
+                // Prevent downsizing.
+                Size = new Size(Math.Max(width, size.Width), Math.Max(height, size.Height)),
                 Mode = ResizeMode.BoxPad,
                 Sampler = KnownResamplers.NearestNeighbor,
+                PadColor = color
             };
 
-            return color.Equals(default) ? source.Resize(options) : source.Resize(options).BackgroundColor(color);
+            return source.Resize(options);
         }
     }
 }

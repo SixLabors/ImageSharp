@@ -3,70 +3,49 @@ name: Build
 on:
   push:
     branches:
-      - master
+      - main
     tags:
       - "v*"
   pull_request:
     branches:
-      - master
+      - main
 jobs:
   Build:
     strategy:
       matrix:
         options:
           - os: ubuntu-latest
-            framework: net6.0
-            sdk: 6.0.x
+            framework: net7.0
+            sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: macos-latest
-            framework: net6.0
-            sdk: 6.0.x
+            framework: net7.0
+            sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: windows-latest
-            framework: net6.0
-            sdk: 6.0.x
+            framework: net7.0
+            sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: ubuntu-latest
-            framework: net5.0
+            framework: net6.0
+            sdk: 6.0.x
             runtime: -x64
             codecov: false
           - os: macos-latest
-            framework: net5.0
+            framework: net6.0
+            sdk: 6.0.x
             runtime: -x64
             codecov: false
           - os: windows-latest
-            framework: net5.0
+            framework: net6.0
+            sdk: 6.0.x
             runtime: -x64
-            codecov: false
-          - os: ubuntu-latest
-            framework: netcoreapp3.1
-            runtime: -x64
-            codecov: false
-          - os: macos-latest
-            framework: netcoreapp3.1
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: netcoreapp3.1
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: netcoreapp2.1
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net472
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net472
-            runtime: -x86
             codecov: false
 
     runs-on: ${{matrix.options.os}}
@@ -109,12 +88,13 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
           restore-keys: ${{ runner.os }}-nuget-
 
-      - name: DotNet Setup Preview
-        if: ${{ matrix.options.sdk-preview == true }}
+      - name: DotNet Setup
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: ${{ matrix.options.sdk }}
           include-prerelease: true
+          dotnet-version: |
+            7.0.x
+            6.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

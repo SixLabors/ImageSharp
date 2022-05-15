@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     [Trait("Format", "Png")]
-    public partial class PngFilterTests : MeasureFixture
+    public class PngEncoderFilterTests : MeasureFixture
     {
 #if BENCHMARKING
         public const int Times = 1000000;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public const int Times = 1;
 #endif
 
-        public PngFilterTests(ITestOutputHelper output)
+        public PngEncoderFilterTests(ITestOutputHelper output)
             : base(output)
         {
         }
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]

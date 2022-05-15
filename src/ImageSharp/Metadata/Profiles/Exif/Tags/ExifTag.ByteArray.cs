@@ -42,31 +42,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<byte[]> TIFFEPStandardID => new ExifTag<byte[]>(ExifTagValue.TIFFEPStandardID);
 
         /// <summary>
-        /// Gets the XPTitle exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> XPTitle => new ExifTag<byte[]>(ExifTagValue.XPTitle);
-
-        /// <summary>
-        /// Gets the XPComment exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> XPComment => new ExifTag<byte[]>(ExifTagValue.XPComment);
-
-        /// <summary>
-        /// Gets the XPAuthor exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> XPAuthor => new ExifTag<byte[]>(ExifTagValue.XPAuthor);
-
-        /// <summary>
-        /// Gets the XPKeywords exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> XPKeywords => new ExifTag<byte[]>(ExifTagValue.XPKeywords);
-
-        /// <summary>
-        /// Gets the XPSubject exif tag.
-        /// </summary>
-        public static ExifTag<byte[]> XPSubject => new ExifTag<byte[]>(ExifTagValue.XPSubject);
-
-        /// <summary>
         /// Gets the GPSVersionID exif tag.
         /// </summary>
         public static ExifTag<byte[]> GPSVersionID => new ExifTag<byte[]>(ExifTagValue.GPSVersionID);

@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
@@ -55,17 +54,43 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             {
                 using var jpegDecoder = new JpegDecoderCore(this.configuration, new JpegDecoder());
 
-                // If the PhotometricInterpretation is YCbCr we explicitly assume the JPEG data is in RGB color space.
-                // There seems no other way to determine that the JPEG data is RGB colorspace (no APP14 marker, componentId's are not RGB).
-                using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
-                    new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
-                var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
-                jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
-                scanDecoder.ResetInterval = 0;
-                jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
+                switch (this.photometricInterpretation)
+                {
+                    case TiffPhotometricInterpretation.BlackIsZero:
+                    case TiffPhotometricInterpretation.WhiteIsZero:
+                    {
+                        using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(this.configuration);
+                        var scanDecoderGray = new HuffmanScanDecoder(stream, spectralConverterGray, CancellationToken.None);
+                        jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
+                        jpegDecoder.ParseStream(stream, spectralConverterGray, CancellationToken.None);
 
-                // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                CopyImageBytesToBuffer(buffer, spectralConverter.GetPixelBuffer(CancellationToken.None));
+                        // TODO: Should we pass through the CancellationToken from the tiff decoder?
+                        using var decompressedBuffer = spectralConverterGray.GetPixelBuffer(CancellationToken.None);
+                        CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                        break;
+                    }
+
+                    // If the PhotometricInterpretation is YCbCr we explicitly assume the JPEG data is in RGB color space.
+                    // There seems no other way to determine that the JPEG data is RGB colorspace (no APP14 marker, componentId's are not RGB).
+                    case TiffPhotometricInterpretation.YCbCr:
+                    case TiffPhotometricInterpretation.Rgb:
+                    {
+                        using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
+                            new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
+                        var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
+                        jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
+                        jpegDecoder.ParseStream(stream, spectralConverter, CancellationToken.None);
+
+                        // TODO: Should we pass through the CancellationToken from the tiff decoder?
+                        using var decompressedBuffer = spectralConverter.GetPixelBuffer(CancellationToken.None);
+                        CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                        break;
+                    }
+
+                    default:
+                        TiffThrowHelper.ThrowNotSupported($"Jpeg compressed tiff with photometric interpretation {this.photometricInterpretation} is not supported");
+                        break;
+                }
             }
             else
             {
@@ -80,6 +105,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             for (int y = 0; y < pixelBuffer.Height; y++)
             {
                 Span<Rgb24> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
+                Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
+                rgbBytes.CopyTo(buffer.Slice(offset));
+                offset += rgbBytes.Length;
+            }
+        }
+
+        private static void CopyImageBytesToBuffer(Span<byte> buffer, Buffer2D<L8> pixelBuffer)
+        {
+            int offset = 0;
+            for (int y = 0; y < pixelBuffer.Height; y++)
+            {
+                Span<L8> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
                 Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
                 rgbBytes.CopyTo(buffer.Slice(offset));
                 offset += rgbBytes.Length;

@@ -259,9 +259,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(1200)] // Group of two UniformUnmanagedMemoryPool buffers
         public void AllocateMemoryGroup_Finalization_ReturnsToPool(int length)
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
-                // Skip on OSX: https://github.com/SixLabors/ImageSharp/issues/1887
+                // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
                 return;
             }
 
@@ -321,9 +321,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
         public void AllocateSingleMemoryOwner_Finalization_ReturnsToPool(int length)
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
-                // Skip on OSX: https://github.com/SixLabors/ImageSharp/issues/1887
+                // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
                 return;
             }
 
@@ -379,5 +379,20 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 g1.GetSpan()[0] = 42;
             }
         }
+
+#if NETCOREAPP3_1_OR_GREATER
+        [Fact]
+        public void Issue2001_NegativeMemoryReportedByGc()
+        {
+            RemoteExecutor.Invoke(RunTest).Dispose();
+
+            static void RunTest()
+            {
+                // Emulate GC.GetGCMemoryInfo() issue https://github.com/dotnet/runtime/issues/65466
+                UniformUnmanagedMemoryPoolMemoryAllocator.GetTotalAvailableMemoryBytes = () => -402354176;
+                _ = MemoryAllocator.Create();
+            }
+        }
+#endif
     }
 }

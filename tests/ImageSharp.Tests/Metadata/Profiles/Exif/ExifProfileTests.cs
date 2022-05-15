@@ -51,6 +51,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
             { ExifTag.ImageDescription, "ImageDescription" },
             { ExifTag.ExposureTime, new Rational(1.0 / 1600.0) },
             { ExifTag.Model, "Model" },
+            { ExifTag.XPAuthor, "The XPAuthor text" },
+            { ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.Unicode, "The Unicode text") },
+            { ExifTag.GPSAreaInformation, new EncodedString("Default constructor text (GPSAreaInformation)") },
         };
 
         [Theory]
@@ -351,10 +354,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
             TestProfile(profile);
 
-            using Image<Rgba32> thumbnail = profile.CreateThumbnail<Rgba32>();
+            using Image thumbnail = profile.CreateThumbnail();
             Assert.NotNull(thumbnail);
             Assert.Equal(256, thumbnail.Width);
             Assert.Equal(170, thumbnail.Height);
+
+            using Image<Rgba32> genericThumbnail = profile.CreateThumbnail<Rgba32>();
+            Assert.NotNull(genericThumbnail);
+            Assert.Equal(256, genericThumbnail.Width);
+            Assert.Equal(170, genericThumbnail.Height);
         }
 
         [Fact]
@@ -504,7 +512,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
         public void IfdStructure()
         {
             var exif = new ExifProfile();
-            exif.SetValue(ExifTag.XPAuthor, Encoding.GetEncoding("UCS-2").GetBytes("Dan Petitt"));
+            exif.SetValue(ExifTag.XPAuthor, "Dan Petitt");
 
             Span<byte> actualBytes = exif.ToByteArray();
 

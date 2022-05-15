@@ -39,10 +39,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             using var memoryStream = new MemoryStream(this.jpegBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
 
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder { IgnoreMetadata = true });
-            var scanDecoder = new HuffmanScanDecoder(bufferedStream, new NoopSpectralConverter(), cancellationToken: default);
-            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
-            decoder.Dispose();
+            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder { IgnoreMetadata = true });
+            var spectralConverter = new NoopSpectralConverter();
+            decoder.ParseStream(bufferedStream, spectralConverter, cancellationToken: default);
         }
 
         // We want to test only stream parsing and scan decoding, we don't need to convert spectral data to actual pixels

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the current instance.
         /// </summary>
-        public static GifFormat Instance { get; } = new GifFormat();
+        public static GifFormat Instance { get; } = new();
 
         /// <inheritdoc/>
         public string Name => "GIF";
@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public IEnumerable<string> FileExtensions => GifConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public GifMetadata CreateDefaultFormatMetadata() => new GifMetadata();
+        public GifMetadata CreateDefaultFormatMetadata() => new();
 
         /// <inheritdoc/>
-        public GifFrameMetadata CreateDefaultFormatFrameMetadata() => new GifFrameMetadata();
+        public GifFrameMetadata CreateDefaultFormatFrameMetadata() => new();
     }
 }

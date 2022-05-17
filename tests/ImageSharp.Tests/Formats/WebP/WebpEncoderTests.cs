@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Theory]
         [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // If its not a webp input image, it should default to lossy.
         [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
-        [WithFile(Lossy.Bike, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
+        [WithFile(Lossy.BikeWithExif, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
         public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
             where TPixel : unmanaged, IPixel<TPixel>
         {

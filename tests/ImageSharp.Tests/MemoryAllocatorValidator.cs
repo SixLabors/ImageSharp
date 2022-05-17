@@ -59,9 +59,9 @@ namespace SixLabors.ImageSharp.Tests
 
             public void Validate(int expectedAllocationCount)
             {
-                var count = this.TotalRemainingAllocated;
-                var pass = expectedAllocationCount == count;
-                Assert.True(pass, $"Expected a {expectedAllocationCount} undisposed buffers but found {count}");
+                int count = this.TotalRemainingAllocated;
+                bool pass = expectedAllocationCount == count;
+                Assert.True(pass, $"Expected {expectedAllocationCount} undisposed buffers but found {count}");
             }
 
             public void Dispose()

@@ -4,6 +4,7 @@
 using System.IO;
 using System.Threading;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp
@@ -18,13 +19,19 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         public bool IgnoreMetadata { get; set; }
 
+        /// <summary>
+        /// Gets or sets the decoding mode for multi-frame images.
+        /// Defaults to All.
+        /// </summary>
+        public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
+
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new WebpDecoderCore(configuration, this);
+            using var decoder = new WebpDecoderCore(configuration, this);
 
             try
             {

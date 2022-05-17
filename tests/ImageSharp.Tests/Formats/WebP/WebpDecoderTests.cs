@@ -3,8 +3,10 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
@@ -34,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [InlineData(Lossless.NoTransform2, 128, 128, 32)]
         [InlineData(Lossy.Alpha1, 1000, 307, 32)]
         [InlineData(Lossy.Alpha2, 1000, 307, 32)]
-        [InlineData(Lossy.Bike, 250, 195, 24)]
+        [InlineData(Lossy.BikeWithExif, 250, 195, 24)]
         public void Identify_DetectsCorrectDimensionsAndBitDepth(
             string imagePath,
             int expectedWidth,
@@ -53,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(Lossy.Bike, PixelTypes.Rgba32)]
+        [WithFile(Lossy.BikeWithExif, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter01, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter02, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter03, PixelTypes.Rgba32)]
@@ -234,7 +236,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         // TODO: Reference decoder throws here MagickCorruptImageErrorException, webpinfo also indicates an error here, but decoding the image seems to work.
         // [WithFile(Lossless.GreenTransform5, PixelTypes.Rgba32)]
-        public void WebpDecoder_CanDecode_Lossless_WithSubstractGreenTransform<TPixel>(
+        public void WebpDecoder_CanDecode_Lossless_WithSubtractGreenTransform<TPixel>(
             TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -327,6 +329,55 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossless.Animated, PixelTypes.Rgba32)]
+        public void Decode_AnimatedLossless_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+                WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
+
+                image.DebugSaveMultiFrame(provider);
+                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+
+                Assert.Equal(0, webpMetaData.AnimationLoopCount);
+                Assert.Equal(150U, frameMetaData.FrameDuration);
+                Assert.Equal(12, image.Frames.Count);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
+        public void Decode_AnimatedLossy_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+                WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
+
+                image.DebugSaveMultiFrame(provider);
+                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
+
+                Assert.Equal(0, webpMetaData.AnimationLoopCount);
+                Assert.Equal(150U, frameMetaData.FrameDuration);
+                Assert.Equal(12, image.Frames.Count);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossless.Animated, PixelTypes.Rgba32)]
+        public void Decode_AnimatedLossless_WithFrameDecodingModeFirst_OnlyDecodesOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new WebpDecoder() { DecodingMode = FrameDecodingMode.First }))
+            {
+                Assert.Equal(1, image.Frames.Count);
             }
         }
 

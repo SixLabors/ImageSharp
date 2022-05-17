@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp
         public Point Location
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new Point(this.X, this.Y);
+            get => new(this.X, this.Y);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp
         public Size Size
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new Size(this.Width, this.Height);
+            get => new(this.Width, this.Height);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
@@ -147,14 +147,14 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="rectangle">The rectangle.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator RectangleF(Rectangle rectangle) => new RectangleF(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+        public static implicit operator RectangleF(Rectangle rectangle) => new(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
 
         /// <summary>
         /// Creates a <see cref="Vector4"/> with the coordinates of the specified <see cref="Rectangle"/>.
         /// </summary>
         /// <param name="rectangle">The rectangle.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector4(Rectangle rectangle) => new Vector4(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+        public static implicit operator Vector4(Rectangle rectangle) => new(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
 
         /// <summary>
         /// Compares two <see cref="Rectangle"/> objects for equality.
@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         // ReSharper disable once InconsistentNaming
-        public static Rectangle FromLTRB(int left, int top, int right, int bottom) => new Rectangle(left, top, unchecked(right - left), unchecked(bottom - top));
+        public static Rectangle FromLTRB(int left, int top, int right, int bottom) => new(left, top, unchecked(right - left), unchecked(bottom - top));
 
         /// <summary>
         /// Returns the center point of the given <see cref="Rectangle"/>.
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rectangle">The rectangle.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Center(Rectangle rectangle) => new Point(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+        public static Point Center(Rectangle rectangle) => new(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
 
         /// <summary>
         /// Creates a rectangle that represents the intersection between <paramref name="a"/> and
@@ -376,7 +376,7 @@ namespace SixLabors.ImageSharp
         public void Inflate(Size size) => this.Inflate(size.Width, size.Height);
 
         /// <summary>
-        /// Determines if the specfied point is contained within the rectangular region defined by
+        /// Determines if the specified point is contained within the rectangular region defined by
         /// this <see cref="Rectangle"/>.
         /// </summary>
         /// <param name="x">The x-coordinate of the given point.</param>
@@ -405,10 +405,10 @@ namespace SixLabors.ImageSharp
             (this.Y <= rectangle.Y) && (rectangle.Bottom <= this.Bottom);
 
         /// <summary>
-        /// Determines if the specfied <see cref="Rectangle"/> intersects the rectangular region defined by
+        /// Determines if the specified <see cref="Rectangle"/> intersects the rectangular region defined by
         /// this <see cref="Rectangle"/>.
         /// </summary>
-        /// <param name="rectangle">The other Rectange. </param>
+        /// <param name="rectangle">The other Rectangle. </param>
         /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IntersectsWith(Rectangle rectangle) =>
@@ -438,16 +438,10 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.X, this.Y, this.Width, this.Height);
-        }
+        public override int GetHashCode() => HashCode.Combine(this.X, this.Y, this.Width, this.Height);
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Rectangle [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
-        }
+        public override string ToString() => $"Rectangle [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Rectangle other && this.Equals(other);

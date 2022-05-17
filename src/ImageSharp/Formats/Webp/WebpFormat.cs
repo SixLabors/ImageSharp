@@ -6,9 +6,9 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Formats.Webp
 {
     /// <summary>
-    /// Registers the image encoders, decoders and mime type detectors for the Webp format
+    /// Registers the image encoders, decoders and mime type detectors for the Webp format.
     /// </summary>
-    public sealed class WebpFormat : IImageFormat<WebpMetadata>
+    public sealed class WebpFormat : IImageFormat<WebpMetadata, WebpFrameMetadata>
     {
         private WebpFormat()
         {
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Gets the current instance.
         /// </summary>
-        public static WebpFormat Instance { get; } = new WebpFormat();
+        public static WebpFormat Instance { get; } = new();
 
         /// <inheritdoc/>
         public string Name => "Webp";
@@ -32,6 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public IEnumerable<string> FileExtensions => WebpConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public WebpMetadata CreateDefaultFormatMetadata() => new WebpMetadata();
+        public WebpMetadata CreateDefaultFormatMetadata() => new();
+
+        /// <inheritdoc/>
+        public WebpFrameMetadata CreateDefaultFormatFrameMetadata() => new();
     }
 }

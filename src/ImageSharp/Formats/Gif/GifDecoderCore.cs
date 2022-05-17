@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
-        public Size Dimensions => new Size(this.imageDescriptor.Width, this.imageDescriptor.Height);
+        public Size Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
 
         private MemoryAllocator MemoryAllocator => this.Configuration.MemoryAllocator;
 

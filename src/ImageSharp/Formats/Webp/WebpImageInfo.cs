@@ -63,7 +63,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             this.Vp8BitReader?.Dispose();
             this.Vp8LBitReader?.Dispose();
-            this.Features?.AlphaData?.Dispose();
         }
     }
 }

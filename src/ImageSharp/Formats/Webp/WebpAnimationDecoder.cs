@@ -356,15 +356,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             var interest = Rectangle.Intersect(imageFrame.Bounds(), this.restoreArea.Value);
             Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer.GetRegion(interest);
-            for (int y = 0; y < pixelRegion.Height; y++)
-            {
-                Span<TPixel> pixelRow = pixelRegion.DangerousGetRowSpan(y);
-                for (int x = 0; x < pixelRow.Length; x++)
-                {
-                    ref TPixel pixel = ref pixelRow[x];
-                    pixel.FromRgba32(backgroundColor);
-                }
-            }
+            TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
+            pixelRegion.Fill(backgroundPixel);
         }
 
         /// <summary>

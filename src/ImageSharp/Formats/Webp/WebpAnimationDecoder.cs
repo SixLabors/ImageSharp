@@ -315,27 +315,13 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             Buffer2D<TPixel> srcPixels = src.PixelBuffer;
             Buffer2D<TPixel> dstPixels = dst.PixelBuffer;
-            Rgba32 srcRgba = default;
-            Rgba32 dstRgba = default;
-            PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+            PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
             for (int y = frameY; y < frameY + frameHeight; y++)
             {
-                Span<TPixel> srcPixelRow = srcPixels.DangerousGetRowSpan(y);
-                Span<TPixel> dstPixelRow = dstPixels.DangerousGetRowSpan(y);
-                for (int x = frameX; x < frameX + frameWidth; x++)
-                {
-                    ref TPixel srcPixel = ref srcPixelRow[x];
-                    ref TPixel dstPixel = ref dstPixelRow[x];
-                    srcPixel.ToRgba32(ref srcRgba);
-                    dstPixel.ToRgba32(ref dstRgba);
+                Span<TPixel> srcPixelRow = srcPixels.DangerousGetRowSpan(y).Slice(frameX, frameWidth);
+                Span<TPixel> dstPixelRow = dstPixels.DangerousGetRowSpan(y).Slice(frameX, frameWidth);
 
-                    if (srcRgba.A is not 0)
-                    {
-                        int dstFactorA = dstRgba.A * (255 - srcRgba.A) / 255;
-                        Rgba32 blendResult = blender.Blend(srcRgba, dstRgba, 1.0f / dstFactorA);
-                        dstPixel.FromRgba32(blendResult);
-                    }
-                }
+                blender.Blend<TPixel>(this.configuration, dstPixelRow, srcPixelRow, dstPixelRow, 1.0f);
             }
         }
 

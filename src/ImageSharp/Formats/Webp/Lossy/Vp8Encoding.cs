@@ -535,8 +535,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             // *in01 = 00 01 10 11 02 03 12 13
             // *in23 = 20 21 30 31 22 23 32 33
-            Vector128<short> shuf01_p = Sse2.ShuffleHigh(row01, 0xB1);  // MmShuffle(2, 3, 0, 1)
-            Vector128<short> shuf32_p = Sse2.ShuffleHigh(row23, 0xB1);  // MmShuffle(2, 3, 0, 1)
+            const byte mmShuffle_2301 = 0b_10_11_00_01;
+            Vector128<short> shuf01_p = Sse2.ShuffleHigh(row01, mmShuffle_2301);
+            Vector128<short> shuf32_p = Sse2.ShuffleHigh(row23, mmShuffle_2301);
 
             // 00 01 10 11 03 02 13 12
             // 20 21 30 31 23 22 33 32
@@ -568,7 +569,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<short> shi = Sse2.UnpackHigh(s03, s12); // 2 3 2 3 2 3
             Vector128<int> v23 = Sse2.UnpackHigh(slo.AsInt32(), shi.AsInt32());
             out01 = Sse2.UnpackLow(slo.AsInt32(), shi.AsInt32());
-            out32 = Sse2.Shuffle(v23, 0x4E); // MmShuffle(1, 0, 3, 2)
+
+            const byte mmShuffle_1032 = 0b_01_00_11_10;
+            out32 = Sse2.Shuffle(v23, mmShuffle_1032);
         }
 
         public static void FTransformPass2SSE2(Vector128<int> v01, Vector128<int> v32, Span<short> output)

@@ -141,11 +141,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
+                    const byte mmShuffle_2200 = 0b_10_10_00_00;
+
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                     Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                    Vector128<ushort> b = Sse2.ShuffleLow(a, 0xA0);  // MmShuffle(2, 2, 0, 0)
-                    Vector128<ushort> c = Sse2.ShuffleHigh(b, 0xA0); // MmShuffle(2, 2, 0, 0) 0g0g
+                    Vector128<ushort> b = Sse2.ShuffleLow(a, mmShuffle_2200);
+                    Vector128<ushort> c = Sse2.ShuffleHigh(b, mmShuffle_2200); // 0g0g
                     Vector128<byte> output = Sse2.Add(input.AsByte(), c.AsByte());
                     Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -223,11 +225,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
+                    const byte mmShuffle_2200 = 0b_10_10_00_00;
+
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                     Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                    Vector128<ushort> b = Sse2.ShuffleLow(a, 0xA0);  // MmShuffle(2, 2, 0, 0)
-                    Vector128<ushort> c = Sse2.ShuffleHigh(b, 0xA0); // MmShuffle(2, 2, 0, 0) 0g0g
+                    Vector128<ushort> b = Sse2.ShuffleLow(a, mmShuffle_2200);
+                    Vector128<ushort> c = Sse2.ShuffleHigh(b, mmShuffle_2200); // 0g0g
                     Vector128<byte> output = Sse2.Subtract(input.AsByte(), c.AsByte());
                     Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -382,11 +386,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 nint idx;
                 for (idx = 0; idx <= numPixels - 8; idx += 8)
                 {
+                    const byte mmShuffle_2200 = 0b_10_10_00_00;
+
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
                     Vector256<byte> a = Avx2.And(input.AsByte(), transformColorAlphaGreenMask256);
-                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
-                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
+                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), mmShuffle_2200);
+                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), mmShuffle_2200);
                     Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector256<short> e = Avx2.ShiftLeftLogical(input.AsInt16(), 8);
                     Vector256<short> f = Avx2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
@@ -411,11 +417,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 nint idx;
                 for (idx = 0; idx <= numPixels - 4; idx += 4)
                 {
+                    const byte mmShuffle_2200 = 0b_10_10_00_00;
+
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
                     Vector128<byte> a = Sse2.And(input.AsByte(), transformColorAlphaGreenMask);
-                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
-                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
+                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), mmShuffle_2200);
+                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), mmShuffle_2200);
                     Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector128<short> e = Sse2.ShiftLeftLogical(input.AsInt16(), 8);
                     Vector128<short> f = Sse2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
@@ -472,11 +480,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 nint idx;
                 for (idx = 0; idx <= pixelData.Length - 8; idx += 8)
                 {
+                    const byte mmShuffle_2200 = 0b_10_10_00_00;
+
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
                     Vector256<byte> a = Avx2.And(input.AsByte(), transformColorInverseAlphaGreenMask256);
-                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
-                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
+                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), mmShuffle_2200);
+                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), mmShuffle_2200);
                     Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector256<byte> e = Avx2.Add(input.AsByte(), d.AsByte());
                     Vector256<short> f = Avx2.ShiftLeftLogical(e.AsInt16(), 8);
@@ -502,11 +512,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 nint idx;
                 for (idx = 0; idx <= pixelData.Length - 4; idx += 4)
                 {
+                    const byte mmShuffle_2200 = 0b_10_10_00_00;
+
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
                     Vector128<byte> a = Sse2.And(input.AsByte(), transformColorInverseAlphaGreenMask);
-                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
-                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
+                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), mmShuffle_2200);
+                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), mmShuffle_2200);
                     Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector128<byte> e = Sse2.Add(input.AsByte(), d.AsByte());
                     Vector128<short> f = Sse2.ShiftLeftLogical(e.AsInt16(), 8);

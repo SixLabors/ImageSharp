@@ -553,6 +553,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // [ (a0 + a1) << 3, ... ]
             Vector128<int> tmp0 = Sse2.MultiplyAddAdjacent(a01, Vector128.Create(8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0).AsInt16()); // K88p
+
             // [ (a0 - a1) << 3, ... ]
             Vector128<int> tmp2 = Sse2.MultiplyAddAdjacent(a01, Vector128.Create(8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255).AsInt16());        // K88m
             Vector128<int> tmp11 = Sse2.MultiplyAddAdjacent(a32, Vector128.Create(232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8).AsInt16());   // K5352_2217p

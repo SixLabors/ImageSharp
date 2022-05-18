@@ -557,6 +557,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // if (coeff > 2047) coeff = 2047
                 out0 = Avx2.Min(out0, Vector256.Create((short)MaxLevel));
+
                 // Put the sign back.
                 out0 = Avx2.Sign(out0, input0);
 

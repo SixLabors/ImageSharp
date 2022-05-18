@@ -27,36 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private const double Log2Reciprocal = 1.44269504088896338700465094007086;
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector256<byte> AddGreenToBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
-
-        private static readonly Vector128<byte> AddGreenToBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
-
-        private static readonly byte AddGreenToBlueAndRedShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
-
-        private static readonly Vector256<byte> SubtractGreenFromBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
-
-        private static readonly Vector128<byte> SubtractGreenFromBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
-
-        private static readonly byte SubtractGreenFromBlueAndRedShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
-
-        private static readonly Vector128<byte> TransformColorAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-
-        private static readonly Vector256<byte> TransformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-
-        private static readonly Vector128<byte> TransformColorRedBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-
-        private static readonly Vector256<byte> TransformColorRedBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-
-        private static readonly byte TransformColorShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
-
-        private static readonly Vector128<byte> TransformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-
-        private static readonly Vector256<byte> TransformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-
-        private static readonly byte TransformColorInverseShuffleMask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
-#endif
-
         /// <summary>
         /// Returns the exact index where array1 and array2 are different. For an index
         /// inferior or equal to bestLenMatch, the return value just has to be strictly
@@ -129,13 +99,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
+                Vector256<byte> addGreenToBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 8; i += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                    Vector256<byte> in0g0g = Avx2.Shuffle(input, AddGreenToBlueAndRedMaskAvx2);
+                    Vector256<byte> in0g0g = Avx2.Shuffle(input, addGreenToBlueAndRedMaskAvx2);
                     Vector256<byte> output = Avx2.Add(input, in0g0g);
                     Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -147,13 +118,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else if (Ssse3.IsSupported)
             {
+                Vector128<byte> addGreenToBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                    Vector128<byte> in0g0g = Ssse3.Shuffle(input, AddGreenToBlueAndRedMaskSsse3);
+                    Vector128<byte> in0g0g = Ssse3.Shuffle(input, addGreenToBlueAndRedMaskSsse3);
                     Vector128<byte> output = Sse2.Add(input, in0g0g);
                     Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -172,8 +144,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                     Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                    Vector128<ushort> b = Sse2.ShuffleLow(a, AddGreenToBlueAndRedShuffleMask);
-                    Vector128<ushort> c = Sse2.ShuffleHigh(b, AddGreenToBlueAndRedShuffleMask); // 0g0g
+                    Vector128<ushort> b = Sse2.ShuffleLow(a, 0xA0);  // MmShuffle(2, 2, 0, 0)
+                    Vector128<ushort> c = Sse2.ShuffleHigh(b, 0xA0); // MmShuffle(2, 2, 0, 0) 0g0g
                     Vector128<byte> output = Sse2.Add(input.AsByte(), c.AsByte());
                     Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -209,13 +181,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
+                Vector256<byte> subtractGreenFromBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 8; i += 8)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                    Vector256<byte> in0g0g = Avx2.Shuffle(input, SubtractGreenFromBlueAndRedMaskAvx2);
+                    Vector256<byte> in0g0g = Avx2.Shuffle(input, subtractGreenFromBlueAndRedMaskAvx2);
                     Vector256<byte> output = Avx2.Subtract(input, in0g0g);
                     Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -227,13 +200,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else if (Ssse3.IsSupported)
             {
+                Vector128<byte> subtractGreenFromBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                    Vector128<byte> in0g0g = Ssse3.Shuffle(input, SubtractGreenFromBlueAndRedMaskSsse3);
+                    Vector128<byte> in0g0g = Ssse3.Shuffle(input, subtractGreenFromBlueAndRedMaskSsse3);
                     Vector128<byte> output = Sse2.Subtract(input, in0g0g);
                     Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -252,8 +226,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                     Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                     Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                    Vector128<ushort> b = Sse2.ShuffleLow(a, SubtractGreenFromBlueAndRedShuffleMask);
-                    Vector128<ushort> c = Sse2.ShuffleHigh(b, SubtractGreenFromBlueAndRedShuffleMask); // 0g0g
+                    Vector128<ushort> b = Sse2.ShuffleLow(a, 0xA0);  // MmShuffle(2, 2, 0, 0)
+                    Vector128<ushort> c = Sse2.ShuffleHigh(b, 0xA0); // MmShuffle(2, 2, 0, 0) 0g0g
                     Vector128<byte> output = Sse2.Subtract(input.AsByte(), c.AsByte());
                     Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -400,6 +374,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && numPixels >= 8)
             {
+                Vector256<byte> transformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                Vector256<byte> transformColorRedBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
                 Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
 
@@ -408,15 +384,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
-                    Vector256<byte> a = Avx2.And(input.AsByte(), TransformColorAlphaGreenMask256);
-                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), TransformColorShuffleMask);
-                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), TransformColorShuffleMask);
+                    Vector256<byte> a = Avx2.And(input.AsByte(), transformColorAlphaGreenMask256);
+                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
+                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
                     Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector256<short> e = Avx2.ShiftLeftLogical(input.AsInt16(), 8);
                     Vector256<short> f = Avx2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
                     Vector256<int> g = Avx2.ShiftRightLogical(f.AsInt32(), 16);
                     Vector256<byte> h = Avx2.Add(g.AsByte(), d.AsByte());
-                    Vector256<byte> i = Avx2.And(h, TransformColorRedBlueMask256);
+                    Vector256<byte> i = Avx2.And(h, transformColorRedBlueMask256);
                     Vector256<byte> output = Avx2.Subtract(input.AsByte(), i);
                     Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -428,6 +404,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else if (Sse2.IsSupported)
             {
+                Vector128<byte> transformColorAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                Vector128<byte> transformColorRedBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
                 nint idx;
@@ -435,15 +413,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
-                    Vector128<byte> a = Sse2.And(input.AsByte(), TransformColorAlphaGreenMask);
-                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), TransformColorShuffleMask);
-                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), TransformColorShuffleMask);
+                    Vector128<byte> a = Sse2.And(input.AsByte(), transformColorAlphaGreenMask);
+                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
+                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
                     Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector128<short> e = Sse2.ShiftLeftLogical(input.AsInt16(), 8);
                     Vector128<short> f = Sse2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
                     Vector128<int> g = Sse2.ShiftRightLogical(f.AsInt32(), 16);
                     Vector128<byte> h = Sse2.Add(g.AsByte(), d.AsByte());
-                    Vector128<byte> i = Sse2.And(h, TransformColorRedBlueMask);
+                    Vector128<byte> i = Sse2.And(h, transformColorRedBlueMask);
                     Vector128<byte> output = Sse2.Subtract(input.AsByte(), i);
                     Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 }
@@ -488,6 +466,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && pixelData.Length >= 8)
             {
+                Vector256<byte> transformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
                 Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
                 nint idx;
@@ -495,9 +474,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
-                    Vector256<byte> a = Avx2.And(input.AsByte(), TransformColorInverseAlphaGreenMask256);
-                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), TransformColorInverseShuffleMask);
-                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), TransformColorInverseShuffleMask);
+                    Vector256<byte> a = Avx2.And(input.AsByte(), transformColorInverseAlphaGreenMask256);
+                    Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
+                    Vector256<short> c = Avx2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
                     Vector256<short> d = Avx2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector256<byte> e = Avx2.Add(input.AsByte(), d.AsByte());
                     Vector256<short> f = Avx2.ShiftLeftLogical(e.AsInt16(), 8);
@@ -516,6 +495,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
             else if (Sse2.IsSupported)
             {
+                Vector128<byte> transformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
 
@@ -524,9 +504,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                     Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
-                    Vector128<byte> a = Sse2.And(input.AsByte(), TransformColorInverseAlphaGreenMask);
-                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), TransformColorInverseShuffleMask);
-                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), TransformColorInverseShuffleMask);
+                    Vector128<byte> a = Sse2.And(input.AsByte(), transformColorInverseAlphaGreenMask);
+                    Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), 0xA0);  // MmShuffle(2, 2, 0, 0)
+                    Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), 0xA0); // MmShuffle(2, 2, 0, 0)
                     Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                     Vector128<byte> e = Sse2.Add(input.AsByte(), d.AsByte());
                     Vector128<short> f = Sse2.ShiftLeftLogical(e.AsInt16(), 8);

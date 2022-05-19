@@ -18,11 +18,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         private static WebpDecoder WebpDecoder => new() { IgnoreMetadata = false };
 
         [Theory]
-        [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32, true)]
+        [WithFile(TestImages.Webp.Lossy.BikeWithExif, PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Webp.Lossy.BikeWithExif, PixelTypes.Rgba32, true)]
+        public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLossyImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
+
+            using Image<TPixel> image = provider.GetImage(decoder);
+            if (ignoreMetadata)
+            {
+                Assert.Null(image.Metadata.ExifProfile);
+            }
+            else
+            {
+                ExifProfile exifProfile = image.Metadata.ExifProfile;
+                Assert.NotNull(exifProfile);
+                Assert.NotEmpty(exifProfile.Values);
+                Assert.Contains(exifProfile.Values, m => m.Tag.Equals(ExifTag.Software) && m.GetValue().Equals("GIMP 2.10.2"));
+            }
+        }
+
+        [Theory]
         [WithFile(TestImages.Webp.Lossless.WithExif, PixelTypes.Rgba32, false)]
         [WithFile(TestImages.Webp.Lossless.WithExif, PixelTypes.Rgba32, true)]
-        public void IgnoreMetadata_ControlsWhetherExifIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
+        public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLosslessImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
@@ -111,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Webp.Lossy.BikeWithExif, PixelTypes.Rgba32)]
         public void EncodeLossyWebp_PreservesExif<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

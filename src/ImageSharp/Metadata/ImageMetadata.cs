@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Metadata
         /// </summary>
         public const PixelResolutionUnit DefaultPixelResolutionUnits = PixelResolutionUnit.PixelsPerInch;
 
-        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new Dictionary<IImageFormat, IDeepCloneable>();
+        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new();
         private double horizontalResolution;
         private double verticalResolution;
 

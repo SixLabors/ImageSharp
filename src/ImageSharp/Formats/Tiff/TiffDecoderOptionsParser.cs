@@ -459,6 +459,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompression.Jpeg:
                 {
                     options.CompressionType = TiffDecoderCompressionType.Jpeg;
+
+                    if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
+                    {
+                        // Note: Setting PhotometricInterpretation to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+                        options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                    }
+
                     break;
                 }
 

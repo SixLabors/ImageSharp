@@ -303,7 +303,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(FlowerYCbCr888Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerYCbCr888Planar, PixelTypes.Rgba32)]
-        [WithFile(RgbYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
         [WithFile(RgbYCbCr888Contiguoush2v2, PixelTypes.Rgba32)]
         [WithFile(RgbYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
         [WithFile(FlowerYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]

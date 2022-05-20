@@ -831,7 +831,6 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerYCbCr888Contiguoush2v1 = "Tiff/flower-ycbcr-contig-08_h2v1.tiff";
             public const string FlowerYCbCr888Contiguoush2v2 = "Tiff/flower-ycbcr-contig-08_h2v2.tiff";
             public const string FlowerYCbCr888Contiguoush4v4 = "Tiff/flower-ycbcr-contig-08_h4v4.tiff";
-            public const string RgbYCbCr888Contiguoush2v1 = "Tiff/rgb-ycbcr-contig-08_h2v1.tiff";
             public const string RgbYCbCr888Contiguoush2v2 = "Tiff/rgb-ycbcr-contig-08_h2v2.tiff";
             public const string RgbYCbCr888Contiguoush4v4 = "Tiff/rgb-ycbcr-contig-08_h4v4.tiff";
             public const string YCbCrJpegCompressed = "Tiff/ycbcr_jpegcompressed.tiff";

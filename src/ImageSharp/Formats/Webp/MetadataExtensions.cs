@@ -17,5 +17,12 @@ namespace SixLabors.ImageSharp
         /// <param name="metadata">The metadata this method extends.</param>
         /// <returns>The <see cref="WebpMetadata"/>.</returns>
         public static WebpMetadata GetWebpMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(WebpFormat.Instance);
+
+        /// <summary>
+        /// Gets the webp format specific metadata for the image frame.
+        /// </summary>
+        /// <param name="metadata">The metadata this method extends.</param>
+        /// <returns>The <see cref="WebpFrameMetadata"/>.</returns>
+        public static WebpFrameMetadata GetWebpMetadata(this ImageFrameMetadata metadata) => metadata.GetFormatMetadata(WebpFormat.Instance);
     }
 }

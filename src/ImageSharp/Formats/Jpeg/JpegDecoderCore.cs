@@ -532,6 +532,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return JpegColorSpace.YCbCr;
                 }
 
+                // 3-channel non-subsampled images are assumed to be RGB.
+                if (this.Components[2].VerticalSamplingFactor == 1 && this.Components[1].VerticalSamplingFactor == 1 && this.Components[0].VerticalSamplingFactor == 1 &&
+                    this.Components[2].HorizontalSamplingFactor == 1 && this.Components[1].HorizontalSamplingFactor == 1 && this.Components[0].HorizontalSamplingFactor == 1)
+                {
+                    return JpegColorSpace.RGB;
+                }
+
                 // Some images are poorly encoded and contain incorrect colorspace transform metadata.
                 // We ignore that and always fall back to the default colorspace.
                 return JpegColorSpace.YCbCr;

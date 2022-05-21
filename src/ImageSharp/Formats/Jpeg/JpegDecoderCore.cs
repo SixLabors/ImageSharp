@@ -91,6 +91,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private JFifMarker jFif;
 
         /// <summary>
+        /// Whether the image has a JFIF marker. This is needed to determine, if the colorspace is YCbCr.
+        /// </summary>
+        private bool hasJFif;
+
+        /// <summary>
         /// Contains information about the Adobe marker.
         /// </summary>
         private AdobeMarker adobe;
@@ -519,7 +524,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return JpegColorSpace.RGB;
                 }
 
-                if (!this.jFif.Equals(default))
+                if (this.hasJFif)
                 {
                     // JFIF implies YCbCr.
                     return JpegColorSpace.YCbCr;
@@ -721,6 +726,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApplicationHeaderMarker(BufferedReadStream stream, int remaining)
         {
+            this.hasJFif = true;
+
             // We can only decode JFif identifiers.
             // Some images contain multiple JFIF markers (Issue 1932) so we check to see
             // if it's already been read.

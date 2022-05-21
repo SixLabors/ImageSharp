@@ -520,9 +520,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
+                // See: https://docs.oracle.com/javase/7/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html#color
                 if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
                 {
                     return JpegColorSpace.RGB;
+                }
+
+                // If these values are 1-3 for a 3-channel image, then the image is assumed to be YCbCr.
+                if (this.Components[2].Id == 3 && this.Components[1].Id == 2 && this.Components[0].Id == 1)
+                {
+                    return JpegColorSpace.YCbCr;
                 }
 
                 // Some images are poorly encoded and contain incorrect colorspace transform metadata.

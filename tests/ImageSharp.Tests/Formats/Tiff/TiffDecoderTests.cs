@@ -640,6 +640,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbJpegCompressed2, PixelTypes.Rgba32)]
         [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
         [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
         [WithFile(YCbCrJpegCompressed2, PixelTypes.Rgba32)]

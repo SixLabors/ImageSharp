@@ -524,9 +524,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return JpegColorSpace.RGB;
                 }
 
-                if (this.hasJFif)
+                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
                 {
-                    // JFIF implies YCbCr.
                     return JpegColorSpace.YCbCr;
                 }
 
@@ -535,6 +534,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
                 {
                     return JpegColorSpace.RGB;
+                }
+
+                if (this.hasJFif)
+                {
+                    // JFIF implies YCbCr.
+                    return JpegColorSpace.YCbCr;
                 }
 
                 // If these values are 1-3 for a 3-channel image, then the image is assumed to be YCbCr.

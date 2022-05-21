@@ -519,6 +519,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return JpegColorSpace.RGB;
                 }
 
+                if (!this.jFif.Equals(default))
+                {
+                    // JFIF implies YCbCr.
+                    return JpegColorSpace.YCbCr;
+                }
+
                 // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
                 // See: https://docs.oracle.com/javase/7/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html#color
                 if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)

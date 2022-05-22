@@ -81,16 +81,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the Start Of Image marker.
             this.WriteStartOfImage();
 
-            // Write APP0 marker for any non-RGB colorspace image.
-            if (frameConfig.EncodingColor != JpegEncodingColor.Rgb)
+            // Write APP0 marker
+            if (frameConfig.AdobeColorTransformMarkerFlag is null)
             {
                 this.WriteJfifApplicationHeader(metadata);
             }
 
-            // Else write App14 marker to indicate RGB color space.
+            // Write APP14 marker with adobe color extension
             else
             {
-                this.WriteApp14Marker();
+                this.WriteApp14Marker(frameConfig.AdobeColorTransformMarkerFlag.Value);
             }
 
             // Write Exif, XMP, ICC and IPTC profiles
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the APP14 marker to indicate the image is in RGB color space.
         /// </summary>
-        private void WriteApp14Marker()
+        private void WriteApp14Marker(byte colorTransform)
         {
             this.WriteMarkerHeader(JpegConstants.Markers.APP14, 2 + Components.Decoder.AdobeMarker.Length);
 
@@ -227,8 +227,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Flags1
             BinaryPrimitives.WriteInt16BigEndian(this.buffer.AsSpan(9, 2), 0);
 
-            // Transform byte, 0 in combination with three components means the image is in RGB colorspace.
-            this.buffer[11] = 0;
+            // Color transform byte
+            this.buffer[11] = colorTransform;
 
             this.outputStream.Write(this.buffer.AsSpan(0, 12));
         }
@@ -840,7 +840,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     new JpegQuantizationTableConfig[]
                     {
                         defaultLuminanceQuantTable
-                    }),
+                    })
+                {
+                    AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformUnknown
+                },
 
                 // Cmyk
                 new JpegFrameConfig(
@@ -861,7 +864,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     new JpegQuantizationTableConfig[]
                     {
                         defaultLuminanceQuantTable
-                    }),
+                    })
+                {
+                    AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformUnknown,
+                },
+
+                // YccK
+                new JpegFrameConfig(
+                    JpegColorSpace.Ycck,
+                    JpegEncodingColor.Ycck,
+                    new JpegComponentConfig[]
+                    {
+                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                        new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
+                    },
+                    new JpegHuffmanTableConfig[]
+                    {
+                        defaultLuminanceHuffmanDC,
+                        defaultLuminanceHuffmanAC
+                    },
+                    new JpegQuantizationTableConfig[]
+                    {
+                        defaultLuminanceQuantTable
+                    })
+                {
+                    AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformYcck,
+                },
             };
         }
     }

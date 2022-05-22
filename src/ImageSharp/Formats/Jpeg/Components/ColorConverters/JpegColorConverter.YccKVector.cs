@@ -72,11 +72,63 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             protected override void ConvertCoreInplaceToRgb(in ComponentValues values) =>
                 YccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => throw new System.NotImplementedException();
+            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            {
+                // rgb -> cmyk
+                CmykVector.ConvertFromRgbInplaceVectorized(in values, this.MaximumValue, rLane, gLane, bLane);
+
+                // cmyk -> ycck
+                ref Vector<float> destY =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
+                ref Vector<float> destCb =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
+                ref Vector<float> destCr =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
+
+                ref Vector<float> srcR = ref destY;
+                ref Vector<float> srcG = ref destCb;
+                ref Vector<float> srcB = ref destCr;
+
+                var maxSampleValue = new Vector<float>(this.MaximumValue);
+
+                var chromaOffset = new Vector<float>(this.HalfValue);
+
+                var rYMult = new Vector<float>(0.299f);
+                var gYMult = new Vector<float>(0.587f);
+                var bYMult = new Vector<float>(0.114f);
+
+                var rCbMult = new Vector<float>(0.168736f);
+                var gCbMult = new Vector<float>(0.331264f);
+                var bCbMult = new Vector<float>(0.5f);
+
+                var rCrMult = new Vector<float>(0.5f);
+                var gCrMult = new Vector<float>(0.418688f);
+                var bCrMult = new Vector<float>(0.081312f);
+
+                nint n = values.Component0.Length / Vector<float>.Count;
+                for (nint i = 0; i < n; i++)
+                {
+                    Vector<float> r = maxSampleValue - Unsafe.Add(ref srcR, i);
+                    Vector<float> g = maxSampleValue - Unsafe.Add(ref srcG, i);
+                    Vector<float> b = maxSampleValue - Unsafe.Add(ref srcB, i);
+
+                    // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
+                    // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
+                    // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
+                    Unsafe.Add(ref destY, i) = (rYMult * r) + (gYMult * g) + (bYMult * b);
+                    Unsafe.Add(ref destCb, i) = chromaOffset - (rCbMult * r) - (gCbMult * g) + (bCbMult * b);
+                    Unsafe.Add(ref destCr, i) = chromaOffset + (rCrMult * r) - (gCrMult * g) - (bCrMult * b);
+                }
+            }
 
             protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => throw new System.NotImplementedException();
+            {
+                // rgb -> cmyk
+                CmykScalar.ConvertFromRgbInplace(in values, this.MaximumValue, r, g, b);
+
+                // cmyk -> ycck
+                YccKScalar.ConvertCoreInplaceFromRgb(in values, this.HalfValue, this.MaximumValue, r, g, b);
+            }
         }
     }
 }

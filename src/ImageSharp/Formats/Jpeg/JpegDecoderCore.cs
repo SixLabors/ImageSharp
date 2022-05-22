@@ -596,12 +596,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 case JpegColorSpace.Cmyk:
                     return JpegEncodingColor.Cmyk;
                 case JpegColorSpace.Ycck:
-
-                    // TODO: change this after YccK encoding is implemented
-                    // We are deliberately mapping YccK color space to Cmyk color space at metadata
-                    // level so encoder can fallback to cmyk color space from it.
-                    // YccK -> Cmyk is the closest conversion logically wise
-                    return JpegEncodingColor.Cmyk;
+                    return JpegEncodingColor.Ycck;
                 default:
                     return JpegEncodingColor.YCbCrRatio420;
             }

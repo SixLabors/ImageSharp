@@ -78,8 +78,56 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => throw new NotImplementedException();
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            {
+                // rgb -> cmyk
+                CmykAvx.ConvertFromRgbInplace(in values, this.MaximumValue, rLane, gLane, bLane);
+
+                // cmyk -> ycck
+                ref Vector256<float> destY =
+                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
+                ref Vector256<float> destCb =
+                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component1));
+                ref Vector256<float> destCr =
+                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component2));
+
+                ref Vector256<float> srcR = ref destY;
+                ref Vector256<float> srcG = ref destCb;
+                ref Vector256<float> srcB = ref destCr;
+
+                // Used for the color conversion
+                var maxSampleValue = Vector256.Create(this.MaximumValue);
+
+                var chromaOffset = Vector256.Create(this.HalfValue);
+
+                var f0299 = Vector256.Create(0.299f);
+                var f0587 = Vector256.Create(0.587f);
+                var f0114 = Vector256.Create(0.114f);
+                var fn0168736 = Vector256.Create(-0.168736f);
+                var fn0331264 = Vector256.Create(-0.331264f);
+                var fn0418688 = Vector256.Create(-0.418688f);
+                var fn0081312F = Vector256.Create(-0.081312F);
+                var f05 = Vector256.Create(0.5f);
+
+                nint n = values.Component0.Length / Vector256<float>.Count;
+                for (nint i = 0; i < n; i++)
+                {
+                    Vector256<float> r = Avx.Subtract(maxSampleValue, Unsafe.Add(ref srcR, i));
+                    Vector256<float> g = Avx.Subtract(maxSampleValue, Unsafe.Add(ref srcG, i));
+                    Vector256<float> b = Avx.Subtract(maxSampleValue, Unsafe.Add(ref srcB, i));
+
+                    // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
+                    // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
+                    // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
+                    Vector256<float> y = HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(f0114, b), f0587, g), f0299, r);
+                    Vector256<float> cb = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
+                    Vector256<float> cr = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
+
+                    Unsafe.Add(ref destY, i) = y;
+                    Unsafe.Add(ref destCb, i) = cb;
+                    Unsafe.Add(ref destCr, i) = cr;
+                }
+            }
         }
     }
 }

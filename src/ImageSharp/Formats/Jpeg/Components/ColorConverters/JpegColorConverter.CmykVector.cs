@@ -49,6 +49,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                  => CmykScalar.ConvertToRgbInplace(values, this.MaximumValue);
 
             protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertFromRgbInplaceVectorized(in values, this.MaximumValue, r, g, b);
+
+            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertFromRgbInplaceRemainder(values, this.MaximumValue, r, g, b);
+
+            public static void ConvertFromRgbInplaceVectorized(in ComponentValues values, float maxValue, Span<float> r, Span<float> g, Span<float> b)
             {
                 ref Vector<float> destC =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -67,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(b));
 
                 // Used for the color conversion
-                var scale = new Vector<float>(this.MaximumValue);
+                var scale = new Vector<float>(maxValue);
 
                 nint n = values.Component0.Length / Vector<float>.Count;
                 for (nint i = 0; i < n; i++)
@@ -89,8 +95,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => CmykScalar.ConvertFromRgbInplace(values, this.MaximumValue, r, g, b);
+            public static void ConvertFromRgbInplaceRemainder(in ComponentValues values, float maxValue, Span<float> r, Span<float> g, Span<float> b)
+                => CmykScalar.ConvertFromRgbInplace(values, maxValue, r, g, b);
         }
     }
 }

@@ -49,6 +49,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+                => ConvertFromRgbInplace(in values, this.MaximumValue, rLane, gLane, bLane);
+
+            public static void ConvertFromRgbInplace(in ComponentValues values, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 ref Vector256<float> destC =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -67,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
 
                 // Used for the color conversion
-                var scale = Vector256.Create(this.MaximumValue);
+                var scale = Vector256.Create(maxValue);
 
                 nint n = values.Component0.Length / Vector256<float>.Count;
                 for (nint i = 0; i < n; i++)

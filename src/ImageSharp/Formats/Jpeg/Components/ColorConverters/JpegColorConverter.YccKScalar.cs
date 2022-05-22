@@ -9,6 +9,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     {
         internal sealed class YccKScalar : JpegColorConverterScalar
         {
+            // derived from ITU-T Rec. T.871
+            internal const float RCrMult = 1.402f;
+            internal const float GCbMult = (float)(0.114 * 1.772 / 0.587);
+            internal const float GCrMult = (float)(0.299 * 1.402 / 0.587);
+            internal const float BCbMult = 1.772f;
+
             public YccKScalar(int precision)
                 : base(JpegColorSpace.Ycck, precision)
             {
@@ -16,6 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             public override void ConvertToRgbInplace(in ComponentValues values)
                 => ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
+
+            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertCoreInplaceFromRgb(values, this.HalfValue, this.MaximumValue, r, g, b);
 
             public static void ConvertToRgpInplace(in ComponentValues values, float maxValue, float halfValue)
             {
@@ -33,14 +42,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     float cr = c2[i] - halfValue;
                     float scaledK = c3[i] * scale;
 
-                    c0[i] = (maxValue - MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * scaledK;
-                    c1[i] = (maxValue - MathF.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero)) * scaledK;
-                    c2[i] = (maxValue - MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * scaledK;
+                    // r = y + (1.402F * cr);
+                    // g = y - (0.344136F * cb) - (0.714136F * cr);
+                    // b = y + (1.772F * cb);
+                    c0[i] = MathF.Round(y + (RCrMult * cr), MidpointRounding.AwayFromZero) * scaledK;
+                    c1[i] = MathF.Round(y - (GCbMult * cb) - (GCrMult * cr), MidpointRounding.AwayFromZero) * scaledK;
+                    c2[i] = MathF.Round(y + (BCbMult * cb), MidpointRounding.AwayFromZero) * scaledK;
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => throw new NotImplementedException();
+            public static void ConvertCoreInplaceFromRgb(in ComponentValues values, float halfValue, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            {
+                // rgb -> cmyk
+                CmykScalar.ConvertFromRgbInplace(in values, maxValue, rLane, gLane, bLane);
+
+                // cmyk -> ycck
+                Span<float> c = values.Component0;
+                Span<float> m = values.Component1;
+                Span<float> y = values.Component2;
+
+                for (int i = 0; i < y.Length; i++)
+                {
+                    float r = maxValue - c[i];
+                    float g = maxValue - m[i];
+                    float b = maxValue - y[i];
+
+                    // k value is passed untouched from rgb -> cmyk conversion
+                    c[i] = (0.299f * r) + (0.587f * g) + (0.114f * b);
+                    m[i] = halfValue - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
+                    y[i] = halfValue + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
+                }
+            }
         }
     }
 }

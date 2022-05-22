@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     {
         internal sealed class YCbCrScalar : JpegColorConverterScalar
         {
-            // TODO: comments, derived from ITU-T Rec. T.871
+            // derived from ITU-T Rec. T.871
             internal const float RCrMult = 1.402f;
             internal const float GCbMult = (float)(0.114 * 1.772 / 0.587);
             internal const float GCrMult = (float)(0.299 * 1.402 / 0.587);

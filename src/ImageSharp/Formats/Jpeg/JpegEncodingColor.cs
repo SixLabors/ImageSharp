@@ -54,5 +54,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// CMYK colorspace (cyan, magenta, yellow, and key black) intended for printing.
         /// </summary>
         Cmyk = 7,
+
+        /// <summary>
+        /// YCCK colorspace (Y, Cb, Cr, and key black).
+        /// </summary>
+        Ycck = 8,
     }
 }

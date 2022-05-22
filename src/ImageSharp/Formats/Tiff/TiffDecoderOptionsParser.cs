@@ -462,8 +462,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
                     {
-                        // Note: Setting PhotometricInterpretation to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+                        // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
                         options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                        options.ColorType = TiffColorType.Rgb;
                     }
 
                     break;

@@ -47,9 +47,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     // r = y + (1.402F * cr);
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
                     // b = y + (1.772F * cb);
-                    c0[i] = MathF.Round(y + (RCrMult * cr), MidpointRounding.AwayFromZero) * scaledK;
-                    c1[i] = MathF.Round(y - (GCbMult * cb) - (GCrMult * cr), MidpointRounding.AwayFromZero) * scaledK;
-                    c2[i] = MathF.Round(y + (BCbMult * cb), MidpointRounding.AwayFromZero) * scaledK;
+                    c0[i] = (maxValue - MathF.Round(y + (RCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
+                    c1[i] = (maxValue - MathF.Round(y - (GCbMult * cb) - (GCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
+                    c2[i] = (maxValue - MathF.Round(y + (BCbMult * cb), MidpointRounding.AwayFromZero)) * scaledK;
                 }
             }
 

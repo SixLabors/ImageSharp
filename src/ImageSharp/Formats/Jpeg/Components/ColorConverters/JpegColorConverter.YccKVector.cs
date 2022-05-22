@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             /// <inheritdoc/>
-            protected override void ConvertToRgbInplaceScalarRemainder(in ComponentValues values) =>
-                YccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
+            protected override void ConvertToRgbInplaceScalarRemainder(in ComponentValues values)
+                => YccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
 
             /// <inheritdoc/>
             protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)

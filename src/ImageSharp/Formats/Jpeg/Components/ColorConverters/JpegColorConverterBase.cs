@@ -79,7 +79,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
         public abstract void ConvertToRgbInplace(in ComponentValues values);
 
-        public abstract void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b);
+        /// <summary>
+        /// Converts RGB lanes to jpeg component values.
+        /// </summary>
+        /// <param name="values">Jpeg component values.</param>
+        /// <param name="rLane">Red colors lane.</param>
+        /// <param name="gLane">Green colors lane.</param>
+        /// <param name="bLane">Blue colors lane.</param>
+        public abstract void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane);
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for all supported colorspaces and precisions.

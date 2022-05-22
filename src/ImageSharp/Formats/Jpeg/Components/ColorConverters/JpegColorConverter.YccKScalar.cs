@@ -20,11 +20,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override void ConvertToRgbInplace(in ComponentValues values)
                 => ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => ConvertCoreInplaceFromRgb(values, this.HalfValue, this.MaximumValue, r, g, b);
+            /// <inheritdoc/>
+            public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertFromRgb(values, this.HalfValue, this.MaximumValue, r, g, b);
 
             public static void ConvertToRgpInplace(in ComponentValues values, float maxValue, float halfValue)
             {
@@ -51,10 +53,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public static void ConvertCoreInplaceFromRgb(in ComponentValues values, float halfValue, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            public static void ConvertFromRgb(in ComponentValues values, float halfValue, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 // rgb -> cmyk
-                CmykScalar.ConvertFromRgbInplace(in values, maxValue, rLane, gLane, bLane);
+                CmykScalar.ConvertFromRgb(in values, maxValue, rLane, gLane, bLane);
 
                 // cmyk -> ycck
                 Span<float> c = values.Component0;

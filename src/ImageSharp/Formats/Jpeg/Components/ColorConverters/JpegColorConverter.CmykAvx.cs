@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
                 ref Vector256<float> c0Base =
@@ -48,10 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
-                => ConvertFromRgbInplace(in values, this.MaximumValue, rLane, gLane, bLane);
+            /// <inheritdoc/>
+            public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+                => ConvertFromRgb(in values, this.MaximumValue, rLane, gLane, bLane);
 
-            public static void ConvertFromRgbInplace(in ComponentValues values, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            public static void ConvertFromRgb(in ComponentValues values, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 ref Vector256<float> destC =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -69,7 +71,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 ref Vector256<float> srcB =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
 
-                // Used for the color conversion
                 var scale = Vector256.Create(maxValue);
 
                 nint n = values.Component0.Length / Vector256<float>.Count;

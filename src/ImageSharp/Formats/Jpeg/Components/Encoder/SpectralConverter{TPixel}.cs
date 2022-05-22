@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                 // Convert from rgb24 to target pixel type
                 var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
-                this.colorConverter.ConvertFromRgbInplace(values, rLane, gLane, bLane);
+                this.colorConverter.ConvertFromRgb(values, rLane, gLane, bLane);
             }
 
             // Convert pixels to spectral

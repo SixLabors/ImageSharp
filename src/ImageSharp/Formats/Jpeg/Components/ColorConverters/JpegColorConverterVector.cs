@@ -26,9 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public sealed override bool IsAvailable => Vector.IsHardwareAccelerated && Vector<float>.Count % 4 == 0;
 
-            public override void ConvertToRgbInplace(in ComponentValues values)
+            /// <inheritdoc/>
+            public sealed override void ConvertToRgbInplace(in ComponentValues values)
             {
                 DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
@@ -38,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 int simdCount = length - remainder;
                 if (simdCount > 0)
                 {
-                    this.ConvertCoreVectorizedInplaceToRgb(values.Slice(0, simdCount));
+                    this.ConvertToRgbInplaceVectorized(values.Slice(0, simdCount));
                 }
 
                 // Jpeg images width is always divisible by 8 without a remainder
@@ -48,11 +50,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 // remainder pixels
                 if (remainder > 0)
                 {
-                    this.ConvertCoreInplaceToRgb(values.Slice(simdCount, remainder));
+                    this.ConvertToRgbInplaceScalarRemainder(values.Slice(simdCount, remainder));
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+            /// <inheritdoc/>
+            public sealed override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
             {
                 DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
@@ -62,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 int simdCount = length - remainder;
                 if (simdCount > 0)
                 {
-                    this.ConvertCoreVectorizedInplaceFromRgb(
+                    this.ConvertFromRgbVectorized(
                         values.Slice(0, simdCount),
                         r.Slice(0, simdCount),
                         g.Slice(0, simdCount),
@@ -76,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 // remainder pixels
                 if (remainder > 0)
                 {
-                    this.ConvertCoreInplaceFromRgb(
+                    this.ConvertFromRgbScalarRemainder(
                         values.Slice(simdCount, remainder),
                         r.Slice(simdCount, remainder),
                         g.Slice(simdCount, remainder),
@@ -84,13 +87,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected abstract void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values);
+            /// <summary>
+            /// Converts planar jpeg component values in <paramref name="values"/>
+            /// to RGB color space inplace using <see cref="Vector"/> API.
+            /// </summary>
+            /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
+            protected abstract void ConvertToRgbInplaceVectorized(in ComponentValues values);
 
-            protected abstract void ConvertCoreInplaceToRgb(in ComponentValues values);
+            /// <summary>
+            /// Converts remainder of the planar jpeg component values after
+            /// conversion in <see cref="ConvertToRgbInplaceVectorized(in ComponentValues)"/>.
+            /// </summary>
+            /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
+            protected abstract void ConvertToRgbInplaceScalarRemainder(in ComponentValues values);
 
-            protected abstract void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b);
+            /// <summary>
+            /// Converts RGB lanes to jpeg component values using <see cref="Vector"/> API.
+            /// </summary>
+            /// <param name="values">Jpeg component values.</param>
+            /// <param name="rLane">Red colors lane.</param>
+            /// <param name="gLane">Green colors lane.</param>
+            /// <param name="bLane">Blue colors lane.</param>
+            protected abstract void ConvertFromRgbVectorized(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane);
 
-            protected abstract void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b);
+            /// <summary>
+            /// Converts remainder of RGB lanes to jpeg component values after
+            ///  conversion in <see cref="ConvertFromRgbVectorized(in ComponentValues, Span{float}, Span{float}, Span{float})"/>.
+            /// </summary>
+            /// <param name="values">Jpeg component values.</param>
+            /// <param name="rLane">Red colors lane.</param>
+            /// <param name="gLane">Green colors lane.</param>
+            /// <param name="bLane">Blue colors lane.</param>
+            protected abstract void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane);
         }
     }
 }

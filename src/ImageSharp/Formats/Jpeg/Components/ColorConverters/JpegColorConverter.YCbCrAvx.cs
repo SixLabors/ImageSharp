@@ -21,6 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
                 ref Vector256<float> c0Base =
@@ -70,7 +71,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            /// <inheritdoc/>
+            public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 ref Vector256<float> destY =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));

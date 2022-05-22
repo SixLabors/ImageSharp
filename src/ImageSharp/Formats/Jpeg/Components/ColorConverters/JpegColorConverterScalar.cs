@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override bool IsAvailable => true;
         }
     }

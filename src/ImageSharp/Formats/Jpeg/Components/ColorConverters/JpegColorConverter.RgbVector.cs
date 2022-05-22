@@ -17,7 +17,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
-            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceVectorized(in ComponentValues values)
             {
                 ref Vector<float> rBase =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -40,18 +41,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
-                => RgbScalar.ConvertCoreInplaceToRgb(values, this.MaximumValue);
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceScalarRemainder(in ComponentValues values)
+                => RgbScalar.ConvertToRgbInplace(values, this.MaximumValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
             {
                 r.CopyTo(values.Component0);
                 g.CopyTo(values.Component1);
                 b.CopyTo(values.Component2);
             }
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => RgbScalar.ConvertCoreInplaceFromRgb(values, r, g, b);
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => RgbScalar.ConvertFromRgb(values, r, g, b);
         }
     }
 }

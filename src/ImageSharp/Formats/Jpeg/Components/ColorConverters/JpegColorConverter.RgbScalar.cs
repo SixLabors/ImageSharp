@@ -14,20 +14,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override void ConvertToRgbInplace(in ComponentValues values)
-                => ConvertCoreInplaceToRgb(values, this.MaximumValue);
+                => ConvertToRgbInplace(values, this.MaximumValue);
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => ConvertCoreInplaceFromRgb(values, r, g, b);
+            /// <inheritdoc/>
+            public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertFromRgb(values, r, g, b);
 
-            internal static void ConvertCoreInplaceToRgb(ComponentValues values, float maxValue)
+            internal static void ConvertToRgbInplace(ComponentValues values, float maxValue)
             {
-                GrayscaleScalar.ConvertCoreInplaceToRgb(values.Component0, maxValue);
-                GrayscaleScalar.ConvertCoreInplaceToRgb(values.Component1, maxValue);
-                GrayscaleScalar.ConvertCoreInplaceToRgb(values.Component2, maxValue);
+                GrayscaleScalar.ConvertToRgbInplace(values.Component0, maxValue);
+                GrayscaleScalar.ConvertToRgbInplace(values.Component1, maxValue);
+                GrayscaleScalar.ConvertToRgbInplace(values.Component2, maxValue);
             }
 
-            internal static void ConvertCoreInplaceFromRgb(ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+            internal static void ConvertFromRgb(ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
             {
                 r.CopyTo(values.Component0);
                 g.CopyTo(values.Component1);

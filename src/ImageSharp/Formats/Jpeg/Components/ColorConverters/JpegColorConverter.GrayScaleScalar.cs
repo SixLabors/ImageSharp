@@ -16,13 +16,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override void ConvertToRgbInplace(in ComponentValues values)
-                => ConvertCoreInplaceToRgb(values.Component0, this.MaximumValue);
+                => ConvertToRgbInplace(values.Component0, this.MaximumValue);
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+            /// <inheritdoc/>
+            public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
                 => ConvertCoreInplaceFromRgb(values, r, g, b);
 
-            internal static void ConvertCoreInplaceToRgb(Span<float> values, float maxValue)
+            internal static void ConvertToRgbInplace(Span<float> values, float maxValue)
             {
                 ref float valuesRef = ref MemoryMarshal.GetReference(values);
                 float scale = 1 / maxValue;

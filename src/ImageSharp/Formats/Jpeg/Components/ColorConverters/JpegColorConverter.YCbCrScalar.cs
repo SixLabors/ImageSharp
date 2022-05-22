@@ -20,13 +20,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override void ConvertToRgbInplace(in ComponentValues values)
-                => ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
+                => ConvertToRgbInplace(values, this.MaximumValue, this.HalfValue);
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => ConvertCoreInplaceFromRgb(values, this.HalfValue, r, g, b);
+            /// <inheritdoc/>
+            public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => ConvertFromRgb(values, this.HalfValue, r, g, b);
 
-            public static void ConvertCoreInplaceToRgb(in ComponentValues values, float maxValue, float halfValue)
+            public static void ConvertToRgbInplace(in ComponentValues values, float maxValue, float halfValue)
             {
                 Span<float> c0 = values.Component0;
                 Span<float> c1 = values.Component1;
@@ -49,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public static void ConvertCoreInplaceFromRgb(in ComponentValues values, float halfValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            public static void ConvertFromRgb(in ComponentValues values, float halfValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 Span<float> y = values.Component0;
                 Span<float> cb = values.Component1;

@@ -17,7 +17,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
-            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceVectorized(in ComponentValues values)
             {
                 ref Vector<float> cBase =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -45,13 +46,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceScalarRemainder(in ComponentValues values)
                  => CmykScalar.ConvertToRgbInplace(values, this.MaximumValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
                 => ConvertFromRgbInplaceVectorized(in values, this.MaximumValue, r, g, b);
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
                 => ConvertFromRgbInplaceRemainder(values, this.MaximumValue, r, g, b);
 
             public static void ConvertFromRgbInplaceVectorized(in ComponentValues values, float maxValue, Span<float> r, Span<float> g, Span<float> b)
@@ -96,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
 
             public static void ConvertFromRgbInplaceRemainder(in ComponentValues values, float maxValue, Span<float> r, Span<float> g, Span<float> b)
-                => CmykScalar.ConvertFromRgbInplace(values, maxValue, r, g, b);
+                => CmykScalar.ConvertFromRgb(values, maxValue, r, g, b);
         }
     }
 }

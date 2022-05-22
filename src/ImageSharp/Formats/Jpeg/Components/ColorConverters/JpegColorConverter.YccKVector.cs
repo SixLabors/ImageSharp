@@ -17,7 +17,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
-            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceVectorized(in ComponentValues values)
             {
                 ref Vector<float> c0Base =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -69,10 +70,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected override void ConvertCoreInplaceToRgb(in ComponentValues values) =>
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceScalarRemainder(in ComponentValues values) =>
                 YccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 // rgb -> cmyk
                 CmykVector.ConvertFromRgbInplaceVectorized(in values, this.MaximumValue, rLane, gLane, bLane);
@@ -121,13 +124,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
             {
                 // rgb -> cmyk
-                CmykScalar.ConvertFromRgbInplace(in values, this.MaximumValue, r, g, b);
+                CmykScalar.ConvertFromRgb(in values, this.MaximumValue, r, g, b);
 
                 // cmyk -> ycck
-                YccKScalar.ConvertCoreInplaceFromRgb(in values, this.HalfValue, this.MaximumValue, r, g, b);
+                YccKScalar.ConvertFromRgb(in values, this.HalfValue, this.MaximumValue, r, g, b);
             }
         }
     }

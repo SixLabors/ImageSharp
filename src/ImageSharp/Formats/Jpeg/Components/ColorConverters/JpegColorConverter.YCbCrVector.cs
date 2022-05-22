@@ -18,7 +18,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
-            protected override void ConvertCoreVectorizedInplaceToRgb(in ComponentValues values)
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceVectorized(in ComponentValues values)
             {
                 ref Vector<float> c0Base =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -68,10 +69,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected override void ConvertCoreInplaceToRgb(in ComponentValues values)
-                => YCbCrScalar.ConvertCoreInplaceToRgb(values, this.MaximumValue, this.HalfValue);
+            /// <inheritdoc/>
+            protected override void ConvertToRgbInplaceScalarRemainder(in ComponentValues values)
+                => YCbCrScalar.ConvertToRgbInplace(values, this.MaximumValue, this.HalfValue);
 
-            protected override void ConvertCoreVectorizedInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 ref Vector<float> destY =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -117,8 +120,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            protected override void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-                => YCbCrScalar.ConvertCoreInplaceFromRgb(values, this.HalfValue, r, g, b);
+            /// <inheritdoc/>
+            protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+                => YCbCrScalar.ConvertFromRgb(values, this.HalfValue, r, g, b);
         }
     }
 }

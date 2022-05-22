@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <inheritdoc/>
             public override void ConvertToRgbInplace(in ComponentValues values)
             {
                 ref Vector256<float> rBase =
@@ -42,7 +43,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 }
             }
 
-            public override void ConvertFromRgbInplace(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            /// <inheritdoc/>
+            public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             {
                 rLane.CopyTo(values.Component0);
                 gLane.CopyTo(values.Component1);

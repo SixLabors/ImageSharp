@@ -533,6 +533,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         return JpegColorSpace.RGB;
                     }
 
+                    // Fallback to the id color deduction: If these values are 1-3 for a 3-channel image, then the image is assumed to be YCbCr.
+                    if (this.Components[2].Id == 3 && this.Components[1].Id == 2 && this.Components[0].Id == 1)
+                    {
+                        return JpegColorSpace.YCbCr;
+                    }
+
                     JpegThrowHelper.ThrowNotSupportedColorSpace();
                 }
 

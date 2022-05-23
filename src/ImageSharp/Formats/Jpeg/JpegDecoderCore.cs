@@ -519,21 +519,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (componentCount == 3)
             {
-                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                // We prioritize adobe marker over jfif marker, if somebody really encoded this image with redundant adobe marker,
+                // then it's most likely an adobe jfif image.
+                if (!this.adobe.Equals(default))
                 {
-                    return JpegColorSpace.RGB;
-                }
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
+                    {
+                        return JpegColorSpace.YCbCr;
+                    }
 
-                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
-                {
-                    return JpegColorSpace.YCbCr;
-                }
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        return JpegColorSpace.RGB;
+                    }
 
-                // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
-                // See: https://docs.oracle.com/javase/7/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html#color
-                if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
-                {
-                    return JpegColorSpace.RGB;
+                    JpegThrowHelper.ThrowNotSupportedColorSpace();
                 }
 
                 if (this.hasJFif)
@@ -542,10 +542,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return JpegColorSpace.YCbCr;
                 }
 
-                // If these values are 1-3 for a 3-channel image, then the image is assumed to be YCbCr.
-                if (this.Components[2].Id == 3 && this.Components[1].Id == 2 && this.Components[0].Id == 1)
+                // Fallback to the id color deduction.
+                // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
+                // See: https://docs.oracle.com/javase/7/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html#color
+                if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
                 {
-                    return JpegColorSpace.YCbCr;
+                    return JpegColorSpace.RGB;
                 }
 
                 // 3-channel non-subsampled images are assumed to be RGB.
@@ -562,9 +564,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (componentCount == 4)
             {
-                return this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck
-                    ? JpegColorSpace.Ycck
-                    : JpegColorSpace.Cmyk;
+                // jfif images doesn't not support 4 component images, so we only check adobe.
+                if (!this.adobe.Equals(default))
+                {
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
+                    {
+                        return JpegColorSpace.Ycck;
+                    }
+
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        return JpegColorSpace.Cmyk;
+                    }
+
+                    JpegThrowHelper.ThrowNotSupportedColorSpace();
+                }
+
+                // Fallback to cmyk as neither of cmyk nor ycck have 'special' component ids.
+                return JpegColorSpace.Cmyk;
             }
 
             JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);

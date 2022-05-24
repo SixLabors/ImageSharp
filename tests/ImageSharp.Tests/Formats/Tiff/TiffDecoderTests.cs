@@ -315,6 +315,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // converting the pixel data from Magick.NET to our format with YCbCr?
             using Image<TPixel> image = provider.GetImage();
             image.DebugSave(provider);
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
         }
 
         [Theory]

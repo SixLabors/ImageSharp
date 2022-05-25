@@ -39,8 +39,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 Span<byte> tmpBufferSpan = tmpBuffer.GetSpan();
                 ReverseChromaSubSampling(width, height, this.ycbcrSubSampling[0], this.ycbcrSubSampling[1], data, tmpBufferSpan);
                 ycbcrData = tmpBufferSpan;
+                this.DecodeYCbCrData(pixels, left, top, width, height, ycbcrData);
+                return;
             }
 
+            this.DecodeYCbCrData(pixels, left, top, width, height, ycbcrData);
+        }
+
+        private void DecodeYCbCrData(Buffer2D<TPixel> pixels, int left, int top, int width, int height, ReadOnlySpan<byte> ycbcrData)
+        {
             var color = default(TPixel);
             int offset = 0;
             int widthPadding = 0;

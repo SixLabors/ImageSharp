@@ -778,6 +778,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbDeflatePredictor = "Tiff/rgb_deflate_predictor.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
             public const string RgbJpegCompressed = "Tiff/rgb_jpegcompression.tiff";
+            public const string RgbJpegCompressed2 = "Tiff/twain-rgb-jpeg-with-bogus-ycbcr-subsampling.tiff";
             public const string RgbWithStripsJpegCompressed = "Tiff/rgb_jpegcompressed_stripped.tiff";
             public const string RgbJpegCompressedNoJpegTable = "Tiff/rgb_jpegcompressed_nojpegtable.tiff";
             public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
@@ -823,11 +824,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerYCbCr888Contiguoush2v1 = "Tiff/flower-ycbcr-contig-08_h2v1.tiff";
             public const string FlowerYCbCr888Contiguoush2v2 = "Tiff/flower-ycbcr-contig-08_h2v2.tiff";
             public const string FlowerYCbCr888Contiguoush4v4 = "Tiff/flower-ycbcr-contig-08_h4v4.tiff";
-            public const string RgbYCbCr888Contiguoush1v1 = "Tiff/rgb-ycbcr-contig-08_h1v1.tiff";
-            public const string RgbYCbCr888Contiguoush2v1 = "Tiff/rgb-ycbcr-contig-08_h2v1.tiff";
             public const string RgbYCbCr888Contiguoush2v2 = "Tiff/rgb-ycbcr-contig-08_h2v2.tiff";
             public const string RgbYCbCr888Contiguoush4v4 = "Tiff/rgb-ycbcr-contig-08_h4v4.tiff";
             public const string YCbCrJpegCompressed = "Tiff/ycbcr_jpegcompressed.tiff";
+            public const string YCbCrJpegCompressed2 = "Tiff/ycbcr_jpegcompressed2.tiff";
             public const string FlowerRgb444Contiguous = "Tiff/flower-rgb-contig-04.tiff";
             public const string FlowerRgb444Planar = "Tiff/flower-rgb-planar-04.tiff";
             public const string FlowerRgb222Contiguous = "Tiff/flower-rgb-contig-02.tiff";
@@ -910,6 +910,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
             public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
+            public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

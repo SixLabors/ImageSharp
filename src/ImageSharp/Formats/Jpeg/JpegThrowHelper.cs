@@ -51,5 +51,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNotSupportedComponentCount(int componentCount) => throw new NotSupportedException($"Images with {componentCount} components are not supported.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNotSupportedColorSpace() => throw new NotSupportedException("Image color space could not be deduced.");
     }
 }

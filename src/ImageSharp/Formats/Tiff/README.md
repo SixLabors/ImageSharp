@@ -55,7 +55,7 @@
 |TransparencyMask           |       |       |                          |
 |Separated (TIFF Extension) |       |       |                          |
 |YCbCr (TIFF Extension)     |       |   Y   |                          |
-|CieLab (TIFF Extension)    |       |       |                          |
+|CieLab (TIFF Extension)    |       |   Y   |                          |
 |IccLab (TechNote 1)        |       |       |                          |
 
 ### Baseline TIFF Tags

@@ -653,8 +653,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(WebpCompressed, PixelTypes.Rgba32)]
-        public void TiffDecoder_CanDecode_WEbpCompressed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
+        public void TiffDecoder_CanDecode_WebpCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsWindows)
+            {
+                TestTiffDecoder(provider, useExactComparer: false);
+            }
+        }
 
         // https://github.com/SixLabors/ImageSharp/issues/1891
         [Theory]

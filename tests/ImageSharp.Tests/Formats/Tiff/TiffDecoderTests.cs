@@ -303,8 +303,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(FlowerYCbCr888Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerYCbCr888Planar, PixelTypes.Rgba32)]
-        [WithFile(RgbYCbCr888Contiguoush1v1, PixelTypes.Rgba32)]
-        [WithFile(RgbYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
         [WithFile(RgbYCbCr888Contiguoush2v2, PixelTypes.Rgba32)]
         [WithFile(RgbYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
         [WithFile(FlowerYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
@@ -317,6 +315,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // converting the pixel data from Magick.NET to our format with YCbCr?
             using Image<TPixel> image = provider.GetImage();
             image.DebugSave(provider);
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
         }
 
         [Theory]
@@ -642,10 +641,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbJpegCompressed2, PixelTypes.Rgba32)]
         [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
         [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(YCbCrJpegCompressed2, PixelTypes.Rgba32)]
         [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
         [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(Issues2123, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
 

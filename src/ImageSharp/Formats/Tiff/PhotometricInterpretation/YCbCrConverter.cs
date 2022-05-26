@@ -19,16 +19,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private static readonly Rational[] DefaultLuma =
         {
-            new Rational(299, 1000),
-            new Rational(587, 1000),
-            new Rational(114, 1000)
+            new(299, 1000),
+            new(587, 1000),
+            new(114, 1000)
         };
 
         private static readonly Rational[] DefaultReferenceBlackWhite =
         {
-            new Rational(0, 1), new Rational(255, 1),
-            new Rational(128, 1), new Rational(255, 1),
-            new Rational(128, 1), new Rational(255, 1)
+            new(0, 1), new(255, 1),
+            new(128, 1), new(255, 1),
+            new(128, 1), new(255, 1)
         };
 
         public YCbCrConverter(Rational[] referenceBlackAndWhite, Rational[] coefficients)

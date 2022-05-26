@@ -910,6 +910,11 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgba32BitPlanarUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_msb.tiff";
             public const string Rgba32BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_lsb.tiff";
 
+            // Cie Lab color space.
+            public const string CieLab = "Tiff/CieLab.tiff";
+            public const string CieLabPlanar = "Tiff/CieLabPlanar.tiff";
+            public const string CieLabLzwPredictor = "Tiff/CieLab_lzwcompressed_predictor.tiff";
+
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
             public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
             public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";

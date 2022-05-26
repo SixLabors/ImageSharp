@@ -9,6 +9,9 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
+    /// <summary>
+    /// Implements decoding pixel data with photometric interpretation of type 'YCbCr' with the planar configuration.
+    /// </summary>
     internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {

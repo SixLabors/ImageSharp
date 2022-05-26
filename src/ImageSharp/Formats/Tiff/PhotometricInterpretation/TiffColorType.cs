@@ -282,5 +282,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// The pixels are stored in CieLab format.
         /// </summary>
         CieLab,
+
+        /// <summary>
+        /// The pixels are stored in CieLab format as planar.
+        /// </summary>
+        CieLabPlanar,
     }
 }

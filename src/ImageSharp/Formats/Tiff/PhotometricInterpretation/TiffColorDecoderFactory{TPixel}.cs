@@ -430,6 +430,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 case TiffColorType.YCbCrPlanar:
                     return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
+                case TiffColorType.CieLabPlanar:
+                    return new CieLabPlanarTiffColor<TPixel>();
+
                 case TiffColorType.Rgb161616Planar:
                     DebugGuard.IsTrue(colorMap == null, "colorMap");
                     return new Rgb16PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);

@@ -397,8 +397,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 case TiffPhotometricInterpretation.CieLab:
                 {
-                    options.ColorType = TiffColorType.CieLab;
-
                     if (options.BitsPerSample.Channels != 3)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
@@ -409,6 +407,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CieLab images.");
                     }
+
+                    options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.CieLab : TiffColorType.CieLabPlanar;
 
                     break;
                 }

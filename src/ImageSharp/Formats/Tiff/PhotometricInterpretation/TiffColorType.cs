@@ -276,6 +276,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <summary>
         /// The pixels are stored in YCbCr format as planar.
         /// </summary>
-        YCbCrPlanar
+        YCbCrPlanar,
+
+        /// <summary>
+        /// The pixels are stored in CieLab format.
+        /// </summary>
+        CieLab,
     }
 }

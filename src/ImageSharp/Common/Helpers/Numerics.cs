@@ -968,7 +968,7 @@ namespace SixLabors.ImageSharp
         /// Tells whether input value is outside of the given range.
         /// </summary>
         /// <param name="value">Value.</param>
-        /// <param name="min">Mininum value, inclusive.</param>
+        /// <param name="min">Minimum value, inclusive.</param>
         /// <param name="max">Maximum value, inclusive.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsOutOfRange(int value, int min, int max)

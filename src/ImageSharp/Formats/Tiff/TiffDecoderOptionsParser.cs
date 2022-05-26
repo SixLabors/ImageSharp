@@ -470,6 +470,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
+                case TiffCompression.Webp:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.Webp;
+                    break;
+                }
+
                 default:
                 {
                     TiffThrowHelper.ThrowNotSupported($"The specified TIFF compression format '{compression}' is not supported");

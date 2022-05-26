@@ -47,5 +47,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// The image data is compressed as a JPEG stream.
         /// </summary>
         Jpeg = 7,
+
+        /// <summary>
+        /// The image data is compressed as a WEBP stream.
+        /// </summary>
+        Webp = 8,
     }
 }

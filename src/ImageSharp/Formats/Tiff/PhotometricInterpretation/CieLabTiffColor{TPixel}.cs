@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal class CieLabTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private static readonly ColorSpaceConverter colorSpaceConverter = new();
+        private static readonly ColorSpaceConverter ColorSpaceConverter = new();
 
         private const float Inv255 = 1.0f / 255.0f;
 
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                 {
                     float l = (data[offset] & 0xFF) * 100f * Inv255;
                     var lab = new CieLab(l, (sbyte)data[offset + 1], (sbyte)data[offset + 2]);
-                    var rgb = this.colorSpaceConverter.ToRgb(lab);
+                    var rgb = ColorSpaceConverter.ToRgb(lab);
 
                     color.FromVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
                     pixelRow[x] = color;

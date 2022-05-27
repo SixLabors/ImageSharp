@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal class CieLabTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly ColorSpaceConverter colorSpaceConverter = new();
+        private static readonly ColorSpaceConverter colorSpaceConverter = new();
 
         private const float Inv255 = 1.0f / 255.0f;
 

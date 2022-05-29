@@ -52,28 +52,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// </summary>
         private readonly int maxCodeLength = 13;
 
-        private static readonly Dictionary<uint, uint> WhiteLen4TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen4TermCodes = new()
         {
             { 0x7, 2 }, { 0x8, 3 }, { 0xB, 4 }, { 0xC, 5 }, { 0xE, 6 }, { 0xF, 7 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen5TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen5TermCodes = new()
         {
             { 0x13, 8 }, { 0x14, 9 }, { 0x7, 10 }, { 0x8, 11 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen6TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen6TermCodes = new()
         {
             { 0x7, 1 }, { 0x8, 12 }, { 0x3, 13 }, { 0x34, 14 }, { 0x35, 15 }, { 0x2A, 16 }, { 0x2B, 17 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen7TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen7TermCodes = new()
         {
             { 0x27, 18 }, { 0xC, 19 }, { 0x8, 20 }, { 0x17, 21 }, { 0x3, 22 }, { 0x4, 23 }, { 0x28, 24 }, { 0x2B, 25 }, { 0x13, 26 },
             { 0x24, 27 }, { 0x18, 28 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen8TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen8TermCodes = new()
         {
             { 0x35, 0 }, { 0x2, 29 }, { 0x3, 30 }, { 0x1A, 31 }, { 0x1B, 32 }, { 0x12, 33 }, { 0x13, 34 }, { 0x14, 35 }, { 0x15, 36 },
             { 0x16, 37 }, { 0x17, 38 }, { 0x28, 39 }, { 0x29, 40 }, { 0x2A, 41 }, { 0x2B, 42 }, { 0x2C, 43 }, { 0x2D, 44 }, { 0x4, 45 },
@@ -81,57 +81,57 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             { 0x58, 55 }, { 0x59, 56 }, { 0x5A, 57 }, { 0x5B, 58 }, { 0x4A, 59 }, { 0x4B, 60 }, { 0x32, 61 }, { 0x33, 62 }, { 0x34, 63 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen2TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen2TermCodes = new()
         {
             { 0x3, 2 }, { 0x2, 3 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen3TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen3TermCodes = new()
         {
             { 0x2, 1 }, { 0x3, 4 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen4TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen4TermCodes = new()
         {
             { 0x3, 5 }, { 0x2, 6 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen5TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen5TermCodes = new()
         {
             { 0x3, 7 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen6TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen6TermCodes = new()
         {
             { 0x5, 8 }, { 0x4, 9 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen7TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen7TermCodes = new()
         {
             { 0x4, 10 }, { 0x5, 11 }, { 0x7, 12 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen8TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen8TermCodes = new()
         {
             { 0x4, 13 }, { 0x7, 14 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen9TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen9TermCodes = new()
         {
             { 0x18, 15 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen10TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen10TermCodes = new()
         {
             { 0x37, 0 }, { 0x17, 16 }, { 0x18, 17 }, { 0x8, 18 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen11TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen11TermCodes = new()
         {
             { 0x67, 19 }, { 0x68, 20 }, { 0x6C, 21 }, { 0x37, 22 }, { 0x28, 23 }, { 0x17, 24 }, { 0x18, 25 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen12TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen12TermCodes = new()
         {
             { 0xCA, 26 }, { 0xCB, 27 }, { 0xCC, 28 }, { 0xCD, 29 }, { 0x68, 30 }, { 0x69, 31 }, { 0x6A, 32 }, { 0x6B, 33 }, { 0xD2, 34 },
             { 0xD3, 35 }, { 0xD4, 36 }, { 0xD5, 37 }, { 0xD6, 38 }, { 0xD7, 39 }, { 0x6C, 40 }, { 0x6D, 41 }, { 0xDA, 42 }, { 0xDB, 43 },
@@ -140,62 +140,62 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             { 0x66, 62 }, { 0x67, 63 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen5MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen5MakeupCodes = new()
         {
             { 0x1B, 64 }, { 0x12, 128 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen6MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen6MakeupCodes = new()
         {
             { 0x17, 192 }, { 0x18, 1664 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen8MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen8MakeupCodes = new()
         {
             { 0x36, 320 }, { 0x37, 384 }, { 0x64, 448 }, { 0x65, 512 }, { 0x68, 576 }, { 0x67, 640 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen7MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen7MakeupCodes = new()
         {
             { 0x37, 256 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen9MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen9MakeupCodes = new()
         {
             { 0xCC, 704 }, { 0xCD, 768 }, { 0xD2, 832 }, { 0xD3, 896 }, { 0xD4, 960 }, { 0xD5, 1024 }, { 0xD6, 1088 },
             { 0xD7, 1152 }, { 0xD8, 1216 }, { 0xD9, 1280 }, { 0xDA, 1344 }, { 0xDB, 1408 }, { 0x98, 1472 }, { 0x99, 1536 },
             { 0x9A, 1600 }, { 0x9B, 1728 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen11MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen11MakeupCodes = new()
         {
             { 0x8, 1792 }, { 0xC, 1856 }, { 0xD, 1920 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen12MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen12MakeupCodes = new()
         {
             { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304 }, { 0x1C, 2368 },
             { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen10MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen10MakeupCodes = new()
         {
             { 0xF, 64 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen11MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen11MakeupCodes = new()
         {
             { 0x8, 1792 }, { 0xC, 1856 }, { 0xD, 1920 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen12MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen12MakeupCodes = new()
         {
             { 0xC8, 128 }, { 0xC9, 192 }, { 0x5B, 256 }, { 0x33, 320 }, { 0x34, 384 }, { 0x35, 448 },
             { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304 }, { 0x1C, 2368 },
             { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen13MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen13MakeupCodes = new()
         {
             { 0x6C, 512 }, { 0x6D, 576 }, { 0x4A, 640 }, { 0x4B, 704 }, { 0x4C, 768 }, { 0x4D, 832 }, { 0x72, 896 },
             { 0x73, 960 }, { 0x74, 1024 }, { 0x75, 1088 }, { 0x76, 1152 }, { 0x77, 1216 }, { 0x52, 1280 }, { 0x53, 1344 },

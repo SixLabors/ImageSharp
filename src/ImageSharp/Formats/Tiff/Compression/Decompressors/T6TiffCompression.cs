@@ -77,10 +77,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         private uint WriteScanLine(Span<byte> buffer, Span<byte> scanLine, uint bitsWritten)
         {
             byte white = (byte)(this.isWhiteZero ? 0 : 255);
+            int bitPos = (int)(bitsWritten % 8);
+            int bufferPos = (int)(bitsWritten / 8);
             for (int i = 0; i < scanLine.Length; i++)
             {
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, 1, scanLine[i] == white ? this.whiteValue : this.blackValue);
+                if (scanLine[i] == white)
+                {
+                    BitWriterUtils.WriteZeroBit(buffer, bufferPos, bitPos);
+                }
+                else
+                {
+                    BitWriterUtils.WriteBit(buffer, bufferPos, bitPos);
+                }
+
+                bitPos++;
                 bitsWritten++;
+
+                if (bitPos >= 8)
+                {
+                    bitPos = 0;
+                    bufferPos++;
+                }
             }
 
             // Write padding bytes, if necessary.
@@ -122,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     }
                     else
                     {
-                        scanline.Fill((byte)255);
+                        scanline.Fill(255);
                     }
 
                     break;

@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
@@ -815,7 +816,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
             Span<byte> dataSpan = this.Data.GetSpan();
             int shift = 8 - this.BitsRead - 1;
-            uint bit = (uint)((dataSpan[(int)this.Position] & (1 << shift)) != 0 ? 1 : 0);
+            ref byte dataAtPosition = ref Unsafe.Add(ref MemoryMarshal.GetReference(dataSpan), (int)this.Position);
+            uint bit = (uint)((dataAtPosition & (1 << shift)) != 0 ? 1 : 0);
             this.BitsRead++;
 
             return bit;

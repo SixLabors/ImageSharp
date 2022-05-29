@@ -15,10 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     {
         private readonly bool isWhiteZero;
 
-        private readonly byte whiteValue;
-
-        private readonly byte blackValue;
-
         private readonly int width;
 
         /// <summary>
@@ -40,8 +36,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.FillOrder = fillOrder;
             this.width = width;
             this.isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-            this.whiteValue = (byte)(this.isWhiteZero ? 0 : 1);
-            this.blackValue = (byte)(this.isWhiteZero ? 1 : 0);
         }
 
         /// <summary>

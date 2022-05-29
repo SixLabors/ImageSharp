@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
@@ -46,9 +47,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void WriteBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] |= (byte)(1 << (7 - bitPos));
+        public static void WriteBit(Span<byte> buffer, int bufferPos, int bitPos)
+        {
+            ref byte b = ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer), bufferPos);
+            b |= (byte)(1 << (7 - bitPos));
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void WriteZeroBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] = (byte)(buffer[bufferPos] & ~(1 << (7 - bitPos)));
+        public static void WriteZeroBit(Span<byte> buffer, int bufferPos, int bitPos)
+        {
+            ref byte b = ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer), bufferPos);
+            b = (byte)(b & ~(1 << (7 - bitPos)));
+        }
     }
 }

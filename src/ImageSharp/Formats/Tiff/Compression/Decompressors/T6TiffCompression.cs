@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -75,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             int bufferPos = (int)(bitsWritten / 8);
             for (int i = 0; i < scanLine.Length; i++)
             {
-                if (scanLine[i] == white)
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(scanLine), i) == white)
                 {
                     BitWriterUtils.WriteZeroBit(buffer, bufferPos, bitPos);
                 }

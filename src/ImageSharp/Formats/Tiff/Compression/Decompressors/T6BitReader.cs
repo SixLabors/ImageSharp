@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
@@ -16,32 +17,32 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     {
         private readonly int maxCodeLength = 12;
 
-        private static readonly CcittTwoDimensionalCode None = new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.None, 0);
+        private static readonly CcittTwoDimensionalCode None = new(CcittTwoDimensionalCodeType.None, 0);
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len1Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
+        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len1Codes = new()
         {
             { 0b1, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Vertical0, 1) }
         };
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len3Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
+        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len3Codes = new()
         {
             { 0b001, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Horizontal, 3) },
             { 0b010, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalL1, 3) },
             { 0b011, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalR1, 3) }
         };
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len4Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
+        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len4Codes = new()
         {
             { 0b0001, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Pass, 4) }
         };
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len6Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
+        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len6Codes = new()
         {
             { 0b000011, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalR2, 6) },
             { 0b000010, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalL2, 6) }
         };
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len7Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
+        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len7Codes = new()
         {
             { 0b0000011, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalR3, 7) },
             { 0b0000010, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalL3, 7) },
@@ -154,6 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <summary>
         /// Swaps the white run to black run an vise versa.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void SwapColor() => this.IsWhiteRun = !this.IsWhiteRun;
     }
 }

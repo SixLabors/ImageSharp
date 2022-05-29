@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
@@ -44,8 +45,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void WriteBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] |= (byte)(1 << (7 - bitPos));
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void WriteZeroBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] = (byte)(buffer[bufferPos] & ~(1 << (7 - bitPos)));
     }
 }

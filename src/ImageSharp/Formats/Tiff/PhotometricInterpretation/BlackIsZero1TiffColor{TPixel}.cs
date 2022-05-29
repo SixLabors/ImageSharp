@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -23,19 +25,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             colorBlack.FromRgba32(Color.Black);
             colorWhite.FromRgba32(Color.White);
+            ref byte dataRef = ref MemoryMarshal.GetReference(data);
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
+                ref TPixel pixelRowRef = ref MemoryMarshal.GetReference(pixelRowSpan);
                 for (int x = left; x < left + width; x += 8)
                 {
-                    byte b = data[offset++];
+                    byte b = Unsafe.Add(ref dataRef, offset++);
                     int maxShift = Math.Min(left + width - x, 8);
 
                     for (int shift = 0; shift < maxShift; shift++)
                     {
                         int bit = (b >> (7 - shift)) & 1;
 
-                        pixelRowSpan[x + shift] = bit == 0 ? colorBlack : colorWhite;
+                        ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + shift);
+                        pixel = bit == 0 ? colorBlack : colorWhite;
                     }
                 }
             }

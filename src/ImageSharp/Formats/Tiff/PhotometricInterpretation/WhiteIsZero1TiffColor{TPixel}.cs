@@ -16,14 +16,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            var color = default(TPixel);
-
             int offset = 0;
+            var colorBlack = default(TPixel);
+            var colorWhite = default(TPixel);
 
-            Color black = Color.Black;
-            Color white = Color.White;
+            colorBlack.FromRgba32(Color.Black);
+            colorWhite.FromRgba32(Color.White);
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
                 for (int x = left; x < left + width; x += 8)
                 {
                     byte b = data[offset++];
@@ -33,9 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     {
                         int bit = (b >> (7 - shift)) & 1;
 
-                        color.FromRgba32(bit == 0 ? white : black);
-
-                        pixels[x + shift, y] = color;
+                        pixelRowSpan[x + shift] = bit == 0 ? colorWhite : colorBlack;
                     }
                 }
             }

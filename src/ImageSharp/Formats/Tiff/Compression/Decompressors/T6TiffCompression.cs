@@ -77,11 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             int bufferPos = (int)(bitsWritten / 8);
             for (int i = 0; i < scanLine.Length; i++)
             {
-                if (Unsafe.Add(ref MemoryMarshal.GetReference(scanLine), i) == white)
-                {
-                    BitWriterUtils.WriteZeroBit(buffer, bufferPos, bitPos);
-                }
-                else
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(scanLine), i) != white)
                 {
                     BitWriterUtils.WriteBit(buffer, bufferPos, bitPos);
                 }

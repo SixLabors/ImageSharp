@@ -556,6 +556,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     return JpegColorSpace.RGB;
                 }
 
+                // If these values are 1-3 for a 3-channel image, then the image is assumed to be YCbCr.
+                if (this.Components[2].Id == 3 && this.Components[1].Id == 2 && this.Components[0].Id == 1)
+                {
+                    return JpegColorSpace.YCbCr;
+                }
+
                 // 3-channel non-subsampled images are assumed to be RGB.
                 if (this.Components[2].VerticalSamplingFactor == 1 && this.Components[1].VerticalSamplingFactor == 1 && this.Components[0].VerticalSamplingFactor == 1 &&
                     this.Components[2].HorizontalSamplingFactor == 1 && this.Components[1].HorizontalSamplingFactor == 1 && this.Components[0].HorizontalSamplingFactor == 1)

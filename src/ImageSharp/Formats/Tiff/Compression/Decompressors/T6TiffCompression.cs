@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private readonly int width;
 
+        private readonly byte white;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="T6TiffCompression" /> class.
         /// </summary>
@@ -38,6 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.FillOrder = fillOrder;
             this.width = width;
             this.isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
+            this.white = (byte)(this.isWhiteZero ? 0 : 255);
         }
 
         /// <summary>
@@ -72,12 +75,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
         private uint WriteScanLine(Span<byte> buffer, Span<byte> scanLine, uint bitsWritten)
         {
-            byte white = (byte)(this.isWhiteZero ? 0 : 255);
             int bitPos = (int)(bitsWritten % 8);
             int bufferPos = (int)(bitsWritten / 8);
-            for (int i = 0; i < scanLine.Length; i++)
+            for (nint i = 0; i < scanLine.Length; i++)
             {
-                if (Unsafe.Add(ref MemoryMarshal.GetReference(scanLine), i) != white)
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(scanLine), i) != this.white)
                 {
                     BitWriterUtils.WriteBit(buffer, bufferPos, bitPos);
                 }

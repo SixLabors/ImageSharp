@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
@@ -211,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
         /// <param name="allocator">The memory allocator.</param>
         /// <param name="eolPadding">Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.</param>
-        public T4BitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false)
+        public T4BitReader(BufferedReadStream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false)
         {
             this.fillOrder = fillOrder;
             this.Data = allocator.Allocate<byte>(bytesToRead);

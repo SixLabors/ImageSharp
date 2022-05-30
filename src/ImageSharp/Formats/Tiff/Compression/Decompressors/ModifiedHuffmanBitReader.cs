@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
         /// <param name="allocator">The memory allocator.</param>
-        public ModifiedHuffmanBitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator)
+        public ModifiedHuffmanBitReader(BufferedReadStream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator)
             : base(input, fillOrder, bytesToRead, allocator)
         {
         }

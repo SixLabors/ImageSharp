@@ -64,8 +64,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             var bitReader = new T4BitReader(stream, this.FillOrder, byteCount, eolPadding);
 
             buffer.Clear();
-            int bitsWritten = 0;
-            uint pixelsWritten = 0;
+            nint bitsWritten = 0;
+            nuint pixelsWritten = 0;
             nint rowsWritten = 0;
             while (bitReader.HasMoreData)
             {
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 if (bitReader.IsEndOfScanLine)
                 {
                     // Write padding bytes, if necessary.
-                    int pad = 8 - Numerics.Modulo8(bitsWritten);
+                    nint pad = 8 - Numerics.Modulo8(bitsWritten);
                     if (pad != 8)
                     {
                         BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
@@ -100,14 +100,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
 
             // Edge case for when we are at the last byte, but there are still some unwritten pixels left.
-            if (pixelsWritten > 0 && pixelsWritten < this.width)
+            if (pixelsWritten > 0 && pixelsWritten < (ulong)this.width)
             {
                 bitReader.ReadNextRun();
                 this.WritePixelRun(buffer, bitReader, bitsWritten);
             }
         }
 
-        private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, int bitsWritten)
+        private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, nint bitsWritten)
         {
             if (bitReader.IsWhiteRun)
             {

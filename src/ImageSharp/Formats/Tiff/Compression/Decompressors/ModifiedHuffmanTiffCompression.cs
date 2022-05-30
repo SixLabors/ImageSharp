@@ -45,8 +45,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount);
 
             buffer.Clear();
-            int bitsWritten = 0;
-            uint pixelsWritten = 0;
+            nint bitsWritten = 0;
+            nuint pixelsWritten = 0;
             nint rowsWritten = 0;
             while (bitReader.HasMoreData)
             {
@@ -67,13 +67,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     pixelsWritten += bitReader.RunLength;
                 }
 
-                if (pixelsWritten == this.Width)
+                if (pixelsWritten == (ulong)this.Width)
                 {
                     rowsWritten++;
                     pixelsWritten = 0;
 
                     // Write padding bits, if necessary.
-                    int pad = 8 - Numerics.Modulo8(bitsWritten);
+                    nint pad = 8 - Numerics.Modulo8(bitsWritten);
                     if (pad != 8)
                     {
                         BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     bitReader.StartNewRow();
                 }
 
-                if (pixelsWritten > this.Width)
+                if (pixelsWritten > (ulong)this.Width)
                 {
                     TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, decoded more pixels then image width");
                 }

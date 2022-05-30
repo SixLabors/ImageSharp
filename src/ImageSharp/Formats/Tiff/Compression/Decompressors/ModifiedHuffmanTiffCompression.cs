@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             using var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount, this.Allocator);
 
             buffer.Clear();
-            uint bitsWritten = 0;
+            int bitsWritten = 0;
             uint pixelsWritten = 0;
             while (bitReader.HasMoreData)
             {
@@ -55,14 +55,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 {
                     if (bitReader.IsWhiteRun)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
+                        BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.whiteValue);
                     }
                     else
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
+                        BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.blackValue);
                     }
 
-                    bitsWritten += bitReader.RunLength;
+                    bitsWritten += (int)bitReader.RunLength;
                     pixelsWritten += bitReader.RunLength;
                 }
 
@@ -72,10 +72,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     pixelsWritten = 0;
 
                     // Write padding bits, if necessary.
-                    uint pad = 8 - (bitsWritten % 8);
+                    int pad = 8 - Numerics.Modulo8(bitsWritten);
                     if (pad != 8)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
+                        BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
                 }

@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     uint pad = 8 - (bitsWritten % 8);
                     if (pad != 8)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, (int)pad, 0);
                         bitsWritten += pad;
                     }
 
@@ -104,11 +104,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             if (bitReader.IsWhiteRun)
             {
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
+                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, (int)bitReader.RunLength, this.whiteValue);
             }
             else
             {
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
+                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, (int)bitReader.RunLength, this.blackValue);
             }
         }
 

@@ -9,12 +9,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     internal static class BitWriterUtils
     {
-        public static void WriteBits(Span<byte> buffer, int pos, uint count, byte value)
+        public static void WriteBits(Span<byte> buffer, int pos, int count, byte value)
         {
-            int bitPos = pos % 8;
+            int bitPos = Numerics.Modulo8(pos);
             int bufferPos = pos / 8;
             int startIdx = bufferPos + bitPos;
-            int endIdx = (int)(startIdx + count);
+            int endIdx = startIdx + count;
 
             if (value == 1)
             {

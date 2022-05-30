@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             using var bitReader = new T6BitReader(stream, this.FillOrder, byteCount, this.Allocator);
 
             var referenceScanLine = new CcittReferenceScanline(this.isWhiteZero, this.width);
-            uint bitsWritten = 0;
+            int bitsWritten = 0;
             for (int y = 0; y < height; y++)
             {
                 scanLine.Clear();
@@ -73,10 +73,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
         }
 
-        private uint WriteScanLine(Span<byte> buffer, Span<byte> scanLine, uint bitsWritten)
+        private int WriteScanLine(Span<byte> buffer, Span<byte> scanLine, int bitsWritten)
         {
-            int bitPos = (int)(bitsWritten % 8);
-            int bufferPos = (int)(bitsWritten / 8);
+            int bitPos = Numerics.Modulo8(bitsWritten);
+            int bufferPos = bitsWritten / 8;
             for (nint i = 0; i < scanLine.Length; i++)
             {
                 if (Unsafe.Add(ref MemoryMarshal.GetReference(scanLine), i) != this.white)
@@ -95,11 +95,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
 
             // Write padding bytes, if necessary.
-            uint remainder = bitsWritten % 8;
+            int remainder = bitsWritten % 8;
             if (remainder != 0)
             {
-                uint padding = 8 - remainder;
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, padding, 0);
+                int padding = 8 - remainder;
+                BitWriterUtils.WriteBits(buffer, bitsWritten, padding, 0);
                 bitsWritten += padding;
             }
 

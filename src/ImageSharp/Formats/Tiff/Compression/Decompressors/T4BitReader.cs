@@ -1,22 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Bitreader for reading compressed CCITT T4 1D data.
     /// </summary>
-    internal class T4BitReader : IDisposable
+    internal class T4BitReader
     {
         /// <summary>
         /// The logical order of bits within a byte.
@@ -205,19 +200,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         };
 
         /// <summary>
+        /// The compressed input stream.
+        /// </summary>
+        private readonly BufferedReadStream stream;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="T4BitReader" /> class.
         /// </summary>
         /// <param name="input">The compressed input stream.</param>
         /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
-        /// <param name="allocator">The memory allocator.</param>
         /// <param name="eolPadding">Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.</param>
-        public T4BitReader(BufferedReadStream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false)
+        public T4BitReader(BufferedReadStream input, TiffFillOrder fillOrder, int bytesToRead, bool eolPadding = false)
         {
+            this.stream = input;
             this.fillOrder = fillOrder;
-            this.Data = allocator.Allocate<byte>(bytesToRead);
-            this.ReadImageDataFromStream(input, bytesToRead);
-
             this.DataLength = bytesToRead;
             this.BitsRead = 0;
             this.Value = 0;
@@ -230,8 +227,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.RunLength = 0;
             this.eolPadding = eolPadding;
 
-            Span<byte> dataSpan = this.Data.GetSpan();
-            this.DataAtPosition = dataSpan[(int)this.Position];
+            this.ReadNextByte();
 
             if (this.eolPadding)
             {
@@ -268,11 +264,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// Gets or sets the byte position in the buffer.
         /// </summary>
         protected ulong Position { get; set; }
-
-        /// <summary>
-        /// Gets the compressed image data.
-        /// </summary>
-        public IMemoryOwner<byte> Data { get; }
 
         /// <summary>
         /// Gets a value indicating whether there is more data to read left.
@@ -400,9 +391,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.terminationCodeFound = false;
         }
 
-        /// <inheritdoc/>
-        public void Dispose() => this.Data.Dispose();
-
         /// <summary>
         /// An EOL is expected before the first data.
         /// </summary>
@@ -465,14 +453,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <summary>
         /// Advances the position by one byte.
         /// </summary>
-        /// <returns>True, if data could be advanced by one byte.</returns>
+        /// <returns>True, if data could be advanced by one byte, otherwise false.</returns>
         protected bool AdvancePosition()
         {
-            this.LoadNewByte();
-            if (this.Position < (ulong)this.DataLength)
+            if (this.LoadNewByte())
             {
-                Span<byte> dataSpan = this.Data.GetSpan();
-                this.DataAtPosition = Unsafe.Add(ref MemoryMarshal.GetReference(dataSpan), (int)this.Position);
                 return true;
             }
 
@@ -833,6 +818,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint GetBit()
         {
             if (this.BitsRead >= 8)
@@ -847,24 +833,34 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             return bit;
         }
 
-        private void LoadNewByte()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool LoadNewByte()
         {
+            if (this.Position < (ulong)this.DataLength)
+            {
+                this.ReadNextByte();
+                this.Position++;
+                return true;
+            }
+
             this.Position++;
-            this.ResetBitsRead();
+            this.DataAtPosition = 0;
+            return false;
         }
 
-        private void ReadImageDataFromStream(Stream input, int bytesToRead)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadNextByte()
         {
-            Span<byte> dataSpan = this.Data.GetSpan();
-            input.Read(dataSpan, 0, bytesToRead);
-
-            if (this.fillOrder == TiffFillOrder.LeastSignificantBitFirst)
+            int nextByte = this.stream.ReadByte();
+            if (nextByte == -1)
             {
-                for (int i = 0; i < dataSpan.Length; i++)
-                {
-                    dataSpan[i] = ReverseBits(dataSpan[i]);
-                }
+                TiffThrowHelper.ThrowImageFormatException("Tiff fax compression error: not enough data.");
             }
+
+            this.ResetBitsRead();
+            this.DataAtPosition = this.fillOrder == TiffFillOrder.LeastSignificantBitFirst
+                ? ReverseBits((byte)nextByte)
+                : (byte)nextByte;
         }
 
         // http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits

@@ -61,11 +61,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
 
             bool eolPadding = this.faxCompressionOptions.HasFlag(FaxCompressionOptions.EolPadding);
-            using var bitReader = new T4BitReader(stream, this.FillOrder, byteCount, this.Allocator, eolPadding);
+            var bitReader = new T4BitReader(stream, this.FillOrder, byteCount, eolPadding);
 
             buffer.Clear();
-            uint bitsWritten = 0;
-            uint pixelWritten = 0;
+            int bitsWritten = 0;
+            uint pixelsWritten = 0;
+            nint rowsWritten = 0;
             while (bitReader.HasMoreData)
             {
                 bitReader.ReadNextRun();
@@ -74,41 +75,47 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 {
                     this.WritePixelRun(buffer, bitReader, bitsWritten);
 
-                    bitsWritten += bitReader.RunLength;
-                    pixelWritten += bitReader.RunLength;
+                    bitsWritten += (int)bitReader.RunLength;
+                    pixelsWritten += bitReader.RunLength;
                 }
 
                 if (bitReader.IsEndOfScanLine)
                 {
                     // Write padding bytes, if necessary.
-                    uint pad = 8 - (bitsWritten % 8);
+                    int pad = 8 - Numerics.Modulo8(bitsWritten);
                     if (pad != 8)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, (int)pad, 0);
+                        BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
 
-                    pixelWritten = 0;
+                    pixelsWritten = 0;
+                    rowsWritten++;
+
+                    if (rowsWritten >= stripHeight)
+                    {
+                        break;
+                    }
                 }
             }
 
             // Edge case for when we are at the last byte, but there are still some unwritten pixels left.
-            if (pixelWritten > 0 && pixelWritten < this.width)
+            if (pixelsWritten > 0 && pixelsWritten < this.width)
             {
                 bitReader.ReadNextRun();
                 this.WritePixelRun(buffer, bitReader, bitsWritten);
             }
         }
 
-        private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, uint bitsWritten)
+        private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, int bitsWritten)
         {
             if (bitReader.IsWhiteRun)
             {
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, (int)bitReader.RunLength, this.whiteValue);
+                BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.whiteValue);
             }
             else
             {
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, (int)bitReader.RunLength, this.blackValue);
+                BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.blackValue);
             }
         }
 

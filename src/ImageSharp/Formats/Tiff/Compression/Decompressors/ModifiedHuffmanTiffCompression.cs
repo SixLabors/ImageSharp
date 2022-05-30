@@ -42,11 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
-            using var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount, this.Allocator);
+            var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount);
 
             buffer.Clear();
             int bitsWritten = 0;
             uint pixelsWritten = 0;
+            nint rowsWritten = 0;
             while (bitReader.HasMoreData)
             {
                 bitReader.ReadNextRun();
@@ -68,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                 if (pixelsWritten == this.Width)
                 {
-                    bitReader.StartNewRow();
+                    rowsWritten++;
                     pixelsWritten = 0;
 
                     // Write padding bits, if necessary.
@@ -78,6 +79,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
+
+                    if (rowsWritten >= stripHeight)
+                    {
+                        break;
+                    }
+
+                    bitReader.StartNewRow();
                 }
 
                 if (pixelsWritten > this.Width)

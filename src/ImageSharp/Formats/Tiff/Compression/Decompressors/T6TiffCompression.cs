@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             Span<byte> scanLine = scanLineBuffer.GetSpan().Slice(0, this.width);
             Span<byte> referenceScanLineSpan = scanLineBuffer.GetSpan().Slice(this.width, this.width);
 
-            using var bitReader = new T6BitReader(stream, this.FillOrder, byteCount, this.Allocator);
+            var bitReader = new T6BitReader(stream, this.FillOrder, byteCount);
 
             var referenceScanLine = new CcittReferenceScanline(this.isWhiteZero, this.width);
             int bitsWritten = 0;

@@ -229,11 +229,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.RunLength = 0;
             this.eolPadding = eolPadding;
 
+            Span<byte> dataSpan = this.Data.GetSpan();
+            this.DataAtPosition = dataSpan[(int)this.Position];
+
             if (this.eolPadding)
             {
                 this.maxCodeLength = 24;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the byte at the given position.
+        /// </summary>
+        private byte DataAtPosition { get; set; }
 
         /// <summary>
         /// Gets the current value.
@@ -451,6 +459,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
 
             return v;
+        }
+
+        /// <summary>
+        /// Advances the position by one byte.
+        /// </summary>
+        /// <returns>True, if data could be advanced by one byte.</returns>
+        protected bool AdvancePosition()
+        {
+            this.LoadNewByte();
+            if (this.Position < (ulong)this.DataLength)
+            {
+                Span<byte> dataSpan = this.Data.GetSpan();
+                this.DataAtPosition = Unsafe.Add(ref MemoryMarshal.GetReference(dataSpan), (int)this.Position);
+                return true;
+            }
+
+            return false;
         }
 
         private uint WhiteTerminatingCodeRunLength()
@@ -811,13 +836,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             if (this.BitsRead >= 8)
             {
-                this.LoadNewByte();
+                this.AdvancePosition();
             }
 
-            Span<byte> dataSpan = this.Data.GetSpan();
             int shift = 8 - this.BitsRead - 1;
-            ref byte dataAtPosition = ref Unsafe.Add(ref MemoryMarshal.GetReference(dataSpan), (int)this.Position);
-            uint bit = (uint)((dataAtPosition & (1 << shift)) != 0 ? 1 : 0);
+            uint bit = (uint)((this.DataAtPosition & (1 << shift)) != 0 ? 1 : 0);
             this.BitsRead++;
 
             return bit;
@@ -827,11 +850,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             this.Position++;
             this.ResetBitsRead();
-
-            if (this.Position >= (ulong)this.DataLength)
-            {
-                TiffThrowHelper.ThrowImageFormatException("tiff image has invalid ccitt compressed data");
-            }
         }
 
         private void ReadImageDataFromStream(Stream input, int bytesToRead)

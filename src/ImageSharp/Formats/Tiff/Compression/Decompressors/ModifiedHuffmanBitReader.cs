@@ -57,8 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             if (remainder != 0)
             {
                 // Skip padding bits, move to next byte.
-                this.Position++;
-                this.ResetBitsRead();
+                this.AdvancePosition();
             }
         }
 

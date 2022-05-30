@@ -77,9 +77,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             nint bitPos = Numerics.Modulo8(bitsWritten);
             nint bufferPos = bitsWritten / 8;
+            ref byte scanLineRef = ref MemoryMarshal.GetReference(scanLine);
             for (nint i = 0; i < scanLine.Length; i++)
             {
-                if (Unsafe.Add(ref MemoryMarshal.GetReference(scanLine), i) != this.white)
+                if (Unsafe.Add(ref scanLineRef, i) != this.white)
                 {
                     BitWriterUtils.WriteBit(buffer, bufferPos, bitPos);
                 }

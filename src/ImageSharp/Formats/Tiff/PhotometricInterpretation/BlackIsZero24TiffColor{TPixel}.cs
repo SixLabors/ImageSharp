@@ -28,10 +28,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         {
             var color = default(TPixel);
             color.FromScaledVector4(Vector4.Zero);
-            byte[] buffer = new byte[4];
+            Span<byte> buffer = stackalloc byte[4];
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
-            Span<byte> bufferSpan = buffer.AsSpan(bufferStartIdx);
+            Span<byte> bufferSpan = buffer.Slice(bufferStartIdx);
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {

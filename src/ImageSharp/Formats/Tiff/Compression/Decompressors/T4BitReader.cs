@@ -434,6 +434,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// </summary>
         /// <param name="nBits">The number of bits to read.</param>
         /// <returns>The value read.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         protected uint ReadValue(int nBits)
         {
             DebugGuard.MustBeGreaterThan(nBits, 0, nameof(nBits));

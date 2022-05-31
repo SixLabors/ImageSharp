@@ -35,12 +35,49 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     byte b = Unsafe.Add(ref dataRef, offset++);
                     nint maxShift = Math.Min(left + width - x, 8);
 
-                    for (int shift = 0; shift < maxShift; shift++)
+                    if (maxShift == 8)
                     {
-                        int bit = (b >> (7 - shift)) & 1;
+                        int bit = (b >> 7) & 1;
+                        ref TPixel pixel0 = ref Unsafe.Add(ref pixelRowRef, x);
+                        pixel0 = bit == 0 ? colorBlack : colorWhite;
 
-                        ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + shift);
-                        pixel = bit == 0 ? colorBlack : colorWhite;
+                        bit = (b >> 6) & 1;
+                        ref TPixel pixel1 = ref Unsafe.Add(ref pixelRowRef, x + 1);
+                        pixel1 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 5) & 1;
+                        ref TPixel pixel2 = ref Unsafe.Add(ref pixelRowRef, x + 2);
+                        pixel2 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 4) & 1;
+                        ref TPixel pixel3 = ref Unsafe.Add(ref pixelRowRef, x + 3);
+                        pixel3 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 3) & 1;
+                        ref TPixel pixel4 = ref Unsafe.Add(ref pixelRowRef, x + 4);
+                        pixel4 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 2) & 1;
+                        ref TPixel pixel5 = ref Unsafe.Add(ref pixelRowRef, x + 5);
+                        pixel5 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 1) & 1;
+                        ref TPixel pixel6 = ref Unsafe.Add(ref pixelRowRef, x + 6);
+                        pixel6 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = b & 1;
+                        ref TPixel pixel7 = ref Unsafe.Add(ref pixelRowRef, x + 7);
+                        pixel7 = bit == 0 ? colorBlack : colorWhite;
+                    }
+                    else
+                    {
+                        for (int shift = 0; shift < maxShift; shift++)
+                        {
+                            int bit = (b >> (7 - shift)) & 1;
+
+                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + shift);
+                            pixel = bit == 0 ? colorBlack : colorWhite;
+                        }
                     }
                 }
             }

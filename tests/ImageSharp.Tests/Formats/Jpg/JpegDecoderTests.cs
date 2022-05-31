@@ -218,6 +218,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
+        // https://github.com/SixLabors/ImageSharp/issues/2133
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue2133DeduceColorSpace, PixelTypes.Rgba32)]
+        public void Issue2133_DeduceColorSpace<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"

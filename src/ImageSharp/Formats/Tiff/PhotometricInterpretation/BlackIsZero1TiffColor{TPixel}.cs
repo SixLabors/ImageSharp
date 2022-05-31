@@ -19,21 +19,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            int offset = 0;
+            nint offset = 0;
             var colorBlack = default(TPixel);
             var colorWhite = default(TPixel);
 
             colorBlack.FromRgba32(Color.Black);
             colorWhite.FromRgba32(Color.White);
             ref byte dataRef = ref MemoryMarshal.GetReference(data);
-            for (int y = top; y < top + height; y++)
+            for (nint y = top; y < top + height; y++)
             {
-                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
+                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)y);
                 ref TPixel pixelRowRef = ref MemoryMarshal.GetReference(pixelRowSpan);
-                for (int x = left; x < left + width; x += 8)
+                for (nint x = left; x < left + width; x += 8)
                 {
                     byte b = Unsafe.Add(ref dataRef, offset++);
-                    int maxShift = Math.Min(left + width - x, 8);
+                    nint maxShift = Math.Min(left + width - x, 8);
 
                     for (int shift = 0; shift < maxShift; shift++)
                     {

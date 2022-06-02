@@ -442,16 +442,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         }
 
         /// <summary>
-        /// Pads output to the next byte
+        /// Pads output to the next byte.
         /// </summary>
         /// <remarks>
         /// If the output is not currently on a byte boundary,
-        /// zero-pad it to the next byte
+        /// zero-pad it to the next byte.
         /// </remarks>
         protected void PadByte()
         {
             // Check if padding is necessary.
-            if (this.bitPosition % 8 != 0)
+            if (Numerics.Modulo8(this.bitPosition) != 0)
             {
                 // Skip padding bits, move to next byte.
                 this.bytePosition++;

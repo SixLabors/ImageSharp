@@ -762,6 +762,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Fax4Compressed = "Tiff/basi3p02_fax4.tiff";
             public const string Fax4Compressed2 = "Tiff/CCITTGroup4.tiff";
             public const string Fax4CompressedLowerOrderBitsFirst = "Tiff/basi3p02_fax4_lowerOrderBitsFirst.tiff";
+            public const string Fax4CompressedMinIsBlack = "Tiff/CCITTGroup4_minisblack.tiff";
 
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";

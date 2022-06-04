@@ -89,7 +89,7 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: DotNet Setup
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v2
         with:
           include-prerelease: true
           dotnet-version: |

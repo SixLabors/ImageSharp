@@ -489,7 +489,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 // Read on.
                 fileMarker = FindNextFileMarker(stream);
-                Console.WriteLine($"Found marker: {fileMarker.Marker} at {fileMarker.Position}");
             }
         }
 

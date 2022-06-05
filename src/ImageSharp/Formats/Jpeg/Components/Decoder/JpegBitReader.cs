@@ -155,12 +155,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         c = this.ReadStream();
                     }
 
+                    // Found a marker
                     // We accept multiple FF bytes followed by a 0 as meaning a single FF data byte.
-                    // This data pattern is not valid according to the standard.
+                    // even though it's considered 'invalid' according to the specs.
                     if (c != 0)
                     {
-                        this.Marker = (byte)c;
+                        // It's a trick so we won't read past actual marker
                         this.badData = true;
+                        this.Marker = (byte)c;
                         this.MarkerPosition = this.stream.Position - 2;
                     }
                 }
@@ -199,7 +201,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     if (b != 0)
                     {
                         this.Marker = (byte)b;
-                        this.badData = true;
                         this.MarkerPosition = this.stream.Position - 2;
                         return true;
                     }

@@ -220,8 +220,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         // https://github.com/SixLabors/ImageSharp/issues/2133
         [Theory]
-        [WithFile(TestImages.Jpeg.Issues.Issue2133DeduceColorSpace, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Issues.Issue2133_DeduceColorSpace, PixelTypes.Rgba32)]
         public void Issue2133_DeduceColorSpace<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2133
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue2136_ScanMarkerExtraneousBytes, PixelTypes.Rgba32)]
+        public void Issue2136_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(JpegDecoder))

@@ -164,38 +164,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Finds the next file marker within the byte stream.
         /// </summary>
-        /// <param name="marker">The buffer to read file markers to.</param>
         /// <param name="stream">The input stream.</param>
-        /// <returns>The <see cref="JpegFileMarker"/></returns>
-        public static JpegFileMarker FindNextFileMarker(byte[] marker, BufferedReadStream stream)
+        /// <returns>The <see cref="JpegFileMarker"/>.</returns>
+        public static JpegFileMarker FindNextFileMarker(BufferedReadStream stream)
         {
-            int value = stream.Read(marker, 0, 2);
-
-            if (value == 0)
+            while (true)
             {
-                return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
-            }
-
-            if (marker[0] == JpegConstants.Markers.XFF)
-            {
-                // According to Section B.1.1.2:
-                // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-                int m = marker[1];
-                while (m == JpegConstants.Markers.XFF)
+                int b = stream.ReadByte();
+                if (b == -1)
                 {
-                    int suffix = stream.ReadByte();
-                    if (suffix == -1)
-                    {
-                        return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
-                    }
-
-                    m = suffix;
+                    return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
                 }
 
-                return new JpegFileMarker((byte)m, stream.Position - 2);
-            }
+                // Found a marker.
+                if (b == JpegConstants.Markers.XFF)
+                {
+                    while (b == JpegConstants.Markers.XFF)
+                    {
+                        // Loop here to discard any padding FF bytes on terminating marker.
+                        b = stream.ReadByte();
+                        if (b == -1)
+                        {
+                            return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
+                        }
+                    }
 
-            return new JpegFileMarker(marker[1], stream.Position - 2, true);
+                    // Found a valid marker. Exit loop
+                    if (b is not 0 and (< JpegConstants.Markers.RST0 or > JpegConstants.Markers.RST7))
+                    {
+                        return new JpegFileMarker((byte)(uint)b, stream.Position - 2);
+                    }
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -331,15 +331,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
             }
 
-            stream.Read(this.markerBuffer, 0, 2);
-            byte marker = this.markerBuffer[1];
-            fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
+            fileMarker = FindNextFileMarker(stream);
             this.QuantizationTables ??= new Block8x8F[4];
 
             // Break only when we discover a valid EOI marker.
             // https://github.com/SixLabors/ImageSharp/issues/695
-            while (fileMarker.Marker != JpegConstants.Markers.EOI
-                || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
+            while (fileMarker.Marker != JpegConstants.Markers.EOI)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -491,7 +488,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // Read on.
-                fileMarker = FindNextFileMarker(this.markerBuffer, stream);
+                fileMarker = FindNextFileMarker(stream);
             }
         }
 

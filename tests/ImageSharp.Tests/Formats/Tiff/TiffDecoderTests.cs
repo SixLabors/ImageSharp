@@ -611,6 +611,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Fax4Compressed, PixelTypes.Rgba32)]
+        [WithFile(Fax4Compressed2, PixelTypes.Rgba32)]
+        [WithFile(Fax4CompressedMinIsBlack, PixelTypes.Rgba32)]
         [WithFile(Fax4CompressedLowerOrderBitsFirst, PixelTypes.Rgba32)]
         [WithFile(Calliphora_Fax4Compressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Fax4Compressed<TPixel>(TestImageProvider<TPixel> provider)

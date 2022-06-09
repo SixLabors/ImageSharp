@@ -1,9 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
@@ -19,14 +18,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="input">The compressed input stream.</param>
         /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
-        /// <param name="allocator">The memory allocator.</param>
-        public ModifiedHuffmanBitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator)
-            : base(input, fillOrder, bytesToRead, allocator)
+        public ModifiedHuffmanBitReader(BufferedReadStream input, TiffFillOrder fillOrder, int bytesToRead)
+            : base(input, fillOrder, bytesToRead)
         {
         }
 
         /// <inheritdoc/>
-        public override bool HasMoreData => this.Position < (ulong)this.DataLength - 1 || ((uint)(this.BitsRead - 1) < (7 - 1));
+        public override bool HasMoreData => this.Position < (ulong)this.DataLength - 1 || (uint)(this.BitsRead - 1) < 6;
 
         /// <inheritdoc/>
         public override bool IsEndOfScanLine
@@ -53,12 +51,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             base.StartNewRow();
 
-            int remainder = this.BitsRead & 7;    // bit-hack for % 8
+            int remainder = Numerics.Modulo8(this.BitsRead);
             if (remainder != 0)
             {
                 // Skip padding bits, move to next byte.
-                this.Position++;
-                this.ResetBitsRead();
+                this.AdvancePosition();
             }
         }
 

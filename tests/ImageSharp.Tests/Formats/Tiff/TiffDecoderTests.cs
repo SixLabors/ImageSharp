@@ -665,6 +665,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                     }
                 });
 
+        // https://github.com/SixLabors/ImageSharp/issues/2149
+        [Theory]
+        [WithFile(Issues2149, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Fax4CompressedWithStrips<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]
         public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)

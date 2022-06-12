@@ -52,6 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
             int height = stripHeight;
+            buffer.Clear();
 
             using System.Buffers.IMemoryOwner<byte> scanLineBuffer = this.Allocator.Allocate<byte>(this.width * 2);
             Span<byte> scanLine = scanLineBuffer.GetSpan().Slice(0, this.width);

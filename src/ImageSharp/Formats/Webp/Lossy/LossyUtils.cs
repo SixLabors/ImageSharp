@@ -15,29 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
     internal static class LossyUtils
     {
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector128<byte> Mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
-
-        private static readonly Vector128<byte> SignBit = Vector128.Create((byte)0x80);
-
-        private static readonly Vector128<sbyte> Three = Vector128.Create((byte)3).AsSByte();
-
-        private static readonly Vector128<short> FourShort = Vector128.Create((short)4);
-
-        private static readonly Vector128<sbyte> FourSByte = Vector128.Create((byte)4).AsSByte();
-
-        private static readonly Vector128<sbyte> Nine = Vector128.Create((short)0x0900).AsSByte();
-
-        private static readonly Vector128<sbyte> SixtyThree = Vector128.Create((short)63).AsSByte();
-
-        private static readonly Vector128<sbyte> SixtyFour = Vector128.Create((byte)64).AsSByte();
-
-        private static readonly Vector128<short> K1 = Vector128.Create((short)20091);
-
-        private static readonly Vector128<short> K2 = Vector128.Create((short)-30068);
-
-#endif
-
         // Note: method name in libwebp reference implementation is called VP8SSE16x16.
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8_Sse16X16(Span<byte> a, Span<byte> b)
@@ -1025,16 +1002,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
                 Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
 
+                Vector128<short> k1 = Vector128.Create((short)20091);
+                Vector128<short> k2 = Vector128.Create((short)-30068);
+
                 // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
-                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2);
-                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1);
+                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), k2);
+                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), k1);
                 Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
                 Vector128<short> c4 = Sse2.Subtract(c1, c2);
                 Vector128<short> c = Sse2.Add(c3.AsInt16(), c4);
 
                 // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
-                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1);
-                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2);
+                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), k1);
+                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), k2);
                 Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
                 Vector128<short> d4 = Sse2.Add(d1, d2);
                 Vector128<short> d = Sse2.Add(d3, d4);
@@ -1050,20 +1030,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Horizontal pass and subsequent transpose.
                 // First pass, c and d calculations are longer because of the "trick" multiplications.
-                Vector128<short> dc = Sse2.Add(t0.AsInt16(), FourShort);
+                Vector128<short> dc = Sse2.Add(t0.AsInt16(), Vector128.Create((short)4));
                 a = Sse2.Add(dc, t2.AsInt16());
                 b = Sse2.Subtract(dc, t2.AsInt16());
 
                 // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
-                c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
-                c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
+                c1 = Sse2.MultiplyHigh(t1.AsInt16(), k2);
+                c2 = Sse2.MultiplyHigh(t3.AsInt16(), k1);
                 c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
                 c4 = Sse2.Subtract(c1, c2);
                 c = Sse2.Add(c3, c4);
 
                 // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
-                d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
-                d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
+                d1 = Sse2.MultiplyHigh(t1.AsInt16(), k1);
+                d2 = Sse2.MultiplyHigh(t3.AsInt16(), k2);
                 d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
                 d4 = Sse2.Add(d1, d2);
                 d = Sse2.Add(d3, d4);
@@ -1146,16 +1126,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
                 Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
 
+                Vector128<short> k1 = Vector128.Create((short)20091);
+                Vector128<short> k2 = Vector128.Create((short)-30068);
+
                 // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
-                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), K2);
-                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), K1);
+                Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), k2);
+                Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), k1);
                 Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
                 Vector128<short> c4 = Sse2.Subtract(c1, c2);
                 Vector128<short> c = Sse2.Add(c3.AsInt16(), c4);
 
                 // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
-                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), K1);
-                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), K2);
+                Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), k1);
+                Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), k2);
                 Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
                 Vector128<short> d4 = Sse2.Add(d1, d2);
                 Vector128<short> d = Sse2.Add(d3, d4);
@@ -1171,20 +1154,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // Horizontal pass and subsequent transpose.
                 // First pass, c and d calculations are longer because of the "trick" multiplications.
-                Vector128<short> dc = Sse2.Add(t0.AsInt16(), FourShort);
+                Vector128<short> dc = Sse2.Add(t0.AsInt16(), Vector128.Create((short)4));
                 a = Sse2.Add(dc, t2.AsInt16());
                 b = Sse2.Subtract(dc, t2.AsInt16());
 
                 // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
-                c1 = Sse2.MultiplyHigh(t1.AsInt16(), K2);
-                c2 = Sse2.MultiplyHigh(t3.AsInt16(), K1);
+                c1 = Sse2.MultiplyHigh(t1.AsInt16(), k2);
+                c2 = Sse2.MultiplyHigh(t3.AsInt16(), k1);
                 c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
                 c4 = Sse2.Subtract(c1, c2);
                 c = Sse2.Add(c3, c4);
 
                 // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
-                d1 = Sse2.MultiplyHigh(t1.AsInt16(), K1);
-                d2 = Sse2.MultiplyHigh(t3.AsInt16(), K2);
+                d1 = Sse2.MultiplyHigh(t1.AsInt16(), k1);
+                d2 = Sse2.MultiplyHigh(t3.AsInt16(), k2);
                 d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
                 d4 = Sse2.Add(d1, d2);
                 d = Sse2.Add(d3, d4);
@@ -1810,6 +1793,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Ssse3.IsSupported)
             {
+                Vector128<byte> mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
+
                 Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input));
                 Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps, 16)));
                 Vector128<byte> a2 = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(input.Slice(WebpConstants.Bps * 2, 16)));
@@ -1818,10 +1803,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> b1 = Sse2.ShiftRightLogical(a1.AsInt16(), 8);
                 Vector128<short> b2 = Sse2.ShiftRightLogical(a2.AsInt16(), 8);
                 Vector128<short> b3 = Sse2.ShiftRightLogical(a3.AsInt16(), 8);
-                Vector128<byte> c0 = Sse2.And(a0, Mean16x4Mask); // lo byte
-                Vector128<byte> c1 = Sse2.And(a1, Mean16x4Mask);
-                Vector128<byte> c2 = Sse2.And(a2, Mean16x4Mask);
-                Vector128<byte> c3 = Sse2.And(a3, Mean16x4Mask);
+                Vector128<byte> c0 = Sse2.And(a0, mean16x4Mask); // lo byte
+                Vector128<byte> c1 = Sse2.And(a1, mean16x4Mask);
+                Vector128<byte> c2 = Sse2.And(a2, mean16x4Mask);
+                Vector128<byte> c3 = Sse2.And(a3, mean16x4Mask);
                 Vector128<int> d0 = Sse2.Add(b0.AsInt32(), c0.AsInt32());
                 Vector128<int> d1 = Sse2.Add(b1.AsInt32(), c1.AsInt32());
                 Vector128<int> d2 = Sse2.Add(b2.AsInt32(), c2.AsInt32());
@@ -1978,14 +1963,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Applies filter on 2 pixels (p0 and q0)
         private static void DoFilter2Sse2(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int thresh)
         {
+            Vector128<byte> signBit = Vector128.Create((byte)0x80);
+
             // Convert p1/q1 to byte (for GetBaseDelta).
-            Vector128<byte> p1s = Sse2.Xor(p1, SignBit);
-            Vector128<byte> q1s = Sse2.Xor(q1, SignBit);
+            Vector128<byte> p1s = Sse2.Xor(p1, signBit);
+            Vector128<byte> q1s = Sse2.Xor(q1, signBit);
             Vector128<byte> mask = NeedsFilter(p1, p0, q0, q1, thresh);
 
             // Flip sign.
-            p0 = Sse2.Xor(p0, SignBit);
-            q0 = Sse2.Xor(q0, SignBit);
+            p0 = Sse2.Xor(p0, signBit);
+            q0 = Sse2.Xor(q0, signBit);
 
             Vector128<byte> a = GetBaseDelta(p1s.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1s.AsSByte()).AsByte();
 
@@ -1995,8 +1982,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             DoSimpleFilterSse2(ref p0, ref q0, a);
 
             // Flip sign.
-            p0 = Sse2.Xor(p0, SignBit);
-            q0 = Sse2.Xor(q0, SignBit);
+            p0 = Sse2.Xor(p0, signBit);
+            q0 = Sse2.Xor(q0, signBit);
         }
 
         // Applies filter on 4 pixels (p1, p0, q0 and q1)
@@ -2005,11 +1992,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Compute hev mask.
             Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
 
+            Vector128<byte> signBit = Vector128.Create((byte)0x80);
+
             // Convert to signed values.
-            p1 = Sse2.Xor(p1, SignBit);
-            p0 = Sse2.Xor(p0, SignBit);
-            q0 = Sse2.Xor(q0, SignBit);
-            q1 = Sse2.Xor(q1, SignBit);
+            p1 = Sse2.Xor(p1, signBit);
+            p0 = Sse2.Xor(p0, signBit);
+            q0 = Sse2.Xor(q0, signBit);
+            q1 = Sse2.Xor(q1, signBit);
 
             Vector128<sbyte> t1 = Sse2.SubtractSaturate(p1.AsSByte(), q1.AsSByte()); // p1 - q1
             t1 = Sse2.AndNot(notHev, t1.AsByte()).AsSByte(); // hev(p1 - q1)
@@ -2019,25 +2008,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             t1 = Sse2.AddSaturate(t1, t2); // hev(p1 - q1) + 3 * (q0 - p0)
             t1 = Sse2.And(t1.AsByte(), mask).AsSByte(); // mask filter values we don't care about.
 
-            t2 = Sse2.AddSaturate(t1, Three); // 3 * (q0 - p0) + hev(p1 - q1) + 3
-            Vector128<sbyte> t3 = Sse2.AddSaturate(t1, FourSByte); // 3 * (q0 - p0) + hev(p1 - q1) + 4
+            t2 = Sse2.AddSaturate(t1, Vector128.Create((byte)3).AsSByte());                  // 3 * (q0 - p0) + hev(p1 - q1) + 3
+            Vector128<sbyte> t3 = Sse2.AddSaturate(t1, Vector128.Create((byte)4).AsSByte()); // 3 * (q0 - p0) + hev(p1 - q1) + 4
             t2 = SignedShift8b(t2.AsByte()); // (3 * (q0 - p0) + hev(p1 - q1) + 3) >> 3
             t3 = SignedShift8b(t3.AsByte()); // (3 * (q0 - p0) + hev(p1 - q1) + 4) >> 3
             p0 = Sse2.AddSaturate(p0.AsSByte(), t2).AsByte(); // p0 += t2
             q0 = Sse2.SubtractSaturate(q0.AsSByte(), t3).AsByte(); // q0 -= t3
-            p0 = Sse2.Xor(p0, SignBit);
-            q0 = Sse2.Xor(q0, SignBit);
+            p0 = Sse2.Xor(p0, signBit);
+            q0 = Sse2.Xor(q0, signBit);
 
             // This is equivalent to signed (a + 1) >> 1 calculation.
-            t2 = Sse2.Add(t3, SignBit.AsSByte());
+            t2 = Sse2.Add(t3, signBit.AsSByte());
             t3 = Sse2.Average(t2.AsByte(), Vector128<byte>.Zero).AsSByte();
-            t3 = Sse2.Subtract(t3, SixtyFour);
+            t3 = Sse2.Subtract(t3, Vector128.Create((sbyte)64));
 
             t3 = Sse2.And(notHev, t3.AsByte()).AsSByte(); // if !hev
             q1 = Sse2.SubtractSaturate(q1.AsSByte(), t3).AsByte(); // q1 -= t3
             p1 = Sse2.AddSaturate(p1.AsSByte(), t3).AsByte(); // p1 += t3
-            p1 = Sse2.Xor(p1.AsByte(), SignBit);
-            q1 = Sse2.Xor(q1.AsByte(), SignBit);
+            p1 = Sse2.Xor(p1.AsByte(), signBit);
+            q1 = Sse2.Xor(q1.AsByte(), signBit);
         }
 
         // Applies filter on 6 pixels (p2, p1, p0, q0, q1 and q2)
@@ -2047,12 +2036,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
 
             // Convert to signed values.
-            p1 = Sse2.Xor(p1, SignBit);
-            p0 = Sse2.Xor(p0, SignBit);
-            q0 = Sse2.Xor(q0, SignBit);
-            q1 = Sse2.Xor(q1, SignBit);
-            p2 = Sse2.Xor(p2, SignBit);
-            q2 = Sse2.Xor(q2, SignBit);
+            Vector128<byte> signBit = Vector128.Create((byte)0x80);
+            p1 = Sse2.Xor(p1, signBit);
+            p0 = Sse2.Xor(p0, signBit);
+            q0 = Sse2.Xor(q0, signBit);
+            q1 = Sse2.Xor(q1, signBit);
+            p2 = Sse2.Xor(p2, signBit);
+            q2 = Sse2.Xor(q2, signBit);
 
             Vector128<sbyte> a = GetBaseDelta(p1.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1.AsSByte());
 
@@ -2067,11 +2057,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> flow = Sse2.UnpackLow(Vector128<byte>.Zero, f);
             Vector128<byte> fhigh = Sse2.UnpackHigh(Vector128<byte>.Zero, f);
 
-            Vector128<short> f9Low = Sse2.MultiplyHigh(flow.AsInt16(), Nine.AsInt16()); // Filter (lo) * 9
-            Vector128<short> f9High = Sse2.MultiplyHigh(fhigh.AsInt16(), Nine.AsInt16()); // Filter (hi) * 9
+            Vector128<short> nine = Vector128.Create((short)0x0900);
+            Vector128<short> f9Low = Sse2.MultiplyHigh(flow.AsInt16(), nine); // Filter (lo) * 9
+            Vector128<short> f9High = Sse2.MultiplyHigh(fhigh.AsInt16(), nine); // Filter (hi) * 9
 
-            Vector128<short> a2Low = Sse2.Add(f9Low, SixtyThree.AsInt16()); // Filter * 9 + 63
-            Vector128<short> a2High = Sse2.Add(f9High, SixtyThree.AsInt16()); // Filter * 9 + 63
+            Vector128<short> sixtyThree = Vector128.Create((short)63);
+            Vector128<short> a2Low = Sse2.Add(f9Low, sixtyThree); // Filter * 9 + 63
+            Vector128<short> a2High = Sse2.Add(f9High, sixtyThree); // Filter * 9 + 63
 
             Vector128<short> a1Low = Sse2.Add(a2Low, f9Low); // Filter * 18 + 63
             Vector128<short> a1High = Sse2.Add(a2High, f9High); // // Filter * 18 + 63
@@ -2086,8 +2078,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private static void DoSimpleFilterSse2(ref Vector128<byte> p0, ref Vector128<byte> q0, Vector128<byte> fl)
         {
-            Vector128<sbyte> v3 = Sse2.AddSaturate(fl.AsSByte(), Three);
-            Vector128<sbyte> v4 = Sse2.AddSaturate(fl.AsSByte(), FourSByte);
+            Vector128<sbyte> v3 = Sse2.AddSaturate(fl.AsSByte(), Vector128.Create((byte)3).AsSByte());
+            Vector128<sbyte> v4 = Sse2.AddSaturate(fl.AsSByte(), Vector128.Create((byte)4).AsSByte());
 
             v4 = SignedShift8b(v4.AsByte()).AsSByte(); // v4 >> 3
             v3 = SignedShift8b(v3.AsByte()).AsSByte(); // v3 >> 3
@@ -2353,13 +2345,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Pixels 'pi' and 'qi' are int8_t on input, uint8_t on output (sign flip).
         private static void Update2Pixels(ref Vector128<byte> pi, ref Vector128<byte> qi, Vector128<short> a0Low, Vector128<short> a0High)
         {
+            Vector128<byte> signBit = Vector128.Create((byte)0x80);
             Vector128<short> a1Low = Sse2.ShiftRightArithmetic(a0Low, 7);
             Vector128<short> a1High = Sse2.ShiftRightArithmetic(a0High, 7);
             Vector128<sbyte> delta = Sse2.PackSignedSaturate(a1Low, a1High);
             pi = Sse2.AddSaturate(pi.AsSByte(), delta).AsByte();
             qi = Sse2.SubtractSaturate(qi.AsSByte(), delta).AsByte();
-            pi = Sse2.Xor(pi, SignBit.AsByte());
-            qi = Sse2.Xor(qi, SignBit.AsByte());
+            pi = Sse2.Xor(pi, signBit.AsByte());
+            qi = Sse2.Xor(qi, signBit.AsByte());
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

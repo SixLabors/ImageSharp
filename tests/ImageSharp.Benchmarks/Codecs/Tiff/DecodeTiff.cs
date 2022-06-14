@@ -46,6 +46,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         [Params(
             TestImages.Tiff.CcittFax3AllTermCodes,
+            TestImages.Tiff.Fax4Compressed2,
             TestImages.Tiff.HuffmanRleAllMakeupCodes,
             TestImages.Tiff.Calliphora_GrayscaleUncompressed,
             TestImages.Tiff.Calliphora_RgbPaletteLzw_Predictor,

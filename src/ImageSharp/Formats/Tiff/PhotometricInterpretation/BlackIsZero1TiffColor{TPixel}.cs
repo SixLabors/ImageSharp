@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -17,26 +19,65 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            var color = default(TPixel);
+            nint offset = 0;
+            var colorBlack = default(TPixel);
+            var colorWhite = default(TPixel);
 
-            int offset = 0;
-
-            Color black = Color.Black;
-            Color white = Color.White;
-            for (int y = top; y < top + height; y++)
+            colorBlack.FromRgba32(Color.Black);
+            colorWhite.FromRgba32(Color.White);
+            ref byte dataRef = ref MemoryMarshal.GetReference(data);
+            for (nint y = top; y < top + height; y++)
             {
-                for (int x = left; x < left + width; x += 8)
+                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)y);
+                ref TPixel pixelRowRef = ref MemoryMarshal.GetReference(pixelRowSpan);
+                for (nint x = left; x < left + width; x += 8)
                 {
-                    byte b = data[offset++];
-                    int maxShift = Math.Min(left + width - x, 8);
+                    byte b = Unsafe.Add(ref dataRef, offset++);
+                    nint maxShift = Math.Min(left + width - x, 8);
 
-                    for (int shift = 0; shift < maxShift; shift++)
+                    if (maxShift == 8)
                     {
-                        int bit = (b >> (7 - shift)) & 1;
+                        int bit = (b >> 7) & 1;
+                        ref TPixel pixel0 = ref Unsafe.Add(ref pixelRowRef, x);
+                        pixel0 = bit == 0 ? colorBlack : colorWhite;
 
-                        color.FromRgba32(bit == 0 ? black : white);
+                        bit = (b >> 6) & 1;
+                        ref TPixel pixel1 = ref Unsafe.Add(ref pixelRowRef, x + 1);
+                        pixel1 = bit == 0 ? colorBlack : colorWhite;
 
-                        pixels[x + shift, y] = color;
+                        bit = (b >> 5) & 1;
+                        ref TPixel pixel2 = ref Unsafe.Add(ref pixelRowRef, x + 2);
+                        pixel2 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 4) & 1;
+                        ref TPixel pixel3 = ref Unsafe.Add(ref pixelRowRef, x + 3);
+                        pixel3 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 3) & 1;
+                        ref TPixel pixel4 = ref Unsafe.Add(ref pixelRowRef, x + 4);
+                        pixel4 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 2) & 1;
+                        ref TPixel pixel5 = ref Unsafe.Add(ref pixelRowRef, x + 5);
+                        pixel5 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = (b >> 1) & 1;
+                        ref TPixel pixel6 = ref Unsafe.Add(ref pixelRowRef, x + 6);
+                        pixel6 = bit == 0 ? colorBlack : colorWhite;
+
+                        bit = b & 1;
+                        ref TPixel pixel7 = ref Unsafe.Add(ref pixelRowRef, x + 7);
+                        pixel7 = bit == 0 ? colorBlack : colorWhite;
+                    }
+                    else
+                    {
+                        for (int shift = 0; shift < maxShift; shift++)
+                        {
+                            int bit = (b >> (7 - shift)) & 1;
+
+                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + shift);
+                            pixel = bit == 0 ? colorBlack : colorWhite;
+                        }
                     }
                 }
             }

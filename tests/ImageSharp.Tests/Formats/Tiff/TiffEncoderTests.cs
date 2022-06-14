@@ -96,6 +96,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Ccitt1D)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.CcittGroup3Fax)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.CcittGroup4Fax)]
+        public void EncoderOptions_WithInvalidCompressionAndPixelTypeCombination_DefaultsToRgb(TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation, Compression = compression };
+            using Image input = new Image<Rgb24>(10, 10);
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(TiffBitsPerPixel.Bit24, frameMetaData.BitsPerPixel);
+        }
+
+        [Theory]
         [InlineData(null, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
         [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
         [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate, TiffBitsPerPixel.Bit8, TiffCompression.Deflate)]

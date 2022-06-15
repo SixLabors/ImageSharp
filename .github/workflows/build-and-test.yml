@@ -2,6 +2,7 @@ name: Build
 
 on:
   push:
+    types: [ labeled ]
     branches:
       - main
       # TODO: remove this branch again, only for testing
@@ -9,6 +10,7 @@ on:
     tags:
       - "v*"
   pull_request:
+    types: [ labeled ]
     branches:
       - main
       # TODO: remove this branch again, only for testing

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -362,6 +363,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
             Assert.Throws<ImageFormatException>(
+                () =>
+                {
+                    using (provider.GetImage(WebpDecoder))
+                    {
+                    }
+                });
+
+        // https://github.com/SixLabors/ImageSharp/issues/2154
+        [Theory]
+        [WithFile(Lossless.Issue2154, PixelTypes.Rgba32)]
+        public void WebpDecoder_ThrowsNotSupportedException_Issue2154<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            Assert.Throws<NotSupportedException>(
                 () =>
                 {
                     using (provider.GetImage(WebpDecoder))

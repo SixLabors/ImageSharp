@@ -632,6 +632,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string LossLessCorruptImage3 = "Webp/lossless_color_transform.webp"; // cross_color, predictor
 
                 public const string LossLessCorruptImage4 = "Webp/near_lossless_75.webp"; // predictor, cross_color.
+
+                // Issues
+                public const string Issue2154 = "Webp/issues/Issue2154.webp";
             }
 
             public static class Lossy

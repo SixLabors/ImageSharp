@@ -660,14 +660,22 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         /// <param name="chunkType">The chunk type.</param>
         /// <returns>True, if its an optional chunk type.</returns>
-        private static bool IsOptionalVp8XChunk(WebpChunkType chunkType) => chunkType switch
+        private static bool IsOptionalVp8XChunk(WebpChunkType chunkType)
         {
-            WebpChunkType.Alpha => true,
-            WebpChunkType.Animation => true,
-            WebpChunkType.Exif => true,
-            WebpChunkType.Iccp => true,
-            WebpChunkType.Xmp => true,
-            _ => false
-        };
+            switch (chunkType)
+            {
+                case WebpChunkType.Alpha:
+                case WebpChunkType.Iccp:
+                case WebpChunkType.Exif:
+                case WebpChunkType.Xmp:
+                    return true;
+                case WebpChunkType.AnimationParameter:
+                case WebpChunkType.Animation:
+                    WebpThrowHelper.ThrowNotSupportedException("Animated webp are not yet supported.");
+                    return false;
+                default:
+                    return false;
+            }
+        }
     }
 }

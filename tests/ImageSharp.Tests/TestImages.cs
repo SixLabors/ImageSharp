@@ -265,6 +265,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Issue2057App1Parsing = "Jpg/issues/Issue2057-App1Parsing.jpg";
                 public const string ExifNullArrayTag = "Jpg/issues/issue-2056-exif-null-array.jpg";
                 public const string ValidExifArgumentNullExceptionOnEncode = "Jpg/issues/Issue2087-exif-null-reference-on-encode.jpg";
+                public const string Issue2133DeduceColorSpace = "Jpg/issues/Issue2133.jpg";
 
                 public static class Fuzz
                 {
@@ -631,6 +632,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string LossLessCorruptImage3 = "Webp/lossless_color_transform.webp"; // cross_color, predictor
 
                 public const string LossLessCorruptImage4 = "Webp/near_lossless_75.webp"; // predictor, cross_color.
+
+                // Issues
+                public const string Issue2154 = "Webp/issues/Issue2154.webp";
             }
 
             public static class Lossy

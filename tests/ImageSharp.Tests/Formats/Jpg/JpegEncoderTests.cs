@@ -222,6 +222,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.L8, JpegEncodingColor.Luminance)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.Rgb)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.Cmyk)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.Ycck)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio422)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio411)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio410)]
+        public void EncodeBaseline_WorksInNonInterleavedMode<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // all reference output images are saved with quality=100
+            const int quality = 100;
+
+            using Image<TPixel> image = provider.GetImage();
+
+            // There is no alpha in Jpeg!
+            image.Mutate(c => c.MakeOpaque());
+
+            var encoder = new JpegEncoder
+            {
+                ColorType = colorType,
+                Interleaved = false
+            };
+            string info = $"{colorType}-Q{quality}";
+
+            ImageComparer comparer = GetComparer(quality, colorType);
+
+            // Does DebugSave & load reference CompareToReferenceInput():
+            image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
+        }
+
+        [Theory]
         [MemberData(nameof(RatioFiles))]
         public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {

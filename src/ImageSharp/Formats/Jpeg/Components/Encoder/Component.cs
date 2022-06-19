@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
-            this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
+            this.SamplingFactors = new Size(horizontalFactor, verticalFactor);
 
             this.QuantizationTableIndex = quantizationTableIndex;
         }
@@ -85,10 +85,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Init(JpegFrame frame, int maxSubFactorH, int maxSubFactorV)
         {
             this.WidthInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(frame.PixelWidth / 8F) * this.HorizontalSamplingFactor / maxSubFactorH);
+                ((uint)frame.PixelWidth + 7) / 8 * this.HorizontalSamplingFactor / maxSubFactorH);
 
             this.HeightInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(frame.PixelHeight / 8F) * this.VerticalSamplingFactor / maxSubFactorV);
+                ((uint)frame.PixelHeight + 7) / 8 * this.VerticalSamplingFactor / maxSubFactorV);
 
             int blocksPerLineForMcu = frame.McusPerLine * this.HorizontalSamplingFactor;
             int blocksPerColumnForMcu = frame.McusPerColumn * this.VerticalSamplingFactor;

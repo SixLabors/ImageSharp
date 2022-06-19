@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: 0);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-                for (int k = 0; k < w; k++)
+                for (nint k = 0; k < w; k++)
                 {
                     this.WriteBlock(
                         component,
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-                for (int k = 0; k < w; k++)
+                for (nint k = 0; k < w; k++)
                 {
                     this.WriteBlock(
                         component,
@@ -249,9 +249,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void EncodeScanBaselineInterleaved<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int mcu = 0;
-            int mcusPerColumn = frame.McusPerColumn;
-            int mcusPerLine = frame.McusPerLine;
+            nint mcu = 0;
+            nint mcusPerColumn = frame.McusPerColumn;
+            nint mcusPerLine = frame.McusPerLine;
 
             for (int j = 0; j < mcusPerColumn; j++)
             {
@@ -261,19 +261,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 converter.ConvertStrideBaseline();
 
                 // Encode spectral to binary
-                for (int i = 0; i < mcusPerLine; i++)
+                for (nint i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
-                    int mcuCol = mcu % mcusPerLine;
-                    for (int k = 0; k < frame.Components.Length; k++)
+                    nint mcuCol = mcu % mcusPerLine;
+                    for (nint k = 0; k < frame.Components.Length; k++)
                     {
                         Component component = frame.Components[k];
 
                         ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                         ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
-                        int h = component.HorizontalSamplingFactor;
+                        nint h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
+
+                        nint blockColBase = mcuCol * h;
 
                         // Scan out an mcu's worth of this component; that's just determined
                         // by the basic H and V specified for the component
@@ -282,9 +284,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-                            for (int x = 0; x < h; x++)
+                            for (nint x = 0; x < h; x++)
                             {
-                                int blockCol = (mcuCol * h) + x;
+                                nint blockCol = blockColBase + x;
 
                                 this.WriteBlock(
                                     component,
@@ -316,8 +318,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private void EncodeThreeComponentScanBaselineInterleaved444<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int mcusPerColumn = frame.McusPerColumn;
-            int mcusPerLine = frame.McusPerLine;
+            nint mcusPerColumn = frame.McusPerColumn;
+            nint mcusPerLine = frame.McusPerLine;
 
             Component c2 = frame.Components[2];
             Component c1 = frame.Components[1];
@@ -334,7 +336,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Block8x8 c1BlockRef = ref MemoryMarshal.GetReference(c1.SpectralBlocks.DangerousGetRowSpan(y: 0));
             ref Block8x8 c2BlockRef = ref MemoryMarshal.GetReference(c2.SpectralBlocks.DangerousGetRowSpan(y: 0));
 
-            for (int j = 0; j < mcusPerColumn; j++)
+            for (nint j = 0; j < mcusPerColumn; j++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -342,7 +344,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 converter.ConvertStrideBaseline();
 
                 // Encode spectral to binary
-                for (int i = 0; i < mcusPerLine; i++)
+                for (nint i = 0; i < mcusPerLine; i++)
                 {
                     this.WriteBlock(
                         c0,

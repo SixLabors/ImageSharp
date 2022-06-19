@@ -168,20 +168,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     // log2(2) == 2 / 2 == 1
                     // log2(4) == 4 / 2 == 2
                     int haddIterationsCount = (int)((uint)factor / 2);
-                    int length = target.Length / Vector256<float>.Count;
+                    uint length = (uint)target.Length / (uint)Vector256<float>.Count;
                     for (int i = 0; i < haddIterationsCount; i++)
                     {
                         length /= 2;
-                        for (int j = 0; j < length; j++)
+
+                        for (nuint j = 0; j < length; j++)
                         {
-                            int indexLeft = j * 2;
-                            int indexRight = indexLeft + 1;
+                            nuint indexLeft = j * 2;
+                            nuint indexRight = indexLeft + 1;
                             Vector256<float> sum = Avx.HorizontalAdd(Unsafe.Add(ref targetRef, indexLeft), Unsafe.Add(ref targetRef, indexRight));
                             Unsafe.Add(ref targetRef, j) = Avx2.Permute4x64(sum.AsDouble(), 0b11_01_10_00).AsSingle();
                         }
                     }
 
-                    int summedCount = length * factor * Vector256<float>.Count;
+                    int summedCount = (int)(length * factor * Vector256<float>.Count);
                     target = target.Slice(summedCount);
                 }
 

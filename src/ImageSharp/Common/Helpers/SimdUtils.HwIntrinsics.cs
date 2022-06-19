@@ -984,7 +984,7 @@ namespace SixLabors.ImageSharp
                 Vector256<float> r, g, b;
 
                 const int bytesPerRgbStride = 24;
-                int count = source.Length / 8;
+                int count = (int)((uint)source.Length / 8);
                 for (int i = 0; i < count; i++)
                 {
                     rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();

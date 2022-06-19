@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private void CopyTo2x2Scale(ref float areaOrigin, int areaStride)
         {
             ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref areaOrigin);
-            int destStride = areaStride / 2;
+            int destStride = (int)((uint)areaStride / 2);
 
             WidenCopyRowImpl2x2(ref this.V0L, ref destBase, 0, destStride);
             WidenCopyRowImpl2x2(ref this.V0L, ref destBase, 1, destStride);
@@ -48,12 +48,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             WidenCopyRowImpl2x2(ref this.V0L, ref destBase, 7, destStride);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static void WidenCopyRowImpl2x2(ref Vector4 selfBase, ref Vector2 destBase, int row, int destStride)
+            static void WidenCopyRowImpl2x2(ref Vector4 selfBase, ref Vector2 destBase, nint row, nint destStride)
             {
                 ref Vector4 sLeft = ref Unsafe.Add(ref selfBase, 2 * row);
                 ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
-                int offset = 2 * row * destStride;
+                nint offset = 2 * row * destStride;
                 ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
                 ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
 
@@ -98,12 +98,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     int xx = x * horizontalScale;
 
                     float value = this[y8 + x];
+                    nint baseIdx = (yy * areaStride) + xx;
 
-                    for (int i = 0; i < verticalScale; i++)
+                    for (nint i = 0; i < verticalScale; i++, baseIdx += areaStride)
                     {
-                        int baseIdx = ((yy + i) * areaStride) + xx;
-
-                        for (int j = 0; j < horizontalScale; j++)
+                        for (nint j = 0; j < horizontalScale; j++)
                         {
                             // area[xx + j, yy + i] = value;
                             Unsafe.Add(ref areaOrigin, baseIdx + j) = value;

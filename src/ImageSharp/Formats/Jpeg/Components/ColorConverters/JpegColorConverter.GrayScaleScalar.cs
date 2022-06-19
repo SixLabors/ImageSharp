@@ -41,12 +41,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 for (int i = 0; i < c0.Length; i++)
                 {
-                    float r = rLane[i];
-                    float g = gLane[i];
-                    float b = bLane[i];
-
                     // luminocity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                    float luma = (0.299f * r) + (0.587f * g) + (0.114f * b);
+                    float luma = (0.299f * rLane[i]) + (0.587f * gLane[i]) + (0.114f * bLane[i]);
                     c0[i] = luma;
                 }
             }

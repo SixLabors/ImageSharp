@@ -1,15 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
-using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -62,6 +58,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 { TestImages.Jpeg.Baseline.Snake, 300, 300, PixelResolutionUnit.PixelsPerInch },
                 { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
             };
+
+        [Fact]
+        public void Quality_1_And_100_Are_Not_Identical()
+        {
+            var options = new JpegEncoder
+            {
+                Quality = 1
+            };
+
+            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
+
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
+            using (var memStream0 = new MemoryStream())
+            using (var memStream1 = new MemoryStream())
+            {
+                input.SaveAsJpeg(memStream0, options);
+
+                options.Quality = 100;
+                input.SaveAsJpeg(memStream1, options);
+
+                Assert.NotEqual(memStream0.ToArray(), memStream1.ToArray());
+            }
+        }
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32, JpegEncodingColor.Luminance)]
@@ -169,6 +188,92 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestJpegEncoderCore(provider, colorType, 100, comparer);
         }
 
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.L8, JpegEncodingColor.Luminance)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.Rgb)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.Cmyk)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio422)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio411)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio410)]
+        public void EncodeBaseline_WorksWithAllColorTypes<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // all reference output images are saved with quality=100
+            const int quality = 100;
+
+            using Image<TPixel> image = provider.GetImage();
+
+            // There is no alpha in Jpeg!
+            image.Mutate(c => c.MakeOpaque());
+
+            var encoder = new JpegEncoder
+            {
+                Quality = quality,
+                ColorType = colorType
+            };
+            string info = $"{colorType}-Q{quality}";
+
+            ImageComparer comparer = GetComparer(quality, colorType);
+
+            // Does DebugSave & load reference CompareToReferenceInput():
+            image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, JpegEncoder);
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        ImageMetadata meta = output.Metadata;
+                        Assert.Equal(xResolution, meta.HorizontalResolution);
+                        Assert.Equal(yResolution, meta.VerticalResolution);
+                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(JpegEncodingColor.YCbCrRatio420)]
+        [InlineData(JpegEncodingColor.YCbCrRatio444)]
+        public async Task Encode_IsCancellable(JpegEncodingColor colorType)
+        {
+            var cts = new CancellationTokenSource();
+            using var pausedStream = new PausedStream(new MemoryStream());
+            pausedStream.OnWaiting(s =>
+            {
+                // after some writing
+                if (s.Position >= 500)
+                {
+                    cts.Cancel();
+                    pausedStream.Release();
+                }
+                else
+                {
+                    // allows this/next wait to unblock
+                    pausedStream.Next();
+                }
+            });
+
+            using var image = new Image<Rgba32>(5000, 5000);
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            {
+                var encoder = new JpegEncoder() { ColorType = colorType };
+                await image.SaveAsync(pausedStream, encoder, cts.Token);
+            });
+        }
+
         /// <summary>
         /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
         /// </summary>
@@ -215,144 +320,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // Does DebugSave & load reference CompareToReferenceInput():
             image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
-        }
-
-        [Fact]
-        public void Quality_1_And_100_Are_Not_Identical()
-        {
-            var options = new JpegEncoder
-            {
-                Quality = 1
-            };
-
-            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
-
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            using (var memStream0 = new MemoryStream())
-            using (var memStream1 = new MemoryStream())
-            {
-                input.SaveAsJpeg(memStream0, options);
-
-                options.Quality = 100;
-                input.SaveAsJpeg(memStream1, options);
-
-                Assert.NotEqual(memStream0.ToArray(), memStream1.ToArray());
-            }
-        }
-
-        [Theory]
-        [MemberData(nameof(RatioFiles))]
-        public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, JpegEncoder);
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        ImageMetadata meta = output.Metadata;
-                        Assert.Equal(xResolution, meta.HorizontalResolution);
-                        Assert.Equal(yResolution, meta.VerticalResolution);
-                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_PreservesIptcProfile()
-        {
-            // arrange
-            using var input = new Image<Rgba32>(1, 1);
-            input.Metadata.IptcProfile = new IptcProfile();
-            input.Metadata.IptcProfile.SetValue(IptcTag.Byline, "unit_test");
-
-            // act
-            using var memStream = new MemoryStream();
-            input.Save(memStream, JpegEncoder);
-
-            // assert
-            memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(memStream);
-            IptcProfile actual = output.Metadata.IptcProfile;
-            Assert.NotNull(actual);
-            IEnumerable<IptcValue> values = input.Metadata.IptcProfile.Values;
-            Assert.Equal(values, actual.Values);
-        }
-
-        [Fact]
-        public void Encode_PreservesExifProfile()
-        {
-            // arrange
-            using var input = new Image<Rgba32>(1, 1);
-            input.Metadata.ExifProfile = new ExifProfile();
-            input.Metadata.ExifProfile.SetValue(ExifTag.Software, "unit_test");
-
-            // act
-            using var memStream = new MemoryStream();
-            input.Save(memStream, JpegEncoder);
-
-            // assert
-            memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(memStream);
-            ExifProfile actual = output.Metadata.ExifProfile;
-            Assert.NotNull(actual);
-            IReadOnlyList<IExifValue> values = input.Metadata.ExifProfile.Values;
-            Assert.Equal(values, actual.Values);
-        }
-
-        [Fact]
-        public void Encode_PreservesIccProfile()
-        {
-            // arrange
-            using var input = new Image<Rgba32>(1, 1);
-            input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.Profile_Random_Array);
-
-            // act
-            using var memStream = new MemoryStream();
-            input.Save(memStream, JpegEncoder);
-
-            // assert
-            memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(memStream);
-            IccProfile actual = output.Metadata.IccProfile;
-            Assert.NotNull(actual);
-            IccProfile values = input.Metadata.IccProfile;
-            Assert.Equal(values.Entries, actual.Entries);
-        }
-
-        [Theory]
-        [InlineData(JpegEncodingColor.YCbCrRatio420)]
-        [InlineData(JpegEncodingColor.YCbCrRatio444)]
-        public async Task Encode_IsCancellable(JpegEncodingColor colorType)
-        {
-            var cts = new CancellationTokenSource();
-            using var pausedStream = new PausedStream(new MemoryStream());
-            pausedStream.OnWaiting(s =>
-            {
-                // after some writing
-                if (s.Position >= 500)
-                {
-                    cts.Cancel();
-                    pausedStream.Release();
-                }
-                else
-                {
-                    // allows this/next wait to unblock
-                    pausedStream.Next();
-                }
-            });
-
-            using var image = new Image<Rgba32>(5000, 5000);
-            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-            {
-                var encoder = new JpegEncoder() { ColorType = colorType };
-                await image.SaveAsync(pausedStream, encoder, cts.Token);
-            });
         }
     }
 }

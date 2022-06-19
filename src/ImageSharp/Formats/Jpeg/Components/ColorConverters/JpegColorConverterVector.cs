@@ -26,8 +26,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <summary>
+            /// Gets a value indicating whether this converter is supported on current hardware.
+            /// </summary>
+            public static bool IsSupported => Vector.IsHardwareAccelerated && Vector<float>.Count % 4 == 0;
+
             /// <inheritdoc/>
-            public sealed override bool IsAvailable => Vector.IsHardwareAccelerated && Vector<float>.Count % 4 == 0;
+            public sealed override bool IsAvailable => IsSupported;
 
             /// <inheritdoc/>
             public sealed override void ConvertToRgbInplace(in ComponentValues values)

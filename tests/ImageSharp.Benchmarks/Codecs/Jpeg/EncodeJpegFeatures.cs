@@ -84,16 +84,16 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 
 |    Method | TargetColorSpace | Quality |      Mean |     Error |    StdDev |
 |---------- |----------------- |-------- |----------:|----------:|----------:|
-| Benchmark |        Luminance |      75 |  4.575 ms | 0.0233 ms | 0.0207 ms |
-| Benchmark |              Rgb |      75 | 12.477 ms | 0.1051 ms | 0.0932 ms |
-| Benchmark |    YCbCrRatio420 |      75 |  6.421 ms | 0.0464 ms | 0.0434 ms |
-| Benchmark |    YCbCrRatio444 |      75 |  8.449 ms | 0.1246 ms | 0.1166 ms |
-| Benchmark |        Luminance |      90 |  4.863 ms | 0.0120 ms | 0.0106 ms |
-| Benchmark |              Rgb |      90 | 13.287 ms | 0.0548 ms | 0.0513 ms |
-| Benchmark |    YCbCrRatio420 |      90 |  7.012 ms | 0.0533 ms | 0.0499 ms |
-| Benchmark |    YCbCrRatio444 |      90 |  8.916 ms | 0.1285 ms | 0.1202 ms |
-| Benchmark |        Luminance |     100 |  6.665 ms | 0.0136 ms | 0.0113 ms |
-| Benchmark |              Rgb |     100 | 19.734 ms | 0.0477 ms | 0.0446 ms |
-| Benchmark |    YCbCrRatio420 |     100 | 10.541 ms | 0.0925 ms | 0.0865 ms |
-| Benchmark |    YCbCrRatio444 |     100 | 15.587 ms | 0.1695 ms | 0.1586 ms |
+| Benchmark |        Luminance |      75 |  4.618 ms | 0.0263 ms | 0.0233 ms |
+| Benchmark |              Rgb |      75 | 12.543 ms | 0.0650 ms | 0.0608 ms |
+| Benchmark |    YCbCrRatio420 |      75 |  6.639 ms | 0.0778 ms | 0.1256 ms |
+| Benchmark |    YCbCrRatio444 |      75 |  8.590 ms | 0.0570 ms | 0.0505 ms |
+| Benchmark |        Luminance |      90 |  4.902 ms | 0.0307 ms | 0.0288 ms |
+| Benchmark |              Rgb |      90 | 13.447 ms | 0.0468 ms | 0.0415 ms |
+| Benchmark |    YCbCrRatio420 |      90 |  7.218 ms | 0.0586 ms | 0.0548 ms |
+| Benchmark |    YCbCrRatio444 |      90 |  9.150 ms | 0.0779 ms | 0.0729 ms |
+| Benchmark |        Luminance |     100 |  6.731 ms | 0.0325 ms | 0.0304 ms |
+| Benchmark |              Rgb |     100 | 19.831 ms | 0.1009 ms | 0.0788 ms |
+| Benchmark |    YCbCrRatio420 |     100 | 10.541 ms | 0.0423 ms | 0.0396 ms |
+| Benchmark |    YCbCrRatio444 |     100 | 15.345 ms | 0.3276 ms | 0.3065 ms |
 */

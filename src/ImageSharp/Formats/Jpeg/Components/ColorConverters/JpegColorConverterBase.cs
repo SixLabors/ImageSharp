@@ -93,73 +93,116 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         private static JpegColorConverterBase[] CreateConverters()
         {
-            var converters = new List<JpegColorConverterBase>();
+            // 5 color types with 2 supported precisions: 8 bit & 12 bit
+            const int colorConvertersCount = 5 * 2;
+
+            var converters = new JpegColorConverterBase[colorConvertersCount];
 
             // 8-bit converters
-            converters.AddRange(GetYCbCrConverters(8));
-            converters.AddRange(GetYccKConverters(8));
-            converters.AddRange(GetCmykConverters(8));
-            converters.AddRange(GetGrayScaleConverters(8));
-            converters.AddRange(GetRgbConverters(8));
+            converters[0] = GetYCbCrConverter(8);
+            converters[1] = GetYccKConverter(8);
+            converters[2] = GetCmykConverter(8);
+            converters[3] = GetGrayScaleConverter(8);
+            converters[4] = GetRgbConverter(8);
 
             // 12-bit converters
-            converters.AddRange(GetYCbCrConverters(12));
-            converters.AddRange(GetYccKConverters(12));
-            converters.AddRange(GetCmykConverters(12));
-            converters.AddRange(GetGrayScaleConverters(12));
-            converters.AddRange(GetRgbConverters(12));
+            converters[5] = GetYCbCrConverter(12);
+            converters[6] = GetYccKConverter(12);
+            converters[7] = GetCmykConverter(12);
+            converters[8] = GetGrayScaleConverter(12);
+            converters[9] = GetRgbConverter(12);
 
-            return converters.Where(x => x.IsAvailable).ToArray();
+            return converters;
         }
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the YCbCr colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverterBase> GetYCbCrConverters(int precision)
+        private static JpegColorConverterBase GetYCbCrConverter(int precision)
         {
-            yield return new YCbCrAvx(precision);
-            yield return new YCbCrVector(precision);
-            yield return new YCbCrScalar(precision);
+            if (JpegColorConverterAvx.IsSupported)
+            {
+                return new YCbCrAvx(precision);
+            }
+
+            if (JpegColorConverterVector.IsSupported)
+            {
+                return new YCbCrVector(precision);
+            }
+
+            return new YCbCrScalar(precision);
         }
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the YccK colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverterBase> GetYccKConverters(int precision)
+        private static JpegColorConverterBase GetYccKConverter(int precision)
         {
-            yield return new YccKAvx(precision);
-            yield return new YccKVector(precision);
-            yield return new YccKScalar(precision);
+            if (JpegColorConverterAvx.IsSupported)
+            {
+                return new YccKAvx(precision);
+            }
+
+            if (JpegColorConverterVector.IsSupported)
+            {
+                return new YccKVector(precision);
+            }
+
+            return new YccKScalar(precision);
         }
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the CMYK colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverterBase> GetCmykConverters(int precision)
+        private static JpegColorConverterBase GetCmykConverter(int precision)
         {
-            yield return new CmykAvx(precision);
-            yield return new CmykVector(precision);
-            yield return new CmykScalar(precision);
+            if (JpegColorConverterAvx.IsSupported)
+            {
+                return new CmykAvx(precision);
+            }
+
+            if (JpegColorConverterVector.IsSupported)
+            {
+                return new CmykVector(precision);
+            }
+
+            return new CmykScalar(precision);
         }
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the gray scale colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverterBase> GetGrayScaleConverters(int precision)
+        private static JpegColorConverterBase GetGrayScaleConverter(int precision)
         {
-            yield return new GrayscaleAvx(precision);
-            yield return new GrayScaleVector(precision);
-            yield return new GrayscaleScalar(precision);
+            if (JpegColorConverterAvx.IsSupported)
+            {
+                return new GrayscaleAvx(precision);
+            }
+
+            if (JpegColorConverterVector.IsSupported)
+            {
+                return new GrayScaleVector(precision);
+            }
+
+            return new GrayscaleScalar(precision);
         }
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the RGB colorspace.
         /// </summary>
-        private static IEnumerable<JpegColorConverterBase> GetRgbConverters(int precision)
+        private static JpegColorConverterBase GetRgbConverter(int precision)
         {
-            yield return new RgbAvx(precision);
-            yield return new RgbVector(precision);
-            yield return new RgbScalar(precision);
+            if (JpegColorConverterAvx.IsSupported)
+            {
+                return new RgbAvx(precision);
+            }
+
+            if (JpegColorConverterVector.IsSupported)
+            {
+                return new RgbScalar(precision);
+            }
+
+            return new GrayscaleScalar(precision);
         }
 
         /// <summary>

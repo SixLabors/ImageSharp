@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             {
                 case JpegEncodingColor.YCbCrRatio444:
                 case JpegEncodingColor.Rgb:
-                    this.EncodeThreeComponentScanBaselineInterleaved444(frame, converter, cancellationToken);
+                    this.EncodeThreeComponentBaselineInterleavedScanNoSubsampling(frame, converter, cancellationToken);
                     break;
                 default:
                     this.EncodeScanBaselineInterleaved(frame, converter, cancellationToken);
@@ -310,12 +310,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Encodes scan in baseline interleaved mode with exactly 3 components with 4:4:4 sampling.
+        /// Encodes scan in baseline interleaved mode with exactly 3 components with no subsampling.
         /// </summary>
         /// <param name="frame">Frame to encode.</param>
         /// <param name="converter">Converter from color to spectral.</param>
         /// <param name="cancellationToken">The token to request cancellation.</param>
-        private void EncodeThreeComponentScanBaselineInterleaved444<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+        private void EncodeThreeComponentBaselineInterleavedScanNoSubsampling<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             nint mcusPerColumn = frame.McusPerColumn;

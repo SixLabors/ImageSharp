@@ -25,8 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
+            /// <summary>
+            /// Gets a value indicating whether this converter is supported on current hardware.
+            /// </summary>
+            public static bool IsSupported => Avx.IsSupported;
+
             /// <inheritdoc/>
-            public override bool IsAvailable => Avx.IsSupported;
+            public override bool IsAvailable => IsSupported;
         }
     }
 }

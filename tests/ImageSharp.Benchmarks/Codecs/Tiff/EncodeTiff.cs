@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Drawing.Imaging;
 using System.IO;
 using BenchmarkDotNet.Attributes;
@@ -9,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
+using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
@@ -17,10 +19,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     [Config(typeof(Config.ShortMultiFramework))]
     public class EncodeTiff
     {
-        private System.Drawing.Image drawing;
+        private Stream stream;
+        private SDImage drawing;
         private Image<Rgba32> core;
-
-        private Configuration configuration;
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
@@ -29,9 +30,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         [Params(
             TiffCompression.None,
-            TiffCompression.Deflate,
+
+            // System.Drawing does not support Deflate or PackBits
+            // TiffCompression.Deflate,
+            // TiffCompression.PackBits,
             TiffCompression.Lzw,
-            TiffCompression.PackBits,
             TiffCompression.CcittGroup3Fax,
             TiffCompression.Ccitt1D)]
         public TiffCompression Compression { get; set; }
@@ -39,11 +42,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [GlobalSetup]
         public void ReadImages()
         {
-            if (this.core == null)
+            if (this.stream == null)
             {
-                this.configuration = new Configuration();
-                this.core = Image.Load<Rgba32>(this.configuration, this.TestImageFullPath);
-                this.drawing = System.Drawing.Image.FromFile(this.TestImageFullPath);
+                this.stream = File.OpenRead(this.TestImageFullPath);
+                this.core = Image.Load<Rgba32>(this.stream);
+                this.stream.Position = 0;
+                this.drawing = SDImage.FromStream(this.stream);
             }
         }
 
@@ -70,7 +74,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Description = "ImageSharp Tiff")]
         public void TiffCore()
         {
-            TiffPhotometricInterpretation photometricInterpretation = TiffPhotometricInterpretation.Rgb;
+            TiffPhotometricInterpretation photometricInterpretation =
+                IsOneBitCompression(this.Compression) ?
+                    TiffPhotometricInterpretation.WhiteIsZero :
+                    TiffPhotometricInterpretation.Rgb;
 
             var encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
             using var memoryStream = new MemoryStream();
@@ -109,8 +116,18 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                     return EncoderValue.CompressionLZW;
 
                 default:
-                    throw new System.NotSupportedException(compression.ToString());
+                    throw new NotSupportedException(compression.ToString());
             }
+        }
+
+        public static bool IsOneBitCompression(TiffCompression compression)
+        {
+            if (compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

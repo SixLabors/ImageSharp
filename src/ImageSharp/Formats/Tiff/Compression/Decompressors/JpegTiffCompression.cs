@@ -65,13 +65,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         jpegDecoder.ParseStream(stream, spectralConverterGray, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        using var decompressedBuffer = spectralConverterGray.GetPixelBuffer(CancellationToken.None);
+                        using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(CancellationToken.None);
                         CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }
 
-                    // If the PhotometricInterpretation is YCbCr we explicitly assume the JPEG data is in RGB color space.
-                    // There seems no other way to determine that the JPEG data is RGB colorspace (no APP14 marker, componentId's are not RGB).
                     case TiffPhotometricInterpretation.YCbCr:
                     case TiffPhotometricInterpretation.Rgb:
                     {
@@ -82,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         jpegDecoder.ParseStream(stream, spectralConverter, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        using var decompressedBuffer = spectralConverter.GetPixelBuffer(CancellationToken.None);
+                        using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(CancellationToken.None);
                         CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }

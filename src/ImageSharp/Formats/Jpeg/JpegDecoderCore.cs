@@ -91,6 +91,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private JFifMarker jFif;
 
         /// <summary>
+        /// Whether the image has a JFIF marker. This is needed to determine, if the colorspace is YCbCr.
+        /// </summary>
+        private bool hasJFif;
+
+        /// <summary>
         /// Contains information about the Adobe marker.
         /// </summary>
         private AdobeMarker adobe;
@@ -159,38 +164,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Finds the next file marker within the byte stream.
         /// </summary>
-        /// <param name="marker">The buffer to read file markers to.</param>
         /// <param name="stream">The input stream.</param>
-        /// <returns>The <see cref="JpegFileMarker"/></returns>
-        public static JpegFileMarker FindNextFileMarker(byte[] marker, BufferedReadStream stream)
+        /// <returns>The <see cref="JpegFileMarker"/>.</returns>
+        public static JpegFileMarker FindNextFileMarker(BufferedReadStream stream)
         {
-            int value = stream.Read(marker, 0, 2);
-
-            if (value == 0)
+            while (true)
             {
-                return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
-            }
-
-            if (marker[0] == JpegConstants.Markers.XFF)
-            {
-                // According to Section B.1.1.2:
-                // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-                int m = marker[1];
-                while (m == JpegConstants.Markers.XFF)
+                int b = stream.ReadByte();
+                if (b == -1)
                 {
-                    int suffix = stream.ReadByte();
-                    if (suffix == -1)
-                    {
-                        return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
-                    }
-
-                    m = suffix;
+                    return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
                 }
 
-                return new JpegFileMarker((byte)m, stream.Position - 2);
-            }
+                // Found a marker.
+                if (b == JpegConstants.Markers.XFF)
+                {
+                    while (b == JpegConstants.Markers.XFF)
+                    {
+                        // Loop here to discard any padding FF bytes on terminating marker.
+                        b = stream.ReadByte();
+                        if (b == -1)
+                        {
+                            return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
+                        }
+                    }
 
-            return new JpegFileMarker(marker[1], stream.Position - 2, true);
+                    // Found a valid marker. Exit loop
+                    if (b is not 0 and (< JpegConstants.Markers.RST0 or > JpegConstants.Markers.RST7))
+                    {
+                        return new JpegFileMarker((byte)(uint)b, stream.Position - 2);
+                    }
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -340,15 +345,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
             }
 
-            stream.Read(this.markerBuffer, 0, 2);
-            byte marker = this.markerBuffer[1];
-            fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
+            fileMarker = FindNextFileMarker(stream);
             this.QuantizationTables ??= new Block8x8F[4];
 
             // Break only when we discover a valid EOI marker.
             // https://github.com/SixLabors/ImageSharp/issues/695
-            while (fileMarker.Marker != JpegConstants.Markers.EOI
-                || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
+            while (fileMarker.Marker != JpegConstants.Markers.EOI)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -500,7 +502,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // Read on.
-                fileMarker = FindNextFileMarker(this.markerBuffer, stream);
+                fileMarker = FindNextFileMarker(stream);
             }
         }
 
@@ -528,13 +530,52 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (componentCount == 3)
             {
-                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                // We prioritize adobe marker over jfif marker, if somebody really encoded this image with redundant adobe marker,
+                // then it's most likely an adobe jfif image.
+                if (!this.adobe.Equals(default))
+                {
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
+                    {
+                        return JpegColorSpace.YCbCr;
+                    }
+
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        return JpegColorSpace.RGB;
+                    }
+
+                    // Fallback to the id color deduction: If these values are 1-3 for a 3-channel image, then the image is assumed to be YCbCr.
+                    if (this.Components[2].Id == 3 && this.Components[1].Id == 2 && this.Components[0].Id == 1)
+                    {
+                        return JpegColorSpace.YCbCr;
+                    }
+
+                    JpegThrowHelper.ThrowNotSupportedColorSpace();
+                }
+
+                if (this.hasJFif)
+                {
+                    // JFIF implies YCbCr.
+                    return JpegColorSpace.YCbCr;
+                }
+
+                // Fallback to the id color deduction.
+                // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
+                // See: https://docs.oracle.com/javase/7/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html#color
+                if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
                 {
                     return JpegColorSpace.RGB;
                 }
 
-                // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
-                if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
+                // If these values are 1-3 for a 3-channel image, then the image is assumed to be YCbCr.
+                if (this.Components[2].Id == 3 && this.Components[1].Id == 2 && this.Components[0].Id == 1)
+                {
+                    return JpegColorSpace.YCbCr;
+                }
+
+                // 3-channel non-subsampled images are assumed to be RGB.
+                if (this.Components[2].VerticalSamplingFactor == 1 && this.Components[1].VerticalSamplingFactor == 1 && this.Components[0].VerticalSamplingFactor == 1 &&
+                    this.Components[2].HorizontalSamplingFactor == 1 && this.Components[1].HorizontalSamplingFactor == 1 && this.Components[0].HorizontalSamplingFactor == 1)
                 {
                     return JpegColorSpace.RGB;
                 }
@@ -546,9 +587,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (componentCount == 4)
             {
-                return this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck
-                    ? JpegColorSpace.Ycck
-                    : JpegColorSpace.Cmyk;
+                // jfif images doesn't not support 4 component images, so we only check adobe.
+                if (!this.adobe.Equals(default))
+                {
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
+                    {
+                        return JpegColorSpace.Ycck;
+                    }
+
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        return JpegColorSpace.Cmyk;
+                    }
+
+                    JpegThrowHelper.ThrowNotSupportedColorSpace();
+                }
+
+                // Fallback to cmyk as neither of cmyk nor ycck have 'special' component ids.
+                return JpegColorSpace.Cmyk;
             }
 
             JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
@@ -715,6 +771,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApplicationHeaderMarker(BufferedReadStream stream, int remaining)
         {
+            this.hasJFif = true;
+
             // We can only decode JFif identifiers.
             // Some images contain multiple JFIF markers (Issue 1932) so we check to see
             // if it's already been read.

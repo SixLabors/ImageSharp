@@ -76,6 +76,12 @@ namespace SixLabors.ImageSharp
         public static int Modulo8(int x) => x & 7;
 
         /// <summary>
+        /// Calculates <paramref name="x"/> % 8
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static nint Modulo8(nint x) => x & 7;
+
+        /// <summary>
         /// Fast (x mod m) calculator, with the restriction that
         /// <paramref name="m"/> should be power of 2.
         /// </summary>
@@ -968,7 +974,7 @@ namespace SixLabors.ImageSharp
         /// Tells whether input value is outside of the given range.
         /// </summary>
         /// <param name="value">Value.</param>
-        /// <param name="min">Mininum value, inclusive.</param>
+        /// <param name="min">Minimum value, inclusive.</param>
         /// <param name="max">Maximum value, inclusive.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsOutOfRange(int value, int min, int max)

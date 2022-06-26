@@ -73,19 +73,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     byte repeatData = compressedData[compressedOffset + 1];
                     int repeatLength = 257 - headerByte;
 
-                    ArrayCopyRepeat(repeatData, buffer, decompressedOffset, repeatLength);
+                    buffer.Slice(decompressedOffset, repeatLength).Fill(repeatData);
 
                     compressedOffset += 2;
                     decompressedOffset += repeatLength;
                 }
-            }
-        }
-
-        private static void ArrayCopyRepeat(byte value, Span<byte> destinationArray, int destinationIndex, int length)
-        {
-            for (int i = 0; i < length; i++)
-            {
-                destinationArray[i + destinationIndex] = value;
             }
         }
 

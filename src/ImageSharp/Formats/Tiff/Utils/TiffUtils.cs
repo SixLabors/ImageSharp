@@ -18,8 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 
         private const float Scale32Bit = 1.0f / 0xFFFFFFFF;
 
-        public static Vector4 Vector4Default { get; } = new(0.0f, 0.0f, 0.0f, 0.0f);
-
         public static Rgba64 Rgba64Default { get; } = new(0, 0, 0, 0);
 
         public static L16 L16Default { get; } = new(0);

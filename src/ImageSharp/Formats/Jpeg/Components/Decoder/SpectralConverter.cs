@@ -103,6 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int fullBlocksWidth = (int)((uint)size.Width / blockNativePixelSize);
                 int fullBlocksHeight = (int)((uint)size.Height / blockNativePixelSize);
 
+                // & (blockNativePixelSize - 1) is Numerics.Modulo8(), basically
                 int blockWidthRemainder = size.Width & (blockNativePixelSize - 1);
                 int blockHeightRemainder = size.Height & (blockNativePixelSize - 1);
 

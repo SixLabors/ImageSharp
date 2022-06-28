@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,11 +33,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
-            // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             L16 l16 = TiffUtils.L16Default;
             var color = default(TPixel);
-            color.FromScaledVector4(TiffUtils.Vector4Default);
+            color.FromScaledVector4(Vector4.Zero);
 
             int offset = 0;
             for (int y = top; y < top + height; y++)

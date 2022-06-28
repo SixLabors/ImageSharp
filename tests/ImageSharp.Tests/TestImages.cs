@@ -761,8 +761,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
             public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";
             public const string Fax4Compressed = "Tiff/basi3p02_fax4.tiff";
+            public const string Fax4Compressed2 = "Tiff/CCITTGroup4.tiff";
             public const string Fax4CompressedLowerOrderBitsFirst = "Tiff/basi3p02_fax4_lowerOrderBitsFirst.tiff";
             public const string WebpCompressed = "Tiff/webp_compressed.tiff";
+            public const string Fax4CompressedMinIsBlack = "Tiff/CCITTGroup4_minisblack.tiff";
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
             public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
@@ -915,6 +917,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
             public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
             public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";
+            public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

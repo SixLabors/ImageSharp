@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
@@ -8,6 +10,8 @@ namespace SixLabors.ImageSharp.Formats
     /// </summary>
     public sealed class DecoderOptions
     {
+        private uint maxFrames = uint.MaxValue;
+
         /// <summary>
         /// Gets or sets a custom Configuration instance to be used by the image processing pipeline.
         /// </summary>
@@ -26,6 +30,6 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Gets or sets the maximum number of image frames to decode, inclusive.
         /// </summary>
-        public int MaxFrames { get; set; } = int.MaxValue;
+        public uint MaxFrames { get => this.maxFrames; set => this.maxFrames = Math.Min(Math.Max(value, 1), uint.MaxValue); }
     }
 }

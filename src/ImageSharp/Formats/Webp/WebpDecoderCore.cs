@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.IO;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -21,12 +20,37 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Performs the webp decoding operation.
     /// </summary>
-    internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
+    internal sealed class WebpDecoderCore : IImageDecoderInternals<WebpDecoderOptions>, IDisposable
     {
         /// <summary>
         /// Reusable buffer.
         /// </summary>
         private readonly byte[] buffer = new byte[4];
+
+        /// <summary>
+        /// General configuration options.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
+        /// A value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        private readonly bool skipMetadata;
+
+        /// <summary>
+        /// The maximum number of frames to decode. Inclusive.
+        /// </summary>
+        private readonly uint maxFrames;
+
+        /// <summary>
+        /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
+        /// </summary>
+        private ImageMetadata metadata;
+
+        /// <summary>
+        /// Gets or sets the alpha data, if an ALPH chunk is present.
+        /// </summary>
+        private IMemoryOwner<byte> alphaData;
 
         /// <summary>
         /// Used for allocating memory during the decoding operations.
@@ -51,43 +75,21 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <summary>
         /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="options">The options.</param>
-        public WebpDecoderCore(Configuration configuration, IWebpDecoderOptions options)
+        /// <param name="options">The decoder options.</param>
+        public WebpDecoderCore(WebpDecoderOptions options)
         {
-            this.Configuration = configuration;
-            this.DecodingMode = options.DecodingMode;
-            this.memoryAllocator = configuration.MemoryAllocator;
-            this.IgnoreMetadata = options.IgnoreMetadata;
+            this.Options = options;
+            this.configuration = options.GeneralOptions.Configuration;
+            this.skipMetadata = options.GeneralOptions.SkipMetadata;
+            this.maxFrames = options.GeneralOptions.MaxFrames;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc/>
-        public Configuration Configuration { get; }
+        public WebpDecoderOptions Options { get; }
 
-        /// <summary>
-        /// Gets the decoding mode for multi-frame images.
-        /// </summary>
-        public FrameDecodingMode DecodingMode { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; }
-
-        /// <summary>
-        /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
-        /// </summary>
-        public ImageMetadata Metadata { get; private set; }
-
-        /// <summary>
-        /// Gets the dimensions of the image.
-        /// </summary>
+        /// <inheritdoc/>
         public Size Dimensions => new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
-
-        /// <summary>
-        /// Gets or sets the alpha data, if an ALPH chunk is present.
-        /// </summary>
-        public IMemoryOwner<byte> AlphaData { get; set; }
 
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -96,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Image<TPixel> image = null;
             try
             {
-                this.Metadata = new ImageMetadata();
+                this.metadata = new ImageMetadata();
                 this.currentStream = stream;
 
                 uint fileSize = this.ReadImageHeader();
@@ -105,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 {
                     if (this.webImageInfo.Features is { Animation: true })
                     {
-                        using var animationDecoder = new WebpAnimationDecoder(this.memoryAllocator, this.Configuration, this.DecodingMode);
+                        using var animationDecoder = new WebpAnimationDecoder(this.memoryAllocator, this.configuration, this.maxFrames);
                         return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                     }
 
@@ -114,17 +116,17 @@ namespace SixLabors.ImageSharp.Formats.Webp
                         WebpThrowHelper.ThrowNotSupportedException("Animations are not supported");
                     }
 
-                    image = new Image<TPixel>(this.Configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.Metadata);
+                    image = new Image<TPixel>(this.configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.metadata);
                     Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                     if (this.webImageInfo.IsLossless)
                     {
-                        var losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
+                        var losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
                         losslessDecoder.Decode(pixels, image.Width, image.Height);
                     }
                     else
                     {
-                        var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
-                        lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.AlphaData);
+                        var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                        lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
                     }
 
                     // There can be optional chunks after the image data, like EXIF and XMP.
@@ -151,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.ReadImageHeader();
             using (this.webImageInfo = this.ReadVp8Info(true))
             {
-                return new ImageInfo(new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel), (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.Metadata);
+                return new ImageInfo(new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel), (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.metadata);
             }
         }
 
@@ -182,8 +184,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <returns>Information about the webp image.</returns>
         private WebpImageInfo ReadVp8Info(bool ignoreAlpha = false)
         {
-            this.Metadata = new ImageMetadata();
-            this.webpMetadata = this.Metadata.GetFormatMetadata(WebpFormat.Instance);
+            this.metadata = new ImageMetadata();
+            this.webpMetadata = this.metadata.GetFormatMetadata(WebpFormat.Instance);
 
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(this.currentStream, this.buffer);
 
@@ -277,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="features">The webp features.</param>
         private void ParseOptionalChunks(WebpFeatures features)
         {
-            if (this.IgnoreMetadata || (features.ExifProfile == false && features.XmpMetaData == false))
+            if (this.skipMetadata || (features.ExifProfile == false && features.XmpMetaData == false))
             {
                 return;
             }
@@ -287,11 +289,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 // Read chunk header.
                 WebpChunkType chunkType = this.ReadChunkType();
-                if (chunkType == WebpChunkType.Exif && this.Metadata.ExifProfile == null)
+                if (chunkType == WebpChunkType.Exif && this.metadata.ExifProfile == null)
                 {
                     this.ReadExifProfile();
                 }
-                else if (chunkType == WebpChunkType.Xmp && this.Metadata.XmpProfile == null)
+                else if (chunkType == WebpChunkType.Xmp && this.metadata.XmpProfile == null)
                 {
                     this.ReadXmpProfile();
                 }
@@ -310,7 +312,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private void ReadExifProfile()
         {
             uint exifChunkSize = this.ReadChunkSize();
-            if (this.IgnoreMetadata)
+            if (this.skipMetadata)
             {
                 this.currentStream.Skip((int)exifChunkSize);
             }
@@ -325,7 +327,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 }
 
                 var profile = new ExifProfile(exifData);
-                this.Metadata.ExifProfile = profile;
+                this.metadata.ExifProfile = profile;
             }
         }
 
@@ -335,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private void ReadXmpProfile()
         {
             uint xmpChunkSize = this.ReadChunkSize();
-            if (this.IgnoreMetadata)
+            if (this.skipMetadata)
             {
                 this.currentStream.Skip((int)xmpChunkSize);
             }
@@ -350,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 }
 
                 var profile = new XmpProfile(xmpData);
-                this.Metadata.XmpProfile = profile;
+                this.metadata.XmpProfile = profile;
             }
         }
 
@@ -360,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private void ReadIccProfile()
         {
             uint iccpChunkSize = this.ReadChunkSize();
-            if (this.IgnoreMetadata)
+            if (this.skipMetadata)
             {
                 this.currentStream.Skip((int)iccpChunkSize);
             }
@@ -376,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 var profile = new IccProfile(iccpData);
                 if (profile.CheckIsValid())
                 {
-                    this.Metadata.IccProfile = profile;
+                    this.metadata.IccProfile = profile;
                 }
             }
         }
@@ -419,8 +421,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
             features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
             int alphaDataSize = (int)(alphaChunkSize - 1);
-            this.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
-            Span<byte> alphaData = this.AlphaData.GetSpan();
+            this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
+            Span<byte> alphaData = this.alphaData.GetSpan();
             int bytesRead = this.currentStream.Read(alphaData, 0, alphaDataSize);
             if (bytesRead != alphaDataSize)
             {
@@ -462,6 +464,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <inheritdoc/>
-        public void Dispose() => this.AlphaData?.Dispose();
+        public void Dispose() => this.alphaData?.Dispose();
     }
 }

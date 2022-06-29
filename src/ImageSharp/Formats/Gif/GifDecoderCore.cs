@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The maximum number of frames to decode. Inclusive.
         /// </summary>
-        private readonly int maxFrames;
+        private readonly uint maxFrames;
 
         /// <summary>
         /// Whether to skip metadata during decode.
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int frameCount = 0;
+            uint frameCount = 0;
             Image<TPixel> image = null;
             ImageFrame<TPixel> previousFrame = null;
             try
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     if (nextFlag == GifConstants.ImageLabel)
                     {
-                        if (previousFrame != null && frameCount++ <= this.maxFrames)
+                        if (previousFrame != null && frameCount++ > this.maxFrames)
                         {
                             break;
                         }

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Configuration options for decoding Tiff images.
     /// </summary>
-    public class TiffDecoderOptions : ISpecializedDecoderOptions
+    public sealed class TiffDecoderOptions : ISpecializedDecoderOptions
     {
         /// <inheritdoc/>
         public DecoderOptions GeneralOptions { get; set; } = new();

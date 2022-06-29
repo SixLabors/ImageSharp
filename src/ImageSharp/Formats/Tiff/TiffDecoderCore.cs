@@ -33,14 +33,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// A value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         private readonly bool skipMetadata;
 
         /// <summary>
         /// The maximum number of frames to decode. Inclusive.
         /// </summary>
-        private readonly int maxFrames;
+        private readonly uint maxFrames;
 
         /// <summary>
         /// The stream to decode from.
@@ -170,14 +170,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.byteOrder = reader.ByteOrder;
                 this.isBigTiff = reader.IsBigTiff;
 
-                int frameCount = 0;
+                uint frameCount = 0;
                 foreach (ExifProfile ifd in directories)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
                     frames.Add(frame);
 
-                    if (frameCount++ <= this.maxFrames)
+                    if (frameCount++ > this.maxFrames)
                     {
                         break;
                     }

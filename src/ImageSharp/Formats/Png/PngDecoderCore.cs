@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -28,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
-    internal sealed class PngDecoderCore : IImageDecoderInternals
+    internal sealed class PngDecoderCore : IImageDecoderInternals<PngDecoderOptions>
     {
         /// <summary>
         /// Reusable buffer.
@@ -36,9 +35,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly byte[] buffer = new byte[4];
 
         /// <summary>
+        /// The general decoder options.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        private readonly bool ignoreMetadata;
+        private readonly bool skipMetadata;
 
         /// <summary>
         /// Gets or sets a value indicating whether to read the IHDR and tRNS chunks only.
@@ -118,29 +122,26 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="options">The decoder options.</param>
-        public PngDecoderCore(Configuration configuration, IPngDecoderOptions options)
+        public PngDecoderCore(PngDecoderOptions options)
         {
-            this.Configuration = configuration ?? Configuration.Default;
-            this.memoryAllocator = this.Configuration.MemoryAllocator;
-            this.ignoreMetadata = options.IgnoreMetadata;
+            this.configuration = options.GeneralOptions.Configuration;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
+            this.skipMetadata = options.GeneralOptions.SkipMetadata;
         }
 
-        internal PngDecoderCore(Configuration configuration, bool colorMetadataOnly)
+        internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
         {
-            this.Configuration = configuration ?? Configuration.Default;
-            this.memoryAllocator = this.Configuration.MemoryAllocator;
+            this.configuration = options.GeneralOptions.Configuration;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
             this.colorMetadataOnly = colorMetadataOnly;
-            this.ignoreMetadata = true;
+            this.skipMetadata = true;
         }
 
         /// <inheritdoc/>
-        public Configuration Configuration { get; }
+        public PngDecoderOptions Options { get; }
 
-        /// <summary>
-        /// Gets the dimensions of the image.
-        /// </summary>
+        /// <inheritdoc/>
         public Size Dimensions => new(this.header.Width, this.header.Height);
 
         /// <inheritdoc/>
@@ -199,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Exif:
-                                if (!this.ignoreMetadata)
+                                if (!this.skipMetadata)
                                 {
                                     byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
@@ -336,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                if (!this.ignoreMetadata)
+                                if (!this.skipMetadata)
                                 {
                                     byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
@@ -469,7 +470,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             image = Image.CreateUninitialized<TPixel>(
-                this.Configuration,
+                this.configuration,
                 this.header.Width,
                 this.header.Height,
                 metadata);
@@ -485,7 +486,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.previousScanline?.Dispose();
             this.scanline?.Dispose();
             this.previousScanline = this.memoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
-            this.scanline = this.Configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
+            this.scanline = this.configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -798,7 +799,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     case PngColorType.Rgb:
                         PngScanlineProcessor.ProcessRgbScanline(
-                            this.Configuration,
+                            this.configuration,
                             this.header,
                             scanlineSpan,
                             rowSpan,
@@ -812,7 +813,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     case PngColorType.RgbWithAlpha:
                         PngScanlineProcessor.ProcessRgbaScanline(
-                            this.Configuration,
+                            this.configuration,
                             this.header,
                             scanlineSpan,
                             rowSpan,
@@ -1001,7 +1002,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
         private void ReadTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
-            if (this.ignoreMetadata)
+            if (this.skipMetadata)
             {
                 return;
             }
@@ -1036,7 +1037,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
         private void ReadCompressedTextChunk(ImageMetadata baseMetadata, PngMetadata metadata, ReadOnlySpan<byte> data)
         {
-            if (this.ignoreMetadata)
+            if (this.skipMetadata)
             {
                 return;
             }
@@ -1222,10 +1223,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             fixed (byte* compressedDataBase = compressedData)
             {
-                using (IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.Configuration.StreamProcessingBufferSize))
+                using (IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize))
                 using (var memoryStreamOutput = new MemoryStream(compressedData.Length))
                 using (var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
-                using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStreamInput))
+                using (var bufferedStream = new BufferedReadStream(this.configuration, memoryStreamInput))
                 using (var inflateStream = new ZlibInflateStream(bufferedStream))
                 {
                     Span<byte> destUncompressedData = destBuffer.GetSpan();
@@ -1324,7 +1325,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
         private void ReadInternationalTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
-            if (this.ignoreMetadata)
+            if (this.skipMetadata)
             {
                 return;
             }
@@ -1563,7 +1564,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IMemoryOwner<byte> ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
-            IMemoryOwner<byte> buffer = this.Configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
+            IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
             this.currentStream.Read(buffer.GetSpan(), 0, length);
 

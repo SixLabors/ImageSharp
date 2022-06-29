@@ -10,28 +10,29 @@ namespace SixLabors.ImageSharp.Formats.Tga
     /// <summary>
     /// Image decoder for Truevision TGA images.
     /// </summary>
-    public sealed class TgaDecoder : IImageDecoder, ITgaDecoderOptions, IImageInfoDetector
+    public sealed class TgaDecoder : ImageDecoder<TgaDecoderOptions>
     {
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public override Image<TPixel> DecodeSpecialized<TPixel>(TgaDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Guard.NotNull(stream, nameof(stream));
+            TgaDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TgaDecoderOptions, TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
 
-            var decoder = new TgaDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
+            Resize(options.GeneralOptions, image);
+
+            return image;
         }
 
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
+        /// <inheritdoc/>
+        public override Image DecodeSpecialized(TgaDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        public override IImageInfo IdentifySpecialized(TgaDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new TgaDecoderCore(configuration, this).Identify(configuration, stream, cancellationToken);
+            return new TgaDecoderCore(options).Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
         }
     }
 }

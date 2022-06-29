@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Image decoder options for decoding Windows bitmap streams.
+    /// Configuration options for decoding Windows Bitmap images.
     /// </summary>
     public sealed class BmpDecoderOptions : ISpecializedDecoderOptions
     {

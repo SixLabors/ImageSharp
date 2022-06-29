@@ -9,14 +9,16 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
-    /// Abstraction for shared internals for ***DecoderCore implementations to be used with <see cref="ImageDecoderUtilities"/>.
+    /// Abstraction for shared internals for XXXDecoderCore implementations to be used with <see cref="ImageDecoderUtilities"/>.
     /// </summary>
-    internal interface IImageDecoderInternals
+    /// <typeparam name="T">The type of specialized decoder options.</typeparam>
+    internal interface IImageDecoderInternals<T>
+        where T : ISpecializedDecoderOptions
     {
         /// <summary>
-        /// Gets the associated configuration.
+        /// Gets the specialized decoder options.
         /// </summary>
-        Configuration Configuration { get; }
+        T Options { get; }
 
         /// <summary>
         /// Gets the dimensions of the image being decoded.

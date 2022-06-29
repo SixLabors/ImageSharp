@@ -24,10 +24,8 @@ namespace SixLabors.ImageSharp.Formats
         public bool SkipMetadata { get; set; } = false;
 
         /// <summary>
-        /// Gets or sets the number of image frames to decode.
-        /// Leave <see langword="null"/> to decode all frames.
+        /// Gets or sets the maximum number of image frames to decode, inclusive.
         /// </summary>
-        // supported decoders may handle this internally but we will fallback to removeing additional frames after decode.
-        public int? MaxFrames { get; set; } = null;
+        public int MaxFrames { get; set; } = int.MaxValue;
     }
 }

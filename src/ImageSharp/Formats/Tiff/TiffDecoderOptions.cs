@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Tga
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
-    /// Configuration options for decoding Tga images.
+    /// Configuration options for decoding Tiff images.
     /// </summary>
-    public class TgaDecoderOptions : ISpecializedDecoderOptions
+    public class TiffDecoderOptions : ISpecializedDecoderOptions
     {
         /// <inheritdoc/>
         public DecoderOptions GeneralOptions { get; set; } = new();

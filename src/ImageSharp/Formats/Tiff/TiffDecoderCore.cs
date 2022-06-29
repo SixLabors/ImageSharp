@@ -20,8 +20,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Performs the tiff decoding operation.
     /// </summary>
-    internal class TiffDecoderCore : IImageDecoderInternals
+    internal class TiffDecoderCore : IImageDecoderInternals<TiffDecoderOptions>
     {
+        /// <summary>
+        /// General configuration options.
+        /// </summary>
+        private readonly Configuration configuration;
+
         /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
@@ -30,12 +35,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        private readonly bool ignoreMetadata;
+        private readonly bool skipMetadata;
 
         /// <summary>
-        /// Gets the decoding mode for multi-frame images
+        /// The maximum number of frames to decode. Inclusive.
         /// </summary>
-        private readonly FrameDecodingMode decodingMode;
+        private readonly int maxFrames;
 
         /// <summary>
         /// The stream to decode from.
@@ -55,16 +60,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="options">The decoder options.</param>
-        public TiffDecoderCore(Configuration configuration, ITiffDecoderOptions options)
+        public TiffDecoderCore(TiffDecoderOptions options)
         {
-            options ??= new TiffDecoder();
-
-            this.Configuration = configuration ?? Configuration.Default;
-            this.ignoreMetadata = options.IgnoreMetadata;
-            this.decodingMode = options.DecodingMode;
-            this.memoryAllocator = this.Configuration.MemoryAllocator;
+            this.Options = options;
+            this.configuration = options.GeneralOptions.Configuration;
+            this.skipMetadata = options.GeneralOptions.SkipMetadata;
+            this.maxFrames = options.GeneralOptions.MaxFrames;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <summary>
@@ -148,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffPredictor Predictor { get; set; }
 
         /// <inheritdoc/>
-        public Configuration Configuration { get; }
+        public TiffDecoderOptions Options { get; }
 
         /// <inheritdoc/>
         public Size Dimensions { get; private set; }
@@ -161,25 +164,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             try
             {
                 this.inputStream = stream;
-                var reader = new DirectoryReader(stream, this.Configuration.MemoryAllocator);
+                var reader = new DirectoryReader(stream, this.configuration.MemoryAllocator);
 
                 IEnumerable<ExifProfile> directories = reader.Read();
                 this.byteOrder = reader.ByteOrder;
                 this.isBigTiff = reader.IsBigTiff;
 
+                int frameCount = 0;
                 foreach (ExifProfile ifd in directories)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
                     frames.Add(frame);
 
-                    if (this.decodingMode is FrameDecodingMode.First)
+                    if (frameCount++ <= this.maxFrames)
                     {
                         break;
                     }
                 }
 
-                ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.ignoreMetadata, reader.ByteOrder, reader.IsBigTiff);
+                ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
 
                 // TODO: Tiff frames can have different sizes.
                 ImageFrame<TPixel> root = frames[0];
@@ -192,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                 }
 
-                return new Image<TPixel>(this.Configuration, metadata, frames);
+                return new Image<TPixel>(this.configuration, metadata, frames);
             }
             catch
             {
@@ -209,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.inputStream = stream;
-            var reader = new DirectoryReader(stream, this.Configuration.MemoryAllocator);
+            var reader = new DirectoryReader(stream, this.configuration.MemoryAllocator);
             IEnumerable<ExifProfile> directories = reader.Read();
 
             ExifProfile rootFrameExifProfile = directories.First();
@@ -233,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var imageFrameMetaData = new ImageFrameMetadata();
-            if (!this.ignoreMetadata)
+            if (!this.skipMetadata)
             {
                 imageFrameMetaData.ExifProfile = tags;
             }
@@ -245,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             int width = GetImageWidth(tags);
             int height = GetImageHeight(tags);
-            var frame = new ImageFrame<TPixel>(this.Configuration, width, height, imageFrameMetaData);
+            var frame = new ImageFrame<TPixel>(this.configuration, width, height, imageFrameMetaData);
 
             int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
 
@@ -369,7 +373,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-                    this.Configuration,
+                    this.configuration,
                     this.CompressionType,
                     this.memoryAllocator,
                     this.PhotometricInterpretation,
@@ -449,7 +453,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
             using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-                this.Configuration,
+                this.configuration,
                 this.CompressionType,
                 this.memoryAllocator,
                 this.PhotometricInterpretation,
@@ -463,7 +467,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.byteOrder);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
-                this.Configuration,
+                this.configuration,
                 this.memoryAllocator,
                 this.ColorType,
                 this.BitsPerSample,

@@ -105,9 +105,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="options">The options.</param>
         public BmpDecoderCore(BmpDecoderOptions options)
         {
+            this.Options = options;
             this.configuration = options.GeneralOptions.Configuration;
             this.memoryAllocator = this.configuration.MemoryAllocator;
-            this.Options = options;
         }
 
         /// <inheritdoc />

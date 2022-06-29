@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// The maximum number of frames to decode.
+        /// The maximum number of frames to decode. Inclusive.
         /// </summary>
         private readonly int maxFrames;
 
@@ -92,10 +92,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="options">The decoder options.</param>
         public GifDecoderCore(GifDecoderOptions options)
         {
-            this.skipMetadata = options.GeneralOptions.SkipMetadata;
+            this.Options = options;
             this.configuration = options.GeneralOptions.Configuration;
-            this.memoryAllocator = this.configuration.MemoryAllocator;
+            this.skipMetadata = options.GeneralOptions.SkipMetadata;
             this.maxFrames = options.GeneralOptions.MaxFrames;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc />

@@ -125,17 +125,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="options">The decoder options.</param>
         public PngDecoderCore(PngDecoderOptions options)
         {
+            this.Options = options;
             this.configuration = options.GeneralOptions.Configuration;
-            this.memoryAllocator = this.configuration.MemoryAllocator;
             this.skipMetadata = options.GeneralOptions.SkipMetadata;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
         {
-            this.configuration = options.GeneralOptions.Configuration;
-            this.memoryAllocator = this.configuration.MemoryAllocator;
+            this.Options = options;
             this.colorMetadataOnly = colorMetadataOnly;
             this.skipMetadata = true;
+            this.configuration = options.GeneralOptions.Configuration;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc/>

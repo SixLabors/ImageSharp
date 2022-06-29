@@ -26,29 +26,29 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </list>
     /// The specification of these images is found at <seealso href="http://netpbm.sourceforge.net/doc/pnm.html"/>.
     /// </summary>
-    public sealed class PbmDecoder : IImageDecoder, IImageInfoDetector
+    public sealed class PbmDecoder : ImageDecoder<PbmDecoderOptions>
     {
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        /// <inheritdoc />
+        public override Image<TPixel> DecodeSpecialized<TPixel>(PbmDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Guard.NotNull(stream, nameof(stream));
+            PbmDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<PbmDecoderOptions, TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
 
-            var decoder = new PbmDecoderCore(configuration);
-            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
+            Resize(options.GeneralOptions, image);
+
+            return image;
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgb24>(configuration, stream, cancellationToken);
+        public override Image DecodeSpecialized(PbmDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.DecodeSpecialized<Rgb24>(options, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        public override IImageInfo IdentifySpecialized(PbmDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new PbmDecoderCore(configuration);
-            return decoder.Identify(configuration, stream, cancellationToken);
+            return new PbmDecoderCore(options).Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
         }
     }
 }

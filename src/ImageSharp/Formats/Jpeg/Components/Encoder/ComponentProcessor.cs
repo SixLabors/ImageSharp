@@ -157,18 +157,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
             static void SumHorizontal(Span<float> target, int factor)
             {
+                Span<float> source = target;
                 if (Avx2.IsSupported)
                 {
                     ref Vector256<float> targetRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
 
                     // Ideally we need to use log2: Numerics.Log2((uint)factor)
                     // but division by 2 works just fine in this case
-                    // because factor value range is [1, 2, 4]
-                    // log2(1) == 1 / 2 == 0
-                    // log2(2) == 2 / 2 == 1
-                    // log2(4) == 4 / 2 == 2
                     int haddIterationsCount = (int)((uint)factor / 2);
-                    uint length = (uint)target.Length / (uint)Vector256<float>.Count;
+
+                    // Transform spans so that it only contains 'remainder'
+                    // values for the scalar fallback code
+                    int scalarRemainder = target.Length % (Vector<float>.Count * factor);
+                    int touchedCount = target.Length - scalarRemainder;
+                    source = source.Slice(touchedCount);
+                    target = target.Slice(touchedCount / factor);
+
+                    uint length = (uint)touchedCount / (uint)Vector256<float>.Count;
+
                     for (int i = 0; i < haddIterationsCount; i++)
                     {
                         length /= 2;
@@ -181,18 +187,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                             Unsafe.Add(ref targetRef, j) = Avx2.Permute4x64(sum.AsDouble(), 0b11_01_10_00).AsSingle();
                         }
                     }
-
-                    int summedCount = (int)(length * factor * Vector256<float>.Count);
-                    target = target.Slice(summedCount);
                 }
 
                 // scalar remainder
-                for (int i = 0; i < target.Length / factor; i++)
+                for (int i = 0; i < source.Length / factor; i++)
                 {
-                    target[i] = target[i * factor];
+                    target[i] = source[i * factor];
                     for (int j = 1; j < factor; j++)
                     {
-                        target[i] += target[(i * factor) + j];
+                        target[i] += source[(i * factor) + j];
                     }
                 }
             }

@@ -84,11 +84,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <param name="maxSubFactorV">Maximal vertical subsampling factor among all the components.</param>
         public void Init(JpegFrame frame, int maxSubFactorH, int maxSubFactorV)
         {
+            uint widthInBlocks = ((uint)frame.PixelWidth + 7) / 8;
+            uint heightInBlocks = ((uint)frame.PixelHeight + 7) / 8;
+
             this.WidthInBlocks = (int)MathF.Ceiling(
-                ((uint)frame.PixelWidth + 7) / 8 * this.HorizontalSamplingFactor / maxSubFactorH);
+                (float)widthInBlocks * this.HorizontalSamplingFactor / maxSubFactorH);
 
             this.HeightInBlocks = (int)MathF.Ceiling(
-                ((uint)frame.PixelHeight + 7) / 8 * this.VerticalSamplingFactor / maxSubFactorV);
+                (float)heightInBlocks * this.VerticalSamplingFactor / maxSubFactorV);
 
             int blocksPerLineForMcu = frame.McusPerLine * this.HorizontalSamplingFactor;
             int blocksPerColumnForMcu = frame.McusPerColumn * this.VerticalSamplingFactor;

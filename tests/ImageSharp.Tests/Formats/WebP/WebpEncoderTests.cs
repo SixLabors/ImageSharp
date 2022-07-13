@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 
@@ -280,7 +281,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            image.VerifyEncoder(provider, "webp", $"with_alpha_compressed_{compressed}", encoder, ImageComparer.Tolerant(0.04f));
+            image.VerifyEncoder(
+                provider,
+                "webp",
+                $"with_alpha_compressed_{compressed}",
+                encoder,
+                ImageComparer.Tolerant(0.04f),
+                referenceDecoder: new MagickReferenceDecoder());
         }
 
         [Theory]

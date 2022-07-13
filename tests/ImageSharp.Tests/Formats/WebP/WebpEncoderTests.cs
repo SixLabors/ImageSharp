@@ -284,6 +284,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
+        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32)]
+        public void Encode_Lossy_WithCompressedAlpha_AlphaShouldBeSmaller<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebpEncoder()
+            {
+                FileFormat = WebpFileFormatType.Lossy,
+                UseAlphaCompression = true
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            using (var memoryStream = new MemoryStream())
+            {
+                image.SaveAsWebp(memoryStream, encoder);
+                int size = memoryStream.ToArray().Length;
+                Assert.True(size < 16300);
+            }
+        }
+
+        [Theory]
         [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
         [WithFile(TestPatternOpaqueSmall, PixelTypes.Rgba32)]
         public void Encode_Lossless_WorksWithTestPattern<TPixel>(TestImageProvider<TPixel> provider)

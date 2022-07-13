@@ -7,7 +7,6 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -73,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
             TgaMetadata tgaMetadata = metadata.GetTgaMetadata();
-            this.bitsPerPixel = this.bitsPerPixel ?? tgaMetadata.BitsPerPixel;
+            this.bitsPerPixel ??= tgaMetadata.BitsPerPixel;
 
             TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
             if (this.bitsPerPixel == TgaBitsPerPixel.Pixel8)
@@ -160,6 +159,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 case TgaBitsPerPixel.Pixel32:
                     this.Write32Bit(stream, pixels);
                     break;
+                default:
+                    break;
             }
         }
 
@@ -213,6 +214,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         stream.WriteByte(color.R);
                         stream.WriteByte(color.A);
                         break;
+                    default:
+                        break;
                 }
 
                 encodedPixels += equalPixelCount + 1;
@@ -225,35 +228,29 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="pixels">The pixels of the image.</param>
         /// <param name="xStart">X coordinate to start searching for the same pixels.</param>
-        /// <param name="yStart">Y coordinate to start searching for the same pixels.</param>
+        /// <param name="yPos">Y coordinate to searching for the same pixels in only one scan line.</param>
         /// <returns>The number of equal pixels.</returns>
-        private byte FindEqualPixels<TPixel>(Buffer2D<TPixel> pixels, int xStart, int yStart)
+        private byte FindEqualPixels<TPixel>(Buffer2D<TPixel> pixels, int xStart, int yPos)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte equalPixelCount = 0;
-            bool firstRow = true;
-            TPixel startPixel = pixels[xStart, yStart];
-            for (int y = yStart; y < pixels.Height; y++)
+            TPixel startPixel = pixels[xStart, yPos];
+            for (int x = xStart + 1; x < pixels.Width; x++)
             {
-                for (int x = firstRow ? xStart + 1 : 0; x < pixels.Width; x++)
+                TPixel nextPixel = pixels[x, yPos];
+                if (startPixel.Equals(nextPixel))
                 {
-                    TPixel nextPixel = pixels[x, y];
-                    if (startPixel.Equals(nextPixel))
-                    {
-                        equalPixelCount++;
-                    }
-                    else
-                    {
-                        return equalPixelCount;
-                    }
-
-                    if (equalPixelCount >= 127)
-                    {
-                        return equalPixelCount;
-                    }
+                    equalPixelCount++;
+                }
+                else
+                {
+                    return equalPixelCount;
                 }
 
-                firstRow = false;
+                if (equalPixelCount >= 127)
+                {
+                    return equalPixelCount;
+                }
             }
 
             return equalPixelCount;

@@ -269,9 +269,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, true)]
-        public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, bool compressed)
+        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, false, 64020)]
+        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, true, 16200)]
+        public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, bool compressed, int expectedFileSize)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoder()
@@ -281,33 +281,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            image.VerifyEncoder(
+            string encodedFile = image.VerifyEncoder(
                 provider,
                 "webp",
                 $"with_alpha_compressed_{compressed}",
                 encoder,
                 ImageComparer.Tolerant(0.04f),
                 referenceDecoder: new MagickReferenceDecoder());
-        }
 
-        [Theory]
-        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32)]
-        public void Encode_Lossy_WithCompressedAlpha_AlphaShouldBeSmaller<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new WebpEncoder()
-            {
-                FileFormat = WebpFileFormatType.Lossy,
-                UseAlphaCompression = true
-            };
-
-            using Image<TPixel> image = provider.GetImage();
-            using (var memoryStream = new MemoryStream())
-            {
-                image.SaveAsWebp(memoryStream, encoder);
-                int size = memoryStream.ToArray().Length;
-                Assert.True(size < 16300);
-            }
+            int encodedBytes = File.ReadAllBytes(encodedFile).Length;
+            Assert.True(encodedBytes <= expectedFileSize);
         }
 
         [Theory]

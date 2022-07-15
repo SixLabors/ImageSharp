@@ -10,7 +10,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_root", "_root", "{C317F1B1
 		.gitignore = .gitignore
 		.gitmodules = .gitmodules
 		.runsettings = .runsettings
-		APACHE_LICENSE = APACHE_LICENSE
 		ci-build.ps1 = ci-build.ps1
 		ci-pack.ps1 = ci-pack.ps1
 		ci-test.ps1 = ci-test.ps1

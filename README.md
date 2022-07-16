@@ -42,7 +42,7 @@ Support the efforts of the development of the Six Labors projects.
 
 ## Questions
 
-- Do you have questions? We are happy to help! Simply purchase a [Commercial License](https://sixlabors.com/pricing) for developer support. Please do not open issues for questions or misuse our [Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions).
+- Do you have questions? Please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/categories/q-a). Do not open issues for questions.
 - For feature ideas please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/categories/ideas) and we'll be happy to discuss.  
 - Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening issues or pull requests!
 

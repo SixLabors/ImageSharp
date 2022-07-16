@@ -28,9 +28,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1799
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{FBE8C1AD-5AEC-4514-9B64-091D8E145865}"
 	ProjectSection(SolutionItems) = preProject
-		.github\ISSUE_TEMPLATE\commercial-bug-report.md = .github\ISSUE_TEMPLATE\commercial-bug-report.md
+		.github\ISSUE_TEMPLATE\commercial-bug-report.yml = .github\ISSUE_TEMPLATE\commercial-bug-report.yml
 		.github\ISSUE_TEMPLATE\config.yml = .github\ISSUE_TEMPLATE\config.yml
-		.github\ISSUE_TEMPLATE\oss-bug-report.md = .github\ISSUE_TEMPLATE\oss-bug-report.md
+		.github\ISSUE_TEMPLATE\oss-bug-report.yml = .github\ISSUE_TEMPLATE\oss-bug-report.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"

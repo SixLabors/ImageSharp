@@ -540,12 +540,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Returns encoded colorspace based on the component count and component ids.
+        /// Returns encoded colorspace based on the component count.
         /// </summary>
-        /// <remarks>
-        /// Must take into account atleast RGB component identifiers i.e. [82, 71, 66]
-        /// as TIFF images with jpeg encoding don't have APP14 marker.
-        /// </remarks>
         /// <param name="componentCount">Number of components.</param>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
         internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount)

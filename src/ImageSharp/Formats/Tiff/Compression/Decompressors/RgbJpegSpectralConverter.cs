@@ -8,8 +8,9 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /// <summary>
-    /// Spectral converter for YCbCr TIFF's which use the JPEG compression.
-    /// The jpeg data should be always treated as RGB color space.
+    /// Spectral converter for TIFF's which use the JPEG compression.
+    /// The compressed jpeg data should be always treated as RGB color space.
+    /// If PhotometricInterpretation indicates the data is YCbCr, the color decoder will handle the conversion.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     internal sealed class RgbJpegSpectralConverter<TPixel> : SpectralConverter<TPixel>

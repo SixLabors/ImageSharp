@@ -73,8 +73,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     case TiffPhotometricInterpretation.YCbCr:
                     case TiffPhotometricInterpretation.Rgb:
                     {
-                        using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
-                            new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
+                        // The jpeg data should treated as RGB color space. If the PhotometricInterpretation is YCbCr,
+                        // the conversion to RGB will be handled in the next step by the YCbCr color decoder.
+                        using SpectralConverter<Rgb24> spectralConverter = new RgbJpegSpectralConverter<Rgb24>(this.configuration);
                         var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                         jpegDecoder.ParseStream(stream, spectralConverter, CancellationToken.None);

@@ -33,8 +33,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             byte[] adobeMarkerPayload = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, adobeFlag };
             ProfileResolver.AdobeMarker.CopyTo(adobeMarkerPayload);
-
             _ = AdobeMarker.TryParse(adobeMarkerPayload, out AdobeMarker adobeMarker);
+
             JpegColorSpace actualColorSpace = JpegDecoderCore.DeduceJpegColorSpace(componentCount, ref adobeMarker);
 
             Assert.Equal(expectedColorSpace, actualColorSpace);
@@ -46,6 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DeduceJpegColorSpaceAdobeMarker_ShouldThrowOnUnsupportedComponentCount(byte componentCount)
         {
             AdobeMarker adobeMarker = default;
+
             Assert.Throws<NotSupportedException>(() => JpegDecoderCore.DeduceJpegColorSpace(componentCount, ref adobeMarker));
         }
 

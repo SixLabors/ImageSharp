@@ -503,9 +503,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Returns the correct colorspace based on the image component count and the jpeg frame component id's.
+        /// Returns encoded colorspace based on the adobe APP14 marker.
         /// </summary>
-        /// <param name="componentCount">The number of components.</param>
+        /// <param name="componentCount">Number of components.</param>
         /// <param name="adobeMarker">Parsed adobe APP14 marker.</param>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
         internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount, ref AdobeMarker adobeMarker)
@@ -534,6 +534,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             return default;
         }
 
+        /// <summary>
+        /// Returns encoded colorspace based on the component count and component ids.
+        /// </summary>
+        /// <remarks>
+        /// Must take into account atleast RGB component identifiers i.e. [82, 71, 66]
+        /// as TIFF images with jpeg encoding don't have APP14 marker.
+        /// </remarks>
+        /// <param name="componentCount">Number of components.</param>
+        /// <returns>The <see cref="JpegColorSpace"/></returns>
         internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount)
         {
             if (componentCount == 1)
@@ -1216,7 +1225,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int maxH = 0;
             int maxV = 0;
             int index = 0;
-            for (int i = 0; i < componentCount; i++)
+            for (int i = 0; i < this.Frame.Components.Length; i++)
             {
                 // 1 byte: component identifier
                 byte componentId = this.temp[index];

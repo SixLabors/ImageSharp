@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            var buffer = this.pixelBuffer;
+            Buffer2D<TPixel> buffer = this.pixelBuffer;
             this.pixelBuffer = null;
             return buffer;
         }

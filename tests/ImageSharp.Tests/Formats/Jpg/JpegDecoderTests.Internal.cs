@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public partial class JpegDecoderTests
     {
         [Theory]
+        [InlineData(1, 0, JpegColorSpace.Grayscale)]
         [InlineData(3, JpegConstants.Adobe.ColorTransformUnknown, JpegColorSpace.RGB)]
         [InlineData(3, JpegConstants.Adobe.ColorTransformYCbCr, JpegColorSpace.YCbCr)]
         [InlineData(4, JpegConstants.Adobe.ColorTransformUnknown, JpegColorSpace.Cmyk)]

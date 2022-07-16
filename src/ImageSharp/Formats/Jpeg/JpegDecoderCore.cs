@@ -510,6 +510,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <returns>The <see cref="JpegColorSpace"/></returns>
         internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount, ref AdobeMarker adobeMarker)
         {
+            if (componentCount == 1)
+            {
+                return JpegColorSpace.Grayscale;
+            }
+
             if (componentCount == 3)
             {
                 if (adobeMarker.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)

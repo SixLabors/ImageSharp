@@ -86,6 +86,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private byte[] xmpData;
 
         /// <summary>
+        /// Whether the image has a APP14 adobe marker. This is needed to determine image encoded colorspace.
+        /// </summary>
+        private bool hasAdobeMarker;
+
+        /// <summary>
         /// Contains information about the JFIF marker.
         /// </summary>
         private JFifMarker jFif;
@@ -501,8 +506,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Returns the correct colorspace based on the image component count and the jpeg frame component id's.
         /// </summary>
         /// <param name="componentCount">The number of components.</param>
+        /// <param name="adobeMarker">Parsed adobe APP14 marker.</param>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
-        private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
+        internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount, ref AdobeMarker adobeMarker)
+        {
+            if (componentCount == 3)
+            {
+                if (adobeMarker.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                {
+                    return JpegColorSpace.RGB;
+                }
+
+                return JpegColorSpace.YCbCr;
+            }
+
+            if (componentCount == 4)
+            {
+                if (adobeMarker.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
+                {
+                    return JpegColorSpace.Ycck;
+                }
+
+                return JpegColorSpace.Cmyk;
+            }
+
+            JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
+            return default;
+        }
+
+        internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount)
         {
             if (componentCount == 1)
             {
@@ -511,39 +543,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (componentCount == 3)
             {
-                if (!this.adobe.Equals(default))
-                {
-                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
-                    {
-                        return JpegColorSpace.YCbCr;
-                    }
-
-                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
-                    {
-                        return JpegColorSpace.RGB;
-                    }
-                }
-
-                // Fallback to YCbCr
                 return JpegColorSpace.YCbCr;
             }
 
             if (componentCount == 4)
             {
-                if (!this.adobe.Equals(default))
-                {
-                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
-                    {
-                        return JpegColorSpace.Ycck;
-                    }
-
-                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
-                    {
-                        return JpegColorSpace.Cmyk;
-                    }
-                }
-
-                // Fallback to CMYK
                 return JpegColorSpace.Cmyk;
             }
 
@@ -1013,7 +1017,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             stream.Read(this.temp, 0, MarkerLength);
             remaining -= MarkerLength;
 
-            AdobeMarker.TryParse(this.temp, out this.adobe);
+            if (AdobeMarker.TryParse(this.temp, out this.adobe))
+            {
+                this.hasAdobeMarker = true;
+            }
 
             if (remaining > 0)
             {
@@ -1260,7 +1267,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 index += componentBytes;
             }
 
-            this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
+            this.ColorSpace = this.hasAdobeMarker
+                ? DeduceJpegColorSpace(componentCount, ref this.adobe)
+                : DeduceJpegColorSpace(componentCount);
             this.Metadata.GetJpegMetadata().ColorType = this.DeduceJpegColorType();
 
             if (!metadataOnly)

@@ -82,6 +82,11 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         foreach (PropertyInfo p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                         {
+                            if (p.PropertyType == typeof(DecoderOptions))
+                            {
+                                continue;
+                            }
+
                             string key = $"{type.FullName}.{p.Name}";
                             data[key] = p.GetValue(options);
                         }

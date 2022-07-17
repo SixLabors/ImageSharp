@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
-    internal static partial class FastFloatingPointDCT
+    internal static partial class FloatingPointDCT
     {
         /// <summary>
         /// Apply floating point FDCT inplace using simd operations.

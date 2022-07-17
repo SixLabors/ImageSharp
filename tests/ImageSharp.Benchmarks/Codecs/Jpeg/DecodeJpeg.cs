@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
@@ -79,4 +79,21 @@ Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 |        'Baseline 4:2:0 Interleaved' |  8.458 ms | 0.0289 ms | 0.0256 ms |
 |        'Baseline 4:0:0 (grayscale)' |  1.550 ms | 0.0050 ms | 0.0044 ms |
 | 'Progressive 4:2:0 Non-Interleaved' | 13.220 ms | 0.0449 ms | 0.0398 ms |
+
+
+FRESH BENCHMARKS FOR NEW SPECTRAL CONVERSION SETUP
+
+BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19044
+Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
+.NET SDK=6.0.100-preview.3.21202.5
+  [Host]     : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
+
+
+|                              Method |      Mean |     Error |    StdDev |
+|------------------------------------ |----------:|----------:|----------:|
+|        'Baseline 4:4:4 Interleaved' | 10.734 ms | 0.0287 ms | 0.0254 ms |
+|        'Baseline 4:2:0 Interleaved' |  8.517 ms | 0.0401 ms | 0.0356 ms |
+|        'Baseline 4:0:0 (grayscale)' |  1.442 ms | 0.0051 ms | 0.0045 ms |
+| 'Progressive 4:2:0 Non-Interleaved' | 12.740 ms | 0.0832 ms | 0.0730 ms |
 */

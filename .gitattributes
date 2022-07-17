@@ -130,3 +130,4 @@
 *.ppm               filter=lfs diff=lfs merge=lfs -text
 *.pnm               filter=lfs diff=lfs merge=lfs -text
 *.wbmp              filter=lfs diff=lfs merge=lfs -text
+*.exr               filter=lfs diff=lfs merge=lfs -text

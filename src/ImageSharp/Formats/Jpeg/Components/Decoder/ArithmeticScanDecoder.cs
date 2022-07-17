@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -247,8 +247,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.scanBuffer = new JpegBitReader(this.stream);
 
-            bool fullScan = this.frame.Progressive || this.frame.MultiScan;
-            this.frame.AllocateComponents(fullScan);
+            this.frame.AllocateComponents();
 
             if (this.frame.Progressive)
             {
@@ -326,11 +325,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             if (this.scanComponentCount != 1)
             {
+                this.spectralConverter.PrepareForDecoding();
                 this.ParseBaselineDataInterleaved();
                 this.spectralConverter.CommitConversion();
             }
             else if (this.frame.ComponentCount == 1)
             {
+                this.spectralConverter.PrepareForDecoding();
                 this.ParseBaselineDataSingleComponent();
                 this.spectralConverter.CommitConversion();
             }

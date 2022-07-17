@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
             Assert.Throws<UnknownImageFormatException>(() =>
             {
-                using (Image.Load(Configuration.Default, stream, out IImageFormat _))
+                using (Image.Load(DecoderOptions.Default, stream, out IImageFormat _))
                 {
                 }
             });

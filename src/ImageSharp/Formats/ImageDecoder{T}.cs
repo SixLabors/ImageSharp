@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats
     /// </summary>
     /// <typeparam name="T">The type of specialized decoder options.</typeparam>
     public abstract class ImageDecoder<T> : IImageInfoDetector, IImageDecoder
-        where T : ISpecializedDecoderOptions, new()
+        where T : class, ISpecializedDecoderOptions, new()
     {
         /// <inheritdoc/>
         public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)

@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public DecoderOptions GeneralOptions { get; set; } = new();
 
         /// <summary>
-        /// Gets the value indicating how to deal with skipped pixels,
+        /// Gets or sets the value indicating how to deal with skipped pixels,
         /// which can occur during decoding run length encoded bitmaps.
         /// </summary>
-        public RleSkippedPixelHandling RleSkippedPixelHandling { get; }
+        public RleSkippedPixelHandling RleSkippedPixelHandling { get; set; }
     }
 }

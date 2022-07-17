@@ -4,6 +4,7 @@
 // ReSharper disable InconsistentNaming
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -635,10 +636,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TiffDecoder() { DecodingMode = FrameDecodingMode.First }))
-            {
-                Assert.Equal(1, image.Frames.Count);
-            }
+            DecoderOptions options = new() { MaxFrames = 1 };
+            using Image<TPixel> image = provider.GetImage(new TiffDecoder(), options);
+            Assert.Equal(1, image.Frames.Count);
         }
 
         [Theory]

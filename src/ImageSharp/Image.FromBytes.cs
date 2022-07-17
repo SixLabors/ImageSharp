@@ -53,6 +53,51 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="data">The byte span containing encoded image data to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The data is null.</exception>
+        /// <exception cref="NotSupportedException">The data is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(ReadOnlySpan<byte> data) => Identify(data, out IImageFormat _);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="data">The byte array containing encoded image data to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="ArgumentNullException">The data is null.</exception>
+        /// <exception cref="NotSupportedException">The data is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(ReadOnlySpan<byte> data, out IImageFormat format)
+            => Identify(DecoderOptions.Default, data, out format);
+
+        /// <summary>
+        /// Reads the raw image information from the specified span of bytes without fully decoding it.
+        /// </summary>
+        /// <param name="options">The general decoder options.</param>
+        /// <param name="data">The byte span containing encoded image data to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The data is null.</exception>
+        /// <exception cref="NotSupportedException">The data is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static unsafe IImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> data, out IImageFormat format)
+        {
+            fixed (byte* ptr = &data.GetPinnableReference())
+            {
+                using var stream = new UnmanagedMemoryStream(ptr, data.Length);
+                return Identify(options, stream, out format);
+            }
+        }
+
+        /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte span.
         /// </summary>
         /// <param name="data">The byte span containing encoded image data.</param>

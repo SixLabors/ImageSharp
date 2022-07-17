@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Diagnostics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -90,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests
                             return false;
                         }
 
-                        if (!object.Equals(kv.Value, otherVal))
+                        if (!Equals(kv.Value, otherVal))
                         {
                             return false;
                         }
@@ -126,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static bool operator !=(Key left, Key right) => !Equals(left, right);
             }
 
-            private static readonly ConcurrentDictionary<Key, Image<TPixel>> Cache = new ConcurrentDictionary<Key, Image<TPixel>>();
+            private static readonly ConcurrentDictionary<Key, Image<TPixel>> Cache = new();
 
             // Needed for deserialization!
             // ReSharper disable once UnusedMember.Local
@@ -149,35 +148,78 @@ namespace SixLabors.ImageSharp.Tests
                 return this.GetImage(decoder);
             }
 
-            public override Image<TPixel> GetImage(IImageDecoder decoder)
+            public override Image<TPixel> GetImage(IImageDecoder decoder, DecoderOptions options)
             {
                 Guard.NotNull(decoder, nameof(decoder));
+                Guard.NotNull(options, nameof(options));
 
                 // Do not cache with 64 bits or if image has been created with non-default MemoryAllocator
                 if (!TestEnvironment.Is64BitProcess || this.Configuration.MemoryAllocator != MemoryAllocator.Default)
                 {
-                    return this.LoadImage(decoder);
+                    return this.DecodeImage(decoder, options);
                 }
 
                 // do not cache so we can track allocation correctly when validating memory
                 if (MemoryAllocatorValidator.MonitoringAllocations)
                 {
-                    return this.LoadImage(decoder);
+                    return this.DecodeImage(decoder, options);
                 }
 
                 var key = new Key(this.PixelType, this.FilePath, decoder);
-                Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));
+                Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.DecodeImage(decoder, options));
 
                 return cachedImage.Clone(this.Configuration);
             }
 
-            public override Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
+            public override Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
             {
                 Guard.NotNull(decoder, nameof(decoder));
+                Guard.NotNull(options, nameof(options));
+
+                options.Configuration = this.Configuration;
 
                 // Used in small subset of decoder tests, no caching.
+                // TODO: Check Path here. Why combined?
                 string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
-                return Image.LoadAsync<TPixel>(this.Configuration, path, decoder);
+                using Stream stream = System.IO.File.OpenRead(path);
+                return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
+            }
+
+            public override Image<TPixel> GetImage<T>(ImageDecoder<T> decoder, T options)
+            {
+                Guard.NotNull(decoder, nameof(decoder));
+                Guard.NotNull(options, nameof(options));
+
+                // Do not cache with 64 bits or if image has been created with non-default MemoryAllocator
+                if (!TestEnvironment.Is64BitProcess || this.Configuration.MemoryAllocator != MemoryAllocator.Default)
+                {
+                    return this.DecodeImage(decoder, options);
+                }
+
+                // do not cache so we can track allocation correctly when validating memory
+                if (MemoryAllocatorValidator.MonitoringAllocations)
+                {
+                    return this.DecodeImage(decoder, options);
+                }
+
+                var key = new Key(this.PixelType, this.FilePath, decoder);
+                Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.DecodeImage(decoder, options));
+
+                return cachedImage.Clone(this.Configuration);
+            }
+
+            public override Task<Image<TPixel>> GetImageAsync<T>(ImageDecoder<T> decoder, T options)
+            {
+                Guard.NotNull(decoder, nameof(decoder));
+                Guard.NotNull(options, nameof(options));
+
+                options.GeneralOptions.Configuration = this.Configuration;
+
+                // Used in small subset of decoder tests, no caching.
+                // TODO: Check Path here. Why combined?
+                string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
+                using Stream stream = System.IO.File.OpenRead(path);
+                return Task.FromResult(decoder.DecodeSpecialized<TPixel>(options, stream, default));
             }
 
             public override void Deserialize(IXunitSerializationInfo info)
@@ -193,10 +235,23 @@ namespace SixLabors.ImageSharp.Tests
                 info.AddValue("path", this.FilePath);
             }
 
-            private Image<TPixel> LoadImage(IImageDecoder decoder)
+            private Image<TPixel> DecodeImage(IImageDecoder decoder, DecoderOptions options)
             {
+                options.Configuration = this.Configuration;
+
                 var testFile = TestFile.Create(this.FilePath);
-                return Image.Load<TPixel>(this.Configuration, testFile.Bytes, decoder);
+                using Stream stream = new MemoryStream(testFile.Bytes);
+                return decoder.Decode<TPixel>(options, stream, default);
+            }
+
+            private Image<TPixel> DecodeImage<T>(ImageDecoder<T> decoder, T options)
+                where T : class, ISpecializedDecoderOptions, new()
+            {
+                options.GeneralOptions.Configuration = this.Configuration;
+
+                var testFile = TestFile.Create(this.FilePath);
+                using Stream stream = new MemoryStream(testFile.Bytes);
+                return decoder.DecodeSpecialized<TPixel>(options, stream, default);
             }
         }
 

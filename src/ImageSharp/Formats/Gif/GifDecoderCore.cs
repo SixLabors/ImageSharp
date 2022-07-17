@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     if (nextFlag == GifConstants.ImageLabel)
                     {
-                        if (previousFrame != null && frameCount++ > this.maxFrames)
+                        if (previousFrame != null && ++frameCount == this.maxFrames)
                         {
                             break;
                         }

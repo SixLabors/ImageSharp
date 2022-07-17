@@ -18,13 +18,13 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class TestImageProviderTests
     {
-        public static readonly TheoryData<object> BasicData = new TheoryData<object>
+        public static readonly TheoryData<object> BasicData = new()
         {
             TestImageProvider<Rgba32>.Blank(10, 20),
             TestImageProvider<HalfVector4>.Blank(10, 20),
         };
 
-        public static readonly TheoryData<object> FileData = new TheoryData<object>
+        public static readonly TheoryData<object> FileData = new()
         {
             TestImageProvider<Rgba32>.File(TestImages.Bmp.Car),
             TestImageProvider<HalfVector4>.File(TestImages.Bmp.F)
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>A test image.</returns>
         public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel> =>
-            new Image<TPixel>(3, 3);
+            new(3, 3);
 
         [Theory]
         [MemberData(nameof(BasicData))]
@@ -179,16 +179,14 @@ namespace SixLabors.ImageSharp.Tests
         public void SaveTestOutputFileMultiFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
+            using Image<TPixel> image = provider.GetImage();
+            string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
 
-                Assert.True(files.Length > 2);
-                foreach (string path in files)
-                {
-                    this.Output.WriteLine(path);
-                    Assert.True(File.Exists(path));
-                }
+            Assert.True(files.Length > 2);
+            foreach (string path in files)
+            {
+                this.Output.WriteLine(path);
+                Assert.True(File.Exists(path));
             }
         }
 
@@ -199,10 +197,8 @@ namespace SixLabors.ImageSharp.Tests
         public void Use_WithBasicTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                img.DebugSave(provider);
-            }
+            using Image<TPixel> img = provider.GetImage();
+            img.DebugSave(provider);
         }
 
         [Theory]
@@ -238,24 +234,20 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                Assert.True(img.Width * img.Height > 0);
+            using Image<TPixel> img = provider.GetImage();
+            Assert.True(img.Width * img.Height > 0);
 
-                Assert.Equal(123, yo);
+            Assert.Equal(123, yo);
 
-                string fn = provider.Utility.GetTestOutputFileName("jpg");
-                this.Output.WriteLine(fn);
-            }
+            string fn = provider.Utility.GetTestOutputFileName("jpg");
+            this.Output.WriteLine(fn);
         }
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
         public void Use_WithFileAttribute_CustomConfig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            EnsureCustomConfigurationIsApplied(provider);
-        }
+            => EnsureCustomConfigurationIsApplied(provider);
 
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.Argb32)]
@@ -263,10 +255,8 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                provider.Utility.SaveTestOutputFile(image, "png");
-            }
+            using Image<TPixel> image = provider.GetImage();
+            provider.Utility.SaveTestOutputFile(image, "png");
         }
 
         [Theory]
@@ -312,19 +302,15 @@ namespace SixLabors.ImageSharp.Tests
         public void Use_WithTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                img.DebugSave(provider);
-            }
+            using Image<TPixel> img = provider.GetImage();
+            img.DebugSave(provider);
         }
 
         [Theory]
         [WithTestPatternImages(20, 20, PixelTypes.Rgba32)]
         public void Use_WithTestPatternImages_CustomConfiguration<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            EnsureCustomConfigurationIsApplied(provider);
-        }
+            => EnsureCustomConfigurationIsApplied(provider);
 
         private static void EnsureCustomConfigurationIsApplied<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -334,22 +320,19 @@ namespace SixLabors.ImageSharp.Tests
                 var customConfiguration = Configuration.CreateDefaultInstance();
                 provider.Configuration = customConfiguration;
 
-                using (Image<TPixel> image2 = provider.GetImage())
-                using (Image<TPixel> image3 = provider.GetImage())
-                {
-                    Assert.Same(customConfiguration, image2.GetConfiguration());
-                    Assert.Same(customConfiguration, image3.GetConfiguration());
-                }
+                using Image<TPixel> image2 = provider.GetImage();
+                using Image<TPixel> image3 = provider.GetImage();
+                Assert.Same(customConfiguration, image2.GetConfiguration());
+                Assert.Same(customConfiguration, image3.GetConfiguration());
             }
         }
 
-        private class TestDecoder : IImageDecoder
+        private class TestDecoder : ImageDecoder<TestDecoderOptions>
         {
             // Couldn't make xUnit happy without this hackery:
-            private static readonly ConcurrentDictionary<string, int> InvocationCounts =
-                new ConcurrentDictionary<string, int>();
+            private static readonly ConcurrentDictionary<string, int> InvocationCounts = new();
 
-            private static readonly object Monitor = new object();
+            private static readonly object Monitor = new();
 
             private string callerName;
 
@@ -361,12 +344,17 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
+            public override IImageInfo IdentifySpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+
+            public override Image<TPixel> DecodeSpecialized<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
             {
                 InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
+
+            public override Image DecodeSpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
 
             internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 
@@ -375,16 +363,13 @@ namespace SixLabors.ImageSharp.Tests
                 this.callerName = name;
                 InvocationCounts[name] = 0;
             }
-
-            public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
         }
 
-        private class TestDecoderWithParameters : IImageDecoder
+        private class TestDecoderWithParameters : ImageDecoder<TestDecoderOptions>
         {
-            private static readonly ConcurrentDictionary<string, int> InvocationCounts =
-                new ConcurrentDictionary<string, int>();
+            private static readonly ConcurrentDictionary<string, int> InvocationCounts = new();
 
-            private static readonly object Monitor = new object();
+            private static readonly object Monitor = new();
 
             private string callerName;
 
@@ -400,12 +385,17 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
+            public override IImageInfo IdentifySpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+
+            public override Image<TPixel> DecodeSpecialized<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
             {
                 InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
+
+            public override Image DecodeSpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
 
             internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 
@@ -414,8 +404,11 @@ namespace SixLabors.ImageSharp.Tests
                 this.callerName = name;
                 InvocationCounts[name] = 0;
             }
+        }
 
-            public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
+        private class TestDecoderOptions : ISpecializedDecoderOptions
+        {
+            public DecoderOptions GeneralOptions { get; set; } = new();
         }
     }
 }

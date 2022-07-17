@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -75,11 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
 
             string providerDump = BasicSerializer.Serialize(provider);
-            RemoteExecutor.Invoke(
-                    RunTest,
-                    providerDump,
-                    "Disco")
-                .Dispose();
+            RemoteExecutor.Invoke(RunTest, providerDump, "Disco").Dispose();
         }
 
         [Theory]
@@ -98,11 +94,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeBitfields<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -111,11 +105,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_Inverted<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -124,11 +116,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_1Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
         }
 
         [Theory]
@@ -136,11 +126,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_4Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -148,11 +136,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_8Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -160,11 +146,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -172,11 +156,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_32Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -184,11 +166,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_32BitV4Header_Fast<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -199,11 +179,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = skippedPixelHandling }))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
+
+            using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -212,11 +192,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = skippedPixelHandling }))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
+
+            using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -227,13 +207,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_SystemDrawingRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
+            BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
+            using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+            image.DebugSave(provider);
+            if (TestEnvironment.IsWindows)
             {
-                image.DebugSave(provider);
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
-                }
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 
@@ -243,11 +222,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette }))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, new MagickReferenceDecoder());
-            }
+            BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+            using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -263,11 +241,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
             }
 
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette }))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, new MagickReferenceDecoder());
-            }
+            BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+            using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -285,13 +262,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
             }
 
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
-            {
-                image.DebugSave(provider);
+            BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
+            using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+            image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
-                // image.CompareToOriginal(provider);
-            }
+            // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
+            // image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -299,13 +275,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeAlphaBitfields<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
-                // image.CompareToOriginal(provider);
-            }
+            // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
+            // image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -313,11 +287,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeBitmap_WithAlphaChannel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, new MagickReferenceDecoder());
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -325,17 +297,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeBitfields_WithUnusualBitmasks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
 
-                // Choosing large tolerance of 6.1 here, because for some reason with the MagickReferenceDecoder the alpha channel
-                // seems to be wrong. This bitmap has an alpha channel of two bits. In many cases this alpha channel has a value of 3,
-                // which should be remapped to 255 for RGBA32, but the magick decoder has a value of 191 set.
-                // The total difference without the alpha channel is still: 0.0204%
-                // Exporting the image as PNG with GIMP yields to the same result as the ImageSharp implementation.
-                image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(6.1f), new MagickReferenceDecoder());
-            }
+            // Choosing large tolerance of 6.1 here, because for some reason with the MagickReferenceDecoder the alpha channel
+            // seems to be wrong. This bitmap has an alpha channel of two bits. In many cases this alpha channel has a value of 3,
+            // which should be remapped to 255 for RGBA32, but the magick decoder has a value of 191 set.
+            // The total difference without the alpha channel is still: 0.0204%
+            // Exporting the image as PNG with GIMP yields to the same result as the ImageSharp implementation.
+            image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(6.1f), new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -344,13 +314,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeBmpv2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
 
-                // Do not validate. Reference files will fail validation.
-                image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
-            }
+            // Do not validate. Reference files will fail validation.
+            image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
         }
 
         [Theory]
@@ -358,11 +326,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -370,11 +336,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeLessThanFullPalette<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, new MagickReferenceDecoder());
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -383,13 +347,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeOversizedPalette<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            if (TestEnvironment.IsWindows)
             {
-                image.DebugSave(provider);
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider);
-                }
+                image.CompareToOriginal(provider);
             }
         }
 
@@ -397,39 +359,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
         public void BmpDecoder_ThrowsInvalidImageContentException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Assert.Throws<InvalidImageContentException>(() =>
+            => Assert.Throws<InvalidImageContentException>(() =>
             {
                 using (provider.GetImage(BmpDecoder))
                 {
                 }
             });
-        }
 
         [Theory]
         [WithFile(Rgb24jpeg, PixelTypes.Rgba32)]
         [WithFile(Rgb24png, PixelTypes.Rgba32)]
         public void BmpDecoder_ThrowsNotSupportedException_OnUnsupportedBitmaps<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Assert.Throws<NotSupportedException>(() =>
+            => Assert.Throws<NotSupportedException>(() =>
             {
                 using (provider.GetImage(BmpDecoder))
                 {
                 }
             });
-        }
 
         [Theory]
         [WithFile(Rgb32h52AdobeV3, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeAdobeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, new MagickReferenceDecoder());
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -437,11 +393,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeAdobeBmpv3_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, new MagickReferenceDecoder());
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -449,11 +403,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeBmpv4<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -462,11 +414,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecodeBmpv5<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -474,11 +424,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_RespectsFileHeaderOffset<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -486,11 +434,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -498,11 +444,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode4BytePerEntryPalette<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -521,12 +465,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void Identify_DetectsCorrectPixelType(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.NotNull(imageInfo);
-                Assert.Equal(expectedPixelSize, imageInfo.PixelType?.BitsPerPixel);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            Assert.NotNull(imageInfo);
+            Assert.Equal(expectedPixelSize, imageInfo.PixelType?.BitsPerPixel);
         }
 
         [Theory]
@@ -541,13 +483,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void Identify_DetectsCorrectWidthAndHeight(string imagePath, int expectedWidth, int expectedHeight)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.NotNull(imageInfo);
-                Assert.Equal(expectedWidth, imageInfo.Width);
-                Assert.Equal(expectedHeight, imageInfo.Height);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            Assert.NotNull(imageInfo);
+            Assert.Equal(expectedWidth, imageInfo.Width);
+            Assert.Equal(expectedHeight, imageInfo.Height);
         }
 
         [Theory]
@@ -555,17 +495,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new BmpDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
-                {
-                    ImageMetadata meta = image.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new BmpDecoder();
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream, default);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -573,13 +509,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_Os2v2XShortHeader<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
-                // image.CompareToOriginal(provider);
-            }
+            // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
+            // image.CompareToOriginal(provider);
         }
 
         [Theory]
@@ -587,15 +521,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_Os2v2Header<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
 
-                // TODO: System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
-                // but i think incorrectly. I have loaded the image with GIMP and exported as PNG.
-                // The results are the same as the image sharp implementation.
-                // image.CompareToOriginal(provider, new MagickReferenceDecoder());
-            }
+            // TODO: System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
+            // but i think incorrectly. I have loaded the image with GIMP and exported as PNG.
+            // The results are the same as the image sharp implementation.
+            // image.CompareToOriginal(provider, new MagickReferenceDecoder());
         }
 
         [Theory]
@@ -611,13 +543,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_Os2BitmapArray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
-                // image.CompareToOriginal(provider);
-            }
+            // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
+            // image.CompareToOriginal(provider);
         }
     }
 }

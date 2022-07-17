@@ -18,12 +18,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public class SpectralToPixelConversionTests
     {
         public static readonly string[] BaselineTestJpegs =
-            {
-                TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
-                TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
-                TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
-                TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
-            };
+        {
+            TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
+            TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
+            TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
+            TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
+        };
 
         public SpectralToPixelConversionTests(ITestOutputHelper output) => this.Output = output;
 
@@ -40,8 +40,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
             // Decoding
+            JpegDecoderOptions options = new();
             using var converter = new SpectralConverter<TPixel>(Configuration.Default);
-            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var decoder = new JpegDecoderCore(options);
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, converter, cancellationToken: default);
             decoder.ParseStream(bufferedStream, converter, cancellationToken: default);
 
@@ -50,17 +51,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             provider.Utility.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
             // Comparison
-            using (var image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(CancellationToken.None), new ImageMetadata()))
-            using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-            {
-                ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
+            using var image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(CancellationToken.None), new ImageMetadata());
+            using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
+            ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 
-                this.Output.WriteLine($"*** {provider.SourceFileOrDescription} ***");
-                this.Output.WriteLine($"Difference: {report.DifferencePercentageString}");
+            this.Output.WriteLine($"*** {provider.SourceFileOrDescription} ***");
+            this.Output.WriteLine($"Difference: {report.DifferencePercentageString}");
 
-                // ReSharper disable once PossibleInvalidOperationException
-                Assert.True(report.TotalNormalizedDifference.Value < 0.005f);
-            }
+            // ReSharper disable once PossibleInvalidOperationException
+            Assert.True(report.TotalNormalizedDifference.Value < 0.005f);
         }
     }
 }

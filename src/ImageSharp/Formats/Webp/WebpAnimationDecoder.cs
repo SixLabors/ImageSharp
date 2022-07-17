@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                         break;
                 }
 
-                if (stream.Position == stream.Length || frameCount++ > this.maxFrames)
+                if (stream.Position == stream.Length || ++frameCount == this.maxFrames)
                 {
                     break;
                 }

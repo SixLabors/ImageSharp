@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     public class TestFormat : IConfigurationModule, IImageFormat
     {
-        private readonly Dictionary<Type, object> sampleImages = new Dictionary<Type, object>();
+        private readonly Dictionary<Type, object> sampleImages = new();
 
         // We should not change Configuration.Default in individual tests!
         // Create new configuration instances with new Configuration(TestFormat.GlobalTestFormat) instead!
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public Stream CreateAsyncSemaphoreStream(SemaphoreSlim notifyWaitPositionReachedSemaphore, SemaphoreSlim continueSemaphore, bool seeakable, int size = 1024, int waitAfterPosition = 512)
         {
-            var buffer = new byte[size];
+            byte[] buffer = new byte[size];
             this.header.CopyTo(buffer, 0);
             var semaphoreStream = new SemaphoreReadMemoryStream(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
             return seeakable ? semaphoreStream : new AsyncStreamWrapper(semaphoreStream, () => false);
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TPixel))).ToArray();
 
-            Assert.True(discovered.Any(), "No calls to decode on this format with the provided options happened");
+            Assert.True(discovered.Length > 0, "No calls to decode on this format with the provided options happened");
 
             foreach (DecodeOperation d in discovered)
             {
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TestPixelForAgnosticDecode))).ToArray();
 
-            Assert.True(discovered.Any(), "No calls to decode on this format with the provided options happened");
+            Assert.True(discovered.Length > 0, "No calls to decode on this format with the provided options happened");
 
             foreach (DecodeOperation d in discovered)
             {
@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests
             public TestHeader(TestFormat testFormat) => this.testFormat = testFormat;
         }
 
-        public class TestDecoder : IImageDecoder, IImageInfoDetector
+        public class TestDecoder : ImageDecoder<TestDecoderOptions>
         {
             private readonly TestFormat testFormat;
 
@@ -206,20 +206,21 @@ namespace SixLabors.ImageSharp.Tests
 
             public int HeaderSize => this.testFormat.HeaderSize;
 
-            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
-                => this.DecodeImpl<TPixel>(configuration, stream);
+            public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
-            private Image<TPixel> DecodeImpl<TPixel>(Configuration config, Stream stream)
-                where TPixel : unmanaged, IPixel<TPixel>
+            public override IImageInfo IdentifySpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
+
+            public override Image<TPixel> DecodeSpecialized<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
             {
+                Configuration configuration = options.GeneralOptions.Configuration;
                 var ms = new MemoryStream();
-                stream.CopyTo(ms, config.StreamProcessingBufferSize);
+                stream.CopyTo(ms, configuration.StreamProcessingBufferSize);
                 byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
                     Marker = marker,
-                    Config = config,
+                    Config = configuration,
                     PixelType = typeof(TPixel)
                 });
 
@@ -227,12 +228,13 @@ namespace SixLabors.ImageSharp.Tests
                 return this.testFormat.Sample<TPixel>();
             }
 
-            public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
+            public override Image DecodeSpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
+        }
 
-            public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream, cancellationToken);
-
-            public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken) =>
-                this.DecodeImpl<Rgba32>(configuration, stream);
+        public class TestDecoderOptions : ISpecializedDecoderOptions
+        {
+            public DecoderOptions GeneralOptions { get; set; } = new();
         }
 
         public class TestEncoder : IImageEncoder

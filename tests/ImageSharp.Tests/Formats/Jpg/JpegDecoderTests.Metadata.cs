@@ -80,17 +80,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new JpegDecoder();
-                using (Image image = decoder.Decode(Configuration.Default, stream, default))
-                {
-                    ImageMetadata meta = image.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new JpegDecoder();
+            using Image image = decoder.Decode(DecoderOptions.Default, stream, default);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -98,15 +94,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
-                ImageMetadata meta = image.Metadata;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new JpegDecoder();
+            IImageInfo image = decoder.Identify(DecoderOptions.Default, stream, default);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -114,13 +108,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Identify_VerifyQuality(string imagePath, int quality)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
-                JpegMetadata meta = image.Metadata.GetJpegMetadata();
-                Assert.Equal(quality, meta.Quality);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new JpegDecoder();
+            IImageInfo image = decoder.Identify(DecoderOptions.Default, stream, default);
+            JpegMetadata meta = image.Metadata.GetJpegMetadata();
+            Assert.Equal(quality, meta.Quality);
         }
 
         [Theory]
@@ -128,14 +120,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Decode_VerifyQuality(string imagePath, int quality)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                using (Image image = JpegDecoder.Decode(Configuration.Default, stream, default))
-                {
-                    JpegMetadata meta = image.Metadata.GetJpegMetadata();
-                    Assert.Equal(quality, meta.Quality);
-                }
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            using Image image = JpegDecoder.Decode(DecoderOptions.Default, stream, default);
+            JpegMetadata meta = image.Metadata.GetJpegMetadata();
+            Assert.Equal(quality, meta.Quality);
         }
 
         [Theory]
@@ -150,12 +138,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Identify_DetectsCorrectColorType(string imagePath, JpegColorType expectedColorType)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream, default);
-                JpegMetadata meta = image.Metadata.GetJpegMetadata();
-                Assert.Equal(expectedColorType, meta.ColorType);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo image = JpegDecoder.Identify(DecoderOptions.Default, stream, default);
+            JpegMetadata meta = image.Metadata.GetJpegMetadata();
+            Assert.Equal(expectedColorType, meta.ColorType);
         }
 
         [Theory]
@@ -167,28 +153,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                JpegMetadata meta = image.Metadata.GetJpegMetadata();
-                Assert.Equal(expectedColorType, meta.ColorType);
-            }
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            JpegMetadata meta = image.Metadata.GetJpegMetadata();
+            Assert.Equal(expectedColorType, meta.ColorType);
         }
 
         private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<IImageInfo> test)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            if (useIdentify)
             {
-                if (useIdentify)
-                {
-                    IImageInfo imageInfo = ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream, default);
-                    test(imageInfo);
-                }
-                else
-                {
-                    using var img = decoder.Decode<Rgba32>(Configuration.Default, stream, default);
-                    test(img);
-                }
+                IImageInfo imageInfo = ((IImageInfoDetector)decoder).Identify(DecoderOptions.Default, stream, default);
+                test(imageInfo);
+            }
+            else
+            {
+                using Image<Rgba32> img = decoder.Decode<Rgba32>(DecoderOptions.Default, stream, default);
+                test(img);
             }
         }
 
@@ -248,23 +230,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(true)]
         public void IgnoreMetadata_ControlsWhetherMetadataIsParsed(bool ignoreMetadata)
         {
-            var decoder = new JpegDecoder { IgnoreMetadata = ignoreMetadata };
+            DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
 
             // Snake.jpg has both Exif and ICC profiles defined:
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(decoder))
+            using Image<Rgba32> image = testFile.CreateRgba32Image(JpegDecoder, options);
+            if (ignoreMetadata)
             {
-                if (ignoreMetadata)
-                {
-                    Assert.Null(image.Metadata.ExifProfile);
-                    Assert.Null(image.Metadata.IccProfile);
-                }
-                else
-                {
-                    Assert.NotNull(image.Metadata.ExifProfile);
-                    Assert.NotNull(image.Metadata.IccProfile);
-                }
+                Assert.Null(image.Metadata.ExifProfile);
+                Assert.Null(image.Metadata.IccProfile);
+            }
+            else
+            {
+                Assert.NotNull(image.Metadata.ExifProfile);
+                Assert.NotNull(image.Metadata.IccProfile);
             }
         }
 
@@ -314,7 +294,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Exception ex = Record.Exception(() =>
             {
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
-                var clone = image.Metadata.ExifProfile.DeepClone();
+                ExifProfile clone = image.Metadata.ExifProfile.DeepClone();
             });
             Assert.Null(ex);
         }
@@ -357,11 +337,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void EncodedStringTags_Read()
         {
-            using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora_EncodedStrings)))
-            {
-                ExifProfile exif = image.Metadata.ExifProfile;
-                VerifyEncodedStrings(exif);
-            }
+            using var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora_EncodedStrings));
+            ExifProfile exif = image.Metadata.ExifProfile;
+            VerifyEncodedStrings(exif);
         }
 
         private static void VerifyEncodedStrings(ExifProfile exif)

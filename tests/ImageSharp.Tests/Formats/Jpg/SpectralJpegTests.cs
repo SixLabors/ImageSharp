@@ -49,8 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             // Calculating data from ImageSharp
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+            JpegDecoderOptions option = new();
 
-            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var decoder = new JpegDecoderCore(option);
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
@@ -78,8 +79,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // Calculating data from ImageSharp
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+            JpegDecoderOptions options = new();
 
-            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var decoder = new JpegDecoderCore(options);
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     public static partial class TestEnvironment
     {
-        private static readonly Lazy<Configuration> ConfigurationLazy = new Lazy<Configuration>(CreateDefaultConfiguration);
+        private static readonly Lazy<Configuration> ConfigurationLazy = new(CreateDefaultConfiguration);
 
         internal static Configuration Configuration => ConfigurationLazy.Value;
 

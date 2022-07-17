@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.IO;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -19,19 +20,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // does saving a file then reopening mean both files are identical???
-            using (Image<TPixel> image = provider.GetImage())
-            using (var ms = new MemoryStream())
-            {
-                // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
-                image.Save(ms, new PngEncoder());
-                ms.Position = 0;
-                using (var img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
-                {
-                    ImageComparer.Tolerant().VerifySimilarity(image, img2);
+            using Image<TPixel> image = provider.GetImage();
+            using var ms = new MemoryStream();
 
-                    // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-                }
-            }
+            // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
+            image.Save(ms, new PngEncoder());
+            ms.Position = 0;
+            using Image<Rgba32> img2 = new PngDecoder().Decode<Rgba32>(DecoderOptions.Default, ms, default);
+            ImageComparer.Tolerant().VerifySimilarity(image, img2);
+
+            // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
         }
 
         /* JJS: Disabled for now as the decoder now correctly decodes the full pixel components if the
@@ -104,20 +102,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // does saving a file then reopening mean both files are identical???
-            using (Image<TPixel> image = provider.GetImage())
-            using (var ms = new MemoryStream())
-            {
-                // image.Save(provider.Utility.GetTestOutputFileName("png"));
-                image.Mutate(x => x.Resize(100, 100));
+            using Image<TPixel> image = provider.GetImage();
+            using var ms = new MemoryStream();
 
-                // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
-                image.Save(ms, new PngEncoder());
-                ms.Position = 0;
-                using (var img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
-                {
-                    ImageComparer.Tolerant().VerifySimilarity(image, img2);
-                }
-            }
+            // image.Save(provider.Utility.GetTestOutputFileName("png"));
+            image.Mutate(x => x.Resize(100, 100));
+
+            // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
+            image.Save(ms, new PngEncoder());
+            ms.Position = 0;
+            using Image<Rgba32> img2 = new PngDecoder().Decode<Rgba32>(DecoderOptions.Default, ms, default);
+            ImageComparer.Tolerant().VerifySimilarity(image, img2);
         }
     }
 }

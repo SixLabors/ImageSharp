@@ -53,19 +53,17 @@ namespace SixLabors.ImageSharp.Tests
             => new TestPatternProvider(width, height).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> Blank(
-                        int width,
-                        int height,
-                        MethodInfo testMethod = null,
-                        PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-                    => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
+            int width,
+            int height,
+            MethodInfo testMethod = null,
+            PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+            => new BlankProvider(width, height).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> File(
             string filePath,
             MethodInfo testMethod = null,
             PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-        {
-            return new FileProvider(filePath).Init(testMethod, pixelTypeOverride);
-        }
+            => new FileProvider(filePath).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> Lambda(
                 string declaringTypeName,
@@ -83,9 +81,7 @@ namespace SixLabors.ImageSharp.Tests
             byte a = 255,
             MethodInfo testMethod = null,
             PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-        {
-            return new SolidProvider(width, height, r, g, b, a).Init(testMethod, pixelTypeOverride);
-        }
+            => new SolidProvider(width, height, r, g, b, a).Init(testMethod, pixelTypeOverride);
 
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
@@ -93,15 +89,25 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>A test image.</returns>
         public abstract Image<TPixel> GetImage();
 
-        public virtual Image<TPixel> GetImage(IImageDecoder decoder)
-        {
-            throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
-        }
+        public Image<TPixel> GetImage(IImageDecoder decoder)
+            => this.GetImage(decoder, new());
 
-        public virtual Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
-        {
-            throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
-        }
+        public Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
+             => this.GetImageAsync(decoder, new());
+
+        public virtual Image<TPixel> GetImage(IImageDecoder decoder, DecoderOptions options)
+            => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
+
+        public virtual Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
+            => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
+
+        public virtual Image<TPixel> GetImage<T>(ImageDecoder<T> decoder, T options)
+            where T : class, ISpecializedDecoderOptions, new()
+            => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
+
+        public virtual Task<Image<TPixel>> GetImageAsync<T>(ImageDecoder<T> decoder, T options)
+            where T : class, ISpecializedDecoderOptions, new()
+            => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
@@ -163,14 +169,13 @@ namespace SixLabors.ImageSharp.Tests
 
         protected TestImageProvider<TPixel> Init(MethodInfo testMethod, PixelTypes pixelTypeOverride)
         {
-            string subfolder = testMethod?.DeclaringType.GetAttribute<GroupOutputAttribute>()?.Subfolder
-                               ?? string.Empty;
+            string subfolder =
+                testMethod?.DeclaringType.GetAttribute<GroupOutputAttribute>()?.Subfolder ?? string.Empty;
+
             return this.Init(testMethod?.DeclaringType.Name, testMethod?.Name, subfolder, pixelTypeOverride);
         }
 
         public override string ToString()
-        {
-            return $"{this.SourceFileOrDescription}[{this.PixelType}]";
-        }
+            => $"{this.SourceFileOrDescription}[{this.PixelType}]";
     }
 }

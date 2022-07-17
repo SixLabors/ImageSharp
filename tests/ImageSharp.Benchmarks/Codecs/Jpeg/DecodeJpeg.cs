@@ -3,6 +3,7 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private void GenericBechmark()
         {
             this.preloadedImageStream.Position = 0;
-            using Image img = this.decoder.Decode(Configuration.Default, this.preloadedImageStream, default);
+            using Image img = this.decoder.Decode(DecoderOptions.Default, this.preloadedImageStream, default);
         }
 
         [GlobalSetup(Target = nameof(JpegBaselineInterleaved444))]

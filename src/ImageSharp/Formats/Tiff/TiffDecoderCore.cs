@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
                     frames.Add(frame);
 
-                    if (frameCount++ > this.maxFrames)
+                    if (++frameCount == this.maxFrames)
                     {
                         break;
                     }

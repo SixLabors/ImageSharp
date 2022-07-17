@@ -15,7 +15,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    public class MagickReferenceDecoder : IImageDecoder
+    public class MagickReferenceDecoder : ImageDecoder<MagickReferenceDecoderOptions>
     {
         private readonly bool validate;
 
@@ -28,39 +28,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
         public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
 
-        private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
-            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+        public override Image<TPixel> DecodeSpecialized<TPixel>(MagickReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Span<Rgba32> sourcePixels = MemoryMarshal.Cast<byte, Rgba32>(rgbaBytes);
-            foreach (Memory<TPixel> m in destinationGroup)
-            {
-                Span<TPixel> destBuffer = m.Span;
-                PixelOperations<TPixel>.Instance.FromRgba32(
-                    configuration,
-                    sourcePixels.Slice(0, destBuffer.Length),
-                    destBuffer);
-                sourcePixels = sourcePixels.Slice(destBuffer.Length);
-            }
-        }
-
-        private static void FromRgba64Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
-            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
-        {
-            foreach (Memory<TPixel> m in destinationGroup)
-            {
-                Span<TPixel> destBuffer = m.Span;
-                PixelOperations<TPixel>.Instance.FromRgba64Bytes(
-                    configuration,
-                    rgbaBytes,
-                    destBuffer,
-                    destBuffer.Length);
-                rgbaBytes = rgbaBytes.Slice(destBuffer.Length * 8);
-            }
-        }
-
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
-        {
+            Configuration configuration = options.GeneralOptions.Configuration;
             var bmpReadDefines = new BmpReadDefines
             {
                 IgnoreFileSize = !this.validate
@@ -100,6 +70,45 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             return new Image<TPixel>(configuration, new ImageMetadata(), framesList);
         }
 
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
+        public override Image DecodeSpecialized(MagickReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+
+        public override IImageInfo IdentifySpecialized(MagickReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+
+        private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
+            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+        {
+            Span<Rgba32> sourcePixels = MemoryMarshal.Cast<byte, Rgba32>(rgbaBytes);
+            foreach (Memory<TPixel> m in destinationGroup)
+            {
+                Span<TPixel> destBuffer = m.Span;
+                PixelOperations<TPixel>.Instance.FromRgba32(
+                    configuration,
+                    sourcePixels.Slice(0, destBuffer.Length),
+                    destBuffer);
+                sourcePixels = sourcePixels.Slice(destBuffer.Length);
+            }
+        }
+
+        private static void FromRgba64Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
+            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+        {
+            foreach (Memory<TPixel> m in destinationGroup)
+            {
+                Span<TPixel> destBuffer = m.Span;
+                PixelOperations<TPixel>.Instance.FromRgba64Bytes(
+                    configuration,
+                    rgbaBytes,
+                    destBuffer,
+                    destBuffer.Length);
+                rgbaBytes = rgbaBytes.Slice(destBuffer.Length * 8);
+            }
+        }
+    }
+
+    public class MagickReferenceDecoderOptions : ISpecializedDecoderOptions
+    {
+        public DecoderOptions GeneralOptions { get; set; } = new();
     }
 }

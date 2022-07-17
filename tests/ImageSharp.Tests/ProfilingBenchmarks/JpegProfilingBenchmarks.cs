@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
         {
         }
 
-        public static readonly TheoryData<string, int> DecodeJpegData = new TheoryData<string, int>
+        public static readonly TheoryData<string, int> DecodeJpegData = new()
         {
             { TestImages.Jpeg.BenchmarkSuite.Jpeg400_SmallMonochrome, 20 },
             { TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr, 20 },
@@ -38,16 +38,17 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
         [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName, int executionCount)
         {
-            var decoder = new JpegDecoder()
+            DecoderOptions options = new()
             {
-                IgnoreMetadata = true
+                SkipMetadata = true
             };
-            this.DecodeJpegBenchmarkImpl(fileName, decoder, executionCount);
+
+            this.DecodeJpegBenchmarkImpl(fileName, options, executionCount);
         }
 
-        private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder, int executionCount)
+        private void DecodeJpegBenchmarkImpl(string fileName, DecoderOptions options, int executionCount)
         {
-            // do not run this on CI even by accident
+            // Do not run this on CI even by accident
             if (TestEnvironment.RunsOnCI)
             {
                 return;
@@ -65,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                 executionCount,
                 () =>
                     {
-                        var img = Image.Load<Rgba32>(bytes, decoder);
+                        var img = Image.Load<Rgba32>(options, bytes);
                         img.Dispose();
                     },
 #pragma warning disable SA1515 // Single-line comment should be preceded by blank line
@@ -123,8 +124,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                             }
                         },
 #pragma warning disable SA1515 // Single-line comment should be preceded by blank line
-                              // ReSharper disable once ExplicitCallerInfoArgument
-                    $@"Encode {testFiles.Length} images");
+                    // ReSharper disable once ExplicitCallerInfoArgument
+                    $"Encode {testFiles.Length} images");
 #pragma warning restore SA1515 // Single-line comment should be preceded by blank line
             }
 

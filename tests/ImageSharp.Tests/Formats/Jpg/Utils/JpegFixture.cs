@@ -89,33 +89,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             return result;
         }
 
-        internal static float[] Create8x8RoundedRandomFloatData(int minValue, int maxValue, int seed = 42)
-            => Create8x8RandomIntData(minValue, maxValue, seed).ConvertAllToFloat();
-
-        public static float[] Create8x8RandomFloatData(float minValue, float maxValue, int seed = 42)
+        public static float[] Create8x8RandomFloatData(float minValue, float maxValue, int seed = 42, int xBorder = 8, int yBorder = 8)
         {
             var rnd = new Random(seed);
-            var result = new float[64];
-            for (int i = 0; i < 8; i++)
+            float[] result = new float[64];
+            for (int y = 0; y < yBorder; y++)
             {
-                for (int j = 0; j < 8; j++)
+                int y8 = y * 8;
+                for (int x = 0; x < xBorder; x++)
                 {
                     double val = rnd.NextDouble();
                     val *= maxValue - minValue;
                     val += minValue;
 
-                    result[(i * 8) + j] = (float)val;
+                    result[y8 + x] = (float)val;
                 }
             }
 
             return result;
         }
 
-        internal static Block8x8F CreateRandomFloatBlock(float minValue, float maxValue, int seed = 42) =>
-            Block8x8F.Load(Create8x8RandomFloatData(minValue, maxValue, seed));
-
-        internal static Block8x8F CreateRoundedRandomFloatBlock(int minValue, int maxValue, int seed = 42) =>
-            Block8x8F.Load(Create8x8RoundedRandomFloatData(minValue, maxValue, seed));
+        internal static Block8x8F CreateRandomFloatBlock(float minValue, float maxValue, int seed = 42, int xBorder = 8, int yBorder = 8) =>
+            Block8x8F.Load(Create8x8RandomFloatData(minValue, maxValue, seed, xBorder, yBorder));
 
         internal void Print8x8Data<T>(T[] data) => this.Print8x8Data(new Span<T>(data));
 

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -204,23 +204,30 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         public void ImageSharpResize(string input)
         {
-            using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
+            using FileStream inputStream = File.Open(input, FileMode.Open);
+            using FileStream outputStream = File.Open(this.OutputPath(input), FileMode.Create);
 
             // Resize it to fit a 150x150 square
-            using var image = ImageSharpImage.Load(input);
+            var targetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize);
+            var decoder = new JpegDecoder();
+            using ImageSharpImage image = decoder.DecodeInto(Configuration.Default, inputStream, targetSize, default);
             this.LogImageProcessed(image.Width, image.Height);
 
             image.Mutate(i => i.Resize(new ResizeOptions
             {
-                Size = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize),
-                Mode = ResizeMode.Max
+                Size = targetSize,
+                Mode = ResizeMode.Max,
+                Sampler = KnownResamplers.Box
             }));
 
             // Reduce the size of the file
             image.Metadata.ExifProfile = null;
+            image.Metadata.XmpProfile = null;
+            image.Metadata.IccProfile = null;
+            image.Metadata.IptcProfile = null;
 
             // Save the results
-            image.Save(output, this.imageSharpJpegEncoder);
+            image.Save(outputStream, this.imageSharpJpegEncoder);
         }
 
         public async Task ImageSharpResizeAsync(string input)
@@ -231,6 +238,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using ImageSharpImage image = await ImageSharpImage.LoadAsync(input);
             this.LogImageProcessed(image.Width, image.Height);
 
+            // Resize checks whether image size and target sizes are equal
             image.Mutate(i => i.Resize(new ResizeOptions
             {
                 Size = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize),

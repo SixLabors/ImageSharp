@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -74,6 +74,12 @@ namespace SixLabors.ImageSharp
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Modulo8(int x) => x & 7;
+
+        /// <summary>
+        /// Calculates <paramref name="x"/> % 8
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static nint Modulo8(nint x) => x & 7;
 
         /// <summary>
         /// Fast (x mod m) calculator, with the restriction that

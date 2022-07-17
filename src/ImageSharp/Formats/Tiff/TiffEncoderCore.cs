@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 switch (bitsPerPixel)
                 {
                     case TiffBitsPerPixel.Bit1:
-                        if (compression == TiffCompression.Ccitt1D || compression == TiffCompression.CcittGroup3Fax || compression == TiffCompression.CcittGroup4Fax)
+                        if (IsOneBitCompression(compression))
                         {
                             // The “normal” PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
                             this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.WhiteIsZero, compression, TiffPredictor.None);
@@ -375,6 +375,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         break;
                 }
 
+                // Make sure 1 Bit compression is only used with 1 bit pixel type.
+                if (IsOneBitCompression(this.CompressionType) && this.BitsPerPixel != TiffBitsPerPixel.Bit1)
+                {
+                    // Invalid compression / bits per pixel combination, fallback to no compression.
+                    this.CompressionType = DefaultCompression;
+                }
+
                 return;
             }
 
@@ -396,18 +403,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 case TiffPhotometricInterpretation.BlackIsZero:
                 case TiffPhotometricInterpretation.WhiteIsZero:
-                    if (this.CompressionType == TiffCompression.Ccitt1D ||
-                        this.CompressionType == TiffCompression.CcittGroup3Fax ||
-                        this.CompressionType == TiffCompression.CcittGroup4Fax)
+                    if (IsOneBitCompression(this.CompressionType))
                     {
                         this.SetEncoderOptions(TiffBitsPerPixel.Bit1, photometricInterpretation, compression, TiffPredictor.None);
                         return;
                     }
-                    else
-                    {
-                        this.SetEncoderOptions(TiffBitsPerPixel.Bit8, photometricInterpretation, compression, predictor);
-                        return;
-                    }
+
+                    this.SetEncoderOptions(TiffBitsPerPixel.Bit8, photometricInterpretation, compression, predictor);
+                    return;
 
                 case TiffPhotometricInterpretation.PaletteColor:
                     this.SetEncoderOptions(TiffBitsPerPixel.Bit8, photometricInterpretation, compression, predictor);
@@ -427,6 +430,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.PhotometricInterpretation = photometricInterpretation;
             this.CompressionType = compression;
             this.HorizontalPredictor = predictor;
+        }
+
+        public static bool IsOneBitCompression(TiffCompression? compression)
+        {
+            if (compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

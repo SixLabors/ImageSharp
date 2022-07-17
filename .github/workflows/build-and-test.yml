@@ -20,12 +20,13 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: macos-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
+          # Temp disabled due to runtime preview issues.
+          #- os: macos-latest
+          #  framework: net7.0
+          #  sdk: 7.0.x
+          #  sdk-preview: true
+          #  runtime: -x64
+          #  codecov: false
           - os: windows-latest
             framework: net7.0
             sdk: 7.0.x
@@ -89,12 +90,20 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: DotNet Setup
+        if: ${{ matrix.options.sdk-preview != true }}
+        uses: actions/setup-dotnet@v2
+        with:
+          include-prerelease: true
+          dotnet-version: |
+            6.0.x
+
+      - name: DotNet Setup Preview
+        if: ${{ matrix.options.sdk-preview == true }}
         uses: actions/setup-dotnet@v2
         with:
           include-prerelease: true
           dotnet-version: |
             7.0.x
-            6.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

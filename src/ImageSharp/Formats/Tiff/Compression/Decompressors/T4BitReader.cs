@@ -1,20 +1,17 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Bitreader for reading compressed CCITT T4 1D data.
     /// </summary>
-    internal class T4BitReader : IDisposable
+    internal class T4BitReader
     {
         /// <summary>
         /// The logical order of bits within a byte.
@@ -52,28 +49,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// </summary>
         private readonly int maxCodeLength = 13;
 
-        private static readonly Dictionary<uint, uint> WhiteLen4TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen4TermCodes = new()
         {
             { 0x7, 2 }, { 0x8, 3 }, { 0xB, 4 }, { 0xC, 5 }, { 0xE, 6 }, { 0xF, 7 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen5TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen5TermCodes = new()
         {
             { 0x13, 8 }, { 0x14, 9 }, { 0x7, 10 }, { 0x8, 11 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen6TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen6TermCodes = new()
         {
             { 0x7, 1 }, { 0x8, 12 }, { 0x3, 13 }, { 0x34, 14 }, { 0x35, 15 }, { 0x2A, 16 }, { 0x2B, 17 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen7TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen7TermCodes = new()
         {
             { 0x27, 18 }, { 0xC, 19 }, { 0x8, 20 }, { 0x17, 21 }, { 0x3, 22 }, { 0x4, 23 }, { 0x28, 24 }, { 0x2B, 25 }, { 0x13, 26 },
             { 0x24, 27 }, { 0x18, 28 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen8TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen8TermCodes = new()
         {
             { 0x35, 0 }, { 0x2, 29 }, { 0x3, 30 }, { 0x1A, 31 }, { 0x1B, 32 }, { 0x12, 33 }, { 0x13, 34 }, { 0x14, 35 }, { 0x15, 36 },
             { 0x16, 37 }, { 0x17, 38 }, { 0x28, 39 }, { 0x29, 40 }, { 0x2A, 41 }, { 0x2B, 42 }, { 0x2C, 43 }, { 0x2D, 44 }, { 0x4, 45 },
@@ -81,57 +78,57 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             { 0x58, 55 }, { 0x59, 56 }, { 0x5A, 57 }, { 0x5B, 58 }, { 0x4A, 59 }, { 0x4B, 60 }, { 0x32, 61 }, { 0x33, 62 }, { 0x34, 63 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen2TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen2TermCodes = new()
         {
             { 0x3, 2 }, { 0x2, 3 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen3TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen3TermCodes = new()
         {
             { 0x2, 1 }, { 0x3, 4 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen4TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen4TermCodes = new()
         {
             { 0x3, 5 }, { 0x2, 6 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen5TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen5TermCodes = new()
         {
             { 0x3, 7 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen6TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen6TermCodes = new()
         {
             { 0x5, 8 }, { 0x4, 9 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen7TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen7TermCodes = new()
         {
             { 0x4, 10 }, { 0x5, 11 }, { 0x7, 12 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen8TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen8TermCodes = new()
         {
             { 0x4, 13 }, { 0x7, 14 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen9TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen9TermCodes = new()
         {
             { 0x18, 15 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen10TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen10TermCodes = new()
         {
             { 0x37, 0 }, { 0x17, 16 }, { 0x18, 17 }, { 0x8, 18 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen11TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen11TermCodes = new()
         {
             { 0x67, 19 }, { 0x68, 20 }, { 0x6C, 21 }, { 0x37, 22 }, { 0x28, 23 }, { 0x17, 24 }, { 0x18, 25 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen12TermCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen12TermCodes = new()
         {
             { 0xCA, 26 }, { 0xCB, 27 }, { 0xCC, 28 }, { 0xCD, 29 }, { 0x68, 30 }, { 0x69, 31 }, { 0x6A, 32 }, { 0x6B, 33 }, { 0xD2, 34 },
             { 0xD3, 35 }, { 0xD4, 36 }, { 0xD5, 37 }, { 0xD6, 38 }, { 0xD7, 39 }, { 0x6C, 40 }, { 0x6D, 41 }, { 0xDA, 42 }, { 0xDB, 43 },
@@ -140,62 +137,62 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             { 0x66, 62 }, { 0x67, 63 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen5MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen5MakeupCodes = new()
         {
             { 0x1B, 64 }, { 0x12, 128 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen6MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen6MakeupCodes = new()
         {
             { 0x17, 192 }, { 0x18, 1664 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen8MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen8MakeupCodes = new()
         {
             { 0x36, 320 }, { 0x37, 384 }, { 0x64, 448 }, { 0x65, 512 }, { 0x68, 576 }, { 0x67, 640 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen7MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen7MakeupCodes = new()
         {
             { 0x37, 256 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen9MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen9MakeupCodes = new()
         {
             { 0xCC, 704 }, { 0xCD, 768 }, { 0xD2, 832 }, { 0xD3, 896 }, { 0xD4, 960 }, { 0xD5, 1024 }, { 0xD6, 1088 },
             { 0xD7, 1152 }, { 0xD8, 1216 }, { 0xD9, 1280 }, { 0xDA, 1344 }, { 0xDB, 1408 }, { 0x98, 1472 }, { 0x99, 1536 },
             { 0x9A, 1600 }, { 0x9B, 1728 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen11MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen11MakeupCodes = new()
         {
             { 0x8, 1792 }, { 0xC, 1856 }, { 0xD, 1920 }
         };
 
-        private static readonly Dictionary<uint, uint> WhiteLen12MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> WhiteLen12MakeupCodes = new()
         {
             { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304 }, { 0x1C, 2368 },
             { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen10MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen10MakeupCodes = new()
         {
             { 0xF, 64 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen11MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen11MakeupCodes = new()
         {
             { 0x8, 1792 }, { 0xC, 1856 }, { 0xD, 1920 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen12MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen12MakeupCodes = new()
         {
             { 0xC8, 128 }, { 0xC9, 192 }, { 0x5B, 256 }, { 0x33, 320 }, { 0x34, 384 }, { 0x35, 448 },
             { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304 }, { 0x1C, 2368 },
             { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
         };
 
-        private static readonly Dictionary<uint, uint> BlackLen13MakeupCodes = new Dictionary<uint, uint>()
+        private static readonly Dictionary<uint, uint> BlackLen13MakeupCodes = new()
         {
             { 0x6C, 512 }, { 0x6D, 576 }, { 0x4A, 640 }, { 0x4B, 704 }, { 0x4C, 768 }, { 0x4D, 832 }, { 0x72, 896 },
             { 0x73, 960 }, { 0x74, 1024 }, { 0x75, 1088 }, { 0x76, 1152 }, { 0x77, 1216 }, { 0x52, 1280 }, { 0x53, 1344 },
@@ -203,19 +200,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         };
 
         /// <summary>
+        /// The compressed input stream.
+        /// </summary>
+        private readonly BufferedReadStream stream;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="T4BitReader" /> class.
         /// </summary>
         /// <param name="input">The compressed input stream.</param>
         /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
-        /// <param name="allocator">The memory allocator.</param>
         /// <param name="eolPadding">Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.</param>
-        public T4BitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false)
+        public T4BitReader(BufferedReadStream input, TiffFillOrder fillOrder, int bytesToRead, bool eolPadding = false)
         {
+            this.stream = input;
             this.fillOrder = fillOrder;
-            this.Data = allocator.Allocate<byte>(bytesToRead);
-            this.ReadImageDataFromStream(input, bytesToRead);
-
             this.DataLength = bytesToRead;
             this.BitsRead = 0;
             this.Value = 0;
@@ -228,11 +227,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.RunLength = 0;
             this.eolPadding = eolPadding;
 
+            this.ReadNextByte();
+
             if (this.eolPadding)
             {
                 this.maxCodeLength = 24;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the byte at the given position.
+        /// </summary>
+        private byte DataAtPosition { get; set; }
 
         /// <summary>
         /// Gets the current value.
@@ -258,11 +264,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// Gets or sets the byte position in the buffer.
         /// </summary>
         protected ulong Position { get; set; }
-
-        /// <summary>
-        /// Gets the compressed image data.
-        /// </summary>
-        public IMemoryOwner<byte> Data { get; }
 
         /// <summary>
         /// Gets a value indicating whether there is more data to read left.
@@ -390,9 +391,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.terminationCodeFound = false;
         }
 
-        /// <inheritdoc/>
-        public void Dispose() => this.Data.Dispose();
-
         /// <summary>
         /// An EOL is expected before the first data.
         /// </summary>
@@ -436,6 +434,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// </summary>
         /// <param name="nBits">The number of bits to read.</param>
         /// <returns>The value read.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         protected uint ReadValue(int nBits)
         {
             DebugGuard.MustBeGreaterThan(nBits, 0, nameof(nBits));
@@ -450,6 +449,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
 
             return v;
+        }
+
+        /// <summary>
+        /// Advances the position by one byte.
+        /// </summary>
+        /// <returns>True, if data could be advanced by one byte, otherwise false.</returns>
+        protected bool AdvancePosition()
+        {
+            if (this.LoadNewByte())
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private uint WhiteTerminatingCodeRunLength()
@@ -806,44 +819,49 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint GetBit()
         {
             if (this.BitsRead >= 8)
             {
-                this.LoadNewByte();
+                this.AdvancePosition();
             }
 
-            Span<byte> dataSpan = this.Data.GetSpan();
             int shift = 8 - this.BitsRead - 1;
-            uint bit = (uint)((dataSpan[(int)this.Position] & (1 << shift)) != 0 ? 1 : 0);
+            uint bit = (uint)((this.DataAtPosition & (1 << shift)) != 0 ? 1 : 0);
             this.BitsRead++;
 
             return bit;
         }
 
-        private void LoadNewByte()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool LoadNewByte()
         {
-            this.Position++;
-            this.ResetBitsRead();
-
-            if (this.Position >= (ulong)this.DataLength)
+            if (this.Position < (ulong)this.DataLength)
             {
-                TiffThrowHelper.ThrowImageFormatException("tiff image has invalid ccitt compressed data");
+                this.ReadNextByte();
+                this.Position++;
+                return true;
             }
+
+            this.Position++;
+            this.DataAtPosition = 0;
+            return false;
         }
 
-        private void ReadImageDataFromStream(Stream input, int bytesToRead)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadNextByte()
         {
-            Span<byte> dataSpan = this.Data.GetSpan();
-            input.Read(dataSpan, 0, bytesToRead);
-
-            if (this.fillOrder == TiffFillOrder.LeastSignificantBitFirst)
+            int nextByte = this.stream.ReadByte();
+            if (nextByte == -1)
             {
-                for (int i = 0; i < dataSpan.Length; i++)
-                {
-                    dataSpan[i] = ReverseBits(dataSpan[i]);
-                }
+                TiffThrowHelper.ThrowImageFormatException("Tiff fax compression error: not enough data.");
             }
+
+            this.ResetBitsRead();
+            this.DataAtPosition = this.fillOrder == TiffFillOrder.LeastSignificantBitFirst
+                ? ReverseBits((byte)nextByte)
+                : (byte)nextByte;
         }
 
         // http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits

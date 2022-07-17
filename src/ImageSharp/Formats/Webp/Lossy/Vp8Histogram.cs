@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -23,10 +23,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Size of histogram used by CollectHistogram.
         /// </summary>
         private const int MaxCoeffThresh = 31;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector256<short> MaxCoeffThreshVec = Vector256.Create((short)MaxCoeffThresh);
-#endif
 
         private int maxValue;
 
@@ -73,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     Vector256<short> v0 = Avx2.ShiftRightArithmetic(abs0.AsInt16(), 3);
 
                     // bin = min(v, MAX_COEFF_THRESH)
-                    Vector256<short> min0 = Avx2.Min(v0, MaxCoeffThreshVec);
+                    Vector256<short> min0 = Avx2.Min(v0, Vector256.Create((short)MaxCoeffThresh));
 
                     // Store.
                     Unsafe.As<short, Vector256<short>>(ref outputRef) = min0;

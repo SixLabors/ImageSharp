@@ -1,8 +1,9 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -33,11 +34,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <inheritdoc/>
         public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
-            // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             Rgba64 rgba = TiffUtils.Rgba64Default;
             var color = default(TPixel);
-            color.FromScaledVector4(TiffUtils.Vector4Default);
+            color.FromScaledVector4(Vector4.Zero);
 
             Span<byte> redData = data[0].GetSpan();
             Span<byte> greenData = data[1].GetSpan();

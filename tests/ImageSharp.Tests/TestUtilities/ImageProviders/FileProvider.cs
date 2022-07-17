@@ -28,36 +28,66 @@ namespace SixLabors.ImageSharp.Tests
 
                 private readonly Dictionary<string, object> decoderParameters;
 
-                public Key(PixelTypes pixelType, string filePath, IImageDecoder customDecoder)
+                public Key(
+                    PixelTypes pixelType,
+                    string filePath,
+                    IImageDecoder customDecoder,
+                    DecoderOptions options,
+                    ISpecializedDecoderOptions specialized)
                 {
                     Type customType = customDecoder?.GetType();
                     this.commonValues = new Tuple<PixelTypes, string, Type>(
                         pixelType,
                         filePath,
                         customType);
-                    this.decoderParameters = GetDecoderParameters(customDecoder);
+                    this.decoderParameters = GetDecoderParameters(options, specialized);
                 }
 
-                private static Dictionary<string, object> GetDecoderParameters(IImageDecoder customDecoder)
+                private static Dictionary<string, object> GetDecoderParameters(
+                    DecoderOptions options,
+                    ISpecializedDecoderOptions specialized)
                 {
-                    Type type = customDecoder.GetType();
+                    Type type = options.GetType();
 
                     var data = new Dictionary<string, object>();
 
                     while (type != null && type != typeof(object))
                     {
-                        PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                        foreach (PropertyInfo p in properties)
+                        foreach (PropertyInfo p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                         {
                             string key = $"{type.FullName}.{p.Name}";
-                            object value = p.GetValue(customDecoder);
-                            data[key] = value;
+                            data[key] = p.GetValue(options);
                         }
 
                         type = type.GetTypeInfo().BaseType;
                     }
 
+                    GetSpecializedDecoderParameters(data, specialized);
+
                     return data;
+                }
+
+                private static void GetSpecializedDecoderParameters(
+                    Dictionary<string, object> data,
+                    ISpecializedDecoderOptions options)
+                {
+                    if (options is null)
+                    {
+                        return;
+                    }
+
+                    Type type = options.GetType();
+
+                    while (type != null && type != typeof(object))
+                    {
+                        foreach (PropertyInfo p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                        {
+                            string key = $"{type.FullName}.{p.Name}";
+                            data[key] = p.GetValue(options);
+                        }
+
+                        type = type.GetTypeInfo().BaseType;
+                    }
                 }
 
                 public bool Equals(Key other)
@@ -165,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests
                     return this.DecodeImage(decoder, options);
                 }
 
-                var key = new Key(this.PixelType, this.FilePath, decoder);
+                var key = new Key(this.PixelType, this.FilePath, decoder, options, null);
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.DecodeImage(decoder, options));
 
                 return cachedImage.Clone(this.Configuration);
@@ -202,7 +232,7 @@ namespace SixLabors.ImageSharp.Tests
                     return this.DecodeImage(decoder, options);
                 }
 
-                var key = new Key(this.PixelType, this.FilePath, decoder);
+                var key = new Key(this.PixelType, this.FilePath, decoder, options.GeneralOptions, options);
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.DecodeImage(decoder, options));
 
                 return cachedImage.Clone(this.Configuration);

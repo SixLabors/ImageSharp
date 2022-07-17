@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="features">The webp features.</param>
         private void ParseOptionalChunks(WebpFeatures features)
         {
-            if (this.skipMetadata || (features.ExifProfile == false && features.XmpMetaData == false))
+            if (this.skipMetadata || (!features.ExifProfile && !features.XmpMetaData))
             {
                 return;
             }

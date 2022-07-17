@@ -373,7 +373,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-                    this.configuration,
+                    this.Options.GeneralOptions,
                     this.CompressionType,
                     this.memoryAllocator,
                     this.PhotometricInterpretation,
@@ -453,7 +453,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
             using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-                this.configuration,
+                this.Options.GeneralOptions,
                 this.CompressionType,
                 this.memoryAllocator,
                 this.PhotometricInterpretation,

@@ -3,77 +3,45 @@
 
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
-    /// Image decoder for generating an image out of a jpg stream.
+    /// Decoder for generating an image out of a jpeg encoded stream.
     /// </summary>
-    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions, IImageInfoDetector
+    public sealed class JpegDecoder : ImageDecoder<JpegDecoderOptions>
     {
         /// <inheritdoc/>
-        public bool IgnoreMetadata { get; set; }
-
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        /// <remarks>
+        /// Unlike <see cref="IImageDecoder.Decode{TPixel}(DecoderOptions, Stream, CancellationToken)"/>, when
+        /// <see cref="DecoderOptions.TargetSize"/> is passed, the codec may not be able to scale efficiently to
+        /// the exact scale factor requested, so returns a size that approximates that scale.
+        /// Upscaling is not supported, so the original size will be returned.
+        /// </remarks>
+        public override Image<TPixel> DecodeSpecialized<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Guard.NotNull(stream, nameof(stream));
-
-            using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgb24>(configuration, stream, cancellationToken);
-
-        /// <summary>
-        /// Placeholder summary.
-        /// </summary>
-        /// <param name="configuration">Placeholder2</param>
-        /// <param name="stream">Placeholder3</param>
-        /// <param name="targetSize">Placeholder4</param>
-        /// <param name="cancellationToken">Placeholder5</param>
-        /// <returns>Placeholder6</returns>
-        internal Image DecodeInto(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
-            => this.DecodeInto<Rgb24>(configuration, stream, targetSize, cancellationToken);
-
-        /// <summary>
-        /// Decodes and downscales the image from the specified stream if possible.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">Configuration.</param>
-        /// <param name="stream">Stream.</param>
-        /// <param name="targetSize">Target size.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        internal Image<TPixel> DecodeInto<TPixel>(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            using var decoder = new JpegDecoderCore(configuration, this);
-            using var bufferedReadStream = new BufferedReadStream(configuration, stream);
-            try
-            {
-                return decoder.DecodeInto<TPixel>(bufferedReadStream, targetSize, cancellationToken);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                throw new InvalidImageContentException(((IImageDecoderInternals)decoder).Dimensions, ex);
-            }
+            using JpegDecoderCore decoder = new(options);
+            return decoder.Decode<JpegDecoderOptions, TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        /// <remarks>
+        /// Unlike <see cref="IImageDecoder.Decode(DecoderOptions, Stream, CancellationToken)"/>, when
+        /// <see cref="DecoderOptions.TargetSize"/> is passed, the codec may not be able to scale efficiently to
+        /// the exact scale factor requested, so returns a size that approximates that scale.
+        /// Upscaling is not supported, so the original size will be returned.
+        /// </remarks>
+        public override Image DecodeSpecialized(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.DecodeSpecialized<Rgb24>(options, stream, cancellationToken);
+
+        /// <inheritdoc/>
+        public override IImageInfo IdentifySpecialized(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.Identify(configuration, stream, cancellationToken);
+            using JpegDecoderCore decoder = new(options);
+            return decoder.Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
         }
     }
 }

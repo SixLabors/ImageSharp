@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 
@@ -10,7 +10,14 @@ namespace SixLabors.ImageSharp.Formats
     /// </summary>
     public sealed class DecoderOptions
     {
+        private static readonly Lazy<DecoderOptions> LazyOptions = new(() => new());
+
         private uint maxFrames = int.MaxValue;
+
+        /// <summary>
+        /// Gets the shared default general decoder options instance.
+        /// </summary>
+        public static DecoderOptions Default { get; } = LazyOptions.Value;
 
         /// <summary>
         /// Gets or sets a custom Configuration instance to be used by the image processing pipeline.

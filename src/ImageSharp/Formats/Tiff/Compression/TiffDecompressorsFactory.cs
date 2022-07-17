@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
     internal static class TiffDecompressorsFactory
     {
         public static TiffBaseDecompressor Create(
-            Configuration configuration,
+            DecoderOptions options,
             TiffDecoderCompressionType method,
             MemoryAllocator allocator,
             TiffPhotometricInterpretation photometricInterpretation,
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
                 case TiffDecoderCompressionType.Jpeg:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                    return new JpegTiffCompression(configuration, allocator, width, bitsPerPixel, jpegTables, photometricInterpretation);
+                    return new JpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, jpegTables, photometricInterpretation);
 
                 default:
                     throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));

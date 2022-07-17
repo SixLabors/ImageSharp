@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using System.Threading;
@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats
     /// The base class for all image decoders.
     /// </summary>
     /// <typeparam name="T">The type of specialized decoder options.</typeparam>
-    public abstract class ImageDecoder<T> : IImageInfoDetector2, IImageDecoder2
+    public abstract class ImageDecoder<T> : IImageInfoDetector, IImageDecoder
         where T : ISpecializedDecoderOptions, new()
     {
         /// <inheritdoc/>

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// </summary>
     internal sealed class JpegTiffCompression : TiffBaseDecompressor
     {
-        private readonly Configuration configuration;
+        private readonly JpegDecoderOptions options;
 
         private readonly byte[] jpegTables;
 
@@ -27,14 +27,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegTiffCompression"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
+        /// <param name="options">The specialized jpeg decoder options.</param>
         /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
         /// <param name="width">The image width.</param>
         /// <param name="bitsPerPixel">The bits per pixel.</param>
         /// <param name="jpegTables">The JPEG tables containing the quantization and/or Huffman tables.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
         public JpegTiffCompression(
-            Configuration configuration,
+            JpegDecoderOptions options,
             MemoryAllocator memoryAllocator,
             int width,
             int bitsPerPixel,
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             TiffPhotometricInterpretation photometricInterpretation)
             : base(memoryAllocator, width, bitsPerPixel)
         {
-            this.configuration = configuration;
+            this.options = options;
             this.jpegTables = jpegTables;
             this.photometricInterpretation = photometricInterpretation;
         }
@@ -52,14 +52,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         {
             if (this.jpegTables != null)
             {
-                using var jpegDecoder = new JpegDecoderCore(this.configuration, new JpegDecoder());
-
+                using var jpegDecoder = new JpegDecoderCore(this.options);
+                Configuration configuration = this.options.GeneralOptions.Configuration;
                 switch (this.photometricInterpretation)
                 {
                     case TiffPhotometricInterpretation.BlackIsZero:
                     case TiffPhotometricInterpretation.WhiteIsZero:
                     {
-                        using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(this.configuration);
+                        using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(configuration);
                         var scanDecoderGray = new HuffmanScanDecoder(stream, spectralConverterGray, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
                         jpegDecoder.ParseStream(stream, spectralConverterGray, CancellationToken.None);
@@ -73,8 +73,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     case TiffPhotometricInterpretation.YCbCr:
                     case TiffPhotometricInterpretation.Rgb:
                     {
-                        using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
-                            new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
+                        using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr
+                            ? new RgbJpegSpectralConverter<Rgb24>(this.options.GeneralOptions.Configuration)
+                            : new SpectralConverter<Rgb24>(this.options.GeneralOptions.Configuration);
+
                         var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                         jpegDecoder.ParseStream(stream, spectralConverter, CancellationToken.None);

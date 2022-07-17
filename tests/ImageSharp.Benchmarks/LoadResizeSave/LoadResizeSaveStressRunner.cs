@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
@@ -157,7 +158,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             this.TotalProcessedMegapixels += pixels / 1_000_000.0;
         }
 
-        private string OutputPath(string inputPath, [CallerMemberName]string postfix = null) =>
+        private string OutputPath(string inputPath, [CallerMemberName] string postfix = null) =>
             Path.Combine(
                 this.outputDirectory,
                 Path.GetFileNameWithoutExtension(inputPath) + "-" + postfix + Path.GetExtension(inputPath));
@@ -208,17 +209,14 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using FileStream outputStream = File.Open(this.OutputPath(input), FileMode.Create);
 
             // Resize it to fit a 150x150 square
-            var targetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize);
-            var decoder = new JpegDecoder();
-            using ImageSharpImage image = decoder.DecodeInto(Configuration.Default, inputStream, targetSize, default);
-            this.LogImageProcessed(image.Width, image.Height);
-
-            image.Mutate(i => i.Resize(new ResizeOptions
+            DecoderOptions options = new()
             {
-                Size = targetSize,
-                Mode = ResizeMode.Max,
-                Sampler = KnownResamplers.Box
-            }));
+                TargetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize)
+            };
+
+            var decoder = new JpegDecoder();
+            using ImageSharpImage image = decoder.Decode(options, inputStream, default);
+            this.LogImageProcessed(image.Width, image.Height);
 
             // Reduce the size of the file
             image.Metadata.ExifProfile = null;
@@ -235,18 +233,19 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
 
             // Resize it to fit a 150x150 square.
-            using ImageSharpImage image = await ImageSharpImage.LoadAsync(input);
-            this.LogImageProcessed(image.Width, image.Height);
-
-            // Resize checks whether image size and target sizes are equal
-            image.Mutate(i => i.Resize(new ResizeOptions
+            DecoderOptions options = new()
             {
-                Size = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize),
-                Mode = ResizeMode.Max
-            }));
+                TargetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize)
+            };
+
+            using ImageSharpImage image = await ImageSharpImage.LoadAsync(options, input);
+            this.LogImageProcessed(image.Width, image.Height);
 
             // Reduce the size of the file
             image.Metadata.ExifProfile = null;
+            image.Metadata.XmpProfile = null;
+            image.Metadata.IccProfile = null;
+            image.Metadata.IptcProfile = null;
 
             // Save the results
             await image.SaveAsync(output, this.imageSharpJpegEncoder);

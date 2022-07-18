@@ -661,7 +661,8 @@ namespace SixLabors.ImageSharp.Tests
         /// Loads the expected image with a reference decoder + compares it to <paramref name="image"/>.
         /// Also performs a debug save using <see cref="ImagingTestCaseUtility.SaveTestOutputFile{TPixel}"/>.
         /// </summary>
-        internal static void VerifyEncoder<TPixel>(
+        /// <returns>The path to the encoded output file.</returns>
+        internal static string VerifyEncoder<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
             string extension,
@@ -687,6 +688,8 @@ namespace SixLabors.ImageSharp.Tests
                 ImageComparer comparer = customComparer ?? ImageComparer.Exact;
                 comparer.VerifySimilarity(encodedImage, image);
             }
+
+            return actualOutputFile;
         }
 
         internal static AllocatorBufferCapacityConfigurator LimitAllocatorBufferCapacity<TPixel>(

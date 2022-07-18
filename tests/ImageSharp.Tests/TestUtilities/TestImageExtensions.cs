@@ -688,6 +688,8 @@ namespace SixLabors.ImageSharp.Tests
 
             ImageComparer comparer = customComparer ?? ImageComparer.Exact;
             comparer.VerifySimilarity(encodedImage, image);
+
+            return actualOutputFile;
         }
 
         internal static AllocatorBufferCapacityConfigurator LimitAllocatorBufferCapacity<TPixel>(

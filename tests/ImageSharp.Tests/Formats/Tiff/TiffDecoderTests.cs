@@ -320,6 +320,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(CieLab, PixelTypes.Rgba32)]
+        [WithFile(CieLabPlanar, PixelTypes.Rgba32)]
+        [WithFile(CieLabLzwPredictor, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_CieLab<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
+            // converting the pixel data from Magick.NET to our format with CieLab?
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        }
+
+        [Theory]
         [WithFile(FlowerRgb101010Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb101010Planar, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_30Bit<TPixel>(TestImageProvider<TPixel> provider)

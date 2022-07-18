@@ -37,6 +37,6 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Gets or sets the maximum number of image frames to decode, inclusive.
         /// </summary>
-        public uint MaxFrames { get => this.maxFrames; set => this.maxFrames = Math.Min(Math.Max(value, 1), int.MaxValue); }
+        public uint MaxFrames { get => this.maxFrames; set => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
     }
 }

@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp
             ReadOnlySpan<byte> data,
             out IImageFormat format)
         {
-            fixed (byte* ptr = &data.GetPinnableReference())
+            fixed (byte* ptr = data)
             {
                 using var stream = new UnmanagedMemoryStream(ptr, data.Length);
                 return Load(options, stream, out format);

@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp
         public static unsafe Image<TPixel> Load<TPixel>(DecoderOptions options, ReadOnlySpan<byte> data)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            fixed (byte* ptr = &data.GetPinnableReference())
+            fixed (byte* ptr = data)
             {
                 using var stream = new UnmanagedMemoryStream(ptr, data.Length);
                 return Load<TPixel>(options, stream);

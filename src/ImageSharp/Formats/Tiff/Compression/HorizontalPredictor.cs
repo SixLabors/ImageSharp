@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
@@ -41,6 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     UndoGray32Bit(pixelBytes, width, isBigEndian);
                     break;
                 case TiffColorType.Rgb888:
+                case TiffColorType.CieLab:
                     UndoRgb24Bit(pixelBytes, width);
                     break;
                 case TiffColorType.Rgba8888:

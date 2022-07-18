@@ -28,9 +28,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1799
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{FBE8C1AD-5AEC-4514-9B64-091D8E145865}"
 	ProjectSection(SolutionItems) = preProject
-		.github\ISSUE_TEMPLATE\commercial-bug-report.md = .github\ISSUE_TEMPLATE\commercial-bug-report.md
+		.github\ISSUE_TEMPLATE\commercial-bug-report.yml = .github\ISSUE_TEMPLATE\commercial-bug-report.yml
 		.github\ISSUE_TEMPLATE\config.yml = .github\ISSUE_TEMPLATE\config.yml
-		.github\ISSUE_TEMPLATE\oss-bug-report.md = .github\ISSUE_TEMPLATE\oss-bug-report.md
+		.github\ISSUE_TEMPLATE\oss-bug-report.yml = .github\ISSUE_TEMPLATE\oss-bug-report.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"
@@ -648,10 +648,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{5DFC394F-136
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{2aa31a1f-142c-43f4-8687-09abca4b3a26}*SharedItemsImports = 5
-		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{68a8cc40-6aed-4e96-b524-31b1158fdeea}*SharedItemsImports = 13
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -706,6 +702,10 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{2aa31a1f-142c-43f4-8687-09abca4b3a26}*SharedItemsImports = 5
+		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{68a8cc40-6aed-4e96-b524-31b1158fdeea}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

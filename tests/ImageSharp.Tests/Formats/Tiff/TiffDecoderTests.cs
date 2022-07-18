@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
 using System;
@@ -313,6 +313,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
             // converting the pixel data from Magick.NET to our format with YCbCr?
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        }
+
+        [Theory]
+        [WithFile(CieLab, PixelTypes.Rgba32)]
+        [WithFile(CieLabPlanar, PixelTypes.Rgba32)]
+        [WithFile(CieLabLzwPredictor, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_CieLab<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
+            // converting the pixel data from Magick.NET to our format with CieLab?
             using Image<TPixel> image = provider.GetImage();
             image.DebugSave(provider);
             image.CompareToReferenceOutput(ImageComparer.Exact, provider);

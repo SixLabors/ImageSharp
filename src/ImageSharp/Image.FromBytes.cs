@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static unsafe IImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> data, out IImageFormat format)
         {
-            fixed (byte* ptr = &data.GetPinnableReference())
+            fixed (byte* ptr = data)
             {
                 using var stream = new UnmanagedMemoryStream(ptr, data.Length);
                 return Identify(options, stream, out format);

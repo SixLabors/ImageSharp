@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
         public MagickReferenceDecoder(bool validate) => this.validate = validate;
 
-        public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
+        public static MagickReferenceDecoder Instance { get; } = new();
 
         public override Image<TPixel> DecodeSpecialized<TPixel>(MagickReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {

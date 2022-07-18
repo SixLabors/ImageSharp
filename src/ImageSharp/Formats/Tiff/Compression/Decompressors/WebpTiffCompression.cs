@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.IO;
@@ -31,9 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             => this.options = options;
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
         {
-            using Image<Rgb24> image = new WebpDecoder().Decode<Rgb24>(this.options, stream, default);
+            using Image<Rgb24> image = new WebpDecoder().Decode<Rgb24>(this.options, stream, cancellationToken);
             CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
         }
 

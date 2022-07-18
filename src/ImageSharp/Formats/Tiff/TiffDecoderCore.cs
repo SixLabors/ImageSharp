@@ -410,7 +410,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                             stripOffsets[stripIndex],
                             stripByteCounts[stripIndex],
                             stripHeight,
-                            stripBuffers[planeIndex].GetSpan());
+                            stripBuffers[planeIndex].GetSpan(),
+                            cancellationToken);
 
                         stripIndex += stripsPerPlane;
                     }
@@ -498,7 +499,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     stripOffsets[stripIndex],
                     stripByteCounts[stripIndex],
                     stripHeight,
-                    stripBufferSpan);
+                    stripBufferSpan,
+                    cancellationToken);
 
                 colorDecoder.Decode(stripBufferSpan, pixels, 0, top, frame.Width, stripHeight);
             }

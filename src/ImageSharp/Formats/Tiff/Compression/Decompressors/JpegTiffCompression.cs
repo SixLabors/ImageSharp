@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
         {
             if (this.jpegTables != null)
             {
@@ -60,12 +60,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     case TiffPhotometricInterpretation.WhiteIsZero:
                     {
                         using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(configuration);
-                        var scanDecoderGray = new HuffmanScanDecoder(stream, spectralConverterGray, CancellationToken.None);
+                        var scanDecoderGray = new HuffmanScanDecoder(stream, spectralConverterGray, cancellationToken);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
-                        jpegDecoder.ParseStream(stream, spectralConverterGray, CancellationToken.None);
+                        jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
-                        // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(CancellationToken.None);
+                        using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
                         CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }
@@ -75,12 +74,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     {
                         using SpectralConverter<Rgb24> spectralConverter =
                             new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
-                        var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
+                        var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
-                        jpegDecoder.ParseStream(stream, spectralConverter, CancellationToken.None);
+                        jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
-                        // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(CancellationToken.None);
+                        using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);
                         CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }

@@ -16,22 +16,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     /// </summary>
     internal class WebpTiffCompression : TiffBaseDecompressor
     {
+        private readonly DecoderOptions options;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WebpTiffCompression"/> class.
         /// </summary>
+        /// <param name="options">The general decoder options.</param>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="bitsPerPixel">The bits per pixel.</param>
         /// <param name="predictor">The predictor.</param>
-        public WebpTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
+        public WebpTiffCompression(DecoderOptions options, MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
             : base(memoryAllocator, width, bitsPerPixel, predictor)
-        {
-        }
+            => this.options = options;
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
-            using var image = Image.Load<Rgb24>(stream, new WebpDecoder());
+            using Image<Rgb24> image = new WebpDecoder().Decode<Rgb24>(this.options, stream, default);
             CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
         }
 

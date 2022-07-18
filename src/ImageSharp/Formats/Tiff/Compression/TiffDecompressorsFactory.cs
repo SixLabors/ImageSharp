@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
                 case TiffDecoderCompressionType.Webp:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                    return new WebpTiffCompression(allocator, width, bitsPerPixel);
+                    return new WebpTiffCompression(options, allocator, width, bitsPerPixel);
 
                 default:
                     throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));

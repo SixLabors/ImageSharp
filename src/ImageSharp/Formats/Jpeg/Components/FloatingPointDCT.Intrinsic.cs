@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
-    internal static partial class FastFloatingPointDCT
+    internal static partial class FloatingPointDCT
     {
         /// <summary>
         /// Apply floating point FDCT inplace using simd operations.

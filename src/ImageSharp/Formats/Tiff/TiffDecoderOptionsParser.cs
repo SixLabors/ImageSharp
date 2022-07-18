@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
                     if (options.BitsPerSample.Channels != 3)
                     {
-                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for YCbCr images.");
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample.Channel0;
@@ -391,6 +391,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.YCbCr : TiffColorType.YCbCrPlanar;
+
+                    break;
+                }
+
+                case TiffPhotometricInterpretation.CieLab:
+                {
+                    if (options.BitsPerSample.Channels != 3)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
+                    }
+
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                    if (bitsPerChannel != 8)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CieLab images.");
+                    }
+
+                    options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.CieLab : TiffColorType.CieLabPlanar;
 
                     break;
                 }
@@ -467,6 +485,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         options.ColorType = TiffColorType.Rgb;
                     }
 
+                    break;
+                }
+
+                case TiffCompression.Webp:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.Webp;
                     break;
                 }
 

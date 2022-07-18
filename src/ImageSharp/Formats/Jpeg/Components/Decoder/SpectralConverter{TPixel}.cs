@@ -31,10 +31,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private readonly Configuration configuration;
 
+        private JpegFrame frame;
+
+        private IRawJpegData jpegData;
+
         /// <summary>
         /// Jpeg component converters from decompressed spectral to color data.
         /// </summary>
-        private JpegComponentPostProcessor[] componentProcessors;
+        private ComponentProcessor[] componentProcessors;
 
         /// <summary>
         /// Color converter from jpeg color space to target pixel color space.
@@ -67,11 +71,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int pixelRowCounter;
 
         /// <summary>
+        /// Represent target size after decoding for scaling decoding mode.
+        /// </summary>
+        /// <remarks>
+        /// Null if no scaling is required.
+        /// </remarks>
+        private Size? targetSize;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SpectralConverter{TPixel}" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public SpectralConverter(Configuration configuration) =>
+        /// <param name="targetSize">Optional target size for decoded image.</param>
+        public SpectralConverter(Configuration configuration, Size? targetSize = null)
+        {
             this.configuration = configuration;
+
+            this.targetSize = targetSize;
+        }
 
         /// <summary>
         /// Gets converted pixel buffer.
@@ -86,6 +103,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (!this.Converted)
             {
+                this.PrepareForDecoding();
+
                 int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.pixelRowsPerStep);
 
                 for (int step = 0; step < steps; step++)
@@ -95,58 +114,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            var buffer = this.pixelBuffer;
+            Buffer2D<TPixel> buffer = this.pixelBuffer;
             this.pixelBuffer = null;
             return buffer;
-        }
-
-        /// <inheritdoc/>
-        public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
-        {
-            MemoryAllocator allocator = this.configuration.MemoryAllocator;
-
-            // iteration data
-            int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);
-            int majorVerticalSamplingFactor = frame.Components.Max((component) => component.SamplingFactors.Height);
-
-            const int blockPixelHeight = 8;
-            this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelHeight;
-
-            // pixel buffer for resulting image
-            this.pixelBuffer = allocator.Allocate2D<TPixel>(
-                frame.PixelWidth,
-                frame.PixelHeight,
-                this.configuration.PreferContiguousImageBuffers);
-            this.paddedProxyPixelRow = allocator.Allocate<TPixel>(frame.PixelWidth + 3);
-
-            // component processors from spectral to Rgba32
-            const int blockPixelWidth = 8;
-            var postProcessorBufferSize = new Size(majorBlockWidth * blockPixelWidth, this.pixelRowsPerStep);
-            this.componentProcessors = new JpegComponentPostProcessor[frame.Components.Length];
-            for (int i = 0; i < this.componentProcessors.Length; i++)
-            {
-                this.componentProcessors[i] = new JpegComponentPostProcessor(allocator, frame, jpegData, postProcessorBufferSize, frame.Components[i]);
-            }
-
-            // single 'stride' rgba32 buffer for conversion between spectral and TPixel
-            this.rgbBuffer = allocator.Allocate<byte>(frame.PixelWidth * 3);
-
-            // color converter from Rgba32 to TPixel
-            this.colorConverter = this.GetColorConverter(frame, jpegData);
-        }
-
-        /// <inheritdoc/>
-        public override void ConvertStrideBaseline()
-        {
-            // Convert next pixel stride using single spectral `stride'
-            // Note that zero passing eliminates the need of virtual call
-            // from JpegComponentPostProcessor
-            this.ConvertStride(spectralStep: 0);
-
-            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
-            {
-                cpp.ClearSpectralBuffers();
-            }
         }
 
         /// <summary>
@@ -200,11 +170,87 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <inheritdoc/>
+        public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
+        {
+            this.frame = frame;
+            this.jpegData = jpegData;
+        }
+
+        /// <inheritdoc/>
+        public override void PrepareForDecoding()
+        {
+            DebugGuard.IsTrue(this.colorConverter == null, "SpectralConverter.PrepareForDecoding() must be called once.");
+
+            MemoryAllocator allocator = this.configuration.MemoryAllocator;
+
+            // color converter from RGB to TPixel
+            JpegColorConverterBase converter = this.GetColorConverter(this.frame, this.jpegData);
+            this.colorConverter = converter;
+
+            // resulting image size
+            Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, out int blockPixelSize);
+
+            // iteration data
+            int majorBlockWidth = this.frame.Components.Max((component) => component.SizeInBlocks.Width);
+            int majorVerticalSamplingFactor = this.frame.Components.Max((component) => component.SamplingFactors.Height);
+
+            this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelSize;
+
+            // pixel buffer for resulting image
+            this.pixelBuffer = allocator.Allocate2D<TPixel>(
+                pixelSize.Width,
+                pixelSize.Height,
+                this.configuration.PreferContiguousImageBuffers);
+            this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
+
+            // component processors from spectral to RGB
+            int bufferWidth = majorBlockWidth * blockPixelSize;
+            int batchSize = converter.ElementsPerBatch;
+            int batchRemainder = bufferWidth & (batchSize - 1);
+            var postProcessorBufferSize = new Size(bufferWidth + (batchSize - batchRemainder), this.pixelRowsPerStep);
+            this.componentProcessors = this.CreateComponentProcessors(this.frame, this.jpegData, blockPixelSize, postProcessorBufferSize);
+
+            // single 'stride' rgba32 buffer for conversion between spectral and TPixel
+            this.rgbBuffer = allocator.Allocate<byte>(pixelSize.Width * 3);
+        }
+
+        /// <inheritdoc/>
+        public override void ConvertStrideBaseline()
+        {
+            // Convert next pixel stride using single spectral `stride'
+            // Note that zero passing eliminates extra virtual call
+            this.ConvertStride(spectralStep: 0);
+
+            foreach (ComponentProcessor cpp in this.componentProcessors)
+            {
+                cpp.ClearSpectralBuffers();
+            }
+        }
+
+        protected ComponentProcessor[] CreateComponentProcessors(JpegFrame frame, IRawJpegData jpegData, int blockPixelSize, Size processorBufferSize)
+        {
+            MemoryAllocator allocator = this.configuration.MemoryAllocator;
+            var componentProcessors = new ComponentProcessor[frame.Components.Length];
+            for (int i = 0; i < componentProcessors.Length; i++)
+            {
+                componentProcessors[i] = blockPixelSize switch
+                {
+                    4 => new DownScalingComponentProcessor2(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                    2 => new DownScalingComponentProcessor4(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                    1 => new DownScalingComponentProcessor8(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                    _ => new DirectComponentProcessor(allocator, frame, jpegData, processorBufferSize, frame.Components[i]),
+                };
+            }
+
+            return componentProcessors;
+        }
+
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (this.componentProcessors != null)
             {
-                foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+                foreach (ComponentProcessor cpp in this.componentProcessors)
                 {
                     cpp.Dispose();
                 }

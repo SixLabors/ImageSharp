@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// Even though real life data is guaranteed to be of size
         /// divisible by 8 newer SIMD instructions like AVX512 won't work with
         /// such data out of the box. These converters have fallback code
-        /// for 'remainder' data.
+        /// for remainder data.
         /// </remarks>
         internal abstract class JpegColorConverterVector : JpegColorConverterBase
         {
@@ -28,7 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             public sealed override bool IsAvailable => Vector.IsHardwareAccelerated && Vector<float>.Count % 4 == 0;
 
-            public override void ConvertToRgbInplace(in ComponentValues values)
+            public sealed override int ElementsPerBatch => Vector<float>.Count;
+
+            public sealed override void ConvertToRgbInplace(in ComponentValues values)
             {
                 DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 

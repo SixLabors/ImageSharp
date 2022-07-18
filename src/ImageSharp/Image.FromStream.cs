@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -393,20 +394,12 @@ namespace SixLabors.ImageSharp
 
             format = data.Format;
 
-            if (data.Image != null)
+            if (data.Image is null)
             {
-                return data.Image;
+                ThrowNotLoaded(options);
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
-
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
-            {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
-            }
-
-            throw new UnknownImageFormatException(sb.ToString());
+            return data.Image;
         }
 
         /// <summary>
@@ -426,27 +419,16 @@ namespace SixLabors.ImageSharp
             Stream stream,
             CancellationToken cancellationToken = default)
         {
-            (Image Image, IImageFormat Format) data = await WithSeekableStreamAsync(
-                    options,
-                    stream,
-                    (s, ct) => Decode(options, s, ct),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            (Image Image, IImageFormat Format) data =
+                await WithSeekableStreamAsync(options, stream, (s, ct) => Decode(options, s, ct), cancellationToken)
+                     .ConfigureAwait(false);
 
-            if (data.Image != null)
+            if (data.Image is null)
             {
-                return data;
+                ThrowNotLoaded(options);
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
-
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
-            {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
-            }
-
-            throw new UnknownImageFormatException(sb.ToString());
+            return data;
         }
 
         /// <summary>
@@ -469,27 +451,15 @@ namespace SixLabors.ImageSharp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             (Image<TPixel> Image, IImageFormat Format) data =
-                await WithSeekableStreamAsync(
-                    options,
-                    stream,
-                    (s, ct) => Decode<TPixel>(options, s, ct),
-                    cancellationToken)
-                .ConfigureAwait(false);
+                await WithSeekableStreamAsync(options, stream, (s, ct) => Decode<TPixel>(options, s, ct), cancellationToken)
+                     .ConfigureAwait(false);
 
-            if (data.Image != null)
+            if (data.Image is null)
             {
-                return data;
+                ThrowNotLoaded(options);
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
-
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
-            {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
-            }
-
-            throw new UnknownImageFormatException(sb.ToString());
+            return data;
         }
 
         /// <summary>
@@ -512,7 +482,7 @@ namespace SixLabors.ImageSharp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             (Image<TPixel> img, _) = await LoadWithFormatAsync<TPixel>(options, stream, cancellationToken)
-                .ConfigureAwait(false);
+                                          .ConfigureAwait(false);
             return img;
         }
 
@@ -535,20 +505,12 @@ namespace SixLabors.ImageSharp
 
             format = fmt;
 
-            if (img != null)
+            if (img is null)
             {
-                return img;
+                ThrowNotLoaded(options);
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
-
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
-            {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
-            }
-
-            throw new UnknownImageFormatException(sb.ToString());
+            return img;
         }
 
         /// <summary>
@@ -632,6 +594,20 @@ namespace SixLabors.ImageSharp
             memoryStream.Position = 0;
 
             return action(memoryStream, cancellationToken);
+        }
+
+        [DoesNotReturn]
+        private static void ThrowNotLoaded(DecoderOptions options)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Image cannot be loaded. Available decoders:");
+
+            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
+            {
+                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
+            }
+
+            throw new UnknownImageFormatException(sb.ToString());
         }
     }
 }

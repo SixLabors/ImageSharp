@@ -122,7 +122,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         protected override void Dispose(bool disposing) => this.innerStream.Dispose();
 
-#if NETCOREAPP
         public override void CopyTo(Stream destination, int bufferSize) => this.Await(() => this.innerStream.CopyTo(destination, bufferSize));
 
         public override int Read(Span<byte> buffer)
@@ -140,6 +139,5 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         }
 
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => this.innerStream.WriteAsync(buffer, cancellationToken));
-#endif
     }
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using Xunit;
@@ -9,7 +8,6 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 {
     [Trait("Category", "Processors")]
-    [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "OK. Used for TheoryData compatibility.")]
     public class DetectEdgesTest : BaseImageOperationsExtensionTest
     {
         [Fact]
@@ -32,8 +30,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
             Assert.Equal(KnownEdgeDetectorKernels.Sobel, processor.Kernel);
         }
 
-        public static TheoryData<EdgeDetector2DKernel, bool> EdgeDetector2DKernelData =
-            new TheoryData<EdgeDetector2DKernel, bool>
+        public static TheoryData<EdgeDetector2DKernel, bool> EdgeDetector2DKernelData { get; } =
+            new()
             {
                 { KnownEdgeDetectorKernels.Kayyali, true },
                 { KnownEdgeDetectorKernels.Kayyali, false },
@@ -91,8 +89,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
             Assert.Equal(kernel, processor.Kernel);
         }
 
-        public static TheoryData<EdgeDetectorKernel, bool> EdgeDetectorKernelData =
-            new TheoryData<EdgeDetectorKernel, bool>
+        public static TheoryData<EdgeDetectorKernel, bool> EdgeDetectorKernelData { get; } =
+            new()
             {
                 { KnownEdgeDetectorKernels.Laplacian3x3, true },
                 { KnownEdgeDetectorKernels.Laplacian3x3, false },
@@ -146,8 +144,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
             Assert.Equal(kernel, processor.Kernel);
         }
 
-        public static TheoryData<EdgeDetectorCompassKernel, bool> EdgeDetectorCompassKernelData =
-            new TheoryData<EdgeDetectorCompassKernel, bool>
+        public static TheoryData<EdgeDetectorCompassKernel, bool> EdgeDetectorCompassKernelData { get; } =
+            new()
             {
                 { KnownEdgeDetectorKernels.Kirsch, true },
                 { KnownEdgeDetectorKernels.Kirsch, false },

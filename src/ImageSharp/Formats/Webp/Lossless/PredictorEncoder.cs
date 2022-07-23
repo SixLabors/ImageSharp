@@ -230,8 +230,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // to allow the top right pixel to point to the leftmost pixel of the next row
             // when at the right edge.
             Span<uint> upperRow = argbScratch;
-            Span<uint> currentRow = upperRow.Slice(width + 1);
-            Span<byte> maxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
+            Span<uint> currentRow = upperRow[(width + 1)..];
+            Span<byte> maxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow[(width + 1)..]);
             float bestDiff = MaxDiffCost;
             int bestMode = 0;
             uint[] residuals = new uint[1 << WebpConstants.MaxTransformBits];
@@ -250,7 +250,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // in all cases (wrapping to the leftmost pixel of the next row if it does
                     // not exist).
                     Span<uint> src = argb.Slice(((startY - 1) * width) + contextStartX, maxX + haveLeft + 1);
-                    Span<uint> dst = currentRow.Slice(contextStartX);
+                    Span<uint> dst = currentRow[contextStartX..];
                     src.CopyTo(dst);
                 }
 
@@ -267,14 +267,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // not exist in the currentRow).
                     int offset = (y * width) + contextStartX;
                     Span<uint> src = argb.Slice(offset, maxX + haveLeft + (y + 1 < height ? 1 : 0));
-                    Span<uint> dst = currentRow.Slice(contextStartX);
+                    Span<uint> dst = currentRow[contextStartX..];
                     src.CopyTo(dst);
 
                     if (nearLossless)
                     {
                         if (maxQuantization > 1 && y >= 1 && y + 1 < height)
                         {
-                            MaxDiffsForRow(contextWidth, width, argb, offset, maxDiffs.Slice(contextStartX), usedSubtractGreen);
+                            MaxDiffsForRow(contextWidth, width, argb, offset, maxDiffs[contextStartX..], usedSubtractGreen);
                         }
                     }
 
@@ -589,10 +589,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             // to allow the top right pixel to point to the leftmost pixel of the next row
             // when at the right edge.
             Span<uint> upperRow = argbScratch;
-            Span<uint> currentRow = upperRow.Slice(width + 1);
-            Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
+            Span<uint> currentRow = upperRow[(width + 1)..];
+            Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow[(width + 1)..]);
 
-            Span<byte> lowerMaxDiffs = currentMaxDiffs.Slice(width);
+            Span<byte> lowerMaxDiffs = currentMaxDiffs[width..];
             Span<short> scratch = stackalloc short[8];
             for (int y = 0; y < height; y++)
             {
@@ -604,7 +604,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (lowEffort)
                 {
-                    PredictBatch(PredLowEffort, 0, y, width, currentRow, upperRow, argb.Slice(y * width), scratch);
+                    PredictBatch(PredLowEffort, 0, y, width, currentRow, upperRow, argb[(y * width)..], scratch);
                 }
                 else
                 {
@@ -645,7 +645,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                             transparentColorMode,
                             usedSubtractGreen,
                             nearLossless,
-                            argb.Slice((y * width) + x),
+                            argb[((y * width) + x)..],
                             scratch);
 
                         x = xEnd;
@@ -820,14 +820,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             int xScan = GetMin(maxTileSize, xSize - tileX);
             int yScan = GetMin(maxTileSize, ySize - tileY);
-            argb = argb.Slice((tileY * xSize) + tileX);
+            argb = argb[((tileY * xSize) + tileX)..];
             while (yScan-- > 0)
             {
                 LosslessUtils.TransformColor(colorTransform, argb, xScan);
 
                 if (argb.Length > xSize)
                 {
-                    argb = argb.Slice(xSize);
+                    argb = argb[xSize..];
                 }
             }
         }
@@ -853,7 +853,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int allYMax = GetMin(tileYOffset + maxTileSize, ySize);
             int tileWidth = allXMax - tileXOffset;
             int tileHeight = allYMax - tileYOffset;
-            Span<uint> tileArgb = argb.Slice((tileYOffset * xSize) + tileXOffset);
+            Span<uint> tileArgb = argb[((tileYOffset * xSize) + tileXOffset)..];
 
             var bestTx = default(Vp8LMultipliers);
 
@@ -954,7 +954,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int greenToRed,
             int[] accumulatedRedHisto)
         {
-            Span<int> histo = scratch.Slice(0, 256);
+            Span<int> histo = scratch[..256];
             histo.Clear();
 
             ColorSpaceTransformUtils.CollectColorRedTransforms(argb, stride, tileWidth, tileHeight, greenToRed, histo);
@@ -992,7 +992,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int redToBlue,
             int[] accumulatedBlueHisto)
         {
-            Span<int> histo = scratch.Slice(0, 256);
+            Span<int> histo = scratch[..256];
             histo.Clear();
 
             ColorSpaceTransformUtils.CollectColorBlueTransforms(argb, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);

@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<short> tmpLevels = new short[16];
             do
             {
-                int numBlocks = 1;
+                const int numBlocks = 1;
                 rdi4.Clear();
                 int mode;
                 int bestMode = -1;

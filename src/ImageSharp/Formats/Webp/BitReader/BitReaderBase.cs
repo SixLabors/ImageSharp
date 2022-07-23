@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         {
             this.Data = memoryAllocator.Allocate<byte>(bytesToRead);
             Span<byte> dataSpan = this.Data.Memory.Span;
-            input.Read(dataSpan.Slice(0, bytesToRead), 0, bytesToRead);
+            input.Read(dataSpan[..bytesToRead], 0, bytesToRead);
         }
 
         protected virtual void Dispose(bool disposing)

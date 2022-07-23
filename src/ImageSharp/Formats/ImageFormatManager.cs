@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats
 
             if (extension[0] == '.')
             {
-                extension = extension.Substring(1);
+                extension = extension[1..];
             }
 
             return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));

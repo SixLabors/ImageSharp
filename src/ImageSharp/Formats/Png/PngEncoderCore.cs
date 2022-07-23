@@ -694,7 +694,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int bytesWritten = PngConstants.XmpKeyword.Length;
 
                 // Write the iTxt header (all zeros in this case).
-                Span<byte> iTxtHeader = payload.Slice(bytesWritten);
+                Span<byte> iTxtHeader = payload[bytesWritten..];
                 iTxtHeader[4] = 0;
                 iTxtHeader[3] = 0;
                 iTxtHeader[2] = 0;
@@ -703,7 +703,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 bytesWritten += 5;
 
                 // And the XMP data itself.
-                xmpData.CopyTo(payload.Slice(bytesWritten));
+                xmpData.CopyTo(payload[bytesWritten..]);
                 this.WriteChunk(stream, PngChunkType.InternationalText, payload);
             }
         }
@@ -731,7 +731,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int bytesWritten = ColorProfileName.Length;
                 outputBytes[bytesWritten++] = 0; // Null separator.
                 outputBytes[bytesWritten++] = 0; // Compression.
-                compressedData.CopyTo(outputBytes.Slice(bytesWritten));
+                compressedData.CopyTo(outputBytes[bytesWritten..]);
                 this.WriteChunk(stream, PngChunkType.EmbeddedColorProfile, outputBytes);
             }
         }
@@ -792,13 +792,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                         }
 
                         outputBytes[bytesWritten++] = 0;
-                        languageTag.CopyTo(outputBytes.Slice(bytesWritten));
+                        languageTag.CopyTo(outputBytes[bytesWritten..]);
                         bytesWritten += languageTag.Length;
                         outputBytes[bytesWritten++] = 0;
-                        translatedKeyword.CopyTo(outputBytes.Slice(bytesWritten));
+                        translatedKeyword.CopyTo(outputBytes[bytesWritten..]);
                         bytesWritten += translatedKeyword.Length;
                         outputBytes[bytesWritten++] = 0;
-                        textBytes.CopyTo(outputBytes.Slice(bytesWritten));
+                        textBytes.CopyTo(outputBytes[bytesWritten..]);
                         this.WriteChunk(stream, PngChunkType.InternationalText, outputBytes);
                     }
                 }
@@ -816,7 +816,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             int bytesWritten = textData.Keyword.Length;
                             outputBytes[bytesWritten++] = 0; // Null separator.
                             outputBytes[bytesWritten++] = 0; // Compression.
-                            compressedData.CopyTo(outputBytes.Slice(bytesWritten));
+                            compressedData.CopyTo(outputBytes[bytesWritten..]);
                             this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes);
                         }
                     }
@@ -830,7 +830,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
                             int bytesWritten = textData.Keyword.Length;
                             outputBytes[bytesWritten++] = 0;
-                            PngConstants.Encoding.GetBytes(textData.Value).CopyTo(outputBytes.Slice(bytesWritten));
+                            PngConstants.Encoding.GetBytes(textData.Value).CopyTo(outputBytes[bytesWritten..]);
                             this.WriteChunk(stream, PngChunkType.Text, outputBytes);
                         }
                     }

@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 stream.Write(iccProfileData);
                 BinaryPrimitives.WriteInt32LittleEndian(buffer, streamPositionAfterImageData);
                 stream.Position = BmpFileHeader.Size + 112;
-                stream.Write(buffer.Slice(0, 4));
+                stream.Write(buffer[..4]);
             }
         }
 
@@ -618,7 +618,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int quantizedColorBytes = quantizedColorPalette.Length * 4;
-            PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, quantizedColorPalette, MemoryMarshal.Cast<byte, Bgra32>(colorPalette.Slice(0, quantizedColorBytes)));
+            PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, quantizedColorPalette, MemoryMarshal.Cast<byte, Bgra32>(colorPalette[..quantizedColorBytes]));
             Span<uint> colorPaletteAsUInt = MemoryMarshal.Cast<byte, uint>(colorPalette);
             for (int i = 0; i < colorPaletteAsUInt.Length; i++)
             {

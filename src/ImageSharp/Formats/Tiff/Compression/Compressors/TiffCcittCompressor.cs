@@ -511,7 +511,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 
             // Write the compressed data to the stream.
             int bytesToWrite = this.bitPosition != 0 ? this.bytePosition + 1 : this.bytePosition;
-            this.Output.Write(compressedData.Slice(0, bytesToWrite));
+            this.Output.Write(compressedData[..bytesToWrite]);
         }
 
         /// <summary>

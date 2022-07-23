@@ -58,14 +58,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                ReadOnlySpan<TPixel> sourcePixels = background.Slice(0, background.Length);
+                ReadOnlySpan<TPixel> sourcePixels = background[..];
                 PixelOperations<TPixel>.Instance.ToVector4(configuration, sourcePixels, backgroundSpan, PixelConversionModifiers.Scale);
-                ReadOnlySpan<TPixelSrc> sourcePixels1 = source.Slice(0, background.Length);
+                ReadOnlySpan<TPixelSrc> sourcePixels1 = source[..background.Length];
                 PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, sourcePixels1, sourceSpan, PixelConversionModifiers.Scale);
 
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
-                Span<Vector4> sourceVectors = destinationSpan.Slice(0, background.Length);
+                Span<Vector4> sourceVectors = destinationSpan[..background.Length];
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
             }
         }
@@ -120,14 +120,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                ReadOnlySpan<TPixel> sourcePixels = background.Slice(0, background.Length);
+                ReadOnlySpan<TPixel> sourcePixels = background[..];
                 PixelOperations<TPixel>.Instance.ToVector4(configuration, sourcePixels, backgroundSpan, PixelConversionModifiers.Scale);
-                ReadOnlySpan<TPixelSrc> sourcePixels1 = source.Slice(0, background.Length);
+                ReadOnlySpan<TPixelSrc> sourcePixels1 = source[..background.Length];
                 PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, sourcePixels1, sourceSpan, PixelConversionModifiers.Scale);
 
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
-                Span<Vector4> sourceVectors = destinationSpan.Slice(0, background.Length);
+                Span<Vector4> sourceVectors = destinationSpan[..background.Length];
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
             }
         }

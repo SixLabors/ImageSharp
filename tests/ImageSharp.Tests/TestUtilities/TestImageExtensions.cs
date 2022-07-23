@@ -781,7 +781,6 @@ namespace SixLabors.ImageSharp.Tests
 
     internal class AllocatorBufferCapacityConfigurator
     {
-#pragma warning disable CS0618 // 'ArrayPoolMemoryAllocator' is obsolete
         private readonly TestMemoryAllocator allocator;
         private readonly int pixelSizeInBytes;
 
@@ -790,7 +789,6 @@ namespace SixLabors.ImageSharp.Tests
             this.allocator = allocator;
             this.pixelSizeInBytes = pixelSizeInBytes;
         }
-#pragma warning restore CS0618
 
         public void InBytes(int totalBytes) => this.allocator.BufferCapacityInBytes = totalBytes;
 

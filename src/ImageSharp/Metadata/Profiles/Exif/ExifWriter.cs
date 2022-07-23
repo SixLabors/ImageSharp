@@ -367,13 +367,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static void WriteRational(Span<byte> destination, in Rational value)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination[..4], value.Numerator);
             BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
         private static void WriteSignedRational(Span<byte> destination, in SignedRational value)
         {
-            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteInt32LittleEndian(destination[..4], value.Numerator);
             BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
@@ -435,11 +435,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
             {
-                return offset + ExifUcs2StringHelpers.Write((string)value, destination.Slice(offset));
+                return offset + ExifUcs2StringHelpers.Write((string)value, destination[offset..]);
             }
             else if (value is EncodedString encodedString)
             {
-                return offset + ExifEncodedStringHelpers.Write(encodedString, destination.Slice(offset));
+                return offset + ExifEncodedStringHelpers.Write(encodedString, destination[offset..]);
             }
 
             if (exifValue.IsArray)

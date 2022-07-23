@@ -134,9 +134,9 @@ namespace SixLabors.ImageSharp.PixelFormats
             int remainder = sourcePixels.Length - endOfCompleteSlices;
             if (remainder > 0)
             {
-                ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(endOfCompleteSlices);
-                Span<TPixel> d = destinationPixels.Slice(endOfCompleteSlices);
-                vectorSpan = vectorSpan.Slice(0, remainder);
+                ReadOnlySpan<TSourcePixel> s = sourcePixels[endOfCompleteSlices..];
+                Span<TPixel> d = destinationPixels[endOfCompleteSlices..];
+                vectorSpan = vectorSpan[..remainder];
                 PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
                 this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
             }

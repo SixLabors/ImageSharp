@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
             var image = new Image<TPixel>(configuration, width, height);
-            data = data.Slice(0, count);
+            data = data[..count];
             data.CopyTo(image.Frames.RootFrame.PixelBuffer.FastMemoryGroup);
 
             return image;

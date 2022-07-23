@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.BuildCube();
 
             // Slice again since maxColors has been updated since the buffer was created.
-            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan().Slice(0, this.maxColors);
+            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan()[..this.maxColors];
             ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
             for (int k = 0; k < paletteSpan.Length; k++)
             {
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory[..paletteSpan.Length];
             if (this.isDithering)
             {
                 // When called multiple times by QuantizerUtilities.BuildPalette

@@ -85,16 +85,10 @@ namespace SixLabors.ImageSharp.Diagnostics
             }
 
             // Schedule on the ThreadPool, to avoid user callback messing up the finalizer thread.
-#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
             ThreadPool.QueueUserWorkItem(
                 stackTrace => undisposedAllocation?.Invoke(stackTrace),
                 allocationStackTrace,
                 preferLocal: false);
-#else
-            ThreadPool.QueueUserWorkItem(
-                stackTrace => undisposedAllocation?.Invoke((string)stackTrace),
-                allocationStackTrace);
-#endif
         }
     }
 }

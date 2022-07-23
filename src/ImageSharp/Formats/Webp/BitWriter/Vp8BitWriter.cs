@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         {
             if (this.PutBit(s >= 2, p[0]))
             {
-                p = p.Slice(1);
+                p = p[1..];
             }
 
             this.PutBit(s & 1, p[1]);
@@ -711,7 +711,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             Span<byte> vp8ChunkHeader = stackalloc byte[WebpConstants.ChunkHeaderSize];
 
             WebpConstants.Vp8MagicBytes.AsSpan().CopyTo(vp8ChunkHeader);
-            BinaryPrimitives.WriteUInt32LittleEndian(vp8ChunkHeader.Slice(4), size);
+            BinaryPrimitives.WriteUInt32LittleEndian(vp8ChunkHeader[4..], size);
 
             stream.Write(vp8ChunkHeader);
         }

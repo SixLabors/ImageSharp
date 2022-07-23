@@ -382,7 +382,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 (uint)width,
                 (uint)height,
                 hasAlpha,
-                alphaData.Slice(0, alphaDataSize),
+                alphaData[..alphaDataSize],
                 this.alphaCompression && alphaCompressionSucceeded);
         }
 

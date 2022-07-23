@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             long bufferIdx = Math.DivRem(start, this.BufferLength, out long bufferStart);
             Memory<T> memory = this[(int)bufferIdx];
-            return memory.Span.Slice((int)bufferStart);
+            return memory.Span[(int)bufferStart..];
         }
 
         public static bool CanSwapContent(MemoryGroup<T> target, MemoryGroup<T> source) =>

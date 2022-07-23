@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Common.Helpers
             {
                 // Slightly better performance in the loop below, allows us to skip a bounds check
                 // while still supporting output buffers that are larger than necessary
-                bytes = bytes.Slice(0, chars.Length / 2);
+                bytes = bytes[..(chars.Length / 2)];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

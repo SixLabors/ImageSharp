@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 offset = a0;
             }
 
-            ReadOnlySpan<byte> searchSpace = this.scanLine.Slice(offset);
+            ReadOnlySpan<byte> searchSpace = this.scanLine[offset..];
             byte searchByte = (byte)~a0Byte;
             int index = searchSpace.IndexOf(searchByte);
             if (index < 0)
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 return this.scanLine.Length;
             }
 
-            searchSpace = searchSpace.Slice(index);
+            searchSpace = searchSpace[index..];
             offset += index;
             index = searchSpace.IndexOf((byte)~searchByte);
             if (index < 0)
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
             byte searchByte = (byte)~this.scanLine[b1];
             int offset = b1 + 1;
-            ReadOnlySpan<byte> searchSpace = this.scanLine.Slice(offset);
+            ReadOnlySpan<byte> searchSpace = this.scanLine[offset..];
             int index = searchSpace.IndexOf(searchByte);
             if (index == -1)
             {

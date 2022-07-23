@@ -448,7 +448,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             extensionBuffer[0] = GifConstants.ExtensionIntroducer;
             extensionBuffer[1] = extension.Label;
 
-            extension.WriteTo(extensionBuffer.Slice(2));
+            extension.WriteTo(extensionBuffer[2..]);
 
             extensionBuffer[extensionSize + 2] = GifConstants.Terminator;
 

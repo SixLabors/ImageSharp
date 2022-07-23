@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -164,10 +163,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Physical:
-                                this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
+                                ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Gamma:
-                                this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
+                                ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
                                 if (image is null)
@@ -203,7 +202,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 {
                                     byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
+                                    MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
@@ -269,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
+                                ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Gamma:
                                 if (this.colorMetadataOnly)
@@ -278,7 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 }
 
-                                this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
+                                ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
 
@@ -340,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 {
                                     byte[] exifData = new byte[chunk.Length];
                                     chunk.Data.GetSpan().CopyTo(exifData);
-                                    this.MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
+                                    MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                                 }
 
                                 break;
@@ -429,7 +428,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
-        private void ReadPhysicalChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        private static void ReadPhysicalChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
             var physicalChunk = PhysicalChunkData.Parse(data);
 
@@ -446,7 +445,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="pngMetadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
-        private void ReadGammaChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
+        private static void ReadGammaChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
         {
             if (data.Length < 4)
             {
@@ -749,7 +748,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<TPixel> rowSpan = pixels.PixelBuffer.DangerousGetRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
-            ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
+            ReadOnlySpan<byte> trimmed = defilteredScanline[1..];
 
             // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
             IMemoryOwner<byte> buffer = null;
@@ -841,7 +840,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Trim the first marker byte from the buffer
-            ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
+            ReadOnlySpan<byte> trimmed = defilteredScanline[1..];
 
             // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
             IMemoryOwner<byte> buffer = null;
@@ -941,7 +940,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     if (this.header.BitDepth == 16)
                     {
-                        ushort rc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2));
+                        ushort rc = BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2]);
                         ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                         ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
@@ -963,7 +962,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     if (this.header.BitDepth == 16)
                     {
-                        pngMetadata.TransparentL16 = new L16(BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2)));
+                        pngMetadata.TransparentL16 = new L16(BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2]));
                     }
                     else
                     {
@@ -1014,13 +1013,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            ReadOnlySpan<byte> keywordBytes = data[..zeroIndex];
+            if (!TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
 
-            string value = PngConstants.Encoding.GetString(data.Slice(zeroIndex + 1));
+            string value = PngConstants.Encoding.GetString(data[(zeroIndex + 1)..]);
 
             if (!this.TryReadTextChunkMetadata(baseMetadata, name, value))
             {
@@ -1042,7 +1041,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             int zeroIndex = data.IndexOf((byte)0);
-            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
+            if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }
@@ -1054,13 +1053,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            ReadOnlySpan<byte> keywordBytes = data[..zeroIndex];
+            if (!TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
 
-            ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
+            ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
             if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed) &&
                 !this.TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
@@ -1105,19 +1104,19 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<char> dataSpan = data.AsSpan();
             dataSpan = dataSpan.TrimStart();
 
-            if (!StringEqualsInsensitive(dataSpan.Slice(0, 4), "exif".AsSpan()))
+            if (!StringEqualsInsensitive(dataSpan[..4], "exif".AsSpan()))
             {
                 // "exif" identifier is missing from the beginning of the text chunk
                 return false;
             }
 
             // Skip to the data length
-            dataSpan = dataSpan.Slice(4).TrimStart();
+            dataSpan = dataSpan[4..].TrimStart();
             int dataLengthEnd = dataSpan.IndexOf('\n');
-            int dataLength = ParseInt32(dataSpan.Slice(0, dataSpan.IndexOf('\n')));
+            int dataLength = ParseInt32(dataSpan[..dataSpan.IndexOf('\n')]);
 
             // Skip to the hex-encoded data
-            dataSpan = dataSpan.Slice(dataLengthEnd).Trim();
+            dataSpan = dataSpan[dataLengthEnd..].Trim();
 
             // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
             // This doesn't actually allocate.
@@ -1142,15 +1141,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                     tempExifBuf = new byte[exifHeader.Length];
                 }
 
-                HexConverter.HexStringToBytes(dataSpan.Slice(0, exifHeader.Length * 2), tempExifBuf);
-                if (!tempExifBuf.AsSpan().Slice(0, exifHeader.Length).SequenceEqual(exifHeader))
+                HexConverter.HexStringToBytes(dataSpan[..(exifHeader.Length * 2)], tempExifBuf);
+                if (!tempExifBuf.AsSpan()[..exifHeader.Length].SequenceEqual(exifHeader))
                 {
                     // Exif header in the hex data is not valid
                     return false;
                 }
 
                 // Skip over the exif header we just tested
-                dataSpan = dataSpan.Slice(exifHeader.Length * 2);
+                dataSpan = dataSpan[(exifHeader.Length * 2)..];
                 dataLength -= exifHeader.Length;
 
                 // Load the hex-encoded data, one line at a time
@@ -1161,12 +1160,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                     int newlineIndex = dataSpan.IndexOf('\n');
                     if (newlineIndex != -1)
                     {
-                        lineSpan = dataSpan.Slice(0, newlineIndex);
+                        lineSpan = dataSpan[..newlineIndex];
                     }
 
-                    i += HexConverter.HexStringToBytes(lineSpan, exifBlob.AsSpan().Slice(i));
+                    i += HexConverter.HexStringToBytes(lineSpan, exifBlob.AsSpan()[i..]);
 
-                    dataSpan = dataSpan.Slice(newlineIndex + 1);
+                    dataSpan = dataSpan[(newlineIndex + 1)..];
                 }
             }
             catch
@@ -1174,7 +1173,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return false;
             }
 
-            this.MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
+            MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
             return true;
         }
 
@@ -1198,13 +1197,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            ReadOnlySpan<byte> keywordBytes = data[..zeroIndex];
+            if (!TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
 
-            ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
+            ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
             if (this.TryUncompressZlibData(compressedData, out byte[] iccpProfileBytes))
             {
@@ -1222,29 +1221,27 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             fixed (byte* compressedDataBase = compressedData)
             {
-                using (IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.Configuration.StreamProcessingBufferSize))
-                using (var memoryStreamOutput = new MemoryStream(compressedData.Length))
-                using (var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
-                using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStreamInput))
-                using (var inflateStream = new ZlibInflateStream(bufferedStream))
+                using IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.Configuration.StreamProcessingBufferSize);
+                using var memoryStreamOutput = new MemoryStream(compressedData.Length);
+                using var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length);
+                using var bufferedStream = new BufferedReadStream(this.Configuration, memoryStreamInput);
+                using var inflateStream = new ZlibInflateStream(bufferedStream);
+                Span<byte> destUncompressedData = destBuffer.GetSpan();
+                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
                 {
-                    Span<byte> destUncompressedData = destBuffer.GetSpan();
-                    if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
-                    {
-                        uncompressedBytesArray = Array.Empty<byte>();
-                        return false;
-                    }
-
-                    int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
-                    while (bytesRead != 0)
-                    {
-                        memoryStreamOutput.Write(destUncompressedData.Slice(0, bytesRead));
-                        bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
-                    }
-
-                    uncompressedBytesArray = memoryStreamOutput.ToArray();
-                    return true;
+                    uncompressedBytesArray = Array.Empty<byte>();
+                    return false;
                 }
+
+                int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                while (bytesRead != 0)
+                {
+                    memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
+                    bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                }
+
+                uncompressedBytesArray = memoryStreamOutput.ToArray();
+                return true;
             }
         }
 
@@ -1256,31 +1253,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="span2">The second <see cref="Span{T}"/> to compare.</param>
         /// <returns>True if the spans were identical, false otherwise.</returns>
         private static bool StringEqualsInsensitive(ReadOnlySpan<char> span1, ReadOnlySpan<char> span2)
-        {
-#pragma warning disable IDE0022 // Use expression body for methods
-#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-            return span1.Equals(span2, StringComparison.OrdinalIgnoreCase);
-#else
-            return span1.ToString().Equals(span2.ToString(), StringComparison.OrdinalIgnoreCase);
-#endif
-#pragma warning restore IDE0022 // Use expression body for methods
-        }
+            => span1.Equals(span2, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// int.Parse() a ReadOnlySpan&lt;char&gt;, with a fallback for older frameworks.
         /// </summary>
         /// <param name="span">The <see cref="int"/> to parse.</param>
         /// <returns>The parsed <see cref="int"/>.</returns>
-        private static int ParseInt32(ReadOnlySpan<char> span)
-        {
-#pragma warning disable IDE0022 // Use expression body for methods
-#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-            return int.Parse(span);
-#else
-            return int.Parse(span.ToString());
-#endif
-#pragma warning restore IDE0022 // Use expression body for methods
-        }
+        private static int ParseInt32(ReadOnlySpan<char> span) => int.Parse(span);
 
         /// <summary>
         /// Sets the <see cref="ExifProfile"/> in <paramref name="metadata"/> to <paramref name="newProfile"/>,
@@ -1291,7 +1271,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="replaceExistingKeys">If <paramref name="metadata"/> already contains an <see cref="ExifProfile"/>,
         /// controls whether existing exif tags in <paramref name="metadata"/> will be overwritten with any conflicting
         /// tags from <paramref name="newProfile"/>.</param>
-        private void MergeOrSetExifProfile(ImageMetadata metadata, ExifProfile newProfile, bool replaceExistingKeys)
+        private static void MergeOrSetExifProfile(ImageMetadata metadata, ExifProfile newProfile, bool replaceExistingKeys)
         {
             if (metadata.ExifProfile is null)
             {
@@ -1331,13 +1311,13 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             PngMetadata pngMetadata = metadata.GetPngMetadata();
             int zeroIndexKeyword = data.IndexOf((byte)0);
-            if (zeroIndexKeyword < PngConstants.MinTextKeywordLength || zeroIndexKeyword > PngConstants.MaxTextKeywordLength)
+            if (zeroIndexKeyword is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }
 
             byte compressionFlag = data[zeroIndexKeyword + 1];
-            if (!(compressionFlag == 0 || compressionFlag == 1))
+            if (compressionFlag is not (0 or 1))
             {
                 return;
             }
@@ -1350,7 +1330,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             int langStartIdx = zeroIndexKeyword + 3;
-            int languageLength = data.Slice(langStartIdx).IndexOf((byte)0);
+            int languageLength = data[langStartIdx..].IndexOf((byte)0);
             if (languageLength < 0)
             {
                 return;
@@ -1359,11 +1339,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             string language = PngConstants.LanguageEncoding.GetString(data.Slice(langStartIdx, languageLength));
 
             int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
-            int translatedKeywordLength = data.Slice(translatedKeywordStartIdx).IndexOf((byte)0);
+            int translatedKeywordLength = data[translatedKeywordStartIdx..].IndexOf((byte)0);
             string translatedKeyword = PngConstants.TranslatedEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
 
-            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndexKeyword);
-            if (!this.TryReadTextKeyword(keywordBytes, out string keyword))
+            ReadOnlySpan<byte> keywordBytes = data[..zeroIndexKeyword];
+            if (!TryReadTextKeyword(keywordBytes, out string keyword))
             {
                 return;
             }
@@ -1371,21 +1351,21 @@ namespace SixLabors.ImageSharp.Formats.Png
             int dataStartIdx = translatedKeywordStartIdx + translatedKeywordLength + 1;
             if (compressionFlag == 1)
             {
-                ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
+                ReadOnlySpan<byte> compressedData = data[dataStartIdx..];
 
                 if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
                 {
                     pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
                 }
             }
-            else if (this.IsXmpTextData(keywordBytes))
+            else if (IsXmpTextData(keywordBytes))
             {
-                var xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
+                var xmpProfile = new XmpProfile(data[dataStartIdx..].ToArray());
                 metadata.XmpProfile = xmpProfile;
             }
             else
             {
-                string value = PngConstants.TranslatedEncoding.GetString(data.Slice(dataStartIdx));
+                string value = PngConstants.TranslatedEncoding.GetString(data[dataStartIdx..]);
                 pngMetadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
             }
         }
@@ -1620,14 +1600,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="keywordBytes">The keyword bytes.</param>
         /// <param name="name">The name.</param>
         /// <returns>True, if the keyword could be read and is valid.</returns>
-        private bool TryReadTextKeyword(ReadOnlySpan<byte> keywordBytes, out string name)
+        private static bool TryReadTextKeyword(ReadOnlySpan<byte> keywordBytes, out string name)
         {
             name = string.Empty;
 
             // Keywords shall contain only printable Latin-1.
             foreach (byte c in keywordBytes)
             {
-                if (!((c >= 32 && c <= 126) || (c >= 161 && c <= 255)))
+                if (c is not ((>= 32 and <= 126) or (>= 161 and <= 255)))
                 {
                     return false;
                 }
@@ -1635,21 +1615,12 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Keywords should not be empty or have leading or trailing whitespace.
             name = PngConstants.Encoding.GetString(keywordBytes);
-            if (string.IsNullOrWhiteSpace(name) || name.StartsWith(" ") || name.EndsWith(" "))
-            {
-                return false;
-            }
-
-            return true;
+            return !string.IsNullOrWhiteSpace(name) && !name.StartsWith(" ") && !name.EndsWith(" ");
         }
 
-        private bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes) => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
+        private static bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes) => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
 
         private void SwapScanlineBuffers()
-        {
-            IMemoryOwner<byte> temp = this.previousScanline;
-            this.previousScanline = this.scanline;
-            this.scanline = temp;
-        }
+            => (this.scanline, this.previousScanline) = (this.previousScanline, this.scanline);
     }
 }

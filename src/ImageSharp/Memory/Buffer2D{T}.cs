@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Memory
                 return false;
             }
 
-            paddedSpan = slice.Slice(0, stride);
+            paddedSpan = slice[..stride];
             return true;
         }
 

@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
                 if (Numerics.Modulo2(vectors.Length) != 0)
                 {
                     // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
-                    Expand(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                    Expand(ref MemoryMarshal.GetReference(vectors[^1..]));
                 }
             }
             else
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
                 if (Numerics.Modulo2(vectors.Length) != 0)
                 {
                     // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
-                    Compress(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                    Compress(ref MemoryMarshal.GetReference(vectors[^1..]));
                 }
             }
             else

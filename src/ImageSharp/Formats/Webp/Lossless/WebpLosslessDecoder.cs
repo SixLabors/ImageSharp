@@ -199,8 +199,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                     this.configuration,
-                    rowAsBytes.Slice(0, bytesPerRow),
-                    pixelRow.Slice(0, width),
+                    rowAsBytes[..bytesPerRow],
+                    pixelRow[..width],
                     width);
             }
         }
@@ -441,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
 
                     // TODO: Avoid allocation.
-                    hTreeGroup.HTrees.Add(huffmanTable.Slice(0, size).ToArray());
+                    hTreeGroup.HTrees.Add(huffmanTable[..size].ToArray());
 
                     HuffmanCode huffTableZero = huffmanTable[0];
                     if (isTrivialLiteral && LiteralMap[j] == 1)
@@ -450,7 +450,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
 
                     totalSize += huffTableZero.BitsUsed;
-                    huffmanTable = huffmanTable.Slice(size);
+                    huffmanTable = huffmanTable[size..];
 
                     if (j <= HuffIndex.Alpha)
                     {
@@ -862,14 +862,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private uint ReadSymbol(Span<HuffmanCode> table)
         {
             uint val = (uint)this.bitReader.PrefetchBits();
-            Span<HuffmanCode> tableSpan = table.Slice((int)(val & HuffmanUtils.HuffmanTableMask));
+            Span<HuffmanCode> tableSpan = table[(int)(val & HuffmanUtils.HuffmanTableMask)..];
             int nBits = tableSpan[0].BitsUsed - HuffmanUtils.HuffmanTableBits;
             if (nBits > 0)
             {
                 this.bitReader.AdvanceBitPosition(HuffmanUtils.HuffmanTableBits);
                 val = (uint)this.bitReader.PrefetchBits();
-                tableSpan = tableSpan.Slice((int)tableSpan[0].Value);
-                tableSpan = tableSpan.Slice((int)val & ((1 << nBits) - 1));
+                tableSpan = tableSpan[(int)tableSpan[0].Value..];
+                tableSpan = tableSpan[((int)val & ((1 << nBits) - 1))..];
             }
 
             this.bitReader.AdvanceBitPosition(tableSpan[0].BitsUsed);
@@ -949,14 +949,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             {
                 // no overlap.
                 Span<uint> src = pixelData.Slice(start, length);
-                Span<uint> dest = pixelData.Slice(decodedPixels);
+                Span<uint> dest = pixelData[decodedPixels..];
                 src.CopyTo(dest);
             }
             else
             {
                 // There is overlap between the backward reference distance and the pixels to copy.
-                Span<uint> src = pixelData.Slice(start);
-                Span<uint> dest = pixelData.Slice(decodedPixels);
+                Span<uint> src = pixelData[start..];
+                Span<uint> dest = pixelData[decodedPixels..];
                 for (int i = 0; i < length; i++)
                 {
                     dest[i] = src[i];
@@ -977,12 +977,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             if (dist >= length)
             {
                 // no overlap.
-                data.Slice(pos - dist, length).CopyTo(data.Slice(pos));
+                data.Slice(pos - dist, length).CopyTo(data[pos..]);
             }
             else
             {
-                Span<byte> dst = data.Slice(pos);
-                Span<byte> src = data.Slice(pos - dist);
+                Span<byte> dst = data[pos..];
+                Span<byte> src = data[(pos - dist)..];
                 for (int i = 0; i < length; i++)
                 {
                     dst[i] = src[i];

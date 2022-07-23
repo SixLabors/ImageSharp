@@ -1105,24 +1105,24 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                     AddSingle(
                         pix,
-                        histo.Slice((int)HistoIx.HistoAlpha * 256),
-                        histo.Slice((int)HistoIx.HistoRed * 256),
-                        histo.Slice((int)HistoIx.HistoGreen * 256),
-                        histo.Slice((int)HistoIx.HistoBlue * 256));
+                        histo[..],
+                        histo[((int)HistoIx.HistoRed * 256)..],
+                        histo[((int)HistoIx.HistoGreen * 256)..],
+                        histo[((int)HistoIx.HistoBlue * 256)..]);
                     AddSingle(
                         pixDiff,
-                        histo.Slice((int)HistoIx.HistoAlphaPred * 256),
-                        histo.Slice((int)HistoIx.HistoRedPred * 256),
-                        histo.Slice((int)HistoIx.HistoGreenPred * 256),
-                        histo.Slice((int)HistoIx.HistoBluePred * 256));
+                        histo[((int)HistoIx.HistoAlphaPred * 256)..],
+                        histo[((int)HistoIx.HistoRedPred * 256)..],
+                        histo[((int)HistoIx.HistoGreenPred * 256)..],
+                        histo[((int)HistoIx.HistoBluePred * 256)..]);
                     AddSingleSubGreen(
                         pix,
-                        histo.Slice((int)HistoIx.HistoRedSubGreen * 256),
-                        histo.Slice((int)HistoIx.HistoBlueSubGreen * 256));
+                        histo[((int)HistoIx.HistoRedSubGreen * 256)..],
+                        histo[((int)HistoIx.HistoBlueSubGreen * 256)..]);
                     AddSingleSubGreen(
                         pixDiff,
-                        histo.Slice((int)HistoIx.HistoRedPredSubGreen * 256),
-                        histo.Slice((int)HistoIx.HistoBluePredSubGreen * 256));
+                        histo[((int)HistoIx.HistoRedPredSubGreen * 256)..],
+                        histo[((int)HistoIx.HistoBluePredSubGreen * 256)..]);
 
                     // Approximate the palette by the entropy of the multiplicative hash.
                     uint hash = HashPix(pix);
@@ -1213,8 +1213,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 new[] { (byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen },
                 new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue }
             };
-            Span<uint> redHisto = histo.Slice(256 * histoPairs[(int)minEntropyIx][0]);
-            Span<uint> blueHisto = histo.Slice(256 * histoPairs[(int)minEntropyIx][1]);
+            Span<uint> redHisto = histo[(256 * histoPairs[(int)minEntropyIx][0])..];
+            Span<uint> blueHisto = histo[(256 * histoPairs[(int)minEntropyIx][1])..];
             for (int i = 1; i < 256; i++)
             {
                 if ((redHisto[i] | blueHisto[i]) != 0)
@@ -1245,14 +1245,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return false;
             }
 
-#if NET5_0_OR_GREATER
-            var paletteSlice = palette.Slice(0, this.PaletteSize);
+            Span<uint> paletteSlice = palette[..this.PaletteSize];
             paletteSlice.Sort();
-#else
-            uint[] paletteArray = palette.Slice(0, this.PaletteSize).ToArray();
-            Array.Sort(paletteArray);
-            paletteArray.CopyTo(palette);
-#endif
 
             if (PaletteHasNonMonotonousDeltas(palette, this.PaletteSize))
             {
@@ -1352,8 +1346,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
 
                     BundleColorMap(tmpRow, width, xBits, dst);
-                    src = src.Slice(srcStride);
-                    dst = dst.Slice(dstStride);
+                    src = src[srcStride..];
+                    dst = dst[dstStride..];
                 }
             }
             else
@@ -1449,8 +1443,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
 
-                src = src.Slice(srcStride);
-                dst = dst.Slice(dstStride);
+                src = src[srcStride..];
+                dst = dst[dstStride..];
             }
         }
 
@@ -1474,8 +1468,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
 
-                src = src.Slice(srcStride);
-                dst = dst.Slice(dstStride);
+                src = src[srcStride..];
+                dst = dst[dstStride..];
             }
         }
 
@@ -1484,7 +1478,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private static void PrepareMapToPalette(Span<uint> palette, int numColors, uint[] sorted, uint[] idxMap)
         {
-            palette.Slice(0, numColors).CopyTo(sorted);
+            palette[..numColors].CopyTo(sorted);
             Array.Sort(sorted, PaletteCompareColorsForSort);
             for (int i = 0; i < numColors; i++)
             {

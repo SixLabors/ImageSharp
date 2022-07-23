@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="buffer">The buffer to write to.</param>
         public void WriteTo(Span<byte> buffer)
         {
-            BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(0, 4), this.Width);
+            BinaryPrimitives.WriteInt32BigEndian(buffer[..4], this.Width);
             BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(4, 4), this.Height);
 
             buffer[8] = this.BitDepth;
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public static PngHeader Parse(ReadOnlySpan<byte> data)
         {
             return new PngHeader(
-              width: BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
+              width: BinaryPrimitives.ReadInt32BigEndian(data[..4]),
               height: BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
               bitDepth: data[8],
               colorType: (PngColorType)data[9],

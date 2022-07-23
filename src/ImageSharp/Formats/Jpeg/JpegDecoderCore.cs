@@ -810,7 +810,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 remaining = 0;
             }
 
-            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(0, ExifMarkerLength)))
+            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker[..ExifMarkerLength]))
             {
                 const int remainingXmpMarkerBytes = XmpMarkerLength - ExifMarkerLength;
                 if (remaining < remainingXmpMarkerBytes || this.IgnoreMetadata)
@@ -912,13 +912,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 while (blockDataSpan.Length > 12)
                 {
-                    if (!ProfileResolver.IsProfile(blockDataSpan.Slice(0, 4), ProfileResolver.AdobeImageResourceBlockMarker))
+                    if (!ProfileResolver.IsProfile(blockDataSpan[..4], ProfileResolver.AdobeImageResourceBlockMarker))
                     {
                         return;
                     }
 
-                    blockDataSpan = blockDataSpan.Slice(4);
-                    Span<byte> imageResourceBlockId = blockDataSpan.Slice(0, 2);
+                    blockDataSpan = blockDataSpan[4..];
+                    Span<byte> imageResourceBlockId = blockDataSpan[..2];
                     if (ProfileResolver.IsProfile(imageResourceBlockId, ProfileResolver.AdobeIptcMarker))
                     {
                         int resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
@@ -942,7 +942,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             break;
                         }
 
-                        blockDataSpan = blockDataSpan.Slice(dataStartIdx + resourceDataSize);
+                        blockDataSpan = blockDataSpan[(dataStartIdx + resourceDataSize)..];
                     }
                 }
             }
@@ -1322,9 +1322,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             using (IMemoryOwner<byte> buffer = this.Configuration.MemoryAllocator.Allocate<byte>(totalBufferSize))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
-                Span<byte> huffmanLengthsSpan = bufferSpan.Slice(0, codeLengthsByteSize);
+                Span<byte> huffmanLengthsSpan = bufferSpan[..codeLengthsByteSize];
                 Span<byte> huffmanValuesSpan = bufferSpan.Slice(codeLengthsByteSize, codeValuesMaxByteSize);
-                Span<uint> tableWorkspace = MemoryMarshal.Cast<byte, uint>(bufferSpan.Slice(codeLengthsByteSize + codeValuesMaxByteSize));
+                Span<uint> tableWorkspace = MemoryMarshal.Cast<byte, uint>(bufferSpan[(codeLengthsByteSize + codeValuesMaxByteSize)..]);
 
                 for (int i = 2; i < remaining;)
                 {
@@ -1367,7 +1367,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         tableType,
                         tableIndex,
                         huffmanLengthsSpan,
-                        huffmanValuesSpan.Slice(0, codeLengthSum),
+                        huffmanValuesSpan[..codeLengthSum],
                         tableWorkspace);
                 }
             }

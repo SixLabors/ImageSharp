@@ -237,8 +237,6 @@ namespace SixLabors.ImageSharp.Tests
             new IccCurveTagDataEntry[] { Curve_Val_1,  Curve_Val_2, Curve_Val_0 },
             IccTestDataLut.CLUT_Val16,
             new IccCurveTagDataEntry[] { Curve_Val_2, Curve_Val_1 });
-
-#pragma warning disable SA1115 // Parameter should follow comma
         public static readonly byte[] LutAToB_Arr = ArrayHelper.Concat(
             new byte[] { 0x02, 0x03, 0x00, 0x00 },
             new byte[] { 0x00, 0x00, 0x00, 0x20 },  // b:        32
@@ -275,7 +273,6 @@ namespace SixLabors.ImageSharp.Tests
             CurveFull_1,                // 14 bytes
             new byte[] { 0x00, 0x00 }); // Padding
 
-#pragma warning restore SA1115 // Parameter should follow comma
 
         public static readonly object[][] LutAToBTagDataEntryTestData =
         {
@@ -293,8 +290,6 @@ namespace SixLabors.ImageSharp.Tests
             null,
             IccTestDataLut.CLUT_Val16,
             new[] { Curve_Val_2, Curve_Val_1, Curve_Val_0 });
-
-#pragma warning disable SA1115 // Parameter should follow comma
         public static readonly byte[] LutBToA_Arr = ArrayHelper.Concat(
             new byte[] { 0x02, 0x03, 0x00, 0x00 },
 
@@ -320,7 +315,6 @@ namespace SixLabors.ImageSharp.Tests
             new byte[] { 0x00, 0x00 },  // Padding
             CurveFull_0); // 12 bytes
 
-#pragma warning restore SA1115 // Parameter should follow comma
 
         public static readonly object[][] LutBToATagDataEntryTestData =
         {

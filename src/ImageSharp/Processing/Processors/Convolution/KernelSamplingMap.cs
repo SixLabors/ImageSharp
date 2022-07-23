@@ -110,8 +110,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 switch (borderMode)
                 {
                     case BorderWrappingMode.Repeat:
-                        Numerics.Clamp(span.Slice(0, affectedSize), min, max);
-                        Numerics.Clamp(span.Slice(span.Length - affectedSize), min, max);
+                        Numerics.Clamp(span[..affectedSize], min, max);
+                        Numerics.Clamp(span[^affectedSize..], min, max);
                         break;
                     case BorderWrappingMode.Mirror:
                         var min2dec = min + min - 1;

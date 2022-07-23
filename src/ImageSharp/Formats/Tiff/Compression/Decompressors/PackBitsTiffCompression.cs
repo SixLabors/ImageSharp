@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         TiffThrowHelper.ThrowImageFormatException("Tiff packbits compression error: not enough data.");
                     }
 
-                    compressedData.Slice(literalOffset, literalLength).CopyTo(buffer.Slice(decompressedOffset));
+                    compressedData.Slice(literalOffset, literalLength).CopyTo(buffer[decompressedOffset..]);
 
                     compressedOffset += literalLength + 1;
                     decompressedOffset += literalLength;

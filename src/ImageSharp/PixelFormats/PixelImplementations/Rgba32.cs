@@ -517,7 +517,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             if (hex[0] == '#')
             {
-                hex = hex.Substring(1);
+                hex = hex[1..];
             }
 
             if (hex.Length == 8)

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         /// <param name="header">The header bytes.</param>
         /// <returns>True, if its a valid RIFF FourCC.</returns>
-        private bool IsRiffContainer(ReadOnlySpan<byte> header) => header.Slice(0, 4).SequenceEqual(WebpConstants.RiffFourCc);
+        private bool IsRiffContainer(ReadOnlySpan<byte> header) => header[..4].SequenceEqual(WebpConstants.RiffFourCc);
 
         /// <summary>
         /// Checks if 'WEBP' is present in the header.

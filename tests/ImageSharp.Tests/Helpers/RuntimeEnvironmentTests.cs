@@ -4,22 +4,12 @@
 using System.Runtime.InteropServices;
 using Xunit;
 
-#pragma warning disable IDE0022 // Use expression body for methods
 namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class RuntimeEnvironmentTests
     {
         [Fact]
-        public void CanDetectNetCore()
-        {
-#if NET5_0_OR_GREATER
-            Assert.False(RuntimeEnvironment.IsNetCore);
-#elif NETCOREAPP
-            Assert.True(RuntimeEnvironment.IsNetCore);
-#else
-            Assert.False(RuntimeEnvironment.IsNetCore);
-#endif
-        }
+        public void CanDetectNetCore() => Assert.False(RuntimeEnvironment.IsNetCore);
 
         [Fact]
         public void CanDetectOSPlatform()

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Primitives
 {
     public class ColorMatrixTests
     {
-        private readonly ApproximateFloatComparer approximateFloatComparer = new ApproximateFloatComparer(1e-6f);
+        private readonly ApproximateFloatComparer approximateFloatComparer = new(1e-6f);
 
         [Fact]
         public void ColorMatrixIdentityIsCorrect()
@@ -47,8 +47,8 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         [Fact]
         public void ColorMatrixMultiply()
         {
-            ColorMatrix value1 = this.CreateAllTwos();
-            ColorMatrix value2 = this.CreateAllThrees();
+            ColorMatrix value1 = CreateAllTwos();
+            ColorMatrix value2 = CreateAllThrees();
 
             var m = default(ColorMatrix);
 
@@ -88,35 +88,34 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         [Fact]
         public void ColorMatrixMultiplyScalar()
         {
-            ColorMatrix m = this.CreateAllTwos();
-            Assert.Equal(this.CreateAllFours(), m * 2, this.approximateFloatComparer);
+            ColorMatrix m = CreateAllTwos();
+            Assert.Equal(CreateAllFours(), m * 2, this.approximateFloatComparer);
         }
 
         [Fact]
         public void ColorMatrixSubtract()
         {
-            ColorMatrix m = this.CreateAllOnes() + this.CreateAllTwos();
-            Assert.Equal(this.CreateAllThrees(), m);
+            ColorMatrix m = CreateAllOnes() + CreateAllTwos();
+            Assert.Equal(CreateAllThrees(), m);
         }
 
         [Fact]
         public void ColorMatrixNegate()
         {
-            ColorMatrix m = this.CreateAllOnes() * -1F;
-            Assert.Equal(m, -this.CreateAllOnes());
+            ColorMatrix m = CreateAllOnes() * -1F;
+            Assert.Equal(m, -CreateAllOnes());
         }
 
         [Fact]
         public void ColorMatrixAdd()
         {
-            ColorMatrix m = this.CreateAllOnes() + this.CreateAllTwos();
-            Assert.Equal(this.CreateAllThrees(), m);
+            ColorMatrix m = CreateAllOnes() + CreateAllTwos();
+            Assert.Equal(CreateAllThrees(), m);
         }
 
         [Fact]
         public void ColorMatrixHashCode()
         {
-#if NETCOREAPP2_1
             ColorMatrix m = KnownFilterMatrices.CreateBrightnessFilter(.5F);
             HashCode hash = default;
             hash.Add(m.M11);
@@ -141,7 +140,6 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             hash.Add(m.M54);
 
             Assert.Equal(hash.ToHashCode(), m.GetHashCode());
-#endif
         }
 
         [Fact]
@@ -163,9 +161,8 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             Assert.Equal(expected, m.ToString());
         }
 
-        private ColorMatrix CreateAllOnes()
-        {
-            return new ColorMatrix
+        private static ColorMatrix CreateAllOnes()
+            => new()
             {
                 M11 = 1F,
                 M12 = 1F,
@@ -188,11 +185,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
                 M53 = 1F,
                 M54 = 1F
             };
-        }
 
-        private ColorMatrix CreateAllTwos()
-        {
-            return new ColorMatrix
+        private static ColorMatrix CreateAllTwos()
+            => new()
             {
                 M11 = 2F,
                 M12 = 2F,
@@ -215,11 +210,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
                 M53 = 2F,
                 M54 = 2F
             };
-        }
 
-        private ColorMatrix CreateAllThrees()
-        {
-            return new ColorMatrix
+        private static ColorMatrix CreateAllThrees()
+            => new()
             {
                 M11 = 3F,
                 M12 = 3F,
@@ -242,11 +235,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
                 M53 = 3F,
                 M54 = 3F
             };
-        }
 
-        private ColorMatrix CreateAllFours()
-        {
-            return new ColorMatrix
+        private static ColorMatrix CreateAllFours()
+            => new()
             {
                 M11 = 4F,
                 M12 = 4F,
@@ -269,6 +260,5 @@ namespace SixLabors.ImageSharp.Tests.Primitives
                 M53 = 4F,
                 M54 = 4F
             };
-        }
     }
 }

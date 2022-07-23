@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     break;
                 }
 
-                this.rawStream.Write(this.buffer.Span.Slice(0, deflateCount));
+                this.rawStream.Write(this.buffer.Span[..deflateCount]);
             }
 
             if (!this.deflater.IsNeedingInput)
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     break;
                 }
 
-                this.rawStream.Write(this.buffer.Span.Slice(0, len));
+                this.rawStream.Write(this.buffer.Span[..len]);
             }
 
             if (!this.deflater.IsFinished)

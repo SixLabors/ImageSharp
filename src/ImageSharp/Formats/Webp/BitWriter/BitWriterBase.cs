@@ -258,9 +258,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             BinaryPrimitives.WriteUInt32LittleEndian(buf, flags);
             stream.Write(buf);
             BinaryPrimitives.WriteUInt32LittleEndian(buf, width - 1);
-            stream.Write(buf.Slice(0, 3));
+            stream.Write(buf[..3]);
             BinaryPrimitives.WriteUInt32LittleEndian(buf, height - 1);
-            stream.Write(buf.Slice(0, 3));
+            stream.Write(buf[..3]);
         }
     }
 }

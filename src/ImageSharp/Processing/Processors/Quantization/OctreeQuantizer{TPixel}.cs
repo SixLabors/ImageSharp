@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             this.octree.Palletize(paletteSpan, max, ref paletteIndex);
-            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, paletteSpan.Length);
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory[..paletteSpan.Length];
 
             // When called multiple times by QuantizerUtilities.BuildPalette
             // this prevents memory churn caused by reallocation.

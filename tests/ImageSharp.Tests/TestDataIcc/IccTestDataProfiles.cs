@@ -78,7 +78,6 @@ namespace SixLabors.ImageSharp.Tests
                     0x64, 0x63, 0x62, 0x61,     // CreatorSignature
                  },
                  profileId,
-#pragma warning disable SA1118 // Parameter should not span multiple lines
                  new byte[]
                  {
                     // Padding
@@ -93,12 +92,10 @@ namespace SixLabors.ImageSharp.Tests
                     (byte)(nrOfEntries >> 8),
                     (byte)nrOfEntries
                  });
-#pragma warning restore SA1118 // Parameter should not span multiple lines
         }
 
         public static readonly byte[] Profile_Random_Array = ArrayHelper.Concat(
             CreateHeaderRandomArray(168, 2, Profile_Random_Id_Array),
-#pragma warning disable SA1118 // Parameter should not span multiple lines
             new byte[]
             {
                 0x00, 0x00, 0x00, 0x00,     // tag signature (Unknown)
@@ -108,7 +105,6 @@ namespace SixLabors.ImageSharp.Tests
                 0x00, 0x00, 0x00, 0x9C,     // tag offset (156)
                 0x00, 0x00, 0x00, 0x0C,     // tag size (12)
             },
-#pragma warning restore SA1118 // Parameter should not span multiple lines
             IccTestDataTagDataEntry.TagDataEntryHeader_UnknownArr,
             IccTestDataTagDataEntry.Unknown_Arr);
 

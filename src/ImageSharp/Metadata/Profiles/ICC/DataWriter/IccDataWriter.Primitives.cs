@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 lengthAdjust = 1;
             }
 
-            value = value.Substring(0, Math.Min(length - lengthAdjust, value.Length));
+            value = value[..Math.Min(length - lengthAdjust, value.Length)];
 
             byte[] textData = Encoding.ASCII.GetBytes(value);
             int actualLength = Math.Min(length - lengthAdjust, textData.Length);

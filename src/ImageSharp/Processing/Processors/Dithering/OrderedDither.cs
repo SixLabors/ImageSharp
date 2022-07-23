@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
                 ReadOnlySpan<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y).Slice(bounds.X, bounds.Width);
-                Span<byte> destRow = destination.GetWritablePixelRowSpanUnsafe(y - bounds.Y).Slice(0, sourceRow.Length);
+                Span<byte> destRow = destination.GetWritablePixelRowSpanUnsafe(y - bounds.Y)[..sourceRow.Length];
 
                 for (int x = 0; x < sourceRow.Length; x++)
                 {

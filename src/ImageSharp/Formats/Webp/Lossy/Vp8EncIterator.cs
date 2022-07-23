@@ -288,9 +288,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int yStartIdx = ((this.Y * yStride) + this.X) * 16;
             int uvStartIdx = ((this.Y * uvStride) + this.X) * 8;
-            Span<byte> ySrc = y.Slice(yStartIdx);
-            Span<byte> uSrc = u.Slice(uvStartIdx);
-            Span<byte> vSrc = v.Slice(uvStartIdx);
+            Span<byte> ySrc = y[yStartIdx..];
+            Span<byte> uSrc = u[uvStartIdx..];
+            Span<byte> vSrc = v[uvStartIdx..];
             int w = Math.Min(width - (this.X * 16), 16);
             int h = Math.Min(height - (this.Y * 16), 16);
             int uvw = (w + 1) >> 1;
@@ -331,9 +331,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     vLeft[0] = v[uvStartIdx - 1 - uvStride];
                 }
 
-                this.ImportLine(y.Slice(yStartIdx - 1), yStride, yLeft.Slice(1), h, 16);
-                this.ImportLine(u.Slice(uvStartIdx - 1), uvStride, uLeft.Slice(1), uvh, 8);
-                this.ImportLine(v.Slice(uvStartIdx - 1), uvStride, vLeft.Slice(1), uvh, 8);
+                this.ImportLine(y[(yStartIdx - 1)..], yStride, yLeft[1..], h, 16);
+                this.ImportLine(u[(uvStartIdx - 1)..], uvStride, uLeft[1..], uvh, 8);
+                this.ImportLine(v[(uvStartIdx - 1)..], uvStride, vLeft[1..], uvh, 8);
             }
 
             Span<byte> yTop = this.YTop.AsSpan(this.yTopIdx, 16);
@@ -344,9 +344,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
             else
             {
-                this.ImportLine(y.Slice(yStartIdx - yStride), 1, yTop, w, 16);
-                this.ImportLine(u.Slice(uvStartIdx - uvStride), 1, this.UvTop.AsSpan(this.uvTopIdx, 8), uvw, 8);
-                this.ImportLine(v.Slice(uvStartIdx - uvStride), 1, this.UvTop.AsSpan(this.uvTopIdx + 8, 8), uvw, 8);
+                this.ImportLine(y[(yStartIdx - yStride)..], 1, yTop, w, 16);
+                this.ImportLine(u[(uvStartIdx - uvStride)..], 1, this.UvTop.AsSpan(this.uvTopIdx, 8), uvw, 8);
+                this.ImportLine(v[(uvStartIdx - uvStride)..], 1, this.UvTop.AsSpan(this.uvTopIdx + 8, 8), uvw, 8);
             }
         }
 
@@ -490,8 +490,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> preds = this.Preds.AsSpan(this.predIdx);
             for (int y = 0; y < 4; y++)
             {
-                preds.Slice(0, 4).Fill((byte)mode);
-                preds = preds.Slice(this.predsWidth);
+                preds[..4].Fill((byte)mode);
+                preds = preds[this.predsWidth..];
             }
 
             this.CurrentMacroBlockInfo.MacroBlockType = Vp8MacroBlockType.I16X16;
@@ -679,7 +679,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public bool RotateI4(Span<byte> yuvOut)
         {
-            Span<byte> blk = yuvOut.Slice(WebpLookupTables.Vp8Scan[this.I4]);
+            Span<byte> blk = yuvOut[WebpLookupTables.Vp8Scan[this.I4]..];
             Span<byte> top = this.I4Boundary.AsSpan();
             int topOffset = this.I4BoundaryIdx;
             int i;
@@ -830,7 +830,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (int i = 0; i < h; i++)
             {
                 // memcpy(dst, src, w);
-                src.Slice(srcIdx, w).CopyTo(dst.Slice(dstIdx));
+                src.Slice(srcIdx, w).CopyTo(dst[dstIdx..]);
                 if (w < size)
                 {
                     // memset(dst + w, dst[w - 1], size - w);
@@ -844,7 +844,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (int i = h; i < size; i++)
             {
                 // memcpy(dst, dst - BPS, size);
-                dst.Slice(dstIdx - WebpConstants.Bps, size).CopyTo(dst.Slice(dstIdx));
+                dst.Slice(dstIdx - WebpConstants.Bps, size).CopyTo(dst[dstIdx..]);
                 dstIdx += WebpConstants.Bps;
             }
         }

@@ -597,7 +597,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                             this.stream.Read(run, 0, run.Length);
 
-                            run.AsSpan().CopyTo(buffer.Slice(count));
+                            run.AsSpan().CopyTo(buffer[count..]);
 
                             count += run.Length;
 
@@ -676,7 +676,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                             this.stream.Read(run, 0, run.Length);
 
-                            run.AsSpan().CopyTo(buffer.Slice(start: uncompressedPixels * 3));
+                            run.AsSpan().CopyTo(buffer[(uncompressedPixels * 3)..]);
 
                             uncompressedPixels += length;
 
@@ -891,7 +891,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 int offset = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan.Slice(offset));
+                    short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan[offset..]);
 
                     // Rescale values, so the values range from 0 to 255.
                     int r = (redMaskBits == 5) ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask) : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
@@ -1122,7 +1122,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 int offset = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan.Slice(offset));
+                    uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan[offset..]);
 
                     if (unusualBitMask)
                     {
@@ -1246,7 +1246,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     var bitfieldsBuffer = new byte[12];
                     this.stream.Read(bitfieldsBuffer, 0, 12);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
-                    this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
+                    this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
                     this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
                 }
@@ -1255,7 +1255,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     var bitfieldsBuffer = new byte[16];
                     this.stream.Read(bitfieldsBuffer, 0, 16);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
-                    this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
+                    this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
                     this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
                     this.infoHeader.AlphaMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(12, 4));

@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 
             this.rowBuffer.Clear();
 
-            Span<byte> outputRowSpan = this.rowBuffer.GetSpan().Slice(0, this.BytesPerRow * height);
+            Span<byte> outputRowSpan = this.rowBuffer.GetSpan()[..(this.BytesPerRow * height)];
 
             int width = this.Image.Width;
             using IMemoryOwner<TPixel> stripPixelBuffer = this.MemoryAllocator.Allocate<TPixel>(height * width);

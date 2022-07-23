@@ -772,7 +772,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     int bufferIdx = uncompressedPixels * bytesPerPixel;
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
-                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        pixel.AsSpan().CopyTo(buffer[bufferIdx..]);
                         bufferIdx += bytesPerPixel;
                     }
                 }
@@ -784,7 +784,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
                         this.currentStream.Read(pixel, 0, bytesPerPixel);
-                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        pixel.AsSpan().CopyTo(buffer[bufferIdx..]);
                         bufferIdx += bytesPerPixel;
                     }
                 }

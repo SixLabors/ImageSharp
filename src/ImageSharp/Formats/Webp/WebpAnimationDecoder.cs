@@ -294,8 +294,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             for (int y = frameY; y < frameY + frameHeight; y++)
             {
                 Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
-                Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++).Slice(0, frameWidth);
-                decodedPixelRow.TryCopyTo(framePixelRow.Slice(frameX));
+                Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++)[..frameWidth];
+                decodedPixelRow.TryCopyTo(framePixelRow[frameX..]);
             }
         }
 

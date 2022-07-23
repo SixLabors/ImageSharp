@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
         public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data) => new(
-                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data[..4]),
                 width: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(4, 2)),
                 height: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(6, 2)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(8, 2)),
@@ -322,7 +322,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
         public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data) => new(
-                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data[..4]),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <returns>The parsed header.</returns>
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV3(ReadOnlySpan<byte> data) => new(
-                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data[..4]),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://forums.adobe.com/message/3272950#3272950"/>
         public static BmpInfoHeader ParseAdobeV3(ReadOnlySpan<byte> data, bool withAlpha = true) => new(
-                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data[..4]),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
@@ -383,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public static BmpInfoHeader ParseOs2Version2(ReadOnlySpan<byte> data)
         {
             var infoHeader = new BmpInfoHeader(
-                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data[..4]),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
@@ -430,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <returns>The parsed header.</returns>
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data) => new(
-            headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+            headerSize: BinaryPrimitives.ReadInt32LittleEndian(data[..4]),
             width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
             height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
             planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
@@ -482,7 +482,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public void WriteV3Header(Span<byte> buffer)
         {
             buffer.Clear();
-            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(0, 4), SizeV3);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer[..4], SizeV3);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(4, 4), this.Width);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(8, 4), this.Height);
             BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);
@@ -502,7 +502,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public void WriteV4Header(Span<byte> buffer)
         {
             buffer.Clear();
-            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(0, 4), SizeV4);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer[..4], SizeV4);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(4, 4), this.Width);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(8, 4), this.Height);
             BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);

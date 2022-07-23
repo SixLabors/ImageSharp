@@ -5,11 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -38,19 +35,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // row:  a d
             // The Paeth function predicts d to be whichever of a, b, or c is nearest to
             // p = a + b - c.
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported && bytesPerPixel is 4)
             {
                 DecodeSse41(scanline, previousScanline);
             }
             else
-#endif
             {
                 DecodeScalar(scanline, previousScanline, bytesPerPixel);
             }
         }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void DecodeSse41(Span<byte> scanline, Span<byte> previousScanline)
@@ -106,8 +99,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 offset += 4;
             }
         }
-
-#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
@@ -168,7 +159,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 Vector256<byte> zero = Vector256<byte>.Zero;
@@ -213,7 +203,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     sum += (int)sumAccumulator[i];
                 }
             }
-#endif
 
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
             {
@@ -261,7 +250,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             return upperLeft;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private static Vector256<byte> PaethPredictor(Vector256<byte> left, Vector256<byte> above, Vector256<byte> upleft)
         {
             Vector256<byte> zero = Vector256<byte>.Zero;
@@ -324,6 +312,5 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     left: above,
                     right: upperLeft));
         }
-#endif
     }
 }

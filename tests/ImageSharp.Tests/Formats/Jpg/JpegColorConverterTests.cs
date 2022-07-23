@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System;
-using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -24,11 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private const int TestBufferLength = 40;
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX;
-#else
-        private static readonly HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll;
-#endif
+        private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX;
 
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(epsilon: Precision);
 
@@ -37,24 +32,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly TheoryData<int> Seeds = new() { 1, 2, 3 };
 
         public JpegColorConverterTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+            => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
         [Fact]
         public void GetConverterThrowsExceptionOnInvalidColorSpace()
-        {
-            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.Undefined, 8));
-        }
+            => Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.Undefined, 8));
 
         [Fact]
         public void GetConverterThrowsExceptionOnInvalidPrecision()
-        {
+
             // Valid precisions: 8 & 12 bit
-            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, 9));
-        }
+            => Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, 9));
 
         [Theory]
         [InlineData(JpegColorSpace.Grayscale, 8)]
@@ -242,7 +232,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     FeatureTestRunner.Deserialize<int>(arg));
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [MemberData(nameof(Seeds))]
         public void FromYCbCrAvx2(int seed) =>
@@ -267,7 +256,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(Seeds))]
         public void FromYccKAvx2(int seed) =>
             this.TestConverter(new JpegColorConverterBase.FromYccKAvx(8), 4, seed);
-#endif
 
         private void TestConverter(
             JpegColorConverterBase converter,

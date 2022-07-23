@@ -236,11 +236,9 @@ namespace SixLabors.ImageSharp.IO
             return this.ReadImpl(buffer.AsSpan(offset, count));
         }
 
-#if SUPPORTS_SPAN_STREAM
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int Read(Span<byte> buffer) => this.ReadImpl(buffer);
-#endif
 
         private int ReadImpl(Span<byte> buffer)
         {
@@ -352,11 +350,9 @@ namespace SixLabors.ImageSharp.IO
             this.WriteImpl(buffer.AsSpan(offset, count));
         }
 
-#if SUPPORTS_SPAN_STREAM
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Write(ReadOnlySpan<byte> buffer) => this.WriteImpl(buffer);
-#endif
 
         private void WriteImpl(ReadOnlySpan<byte> buffer)
         {

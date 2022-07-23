@@ -301,7 +301,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void HadamardTransform_Works() => RunHadamardTransformTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void TransformTwo_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformTwoTest, HwIntrinsics.AllowAll);
 
@@ -352,6 +351,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Fact]
         public void HadamardTransform_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.DisableHWIntrinsic);
-#endif
     }
 }

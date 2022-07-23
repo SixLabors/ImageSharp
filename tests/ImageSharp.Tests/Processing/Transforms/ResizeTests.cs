@@ -89,7 +89,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             Assert.Equal(mode, resizeOptions.Mode);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void HwIntrinsics_Resize()
         {
@@ -106,6 +105,5 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 RunTest,
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableFMA);
         }
-#endif
     }
 }

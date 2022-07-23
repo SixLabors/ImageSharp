@@ -68,7 +68,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void CollectColorRedTransforms_Works() => RunCollectColorRedTransformsTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void CollectColorBlueTransforms_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorBlueTransformsTest, HwIntrinsics.AllowAll);
 
@@ -86,7 +85,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Fact]
         public void CollectColorRedTransforms_WithoutAvx2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorRedTransformsTest, HwIntrinsics.DisableAVX2);
-#endif
-
     }
 }

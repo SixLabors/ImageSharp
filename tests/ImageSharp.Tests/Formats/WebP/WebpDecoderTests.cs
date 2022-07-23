@@ -44,14 +44,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             int expectedBitsPerPixel)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.NotNull(imageInfo);
-                Assert.Equal(expectedWidth, imageInfo.Width);
-                Assert.Equal(expectedHeight, imageInfo.Height);
-                Assert.Equal(expectedBitsPerPixel, imageInfo.PixelType.BitsPerPixel);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            Assert.NotNull(imageInfo);
+            Assert.Equal(expectedWidth, imageInfo.Width);
+            Assert.Equal(expectedHeight, imageInfo.Height);
+            Assert.Equal(expectedBitsPerPixel, imageInfo.PixelType.BitsPerPixel);
         }
 
         [Theory]
@@ -67,11 +65,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_WithoutFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -83,11 +79,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_WithSimpleFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -106,11 +100,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_WithComplexFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -121,11 +113,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_VerySmall<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -140,11 +130,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_WithPartitions<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -154,11 +142,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_WithSegmentation<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -171,11 +157,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_WithSharpnessLevel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -196,11 +180,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossy_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -208,11 +190,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossless_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -221,11 +201,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossless_WithoutTransforms<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -240,11 +218,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -256,11 +232,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossless_WithColorIndexTransform<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -269,11 +243,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossless_WithPredictorTransform<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -282,11 +254,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossless_WithCrossColorTransform<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -306,11 +276,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossless_WithTwoTransforms<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -325,11 +293,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Lossless_WithThreeTransforms<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -337,18 +303,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void Decode_AnimatedLossless_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
-                WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+            WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
 
-                image.DebugSaveMultiFrame(provider);
-                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
 
-                Assert.Equal(0, webpMetaData.AnimationLoopCount);
-                Assert.Equal(150U, frameMetaData.FrameDuration);
-                Assert.Equal(12, image.Frames.Count);
-            }
+            Assert.Equal(0, webpMetaData.AnimationLoopCount);
+            Assert.Equal(150U, frameMetaData.FrameDuration);
+            Assert.Equal(12, image.Frames.Count);
         }
 
         [Theory]
@@ -356,18 +320,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void Decode_AnimatedLossy_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
-                WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+            WebpFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetWebpMetadata();
 
-                image.DebugSaveMultiFrame(provider);
-                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
 
-                Assert.Equal(0, webpMetaData.AnimationLoopCount);
-                Assert.Equal(150U, frameMetaData.FrameDuration);
-                Assert.Equal(12, image.Frames.Count);
-            }
+            Assert.Equal(0, webpMetaData.AnimationLoopCount);
+            Assert.Equal(150U, frameMetaData.FrameDuration);
+            Assert.Equal(12, image.Frames.Count);
         }
 
         [Theory]
@@ -375,10 +337,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void Decode_AnimatedLossless_WithFrameDecodingModeFirst_OnlyDecodesOneFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new WebpDecoder() { DecodingMode = FrameDecodingMode.First }))
-            {
-                Assert.Equal(1, image.Frames.Count);
-            }
+            using Image<TPixel> image = provider.GetImage(new WebpDecoder() { DecodingMode = FrameDecodingMode.First });
+            Assert.Equal(1, image.Frames.Count);
         }
 
         [Theory]
@@ -389,10 +349,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Just make sure no exception is thrown. The reference decoder fails to load the image.
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
         }
 
         // https://github.com/SixLabors/ImageSharp/issues/1594
@@ -401,11 +359,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void WebpDecoder_CanDecode_Issue1594<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Theory]
@@ -420,45 +376,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                     }
                 });
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private static void RunDecodeLossyWithHorizontalFilter()
         {
             var provider = TestImageProvider<Rgba32>.File(TestImageLossyHorizontalFilterPath);
-            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<Rgba32> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         private static void RunDecodeLossyWithVerticalFilter()
         {
             var provider = TestImageProvider<Rgba32>.File(TestImageLossyVerticalFilterPath);
-            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<Rgba32> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         private static void RunDecodeLossyWithSimpleFilterTest()
         {
             var provider = TestImageProvider<Rgba32>.File(TestImageLossySimpleFilterPath);
-            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<Rgba32> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         private static void RunDecodeLossyWithComplexFilterTest()
         {
             var provider = TestImageProvider<Rgba32>.File(TestImageLossyComplexFilterPath);
-            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<Rgba32> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Fact]
@@ -472,6 +419,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Fact]
         public void DecodeLossyWithComplexFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithComplexFilterTest, HwIntrinsics.DisableHWIntrinsic);
-#endif
     }
 }

@@ -5,10 +5,8 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
@@ -19,7 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8_Sse16X16(Span<byte> a, Span<byte> b)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 return Vp8_Sse16xN_Avx2(a, b, 4);
@@ -29,17 +26,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 return Vp8_Sse16xN_Sse2(a, b, 8);
             }
-#endif
-            {
-                return Vp8_SseNxN(a, b, 16, 16);
-            }
+
+            return Vp8_SseNxN(a, b, 16, 16);
         }
 
         // Note: method name in libwebp reference implementation is called VP8SSE16x8.
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8_Sse16X8(Span<byte> a, Span<byte> b)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 return Vp8_Sse16xN_Avx2(a, b, 2);
@@ -49,17 +43,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 return Vp8_Sse16xN_Sse2(a, b, 4);
             }
-#endif
-            {
-                return Vp8_SseNxN(a, b, 16, 8);
-            }
+
+            return Vp8_SseNxN(a, b, 16, 8);
         }
 
         // Note: method name in libwebp reference implementation is called VP8SSE4x4.
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8_Sse4X4(Span<byte> a, Span<byte> b)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 // Load values.
@@ -128,10 +119,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 return Numerics.ReduceSum(sum);
             }
-#endif
-            {
-                return Vp8_SseNxN(a, b, 4, 4);
-            }
+
+            return Vp8_SseNxN(a, b, 4, 4);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -155,7 +144,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             return count;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Vp8_Sse16xN_Sse2(Span<byte> a, Span<byte> b, int numPairs)
         {
@@ -251,7 +239,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             return Avx2.Add(sum1, sum2);
         }
-#endif
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Vp8Copy4X4(Span<byte> src, Span<byte> dst) => Copy(src, dst, 4, 4);
@@ -274,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static int Vp8Disto16X16(Span<byte> a, Span<byte> b, Span<ushort> w, Span<int> scratch)
         {
             int d = 0;
-            int dataSize = (4 * WebpConstants.Bps) - 16;
+            const int dataSize = (4 * WebpConstants.Bps) - 16;
             for (int y = 0; y < 16 * WebpConstants.Bps; y += 4 * WebpConstants.Bps)
             {
                 for (int x = 0; x < 16; x += 4)
@@ -289,14 +276,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Vp8Disto4X4(Span<byte> a, Span<byte> b, Span<ushort> w, Span<int> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
                 int diffSum = TTransformSse41(a, b, w);
                 return Math.Abs(diffSum) >> 5;
             }
             else
-#endif
             {
                 int sum1 = TTransform(a, w, scratch);
                 int sum2 = TTransform(b, w, scratch);
@@ -328,7 +313,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (int j = 0; j < 16; j++)
             {
                 // memcpy(dst + j * BPS, dst - BPS, 16);
-                src.CopyTo(dst.Slice(j * WebpConstants.Bps));
+                src.CopyTo(dst[(j * WebpConstants.Bps)..]);
             }
         }
 
@@ -342,7 +327,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 byte v = yuv[offset];
                 Memset(dst, v, 0, 16);
                 offset += WebpConstants.Bps;
-                dst = dst.Slice(WebpConstants.Bps);
+                dst = dst[WebpConstants.Bps..];
             }
         }
 
@@ -399,11 +384,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // vertical
             Span<byte> src = yuv.Slice(offset - WebpConstants.Bps, 8);
 
-            int endIdx = 8 * WebpConstants.Bps;
+            const int endIdx = 8 * WebpConstants.Bps;
             for (int j = 0; j < endIdx; j += WebpConstants.Bps)
             {
                 // memcpy(dst + j * BPS, dst - BPS, 8);
-                src.CopyTo(dst.Slice(j));
+                src.CopyTo(dst[j..]);
             }
         }
 
@@ -417,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // dst += BPS;
                 byte v = yuv[offset];
                 Memset(dst, v, 0, 8);
-                dst = dst.Slice(WebpConstants.Bps);
+                dst = dst[WebpConstants.Bps..];
                 offset += WebpConstants.Bps;
             }
         }
@@ -427,7 +412,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // DC with no top samples.
             int dc0 = 4;
             int offsetMinusOne = offset - 1;
-            int endIdx = 8 * WebpConstants.Bps;
+            const int endIdx = 8 * WebpConstants.Bps;
             for (int i = 0; i < endIdx; i += WebpConstants.Bps)
             {
                 // dc0 += dst[-1 + i * BPS];
@@ -466,7 +451,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
 
             dc >>= 3;
-            int endIndx = 4 * WebpConstants.Bps;
+            const int endIndx = 4 * WebpConstants.Bps;
             for (int i = 0; i < endIndx; i += WebpConstants.Bps)
             {
                 Memset(dst, (byte)dc, i, 4);
@@ -484,10 +469,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             vals[1] = Avg3(yuv[topOffset], yuv[topOffset + 1], yuv[topOffset + 2]);
             vals[2] = Avg3(yuv[topOffset + 1], yuv[topOffset + 2], yuv[topOffset + 3]);
             vals[3] = Avg3(yuv[topOffset + 2], yuv[topOffset + 3], yuv[topOffset + 4]);
-            int endIdx = 4 * WebpConstants.Bps;
+            const int endIdx = 4 * WebpConstants.Bps;
             for (int i = 0; i < endIdx; i += WebpConstants.Bps)
             {
-                vals.CopyTo(dst.Slice(i));
+                vals.CopyTo(dst[i..]);
             }
         }
 
@@ -503,11 +488,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             uint val = 0x01010101U * Avg3(a, b, c);
             BinaryPrimitives.WriteUInt32BigEndian(dst, val);
             val = 0x01010101U * Avg3(b, c, d);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(WebpConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst[WebpConstants.Bps..], val);
             val = 0x01010101U * Avg3(c, d, e);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebpConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst[(2 * WebpConstants.Bps)..], val);
             val = 0x01010101U * Avg3(d, e, e);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebpConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst[(3 * WebpConstants.Bps)..], val);
         }
 
         public static void RD4(Span<byte> dst, Span<byte> yuv, int offset)
@@ -726,7 +711,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         public static void TransformWht(Span<short> input, Span<short> output, Span<int> scratch)
         {
-            Span<int> tmp = scratch.Slice(0, 16);
+            Span<int> tmp = scratch[..16];
             tmp.Clear();
             for (int i = 0; i < 4; i++)
             {
@@ -768,7 +753,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public static int TTransform(Span<byte> input, Span<ushort> w, Span<int> scratch)
         {
             int sum = 0;
-            Span<int> tmp = scratch.Slice(0, 16);
+            Span<int> tmp = scratch[..16];
             tmp.Clear();
 
             // horizontal pass.
@@ -807,13 +792,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 sum += w[8] * Math.Abs(b2);
                 sum += w[12] * Math.Abs(b3);
 
-                w = w.Slice(1);
+                w = w[1..];
             }
 
             return sum;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         /// <summary>
         /// Hadamard transform
         /// Returns the weighted sum of the absolute value of transformed coefficients.
@@ -944,13 +928,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // a02 a12 a22 a32   b02 b12 b22 b32
             // a03 a13 a23 a33   b03 b13 b23 b33
         }
-#endif
 
         // Transforms (Paragraph 14.4).
         // Does two transforms.
         public static void TransformTwo(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // This implementation makes use of 16-bit fixed point versions of two
@@ -1002,8 +984,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
                 Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
 
-                Vector128<short> k1 = Vector128.Create((short)20091);
-                Vector128<short> k2 = Vector128.Create((short)-30068);
+                var k1 = Vector128.Create((short)20091);
+                var k2 = Vector128.Create((short)-30068);
 
                 // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
                 Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), k2);
@@ -1097,16 +1079,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = dst3.GetLower();
             }
             else
-#endif
             {
                 TransformOne(src, dst, scratch);
-                TransformOne(src.Slice(16), dst.Slice(4), scratch);
+                TransformOne(src[16..], dst[4..], scratch);
             }
         }
 
         public static void TransformOne(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // Load and concatenate the transform coefficients.
@@ -1126,8 +1106,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
                 Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
 
-                Vector128<short> k1 = Vector128.Create((short)20091);
-                Vector128<short> k2 = Vector128.Create((short)-30068);
+                var k1 = Vector128.Create((short)20091);
+                var k2 = Vector128.Create((short)-30068);
 
                 // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
                 Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), k2);
@@ -1225,9 +1205,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = output3;
             }
             else
-#endif
             {
-                Span<int> tmp = scratch.Slice(0, 16);
+                Span<int> tmp = scratch[..16];
                 int tmpOffset = 0;
                 for (int srcOffset = 0; srcOffset < 4; srcOffset++)
                 {
@@ -1263,10 +1242,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     int b = dc - tmp[tmpOffsetPlus8];
                     int c = Mul2(tmp[tmpOffsetPlus4]) - Mul1(tmp[tmpOffsetPlus12]);
                     int d = Mul1(tmp[tmpOffsetPlus4]) + Mul2(tmp[tmpOffsetPlus12]);
-                    Store(dst.Slice(dstOffset), 0, 0, a + d);
-                    Store(dst.Slice(dstOffset), 1, 0, b + c);
-                    Store(dst.Slice(dstOffset), 2, 0, b - c);
-                    Store(dst.Slice(dstOffset), 3, 0, a - d);
+                    Store(dst[dstOffset..], 0, 0, a + d);
+                    Store(dst[dstOffset..], 1, 0, b + c);
+                    Store(dst[dstOffset..], 2, 0, b - c);
+                    Store(dst[dstOffset..], 3, 0, a - d);
                     tmpOffset++;
 
                     dstOffset += WebpConstants.Bps;
@@ -1302,37 +1281,36 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void TransformUv(Span<short> src, Span<byte> dst, Span<int> scratch)
         {
-            TransformTwo(src.Slice(0 * 16), dst, scratch);
-            TransformTwo(src.Slice(2 * 16), dst.Slice(4 * WebpConstants.Bps), scratch);
+            TransformTwo(src[..], dst, scratch);
+            TransformTwo(src[(2 * 16)..], dst[(4 * WebpConstants.Bps)..], scratch);
         }
 
         public static void TransformDcuv(Span<short> src, Span<byte> dst)
         {
             if (src[0 * 16] != 0)
             {
-                TransformDc(src.Slice(0 * 16), dst);
+                TransformDc(src[..], dst);
             }
 
             if (src[1 * 16] != 0)
             {
-                TransformDc(src.Slice(1 * 16), dst.Slice(4));
+                TransformDc(src[(1 * 16)..], dst[4..]);
             }
 
             if (src[2 * 16] != 0)
             {
-                TransformDc(src.Slice(2 * 16), dst.Slice(4 * WebpConstants.Bps));
+                TransformDc(src[(2 * 16)..], dst[(4 * WebpConstants.Bps)..]);
             }
 
             if (src[3 * 16] != 0)
             {
-                TransformDc(src.Slice(3 * 16), dst.Slice((4 * WebpConstants.Bps) + 4));
+                TransformDc(src[(3 * 16)..], dst[((4 * WebpConstants.Bps) + 4)..]);
             }
         }
 
         // Simple In-loop filtering (Paragraph 15.2)
         public static void SimpleVFilter16(Span<byte> p, int offset, int stride, int thresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // Load.
@@ -1351,7 +1329,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<byte, Vector128<sbyte>>(ref outputRef) = q0.AsSByte();
             }
             else
-#endif
             {
                 int thresh2 = (2 * thresh) + 1;
                 int end = 16 + offset;
@@ -1367,7 +1344,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void SimpleHFilter16(Span<byte> p, int offset, int stride, int thresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // Beginning of p1
@@ -1378,7 +1354,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Store16x4(p1, p0, q0, q1, ref pRef, ref Unsafe.Add(ref pRef, 8 * stride), stride);
             }
             else
-#endif
             {
                 int thresh2 = (2 * thresh) + 1;
                 int end = offset + (16 * stride);
@@ -1394,7 +1369,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void SimpleVFilter16i(Span<byte> p, int offset, int stride, int thresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 for (int k = 3; k > 0; k--)
@@ -1404,7 +1378,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
             else
-#endif
             {
                 for (int k = 3; k > 0; k--)
                 {
@@ -1416,7 +1389,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void SimpleHFilter16i(Span<byte> p, int offset, int stride, int thresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 for (int k = 3; k > 0; k--)
@@ -1426,7 +1398,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
             else
-#endif
             {
                 for (int k = 3; k > 0; k--)
                 {
@@ -1440,7 +1411,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte pRef = ref MemoryMarshal.GetReference(p);
@@ -1475,7 +1445,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, offset + (2 * stride))) = q2.AsInt32();
             }
             else
-#endif
             {
                 FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
             }
@@ -1484,7 +1453,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte pRef = ref MemoryMarshal.GetReference(p);
@@ -1508,7 +1476,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Store16x4(q0, q1, q2, q3, ref Unsafe.Add(ref pRef, offset), ref Unsafe.Add(ref pRef, offset + (8 * stride)), stride);
             }
             else
-#endif
             {
                 FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
             }
@@ -1516,7 +1483,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void VFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte pRef = ref MemoryMarshal.GetReference(p);
@@ -1528,7 +1494,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 for (int k = 3; k > 0; k--)
                 {
                     // Beginning of p1.
-                    Span<byte> b = p.Slice(offset + (2 * stride));
+                    Span<byte> b = p[(offset + (2 * stride))..];
                     offset += 4 * stride;
 
                     Vector128<byte> mask = Abs(p0, p1);
@@ -1562,7 +1528,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
             else
-#endif
             {
                 for (int k = 3; k > 0; k--)
                 {
@@ -1574,7 +1539,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void HFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte pRef = ref MemoryMarshal.GetReference(p);
@@ -1611,7 +1575,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
             else
-#endif
             {
                 for (int k = 3; k > 0; k--)
                 {
@@ -1625,7 +1588,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // Load uv h-edges.
@@ -1661,7 +1623,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 StoreUv(q2, ref uRef, ref vRef, offset + (2 * stride));
             }
             else
-#endif
             {
                 FilterLoop26(u, offset, stride, 1, 8, thresh, ithresh, hevThresh);
                 FilterLoop26(v, offset, stride, 1, 8, thresh, ithresh, hevThresh);
@@ -1671,7 +1632,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte uRef = ref MemoryMarshal.GetReference(u);
@@ -1695,7 +1655,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Store16x4(q0, q1, q2, q3, ref Unsafe.Add(ref uRef, offset), ref Unsafe.Add(ref vRef, offset), stride);
             }
             else
-#endif
             {
                 FilterLoop26(u, offset, 1, stride, 8, thresh, ithresh, hevThresh);
                 FilterLoop26(v, offset, 1, stride, 8, thresh, ithresh, hevThresh);
@@ -1705,7 +1664,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // Load uv h-edges.
@@ -1741,7 +1699,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 StoreUv(q1, ref uRef, ref vRef, offset + stride);
             }
             else
-#endif
             {
                 int offset4mulstride = offset + (4 * stride);
                 FilterLoop24(u, offset4mulstride, stride, 1, 8, thresh, ithresh, hevThresh);
@@ -1752,7 +1709,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte uRef = ref MemoryMarshal.GetReference(u);
@@ -1780,7 +1736,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Store16x4(p1, p0, q0, q1, ref Unsafe.Add(ref uRef, offset), ref Unsafe.Add(ref vRef, offset), stride);
             }
             else
-#endif
             {
                 int offsetPlus4 = offset + 4;
                 FilterLoop24(u, offsetPlus4, 1, stride, 8, thresh, ithresh, hevThresh);
@@ -1790,7 +1745,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void Mean16x4(Span<byte> input, Span<uint> dc)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Ssse3.IsSupported)
             {
                 Vector128<byte> mean16x4Mask = Vector128.Create((short)0x00ff).AsByte();
@@ -1821,7 +1775,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<uint, Vector128<uint>>(ref outputRef) = wide;
             }
             else
-#endif
             {
                 for (int k = 0; k < 4; k++)
                 {
@@ -1835,7 +1788,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     }
 
                     dc[k] = avg;
-                    input = input.Slice(4); // go to next 4x4 block.
+                    input = input[4..]; // go to next 4x4 block.
                 }
             }
         }
@@ -1860,7 +1813,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             for (int j = 0; j < 16; j++)
             {
-                Memset(dst.Slice(j * WebpConstants.Bps), (byte)v, 0, 16);
+                Memset(dst[(j * WebpConstants.Bps)..], (byte)v, 0, 16);
             }
         }
 
@@ -1868,7 +1821,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             // For information about how true motion works, see rfc6386, page 52. ff and section 20.14.
             int topOffset = offset - WebpConstants.Bps;
-            Span<byte> top = yuv.Slice(topOffset);
+            Span<byte> top = yuv[topOffset..];
             byte p = yuv[topOffset - 1];
             int leftOffset = offset - 1;
             byte left = yuv[leftOffset];
@@ -1881,7 +1834,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 leftOffset += WebpConstants.Bps;
                 left = yuv[leftOffset];
-                dst = dst.Slice(WebpConstants.Bps);
+                dst = dst[WebpConstants.Bps..];
             }
         }
 
@@ -1959,11 +1912,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             p[offset] = WebpLookupTables.Clip1(q0 - a1);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         // Applies filter on 2 pixels (p0 and q0)
         private static void DoFilter2Sse2(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int thresh)
         {
-            Vector128<byte> signBit = Vector128.Create((byte)0x80);
+            var signBit = Vector128.Create((byte)0x80);
 
             // Convert p1/q1 to byte (for GetBaseDelta).
             Vector128<byte> p1s = Sse2.Xor(p1, signBit);
@@ -1992,7 +1944,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Compute hev mask.
             Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
 
-            Vector128<byte> signBit = Vector128.Create((byte)0x80);
+            var signBit = Vector128.Create((byte)0x80);
 
             // Convert to signed values.
             p1 = Sse2.Xor(p1, signBit);
@@ -2036,7 +1988,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
 
             // Convert to signed values.
-            Vector128<byte> signBit = Vector128.Create((byte)0x80);
+            var signBit = Vector128.Create((byte)0x80);
             p1 = Sse2.Xor(p1, signBit);
             p0 = Sse2.Xor(p0, signBit);
             q0 = Sse2.Xor(q0, signBit);
@@ -2057,11 +2009,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> flow = Sse2.UnpackLow(Vector128<byte>.Zero, f);
             Vector128<byte> fhigh = Sse2.UnpackHigh(Vector128<byte>.Zero, f);
 
-            Vector128<short> nine = Vector128.Create((short)0x0900);
+            var nine = Vector128.Create((short)0x0900);
             Vector128<short> f9Low = Sse2.MultiplyHigh(flow.AsInt16(), nine); // Filter (lo) * 9
             Vector128<short> f9High = Sse2.MultiplyHigh(fhigh.AsInt16(), nine); // Filter (hi) * 9
 
-            Vector128<short> sixtyThree = Vector128.Create((short)63);
+            var sixtyThree = Vector128.Create((short)63);
             Vector128<short> a2Low = Sse2.Add(f9Low, sixtyThree); // Filter * 9 + 63
             Vector128<short> a2High = Sse2.Add(f9High, sixtyThree); // Filter * 9 + 63
 
@@ -2100,7 +2052,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // not_hev <= t1 && not_hev <= t2
             return Sse2.CompareEqual(tMaxH, Vector128<byte>.Zero);
         }
-#endif
 
         // Applies filter on 4 pixels (p1, p0, q0 and q1)
         private static void DoFilter4(Span<byte> p, int offset, int step)
@@ -2180,7 +2131,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                    WebpLookupTables.Abs0(q2 - q1) <= it && WebpLookupTables.Abs0(q1 - q0) <= it;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private static Vector128<byte> NeedsFilter(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh)
         {
             var mthresh = Vector128.Create((byte)thresh);
@@ -2345,7 +2295,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Pixels 'pi' and 'qi' are int8_t on input, uint8_t on output (sign flip).
         private static void Update2Pixels(ref Vector128<byte> pi, ref Vector128<byte> qi, Vector128<short> a0Low, Vector128<short> a0High)
         {
-            Vector128<byte> signBit = Vector128.Create((byte)0x80);
+            var signBit = Vector128.Create((byte)0x80);
             Vector128<short> a1Low = Sse2.ShiftRightArithmetic(a0Low, 7);
             Vector128<short> a1High = Sse2.ShiftRightArithmetic(a0High, 7);
             Vector128<sbyte> delta = Sse2.PackSignedSaturate(a1Low, a1High);
@@ -2374,7 +2324,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector128<byte> Abs(Vector128<byte> p, Vector128<byte> q)
             => Sse2.Or(Sse2.SubtractSaturate(q, p), Sse2.SubtractSaturate(p, q));
-#endif
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static bool Hev(Span<byte> p, int offset, int step, int thresh)
@@ -2411,7 +2360,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Put8x8uv(byte value, Span<byte> dst)
         {
-            int end = 8 * WebpConstants.Bps;
+            const int end = 8 * WebpConstants.Bps;
             for (int j = 0; j < end; j += WebpConstants.Bps)
             {
                 // memset(dst + j * BPS, value, 8);

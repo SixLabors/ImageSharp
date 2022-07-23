@@ -4,10 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -22,16 +20,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public class RgbToYCbCrConverterTests
     {
         public RgbToYCbCrConverterTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+            => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
         [Fact]
         public void TestConverterLut444()
         {
-            int dataSize = 8 * 8;
+            const int dataSize = 8 * 8;
             Rgb24[] data = CreateTestData(dataSize);
             var target = RgbToYCbCrConverterLut.Create();
 
@@ -53,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            int dataSize = 8 * 8;
+            const int dataSize = 8 * 8;
             Rgb24[] data = CreateTestData(dataSize);
 
             Block8x8F y = default;
@@ -68,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void TestConverterLut420()
         {
-            int dataSize = 16 * 16;
+            const int dataSize = 16 * 16;
             Span<Rgb24> data = CreateTestData(dataSize).AsSpan();
             var target = RgbToYCbCrConverterLut.Create();
 
@@ -77,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var cr = default(Block8x8F);
 
             target.Convert420(data, ref yBlocks[0], ref yBlocks[1], ref cb, ref cr, 0);
-            target.Convert420(data.Slice(16 * 8), ref yBlocks[2], ref yBlocks[3], ref cb, ref cr, 1);
+            target.Convert420(data[(16 * 8)..], ref yBlocks[2], ref yBlocks[3], ref cb, ref cr, 1);
 
             Verify420(data, yBlocks, ref cb, ref cr, new ApproximateFloatComparer(1F));
         }
@@ -91,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            int dataSize = 16 * 16;
+            const int dataSize = 16 * 16;
             Span<Rgb24> data = CreateTestData(dataSize).AsSpan();
 
             var yBlocks = new Block8x8F[4];
@@ -99,12 +95,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var cr = default(Block8x8F);
 
             RgbToYCbCrConverterVectorized.Convert420(data, ref yBlocks[0], ref yBlocks[1], ref cb, ref cr, 0);
-            RgbToYCbCrConverterVectorized.Convert420(data.Slice(16 * 8), ref yBlocks[2], ref yBlocks[3], ref cb, ref cr, 1);
+            RgbToYCbCrConverterVectorized.Convert420(data[(16 * 8)..], ref yBlocks[2], ref yBlocks[3], ref cb, ref cr, 1);
 
             Verify420(data, yBlocks, ref cb, ref cr, new ApproximateFloatComparer(1F));
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
@@ -140,7 +135,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return 0.25f * (data[upIdx] + data[upIdx + 1] + data[lowIdx] + data[lowIdx + 1]);
             }
         }
-#endif
 
         private static void Verify444(
             ReadOnlySpan<Rgb24> data,
@@ -180,17 +174,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             VerifyBlock(ref yResult[0], ref trueBlock, comparer);
 
             // top right
-            Copy8x8(data.Slice(8), tempData);
+            Copy8x8(data[8..], tempData);
             RgbToYCbCr(tempData, ref trueBlock, ref cbTrue[1], ref crTrue[1]);
             VerifyBlock(ref yResult[1], ref trueBlock, comparer);
 
             // bottom left
-            Copy8x8(data.Slice(8 * 16), tempData);
+            Copy8x8(data[(8 * 16)..], tempData);
             RgbToYCbCr(tempData, ref trueBlock, ref cbTrue[2], ref crTrue[2]);
             VerifyBlock(ref yResult[2], ref trueBlock, comparer);
 
             // bottom right
-            Copy8x8(data.Slice((8 * 16) + 8), tempData);
+            Copy8x8(data[((8 * 16) + 8)..], tempData);
             RgbToYCbCr(tempData, ref trueBlock, ref cbTrue[3], ref crTrue[3]);
             VerifyBlock(ref yResult[3], ref trueBlock, comparer);
 
@@ -207,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    source.Slice(i * 16, 8).CopyTo(dest.Slice(i * 8));
+                    source.Slice(i * 16, 8).CopyTo(dest[(i * 8)..]);
                 }
             }
 
@@ -259,7 +253,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var data = new Rgb24[size];
             var r = new Random();
 
-            var random = new byte[3];
+            byte[] random = new byte[3];
             for (int i = 0; i < data.Length; i++)
             {
                 r.NextBytes(random);

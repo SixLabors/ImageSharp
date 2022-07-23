@@ -4,10 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Compression.Zlib
 {
@@ -22,7 +20,6 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// </summary>
         public const uint SeedValue = 0U;
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private const int MinBufferSize = 64;
         private const int ChunksizeMask = 15;
 
@@ -35,7 +32,6 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             0x0163cd6124, 0x0000000000, // k5, k0
             0x01db710641, 0x01f7011641 // polynomial
         };
-#endif
 
         /// <summary>
         /// Calculates the CRC checksum with the bytes taken from the span.
@@ -60,21 +56,14 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 return crc;
             }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported && Pclmulqdq.IsSupported && buffer.Length >= MinBufferSize)
             {
                 return ~CalculateSse(~crc, buffer);
             }
-            else
-            {
-                return ~CalculateScalar(~crc, buffer);
-            }
-#else
+
             return ~CalculateScalar(~crc, buffer);
-#endif
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         // Based on https://github.com/chromium/chromium/blob/master/third_party/zlib/crc32_simd.c
         [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
         private static unsafe uint CalculateSse(uint crc, ReadOnlySpan<byte> buffer)
@@ -194,11 +183,10 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                     x1 = Sse2.Xor(x1, x2);
 
                     crc = (uint)Sse41.Extract(x1.AsInt32(), 1);
-                    return buffer.Length - chunksize == 0 ? crc : CalculateScalar(crc, buffer.Slice(chunksize));
+                    return buffer.Length - chunksize == 0 ? crc : CalculateScalar(crc, buffer[chunksize..]);
                 }
             }
         }
-#endif
 
         [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
         private static uint CalculateScalar(uint crc, ReadOnlySpan<byte> buffer)

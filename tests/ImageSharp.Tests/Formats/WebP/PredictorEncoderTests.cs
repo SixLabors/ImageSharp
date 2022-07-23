@@ -6,9 +6,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.PixelFormats;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using SixLabors.ImageSharp.Tests.TestUtilities;
-#endif
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
@@ -24,7 +22,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public static void ColorSpaceTransform_WithPeakImage_ProducesExpectedData()
             => RunColorSpaceTransformTestWithPeakImage();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void ColorSpaceTransform_WithPeakImage_WithHardwareIntrinsics_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.AllowAll);
@@ -44,7 +41,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void ColorSpaceTransform_WithBikeImage_WithoutAvx2_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableAVX2);
-#endif
 
         // Test image: Input\Webp\peak.png
         private static void RunColorSpaceTransformTestWithPeakImage()
@@ -91,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using var image = Image.Load<Rgba32>(imgBytes);
             uint[] bgra = ToBgra(image);
 
-            int colorTransformBits = 3;
+            const int colorTransformBits = 3;
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
             uint[] transformData = new uint[transformWidth * transformHeight];
@@ -122,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             using var image = Image.Load<Rgba32>(imgBytes, new WebpDecoder());
             uint[] bgra = ToBgra(image);
 
-            int colorTransformBits = 4;
+            const int colorTransformBits = 4;
             int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
             uint[] transformData = new uint[transformWidth * transformHeight];

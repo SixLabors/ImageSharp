@@ -5,10 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
@@ -173,7 +171,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public nint GetLastNonZeroIndex()
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
@@ -207,7 +204,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 return -1;
             }
             else
-#endif
             {
                 nint index = Size - 1;
                 ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
@@ -271,12 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // row #6
             Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
 
-            static void Swap(ref short a, ref short b)
-            {
-                short tmp = a;
-                a = b;
-                b = tmp;
-            }
+            static void Swap(ref short a, ref short b) => (b, a) = (a, b);
         }
 
         /// <summary>

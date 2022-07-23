@@ -5,10 +5,8 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -32,13 +30,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         //  ([3*a +   b + 9*c + 3*d      a + 3*b + 3*c + 9*d]   [8 8]) / 16
         public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
                 UpSampleSse41(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len, uvBuffer);
             }
             else
-#endif
             {
                 UpSampleScalar(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len);
             }
@@ -46,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private static void UpSampleScalar(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
         {
-            int xStep = 3;
+            const int xStep = 3;
             int lastPixelPair = (len - 1) >> 1;
             uint tluv = LoadUv(topU[0], topV[0]); // top-left sample
             uint luv = LoadUv(curU[0], curV[0]); // left-sample
@@ -71,15 +67,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 uv0 = (diag12 + tluv) >> 1;
                 uint uv1 = (diag03 + tuv) >> 1;
                 int xMul2 = x * 2;
-                YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
-                YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
+                YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst[((xMul2 - 1) * xStep)..]);
+                YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst[((xMul2 - 0) * xStep)..]);
 
                 if (bottomY != default)
                 {
                     uv0 = (diag03 + luv) >> 1;
                     uv1 = (diag12 + uv) >> 1;
-                    YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((xMul2 - 1) * xStep));
-                    YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice((xMul2 + 0) * xStep));
+                    YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst[((xMul2 - 1) * xStep)..]);
+                    YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst[((xMul2 + 0) * xStep)..]);
                 }
 
                 tluv = tuv;
@@ -89,16 +85,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if ((len & 1) == 0)
             {
                 uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
-                YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
+                YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst[((len - 1) * xStep)..]);
                 if (bottomY != default)
                 {
                     uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
-                    YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
+                    YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst[((len - 1) * xStep)..]);
                 }
             }
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         // We compute (9*a + 3*b + 3*c + d + 8) / 16 as follows
         // u = (9*a + 3*b + 3*c + d + 8) / 16
         //   = (a + (a + 3*b + 3*c + d) / 8 + 1) / 2
@@ -118,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             const int xStep = 3;
             Array.Clear(uvBuffer);
             Span<byte> ru = uvBuffer.AsSpan(15);
-            Span<byte> rv = ru.Slice(32);
+            Span<byte> rv = ru[32..];
 
             // Treat the first pixel in regular way.
             int uDiag = ((topU[0] + curU[0]) >> 1) + 1;
@@ -140,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             ref byte topVRef = ref MemoryMarshal.GetReference(topV);
             ref byte curURef = ref MemoryMarshal.GetReference(curU);
             ref byte curVRef = ref MemoryMarshal.GetReference(curV);
-            if (bottomY != null)
+            if (bottomY != default)
             {
                 for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
                 {
@@ -163,17 +158,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             if (len > 1)
             {
                 int leftOver = ((len + 1) >> 1) - (pos >> 1);
-                Span<byte> tmpTopDst = ru.Slice(4 * 32);
-                Span<byte> tmpBottomDst = tmpTopDst.Slice(4 * 32);
-                Span<byte> tmpTop = tmpBottomDst.Slice(4 * 32);
-                Span<byte> tmpBottom = (bottomY == null) ? null : tmpTop.Slice(32);
-                UpSampleLastBlock(topU.Slice(uvPos), curU.Slice(uvPos), leftOver, ru);
-                UpSampleLastBlock(topV.Slice(uvPos), curV.Slice(uvPos), leftOver, rv);
+                Span<byte> tmpTopDst = ru[(4 * 32)..];
+                Span<byte> tmpBottomDst = tmpTopDst[(4 * 32)..];
+                Span<byte> tmpTop = tmpBottomDst[(4 * 32)..];
+                Span<byte> tmpBottom = (bottomY == default) ? null : tmpTop[32..];
+                UpSampleLastBlock(topU[uvPos..], curU[uvPos..], leftOver, ru);
+                UpSampleLastBlock(topV[uvPos..], curV[uvPos..], leftOver, rv);
 
-                topY.Slice(pos, len - pos).CopyTo(tmpTop);
+                topY[pos..len].CopyTo(tmpTop);
                 if (bottomY != default)
                 {
-                    bottomY.Slice(pos, len - pos).CopyTo(tmpBottom);
+                    bottomY[pos..len].CopyTo(tmpBottom);
                     ConvertYuvToBgrWithBottomYSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
                 }
                 else
@@ -181,10 +176,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     ConvertYuvToBgrSse41(tmpTop, tmpTopDst, ru, rv, 0, xStep);
                 }
 
-                tmpTopDst.Slice(0, (len - pos) * xStep).CopyTo(topDst.Slice(pos * xStep));
+                tmpTopDst[..((len - pos) * xStep)].CopyTo(topDst[(pos * xStep)..]);
                 if (bottomY != default)
                 {
-                    tmpBottomDst.Slice(0, (len - pos) * xStep).CopyTo(bottomDst.Slice(pos * xStep));
+                    tmpBottomDst[..((len - pos) * xStep)].CopyTo(bottomDst[(pos * xStep)..]);
                 }
             }
         }
@@ -216,15 +211,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             // Pack the alternate pixels.
             PackAndStore(a, b, diag1, diag2, output); // store top.
-            PackAndStore(c, d, diag2, diag1, output.Slice(2 * 32));
+            PackAndStore(c, d, diag2, diag1, output[(2 * 32)..]);
         }
 
         private static void UpSampleLastBlock(Span<byte> tb, Span<byte> bb, int numPixels, Span<byte> output)
         {
             Span<byte> r1 = stackalloc byte[17];
             Span<byte> r2 = stackalloc byte[17];
-            tb.Slice(0, numPixels).CopyTo(r1);
-            bb.Slice(0, numPixels).CopyTo(r2);
+            tb[..numPixels].CopyTo(r1);
+            bb[..numPixels].CopyTo(r2);
 
             // Replicate last byte.
             int length = 17 - numPixels;
@@ -263,7 +258,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Unsafe.As<byte, Vector128<byte>>(ref output0Ref) = t1;
             Unsafe.As<byte, Vector128<byte>>(ref output1Ref) = t2;
         }
-#endif
 
         /// <summary>
         /// Converts the RGB values of the image to YUV.
@@ -317,11 +311,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     AccumulateRgba(bgraRow0, bgraRow1, tmpRgbSpan, width);
                 }
 
-                ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
+                ConvertRgbaToUv(tmpRgbSpan, u[(uvRowIndex * uvWidth)..], v[(uvRowIndex * uvWidth)..], uvWidth);
                 uvRowIndex++;
 
-                ConvertRgbaToY(bgraRow0, y.Slice(rowIndex * width), width);
-                ConvertRgbaToY(bgraRow1, y.Slice((rowIndex + 1) * width), width);
+                ConvertRgbaToY(bgraRow0, y[(rowIndex * width)..], width);
+                ConvertRgbaToY(bgraRow1, y[((rowIndex + 1) * width)..], width);
             }
 
             // Extra last row.
@@ -329,7 +323,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(rowIndex);
                 PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
-                ConvertRgbaToY(bgraRow0, y.Slice(rowIndex * width), width);
+                ConvertRgbaToY(bgraRow0, y[(rowIndex * width)..], width);
 
                 if (!WebpCommonUtils.CheckNonOpaque(bgraRow0))
                 {
@@ -341,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     hasAlpha = true;
                 }
 
-                ConvertRgbaToUv(tmpRgbSpan, u.Slice(uvRowIndex * uvWidth), v.Slice(uvRowIndex * uvWidth), uvWidth);
+                ConvertRgbaToUv(tmpRgbSpan, u[(uvRowIndex * uvWidth)..], v[(uvRowIndex * uvWidth)..], uvWidth);
             }
 
             return hasAlpha;
@@ -569,16 +563,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             bgr[0] = (byte)YuvToB(y, u);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void ConvertYuvToBgrSse41(Span<byte> topY, Span<byte> topDst, Span<byte> ru, Span<byte> rv, int curX, int step) => YuvToBgrSse41(topY.Slice(curX), ru, rv, topDst.Slice(curX * step));
+        private static void ConvertYuvToBgrSse41(Span<byte> topY, Span<byte> topDst, Span<byte> ru, Span<byte> rv, int curX, int step) => YuvToBgrSse41(topY[curX..], ru, rv, topDst[(curX * step)..]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void ConvertYuvToBgrWithBottomYSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topDst, Span<byte> bottomDst, Span<byte> ru, Span<byte> rv, int curX, int step)
         {
-            YuvToBgrSse41(topY.Slice(curX), ru, rv, topDst.Slice(curX * step));
-            YuvToBgrSse41(bottomY.Slice(curX), ru.Slice(64), rv.Slice(64), bottomDst.Slice(curX * step));
+            YuvToBgrSse41(topY[curX..], ru, rv, topDst[(curX * step)..]);
+            YuvToBgrSse41(bottomY[curX..], ru[64..], rv[64..], bottomDst[(curX * step)..]);
         }
 
         private static void YuvToBgrSse41(Span<byte> y, Span<byte> u, Span<byte> v, Span<byte> dst)
@@ -718,9 +710,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // R = (19077 * y             + 26149 * v - 14234) >> 6
             // G = (19077 * y -  6419 * u - 13320 * v +  8708) >> 6
             // B = (19077 * y + 33050 * u             - 17685) >> 6
-            Vector128<ushort> k19077 = Vector128.Create((ushort)19077);
-            Vector128<ushort> k26149 = Vector128.Create((ushort)26149);
-            Vector128<ushort> k14234 = Vector128.Create((ushort)14234);
+            var k19077 = Vector128.Create((ushort)19077);
+            var k26149 = Vector128.Create((ushort)26149);
+            var k14234 = Vector128.Create((ushort)14234);
 
             Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), k19077);
             Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), k26149);
@@ -744,8 +736,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             b = Sse2.ShiftRightLogical(b2.AsInt16(), 6); // range: [0, 34238]
         }
 
-#endif
-
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int YuvToB(int y, int u) => Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
 
@@ -761,7 +751,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static byte Clip8(int v)
         {
-            int yuvMask = (256 << 6) - 1;
+            const int yuvMask = (256 << 6) - 1;
             return (byte)((v & ~yuvMask) == 0 ? v >> 6 : v < 0 ? 0 : 255);
         }
     }

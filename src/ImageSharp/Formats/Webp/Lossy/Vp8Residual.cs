@@ -4,10 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -46,7 +44,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public void SetCoeffs(Span<short> coeffs)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref short coeffsRef = ref MemoryMarshal.GetReference(coeffs);
@@ -68,7 +65,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 this.Last = mask != 0 ? Numerics.Log2(mask) : -1;
             }
             else
-#endif
             {
                 int n;
                 this.Last = -1;
@@ -82,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
             }
 
-            coeffs.Slice(0, 16).CopyTo(this.Coeffs);
+            coeffs[..16].CopyTo(this.Coeffs);
         }
 
         // Simulate block coding, but only record statistics.
@@ -93,23 +89,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vp8StatsArray s = this.Stats[n].Stats[ctx];
             if (this.Last < 0)
             {
-                this.RecordStats(0, s, 0);
+                RecordStats(0, s, 0);
                 return 0;
             }
 
             while (n <= this.Last)
             {
                 int v;
-                this.RecordStats(1, s, 0);  // order of record doesn't matter
+                RecordStats(1, s, 0);  // order of record doesn't matter
                 while ((v = this.Coeffs[n++]) == 0)
                 {
-                    this.RecordStats(0, s, 1);
+                    RecordStats(0, s, 1);
                     s = this.Stats[WebpConstants.Vp8EncBands[n]].Stats[0];
                 }
 
-                this.RecordStats(1, s, 1);
+                RecordStats(1, s, 1);
                 bool bit = (uint)(v + 1) > 2u;
-                if (this.RecordStats(bit ? 1 : 0, s, 2) == 0)
+                if (RecordStats(bit ? 1 : 0, s, 2) == 0)
                 {
                     // v = -1 or 1
                     s = this.Stats[WebpConstants.Vp8EncBands[n]].Stats[1];
@@ -130,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         int mask = 2 << i;
                         if ((pattern & 1) != 0)
                         {
-                            this.RecordStats((bits & mask) != 0 ? 1 : 0, s, 3 + i);
+                            RecordStats((bits & mask) != 0 ? 1 : 0, s, 3 + i);
                         }
                     }
 
@@ -140,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             if (n < 16)
             {
-                this.RecordStats(0, s, 0);
+                RecordStats(0, s, 0);
             }
 
             return 1;
@@ -163,7 +159,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 return LossyUtils.Vp8BitCost(0, (byte)p0);
             }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 Span<byte> ctxs = this.scratch.AsSpan(0, 16);
@@ -211,7 +206,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 return cost;
             }
-#endif
+
             {
                 int v;
                 for (; n < this.Last; ++n)
@@ -241,7 +236,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private static int LevelCost(Span<ushort> table, int level)
             => WebpLookupTables.Vp8LevelFixedCosts[level] + table[level > WebpConstants.MaxVariableLevel ? WebpConstants.MaxVariableLevel : level];
 
-        private int RecordStats(int bit, Vp8StatsArray statsArr, int idx)
+        private static int RecordStats(int bit, Vp8StatsArray statsArr, int idx)
         {
             // An overflow is inbound. Note we handle this at 0xfffe0000u instead of
             // 0xffff0000u to make sure p + 1u does not overflow.

@@ -5,9 +5,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
-#endif
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
@@ -43,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private static Vector<float> CreateExactTestVector1()
         {
-            var data = new float[Vector<float>.Count];
+            float[] data = new float[Vector<float>.Count];
 
             data[0] = 0.1f;
             data[1] = 0.4f;
@@ -113,53 +111,6 @@ namespace SixLabors.ImageSharp.Tests.Common
             return false;
         }
 
-        [Theory]
-        [InlineData(1, 0)]
-        [InlineData(1, 8)]
-        [InlineData(2, 16)]
-        [InlineData(3, 128)]
-        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
-            float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
-            float[] normalized = orig.Select(f => f / 255f).ToArray();
-
-            var dest = new byte[count];
-
-            SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(normalized, dest);
-
-            byte[] expected = orig.Select(f => (byte)f).ToArray();
-
-            Assert.Equal(expected, dest);
-        }
-
-        [Theory]
-        [InlineData(1, 0)]
-        [InlineData(1, 8)]
-        [InlineData(2, 16)]
-        [InlineData(3, 128)]
-        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
-            float[] source = new Random(seed).GenerateRandomFloatArray(count, 0, 1f);
-
-            byte[] dest = new byte[count];
-
-            SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(source, dest);
-
-            byte[] expected = source.Select(f => (byte)Math.Round(f * 255f)).ToArray();
-
-            Assert.Equal(expected, dest);
-        }
-
         public static readonly TheoryData<int> ArraySizesDivisibleBy8 = new() { 0, 8, 16, 1024 };
         public static readonly TheoryData<int> ArraySizesDivisibleBy4 = new() { 0, 4, 8, 28, 1020 };
         public static readonly TheoryData<int> ArraySizesDivisibleBy3 = new() { 0, 3, 9, 36, 957 };
@@ -174,26 +125,11 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(s.Span, d.Span));
 
         [Theory]
-        [MemberData(nameof(ArraySizesDivisibleBy8))]
-        public void BasicIntrinsics256_BulkConvertByteToNormalizedFloat(int count)
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
-            TestImpl_BulkConvertByteToNormalizedFloat(
-                count,
-                (s, d) => SimdUtils.BasicIntrinsics256.ByteToNormalizedFloat(s.Span, d.Span));
-        }
-
-        [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int count) => TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
                 (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
@@ -212,7 +148,6 @@ namespace SixLabors.ImageSharp.Tests.Common
                 count,
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
         }
-#endif
 
         [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]
@@ -238,18 +173,6 @@ namespace SixLabors.ImageSharp.Tests.Common
         public void FallbackIntrinsics128_BulkConvertNormalizedFloatToByteClampOverflows(int count) => TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
                 count,
                 (s, d) => SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(s.Span, d.Span));
-
-        [Theory]
-        [MemberData(nameof(ArraySizesDivisibleBy8))]
-        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows(int count)
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BasicIntrinsics256.NormalizedFloatToByteSaturate(s.Span, d.Span));
-        }
 
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
@@ -278,8 +201,6 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected2, actual2);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
@@ -298,8 +219,6 @@ namespace SixLabors.ImageSharp.Tests.Common
                 count,
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
-
-#endif
 
         [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]
@@ -325,16 +244,15 @@ namespace SixLabors.ImageSharp.Tests.Common
         public void PackFromRgbPlanes_Rgb24(int count) => TestPackFromRgbPlanes<Rgb24>(
                 count,
                 (r, g, b, actual) =>
-                    SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
+                    SimdUtils.PackFromRgbPlanes(r, g, b, actual));
 
         [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]
         public void PackFromRgbPlanes_Rgba32(int count) => TestPackFromRgbPlanes<Rgba32>(
                 count,
                 (r, g, b, actual) =>
-                    SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
+                    SimdUtils.PackFromRgbPlanes(r, g, b, actual));
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void PackFromRgbPlanesAvx2Reduce_Rgb24()
         {
@@ -403,7 +321,6 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(0, bb.Length);
             Assert.Equal(0, dd.Length);
         }
-#endif
 
         internal static void TestPackFromRgbPlanes<TPixel>(int count, Action<byte[], byte[], byte[], TPixel[]> packMethod)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -422,7 +339,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             var actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
             packMethod(r, g, b, actual);
 
-            Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan().Slice(0, count)));
+            Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan()[..count]));
         }
 
         private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
@@ -434,7 +351,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             seed = seed > 0 ? seed : count;
             float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
             byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
-            var actual = new byte[count];
+            byte[] actual = new byte[count];
 
             convert(source, actual);
 

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
             private static readonly Lazy<PixelTypeInfo> LazyInfo =
-                new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<Rgba32>(PixelAlphaRepresentation.Unassociated), true);
+                new(() => PixelTypeInfo.Create<Rgba32>(PixelAlphaRepresentation.Unassociated), true);
 
             /// <inheritdoc />
             public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
 
-                destinationVectors = destinationVectors.Slice(0, sourcePixels.Length);
+                destinationVectors = destinationVectors[..sourcePixels.Length];
                 SimdUtils.ByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(sourcePixels),
                     MemoryMarshal.Cast<Vector4, float>(destinationVectors));
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
 
-                destinationPixels = destinationPixels.Slice(0, sourceVectors.Length);
+                destinationPixels = destinationPixels[..sourceVectors.Length];
                 Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
                 SimdUtils.NormalizedFloatToByteSaturate(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 int count = redChannel.Length;
                 GuardPackFromRgbPlanes(greenChannel, blueChannel, destination, count);
 
-                SimdUtils.PackFromRgbPlanes(configuration, redChannel, greenChannel, blueChannel, destination);
+                SimdUtils.PackFromRgbPlanes(redChannel, greenChannel, blueChannel, destination);
             }
         }
     }

@@ -6,11 +6,8 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp
 {
@@ -56,8 +53,6 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector<float> FastRound(this Vector<float> v)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
-
             if (Avx2.IsSupported)
             {
                 ref Vector256<float> v256 = ref Unsafe.As<Vector<float>, Vector256<float>>(ref v);
@@ -65,7 +60,6 @@ namespace SixLabors.ImageSharp
                 return Unsafe.As<Vector256<float>, Vector<float>>(ref vRound);
             }
             else
-#endif
             {
                 var magic0 = new Vector<int>(int.MinValue); // 0x80000000
                 var sgn0 = Vector.AsVectorSingle(magic0);
@@ -87,13 +81,8 @@ namespace SixLabors.ImageSharp
         internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
-#if SUPPORTS_RUNTIME_INTRINSICS
+
             HwIntrinsics.ByteToNormalizedFloatReduce(ref source, ref dest);
-#elif SUPPORTS_EXTENDED_INTRINSICS
-            ExtendedIntrinsics.ByteToNormalizedFloatReduce(ref source, ref dest);
-#else
-            BasicIntrinsics256.ByteToNormalizedFloatReduce(ref source, ref dest);
-#endif
 
             // Also deals with the remainder from previous conversions:
             FallbackIntrinsics128.ByteToNormalizedFloatReduce(ref source, ref dest);
@@ -118,13 +107,7 @@ namespace SixLabors.ImageSharp
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
-#elif SUPPORTS_EXTENDED_INTRINSICS
-            ExtendedIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
-#else
-            BasicIntrinsics256.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
-#endif
 
             // Also deals with the remainder from previous conversions:
             FallbackIntrinsics128.NormalizedFloatToByteSaturateReduce(ref source, ref dest);

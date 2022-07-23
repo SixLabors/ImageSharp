@@ -4,10 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
-#endif
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
@@ -15,7 +13,6 @@ namespace SixLabors.ImageSharp
     {
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void PackFromRgbPlanes(
-            Configuration configuration,
             ReadOnlySpan<byte> redChannel,
             ReadOnlySpan<byte> greenChannel,
             ReadOnlySpan<byte> blueChannel,
@@ -25,13 +22,11 @@ namespace SixLabors.ImageSharp
             DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
             DebugGuard.IsTrue(destination.Length > redChannel.Length + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
             }
             else
-#endif
             {
                 PackFromRgbPlanesScalarBatchedReduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
             }
@@ -41,7 +36,6 @@ namespace SixLabors.ImageSharp
 
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void PackFromRgbPlanes(
-            Configuration configuration,
             ReadOnlySpan<byte> redChannel,
             ReadOnlySpan<byte> greenChannel,
             ReadOnlySpan<byte> blueChannel,
@@ -51,13 +45,11 @@ namespace SixLabors.ImageSharp
             DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
             DebugGuard.IsTrue(destination.Length > redChannel.Length, nameof(destination), "'destination' span should not be shorter than the source channels!");
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
             }
             else
-#endif
             {
                 PackFromRgbPlanesScalarBatchedReduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
             }
@@ -106,10 +98,10 @@ namespace SixLabors.ImageSharp
             }
 
             int finished = count * 4;
-            redChannel = redChannel.Slice(finished);
-            greenChannel = greenChannel.Slice(finished);
-            blueChannel = blueChannel.Slice(finished);
-            destination = destination.Slice(finished);
+            redChannel = redChannel[finished..];
+            greenChannel = greenChannel[finished..];
+            blueChannel = blueChannel[finished..];
+            destination = destination[finished..];
         }
 
         private static void PackFromRgbPlanesScalarBatchedReduce(
@@ -154,10 +146,10 @@ namespace SixLabors.ImageSharp
             }
 
             int finished = count * 4;
-            redChannel = redChannel.Slice(finished);
-            greenChannel = greenChannel.Slice(finished);
-            blueChannel = blueChannel.Slice(finished);
-            destination = destination.Slice(finished);
+            redChannel = redChannel[finished..];
+            greenChannel = greenChannel[finished..];
+            blueChannel = blueChannel[finished..];
+            destination = destination[finished..];
         }
 
         private static void PackFromRgbPlanesRemainder(

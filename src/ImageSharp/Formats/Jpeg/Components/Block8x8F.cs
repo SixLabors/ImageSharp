@@ -5,10 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using System.Text;
 
 // ReSharper disable InconsistentNaming
@@ -160,7 +158,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInPlace(float value)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
                 var valueVec = Vector256.Create(value);
@@ -174,7 +171,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 this.V7 = Avx.Multiply(this.V7, valueVec);
             }
             else
-#endif
             {
                 var valueVec = new Vector4(value);
                 this.V0L *= valueVec;
@@ -202,7 +198,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public unsafe void MultiplyInPlace(ref Block8x8F other)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
                 this.V0 = Avx.Multiply(this.V0, other.V0);
@@ -215,7 +210,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 this.V7 = Avx.Multiply(this.V7, other.V7);
             }
             else
-#endif
             {
                 this.V0L *= other.V0L;
                 this.V0R *= other.V0R;
@@ -243,7 +237,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void AddInPlace(float value)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
                 var valueVec = Vector256.Create(value);
@@ -257,7 +250,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 this.V7 = Avx.Add(this.V7, valueVec);
             }
             else
-#endif
             {
                 var valueVec = new Vector4(value);
                 this.V0L += valueVec;
@@ -287,7 +279,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="qt">The quantization table.</param>
         public static void Quantize(ref Block8x8F block, ref Block8x8 dest, ref Block8x8F qt)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
@@ -299,7 +290,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 ZigZag.ApplyTransposingZigZagOrderingSsse3(ref dest);
             }
             else
-#endif
             {
                 for (int i = 0; i < Size; i++)
                 {
@@ -366,13 +356,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void LoadFrom(ref Block8x8 source)
         {
-#if SUPPORTS_EXTENDED_INTRINSICS
             if (SimdUtils.HasVector8)
             {
                 this.LoadFromInt16ExtendedAvx2(ref source);
                 return;
             }
-#endif
+
             this.LoadFromInt16Scalar(ref source);
         }
 
@@ -414,7 +403,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="value">Value to compare to.</param>
         public bool EqualsToScalar(int value)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
@@ -433,20 +421,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 return true;
             }
-#endif
+
+            ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
+
+            for (int i = 0; i < Size; i++)
             {
-                ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
-
-                for (int i = 0; i < Size; i++)
+                if ((int)Unsafe.Add(ref scalars, i) != value)
                 {
-                    if ((int)Unsafe.Add(ref scalars, i) != value)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-
-                return true;
             }
+
+            return true;
         }
 
         /// <inheritdoc />
@@ -491,13 +477,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void TransposeInplace()
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
                 this.TransposeInplace_Avx();
             }
             else
-#endif
             {
                 this.TransposeInplace_Scalar();
             }

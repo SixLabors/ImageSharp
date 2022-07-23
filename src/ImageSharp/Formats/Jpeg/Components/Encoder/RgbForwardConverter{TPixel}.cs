@@ -5,10 +5,8 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -120,15 +118,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         {
             Debug.Assert(RgbToYCbCrConverterVectorized.IsSupported, "AVX2 is required to run this converter");
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             ref Vector256<byte> rgbByteSpan = ref Unsafe.As<Rgb24, Vector256<byte>>(ref MemoryMarshal.GetReference(rgbSpan));
             ref Vector256<float> redRef = ref rBlock.V0;
             ref Vector256<float> greenRef = ref gBlock.V0;
             ref Vector256<float> blueRef = ref bBlock.V0;
-            var zero = Vector256.Create(0).AsByte();
+            Vector256<byte> zero = Vector256.Create(0).AsByte();
 
-            var extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(RgbToYCbCrConverterVectorized.MoveFirst24BytesToSeparateLanes));
-            var extractRgbMask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(RgbToYCbCrConverterVectorized.ExtractRgb));
+            Vector256<uint> extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(RgbToYCbCrConverterVectorized.MoveFirst24BytesToSeparateLanes));
+            Vector256<byte> extractRgbMask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(RgbToYCbCrConverterVectorized.ExtractRgb));
             Vector256<byte> rgb, rg, bx;
 
             const int bytesPerRgbStride = 24;
@@ -145,7 +142,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                 Unsafe.Add(ref greenRef, i) = Avx.ConvertToVector256Single(Avx2.UnpackHigh(rg, zero).AsInt32());
                 Unsafe.Add(ref blueRef, i) = Avx.ConvertToVector256Single(Avx2.UnpackLow(bx, zero).AsInt32());
             }
-#endif
         }
 
         private static void ConvertScalar(Span<Rgb24> rgbSpan, ref Block8x8F redBlock, ref Block8x8F greenBlock, ref Block8x8F blueBlock)

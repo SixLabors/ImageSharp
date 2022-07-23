@@ -1,9 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
-#endif
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 
@@ -58,26 +56,24 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             public HwIntrinsics_SSE_AVX()
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
+                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core60)
                     .WithEnvironmentVariables(
                         new EnvironmentVariable(EnableHWIntrinsic, Off),
                         new EnvironmentVariable(FeatureSIMD, Off))
                     .WithId("1. No HwIntrinsics").AsBaseline());
 
-#if SUPPORTS_RUNTIME_INTRINSICS
                 if (Sse.IsSupported)
                 {
-                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
+                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core60)
                         .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX, Off))
                         .WithId("2. SSE"));
                 }
 
                 if (Avx.IsSupported)
                 {
-                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
+                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core60)
                         .WithId("3. AVX"));
                 }
-#endif
             }
         }
     }

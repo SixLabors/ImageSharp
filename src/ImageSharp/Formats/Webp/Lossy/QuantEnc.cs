@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -75,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 if (mode == 0 || rdCur.Score < rdBest.Score)
                 {
-                    (rdBest, rdCur) = (rdCur, rdBest);
+                    RuntimeUtility.Swap(ref rdBest, ref rdCur);
                     it.SwapOut();
                 }
             }
@@ -174,9 +175,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         rdi4.CopyScore(rdTmp);
                         bestMode = mode;
-                        Span<byte> tmp = tmpDst;
-                        tmpDst = bestBlock;
-                        bestBlock = tmp;
+
+                        RuntimeUtility.Swap(ref tmpDst, ref bestBlock);
                         tmpLevels.CopyTo(rdBest.YAcLevels.AsSpan(it.I4 * 16, 16));
                     }
                 }
@@ -258,9 +258,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         rd.Derr[i, 2] = rdUv.Derr[i, 2];
                     }
 
-                    Span<byte> tmp = dst;
-                    dst = tmpDst;
-                    tmpDst = tmp;
+                    RuntimeUtility.Swap(ref tmpDst, ref dst);
                 }
             }
 

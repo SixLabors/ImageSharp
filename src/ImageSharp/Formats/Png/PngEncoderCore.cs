@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -520,27 +521,27 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (sum < min)
             {
                 min = sum;
-                SwapSpans(ref filter, ref attempt);
+                RuntimeUtility.Swap(ref filter, ref attempt);
             }
 
             UpFilter.Encode(current, previous, attempt, out sum);
             if (sum < min)
             {
                 min = sum;
-                SwapSpans(ref filter, ref attempt);
+                RuntimeUtility.Swap(ref filter, ref attempt);
             }
 
             AverageFilter.Encode(current, previous, attempt, this.bytesPerPixel, out sum);
             if (sum < min)
             {
                 min = sum;
-                SwapSpans(ref filter, ref attempt);
+                RuntimeUtility.Swap(ref filter, ref attempt);
             }
 
             PaethFilter.Encode(current, previous, attempt, this.bytesPerPixel, out sum);
             if (sum < min)
             {
-                SwapSpans(ref filter, ref attempt);
+                RuntimeUtility.Swap(ref filter, ref attempt);
             }
         }
 
@@ -749,21 +750,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            const int MaxLatinCode = 255;
+            const int maxLatinCode = 255;
             for (int i = 0; i < meta.TextData.Count; i++)
             {
                 PngTextData textData = meta.TextData[i];
                 bool hasUnicodeCharacters = false;
-                foreach (var c in textData.Value)
+                foreach (char c in textData.Value)
                 {
-                    if (c > MaxLatinCode)
+                    if (c > maxLatinCode)
                     {
                         hasUnicodeCharacters = true;
                         break;
                     }
                 }
 
-                if (hasUnicodeCharacters || (!string.IsNullOrWhiteSpace(textData.LanguageTag) || !string.IsNullOrWhiteSpace(textData.TranslatedKeyword)))
+                if (hasUnicodeCharacters || !string.IsNullOrWhiteSpace(textData.LanguageTag) || !string.IsNullOrWhiteSpace(textData.TranslatedKeyword))
                 {
                     // Write iTXt chunk.
                     byte[] keywordBytes = PngConstants.Encoding.GetBytes(textData.Keyword);
@@ -1206,18 +1207,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             return scanlineLength / mod;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SwapScanlineBuffers()
         {
-            IMemoryOwner<byte> temp = this.previousScanline;
-            this.previousScanline = this.currentScanline;
-            this.currentScanline = temp;
-        }
-
-        private static void SwapSpans<T>(ref Span<T> a, ref Span<T> b)
-        {
-            Span<T> t = b;
-            b = a;
-            a = t;
+            ref IMemoryOwner<byte> prev = ref this.previousScanline;
+            ref IMemoryOwner<byte> current = ref this.currentScanline;
+            RuntimeUtility.Swap(ref prev, ref current);
         }
     }
 }

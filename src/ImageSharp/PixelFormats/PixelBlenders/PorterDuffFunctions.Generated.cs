@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -425,7 +425,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -440,7 +440,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -455,7 +455,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -470,7 +470,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -485,7 +485,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -500,7 +500,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -513,7 +513,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -528,7 +528,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -543,7 +543,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -558,7 +558,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -573,7 +573,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -588,7 +588,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -830,7 +830,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -845,7 +845,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -860,7 +860,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -875,7 +875,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -890,7 +890,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -905,7 +905,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -918,7 +918,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -933,7 +933,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -948,7 +948,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -963,7 +963,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -978,7 +978,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -993,7 +993,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1235,7 +1235,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1250,7 +1250,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1265,7 +1265,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1280,7 +1280,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1295,7 +1295,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1310,7 +1310,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -1323,7 +1323,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1338,7 +1338,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1353,7 +1353,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1368,7 +1368,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1383,7 +1383,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1398,7 +1398,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1640,7 +1640,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1655,7 +1655,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1670,7 +1670,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1685,7 +1685,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1700,7 +1700,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1715,7 +1715,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -1728,7 +1728,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1743,7 +1743,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1758,7 +1758,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1773,7 +1773,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1788,7 +1788,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -1803,7 +1803,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2045,7 +2045,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2060,7 +2060,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2075,7 +2075,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2090,7 +2090,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2105,7 +2105,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2120,7 +2120,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -2133,7 +2133,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2148,7 +2148,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2163,7 +2163,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2178,7 +2178,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2193,7 +2193,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2208,7 +2208,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2450,7 +2450,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2465,7 +2465,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2480,7 +2480,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2495,7 +2495,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2510,7 +2510,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2525,7 +2525,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -2538,7 +2538,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2553,7 +2553,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2568,7 +2568,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2583,7 +2583,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2598,7 +2598,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2613,7 +2613,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2855,7 +2855,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2870,7 +2870,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2885,7 +2885,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2900,7 +2900,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2915,7 +2915,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2930,7 +2930,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -2943,7 +2943,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2958,7 +2958,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2973,7 +2973,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -2988,7 +2988,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3003,7 +3003,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3018,7 +3018,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3260,7 +3260,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3275,7 +3275,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3290,7 +3290,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3305,7 +3305,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3320,7 +3320,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3335,7 +3335,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-       [MethodImpl(MethodImplOptions.NoInlining)]
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDest(Vector4 backdrop, Vector4 source, float opacity)
         {
             return backdrop;
@@ -3348,7 +3348,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3363,7 +3363,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3378,7 +3378,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3393,7 +3393,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3408,7 +3408,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
@@ -3423,7 +3423,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">The source vector.</param>
         /// <param name="opacity">The source opacity. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;

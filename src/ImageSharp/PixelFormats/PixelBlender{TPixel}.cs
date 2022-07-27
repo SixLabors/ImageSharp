@@ -47,27 +47,22 @@ namespace SixLabors.ImageSharp.PixelFormats
             float amount)
             where TPixelSrc : unmanaged, IPixel<TPixelSrc>
         {
-            Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
-            Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
+            int maxLength = destination.Length;
+            Guard.MustBeGreaterThanOrEqualTo(background.Length, maxLength, nameof(background.Length));
+            Guard.MustBeGreaterThanOrEqualTo(source.Length, maxLength, nameof(source.Length));
             Guard.MustBeBetweenOrEqualTo(amount, 0, 1, nameof(amount));
 
-            using (IMemoryOwner<Vector4> buffer =
-                configuration.MemoryAllocator.Allocate<Vector4>(destination.Length * 3))
-            {
-                Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
-                Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
-                Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
+            using IMemoryOwner<Vector4> buffer = configuration.MemoryAllocator.Allocate<Vector4>(maxLength * 3);
+            Span<Vector4> destinationVectors = buffer.Slice(0, maxLength);
+            Span<Vector4> backgroundVectors = buffer.Slice(maxLength, maxLength);
+            Span<Vector4> sourceVectors = buffer.Slice(maxLength * 2, maxLength);
 
-                ReadOnlySpan<TPixel> sourcePixels = background[..];
-                PixelOperations<TPixel>.Instance.ToVector4(configuration, sourcePixels, backgroundSpan, PixelConversionModifiers.Scale);
-                ReadOnlySpan<TPixelSrc> sourcePixels1 = source[..background.Length];
-                PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, sourcePixels1, sourceSpan, PixelConversionModifiers.Scale);
+            PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
+            PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, source[..maxLength], sourceVectors, PixelConversionModifiers.Scale);
 
-                this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
+            this.BlendFunction(destinationVectors, backgroundVectors, sourceVectors, amount);
 
-                Span<Vector4> sourceVectors = destinationSpan[..background.Length];
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
-            }
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors[..maxLength], destination, PixelConversionModifiers.Scale);
         }
 
         /// <summary>
@@ -115,7 +110,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.MustBeGreaterThanOrEqualTo(amount.Length, maxLength, nameof(amount.Length));
 
             using IMemoryOwner<Vector4> buffer = configuration.MemoryAllocator.Allocate<Vector4>(maxLength * 3);
-
             Span<Vector4> destinationVectors = buffer.Slice(0, maxLength);
             Span<Vector4> backgroundVectors = buffer.Slice(maxLength, maxLength);
             Span<Vector4> sourceVectors = buffer.Slice(maxLength * 2, maxLength);

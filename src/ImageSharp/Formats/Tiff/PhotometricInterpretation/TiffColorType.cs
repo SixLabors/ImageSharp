@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
@@ -276,6 +276,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <summary>
         /// The pixels are stored in YCbCr format as planar.
         /// </summary>
-        YCbCrPlanar
+        YCbCrPlanar,
+
+        /// <summary>
+        /// The pixels are stored in CieLab format.
+        /// </summary>
+        CieLab,
+
+        /// <summary>
+        /// The pixels are stored in CieLab format as planar.
+        /// </summary>
+        CieLabPlanar,
     }
 }

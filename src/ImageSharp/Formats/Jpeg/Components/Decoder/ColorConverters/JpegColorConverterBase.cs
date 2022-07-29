@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -34,6 +34,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// on the current runtime and CPU architecture.
         /// </summary>
         public abstract bool IsAvailable { get; }
+
+        /// <summary>
+        /// Gets a value indicating how many pixels are processed in a single batch.
+        /// </summary>
+        /// <remarks>
+        /// This generally should be equal to register size,
+        /// e.g. 1 for scalar implementation, 8 for AVX implementation and so on.
+        /// </remarks>
+        public abstract int ElementsPerBatch { get; }
 
         /// <summary>
         /// Gets the <see cref="JpegColorSpace"/> of this converter.
@@ -219,7 +228,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// </summary>
             /// <param name="processors">List of component color processors.</param>
             /// <param name="row">Row to convert</param>
-            public ComponentValues(IReadOnlyList<JpegComponentPostProcessor> processors, int row)
+            public ComponentValues(IReadOnlyList<ComponentProcessor> processors, int row)
             {
                 DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
 

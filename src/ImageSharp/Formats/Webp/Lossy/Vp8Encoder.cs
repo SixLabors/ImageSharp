@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -382,7 +382,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 (uint)width,
                 (uint)height,
                 hasAlpha,
-                alphaData,
+                alphaData.Slice(0, alphaDataSize),
                 this.alphaCompression && alphaCompressionSucceeded);
         }
 

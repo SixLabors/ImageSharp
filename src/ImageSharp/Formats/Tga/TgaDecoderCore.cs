@@ -117,7 +117,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     using (IMemoryOwner<byte> palette = this.memoryAllocator.Allocate<byte>(colorMapSizeInBytes, AllocationOptions.Clean))
                     {
                         Span<byte> paletteSpan = palette.GetSpan();
-                        this.currentStream.Read(paletteSpan, this.fileHeader.CMapStart, colorMapSizeInBytes);
+                        int bytesRead = this.currentStream.Read(paletteSpan, this.fileHeader.CMapStart, colorMapSizeInBytes);
+                        if (bytesRead != colorMapSizeInBytes)
+                        {
+                            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read the color map");
+                        }
 
                         if (this.fileHeader.ImageType == TgaImageType.RleColorMapped)
                         {
@@ -417,7 +421,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     for (int x = width - 1; x >= 0; x--)
                     {
-                        this.currentStream.Read(this.scratchBuffer, 0, 2);
+                        int bytesRead = this.currentStream.Read(this.scratchBuffer, 0, 2);
+                        if (bytesRead != 2)
+                        {
+                            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+                        }
+
                         if (!this.hasAlpha)
                         {
                             this.scratchBuffer[1] |= 1 << 7;
@@ -437,7 +446,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 }
                 else
                 {
-                    this.currentStream.Read(rowSpan);
+                    int bytesRead = this.currentStream.Read(rowSpan);
+                    if (bytesRead != rowSpan.Length)
+                    {
+                        TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+                    }
 
                     if (!this.hasAlpha)
                     {
@@ -652,7 +665,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadL8Row<TPixel>(int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.currentStream.Read(row);
+            int bytesRead = this.currentStream.Read(row);
+            if (bytesRead != row.Length)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+            }
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromL8Bytes(this.Configuration, row, pixelSpan, width);
         }
@@ -670,7 +688,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadBgr24Pixel<TPixel>(TPixel color, int x, Span<TPixel> pixelSpan)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.currentStream.Read(this.scratchBuffer, 0, 3);
+            int bytesRead = this.currentStream.Read(this.scratchBuffer, 0, 3);
+            if (bytesRead != 3)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgr pixel");
+            }
+
             color.FromBgr24(Unsafe.As<byte, Bgr24>(ref this.scratchBuffer[0]));
             pixelSpan[x] = color;
         }
@@ -679,7 +702,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadBgr24Row<TPixel>(int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.currentStream.Read(row);
+            int bytesRead = this.currentStream.Read(row);
+            if (bytesRead != row.Length)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+            }
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.Configuration, row, pixelSpan, width);
         }
@@ -688,7 +716,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadBgra32Pixel<TPixel>(int x, TPixel color, Span<TPixel> pixelRow)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.currentStream.Read(this.scratchBuffer, 0, 4);
+            int bytesRead = this.currentStream.Read(this.scratchBuffer, 0, 4);
+            if (bytesRead != 4)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgra pixel");
+            }
+
             byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
             color.FromBgra32(new Bgra32(this.scratchBuffer[2], this.scratchBuffer[1], this.scratchBuffer[0], alpha));
             pixelRow[x] = color;
@@ -698,7 +731,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadBgra32Row<TPixel>(int width, Buffer2D<TPixel> pixels, Span<byte> row, int y)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.currentStream.Read(row);
+            int bytesRead = this.currentStream.Read(row);
+            if (bytesRead != row.Length)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
+            }
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.Configuration, row, pixelSpan, width);
         }
@@ -708,6 +746,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorIndex = this.currentStream.ReadByte();
+            if (colorIndex == -1)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
+            }
+
             this.ReadPalettedBgra16Pixel(palette, colorIndex, colorMapPixelSizeInBytes, ref color);
             pixelRow[x] = color;
         }
@@ -733,6 +776,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorIndex = this.currentStream.ReadByte();
+            if (colorIndex == -1)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
+            }
+
             color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
             pixelRow[x] = color;
         }
@@ -742,6 +790,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorIndex = this.currentStream.ReadByte();
+            if (colorIndex == -1)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
+            }
+
             color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
             pixelRow[x] = color;
         }
@@ -767,7 +820,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 if (highBit == 1)
                 {
                     int runLength = runLengthByte & 127;
-                    this.currentStream.Read(pixel, 0, bytesPerPixel);
+                    int bytesRead = this.currentStream.Read(pixel, 0, bytesPerPixel);
+                    if (bytesRead != bytesPerPixel)
+                    {
+                        TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel from the stream");
+                    }
+
                     int bufferIdx = uncompressedPixels * bytesPerPixel;
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
@@ -782,7 +840,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     int bufferIdx = uncompressedPixels * bytesPerPixel;
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
-                        this.currentStream.Read(pixel, 0, bytesPerPixel);
+                        int bytesRead = this.currentStream.Read(pixel, 0, bytesPerPixel);
+                        if (bytesRead != bytesPerPixel)
+                        {
+                            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel from the stream");
+                        }
+
                         pixel.CopyTo(buffer.Slice(bufferIdx));
                         bufferIdx += bytesPerPixel;
                     }

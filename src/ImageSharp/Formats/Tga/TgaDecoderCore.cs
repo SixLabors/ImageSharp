@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
-        public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
+        public Size Dimensions => new(this.fileHeader.Width, this.fileHeader.Height);
 
         /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 this.currentStream.Skip(this.fileHeader.IdLength);
 
                 // Parse the color map, if present.
-                if (this.fileHeader.ColorMapType != 0 && this.fileHeader.ColorMapType != 1)
+                if (this.fileHeader.ColorMapType is not 0 and not 1)
                 {
                     TgaThrowHelper.ThrowNotSupportedException($"Unknown tga colormap type {this.fileHeader.ColorMapType} found");
                 }
@@ -308,8 +308,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, Span<byte> palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int bytesPerPixel = 1;
-            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
+            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean))
             {
                 TPixel color = default;
                 Span<byte> bufferSpan = buffer.GetSpan();
@@ -319,7 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-                    int rowStartIdx = y * width * bytesPerPixel;
+                    int rowStartIdx = y * width;
                     for (int x = 0; x < width; x++)
                     {
                         int idx = rowStartIdx + x;
@@ -579,7 +578,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
-            var alphaBits = this.tgaMetadata.AlphaChannelBits;
+            byte alphaBits = this.tgaMetadata.AlphaChannelBits;
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
@@ -624,8 +623,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 }
                                 else
                                 {
-                                    var alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
-                                    color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], (byte)alpha));
+                                    byte alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
+                                    color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
                                 }
 
                                 break;
@@ -662,7 +661,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadL8Pixel<TPixel>(TPixel color, int x, Span<TPixel> pixelSpan)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var pixelValue = (byte)this.currentStream.ReadByte();
+            byte pixelValue = (byte)this.currentStream.ReadByte();
             color.FromL8(Unsafe.As<byte, L8>(ref pixelValue));
             pixelSpan[x] = color;
         }
@@ -690,7 +689,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.currentStream.Read(this.scratchBuffer, 0, 4);
-            var alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
+            byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
             color.FromBgra32(new Bgra32(this.scratchBuffer[2], this.scratchBuffer[1], this.scratchBuffer[0], alpha));
             pixelRow[x] = color;
         }
@@ -757,7 +756,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void UncompressRle(int width, int height, Span<byte> buffer, int bytesPerPixel)
         {
             int uncompressedPixels = 0;
-            var pixel = new byte[bytesPerPixel];
+            Span<byte> pixel = this.scratchBuffer.AsSpan(0, bytesPerPixel);
             int totalPixels = width * height;
             while (uncompressedPixels < totalPixels)
             {
@@ -772,7 +771,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     int bufferIdx = uncompressedPixels * bytesPerPixel;
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
-                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        pixel.CopyTo(buffer.Slice(bufferIdx));
                         bufferIdx += bytesPerPixel;
                     }
                 }
@@ -784,7 +783,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
                         this.currentStream.Read(pixel, 0, bytesPerPixel);
-                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        pixel.CopyTo(buffer.Slice(bufferIdx));
                         bufferIdx += bytesPerPixel;
                     }
                 }
@@ -815,17 +814,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="origin">The image origin.</param>
         /// <returns>True, if y coordinate needs to be inverted.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool InvertY(TgaImageOrigin origin)
+        private static bool InvertY(TgaImageOrigin origin) => origin switch
         {
-            switch (origin)
-            {
-                case TgaImageOrigin.BottomLeft:
-                case TgaImageOrigin.BottomRight:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+            TgaImageOrigin.BottomLeft => true,
+            TgaImageOrigin.BottomRight => true,
+            _ => false
+        };
 
         /// <summary>
         /// Returns the x- value based on the given width.
@@ -851,17 +845,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="origin">The image origin.</param>
         /// <returns>True, if x coordinate needs to be inverted.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool InvertX(TgaImageOrigin origin)
-        {
-            switch (origin)
+        private static bool InvertX(TgaImageOrigin origin) =>
+            origin switch
             {
-                case TgaImageOrigin.TopRight:
-                case TgaImageOrigin.BottomRight:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+                TgaImageOrigin.TopRight => true,
+                TgaImageOrigin.BottomRight => true,
+                _ => false
+            };
 
         /// <summary>
         /// Reads the tga file header from the stream.
@@ -880,8 +870,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.tgaMetadata = this.metadata.GetTgaMetadata();
             this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 
-            var alphaBits = this.fileHeader.ImageDescriptor & 0xf;
-            if (alphaBits != 0 && alphaBits != 1 && alphaBits != 8)
+            int alphaBits = this.fileHeader.ImageDescriptor & 0xf;
+            if (alphaBits is not 0 and not 1 and not 8)
             {
                 TgaThrowHelper.ThrowInvalidImageContentException("Invalid alpha channel bits");
             }

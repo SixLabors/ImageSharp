@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Gets the shared default general decoder options instance.
         /// </summary>
-        public static DecoderOptions Default { get; } = LazyOptions.Value;
+        internal static DecoderOptions Default { get; } = LazyOptions.Value;
 
         /// <summary>
         /// Gets or sets a custom Configuration instance to be used by the image processing pipeline.

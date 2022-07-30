@@ -117,7 +117,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, TgaFileHeader.Size);
-
             if (this.compression is TgaCompression.RunLength)
             {
                 this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame);
@@ -175,50 +174,50 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Rgba32 color = default;
             Buffer2D<TPixel> pixels = image.PixelBuffer;
-            int totalPixels = image.Width * image.Height;
-            int encodedPixels = 0;
-            while (encodedPixels < totalPixels)
+            for (int y = 0; y < image.Height; y++)
             {
-                int x = encodedPixels % pixels.Width;
-                int y = encodedPixels / pixels.Width;
-                TPixel currentPixel = pixels[x, y];
-                currentPixel.ToRgba32(ref color);
-                byte equalPixelCount = this.FindEqualPixels(pixels, x, y);
-
-                // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
-                stream.WriteByte((byte)(equalPixelCount | 128));
-                switch (this.bitsPerPixel)
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width;)
                 {
-                    case TgaBitsPerPixel.Pixel8:
-                        int luminance = GetLuminance(currentPixel);
-                        stream.WriteByte((byte)luminance);
-                        break;
+                    TPixel currentPixel = pixelRow[x];
+                    currentPixel.ToRgba32(ref color);
+                    byte equalPixelCount = this.FindEqualPixels(pixelRow, x);
 
-                    case TgaBitsPerPixel.Pixel16:
-                        var bgra5551 = new Bgra5551(color.ToVector4());
-                        BinaryPrimitives.TryWriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
-                        stream.WriteByte(this.buffer[0]);
-                        stream.WriteByte(this.buffer[1]);
+                    // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
+                    stream.WriteByte((byte)(equalPixelCount | 128));
+                    switch (this.bitsPerPixel)
+                    {
+                        case TgaBitsPerPixel.Pixel8:
+                            int luminance = GetLuminance(currentPixel);
+                            stream.WriteByte((byte)luminance);
+                            break;
 
-                        break;
+                        case TgaBitsPerPixel.Pixel16:
+                            var bgra5551 = new Bgra5551(color.ToVector4());
+                            BinaryPrimitives.TryWriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
+                            stream.WriteByte(this.buffer[0]);
+                            stream.WriteByte(this.buffer[1]);
 
-                    case TgaBitsPerPixel.Pixel24:
-                        stream.WriteByte(color.B);
-                        stream.WriteByte(color.G);
-                        stream.WriteByte(color.R);
-                        break;
+                            break;
 
-                    case TgaBitsPerPixel.Pixel32:
-                        stream.WriteByte(color.B);
-                        stream.WriteByte(color.G);
-                        stream.WriteByte(color.R);
-                        stream.WriteByte(color.A);
-                        break;
-                    default:
-                        break;
+                        case TgaBitsPerPixel.Pixel24:
+                            stream.WriteByte(color.B);
+                            stream.WriteByte(color.G);
+                            stream.WriteByte(color.R);
+                            break;
+
+                        case TgaBitsPerPixel.Pixel32:
+                            stream.WriteByte(color.B);
+                            stream.WriteByte(color.G);
+                            stream.WriteByte(color.R);
+                            stream.WriteByte(color.A);
+                            break;
+                        default:
+                            break;
+                    }
+
+                    x += equalPixelCount + 1;
                 }
-
-                encodedPixels += equalPixelCount + 1;
             }
         }
 
@@ -226,18 +225,17 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// Finds consecutive pixels which have the same value.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="pixels">The pixels of the image.</param>
+        /// <param name="pixelRow">A pixel row of the image to encode.</param>
         /// <param name="xStart">X coordinate to start searching for the same pixels.</param>
-        /// <param name="yPos">Y coordinate to searching for the same pixels in only one scan line.</param>
         /// <returns>The number of equal pixels.</returns>
-        private byte FindEqualPixels<TPixel>(Buffer2D<TPixel> pixels, int xStart, int yPos)
+        private byte FindEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte equalPixelCount = 0;
-            TPixel startPixel = pixels[xStart, yPos];
-            for (int x = xStart + 1; x < pixels.Width; x++)
+            TPixel startPixel = pixelRow[xStart];
+            for (int x = xStart + 1; x < pixelRow.Length; x++)
             {
-                TPixel nextPixel = pixels[x, yPos];
+                TPixel nextPixel = pixelRow[x];
                 if (startPixel.Equals(nextPixel))
                 {
                     equalPixelCount++;

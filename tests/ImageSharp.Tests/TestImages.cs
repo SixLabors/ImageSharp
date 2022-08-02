@@ -544,6 +544,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string NoAlphaBits16BitRle = "Tga/16bit_rle_noalphabits.tga";
             public const string NoAlphaBits32Bit = "Tga/32bit_no_alphabits.tga";
             public const string NoAlphaBits32BitRle = "Tga/32bit_rle_no_alphabits.tga";
+
+            public const string Github_RLE_legacy = "Tga/Github_RLE_legacy.tga";
         }
 
         public static class Webp

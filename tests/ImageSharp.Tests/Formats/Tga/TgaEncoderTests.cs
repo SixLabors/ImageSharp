@@ -56,12 +56,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [MemberData(nameof(TgaBitsPerPixelFiles))]
         public void TgaEncoder_WithCompression_PreserveBitsPerPixel(string imagePath, TgaBitsPerPixel bmpBitsPerPixel)
         {
-            var options = new TgaEncoder()
-                          {
-                              Compression = TgaCompression.RunLength
-                          };
-
-            TestFile testFile = TestFile.Create(imagePath);
+            var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+            var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
@@ -120,6 +116,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [WithFile(Bit32BottomLeft, PixelTypes.Rgba32)]
         public void TgaEncoder_Bit32_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel32)
             where TPixel : unmanaged, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength);
+
+        [Theory]
+        [WithFile(WhiteStripesPattern, PixelTypes.Rgba32, 2748)]
+        public void TgaEncoder_DoesNotAlwaysUseRunLengthPackets<TPixel>(TestImageProvider<TPixel> provider, int expectedBytes)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // The test image has alternating black and white pixels, which should make using always RLE data inefficient.
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+                using (var memStream = new MemoryStream())
+                {
+                    image.Save(memStream, options);
+                    byte[] imageBytes = memStream.ToArray();
+                    Assert.Equal(expectedBytes, imageBytes.Length);
+                }
+            }
+        }
 
         [Theory]
         [WithFile(Bit32BottomLeft, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel32)]

@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 TPixel nextPixel = pixelRow[x];
                 if (currentPixel.Equals(nextPixel))
                 {
-                    return (byte)Math.Max(0, unEqualPixelCount - 1);
+                    return unEqualPixelCount;
                 }
 
                 unEqualPixelCount++;
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 currentPixel = nextPixel;
             }
 
-            return (byte)Math.Max(0, unEqualPixelCount - 1);
+            return unEqualPixelCount;
         }
 
         private IMemoryOwner<byte> AllocateRow(int width, int bytesPerPixel)

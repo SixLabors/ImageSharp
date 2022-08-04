@@ -135,6 +135,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             }
         }
 
+        // Run length encoded pixels should not exceed row boundaries.
+        // https://github.com/SixLabors/ImageSharp/pull/2172
+        [Fact]
+        public void TgaEncoder_RunLengthDoesNotCrossRowBoundaries()
+        {
+            var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+
+            using (var input = new Image<Rgba32>(30, 30))
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+                    byte[] imageBytes = memStream.ToArray();
+                    Assert.Equal(138, imageBytes.Length);
+                }
+            }
+        }
+
         [Theory]
         [WithFile(Bit32BottomLeft, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel32)]
         [WithFile(Bit24BottomLeft, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel24)]

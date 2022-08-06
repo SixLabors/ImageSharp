@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats;
@@ -300,6 +300,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [WithFile(Bit32Rgba, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
         public void Encode_PreservesAlpha<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
+
+        [Theory]
+        [WithFile(IccProfile, PixelTypes.Rgba32)]
+        public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> input = provider.GetImage(new BmpDecoder()))
+            {
+                ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
+                byte[] expectedProfileBytes = expectedProfile.ToByteArray();
+
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, new BmpEncoder());
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
+                        byte[] actualProfileBytes = actualProfile.ToByteArray();
+
+                        Assert.NotNull(actualProfile);
+                        Assert.Equal(expectedProfileBytes, actualProfileBytes);
+                    }
+                }
+            }
+        }
 
         [Theory]
         [WithFile(Car, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]

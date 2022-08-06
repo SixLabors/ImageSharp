@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_WithInvalidDimensions_DoesThrowException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            System.Exception ex = Record.Exception(
+            Exception ex = Record.Exception(
                 () =>
                 {
                     using Image<TPixel> image = provider.GetImage(GifDecoder);

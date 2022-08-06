@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 
@@ -139,8 +139,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        public void AllocateComponents(bool fullScan)
+        public void AllocateComponents()
         {
+            bool fullScan = this.Progressive || this.MultiScan;
             for (int i = 0; i < this.ComponentCount; i++)
             {
                 IJpegComponent component = this.Components[i];

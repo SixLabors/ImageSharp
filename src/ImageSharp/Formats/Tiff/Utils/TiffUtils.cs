@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         private const float Scale24Bit = 1.0f / 0xFFFFFF;
 
         private const float Scale32Bit = 1.0f / 0xFFFFFFFF;
-
-        public static Vector4 Vector4Default { get; } = new(0.0f, 0.0f, 0.0f, 0.0f);
 
         public static Rgba64 Rgba64Default { get; } = new(0, 0, 0, 0);
 

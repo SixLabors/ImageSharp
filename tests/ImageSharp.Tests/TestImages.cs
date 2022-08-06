@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Linq;
 
@@ -272,6 +272,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Issue2057App1Parsing = "Jpg/issues/Issue2057-App1Parsing.jpg";
                 public const string ExifNullArrayTag = "Jpg/issues/issue-2056-exif-null-array.jpg";
                 public const string ValidExifArgumentNullExceptionOnEncode = "Jpg/issues/Issue2087-exif-null-reference-on-encode.jpg";
+                public const string Issue2133_DeduceColorSpace = "Jpg/issues/Issue2133.jpg";
+                public const string Issue2136_ScanMarkerExtraneousBytes = "Jpg/issues/Issue2136-scan-segment-extraneous-bytes.jpg";
 
                 public static class Fuzz
                 {
@@ -379,6 +381,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb24jpeg = "Bmp/rgb24jpeg.bmp";
             public const string Rgb24png = "Bmp/rgb24png.bmp";
             public const string Rgba32v4 = "Bmp/rgba32v4.bmp";
+            public const string IccProfile = "Bmp/BMP_v5_with_ICC_2.bmp";
 
             // Bitmap images with compression type BITFIELDS.
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";
@@ -541,6 +544,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string NoAlphaBits16BitRle = "Tga/16bit_rle_noalphabits.tga";
             public const string NoAlphaBits32Bit = "Tga/32bit_no_alphabits.tga";
             public const string NoAlphaBits32BitRle = "Tga/32bit_rle_no_alphabits.tga";
+
+            public const string Github_RLE_legacy = "Tga/Github_RLE_legacy.tga";
+            public const string WhiteStripesPattern = "Tga/whitestripes.png";
         }
 
         public static class Webp
@@ -561,16 +567,9 @@ namespace SixLabors.ImageSharp.Tests
             // Test images for converting rgb data to yuv.
             public const string Yuv = "Webp/yuv_test.png";
 
-            public static class Animated
-            {
-                public const string Animated1 = "Webp/animated-webp.webp";
-                public const string Animated2 = "Webp/animated2.webp";
-                public const string Animated3 = "Webp/animated3.webp";
-                public const string Animated4 = "Webp/animated_lossy.webp";
-            }
-
             public static class Lossless
             {
+                public const string Animated = "Webp/leo_animated_lossless.webp";
                 public const string Earth = "Webp/earth_lossless.webp";
                 public const string Alpha = "Webp/lossless_alpha_small.webp";
                 public const string WithExif = "Webp/exif_lossless.webp";
@@ -647,10 +646,11 @@ namespace SixLabors.ImageSharp.Tests
                 public const string WithExifNotEnoughData = "Webp/exif_lossy_not_enough_data.webp";
                 public const string WithIccp = "Webp/lossy_with_iccp.webp";
                 public const string WithXmp = "Webp/xmp_lossy.webp";
-                public const string BikeSmall = "Webp/bike_lossless_small.webp";
+                public const string BikeSmall = "Webp/bike_lossy_small.webp";
+                public const string Animated = "Webp/leo_animated_lossy.webp";
 
                 // Lossy images without macroblock filtering.
-                public const string Bike = "Webp/bike_lossy.webp";
+                public const string BikeWithExif = "Webp/bike_lossy_with_exif.webp";
                 public const string NoFilter01 = "Webp/vp80-01-intra-1400.webp";
                 public const string NoFilter02 = "Webp/vp80-00-comprehensive-010.webp";
                 public const string NoFilter03 = "Webp/vp80-00-comprehensive-005.webp";
@@ -764,8 +764,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
             public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";
             public const string Fax4Compressed = "Tiff/basi3p02_fax4.tiff";
+            public const string Fax4Compressed2 = "Tiff/CCITTGroup4.tiff";
             public const string Fax4CompressedLowerOrderBitsFirst = "Tiff/basi3p02_fax4_lowerOrderBitsFirst.tiff";
-
+            public const string WebpCompressed = "Tiff/webp_compressed.tiff";
+            public const string Fax4CompressedMinIsBlack = "Tiff/CCITTGroup4_minisblack.tiff";
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
             public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
@@ -785,6 +787,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbDeflatePredictor = "Tiff/rgb_deflate_predictor.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
             public const string RgbJpegCompressed = "Tiff/rgb_jpegcompression.tiff";
+            public const string RgbJpegCompressed2 = "Tiff/twain-rgb-jpeg-with-bogus-ycbcr-subsampling.tiff";
             public const string RgbWithStripsJpegCompressed = "Tiff/rgb_jpegcompressed_stripped.tiff";
             public const string RgbJpegCompressedNoJpegTable = "Tiff/rgb_jpegcompressed_nojpegtable.tiff";
             public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
@@ -830,11 +833,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string FlowerYCbCr888Contiguoush2v1 = "Tiff/flower-ycbcr-contig-08_h2v1.tiff";
             public const string FlowerYCbCr888Contiguoush2v2 = "Tiff/flower-ycbcr-contig-08_h2v2.tiff";
             public const string FlowerYCbCr888Contiguoush4v4 = "Tiff/flower-ycbcr-contig-08_h4v4.tiff";
-            public const string RgbYCbCr888Contiguoush1v1 = "Tiff/rgb-ycbcr-contig-08_h1v1.tiff";
-            public const string RgbYCbCr888Contiguoush2v1 = "Tiff/rgb-ycbcr-contig-08_h2v1.tiff";
             public const string RgbYCbCr888Contiguoush2v2 = "Tiff/rgb-ycbcr-contig-08_h2v2.tiff";
             public const string RgbYCbCr888Contiguoush4v4 = "Tiff/rgb-ycbcr-contig-08_h4v4.tiff";
             public const string YCbCrJpegCompressed = "Tiff/ycbcr_jpegcompressed.tiff";
+            public const string YCbCrJpegCompressed2 = "Tiff/ycbcr_jpegcompressed2.tiff";
             public const string FlowerRgb444Contiguous = "Tiff/flower-rgb-contig-04.tiff";
             public const string FlowerRgb444Planar = "Tiff/flower-rgb-planar-04.tiff";
             public const string FlowerRgb222Contiguous = "Tiff/flower-rgb-contig-02.tiff";
@@ -915,8 +917,15 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgba32BitPlanarUnassociatedAlphaBigEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_msb.tiff";
             public const string Rgba32BitPlanarUnassociatedAlphaLittleEndian = "Tiff/RgbaUnassociatedAlphaPlanar32bit_lsb.tiff";
 
+            // Cie Lab color space.
+            public const string CieLab = "Tiff/CieLab.tiff";
+            public const string CieLabPlanar = "Tiff/CieLabPlanar.tiff";
+            public const string CieLabLzwPredictor = "Tiff/CieLab_lzwcompressed_predictor.tiff";
+
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
             public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
+            public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";
+            public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
                     if (options.BitsPerSample.Channels != 3)
                     {
-                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for YCbCr images.");
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample.Channel0;
@@ -391,6 +391,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.YCbCr : TiffColorType.YCbCrPlanar;
+
+                    break;
+                }
+
+                case TiffPhotometricInterpretation.CieLab:
+                {
+                    if (options.BitsPerSample.Channels != 3)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
+                    }
+
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                    if (bitsPerChannel != 8)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CieLab images.");
+                    }
+
+                    options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.CieLab : TiffColorType.CieLabPlanar;
 
                     break;
                 }
@@ -459,6 +477,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompression.Jpeg:
                 {
                     options.CompressionType = TiffDecoderCompressionType.Jpeg;
+
+                    if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
+                    {
+                        // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+                        options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                        options.ColorType = TiffColorType.Rgb;
+                    }
+
+                    break;
+                }
+
+                case TiffCompression.Webp:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.Webp;
                     break;
                 }
 

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -22,49 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private const int YuvFix = 16;
 
         private const int YuvHalf = 1 << (YuvFix - 1);
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector128<byte> One = Vector128.Create((byte)1);
-
-        // These constants are 14b fixed-point version of ITU-R BT.601 constants.
-        // R = (19077 * y             + 26149 * v - 14234) >> 6
-        // G = (19077 * y -  6419 * u - 13320 * v +  8708) >> 6
-        // B = (19077 * y + 33050 * u             - 17685) >> 6
-        private static readonly Vector128<byte> K19077 = Vector128.Create((short)19077).AsByte();
-
-        private static readonly Vector128<byte> K26149 = Vector128.Create((short)26149).AsByte();
-
-        private static readonly Vector128<byte> K14234 = Vector128.Create((short)14234).AsByte();
-
-        // 33050 doesn't fit in a signed short: only use this with unsigned arithmetic
-        private static readonly Vector128<byte> K33050 = Vector128.Create(26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129);
-
-        private static readonly Vector128<byte> K17685 = Vector128.Create((short)17685).AsByte();
-
-        private static readonly Vector128<byte> K6419 = Vector128.Create((short)6419).AsByte();
-
-        private static readonly Vector128<byte> K13320 = Vector128.Create((short)13320).AsByte();
-
-        private static readonly Vector128<byte> K8708 = Vector128.Create((short)8708).AsByte();
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle0 = Vector128.Create(0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255, 255, 5);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle1 = Vector128.Create(255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255, 10, 255);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle2 = Vector128.Create(255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15, 255, 255);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle3 = Vector128.Create(255, 0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255, 255);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle4 = Vector128.Create(5, 255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255, 10);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle5 = Vector128.Create(255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15, 255);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle6 = Vector128.Create(255, 255, 0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle7 = Vector128.Create(255, 5, 255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255);
-
-        private static readonly Vector128<byte> PlanarTo24Shuffle8 = Vector128.Create(10, 255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15);
-#endif
 
         // UpSample from YUV to RGB.
         // Given samples laid out in a square as:
@@ -250,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             Vector128<byte> t1 = Sse2.Or(ad, bc); // (a^d) | (b^c)
             Vector128<byte> t2 = Sse2.Or(t1, st); // (a^d) | (b^c) | (s^t)
-            Vector128<byte> t3 = Sse2.And(t2, One); // (a^d) | (b^c) | (s^t) & 1
+            Vector128<byte> t3 = Sse2.And(t2, Vector128.Create((byte)1)); // (a^d) | (b^c) | (s^t) & 1
             Vector128<byte> t4 = Sse2.Average(s, t);
             Vector128<byte> k = Sse2.Subtract(t4, t3); // k = (a + b + c + d) / 4
 
@@ -289,7 +246,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Vector128<byte> tmp1 = Sse2.And(ij, st); // (ij) & (s^t)
             Vector128<byte> tmp2 = Sse2.Xor(k, input); // (k^in)
             Vector128<byte> tmp3 = Sse2.Or(tmp1, tmp2); // ((ij) & (s^t)) | (k^in)
-            Vector128<byte> tmp4 = Sse2.And(tmp3, One); // & 1 -> lsb_correction
+            Vector128<byte> tmp4 = Sse2.And(tmp3, Vector128.Create((byte)1)); // & 1 -> lsb_correction
 
             return Sse2.Subtract(tmp0, tmp4); // (k + in + 1) / 2 - lsb_correction
         }
@@ -668,9 +625,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             ChannelMixing(
                 input0,
                 input1,
-                PlanarTo24Shuffle0,
-                PlanarTo24Shuffle1,
-                PlanarTo24Shuffle2,
+                Vector128.Create(0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255, 255, 5),        // PlanarTo24Shuffle0
+                Vector128.Create(255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255, 10, 255),     // PlanarTo24Shuffle1
+                Vector128.Create(255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15, 255, 255), // PlanarTo24Shuffle2
                 out Vector128<byte> r0,
                 out Vector128<byte> r1,
                 out Vector128<byte> r2,
@@ -683,9 +640,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             ChannelMixing(
                 input2,
                 input3,
-                PlanarTo24Shuffle3,
-                PlanarTo24Shuffle4,
-                PlanarTo24Shuffle5,
+                Vector128.Create(255, 0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255, 255),      // PlanarTo24Shuffle3
+                Vector128.Create(5, 255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255, 10),       // PlanarTo24Shuffle4
+                Vector128.Create(255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15, 255), // PlanarTo24Shuffle5
                 out Vector128<byte> g0,
                 out Vector128<byte> g1,
                 out Vector128<byte> g2,
@@ -697,9 +654,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             ChannelMixing(
                 input4,
                 input5,
-                PlanarTo24Shuffle6,
-                PlanarTo24Shuffle7,
-                PlanarTo24Shuffle8,
+                Vector128.Create(255, 255, 0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255),     // PlanarTo24Shuffle6
+                Vector128.Create(255, 5, 255, 255, 6, 255, 255, 7, 255, 255, 8, 255, 255, 9, 255, 255),     // PlanarTo24Shuffle7
+                Vector128.Create(10, 255, 255, 11, 255, 255, 12, 255, 255, 13, 255, 255, 14, 255, 255, 15), // PlanarTo24Shuffle8
                 out Vector128<byte> b0,
                 out Vector128<byte> b1,
                 out Vector128<byte> b2,
@@ -757,21 +714,29 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             u0 = Sse2.UnpackLow(Vector128<byte>.Zero, u0);
             v0 = Sse2.UnpackLow(Vector128<byte>.Zero, v0);
 
-            Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), K19077.AsUInt16());
-            Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), K26149.AsUInt16());
-            Vector128<ushort> g0 = Sse2.MultiplyHigh(u0.AsUInt16(), K6419.AsUInt16());
-            Vector128<ushort> g1 = Sse2.MultiplyHigh(v0.AsUInt16(), K13320.AsUInt16());
+            // These constants are 14b fixed-point version of ITU-R BT.601 constants.
+            // R = (19077 * y             + 26149 * v - 14234) >> 6
+            // G = (19077 * y -  6419 * u - 13320 * v +  8708) >> 6
+            // B = (19077 * y + 33050 * u             - 17685) >> 6
+            Vector128<ushort> k19077 = Vector128.Create((ushort)19077);
+            Vector128<ushort> k26149 = Vector128.Create((ushort)26149);
+            Vector128<ushort> k14234 = Vector128.Create((ushort)14234);
 
-            Vector128<ushort> r1 = Sse2.Subtract(y1.AsUInt16(), K14234.AsUInt16());
+            Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), k19077);
+            Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), k26149);
+            Vector128<ushort> g0 = Sse2.MultiplyHigh(u0.AsUInt16(), Vector128.Create((ushort)6419));
+            Vector128<ushort> g1 = Sse2.MultiplyHigh(v0.AsUInt16(), Vector128.Create((ushort)13320));
+
+            Vector128<ushort> r1 = Sse2.Subtract(y1.AsUInt16(), k14234);
             Vector128<ushort> r2 = Sse2.Add(r1, r0);
 
-            Vector128<ushort> g2 = Sse2.Add(y1.AsUInt16(), K8708.AsUInt16());
+            Vector128<ushort> g2 = Sse2.Add(y1.AsUInt16(), Vector128.Create((ushort)8708));
             Vector128<ushort> g3 = Sse2.Add(g0, g1);
             Vector128<ushort> g4 = Sse2.Subtract(g2, g3);
 
-            Vector128<ushort> b0 = Sse2.MultiplyHigh(u0.AsUInt16(), K33050.AsUInt16());
+            Vector128<ushort> b0 = Sse2.MultiplyHigh(u0.AsUInt16(), Vector128.Create(26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129).AsUInt16());
             Vector128<ushort> b1 = Sse2.AddSaturate(b0, y1);
-            Vector128<ushort> b2 = Sse2.SubtractSaturate(b1, K17685.AsUInt16());
+            Vector128<ushort> b2 = Sse2.SubtractSaturate(b1, Vector128.Create((ushort)17685));
 
             // Use logical shift for B2, which can be larger than 32767.
             r = Sse2.ShiftRightArithmetic(r2.AsInt16(), 6); // range: [-14234, 30815]

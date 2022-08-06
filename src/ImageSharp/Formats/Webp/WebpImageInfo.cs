@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
@@ -63,7 +63,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         {
             this.Vp8BitReader?.Dispose();
             this.Vp8LBitReader?.Dispose();
-            this.Features?.AlphaData?.Dispose();
         }
     }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="tags">The IFD tags.</param>
         /// <param name="cancellationToken">The token to monitor cancellation.</param>
-        /// <returns> The tiff frame. </returns>
+        /// <returns>The tiff frame.</returns>
         private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using Microsoft.DotNet.RemoteExecutor;
 
@@ -730,6 +730,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 // because the reference decoder does not ignore the alpha data here.
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+            }
+        }
+
+        // Test case for legacy format, when RLE crosses multiple lines:
+        // https://github.com/SixLabors/ImageSharp/pull/2172
+        [Theory]
+        [WithFile(Github_RLE_legacy, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_LegacyFormat<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
             }
         }
 

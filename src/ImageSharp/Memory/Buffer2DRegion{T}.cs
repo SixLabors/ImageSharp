@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 using System;
 using System.Runtime.CompilerServices;
 
@@ -141,6 +141,9 @@ namespace SixLabors.ImageSharp.Memory
             return ref this.Buffer.DangerousGetRowSpan(y)[x];
         }
 
+        /// <summary>
+        /// Clears the contents of this <see cref="Buffer2DRegion{T}"/>.
+        /// </summary>
         internal void Clear()
         {
             // Optimization for when the size of the area is the same as the buffer size.
@@ -154,6 +157,26 @@ namespace SixLabors.ImageSharp.Memory
             {
                 Span<T> row = this.DangerousGetRowSpan(y);
                 row.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Fills the elements of this <see cref="Buffer2DRegion{T}"/> with the specified value.
+        /// </summary>
+        /// <param name="value">The value to assign to each element of the region.</param>
+        internal void Fill(T value)
+        {
+            // Optimization for when the size of the area is the same as the buffer size.
+            if (this.IsFullBufferArea)
+            {
+                this.Buffer.FastMemoryGroup.Fill(value);
+                return;
+            }
+
+            for (int y = 0; y < this.Rectangle.Height; y++)
+            {
+                Span<T> row = this.DangerousGetRowSpan(y);
+                row.Fill(value);
             }
         }
     }

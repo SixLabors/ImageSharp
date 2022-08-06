@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
     [Trait("Format", "Tiff")]
     public class BlackIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
-        private static readonly Rgba32 Gray000 = new Rgba32(0, 0, 0, 255);
-        private static readonly Rgba32 Gray128 = new Rgba32(128, 128, 128, 255);
-        private static readonly Rgba32 Gray255 = new Rgba32(255, 255, 255, 255);
-        private static readonly Rgba32 Gray0 = new Rgba32(0, 0, 0, 255);
-        private static readonly Rgba32 Gray8 = new Rgba32(136, 136, 136, 255);
-        private static readonly Rgba32 GrayF = new Rgba32(255, 255, 255, 255);
-        private static readonly Rgba32 Bit0 = new Rgba32(0, 0, 0, 255);
-        private static readonly Rgba32 Bit1 = new Rgba32(255, 255, 255, 255);
+        private static readonly Rgba32 Gray000 = new(0, 0, 0, 255);
+        private static readonly Rgba32 Gray128 = new(128, 128, 128, 255);
+        private static readonly Rgba32 Gray255 = new(255, 255, 255, 255);
+        private static readonly Rgba32 Gray0 = new(0, 0, 0, 255);
+        private static readonly Rgba32 Gray8 = new(136, 136, 136, 255);
+        private static readonly Rgba32 GrayF = new(255, 255, 255, 255);
+        private static readonly Rgba32 Bit0 = new(0, 0, 0, 255);
+        private static readonly Rgba32 Bit1 = new(255, 255, 255, 255);
 
         private static readonly byte[] BilevelBytes4X4 =
         {
@@ -30,8 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             0b10010000
         };
 
-        private static readonly Rgba32[][] BilevelResult4X4 = new[]
-        {
+        private static readonly Rgba32[][] BilevelResult4X4 = {
             new[] { Bit0, Bit1, Bit0, Bit1 },
             new[] { Bit1, Bit1, Bit1, Bit1 },
             new[] { Bit0, Bit1, Bit1, Bit1 },

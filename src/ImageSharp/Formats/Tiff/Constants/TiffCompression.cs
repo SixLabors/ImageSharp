@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Constants
 {
@@ -103,5 +103,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         /// if this is chosen.
         /// </summary>
         OldDeflate = 32946,
+
+        /// <summary>
+        /// Pixel data is compressed with webp encoder.
+        ///
+        /// Note: The TIFF encoder does not support this compression and will default to use no compression instead,
+        /// if this is chosen.
+        /// </summary>
+        Webp = 50001,
     }
 }

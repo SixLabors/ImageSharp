@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Bmp;
-
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
@@ -45,6 +45,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
                 Assert.NotNull(bitmapMetadata);
                 Assert.Equal(expectedInfoHeaderType, bitmapMetadata.InfoHeaderType);
+            }
+        }
+
+        [Theory]
+        [WithFile(IccProfile, PixelTypes.Rgba32)]
+        public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                ImageSharp.Metadata.ImageMetadata metaData = image.Metadata;
+                Assert.NotNull(metaData);
+                Assert.NotNull(metaData.IccProfile);
+                Assert.Equal(16, metaData.IccProfile.Entries.Length);
             }
         }
     }

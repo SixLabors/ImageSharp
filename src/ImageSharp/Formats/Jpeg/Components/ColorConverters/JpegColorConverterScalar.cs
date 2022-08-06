@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
@@ -16,8 +16,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
-            /// <inheritdoc/>
-            public override bool IsAvailable => true;
+            public sealed override bool IsAvailable => true;
+
+            public sealed override int ElementsPerBatch => 1;
         }
     }
 }

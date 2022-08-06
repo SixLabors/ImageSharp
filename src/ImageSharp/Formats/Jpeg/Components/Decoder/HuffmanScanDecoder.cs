@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -109,10 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // The successive approximation low bit end.
         public int SuccessiveLow { get; set; }
 
-        /// <summary>
-        /// Decodes the entropy coded data.
-        /// </summary>
-        /// <param name="scanComponentCount">Component count in the current scan.</param>
+        /// <inheritdoc/>
         public void ParseEntropyCodedData(int scanComponentCount)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
@@ -152,11 +149,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (this.scanComponentCount != 1)
             {
+                this.spectralConverter.PrepareForDecoding();
                 this.ParseBaselineDataInterleaved();
                 this.spectralConverter.CommitConversion();
             }
             else if (this.frame.ComponentCount == 1)
             {
+                this.spectralConverter.PrepareForDecoding();
                 this.ParseBaselineDataSingleComponent();
                 this.spectralConverter.CommitConversion();
             }
@@ -269,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineDataSingleComponent()
         {
-            var component = this.frame.Components[0] as JpegComponent;
+            JpegComponent component = this.frame.Components[0];
             int mcuLines = this.frame.McusPerColumn;
             int w = component.WidthInBlocks;
             int h = component.SamplingFactors.Height;

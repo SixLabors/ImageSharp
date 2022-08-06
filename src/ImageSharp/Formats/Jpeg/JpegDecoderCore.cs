@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -86,6 +86,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private byte[] xmpData;
 
         /// <summary>
+        /// Whether the image has a APP14 adobe marker. This is needed to determine image encoded colorspace.
+        /// </summary>
+        private bool hasAdobeMarker;
+
+        /// <summary>
         /// Contains information about the JFIF marker.
         /// </summary>
         private JFifMarker jFif;
@@ -159,58 +164,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Finds the next file marker within the byte stream.
         /// </summary>
-        /// <param name="marker">The buffer to read file markers to.</param>
         /// <param name="stream">The input stream.</param>
-        /// <returns>The <see cref="JpegFileMarker"/></returns>
-        public static JpegFileMarker FindNextFileMarker(byte[] marker, BufferedReadStream stream)
+        /// <returns>The <see cref="JpegFileMarker"/>.</returns>
+        public static JpegFileMarker FindNextFileMarker(BufferedReadStream stream)
         {
-            int value = stream.Read(marker, 0, 2);
-
-            if (value == 0)
+            while (true)
             {
-                return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
-            }
-
-            if (marker[0] == JpegConstants.Markers.XFF)
-            {
-                // According to Section B.1.1.2:
-                // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-                int m = marker[1];
-                while (m == JpegConstants.Markers.XFF)
+                int b = stream.ReadByte();
+                if (b == -1)
                 {
-                    int suffix = stream.ReadByte();
-                    if (suffix == -1)
-                    {
-                        return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
-                    }
-
-                    m = suffix;
+                    return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
                 }
 
-                return new JpegFileMarker((byte)m, stream.Position - 2);
-            }
+                // Found a marker.
+                if (b == JpegConstants.Markers.XFF)
+                {
+                    while (b == JpegConstants.Markers.XFF)
+                    {
+                        // Loop here to discard any padding FF bytes on terminating marker.
+                        b = stream.ReadByte();
+                        if (b == -1)
+                        {
+                            return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
+                        }
+                    }
 
-            return new JpegFileMarker(marker[1], stream.Position - 2, true);
+                    // Found a valid marker. Exit loop
+                    if (b is not 0 and (< JpegConstants.Markers.RST0 or > JpegConstants.Markers.RST7))
+                    {
+                        return new JpegFileMarker((byte)(uint)b, stream.Position - 2);
+                    }
+                }
+            }
         }
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration);
-
-            this.ParseStream(stream, spectralConverter, cancellationToken);
-            this.InitExifProfile();
-            this.InitIccProfile();
-            this.InitIptcProfile();
-            this.InitXmpProfile();
-            this.InitDerivedMetadataProperties();
-
-            return new Image<TPixel>(
-                this.Configuration,
-                spectralConverter.GetPixelBuffer(cancellationToken),
-                this.Metadata);
-        }
+            => this.Decode<TPixel>(stream, targetSize: null, cancellationToken);
 
         /// <inheritdoc/>
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -224,6 +215,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             Size pixelSize = this.Frame.PixelSize;
             return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), pixelSize.Width, pixelSize.Height, this.Metadata);
+        }
+
+        /// <summary>
+        /// Decodes and downscales the image from the specified stream if possible.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">Stream.</param>
+        /// <param name="targetSize">Target size.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        internal Image<TPixel> DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => this.Decode<TPixel>(stream, targetSize, cancellationToken);
+
+        private Image<TPixel> Decode<TPixel>(BufferedReadStream stream, Size? targetSize, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, targetSize);
+            this.ParseStream(stream, spectralConverter, cancellationToken);
+            this.InitExifProfile();
+            this.InitIccProfile();
+            this.InitIptcProfile();
+            this.InitXmpProfile();
+            this.InitDerivedMetadataProperties();
+
+            return new Image<TPixel>(
+                this.Configuration,
+                spectralConverter.GetPixelBuffer(cancellationToken),
+                this.Metadata);
         }
 
         /// <summary>
@@ -326,15 +345,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
             }
 
-            stream.Read(this.markerBuffer, 0, 2);
-            byte marker = this.markerBuffer[1];
-            fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
+            fileMarker = FindNextFileMarker(stream);
             this.QuantizationTables ??= new Block8x8F[4];
 
             // Break only when we discover a valid EOI marker.
             // https://github.com/SixLabors/ImageSharp/issues/695
-            while (fileMarker.Marker != JpegConstants.Markers.EOI
-                || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
+            while (fileMarker.Marker != JpegConstants.Markers.EOI)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -486,7 +502,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // Read on.
-                fileMarker = FindNextFileMarker(this.markerBuffer, stream);
+                fileMarker = FindNextFileMarker(stream);
             }
 
             this.Metadata.GetJpegMetadata().Interleaved = this.Frame.Interleaved;
@@ -503,11 +519,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Returns the correct colorspace based on the image component count and the jpeg frame component id's.
+        /// Returns encoded colorspace based on the adobe APP14 marker.
         /// </summary>
-        /// <param name="componentCount">The number of components.</param>
+        /// <param name="componentCount">Number of components.</param>
+        /// <param name="adobeMarker">Parsed adobe APP14 marker.</param>
         /// <returns>The <see cref="JpegColorSpace"/></returns>
-        private JpegColorSpace DeduceJpegColorSpace(byte componentCount)
+        internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount, ref AdobeMarker adobeMarker)
         {
             if (componentCount == 1)
             {
@@ -516,27 +533,48 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (componentCount == 3)
             {
-                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                if (adobeMarker.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
                 {
                     return JpegColorSpace.RGB;
                 }
 
-                // If the component Id's are R, G, B in ASCII the colorspace is RGB and not YCbCr.
-                if (this.Components[2].Id == 66 && this.Components[1].Id == 71 && this.Components[0].Id == 82)
-                {
-                    return JpegColorSpace.RGB;
-                }
-
-                // Some images are poorly encoded and contain incorrect colorspace transform metadata.
-                // We ignore that and always fall back to the default colorspace.
                 return JpegColorSpace.YCbCr;
             }
 
             if (componentCount == 4)
             {
-                return this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck
-                    ? JpegColorSpace.Ycck
-                    : JpegColorSpace.Cmyk;
+                if (adobeMarker.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
+                {
+                    return JpegColorSpace.Ycck;
+                }
+
+                return JpegColorSpace.Cmyk;
+            }
+
+            JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
+            return default;
+        }
+
+        /// <summary>
+        /// Returns encoded colorspace based on the component count.
+        /// </summary>
+        /// <param name="componentCount">Number of components.</param>
+        /// <returns>The <see cref="JpegColorSpace"/></returns>
+        internal static JpegColorSpace DeduceJpegColorSpace(byte componentCount)
+        {
+            if (componentCount == 1)
+            {
+                return JpegColorSpace.Grayscale;
+            }
+
+            if (componentCount == 3)
+            {
+                return JpegColorSpace.YCbCr;
+            }
+
+            if (componentCount == 4)
+            {
+                return JpegColorSpace.Cmyk;
             }
 
             JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
@@ -1006,7 +1044,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             stream.Read(this.temp, 0, MarkerLength);
             remaining -= MarkerLength;
 
-            AdobeMarker.TryParse(this.temp, out this.adobe);
+            if (AdobeMarker.TryParse(this.temp, out this.adobe))
+            {
+                this.hasAdobeMarker = true;
+            }
 
             if (remaining > 0)
             {
@@ -1114,9 +1155,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         break;
                     }
                 }
-
-                // Adjusting table for IDCT step during decompression
-                FastFloatingPointDCT.AdjustToIDCT(ref table);
             }
         }
 
@@ -1203,7 +1241,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int maxH = 0;
             int maxV = 0;
             int index = 0;
-            for (int i = 0; i < componentCount; i++)
+            for (int i = 0; i < this.Frame.Components.Length; i++)
             {
                 // 1 byte: component identifier
                 byte componentId = this.temp[index];
@@ -1254,7 +1292,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 index += componentBytes;
             }
 
-            this.ColorSpace = this.DeduceJpegColorSpace(componentCount);
+            this.ColorSpace = this.hasAdobeMarker
+                ? DeduceJpegColorSpace(componentCount, ref this.adobe)
+                : DeduceJpegColorSpace(componentCount);
             this.Metadata.GetJpegMetadata().ColorType = this.DeduceJpegColorType();
 
             if (!metadataOnly)

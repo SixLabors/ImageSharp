@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
         public MagickReferenceDecoder(bool validate) => this.validate = validate;
 
-        public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
+        public static MagickReferenceDecoder Instance { get; } = new();
 
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>

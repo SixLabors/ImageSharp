@@ -20,12 +20,13 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: macos-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
+          # Temp disabled due to runtime preview issues.
+          #- os: macos-latest
+          #  framework: net7.0
+          #  sdk: 7.0.x
+          #  sdk-preview: true
+          #  runtime: -x64
+          #  codecov: false
           - os: windows-latest
             framework: net7.0
             sdk: 7.0.x
@@ -58,7 +59,7 @@ jobs:
           git config --global core.longpaths true
 
       - name: Git Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
@@ -68,7 +69,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: lfs-cache
         with:
           path: .git/lfs
@@ -81,7 +82,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -89,12 +90,20 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: DotNet Setup
-        uses: actions/setup-dotnet@v1
+        if: ${{ matrix.options.sdk-preview != true }}
+        uses: actions/setup-dotnet@v2
+        with:
+          include-prerelease: true
+          dotnet-version: |
+            6.0.x
+
+      - name: DotNet Setup Preview
+        if: ${{ matrix.options.sdk-preview == true }}
+        uses: actions/setup-dotnet@v2
         with:
           include-prerelease: true
           dotnet-version: |
             7.0.x
-            6.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}
@@ -127,7 +136,7 @@ jobs:
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
       - name: Export Failed Output
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
@@ -148,7 +157,7 @@ jobs:
           git config --global core.longpaths true
 
       - name: Git Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
@@ -157,7 +166,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: nuget-cache
         with:
           path: ~/.nuget

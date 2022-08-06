@@ -43,13 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void CopyColorBufferToBlocks(int spectralStep)
         {
             Buffer2D<Block8x8> spectralBuffer = this.component.SpectralBlocks;
-
-            // should be this.frame.MaxColorChannelValue
-            // but 12-bit jpegs are not supported currently
-            float normalizationValue = -128f;
-
             int destAreaStride = this.ColorBuffer.Width;
-
             int yBlockStart = spectralStep * this.component.SamplingFactors.Height;
 
             Block8x8F workspaceBlock = default;
@@ -77,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                         destAreaStride);
 
                     // level shift via -128f
-                    workspaceBlock.AddInPlace(normalizationValue);
+                    workspaceBlock.AddInPlace(-128f);
 
                     // FDCT
                     FastFloatingPointDCT.TransformFDCT(ref workspaceBlock);

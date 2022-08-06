@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -33,6 +33,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             /// <inheritdoc/>
             public sealed override bool IsAvailable => IsSupported;
+
+            public override int ElementsPerBatch => Vector<float>.Count;
 
             /// <inheritdoc/>
             public sealed override void ConvertToRgbInplace(in ComponentValues values)

@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         public void AllocateComponents()
         {
-            bool fullScan = this.Progressive || this.MultiScan;
+            bool fullScan = this.Progressive || this.Interleaved;
             for (int i = 0; i < this.ComponentCount; i++)
             {
                 IJpegComponent component = this.Components[i];

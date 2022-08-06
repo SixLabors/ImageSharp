@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             /// </summary>
             /// <param name="processors">List of component color processors.</param>
             /// <param name="row">Row to convert</param>
-            public ComponentValues(IReadOnlyList<Decoder.JpegComponentPostProcessor> processors, int row)
+            public ComponentValues(IReadOnlyList<Decoder.ComponentProcessor> processors, int row)
             {
                 DebugGuard.MustBeGreaterThan(processors.Count, 0, nameof(processors));
 

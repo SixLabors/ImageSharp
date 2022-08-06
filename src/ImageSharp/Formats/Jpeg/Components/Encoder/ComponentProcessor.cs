@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
                     workspaceBlock.AddInPlace(-128f);
 
                     // FDCT
-                    FastFloatingPointDCT.TransformFDCT(ref workspaceBlock);
+                    FloatingPointDCT.TransformFDCT(ref workspaceBlock);
 
                     // Quantize and save to spectral blocks
                     Block8x8F.Quantize(ref workspaceBlock, ref blockRow[xBlock], ref this.quantTable);

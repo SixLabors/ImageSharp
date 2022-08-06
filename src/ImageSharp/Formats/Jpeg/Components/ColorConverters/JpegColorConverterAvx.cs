@@ -26,7 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
             }
 
-            public sealed override bool IsAvailable => Avx.IsSupported;
+            public static bool IsSupported => Avx.IsSupported;
+
+            public sealed override bool IsAvailable => IsSupported;
 
             public sealed override int ElementsPerBatch => Vector256<float>.Count;
         }

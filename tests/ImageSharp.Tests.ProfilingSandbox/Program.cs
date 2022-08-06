@@ -38,14 +38,15 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         public static void Main(string[] args)
         {
             //string imageName = "Calliphora_aligned_size";
-            string imageName = "Calliphora";
+            //string imageName = "Calliphora";
+            string imageName = "1x1";
             //string imageName = "bw_check";
             //string imageName = "bw_check_color";
-            //ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio444, 100);
-            //ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio422, 100);
-            //ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio420, 100);
-            //ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio411, 100);
-            //ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio410, 100);
+            ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio444, 100);
+            ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio422, 100);
+            ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio420, 100);
+            ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio411, 100);
+            ReEncodeImage(imageName, JpegEncodingColor.YCbCrRatio410, 100);
             //ReEncodeImage(imageName, JpegEncodingColor.Luminance, 100);
             //ReEncodeImage(imageName, JpegEncodingColor.Rgb, 100);
             //ReEncodeImage(imageName, JpegEncodingColor.Cmyk, 100);
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             // Encoding q=75 | color=YCbCrRatio444
             // Elapsed: 4901ms across 500 iterations
             // Average: 9,802ms
-            BenchmarkEncoder(imageName, 500, 75, JpegEncodingColor.YCbCrRatio444);
+            //BenchmarkEncoder(imageName, 500, 75, JpegEncodingColor.YCbCrRatio444);
         }
 
         private static void BenchmarkEncoder(string fileName, int iterations, int quality, JpegEncodingColor color)

@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     [Trait("Format", "Jpg")]
     public partial class ReferenceImplementationsTests
     {
-        public class FastFloatingPointDCT : JpegFixture
+        public class FloatingPointDCT : JpegFixture
         {
-            public FastFloatingPointDCT(ITestOutputHelper output)
+            public FloatingPointDCT(ITestOutputHelper output)
                 : base(output)
             {
             }

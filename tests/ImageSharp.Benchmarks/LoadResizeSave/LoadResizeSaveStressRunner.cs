@@ -10,10 +10,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
 using SkiaSharp;
@@ -210,7 +212,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             // Resize it to fit a 150x150 square
             var targetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize);
             var decoder = new JpegDecoder();
-            using ImageSharpImage image = decoder.DecodeInto(Configuration.Default, inputStream, targetSize, default);
+            using ImageSharpImage image = decoder.DecodeInto<Rgb24>(Configuration.Default, inputStream, targetSize, CancellationToken.None);
             this.LogImageProcessed(image.Width, image.Height);
 
             image.Mutate(i => i.Resize(new ResizeOptions

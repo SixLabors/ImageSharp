@@ -682,7 +682,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 // apply FDCT multipliers and inject to the destination index
                 workspaceBlock.LoadFrom(ref scaledTable);
-                FastFloatingPointDCT.AdjustToFDCT(ref workspaceBlock);
+                FloatingPointDCT.AdjustToFDCT(ref workspaceBlock);
 
                 this.QuantizationTables[config.DestinationIndex] = workspaceBlock;
             }

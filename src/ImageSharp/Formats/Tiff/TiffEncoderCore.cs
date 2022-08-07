@@ -417,6 +417,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return;
 
                 case TiffPhotometricInterpretation.Rgb:
+                    // Make sure 1 Bit compression is only used with 1 bit pixel type.
+                    if (IsOneBitCompression(this.CompressionType))
+                    {
+                        // Invalid compression / bits per pixel combination, fallback to no compression.
+                        compression = DefaultCompression;
+                    }
+
                     this.SetEncoderOptions(TiffBitsPerPixel.Bit24, photometricInterpretation, compression, predictor);
                     return;
             }

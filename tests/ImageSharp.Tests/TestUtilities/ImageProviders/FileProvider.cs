@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Tests
                 return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
             }
 
-            public override Image<TPixel> GetImage<T>(ImageDecoder<T> decoder, T options)
+            public override Image<TPixel> GetImage<T>(IImageDecoderSpecialized<T> decoder, T options)
             {
                 Guard.NotNull(decoder, nameof(decoder));
                 Guard.NotNull(options, nameof(options));
@@ -243,7 +243,7 @@ namespace SixLabors.ImageSharp.Tests
                 return cachedImage.Clone(this.Configuration);
             }
 
-            public override Task<Image<TPixel>> GetImageAsync<T>(ImageDecoder<T> decoder, T options)
+            public override Task<Image<TPixel>> GetImageAsync<T>(IImageDecoderSpecialized<T> decoder, T options)
             {
                 Guard.NotNull(decoder, nameof(decoder));
                 Guard.NotNull(options, nameof(options));
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Tests
                 return decoder.Decode<TPixel>(options, stream, default);
             }
 
-            private Image<TPixel> DecodeImage<T>(ImageDecoder<T> decoder, T options)
+            private Image<TPixel> DecodeImage<T>(IImageDecoderSpecialized<T> decoder, T options)
                 where T : class, ISpecializedDecoderOptions, new()
             {
                 options.GeneralOptions.Configuration = this.Configuration;

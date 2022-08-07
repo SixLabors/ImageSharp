@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -11,14 +11,12 @@ namespace SixLabors.ImageSharp.Formats
     /// <summary>
     /// Abstraction for shared internals for XXXDecoderCore implementations to be used with <see cref="ImageDecoderUtilities"/>.
     /// </summary>
-    /// <typeparam name="T">The type of specialized decoder options.</typeparam>
-    internal interface IImageDecoderInternals<T>
-        where T : ISpecializedDecoderOptions
+    internal interface IImageDecoderInternals
     {
         /// <summary>
-        /// Gets the specialized decoder options.
+        /// Gets the general decoder options.
         /// </summary>
-        T Options { get; }
+        DecoderOptions Options { get; }
 
         /// <summary>
         /// Gets the dimensions of the image being decoded.

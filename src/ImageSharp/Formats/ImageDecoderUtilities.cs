@@ -12,12 +12,11 @@ namespace SixLabors.ImageSharp.Formats
 {
     internal static class ImageDecoderUtilities
     {
-        public static IImageInfo Identify<T>(
-            this IImageDecoderInternals<T> decoder,
+        public static IImageInfo Identify(
+            this IImageDecoderInternals decoder,
             Configuration configuration,
             Stream stream,
             CancellationToken cancellationToken)
-            where T : ISpecializedDecoderOptions
         {
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);
 
@@ -31,22 +30,20 @@ namespace SixLabors.ImageSharp.Formats
             }
         }
 
-        public static Image<TPixel> Decode<T, TPixel>(
-            this IImageDecoderInternals<T> decoder,
+        public static Image<TPixel> Decode<TPixel>(
+            this IImageDecoderInternals decoder,
             Configuration configuration,
             Stream stream,
             CancellationToken cancellationToken)
-            where T : ISpecializedDecoderOptions
             where TPixel : unmanaged, IPixel<TPixel>
-            => decoder.Decode<T, TPixel>(configuration, stream, DefaultLargeImageExceptionFactory, cancellationToken);
+            => decoder.Decode<TPixel>(configuration, stream, DefaultLargeImageExceptionFactory, cancellationToken);
 
-        public static Image<TPixel> Decode<T, TPixel>(
-            this IImageDecoderInternals<T> decoder,
+        public static Image<TPixel> Decode<TPixel>(
+            this IImageDecoderInternals decoder,
             Configuration configuration,
             Stream stream,
             Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory,
             CancellationToken cancellationToken)
-            where T : ISpecializedDecoderOptions
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using var bufferedReadStream = new BufferedReadStream(configuration, stream);

@@ -10,29 +10,33 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Image decoder for generating an image out of a TIFF stream.
     /// </summary>
-    public class TiffDecoder : ImageDecoder<TiffDecoderOptions>
+    public class TiffDecoder : ImageDecoder
     {
         /// <inheritdoc/>
-        public override Image<TPixel> DecodeSpecialized<TPixel>(TiffDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            TiffDecoderCore decoder = new(options);
-            Image<TPixel> image = decoder.Decode<TiffDecoderOptions, TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+            Guard.NotNull(options, nameof(options));
+            Guard.NotNull(stream, nameof(stream));
 
-            Resize(options.GeneralOptions, image);
+            return new TiffDecoderCore(options).Identify(options.Configuration, stream, cancellationToken);
+        }
+
+        /// <inheritdoc/>
+        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        {
+            Guard.NotNull(options, nameof(options));
+            Guard.NotNull(stream, nameof(stream));
+
+            TiffDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+            Resize(options, image);
 
             return image;
         }
 
         /// <inheritdoc/>
-        public override Image DecodeSpecialized(TiffDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
-
-        /// <inheritdoc/>
-        public override IImageInfo IdentifySpecialized(TiffDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            return new TiffDecoderCore(options).Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
-        }
+        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(options, stream, cancellationToken);
     }
 }

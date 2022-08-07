@@ -101,11 +101,11 @@ namespace SixLabors.ImageSharp.Tests
         public virtual Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
             => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
-        public virtual Image<TPixel> GetImage<T>(ImageDecoder<T> decoder, T options)
+        public virtual Image<TPixel> GetImage<T>(IImageDecoderSpecialized<T> decoder, T options)
             where T : class, ISpecializedDecoderOptions, new()
             => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
 
-        public virtual Task<Image<TPixel>> GetImageAsync<T>(ImageDecoder<T> decoder, T options)
+        public virtual Task<Image<TPixel>> GetImageAsync<T>(IImageDecoderSpecialized<T> decoder, T options)
             where T : class, ISpecializedDecoderOptions, new()
             => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 

@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
-    internal sealed class PngDecoderCore : IImageDecoderInternals<PngDecoderOptions>
+    internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// Reusable buffer.
@@ -123,25 +123,25 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public PngDecoderCore(PngDecoderOptions options)
+        public PngDecoderCore(DecoderOptions options)
         {
             this.Options = options;
-            this.configuration = options.GeneralOptions.Configuration;
-            this.skipMetadata = options.GeneralOptions.SkipMetadata;
+            this.configuration = options.Configuration;
+            this.skipMetadata = options.SkipMetadata;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
-        internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
+        internal PngDecoderCore(DecoderOptions options, bool colorMetadataOnly)
         {
             this.Options = options;
             this.colorMetadataOnly = colorMetadataOnly;
             this.skipMetadata = true;
-            this.configuration = options.GeneralOptions.Configuration;
+            this.configuration = options.Configuration;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc/>
-        public PngDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc/>
         public Size Dimensions => new(this.header.Width, this.header.Height);

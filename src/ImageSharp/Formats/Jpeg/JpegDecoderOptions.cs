@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public sealed class JpegDecoderOptions : ISpecializedDecoderOptions
     {
+        /// <summary>
+        /// Gets or sets the resize mode.
+        /// </summary>
+        public JpegDecoderResizeMode ResizeMode { get; set; }
+
         /// <inheritdoc/>
         public DecoderOptions GeneralOptions { get; set; } = new();
     }

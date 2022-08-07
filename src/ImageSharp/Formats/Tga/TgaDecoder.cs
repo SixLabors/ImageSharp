@@ -10,29 +10,33 @@ namespace SixLabors.ImageSharp.Formats.Tga
     /// <summary>
     /// Image decoder for Truevision TGA images.
     /// </summary>
-    public sealed class TgaDecoder : ImageDecoder<TgaDecoderOptions>
+    public sealed class TgaDecoder : ImageDecoder
     {
         /// <inheritdoc/>
-        public override Image<TPixel> DecodeSpecialized<TPixel>(TgaDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            TgaDecoderCore decoder = new(options);
-            Image<TPixel> image = decoder.Decode<TgaDecoderOptions, TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+            Guard.NotNull(options, nameof(options));
+            Guard.NotNull(stream, nameof(stream));
 
-            Resize(options.GeneralOptions, image);
+            return new TgaDecoderCore(options).Identify(options.Configuration, stream, cancellationToken);
+        }
+
+        /// <inheritdoc/>
+        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        {
+            Guard.NotNull(options, nameof(options));
+            Guard.NotNull(stream, nameof(stream));
+
+            TgaDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+            Resize(options, image);
 
             return image;
         }
 
         /// <inheritdoc/>
-        public override Image DecodeSpecialized(TgaDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
-
-        /// <inheritdoc/>
-        public override IImageInfo IdentifySpecialized(TgaDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            return new TgaDecoderCore(options).Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
-        }
+        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(options, stream, cancellationToken);
     }
 }

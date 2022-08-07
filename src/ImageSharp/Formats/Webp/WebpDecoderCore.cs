@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Performs the webp decoding operation.
     /// </summary>
-    internal sealed class WebpDecoderCore : IImageDecoderInternals<WebpDecoderOptions>, IDisposable
+    internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     {
         /// <summary>
         /// Reusable buffer.
@@ -76,17 +76,17 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public WebpDecoderCore(WebpDecoderOptions options)
+        public WebpDecoderCore(DecoderOptions options)
         {
             this.Options = options;
-            this.configuration = options.GeneralOptions.Configuration;
-            this.skipMetadata = options.GeneralOptions.SkipMetadata;
-            this.maxFrames = options.GeneralOptions.MaxFrames;
+            this.configuration = options.Configuration;
+            this.skipMetadata = options.SkipMetadata;
+            this.maxFrames = options.MaxFrames;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc/>
-        public WebpDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc/>
         public Size Dimensions => new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);

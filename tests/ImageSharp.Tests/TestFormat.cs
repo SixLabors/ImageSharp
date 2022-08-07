@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests
             public TestHeader(TestFormat testFormat) => this.testFormat = testFormat;
         }
 
-        public class TestDecoder : ImageDecoder<TestDecoderOptions>
+        public class TestDecoder : ImageDecoder, IImageDecoderSpecialized<TestDecoderOptions>
         {
             private readonly TestFormat testFormat;
 
@@ -208,10 +208,17 @@ namespace SixLabors.ImageSharp.Tests
 
             public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
-            public override IImageInfo IdentifySpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
+            public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<TestPixelForAgnosticDecode>(new() { GeneralOptions = options }, stream, cancellationToken);
 
-            public override Image<TPixel> DecodeSpecialized<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+
+            public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.DecodeSpecialized<TestPixelForAgnosticDecode>(new() { GeneralOptions = options }, stream, cancellationToken);
+
+            public Image<TPixel> DecodeSpecialized<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Configuration configuration = options.GeneralOptions.Configuration;
                 var ms = new MemoryStream();
@@ -228,7 +235,7 @@ namespace SixLabors.ImageSharp.Tests
                 return this.testFormat.Sample<TPixel>();
             }
 
-            public override Image DecodeSpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            public Image DecodeSpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
                 => this.DecodeSpecialized<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
         }
 

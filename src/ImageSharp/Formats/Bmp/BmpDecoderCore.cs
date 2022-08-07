@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <remarks>
     /// A useful decoding source example can be found at <see href="https://dxr.mozilla.org/mozilla-central/source/image/decoders/nsBMPDecoder.cpp"/>
     /// </remarks>
-    internal sealed class BmpDecoderCore : IImageDecoderInternals<BmpDecoderOptions>
+    internal sealed class BmpDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// The default mask for the red part of the color for 16 bit rgb bitmaps.
@@ -100,18 +100,25 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
+        /// How to deal with skipped pixels,
+        /// which can occur during decoding run length encoded bitmaps.
+        /// </summary>
+        private readonly RleSkippedPixelHandling rleSkippedPixelHandling;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The options.</param>
         public BmpDecoderCore(BmpDecoderOptions options)
         {
-            this.Options = options;
+            this.Options = options.GeneralOptions;
+            this.rleSkippedPixelHandling = options.RleSkippedPixelHandling;
             this.configuration = options.GeneralOptions.Configuration;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc />
-        public BmpDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc />
         public Size Dimensions => new(this.infoHeader.Width, this.infoHeader.Height);
@@ -322,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             byte colorIdx = bufferRow[x];
                             if (undefinedPixelsSpan[rowStartIdx + x])
                             {
-                                switch (this.Options.RleSkippedPixelHandling)
+                                switch (this.rleSkippedPixelHandling)
                                 {
                                     case RleSkippedPixelHandling.FirstColorOfPalette:
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
@@ -394,7 +401,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             int idx = rowStartIdx + (x * 3);
                             if (undefinedPixelsSpan[yMulWidth + x])
                             {
-                                switch (this.Options.RleSkippedPixelHandling)
+                                switch (this.rleSkippedPixelHandling)
                                 {
                                     case RleSkippedPixelHandling.FirstColorOfPalette:
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));

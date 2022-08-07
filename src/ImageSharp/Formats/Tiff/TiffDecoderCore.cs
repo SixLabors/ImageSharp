@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Performs the tiff decoding operation.
     /// </summary>
-    internal class TiffDecoderCore : IImageDecoderInternals<TiffDecoderOptions>
+    internal class TiffDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// General configuration options.
@@ -61,12 +61,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public TiffDecoderCore(TiffDecoderOptions options)
+        public TiffDecoderCore(DecoderOptions options)
         {
             this.Options = options;
-            this.configuration = options.GeneralOptions.Configuration;
-            this.skipMetadata = options.GeneralOptions.SkipMetadata;
-            this.maxFrames = options.GeneralOptions.MaxFrames;
+            this.configuration = options.Configuration;
+            this.skipMetadata = options.SkipMetadata;
+            this.maxFrames = options.MaxFrames;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffPredictor Predictor { get; set; }
 
         /// <inheritdoc/>
-        public TiffDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc/>
         public Size Dimensions { get; private set; }
@@ -373,7 +373,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
 
                 using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-                    this.Options.GeneralOptions,
+                    this.Options,
                     this.CompressionType,
                     this.memoryAllocator,
                     this.PhotometricInterpretation,
@@ -454,7 +454,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
             using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-                this.Options.GeneralOptions,
+                this.Options,
                 this.CompressionType,
                 this.memoryAllocator,
                 this.PhotometricInterpretation,

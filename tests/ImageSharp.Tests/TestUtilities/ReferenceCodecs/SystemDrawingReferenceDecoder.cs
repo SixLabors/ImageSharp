@@ -11,18 +11,18 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    public class SystemDrawingReferenceDecoder : ImageDecoder<SystemDrawingReferenceDecoderOptions>
+    public class SystemDrawingReferenceDecoder : ImageDecoder
     {
         public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
 
-        public override IImageInfo IdentifySpecialized(SystemDrawingReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             using var sourceBitmap = new SDBitmap(stream);
             PixelTypeInfo pixelType = new(SDImage.GetPixelFormatSize(sourceBitmap.PixelFormat));
             return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetadata());
         }
 
-        public override Image<TPixel> DecodeSpecialized<TPixel>(SystemDrawingReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             using var sourceBitmap = new SDBitmap(stream);
             if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
@@ -47,12 +47,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(convertedBitmap);
         }
 
-        public override Image DecodeSpecialized(SystemDrawingReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
-    }
-
-    public class SystemDrawingReferenceDecoderOptions : ISpecializedDecoderOptions
-    {
-        public DecoderOptions GeneralOptions { get; set; } = new();
+        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(options, stream, cancellationToken);
     }
 }

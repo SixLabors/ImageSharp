@@ -15,7 +15,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    public class MagickReferenceDecoder : ImageDecoder<MagickReferenceDecoderOptions>
+    public class MagickReferenceDecoder : ImageDecoder
     {
         private readonly bool validate;
 
@@ -28,9 +28,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
         public static MagickReferenceDecoder Instance { get; } = new();
 
-        public override Image<TPixel> DecodeSpecialized<TPixel>(MagickReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Configuration configuration = options.GeneralOptions.Configuration;
+            Configuration configuration = options.Configuration;
             var bmpReadDefines = new BmpReadDefines
             {
                 IgnoreFileSize = !this.validate
@@ -70,11 +70,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             return new Image<TPixel>(configuration, new ImageMetadata(), framesList);
         }
 
-        public override Image DecodeSpecialized(MagickReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(options, stream, cancellationToken);
 
-        public override IImageInfo IdentifySpecialized(MagickReferenceDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgba32>(options, stream, cancellationToken);
 
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
@@ -105,10 +105,5 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 rgbaBytes = rgbaBytes.Slice(destBuffer.Length * 8);
             }
         }
-    }
-
-    public class MagickReferenceDecoderOptions : ISpecializedDecoderOptions
-    {
-        public DecoderOptions GeneralOptions { get; set; } = new();
     }
 }

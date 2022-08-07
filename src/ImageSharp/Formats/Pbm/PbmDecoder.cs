@@ -26,29 +26,33 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </list>
     /// The specification of these images is found at <seealso href="http://netpbm.sourceforge.net/doc/pnm.html"/>.
     /// </summary>
-    public sealed class PbmDecoder : ImageDecoder<PbmDecoderOptions>
+    public sealed class PbmDecoder : ImageDecoder
     {
-        /// <inheritdoc />
-        public override Image<TPixel> DecodeSpecialized<TPixel>(PbmDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        /// <inheritdoc/>
+        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            PbmDecoderCore decoder = new(options);
-            Image<TPixel> image = decoder.Decode<PbmDecoderOptions, TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+            Guard.NotNull(options, nameof(options));
+            Guard.NotNull(stream, nameof(stream));
 
-            Resize(options.GeneralOptions, image);
+            return new PbmDecoderCore(options).Identify(options.Configuration, stream, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        {
+            Guard.NotNull(options, nameof(options));
+            Guard.NotNull(stream, nameof(stream));
+
+            PbmDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+            Resize(options, image);
 
             return image;
         }
 
         /// <inheritdoc />
-        public override Image DecodeSpecialized(PbmDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgb24>(options, stream, cancellationToken);
-
-        /// <inheritdoc/>
-        public override IImageInfo IdentifySpecialized(PbmDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            return new PbmDecoderCore(options).Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
-        }
+        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<Rgb24>(options, stream, cancellationToken);
     }
 }

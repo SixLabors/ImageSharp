@@ -65,7 +65,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
     }
 }
 
-
 /*
 BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042.1348 (20H2/October2020Update)
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores

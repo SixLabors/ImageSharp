@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// <summary>
     /// Performs the PBM decoding operation.
     /// </summary>
-    internal sealed class PbmDecoderCore : IImageDecoderInternals<PbmDecoderOptions>
+    internal sealed class PbmDecoderCore : IImageDecoderInternals
     {
         private int maxPixelValue;
 
@@ -52,14 +52,14 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public PbmDecoderCore(PbmDecoderOptions options)
+        public PbmDecoderCore(DecoderOptions options)
         {
             this.Options = options;
-            this.configuration = options.GeneralOptions.Configuration;
+            this.configuration = options.Configuration;
         }
 
         /// <inheritdoc/>
-        public PbmDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc/>
         public Size Dimensions => this.pixelSize;

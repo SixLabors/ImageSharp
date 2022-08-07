@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
     /// <summary>
     /// Performs the tga decoding operation.
     /// </summary>
-    internal sealed class TgaDecoderCore : IImageDecoderInternals<TgaDecoderOptions>
+    internal sealed class TgaDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// A scratch buffer to reduce allocations.
@@ -61,15 +61,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// Initializes a new instance of the <see cref="TgaDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The options.</param>
-        public TgaDecoderCore(TgaDecoderOptions options)
+        public TgaDecoderCore(DecoderOptions options)
         {
             this.Options = options;
-            this.configuration = options.GeneralOptions.Configuration;
+            this.configuration = options.Configuration;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc />
-        public TgaDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc />
         public Size Dimensions => new(this.fileHeader.Width, this.fileHeader.Height);

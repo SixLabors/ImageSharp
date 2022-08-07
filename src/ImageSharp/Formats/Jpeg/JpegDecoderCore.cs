@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
     /// with additional fixes for both performance and common encoding errors.
     /// </summary>
-    internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals<JpegDecoderOptions>
+    internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     {
         /// <summary>
         /// The only supported precision
@@ -126,18 +126,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly bool skipMetadata;
 
         /// <summary>
+        /// The jpeg specific resize options.
+        /// </summary>
+        private readonly JpegDecoderResizeMode resizeMode;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
         public JpegDecoderCore(JpegDecoderOptions options)
         {
-            this.Options = options;
+            this.Options = options.GeneralOptions;
+            this.resizeMode = options.ResizeMode;
             this.configuration = options.GeneralOptions.Configuration;
             this.skipMetadata = options.GeneralOptions.SkipMetadata;
         }
 
         /// <inheritdoc />
-        public JpegDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc/>
         public Size Dimensions => this.Frame.PixelSize;
@@ -207,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using var spectralConverter = new SpectralConverter<TPixel>(this.configuration, this.Options.GeneralOptions.TargetSize);
+            using var spectralConverter = new SpectralConverter<TPixel>(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
             this.ParseStream(stream, spectralConverter, cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();

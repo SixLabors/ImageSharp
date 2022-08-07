@@ -521,7 +521,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The input stream.</param>
         /// <param name="action">The action to perform.</param>
         /// <returns>The <typeparamref name="T"/>.</returns>
-        private static T WithSeekableStream<T>(
+        internal static T WithSeekableStream<T>(
             DecoderOptions options,
             Stream stream,
             Func<Stream, T> action)
@@ -562,7 +562,7 @@ namespace SixLabors.ImageSharp
         /// <param name="action">The action to perform.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The <see cref="Task{T}"/>.</returns>
-        private static async Task<T> WithSeekableStreamAsync<T>(
+        internal static async Task<T> WithSeekableStreamAsync<T>(
             DecoderOptions options,
             Stream stream,
             Func<Stream, CancellationToken, T> action,

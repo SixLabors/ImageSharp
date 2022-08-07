@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         /// <summary>
-        /// This method pre-seeds the all <see cref="IImageDecoderInternals{T}"/> in the AoT compiler.
+        /// This method pre-seeds the all <see cref="IImageDecoderInternals"/> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         [Preserve]

@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
-    internal sealed class GifDecoderCore : IImageDecoderInternals<GifDecoderOptions>
+    internal sealed class GifDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// The temp buffer used to reduce allocations.
@@ -90,17 +90,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Initializes a new instance of the <see cref="GifDecoderCore"/> class.
         /// </summary>
         /// <param name="options">The decoder options.</param>
-        public GifDecoderCore(GifDecoderOptions options)
+        public GifDecoderCore(DecoderOptions options)
         {
             this.Options = options;
-            this.configuration = options.GeneralOptions.Configuration;
-            this.skipMetadata = options.GeneralOptions.SkipMetadata;
-            this.maxFrames = options.GeneralOptions.MaxFrames;
+            this.configuration = options.Configuration;
+            this.skipMetadata = options.SkipMetadata;
+            this.maxFrames = options.MaxFrames;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc />
-        public GifDecoderOptions Options { get; }
+        public DecoderOptions Options { get; }
 
         /// <inheritdoc />
         public Size Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);

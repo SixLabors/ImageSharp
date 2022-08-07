@@ -41,8 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public JpegEncodingColor? ColorType { get; set; }
 
-        internal JpegFrameConfig FrameConfig { get; set; }
-
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>

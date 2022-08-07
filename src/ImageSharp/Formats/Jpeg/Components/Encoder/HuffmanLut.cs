@@ -27,32 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     internal readonly struct HuffmanLut
     {
         /// <summary>
-        /// The compiled representations of theHuffmanSpec.
-        /// </summary>
-        public static readonly HuffmanLut[] TheHuffmanLut = new HuffmanLut[4];
-
-        public static readonly HuffmanLut[] DcHuffmanLut = new HuffmanLut[2];
-        public static readonly HuffmanLut[] AcHuffmanLut = new HuffmanLut[2];
-
-        /// <summary>
-        /// Initializes static members of the <see cref="HuffmanLut"/> struct.
-        /// </summary>
-        static HuffmanLut()
-        {
-            // Initialize the Huffman tables
-            for (int i = 0; i < HuffmanSpec.TheHuffmanSpecs.Length; i++)
-            {
-                TheHuffmanLut[i] = new HuffmanLut(HuffmanSpec.TheHuffmanSpecs[i]);
-            }
-
-            // TODO: REWRITE THIS
-            DcHuffmanLut[0] = new HuffmanLut(HuffmanSpec.TheHuffmanSpecs[0]);
-            DcHuffmanLut[1] = new HuffmanLut(HuffmanSpec.TheHuffmanSpecs[2]);
-            AcHuffmanLut[0] = new HuffmanLut(HuffmanSpec.TheHuffmanSpecs[1]);
-            AcHuffmanLut[1] = new HuffmanLut(HuffmanSpec.TheHuffmanSpecs[3]);
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanLut"/> struct.
         /// </summary>
         /// <param name="spec">dasd</param>

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
-    internal sealed unsafe class JpegEncoderCore : IImageEncoderInternals
+    internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     {
         /// <summary>
         /// The available encodable frame configs.
@@ -244,8 +244,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            const int MaxBytesApp1 = 65533; // 64k - 2 padding bytes
-            const int MaxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
+            const int maxBytesApp1 = 65533; // 64k - 2 padding bytes
+            const int maxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
 
             byte[] data = exifProfile.ToByteArray();
 
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // We can write up to a maximum of 64 data to the initial marker so calculate boundaries.
             int exifMarkerLength = Components.Decoder.ProfileResolver.ExifMarker.Length;
             int remaining = exifMarkerLength + data.Length;
-            int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;
+            int bytesToWrite = remaining > maxBytesApp1 ? maxBytesApp1 : remaining;
             int app1Length = bytesToWrite + 2;
 
             // Write the app marker, EXIF marker, and data
@@ -267,9 +267,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             remaining -= bytesToWrite;
 
             // If the exif data exceeds 64K, write it in multiple APP1 Markers
-            for (int idx = MaxBytesWithExifId; idx < data.Length; idx += MaxBytesWithExifId)
+            for (int idx = maxBytesWithExifId; idx < data.Length; idx += maxBytesWithExifId)
             {
-                bytesToWrite = remaining > MaxBytesWithExifId ? MaxBytesWithExifId : remaining;
+                bytesToWrite = remaining > maxBytesWithExifId ? maxBytesWithExifId : remaining;
                 app1Length = bytesToWrite + 2 + exifMarkerLength;
 
                 this.WriteApp1Header(app1Length);
@@ -293,7 +293,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteIptcProfile(IptcProfile iptcProfile)
         {
-            const int Max = 65533;
+            const int maxBytes = 65533;
             if (iptcProfile is null || !iptcProfile.Values.Any())
             {
                 return;
@@ -306,9 +306,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            if (data.Length > Max)
+            if (data.Length > maxBytes)
             {
-                throw new ImageFormatException($"Iptc profile size exceeds limit of {Max} bytes");
+                throw new ImageFormatException($"Iptc profile size exceeds limit of {maxBytes} bytes");
             }
 
             int app13Length = 2 + Components.Decoder.ProfileResolver.AdobePhotoshopApp13Marker.Length +
@@ -340,9 +340,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            const int XmpOverheadLength = 29;
-            const int Max = 65533;
-            const int MaxData = Max - XmpOverheadLength;
+            const int xmpOverheadLength = 29;
+            const int maxBytes = 65533;
+            const int maxData = maxBytes - xmpOverheadLength;
 
             byte[] data = xmpProfile.Data;
 
@@ -358,9 +358,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 int length = dataLength; // Number of bytes to write.
 
-                if (length > MaxData)
+                if (length > maxData)
                 {
-                    length = MaxData;
+                    length = maxData;
                 }
 
                 dataLength -= length;
@@ -410,9 +410,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            const int IccOverheadLength = 14;
-            const int Max = 65533;
-            const int MaxData = Max - IccOverheadLength;
+            const int iccOverheadLength = 14;
+            const int maxBytes = 65533;
+            const int maxData = maxBytes - iccOverheadLength;
 
             byte[] data = iccProfile.ToByteArray();
 
@@ -423,9 +423,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Calculate the number of markers we'll need, rounding up of course.
             int dataLength = data.Length;
-            int count = dataLength / MaxData;
+            int count = dataLength / maxData;
 
-            if (count * MaxData != dataLength)
+            if (count * maxData != dataLength)
             {
                 count++;
             }
@@ -438,9 +438,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 int length = dataLength; // Number of bytes to write.
 
-                if (length > MaxData)
+                if (length > maxData)
                 {
-                    length = MaxData;
+                    length = maxData;
                 }
 
                 dataLength -= length;
@@ -468,7 +468,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.buffer[12] = (byte)current; // The position within the collection.
                 this.buffer[13] = (byte)count; // The total number of profiles.
 
-                this.outputStream.Write(this.buffer, 0, IccOverheadLength);
+                this.outputStream.Write(this.buffer, 0, iccOverheadLength);
                 this.outputStream.Write(data, offset, length);
 
                 current++;
@@ -711,188 +711,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             return frameConfig;
-        }
-
-        private static JpegFrameConfig[] CreateFrameConfigs()
-        {
-            var defaultLuminanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 0, HuffmanSpec.TheHuffmanSpecs[0]);
-            var defaultLuminanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 0, HuffmanSpec.TheHuffmanSpecs[1]);
-            var defaultChrominanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 1, HuffmanSpec.TheHuffmanSpecs[2]);
-            var defaultChrominanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 1, HuffmanSpec.TheHuffmanSpecs[3]);
-
-            var defaultLuminanceQuantTable = new JpegQuantizationTableConfig(0, Quantization.LuminanceTable);
-            var defaultChrominanceQuantTable = new JpegQuantizationTableConfig(1, Quantization.ChrominanceTable);
-
-            var yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
-            {
-                defaultLuminanceHuffmanDC,
-                defaultLuminanceHuffmanAC,
-                defaultChrominanceHuffmanDC,
-                defaultChrominanceHuffmanAC,
-            };
-
-            var yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
-            {
-                defaultLuminanceQuantTable,
-                defaultChrominanceQuantTable,
-            };
-
-            return new JpegFrameConfig[]
-            {
-                // YCbCr 4:4:4
-                new JpegFrameConfig(
-                    JpegColorSpace.YCbCr,
-                    JpegEncodingColor.YCbCrRatio444,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    },
-                    yCbCrHuffmanConfigs,
-                    yCbCrQuantTableConfigs),
-
-                // YCbCr 4:2:2
-                new JpegFrameConfig(
-                    JpegColorSpace.YCbCr,
-                    JpegEncodingColor.YCbCrRatio422,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 1, hsf: 2, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    },
-                    yCbCrHuffmanConfigs,
-                    yCbCrQuantTableConfigs),
-
-                // YCbCr 4:2:0
-                new JpegFrameConfig(
-                    JpegColorSpace.YCbCr,
-                    JpegEncodingColor.YCbCrRatio420,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 1, hsf: 2, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    },
-                    yCbCrHuffmanConfigs,
-                    yCbCrQuantTableConfigs),
-
-                // YCbCr 4:1:1
-                new JpegFrameConfig(
-                    JpegColorSpace.YCbCr,
-                    JpegEncodingColor.YCbCrRatio411,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 1, hsf: 4, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    },
-                    yCbCrHuffmanConfigs,
-                    yCbCrQuantTableConfigs),
-
-                // YCbCr 4:1:0
-                new JpegFrameConfig(
-                    JpegColorSpace.YCbCr,
-                    JpegEncodingColor.YCbCrRatio410,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 1, hsf: 4, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    },
-                    yCbCrHuffmanConfigs,
-                    yCbCrQuantTableConfigs),
-
-                // Luminance
-                new JpegFrameConfig(
-                    JpegColorSpace.Grayscale,
-                    JpegEncodingColor.Luminance,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    },
-                    new JpegHuffmanTableConfig[]
-                    {
-                        defaultLuminanceHuffmanDC,
-                        defaultLuminanceHuffmanAC
-                    },
-                    new JpegQuantizationTableConfig[]
-                    {
-                        defaultLuminanceQuantTable
-                    }),
-
-                // Rgb
-                new JpegFrameConfig(
-                    JpegColorSpace.RGB,
-                    JpegEncodingColor.Rgb,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 82, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 71, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 66, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    },
-                    new JpegHuffmanTableConfig[]
-                    {
-                        defaultLuminanceHuffmanDC,
-                        defaultLuminanceHuffmanAC
-                    },
-                    new JpegQuantizationTableConfig[]
-                    {
-                        defaultLuminanceQuantTable
-                    })
-                {
-                    AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformUnknown
-                },
-
-                // Cmyk
-                new JpegFrameConfig(
-                    JpegColorSpace.Cmyk,
-                    JpegEncodingColor.Cmyk,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    },
-                    new JpegHuffmanTableConfig[]
-                    {
-                        defaultLuminanceHuffmanDC,
-                        defaultLuminanceHuffmanAC
-                    },
-                    new JpegQuantizationTableConfig[]
-                    {
-                        defaultLuminanceQuantTable
-                    })
-                {
-                    AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformUnknown,
-                },
-
-                // YccK
-                new JpegFrameConfig(
-                    JpegColorSpace.Ycck,
-                    JpegEncodingColor.Ycck,
-                    new JpegComponentConfig[]
-                    {
-                        new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                        new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    },
-                    new JpegHuffmanTableConfig[]
-                    {
-                        defaultLuminanceHuffmanDC,
-                        defaultLuminanceHuffmanAC
-                    },
-                    new JpegQuantizationTableConfig[]
-                    {
-                        defaultLuminanceQuantTable
-                    })
-                {
-                    AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformYcck,
-                },
-            };
         }
     }
 }

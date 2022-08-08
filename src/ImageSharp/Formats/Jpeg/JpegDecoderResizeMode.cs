@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Processing;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
@@ -15,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         Combined,
 
         /// <summary>
-        /// IDCT-only to nearest block scale.
+        /// IDCT-only to nearest block scale. Similar in output to <see cref="KnownResamplers.Box"/>.
         /// </summary>
         IdctOnly,
 

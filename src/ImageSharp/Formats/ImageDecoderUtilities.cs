@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats
                 ResizeOptions resizeOptions = new()
                 {
                     Size = options.TargetSize.Value,
-                    Sampler = KnownResamplers.Box,
+                    Sampler = options.Sampler,
                     Mode = ResizeMode.Max
                 };
 

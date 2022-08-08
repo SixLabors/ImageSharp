@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Formats
 {
@@ -28,6 +30,11 @@ namespace SixLabors.ImageSharp.Formats
         /// Gets or sets the target size to decode the image into.
         /// </summary>
         public Size? TargetSize { get; set; } = null;
+
+        /// <summary>
+        /// Gets or sets the sampler to use when resizing during decoding.
+        /// </summary>
+        public IResampler Sampler { get; set; } = KnownResamplers.Box;
 
         /// <summary>
         /// Gets or sets a value indicating whether to ignore encoded metadata when decoding.

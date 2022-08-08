@@ -15,7 +15,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    public class MagickReferenceDecoder : ImageDecoder
+    public class MagickReferenceDecoder : IImageDecoder
     {
         private readonly bool validate;
 
@@ -28,7 +28,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
         public static MagickReferenceDecoder Instance { get; } = new();
 
-        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
             Configuration configuration = options.Configuration;
             var bmpReadDefines = new BmpReadDefines
@@ -70,10 +71,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             return new Image<TPixel>(configuration, new ImageMetadata(), framesList);
         }
 
-        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(options, stream, cancellationToken);
 
-        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(options, stream, cancellationToken);
 
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)

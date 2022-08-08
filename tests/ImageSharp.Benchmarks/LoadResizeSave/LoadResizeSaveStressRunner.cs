@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             };
 
             var decoder = new JpegDecoder();
-            using ImageSharpImage image = decoder.Decode(options, inputStream, default);
+            using ImageSharpImage image = decoder.Decode(options, inputStream);
             this.LogImageProcessed(image.Width, image.Height);
 
             // Reduce the size of the file

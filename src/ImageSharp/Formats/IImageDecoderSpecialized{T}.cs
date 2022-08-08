@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.IO;
@@ -17,23 +17,29 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Decodes the image from the specified stream to an <see cref="Image{TPixel}"/> of a specific pixel type.
         /// </summary>
+        /// <remarks>
+        /// This method is designed to support the ImageSharp internal infrastructure and is not recommended for direct use.
+        /// </remarks>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="options">The specialized decoder options.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-        public Image<TPixel> DecodeSpecialized<TPixel>(T options, Stream stream, CancellationToken cancellationToken)
+        public Image<TPixel> Decode<TPixel>(T options, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
         /// Decodes the image from the specified stream to an <see cref="Image"/> of a specific pixel type.
         /// </summary>
+        /// <remarks>
+        /// This method is designed to support the ImageSharp internal infrastructure and is not recommended for direct use.
+        /// </remarks>
         /// <param name="options">The specialized decoder options.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-        public Image DecodeSpecialized(T options, Stream stream, CancellationToken cancellationToken);
+        public Image Decode(T options, Stream stream, CancellationToken cancellationToken);
     }
 }

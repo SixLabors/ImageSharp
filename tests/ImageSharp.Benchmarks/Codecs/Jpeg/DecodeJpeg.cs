@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private void GenericBechmark()
         {
             this.preloadedImageStream.Position = 0;
-            using Image img = this.decoder.Decode(DecoderOptions.Default, this.preloadedImageStream, default);
+            using Image img = this.decoder.Decode(DecoderOptions.Default, this.preloadedImageStream);
         }
 
         [GlobalSetup(Target = nameof(JpegBaselineInterleaved444))]

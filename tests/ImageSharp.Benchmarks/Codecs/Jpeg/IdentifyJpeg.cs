@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public IImageInfo Identify()
         {
             using var memoryStream = new MemoryStream(this.jpegBytes);
-            var decoder = new JpegDecoder();
+            IImageDecoder decoder = new JpegDecoder();
             return decoder.Identify(DecoderOptions.Default, memoryStream, default);
         }
     }

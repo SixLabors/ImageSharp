@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             input.Save(memoryStream, new PngEncoder());
 
             memoryStream.Position = 0;
-            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream, default);
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
             PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
             VerifyTextDataIsPresent(meta);
         }
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             });
 
             memoryStream.Position = 0;
-            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream, default);
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
             PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
             Assert.Contains(meta.TextData, m => m.Equals(expectedText));
             Assert.Contains(meta.TextData, m => m.Equals(expectedTextNoneLatin));
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
             var decoder = new PngDecoder();
-            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream, default);
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
             ImageMetadata meta = image.Metadata;
             Assert.Equal(xResolution, meta.HorizontalResolution);
             Assert.Equal(yResolution, meta.VerticalResolution);
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
             var decoder = new PngDecoder();
-            IImageInfo image = decoder.Identify(DecoderOptions.Default, stream, default);
+            IImageInfo image = decoder.Identify(DecoderOptions.Default, stream);
             ImageMetadata meta = image.Metadata;
             Assert.Equal(xResolution, meta.HorizontalResolution);
             Assert.Equal(yResolution, meta.VerticalResolution);

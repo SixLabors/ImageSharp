@@ -10,10 +10,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// Image decoder for generating an image out of a Windows bitmap stream.
     /// </summary>
-    public class BmpDecoder : ImageDecoder, IImageDecoderSpecialized<BmpDecoderOptions>
+    public class BmpDecoder : IImageDecoderSpecialized<BmpDecoderOptions>
     {
         /// <inheritdoc/>
-        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
@@ -22,29 +22,28 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <inheritdoc/>
-        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+        Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoderSpecialized<BmpDecoderOptions>)this).Decode<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized(new() { GeneralOptions = options }, stream, cancellationToken);
+        Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+          => ((IImageDecoderSpecialized<BmpDecoderOptions>)this).Decode(new() { GeneralOptions = options }, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public Image<TPixel> DecodeSpecialized<TPixel>(BmpDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        Image<TPixel> IImageDecoderSpecialized<BmpDecoderOptions>.Decode<TPixel>(BmpDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
             Image<TPixel> image = new BmpDecoderCore(options).Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
 
-            Resize(options.GeneralOptions, image);
+            ImageDecoderUtilities.Resize(options.GeneralOptions, image);
 
             return image;
         }
 
         /// <inheritdoc/>
-        public Image DecodeSpecialized(BmpDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+        Image IImageDecoderSpecialized<BmpDecoderOptions>.Decode(BmpDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoderSpecialized<BmpDecoderOptions>)this).Decode<Rgba32>(options, stream, cancellationToken);
     }
 }

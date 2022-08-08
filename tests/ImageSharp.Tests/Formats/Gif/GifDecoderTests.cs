@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             fixed (byte* data = testFile.Bytes.AsSpan(0, length))
             {
                 using var stream = new UnmanagedMemoryStream(data, length);
-                using Image<Rgba32> image = GifDecoder.Decode<Rgba32>(DecoderOptions.Default, stream, default);
+                using Image<Rgba32> image = GifDecoder.Decode<Rgba32>(DecoderOptions.Default, stream);
                 Assert.Equal((200, 200), (image.Width, image.Height));
             }
         }

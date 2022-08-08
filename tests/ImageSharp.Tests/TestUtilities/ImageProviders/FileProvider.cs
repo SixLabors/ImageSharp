@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests
                 // TODO: Check Path here. Why combined?
                 string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
                 using Stream stream = System.IO.File.OpenRead(path);
-                return Task.FromResult(decoder.DecodeSpecialized<TPixel>(options, stream, default));
+                return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
             }
 
             public override void Deserialize(IXunitSerializationInfo info)
@@ -286,7 +286,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 var testFile = TestFile.Create(this.FilePath);
                 using Stream stream = new MemoryStream(testFile.Bytes);
-                return decoder.DecodeSpecialized<TPixel>(options, stream, default);
+                return decoder.Decode<TPixel>(options, stream, default);
             }
         }
 

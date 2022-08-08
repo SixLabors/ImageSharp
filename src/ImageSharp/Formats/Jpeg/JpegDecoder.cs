@@ -10,10 +10,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Decoder for generating an image out of a jpeg encoded stream.
     /// </summary>
-    public sealed class JpegDecoder : ImageDecoder, IImageDecoderSpecialized<JpegDecoderOptions>
+    public sealed class JpegDecoder : IImageDecoderSpecialized<JpegDecoderOptions>
     {
         /// <inheritdoc/>
-        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
@@ -22,16 +22,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <inheritdoc/>
-        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+        Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+             => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized(new() { GeneralOptions = options }, stream, cancellationToken);
+        Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode(new() { GeneralOptions = options }, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public Image<TPixel> DecodeSpecialized<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        Image<TPixel> IImageDecoderSpecialized<JpegDecoderOptions>.Decode<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
@@ -41,14 +40,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (options.ResizeMode != JpegDecoderResizeMode.IdctOnly)
             {
-                Resize(options.GeneralOptions, image);
+                ImageDecoderUtilities.Resize(options.GeneralOptions, image);
             }
 
             return image;
         }
 
         /// <inheritdoc/>
-        public Image DecodeSpecialized(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.DecodeSpecialized<Rgb24>(options, stream, cancellationToken);
+        Image IImageDecoderSpecialized<JpegDecoderOptions>.Decode(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode<Rgb24>(options, stream, cancellationToken);
     }
 }

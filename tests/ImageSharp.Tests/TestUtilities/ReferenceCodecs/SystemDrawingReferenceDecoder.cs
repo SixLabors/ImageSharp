@@ -11,18 +11,19 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    public class SystemDrawingReferenceDecoder : ImageDecoder
+    public class SystemDrawingReferenceDecoder : IImageDecoder
     {
         public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
 
-        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             using var sourceBitmap = new SDBitmap(stream);
             PixelTypeInfo pixelType = new(SDImage.GetPixelFormatSize(sourceBitmap.PixelFormat));
             return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetadata());
         }
 
-        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using var sourceBitmap = new SDBitmap(stream);
             if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
@@ -47,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(convertedBitmap);
         }
 
-        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(options, stream, cancellationToken);
     }
 }

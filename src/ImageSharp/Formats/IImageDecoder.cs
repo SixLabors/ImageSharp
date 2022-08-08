@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats
     /// <summary>
     /// Encapsulates properties and methods required for decoding an image from a stream.
     /// </summary>
-    public interface IImageDecoder
+    public interface IImageDecoder : IImageInfoDetector
     {
         /// <summary>
         /// Decodes the image from the specified stream to an <see cref="Image{TPixel}"/> of a specific pixel type.

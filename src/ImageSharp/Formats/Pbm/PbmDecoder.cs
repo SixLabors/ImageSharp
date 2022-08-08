@@ -26,10 +26,10 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </list>
     /// The specification of these images is found at <seealso href="http://netpbm.sourceforge.net/doc/pnm.html"/>.
     /// </summary>
-    public sealed class PbmDecoder : ImageDecoder
+    public sealed class PbmDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         }
 
         /// <inheritdoc />
-        public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
@@ -46,13 +46,13 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             PbmDecoderCore decoder = new(options);
             Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
 
-            Resize(options, image);
+            ImageDecoderUtilities.Resize(options, image);
 
             return image;
         }
 
         /// <inheritdoc />
-        public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgb24>(options, stream, cancellationToken);
+        Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoder)this).Decode<Rgb24>(options, stream, cancellationToken);
     }
 }

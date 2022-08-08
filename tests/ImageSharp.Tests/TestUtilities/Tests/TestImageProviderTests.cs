@@ -351,7 +351,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        private class TestDecoder : ImageDecoder, IImageDecoderSpecialized<TestDecoderOptions>
+        private class TestDecoder : IImageDecoderSpecialized<TestDecoderOptions>
         {
             // Couldn't make xUnit happy without this hackery:
             private static readonly ConcurrentDictionary<string, int> InvocationCounts = new();
@@ -368,24 +368,25 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized<Rgba32>(new() { GeneralOptions = options }, stream, cancellationToken);
+            public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.Decode<Rgba32>((TestDecoderOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
 
-            public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+            public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => this.Decode<TPixel>((TestDecoderOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
 
-            public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized(new() { GeneralOptions = options }, stream, cancellationToken);
+            public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.Decode((TestDecoderOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
 
-            public Image<TPixel> DecodeSpecialized<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            public Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
 
-            public Image DecodeSpecialized(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+            public Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.Decode<Rgba32>(options, stream, cancellationToken);
 
             internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 
@@ -396,7 +397,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        private class TestDecoderWithParameters : ImageDecoder, IImageDecoderSpecialized<TestDecoderWithParametersOptions>
+        private class TestDecoderWithParameters : IImageDecoderSpecialized<TestDecoderWithParametersOptions>
         {
             private static readonly ConcurrentDictionary<string, int> InvocationCounts = new();
 
@@ -412,24 +413,25 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            public override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized<Rgba32>(new() { GeneralOptions = options }, stream, cancellationToken);
+            public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.Decode<Rgba32>((TestDecoderWithParametersOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
 
-            public override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+            public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => this.Decode<TPixel>((TestDecoderWithParametersOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
 
-            public override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized(new() { GeneralOptions = options }, stream, cancellationToken);
+            public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.Decode((TestDecoderWithParametersOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
 
-            public Image<TPixel> DecodeSpecialized<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
+            public Image<TPixel> Decode<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
 
-            public Image DecodeSpecialized(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.DecodeSpecialized<Rgba32>(options, stream, cancellationToken);
+            public Image Decode(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
+                => this.Decode<Rgba32>(options, stream, cancellationToken);
 
             internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 

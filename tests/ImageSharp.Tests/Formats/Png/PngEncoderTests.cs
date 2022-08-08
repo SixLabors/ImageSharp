@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var decoder = new PngDecoder();
 
-            Image image = decoder.Decode(DecoderOptions.Default, stream, default);
+            Image image = decoder.Decode(DecoderOptions.Default, stream);
 
             PngMetadata metadata = image.Metadata.GetPngMetadata();
             Assert.Equal(pngColorType, metadata.ColorType);
@@ -597,7 +597,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             // occurs within the encoder itself leaving the input image unaffected.
             // This means we are benefiting from testing our decoder also.
             using FileStream fileStream = File.OpenRead(actualOutputFile);
-            using Image<TPixel> imageSharpImage = new PngDecoder().Decode<TPixel>(DecoderOptions.Default, fileStream, default);
+            using Image<TPixel> imageSharpImage = new PngDecoder().Decode<TPixel>(DecoderOptions.Default, fileStream);
 
             fileStream.Position = 0;
 

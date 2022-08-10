@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int greenMask = 0,
             int blueMask = 0,
             int alphaMask = 0,
-            int csType = 0,
+            BmpColorSpace csType = 0,
             int redX = 0,
             int redY = 0,
             int redZ = 0,
@@ -94,7 +94,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int blueZ = 0,
             int gammeRed = 0,
             int gammeGreen = 0,
-            int gammeBlue = 0)
+            int gammeBlue = 0,
+            BmpRenderingIntent intent = BmpRenderingIntent.Invalid,
+            int profileData = 0,
+            int profileSize = 0,
+            int reserved = 0)
         {
             this.HeaderSize = headerSize;
             this.Width = width;
@@ -124,6 +128,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.GammaRed = gammeRed;
             this.GammaGreen = gammeGreen;
             this.GammaBlue = gammeBlue;
+            this.Intent = intent;
+            this.ProfileData = profileData;
+            this.ProfileSize = profileSize;
+            this.Reserved = reserved;
         }
 
         /// <summary>
@@ -211,7 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Gets or sets the Color space type. Not used yet.
         /// </summary>
-        public int CsType { get; set; }
+        public BmpColorSpace CsType { get; set; }
 
         /// <summary>
         /// Gets or sets the X coordinate of red endpoint. Not used yet.
@@ -272,6 +280,26 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Gets or sets the Gamma blue coordinate scale value. Not used yet.
         /// </summary>
         public int GammaBlue { get; set; }
+
+        /// <summary>
+        /// Gets or sets the rendering intent for bitmap.
+        /// </summary>
+        public BmpRenderingIntent Intent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the offset, in bytes, from the beginning of the BITMAPV5HEADER structure to the start of the profile data.
+        /// </summary>
+        public int ProfileData { get; set; }
+
+        /// <summary>
+        /// Gets or sets the size, in bytes, of embedded profile data.
+        /// </summary>
+        public int ProfileSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the reserved value.
+        /// </summary>
+        public int Reserved { get; set; }
 
         /// <summary>
         /// Parses the BITMAPCOREHEADER (BMP Version 2) consisting of the headerSize, width, height, planes, and bitsPerPixel fields (12 bytes).
@@ -401,11 +429,47 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
-        public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data)
+        public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data) => new(
+            headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+            width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
+            height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
+            planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
+            bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)),
+            compression: (BmpCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
+            imageSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4)),
+            xPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4)),
+            yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
+            clrUsed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(32, 4)),
+            clrImportant: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(36, 4)),
+            redMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(40, 4)),
+            greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
+            blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
+            alphaMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)),
+            csType: (BmpColorSpace)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(56, 4)),
+            redX: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(60, 4)),
+            redY: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(64, 4)),
+            redZ: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(68, 4)),
+            greenX: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(72, 4)),
+            greenY: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(76, 4)),
+            greenZ: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(80, 4)),
+            blueX: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(84, 4)),
+            blueY: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(88, 4)),
+            blueZ: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(92, 4)),
+            gammeRed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(96, 4)),
+            gammeGreen: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(100, 4)),
+            gammeBlue: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(104, 4)));
+
+        /// <summary>
+        /// Parses the full BMP Version 5 BITMAPINFOHEADER header (124 bytes).
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>The parsed header.</returns>
+        /// <seealso href="https://docs.microsoft.com/de-de/windows/win32/api/wingdi/ns-wingdi-bitmapv5header?redirectedfrom=MSDN"/>
+        public static BmpInfoHeader ParseV5(ReadOnlySpan<byte> data)
         {
-            if (data.Length < SizeV4)
+            if (data.Length < SizeV5)
             {
-                throw new ArgumentException(nameof(data), $"Must be {SizeV4} bytes. Was {data.Length} bytes.");
+                throw new ArgumentException(nameof(data), $"Must be {SizeV5} bytes. Was {data.Length} bytes.");
             }
 
             return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
@@ -436,6 +500,43 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>
         public void WriteV4Header(Span<byte> buffer)
+        {
+            buffer.Clear();
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(0, 4), SizeV4);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(4, 4), this.Width);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(8, 4), this.Height);
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(14, 2), this.BitsPerPixel);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(16, 4), (int)this.Compression);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(20, 4), this.ImageSize);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(24, 4), this.XPelsPerMeter);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(28, 4), this.YPelsPerMeter);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(32, 4), this.ClrUsed);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(36, 4), this.ClrImportant);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(40, 4), this.RedMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(44, 4), this.GreenMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(48, 4), this.BlueMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(52, 4), this.AlphaMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(56, 4), (int)this.CsType);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(60, 4), this.RedX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(64, 4), this.RedY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(68, 4), this.RedZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(72, 4), this.GreenX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(76, 4), this.GreenY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(80, 4), this.GreenZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(84, 4), this.BlueX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(88, 4), this.BlueY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(92, 4), this.BlueZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(96, 4), this.GammaRed);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(100, 4), this.GammaGreen);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(104, 4), this.GammaBlue);
+        }
+
+        /// <summary>
+        /// Writes a complete Bitmap V5 header to a buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to write to.</param>
+        public void WriteV5Header(Span<byte> buffer)
         {
             ref BmpInfoHeader dest = ref Unsafe.As<byte, BmpInfoHeader>(ref MemoryMarshal.GetReference(buffer));
 

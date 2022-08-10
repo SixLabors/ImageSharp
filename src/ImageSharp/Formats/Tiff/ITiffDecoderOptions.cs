@@ -1,5 +1,7 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -12,5 +14,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         bool IgnoreMetadata { get; }
+
+        /// <summary>
+        /// Gets the decoding mode for multi-frame images.
+        /// </summary>
+        FrameDecodingMode DecodingMode { get; }
     }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -188,6 +188,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // assert
             Assert.Equal(expected, rgba.ToScaledVector4());
+        }
+
+        [Fact]
+        public void Issue2048()
+        {
+            // https://github.com/SixLabors/ImageSharp/issues/2048
+            RgbaVector green = Color.Green.ToPixel<RgbaVector>();
+            using Image<RgbaVector> source = new(Configuration.Default, 1, 1, green);
+            using Image<HalfVector4> clone = source.CloneAs<HalfVector4>();
+
+            Rgba32 srcColor = default;
+            Rgba32 cloneColor = default;
+            source[0, 0].ToRgba32(ref srcColor);
+            clone[0, 0].ToRgba32(ref cloneColor);
+
+            Assert.Equal(srcColor, cloneColor);
         }
     }
 }

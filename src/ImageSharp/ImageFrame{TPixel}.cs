@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Linq;
@@ -362,10 +362,8 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d) =>
-            {
-                PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d);
-            });
+            this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d)
+                => PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d));
         }
 
         /// <inheritdoc/>

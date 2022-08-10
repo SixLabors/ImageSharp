@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -31,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
 
         [Theory]
         [WithFile(TestImages.Gif.Receipt, PixelTypes.Rgba32)]
-        public async void ReadXmpMetadata_FromGif_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public async Task ReadXmpMetadata_FromGif_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = await provider.GetImageAsync(GifDecoder))
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.Metadata, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.ExtendedXmp, PixelTypes.Rgba32)]
-        public async void ReadXmpMetadata_FromJpg_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public async Task ReadXmpMetadata_FromJpg_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = await provider.GetImageAsync(JpegDecoder))
@@ -57,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
 
         [Theory]
         [WithFile(TestImages.Png.XmpColorPalette, PixelTypes.Rgba32)]
-        public async void ReadXmpMetadata_FromPng_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public async Task ReadXmpMetadata_FromPng_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = await provider.GetImageAsync(PngDecoder))
@@ -69,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
 
         [Theory]
         [WithFile(TestImages.Tiff.SampleMetadata, PixelTypes.Rgba32)]
-        public async void ReadXmpMetadata_FromTiff_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public async Task ReadXmpMetadata_FromTiff_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = await provider.GetImageAsync(TiffDecoder))
@@ -81,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
 
         [Theory]
         [WithFile(TestImages.Webp.Lossy.WithXmp, PixelTypes.Rgba32)]
-        public async void ReadXmpMetadata_FromWebp_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public async Task ReadXmpMetadata_FromWebp_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = await provider.GetImageAsync(WebpDecoder))
@@ -157,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp
         }
 
         [Fact]
-        public async void WritingJpeg_PreservesExtendedXmpProfile()
+        public async Task WritingJpeg_PreservesExtendedXmpProfile()
         {
             // arrange
             var provider = TestImageProvider<Rgba32>.File(TestImages.Jpeg.Baseline.ExtendedXmp);

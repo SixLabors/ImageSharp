@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -21,18 +21,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options);
 
-            this.Sampler = options.Sampler;
+            this.Options = options;
             this.DestinationWidth = size.Width;
             this.DestinationHeight = size.Height;
             this.DestinationRectangle = rectangle;
-            this.Compand = options.Compand;
-            this.PremultiplyAlpha = options.PremultiplyAlpha;
         }
-
-        /// <summary>
-        /// Gets the sampler to perform the resize operation.
-        /// </summary>
-        public IResampler Sampler { get; }
 
         /// <summary>
         /// Gets the destination width.
@@ -50,14 +43,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Rectangle DestinationRectangle { get; }
 
         /// <summary>
-        /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
+        /// Gets the resize options.
         /// </summary>
-        public bool Compand { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether to premultiply the alpha (if it exists) during the resize operation.
-        /// </summary>
-        public bool PremultiplyAlpha { get; }
+        public ResizeOptions Options { get; }
 
         /// <inheritdoc />
         public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)

@@ -1,11 +1,10 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
@@ -350,9 +349,6 @@ namespace SixLabors.ImageSharp.Tests
             private static readonly ConcurrentDictionary<string, int> InvocationCounts =
                 new ConcurrentDictionary<string, int>();
 
-            private static readonly ConcurrentDictionary<string, int> InvocationCountsAsync =
-                new ConcurrentDictionary<string, int>();
-
             private static readonly object Monitor = new object();
 
             private string callerName;
@@ -365,43 +361,27 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
-            {
-                InvocationCountsAsync[this.callerName]++;
-                return Task.FromResult(new Image<TPixel>(42, 42));
-            }
-
             internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
-
-            internal static int GetInvocationCountAsync(string callerName) => InvocationCountsAsync[callerName];
 
             internal void InitCaller(string name)
             {
                 this.callerName = name;
                 InvocationCounts[name] = 0;
-                InvocationCountsAsync[name] = 0;
             }
 
-            public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
-
-            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
+            public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
         }
 
         private class TestDecoderWithParameters : IImageDecoder
         {
             private static readonly ConcurrentDictionary<string, int> InvocationCounts =
-                new ConcurrentDictionary<string, int>();
-
-            private static readonly ConcurrentDictionary<string, int> InvocationCountsAsync =
                 new ConcurrentDictionary<string, int>();
 
             private static readonly object Monitor = new object();
@@ -420,35 +400,22 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
-            {
-                InvocationCountsAsync[this.callerName]++;
-                return Task.FromResult(new Image<TPixel>(42, 42));
-            }
-
             internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
-
-            internal static int GetInvocationCountAsync(string callerName) => InvocationCountsAsync[callerName];
 
             internal void InitCaller(string name)
             {
                 this.callerName = name;
                 InvocationCounts[name] = 0;
-                InvocationCountsAsync[name] = 0;
             }
 
-            public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
-
-            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
+            public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(configuration, stream, cancellationToken);
         }
     }
 }

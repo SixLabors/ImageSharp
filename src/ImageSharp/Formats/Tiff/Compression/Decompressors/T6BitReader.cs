@@ -1,10 +1,9 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.Collections.Generic;
-using System.IO;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
@@ -16,38 +15,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     {
         private readonly int maxCodeLength = 12;
 
-        private static readonly CcittTwoDimensionalCode None = new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.None, 0);
+        private static readonly CcittTwoDimensionalCode None = new(0, CcittTwoDimensionalCodeType.None, 0);
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len1Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
-        {
-            { 0b1, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Vertical0, 1) }
-        };
+        private static readonly CcittTwoDimensionalCode Len1Code1 = new(0b1, CcittTwoDimensionalCodeType.Vertical0, 1);
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len3Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
-        {
-            { 0b001, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Horizontal, 3) },
-            { 0b010, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalL1, 3) },
-            { 0b011, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalR1, 3) }
-        };
+        private static readonly CcittTwoDimensionalCode Len3Code001 = new(0b001, CcittTwoDimensionalCodeType.Horizontal, 3);
+        private static readonly CcittTwoDimensionalCode Len3Code010 = new(0b010, CcittTwoDimensionalCodeType.VerticalL1, 3);
+        private static readonly CcittTwoDimensionalCode Len3Code011 = new(0b011, CcittTwoDimensionalCodeType.VerticalR1, 3);
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len4Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
-        {
-            { 0b0001, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Pass, 4) }
-        };
+        private static readonly CcittTwoDimensionalCode Len4Code0001 = new(0b0001, CcittTwoDimensionalCodeType.Pass, 4);
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len6Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
-        {
-            { 0b000011, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalR2, 6) },
-            { 0b000010, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalL2, 6) }
-        };
+        private static readonly CcittTwoDimensionalCode Len6Code000011 = new(0b000011, CcittTwoDimensionalCodeType.VerticalR2, 6);
+        private static readonly CcittTwoDimensionalCode Len6Code000010 = new(0b000010, CcittTwoDimensionalCodeType.VerticalL2, 6);
 
-        private static readonly Dictionary<uint, CcittTwoDimensionalCode> Len7Codes = new Dictionary<uint, CcittTwoDimensionalCode>()
-        {
-            { 0b0000011, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalR3, 7) },
-            { 0b0000010, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.VerticalL3, 7) },
-            { 0b0000001, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Extensions2D, 7) },
-            { 0b0000000, new CcittTwoDimensionalCode(CcittTwoDimensionalCodeType.Extensions1D, 7) }
-        };
+        private static readonly CcittTwoDimensionalCode Len7Code0000011 = new(0b0000011, CcittTwoDimensionalCodeType.VerticalR3, 7);
+        private static readonly CcittTwoDimensionalCode Len7Code0000010 = new(0b0000010, CcittTwoDimensionalCodeType.VerticalL3, 7);
+        private static readonly CcittTwoDimensionalCode Len7Code0000001 = new(0b0000001, CcittTwoDimensionalCodeType.Extensions2D, 7);
+        private static readonly CcittTwoDimensionalCode Len7Code0000000 = new(0b0000000, CcittTwoDimensionalCodeType.Extensions1D, 7);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T6BitReader"/> class.
@@ -55,14 +39,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <param name="input">The compressed input stream.</param>
         /// <param name="fillOrder">The logical order of bits within a byte.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
-        /// <param name="allocator">The memory allocator.</param>
-        public T6BitReader(Stream input, TiffFillOrder fillOrder, int bytesToRead, MemoryAllocator allocator)
-            : base(input, fillOrder, bytesToRead, allocator)
+        public T6BitReader(BufferedReadStream input, TiffFillOrder fillOrder, int bytesToRead)
+            : base(input, fillOrder, bytesToRead)
         {
         }
 
         /// <inheritdoc/>
-        public override bool HasMoreData => this.Position < (ulong)this.DataLength - 1 || ((uint)(this.BitsRead - 1) < (7 - 1));
+        public override bool HasMoreData => this.Position < (ulong)this.DataLength - 1 || (uint)(this.BitsRead - 1) < (7 - 1);
 
         /// <summary>
         /// Gets or sets the two dimensional code.
@@ -85,45 +68,81 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 switch (this.CurValueBitsRead)
                 {
                     case 1:
-                        if (Len1Codes.ContainsKey(value))
+                        if (value == Len1Code1.Code)
                         {
-                            this.Code = Len1Codes[value];
+                            this.Code = Len1Code1;
                             return false;
                         }
 
                         break;
 
                     case 3:
-                        if (Len3Codes.ContainsKey(value))
+                        if (value == Len3Code001.Code)
                         {
-                            this.Code = Len3Codes[value];
+                            this.Code = Len3Code001;
+                            return false;
+                        }
+
+                        if (value == Len3Code010.Code)
+                        {
+                            this.Code = Len3Code010;
+                            return false;
+                        }
+
+                        if (value == Len3Code011.Code)
+                        {
+                            this.Code = Len3Code011;
                             return false;
                         }
 
                         break;
 
                     case 4:
-                        if (Len4Codes.ContainsKey(value))
+                        if (value == Len4Code0001.Code)
                         {
-                            this.Code = Len4Codes[value];
+                            this.Code = Len4Code0001;
                             return false;
                         }
 
                         break;
 
                     case 6:
-                        if (Len6Codes.ContainsKey(value))
+                        if (value == Len6Code000010.Code)
                         {
-                            this.Code = Len6Codes[value];
+                            this.Code = Len6Code000010;
+                            return false;
+                        }
+
+                        if (value == Len6Code000011.Code)
+                        {
+                            this.Code = Len6Code000011;
                             return false;
                         }
 
                         break;
 
                     case 7:
-                        if (Len7Codes.ContainsKey(value))
+                        if (value == Len7Code0000000.Code)
                         {
-                            this.Code = Len7Codes[value];
+                            this.Code = Len7Code0000000;
+                            return false;
+                        }
+
+                        if (value == Len7Code0000001.Code)
+                        {
+                            this.Code = Len7Code0000001;
+                            return false;
+                        }
+
+                        if (value == Len7Code0000011.Code)
+                        {
+                            this.Code = Len7Code0000011;
+                            return false;
+                        }
+
+                        if (value == Len7Code0000010.Code)
+                        {
+                            this.Code = Len7Code0000010;
                             return false;
                         }
 
@@ -154,6 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <summary>
         /// Swaps the white run to black run an vise versa.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void SwapColor() => this.IsWhiteRun = !this.IsWhiteRun;
     }
 }

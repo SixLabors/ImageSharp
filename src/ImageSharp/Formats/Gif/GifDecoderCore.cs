@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
-        public Size Dimensions => new Size(this.imageDescriptor.Width, this.imageDescriptor.Height);
+        public Size Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
 
         private MemoryAllocator MemoryAllocator => this.Configuration.MemoryAllocator;
 
@@ -221,7 +221,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         private void ReadGraphicalControlExtension()
         {
-            this.stream.Read(this.buffer, 0, 6);
+            int bytesRead = this.stream.Read(this.buffer, 0, 6);
+            if (bytesRead != 6)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the graphic control extension");
+            }
 
             this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer);
         }
@@ -231,7 +235,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         private void ReadImageDescriptor()
         {
-            this.stream.Read(this.buffer, 0, 9);
+            int bytesRead = this.stream.Read(this.buffer, 0, 9);
+            if (bytesRead != 9)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the image descriptor");
+            }
 
             this.imageDescriptor = GifImageDescriptor.Parse(this.buffer);
             if (this.imageDescriptor.Height == 0 || this.imageDescriptor.Width == 0)
@@ -245,7 +253,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         private void ReadLogicalScreenDescriptor()
         {
-            this.stream.Read(this.buffer, 0, 7);
+            int bytesRead = this.stream.Read(this.buffer, 0, 7);
+            if (bytesRead != 7)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the logical screen descriptor");
+            }
 
             this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
         }
@@ -265,10 +277,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
                 bool isXmp = this.buffer.AsSpan().StartsWith(GifConstants.XmpApplicationIdentificationBytes);
 
-                if (isXmp)
+                if (isXmp && !this.IgnoreMetadata)
                 {
-                    var extension = GifXmpApplicationExtension.Read(this.stream);
-                    this.metadata.XmpProfile = new XmpProfile(extension.Data);
+                    var extension = GifXmpApplicationExtension.Read(this.stream, this.MemoryAllocator);
+                    if (extension.Data.Length > 0)
+                    {
+                        this.metadata.XmpProfile = new XmpProfile(extension.Data);
+                    }
+
                     return;
                 }
                 else
@@ -374,8 +390,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 indices = this.Configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
-
                 this.ReadFrameIndices(indices);
+
                 Span<byte> rawColorTable = default;
                 if (localColorTable != null)
                 {
@@ -406,9 +422,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReadFrameIndices(Buffer2D<byte> indices)
         {
-            int dataSize = this.stream.ReadByte();
+            int minCodeSize = this.stream.ReadByte();
             using var lzwDecoder = new LzwDecoder(this.Configuration.MemoryAllocator, this.stream);
-            lzwDecoder.DecodePixels(dataSize, indices);
+            lzwDecoder.DecodePixels(minCodeSize, indices);
         }
 
         /// <summary>

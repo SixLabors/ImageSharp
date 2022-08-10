@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 // Enable this for using larger Tiff files. Those files are very large (> 700MB) and therefor not part of the git repo.
 // Use the scripts gen_big.ps1 and gen_medium.ps1 in tests\Images\Input\Tiff\Benchmarks to generate those images.
@@ -46,6 +46,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         [Params(
             TestImages.Tiff.CcittFax3AllTermCodes,
+            TestImages.Tiff.Fax4Compressed2,
             TestImages.Tiff.HuffmanRleAllMakeupCodes,
             TestImages.Tiff.Calliphora_GrayscaleUncompressed,
             TestImages.Tiff.Calliphora_RgbPaletteLzw_Predictor,

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -16,29 +16,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     /// </summary>
     internal static unsafe class QuantEnc
     {
-        private static readonly byte[] Zigzag = { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
-
         private static readonly ushort[] WeightY = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
 
         private const int MaxLevel = 2047;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector128<short> MaxCoeff2047 = Vector128.Create((short)MaxLevel);
-
-        private static readonly Vector256<short> MaxCoeff2047Vec256 = Vector256.Create((short)MaxLevel);
-
-        private static readonly Vector256<byte> Cst256 = Vector256.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13, 2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15);
-
-        private static readonly Vector256<byte> Cst78 = Vector256.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255);
-
-        private static readonly Vector128<byte> CstLo = Vector128.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13);
-
-        private static readonly Vector128<byte> Cst7 = Vector128.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255);
-
-        private static readonly Vector128<byte> CstHi = Vector128.Create(2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15);
-
-        private static readonly Vector128<byte> Cst8 = Vector128.Create(254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255);
-#endif
 
         // Diffusion weights. We under-correct a bit (15/16th of the error is actually
         // diffused) to avoid 'rainbow' chessboard pattern of blocks at q~=0.
@@ -46,6 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private const int C2 = 8;    // fraction of error sent to the 4x4 block on the right
         private const int DSHIFT = 4;
         private const int DSCALE = 1;   // storage descaling, needed to make the error fit byte
+
+        // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
+        private static ReadOnlySpan<byte> Zigzag => new byte[] { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
 
         public static void PickBestIntra16(Vp8EncIterator it, ref Vp8ModeScore rd, Vp8SegmentInfo[] segmentInfos, Vp8EncProba proba)
         {
@@ -573,7 +556,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector256<short> out0 = Avx2.PackSignedSaturate(out00.AsInt32(), out08.AsInt32());
 
                 // if (coeff > 2047) coeff = 2047
-                out0 = Avx2.Min(out0, MaxCoeff2047Vec256);
+                out0 = Avx2.Min(out0, Vector256.Create((short)MaxLevel));
 
                 // Put the sign back.
                 out0 = Avx2.Sign(out0, input0);
@@ -584,8 +567,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<short, Vector256<short>>(ref inputRef) = input0;
 
                 // zigzag the output before storing it.
-                Vector256<byte> tmp256 = Avx2.Shuffle(out0.AsByte(), Cst256);
-                Vector256<byte> tmp78 = Avx2.Shuffle(out0.AsByte(), Cst78);
+                Vector256<byte> tmp256 = Avx2.Shuffle(out0.AsByte(), Vector256.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13, 2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15));  // Cst256
+                Vector256<byte> tmp78 = Avx2.Shuffle(out0.AsByte(), Vector256.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255)); // Cst78
 
                 // Reverse the order of the 16-byte lanes.
                 Vector256<byte> tmp87 = Avx2.Permute2x128(tmp78, tmp78, 1);
@@ -653,8 +636,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> out8 = Sse2.PackSignedSaturate(out08.AsInt32(), out12.AsInt32());
 
                 // if (coeff > 2047) coeff = 2047
-                out0 = Sse2.Min(out0, MaxCoeff2047);
-                out8 = Sse2.Min(out8, MaxCoeff2047);
+                Vector128<short> maxCoeff2047 = Vector128.Create((short)MaxLevel);
+                out0 = Sse2.Min(out0, maxCoeff2047);
+                out8 = Sse2.Min(out8, maxCoeff2047);
 
                 // Put the sign back.
                 out0 = Ssse3.Sign(out0, input0);
@@ -675,10 +659,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // There's only two misplaced entries ([8] and [7]) that are crossing the
                 // reg's boundaries.
                 // We use pshufb instead of pshuflo/pshufhi.
-                Vector128<byte> tmpLo = Ssse3.Shuffle(out0.AsByte(), CstLo);
-                Vector128<byte> tmp7 = Ssse3.Shuffle(out0.AsByte(), Cst7);  // extract #7
-                Vector128<byte> tmpHi = Ssse3.Shuffle(out8.AsByte(), CstHi);
-                Vector128<byte> tmp8 = Ssse3.Shuffle(out8.AsByte(), Cst8);  // extract #8
+                Vector128<byte> tmpLo = Ssse3.Shuffle(out0.AsByte(), Vector128.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13));
+                Vector128<byte> tmp7 = Ssse3.Shuffle(out0.AsByte(), Vector128.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255)); // extract #7
+                Vector128<byte> tmpHi = Ssse3.Shuffle(out8.AsByte(), Vector128.Create(2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15));
+                Vector128<byte> tmp8 = Ssse3.Shuffle(out8.AsByte(), Vector128.Create(254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255));   // extract #8
                 Vector128<byte> outZ0 = Sse2.Or(tmpLo, tmp8);
                 Vector128<byte> outZ8 = Sse2.Or(tmpHi, tmp7);
 

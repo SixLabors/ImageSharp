@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -120,6 +120,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return this.values;
             }
         }
+
+        /// <summary>
+        /// Returns the thumbnail in the EXIF profile when available.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Image"/>.
+        /// </returns>
+        public Image CreateThumbnail() => this.CreateThumbnail<Rgba32>();
 
         /// <summary>
         /// Returns the thumbnail in the EXIF profile when available.

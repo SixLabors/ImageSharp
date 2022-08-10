@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests
 
         // We should not change Configuration.Default in individual tests!
         // Create new configuration instances with new Configuration(TestFormat.GlobalTestFormat) instead!
-        public static TestFormat GlobalTestFormat { get; } = new TestFormat();
+        public static TestFormat GlobalTestFormat { get; } = new();
 
         public TestFormat()
         {
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests
             this.Decoder = new TestDecoder(this);
         }
 
-        public List<DecodeOperation> DecodeCalls { get; } = new List<DecodeOperation>();
+        public List<DecodeOperation> DecodeCalls { get; } = new();
 
         public TestEncoder Encoder { get; }
 
@@ -54,12 +54,12 @@ namespace SixLabors.ImageSharp.Tests
             return ms;
         }
 
-        public Stream CreateAsyncSamaphoreStream(SemaphoreSlim notifyWaitPositionReachedSemaphore, SemaphoreSlim continueSemaphore, bool seeakable, int size = 1024, int waitAfterPosition = 512)
+        public Stream CreateAsyncSemaphoreStream(SemaphoreSlim notifyWaitPositionReachedSemaphore, SemaphoreSlim continueSemaphore, bool seeakable, int size = 1024, int waitAfterPosition = 512)
         {
             var buffer = new byte[size];
             this.header.CopyTo(buffer, 0);
             var semaphoreStream = new SemaphoreReadMemoryStream(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
-            return seeakable ? (Stream)semaphoreStream : new AsyncStreamWrapper(semaphoreStream, () => false);
+            return seeakable ? semaphoreStream : new AsyncStreamWrapper(semaphoreStream, () => false);
         }
 
         public void VerifySpecificDecodeCall<TPixel>(byte[] marker, Configuration config)
@@ -191,20 +191,14 @@ namespace SixLabors.ImageSharp.Tests
                 return null;
             }
 
-            public TestHeader(TestFormat testFormat)
-            {
-                this.testFormat = testFormat;
-            }
+            public TestHeader(TestFormat testFormat) => this.testFormat = testFormat;
         }
 
         public class TestDecoder : IImageDecoder, IImageInfoDetector
         {
             private readonly TestFormat testFormat;
 
-            public TestDecoder(TestFormat testFormat)
-            {
-                this.testFormat = testFormat;
-            }
+            public TestDecoder(TestFormat testFormat) => this.testFormat = testFormat;
 
             public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
 
@@ -212,19 +206,15 @@ namespace SixLabors.ImageSharp.Tests
 
             public int HeaderSize => this.testFormat.HeaderSize;
 
-            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
-                => this.DecodeImpl<TPixel>(configuration, stream, default).GetAwaiter().GetResult();
+                => this.DecodeImpl<TPixel>(configuration, stream);
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
-                => this.DecodeImpl<TPixel>(configuration, stream, cancellationToken);
-
-            private async Task<Image<TPixel>> DecodeImpl<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
+            private Image<TPixel> DecodeImpl<TPixel>(Configuration config, Stream stream)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 var ms = new MemoryStream();
-                await stream.CopyToAsync(ms, config.StreamProcessingBufferSize, cancellationToken);
+                stream.CopyTo(ms, config.StreamProcessingBufferSize);
                 byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
@@ -239,26 +229,17 @@ namespace SixLabors.ImageSharp.Tests
 
             public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
-            public Image Decode(Configuration configuration, Stream stream) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream);
+            public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream, cancellationToken);
 
-            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                => await this.DecodeAsync<TestPixelForAgnosticDecode>(configuration, stream, cancellationToken);
-
-            public IImageInfo Identify(Configuration configuration, Stream stream) =>
-                this.IdentifyAsync(configuration, stream, default).GetAwaiter().GetResult();
-
-            public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-                => await this.DecodeImpl<Rgba32>(configuration, stream, cancellationToken);
+            public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken) =>
+                this.DecodeImpl<Rgba32>(configuration, stream);
         }
 
         public class TestEncoder : IImageEncoder
         {
             private readonly TestFormat testFormat;
 
-            public TestEncoder(TestFormat testFormat)
-            {
-                this.testFormat = testFormat;
-            }
+            public TestEncoder(TestFormat testFormat) => this.testFormat = testFormat;
 
             public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
 
@@ -271,16 +252,12 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-               where TPixel : unmanaged, IPixel<TPixel>
-            {
-                // TODO record this happened so we can verify it.
-                return Task.CompletedTask;
-            }
+               where TPixel : unmanaged, IPixel<TPixel> => Task.CompletedTask;  // TODO record this happened so we can verify it.
         }
 
         public struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
         {
-            public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new PixelOperations<TestPixelForAgnosticDecode>();
+            public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();
 
             public void FromScaledVector4(Vector4 vector)
             {

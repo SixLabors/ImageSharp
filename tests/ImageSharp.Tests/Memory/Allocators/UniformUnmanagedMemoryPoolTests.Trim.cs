@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -58,11 +58,11 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             [Collection(nameof(NonParallelCollection))]
             public class NonParallel
             {
-                public static readonly bool IsNotMacOs = !TestEnvironment.IsOSX;
+                public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
 
-                // TODO: Investigate failures on MacOS. All handles are released after GC.
+                // TODO: Investigate failures on macOS. All handles are released after GC.
                 // (It seems to happen more consistently on .NET 6.)
-                [ConditionalFact(nameof(IsNotMacOs))]
+                [ConditionalFact(nameof(IsNotMacOS))]
                 public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
                 {
                     if (!TestEnvironment.RunsOnCI)

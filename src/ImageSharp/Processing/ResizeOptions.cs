@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -51,5 +51,10 @@ namespace SixLabors.ImageSharp.Processing
         /// the alpha (if it exists) during the resize operation.
         /// </summary>
         public bool PremultiplyAlpha { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the color to use as a background when padding an image.
+        /// </summary>
+        public Color PadColor { get; set; }
     }
 }

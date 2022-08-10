@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp
     internal static class StreamExtensions
     {
         /// <summary>
-        /// Writes data from a stream into the provided buffer.
+        /// Writes data from a stream from the provided buffer.
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="buffer">The buffer.</param>

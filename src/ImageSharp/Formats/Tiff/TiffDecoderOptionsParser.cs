@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
@@ -29,9 +29,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
             }
 
-            if (exifProfile.GetValueInternal(ExifTag.ExtraSamples) is not null)
+            IExifValue extraSamplesExifValue = exifProfile.GetValueInternal(ExifTag.ExtraSamples);
+            if (extraSamplesExifValue is not null)
             {
-                TiffThrowHelper.ThrowNotSupported("ExtraSamples is not supported.");
+                short[] extraSamples = (short[])extraSamplesExifValue.GetValue();
+                if (extraSamples.Length != 1)
+                {
+                    TiffThrowHelper.ThrowNotSupported("ExtraSamples is only supported with one extra sample for alpha data.");
+                }
+
+                var extraSamplesType = (TiffExtraSampleType)extraSamples[0];
+                options.ExtraSamplesType = extraSamplesType;
+                if (extraSamplesType is not (TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData))
+                {
+                    TiffThrowHelper.ThrowNotSupported("Decoding Tiff images with ExtraSamples is not supported with UnspecifiedData.");
+                }
             }
 
             TiffFillOrder fillOrder = (TiffFillOrder?)exifProfile.GetValue(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
@@ -52,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 sampleFormat = sampleFormats[0];
                 foreach (TiffSampleFormat format in sampleFormats)
                 {
-                    if (format != TiffSampleFormat.UnsignedInteger && format != TiffSampleFormat.Float)
+                    if (format is not TiffSampleFormat.UnsignedInteger and not TiffSampleFormat.Float)
                     {
                         TiffThrowHelper.ThrowNotSupported("ImageSharp only supports the UnsignedInteger and Float SampleFormat.");
                     }
@@ -252,12 +264,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffPhotometricInterpretation.Rgb:
                 {
                     TiffBitsPerSample bitsPerSample = options.BitsPerSample;
-                    if (bitsPerSample.Channels != 3)
+                    if (bitsPerSample.Channels is not (3 or 4))
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
-                    if (!(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2))
+                    if ((bitsPerSample.Channels == 3 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2)) ||
+                        (bitsPerSample.Channels == 4 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2 && bitsPerSample.Channel2 == bitsPerSample.Channel3)))
                     {
                         TiffThrowHelper.ThrowNotSupported("Only BitsPerSample with equal bits per channel are supported.");
                     }
@@ -270,41 +283,50 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                             case 32:
                                 if (options.SampleFormat == TiffSampleFormat.Float)
                                 {
-                                    options.ColorType = TiffColorType.RgbFloat323232;
+                                    options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.RgbFloat323232 : TiffColorType.RgbaFloat32323232;
                                     return;
                                 }
 
-                                options.ColorType = TiffColorType.Rgb323232;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb323232 : TiffColorType.Rgba32323232;
                                 break;
 
                             case 24:
-                                options.ColorType = TiffColorType.Rgb242424;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb242424 : TiffColorType.Rgba24242424;
                                 break;
 
                             case 16:
-                                options.ColorType = TiffColorType.Rgb161616;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb161616 : TiffColorType.Rgba16161616;
                                 break;
 
                             case 14:
-                                options.ColorType = TiffColorType.Rgb141414;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb141414 : TiffColorType.Rgba14141414;
                                 break;
 
                             case 12:
-                                options.ColorType = TiffColorType.Rgb121212;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb121212 : TiffColorType.Rgba12121212;
                                 break;
 
                             case 10:
-                                options.ColorType = TiffColorType.Rgb101010;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb101010 : TiffColorType.Rgba10101010;
                                 break;
 
                             case 8:
-                                options.ColorType = TiffColorType.Rgb888;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb888 : TiffColorType.Rgba8888;
+                                break;
+                            case 6:
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb666 : TiffColorType.Rgba6666;
+                                break;
+                            case 5:
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb555 : TiffColorType.Rgba5555;
                                 break;
                             case 4:
-                                options.ColorType = TiffColorType.Rgb444;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb444 : TiffColorType.Rgba4444;
+                                break;
+                            case 3:
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb333 : TiffColorType.Rgba3333;
                                 break;
                             case 2:
-                                options.ColorType = TiffColorType.Rgb222;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb222 : TiffColorType.Rgba2222;
                                 break;
                             default:
                                 TiffThrowHelper.ThrowNotSupported("Bits per sample is not supported.");
@@ -317,16 +339,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         switch (bitsPerChannel)
                         {
                             case 32:
-                                options.ColorType = TiffColorType.Rgb323232Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb323232Planar : TiffColorType.Rgba32323232Planar;
                                 break;
                             case 24:
-                                options.ColorType = TiffColorType.Rgb242424Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb242424Planar : TiffColorType.Rgba24242424Planar;
                                 break;
                             case 16:
-                                options.ColorType = TiffColorType.Rgb161616Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb161616Planar : TiffColorType.Rgba16161616Planar;
                                 break;
                             default:
-                                options.ColorType = TiffColorType.Rgb888Planar;
+                                options.ColorType = options.BitsPerSample.Channels is 3 ? TiffColorType.Rgb888Planar : TiffColorType.Rgba8888Planar;
                                 break;
                         }
                     }
@@ -359,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
                     if (options.BitsPerSample.Channels != 3)
                     {
-                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for YCbCr images.");
                     }
 
                     ushort bitsPerChannel = options.BitsPerSample.Channel0;
@@ -369,6 +391,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
 
                     options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.YCbCr : TiffColorType.YCbCrPlanar;
+
+                    break;
+                }
+
+                case TiffPhotometricInterpretation.CieLab:
+                {
+                    if (options.BitsPerSample.Channels != 3)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
+                    }
+
+                    ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                    if (bitsPerChannel != 8)
+                    {
+                        TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CieLab images.");
+                    }
+
+                    options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.CieLab : TiffColorType.CieLabPlanar;
 
                     break;
                 }
@@ -437,6 +477,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompression.Jpeg:
                 {
                     options.CompressionType = TiffDecoderCompressionType.Jpeg;
+
+                    if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
+                    {
+                        // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+                        options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                        options.ColorType = TiffColorType.Rgb;
+                    }
+
+                    break;
+                }
+
+                case TiffCompression.Webp:
+                {
+                    options.CompressionType = TiffDecoderCompressionType.Webp;
                     break;
                 }
 

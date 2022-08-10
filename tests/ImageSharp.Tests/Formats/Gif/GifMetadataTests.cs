@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Collections.Generic;
 using System.IO;
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 input.Save(memoryStream, new GifEncoder());
                 memoryStream.Position = 0;
 
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream, default))
                 {
                     GifMetadata metadata = image.Metadata.GetGifMetadata();
                     Assert.Equal(2, metadata.Comments.Count);
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new GifDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 ImageMetadata meta = image.Metadata;
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new GifDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
                 {
                     ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new GifDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 GifMetadata meta = image.Metadata.GetGifMetadata();
                 Assert.Equal(repeatCount, meta.RepeatCount);
             }
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new GifDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
                 {
                     GifMetadata meta = image.Metadata.GetGifMetadata();
                     Assert.Equal(repeatCount, meta.RepeatCount);

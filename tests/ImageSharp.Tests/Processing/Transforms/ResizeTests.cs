@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             Assert.Equal(width, resizeProcessor.DestinationWidth);
             Assert.Equal(height, resizeProcessor.DestinationHeight);
-            Assert.Equal(sampler, resizeProcessor.Sampler);
+            Assert.Equal(sampler, resizeProcessor.Options.Sampler);
         }
 
         [Fact]
@@ -52,8 +52,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             Assert.Equal(width, resizeProcessor.DestinationWidth);
             Assert.Equal(height, resizeProcessor.DestinationHeight);
-            Assert.Equal(sampler, resizeProcessor.Sampler);
-            Assert.Equal(compand, resizeProcessor.Compand);
+            Assert.Equal(sampler, resizeProcessor.Options.Sampler);
+            Assert.Equal(compand, resizeProcessor.Options.Compand);
         }
 
         [Fact]
@@ -78,8 +78,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             Assert.Equal(width, resizeProcessor.DestinationWidth);
             Assert.Equal(height, resizeProcessor.DestinationHeight);
-            Assert.Equal(sampler, resizeProcessor.Sampler);
-            Assert.Equal(compand, resizeProcessor.Compand);
+            Assert.Equal(sampler, resizeProcessor.Options.Sampler);
+            Assert.Equal(compand, resizeProcessor.Options.Compand);
 
             // Ensure options are not altered.
             Assert.Equal(width, resizeOptions.Size.Width);

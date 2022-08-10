@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -59,6 +59,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 case TiffDecoderCompressionType.Jpeg:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     return new JpegTiffCompression(configuration, allocator, width, bitsPerPixel, jpegTables, photometricInterpretation);
+
+                case TiffDecoderCompressionType.Webp:
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
+                    return new WebpTiffCompression(allocator, width, bitsPerPixel);
 
                 default:
                     throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));

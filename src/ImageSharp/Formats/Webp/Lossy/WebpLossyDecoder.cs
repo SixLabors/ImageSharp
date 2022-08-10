@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -57,7 +57,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.configuration = configuration;
         }
 
-        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info)
+        /// <summary>
+        /// Decodes the lossless webp image from the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel buffer to store the decoded data.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="info">Information about the image.</param>
+        /// <param name="alphaData">The ALPH chunk data.</param>
+        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info, IMemoryOwner<byte> alphaData)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Paragraph 9.2: color space and clamp type follow.
@@ -105,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     using (var alphaDecoder = new AlphaDecoder(
                         width,
                         height,
-                        info.Features.AlphaData,
+                        alphaData,
                         info.Features.AlphaChunkHeader,
                         this.memoryAllocator,
                         this.configuration))

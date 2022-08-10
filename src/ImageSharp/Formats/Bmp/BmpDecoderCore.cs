@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -122,11 +123,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Image<TPixel> image = null;
             try
             {
                 int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                var image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+                image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -184,7 +186,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         break;
 
                     default:
-                        BmpThrowHelper.ThrowNotSupportedException("Does not support this kind of bitmap files.");
+                        BmpThrowHelper.ThrowNotSupportedException("ImageSharp does not support this kind of bitmap files.");
 
                         break;
                 }
@@ -193,7 +195,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
             catch (IndexOutOfRangeException e)
             {
+                image?.Dispose();
                 throw new ImageFormatException("Bitmap does not have a valid format.", e);
+            }
+            catch
+            {
+                image?.Dispose();
+                throw;
             }
         }
 
@@ -323,12 +331,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
                                         break;
                                     case RleSkippedPixelHandling.Transparent:
-                                        color.FromVector4(Vector4.Zero);
+                                        color.FromScaledVector4(Vector4.Zero);
                                         break;
 
                                     // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
                                     default:
-                                        color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+                                        color.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
                                         break;
                                 }
                             }
@@ -382,7 +390,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     if (rowHasUndefinedPixels)
                     {
                         // Slow path with undefined pixels.
-                        var yMulWidth = y * width;
+                        int yMulWidth = y * width;
                         int rowStartIdx = yMulWidth * 3;
                         for (int x = 0; x < width; x++)
                         {
@@ -395,12 +403,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                                         break;
                                     case RleSkippedPixelHandling.Transparent:
-                                        color.FromVector4(Vector4.Zero);
+                                        color.FromScaledVector4(Vector4.Zero);
                                         break;
 
                                     // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
                                     default:
-                                        color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+                                        color.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
                                         break;
                                 }
                             }
@@ -1127,7 +1135,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             g * invMaxValueGreen,
                             b * invMaxValueBlue,
                             alpha);
-                        color.FromVector4(vector4);
+                        color.FromScaledVector4(vector4);
                     }
                     else
                     {
@@ -1192,6 +1200,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadInfoHeader()
         {
             Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
+            long infoHeaderStart = this.stream.Position;
+
+            // Resolution is stored in PPM.
+            this.metadata = new ImageMetadata
+            {
+                ResolutionUnits = PixelResolutionUnit.PixelsPerMeter
+            };
 
             // Read the header size.
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
@@ -1264,35 +1279,44 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeaderType = BmpInfoHeaderType.Os2Version2;
                 this.infoHeader = BmpInfoHeader.ParseOs2Version2(buffer);
             }
-            else if (headerSize >= BmpInfoHeader.SizeV4)
+            else if (headerSize == BmpInfoHeader.SizeV4)
             {
-                // >= 108 bytes
-                infoHeaderType = headerSize == BmpInfoHeader.SizeV4 ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion5;
+                // == 108 bytes
+                infoHeaderType = BmpInfoHeaderType.WinVersion4;
                 this.infoHeader = BmpInfoHeader.ParseV4(buffer);
+            }
+            else if (headerSize > BmpInfoHeader.SizeV4)
+            {
+                // > 108 bytes
+                infoHeaderType = BmpInfoHeaderType.WinVersion5;
+                this.infoHeader = BmpInfoHeader.ParseV5(buffer);
+                if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+                {
+                    // Read color profile.
+                    long streamPosition = this.stream.Position;
+                    byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
+                    this.stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+                    this.stream.Read(iccProfileData);
+                    this.metadata.IccProfile = new IccProfile(iccProfileData);
+                    this.stream.Position = streamPosition;
+                }
             }
             else
             {
                 BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. HeaderSize '{headerSize}'.");
             }
 
-            // Resolution is stored in PPM.
-            var meta = new ImageMetadata
-            {
-                ResolutionUnits = PixelResolutionUnit.PixelsPerMeter
-            };
             if (this.infoHeader.XPelsPerMeter > 0 && this.infoHeader.YPelsPerMeter > 0)
             {
-                meta.HorizontalResolution = this.infoHeader.XPelsPerMeter;
-                meta.VerticalResolution = this.infoHeader.YPelsPerMeter;
+                this.metadata.HorizontalResolution = this.infoHeader.XPelsPerMeter;
+                this.metadata.VerticalResolution = this.infoHeader.YPelsPerMeter;
             }
             else
             {
                 // Convert default metadata values to PPM.
-                meta.HorizontalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultHorizontalResolution));
-                meta.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultVerticalResolution));
+                this.metadata.HorizontalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultHorizontalResolution));
+                this.metadata.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultVerticalResolution));
             }
-
-            this.metadata = meta;
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
             this.bmpMetadata = this.metadata.GetBmpMetadata();
@@ -1363,9 +1387,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int colorMapSizeBytes = -1;
             if (this.infoHeader.ClrUsed == 0)
             {
-                if (this.infoHeader.BitsPerPixel == 1
-                    || this.infoHeader.BitsPerPixel == 4
-                    || this.infoHeader.BitsPerPixel == 8)
+                if (this.infoHeader.BitsPerPixel is 1 or 4 or 8)
                 {
                     switch (this.fileMarkerType)
                     {
@@ -1417,7 +1439,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int skipAmount = this.fileHeader.Offset - (int)this.stream.Position;
             if ((skipAmount + (int)this.stream.Position) > this.stream.Length)
             {
-                BmpThrowHelper.ThrowInvalidImageContentException("Invalid fileheader offset found. Offset is greater than the stream length.");
+                BmpThrowHelper.ThrowInvalidImageContentException("Invalid file header offset found. Offset is greater than the stream length.");
             }
 
             if (skipAmount > 0)

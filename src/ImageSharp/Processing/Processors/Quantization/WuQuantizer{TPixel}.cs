@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -176,9 +176,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Rgba32 rgba = default;
             color.ToRgba32(ref rgba);
 
-            int r = rgba.R >> (8 - IndexBits);
-            int g = rgba.G >> (8 - IndexBits);
-            int b = rgba.B >> (8 - IndexBits);
+            const int shift = 8 - IndexBits;
+            int r = rgba.R >> shift;
+            int g = rgba.G >> shift;
+            int b = rgba.B >> shift;
             int a = rgba.A >> (8 - IndexAlphaBits);
 
             ReadOnlySpan<byte> tagSpan = this.tagsOwner.GetSpan();
@@ -413,6 +414,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<Moment> momentSpan = this.momentsOwner.GetSpan();
             Span<Moment> volumeSpan = volume.GetSpan();
             Span<Moment> areaSpan = area.GetSpan();
+            const int indexBits2 = IndexBits * 2;
+            const int indexAndAlphaBits = IndexBits + IndexAlphaBits;
+            const int indexBitsAndAlphaBits1 = IndexBits + IndexAlphaBits + 1;
             int baseIndex = GetPaletteIndex(1, 0, 0, 0);
 
             for (int r = 1; r < IndexCount; r++)
@@ -421,9 +425,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 // immediate outer loop. See https://github.com/dotnet/runtime/issues/61420
                 // To ensure the calculation doesn't happen repeatedly, hoist some of the calculations
                 // in the form of ind1* manually.
-                int ind1R = (r << ((IndexBits * 2) + IndexAlphaBits)) +
-                    (r << (IndexBits + IndexAlphaBits + 1)) +
-                    (r << (IndexBits * 2)) +
+                int ind1R = (r << (indexBits2 + IndexAlphaBits)) +
+                    (r << indexBitsAndAlphaBits1) +
+                    (r << indexBits2) +
                     (r << (IndexBits + 1)) +
                     r;
 
@@ -432,7 +436,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 for (int g = 1; g < IndexCount; g++)
                 {
                     int ind1G = ind1R +
-                        (g << (IndexBits + IndexAlphaBits)) +
+                        (g << indexAndAlphaBits) +
                         (g << IndexBits) +
                         g;
                     int r_g = r + g;
@@ -446,7 +450,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                             b;
 
                         Moment line = default;
-
+                        int bIndexAlphaOffset = b * IndexAlphaCount;
                         for (int a = 1; a < IndexAlphaCount; a++)
                         {
                             int ind1 = ind1B + a;
@@ -455,7 +459,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                             areaSpan[a] += line;
 
-                            int inv = (b * IndexAlphaCount) + a;
+                            int inv = bIndexAlphaOffset + a;
                             volumeSpan[inv] += areaSpan[a];
 
                             int ind2 = ind1 - baseIndex;

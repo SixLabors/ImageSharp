@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -320,30 +320,51 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 (s, d) => this.Operations.ToVector4(this.Configuration, s, d.GetSpan()));
         }
 
-        public static readonly TheoryData<object> Generic_To_Data = new TheoryData<object>
+        public static readonly TheoryData<object> Generic_To_Data = new()
         {
+            new TestPixel<A8>(),
             new TestPixel<Abgr32>(),
-            new TestPixel<Rgba32>(),
+            new TestPixel<Argb32>(),
+            new TestPixel<Bgr24>(),
+            new TestPixel<Bgr565>(),
             new TestPixel<Bgra32>(),
-            new TestPixel<Rgb24>(),
-            new TestPixel<L8>(),
+            new TestPixel<Bgra4444>(),
+            new TestPixel<Bgra5551>(),
+            new TestPixel<Byte4>(),
+            new TestPixel<HalfSingle>(),
+            new TestPixel<HalfVector2>(),
+            new TestPixel<HalfVector4>(),
             new TestPixel<L16>(),
+            new TestPixel<L8>(),
+            new TestPixel<La16>(),
+            new TestPixel<La32>(),
+            new TestPixel<NormalizedByte2>(),
+            new TestPixel<NormalizedByte4>(),
+            new TestPixel<NormalizedShort2>(),
+            new TestPixel<NormalizedShort4>(),
+            new TestPixel<Rg32>(),
+            new TestPixel<Rgb24>(),
             new TestPixel<Rgb48>(),
-            new TestPixel<Rgba64>()
+            new TestPixel<Rgba1010102>(),
+            new TestPixel<Rgba32>(),
+            new TestPixel<Rgba64>(),
+            new TestPixel<RgbaVector>(),
+            new TestPixel<Short2>(),
+            new TestPixel<Short4>(),
         };
 
         [Theory]
         [MemberData(nameof(Generic_To_Data))]
-        public void Generic_To<TDestPixel>(TestPixel<TDestPixel> dummy)
+        public void Generic_To<TDestPixel>(TestPixel<TDestPixel> _)
             where TDestPixel : unmanaged, IPixel<TDestPixel>
         {
-            const int Count = 2134;
-            TPixel[] source = CreatePixelTestData(Count);
-            var expected = new TDestPixel[Count];
+            const int count = 2134;
+            TPixel[] source = CreatePixelTestData(count);
+            var expected = new TDestPixel[count];
 
             PixelConverterTests.ReferenceImplementations.To<TPixel, TDestPixel>(this.Configuration, source, expected);
 
-            TestOperation(source, expected, (s, d) => this.Operations.To(this.Configuration, s, d.GetSpan()));
+            TestOperation(source, expected, (s, d) => this.Operations.To(this.Configuration, s, d.GetSpan()), false);
         }
 
         [Theory]
@@ -1234,23 +1255,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             }
 
             // TODO: We really need a PixelTypeInfo.BitsPerComponent property!!
-            private static bool IsComplexPixel()
+            private static bool IsComplexPixel() => default(TDest) switch
             {
-                switch (default(TDest))
-                {
-                    case HalfSingle _:
-                    case HalfVector2 _:
-                    case L16 _:
-                    case La32 _:
-                    case NormalizedShort2 _:
-                    case Rg32 _:
-                    case Short2 _:
-                        return true;
-
-                    default:
-                        return Unsafe.SizeOf<TDest>() > sizeof(int);
-                }
-            }
+                HalfSingle or HalfVector2 or L16 or La32 or NormalizedShort2 or Rg32 or Short2 => true,
+                _ => Unsafe.SizeOf<TDest>() > sizeof(int),
+            };
         }
     }
 }

@@ -1,11 +1,12 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
@@ -406,6 +407,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// <param name="stream">The stream to write to.</param>
         /// <param name="exifProfile">The exif profile.</param>
         /// <param name="xmpProfile">The XMP profile.</param>
+        /// <param name="iccProfile">The color profile.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
@@ -415,6 +417,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             Stream stream,
             ExifProfile exifProfile,
             XmpProfile xmpProfile,
+            IccProfile iccProfile,
             uint width,
             uint height,
             bool hasAlpha,
@@ -424,6 +427,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             bool isVp8X = false;
             byte[] exifBytes = null;
             byte[] xmpBytes = null;
+            byte[] iccProfileBytes = null;
             uint riffSize = 0;
             if (exifProfile != null)
             {
@@ -437,6 +441,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
                 isVp8X = true;
                 xmpBytes = xmpProfile.Data;
                 riffSize += this.MetadataChunkSize(xmpBytes);
+            }
+
+            if (iccProfile != null)
+            {
+                isVp8X = true;
+                iccProfileBytes = iccProfile.ToByteArray();
+                riffSize += this.MetadataChunkSize(iccProfileBytes);
             }
 
             if (hasAlpha)
@@ -457,7 +468,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
 
             var bitWriterPartZero = new Vp8BitWriter(expectedSize);
 
-            // Partition #0 with header and partition sizes
+            // Partition #0 with header and partition sizes.
             uint size0 = this.GeneratePartition0(bitWriterPartZero);
 
             uint vp8Size = WebpConstants.Vp8FrameHeaderSize + size0;
@@ -465,12 +476,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             uint pad = vp8Size & 1;
             vp8Size += pad;
 
-            // Compute RIFF size
+            // Compute RIFF size.
             // At the minimum it is: "WEBPVP8 nnnn" + VP8 data size.
             riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
 
             // Emit headers and partition #0
-            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, hasAlpha, alphaData, alphaDataIsCompressed);
+            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, iccProfileBytes, hasAlpha, alphaData, alphaDataIsCompressed);
             bitWriterPartZero.WriteToStream(stream);
 
             // Write the encoded image to the stream.
@@ -668,6 +679,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             uint height,
             ExifProfile exifProfile,
             XmpProfile xmpProfile,
+            byte[] iccProfileBytes,
             bool hasAlpha,
             Span<byte> alphaData,
             bool alphaDataIsCompressed)
@@ -677,7 +689,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             // Write VP8X, header if necessary.
             if (isVp8X)
             {
-                this.WriteVp8XHeader(stream, exifProfile, xmpProfile, width, height, hasAlpha);
+                this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfileBytes, width, height, hasAlpha);
+
+                if (iccProfileBytes != null)
+                {
+                    this.WriteColorProfile(stream, iccProfileBytes);
+                }
+
                 if (hasAlpha)
                 {
                     this.WriteAlphaChunk(stream, alphaData, alphaDataIsCompressed);

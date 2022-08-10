@@ -1,10 +1,9 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;
@@ -84,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                using (Image image = decoder.Decode(Configuration.Default, stream))
+                using (Image image = decoder.Decode(Configuration.Default, stream, default))
                 {
                     ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -102,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 ImageMetadata meta = image.Metadata;
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);
@@ -118,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 JpegMetadata meta = image.Metadata.GetJpegMetadata();
                 Assert.Equal(quality, meta.Quality);
             }
@@ -131,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                using (Image image = JpegDecoder.Decode(Configuration.Default, stream))
+                using (Image image = JpegDecoder.Decode(Configuration.Default, stream, default))
                 {
                     JpegMetadata meta = image.Metadata.GetJpegMetadata();
                     Assert.Equal(quality, meta.Quality);
@@ -153,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream);
+                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream, default);
                 JpegMetadata meta = image.Metadata.GetJpegMetadata();
                 Assert.Equal(expectedColorType, meta.ColorType);
             }
@@ -180,11 +179,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo imageInfo = useIdentify
-                ? ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream)
-                : decoder.Decode<Rgba32>(Configuration.Default, stream);
-
-                test(imageInfo);
+                if (useIdentify)
+                {
+                    IImageInfo imageInfo = ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream, default);
+                    test(imageInfo);
+                }
+                else
+                {
+                    using var img = decoder.Decode<Rgba32>(Configuration.Default, stream, default);
+                    test(img);
+                }
             }
         }
 
@@ -298,6 +302,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Exception ex = Record.Exception(() =>
             {
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            });
+            Assert.Null(ex);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.ExifNullArrayTag, PixelTypes.Rgba32)]
+        public void Clone_WithNullRationalArrayTag_DoesNotThrowException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Exception ex = Record.Exception(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+                var clone = image.Metadata.ExifProfile.DeepClone();
             });
             Assert.Null(ex);
         }

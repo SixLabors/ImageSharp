@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -15,11 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
     {
         private readonly bool isWhiteZero;
 
-        private readonly byte whiteValue;
-
-        private readonly byte blackValue;
-
         private readonly int width;
+
+        private readonly byte white;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T6TiffCompression" /> class.
@@ -40,8 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             this.FillOrder = fillOrder;
             this.width = width;
             this.isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-            this.whiteValue = (byte)(this.isWhiteZero ? 0 : 1);
-            this.blackValue = (byte)(this.isWhiteZero ? 1 : 0);
+            this.white = (byte)(this.isWhiteZero ? 0 : 255);
         }
 
         /// <summary>
@@ -53,15 +52,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
             int height = stripHeight;
+            buffer.Clear();
 
             using System.Buffers.IMemoryOwner<byte> scanLineBuffer = this.Allocator.Allocate<byte>(this.width * 2);
             Span<byte> scanLine = scanLineBuffer.GetSpan().Slice(0, this.width);
             Span<byte> referenceScanLineSpan = scanLineBuffer.GetSpan().Slice(this.width, this.width);
 
-            using var bitReader = new T6BitReader(stream, this.FillOrder, byteCount, this.Allocator);
+            var bitReader = new T6BitReader(stream, this.FillOrder, byteCount);
 
             var referenceScanLine = new CcittReferenceScanline(this.isWhiteZero, this.width);
-            uint bitsWritten = 0;
+            nint bitsWritten = 0;
             for (int y = 0; y < height; y++)
             {
                 scanLine.Clear();
@@ -74,21 +74,34 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             }
         }
 
-        private uint WriteScanLine(Span<byte> buffer, Span<byte> scanLine, uint bitsWritten)
+        private nint WriteScanLine(Span<byte> buffer, Span<byte> scanLine, nint bitsWritten)
         {
-            byte white = (byte)(this.isWhiteZero ? 0 : 255);
-            for (int i = 0; i < scanLine.Length; i++)
+            nint bitPos = Numerics.Modulo8(bitsWritten);
+            nint bufferPos = bitsWritten / 8;
+            ref byte scanLineRef = ref MemoryMarshal.GetReference(scanLine);
+            for (nint i = 0; i < scanLine.Length; i++)
             {
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, 1, scanLine[i] == white ? this.whiteValue : this.blackValue);
+                if (Unsafe.Add(ref scanLineRef, i) != this.white)
+                {
+                    BitWriterUtils.WriteBit(buffer, bufferPos, bitPos);
+                }
+
+                bitPos++;
                 bitsWritten++;
+
+                if (bitPos >= 8)
+                {
+                    bitPos = 0;
+                    bufferPos++;
+                }
             }
 
             // Write padding bytes, if necessary.
-            uint remainder = bitsWritten % 8;
+            nint remainder = Numerics.Modulo8(bitsWritten);
             if (remainder != 0)
             {
-                uint padding = 8 - remainder;
-                BitWriterUtils.WriteBits(buffer, (int)bitsWritten, padding, 0);
+                nint padding = 8 - remainder;
+                BitWriterUtils.WriteBits(buffer, bitsWritten, padding, 0);
                 bitsWritten += padding;
             }
 
@@ -122,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     }
                     else
                     {
-                        scanline.Fill((byte)255);
+                        scanline.Fill(255);
                     }
 
                     break;

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -287,8 +287,7 @@ namespace SixLabors.ImageSharp.Advanced
            where TPixel : unmanaged, IPixel<TPixel>
            where TDecoder : class, IImageDecoder
         {
-            default(TDecoder).Decode<TPixel>(default, default);
-            default(TDecoder).DecodeAsync<TPixel>(default, default, default);
+            default(TDecoder).Decode<TPixel>(default, default, default);
         }
 
         /// <summary>

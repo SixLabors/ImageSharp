@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -139,8 +139,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
-            FastFloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
+            FloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            FloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -202,8 +202,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
-            FastFloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
+            FloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            FloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            FastFloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            FloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -319,7 +319,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F quantTable, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            FastFloatingPointDCT.AdjustToFDCT(ref quantTable);
+            FloatingPointDCT.AdjustToFDCT(ref quantTable);
 
             this.huffmanTables = HuffmanLut.TheHuffmanLut;
 
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             block.AddInPlace(-128f);
 
             // Discrete cosine transform
-            FastFloatingPointDCT.TransformFDCT(ref block);
+            FloatingPointDCT.TransformFDCT(ref block);
 
             // Quantization
             Block8x8F.Quantize(ref block, ref spectralBlock, ref quant);

@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
@@ -130,6 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             return index + offset;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int FindB2ForImaginaryWhiteLine() => this.width;
 
         private int FindB2ForNormalLine(int b1)

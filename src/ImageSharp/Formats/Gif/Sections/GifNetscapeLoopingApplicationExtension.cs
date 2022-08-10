@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // 0 means loop indefinitely. Count is set as play n + 1 times.
             BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(14, 2), this.RepeatCount);
 
-            return 16; // Length - Introducer + Label + Terminator.
+            return this.ContentLength; // Length - Introducer + Label + Terminator.
         }
     }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
     internal static class PaethFilter
     {
         /// <summary>
-        /// Decodes the scanline
+        /// Decodes a scanline, which was filtered with the paeth filter.
         /// </summary>
-        /// <param name="scanline">The scanline to decode</param>
+        /// <param name="scanline">The scanline to decode.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -32,6 +32,86 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         {
             DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
 
+            // Paeth tries to predict pixel d using the pixel to the left of it, a,
+            // and two pixels from the previous row, b and c:
+            // prev: c b
+            // row:  a d
+            // The Paeth function predicts d to be whichever of a, b, or c is nearest to
+            // p = a + b - c.
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse41.IsSupported && bytesPerPixel is 4)
+            {
+                DecodeSse41(scanline, previousScanline);
+            }
+            else
+#endif
+            {
+                DecodeScalar(scanline, previousScanline, bytesPerPixel);
+            }
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DecodeSse41(Span<byte> scanline, Span<byte> previousScanline)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            Vector128<byte> b = Vector128<byte>.Zero;
+            Vector128<byte> d = Vector128<byte>.Zero;
+
+            int rb = scanline.Length;
+            nint offset = 1;
+            while (rb >= 4)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+
+                // It's easiest to do this math (particularly, deal with pc) with 16-bit intermediates.
+                Vector128<byte> c = b;
+                Vector128<byte> a = d;
+                b = Sse2.UnpackLow(
+                    Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte(),
+                    Vector128<byte>.Zero);
+                d = Sse2.UnpackLow(
+                    Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte(),
+                    Vector128<byte>.Zero);
+
+                // (p-a) == (a+b-c - a) == (b-c)
+                Vector128<short> pa = Sse2.Subtract(b.AsInt16(), c.AsInt16());
+
+                // (p-b) == (a+b-c - b) == (a-c)
+                Vector128<short> pb = Sse2.Subtract(a.AsInt16(), c.AsInt16());
+
+                // (p-c) == (a+b-c - c) == (a+b-c-c) == (b-c)+(a-c)
+                Vector128<short> pc = Sse2.Add(pa.AsInt16(), pb.AsInt16());
+
+                pa = Ssse3.Abs(pa.AsInt16()).AsInt16(); /* |p-a| */
+                pb = Ssse3.Abs(pb.AsInt16()).AsInt16(); /* |p-b| */
+                pc = Ssse3.Abs(pc.AsInt16()).AsInt16(); /* |p-c| */
+
+                Vector128<short> smallest = Sse2.Min(pc, Sse2.Min(pa, pb));
+
+                // Paeth breaks ties favoring a over b over c.
+                Vector128<byte> mask = Sse41.BlendVariable(c, b, Sse2.CompareEqual(smallest, pb).AsByte());
+                Vector128<byte> nearest = Sse41.BlendVariable(mask, a, Sse2.CompareEqual(smallest, pa).AsByte());
+
+                // Note `_epi8`: we need addition to wrap modulo 255.
+                d = Sse2.Add(d, nearest);
+
+                // Store the result.
+                Unsafe.As<byte, int>(ref scanRef) = Sse2.ConvertToInt32(Sse2.PackUnsignedSaturate(d.AsInt16(), d.AsInt16()).AsInt32());
+
+                rb -= 4;
+                offset += 4;
+            }
+        }
+
+#endif
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
+        {
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
@@ -56,13 +136,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         }
 
         /// <summary>
-        /// Encodes the scanline
+        /// Encodes a scanline and applies the paeth filter.
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
-        /// <param name="sum">The sum of the total variance of the filtered row</param>
+        /// <param name="sum">The sum of the total variance of the filtered row.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
         {

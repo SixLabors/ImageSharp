@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -18,19 +18,19 @@ namespace SixLabors.ImageSharp.Tests.IO
     /// </summary>
     public class ChunkedMemoryStreamTests
     {
+        /// <summary>
+        /// The default length in bytes of each buffer chunk when allocating large buffers.
+        /// </summary>
+        private const int DefaultLargeChunkSize = 1024 * 1024 * 4; // 4 Mb
+
+        /// <summary>
+        /// The default length in bytes of each buffer chunk when allocating small buffers.
+        /// </summary>
+        private const int DefaultSmallChunkSize = DefaultLargeChunkSize / 32; // 128 Kb
+
         private readonly MemoryAllocator allocator;
 
-        public ChunkedMemoryStreamTests()
-        {
-            this.allocator = Configuration.Default.MemoryAllocator;
-        }
-
-        [Fact]
-        public void MemoryStream_Ctor_InvalidCapacities()
-        {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ChunkedMemoryStream(int.MinValue, this.allocator));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ChunkedMemoryStream(0, this.allocator));
-        }
+        public ChunkedMemoryStreamTests() => this.allocator = Configuration.Default.MemoryAllocator;
 
         [Fact]
         public void MemoryStream_GetPositionTest_Negative()
@@ -61,11 +61,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 1.5))]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 4)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 5.5))]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 8)]
+        [InlineData(DefaultSmallChunkSize)]
+        [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+        [InlineData(DefaultSmallChunkSize * 4)]
+        [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+        [InlineData(DefaultSmallChunkSize * 16)]
         public void MemoryStream_ReadByteTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.IO
 
             ms.CopyTo(cms);
             cms.Position = 0;
-            var expected = ms.ToArray();
+            byte[] expected = ms.ToArray();
 
             for (int i = 0; i < expected.Length; i++)
             {
@@ -82,11 +82,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 1.5))]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 4)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 5.5))]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 8)]
+        [InlineData(DefaultSmallChunkSize)]
+        [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+        [InlineData(DefaultSmallChunkSize * 4)]
+        [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+        [InlineData(DefaultSmallChunkSize * 16)]
         public void MemoryStream_ReadByteBufferTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);
@@ -94,8 +94,8 @@ namespace SixLabors.ImageSharp.Tests.IO
 
             ms.CopyTo(cms);
             cms.Position = 0;
-            var expected = ms.ToArray();
-            var buffer = new byte[2];
+            byte[] expected = ms.ToArray();
+            byte[] buffer = new byte[2];
             for (int i = 0; i < expected.Length; i += 2)
             {
                 cms.Read(buffer);
@@ -105,11 +105,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 1.5))]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 4)]
-        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 5.5))]
-        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 8)]
+        [InlineData(DefaultSmallChunkSize)]
+        [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+        [InlineData(DefaultSmallChunkSize * 4)]
+        [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+        [InlineData(DefaultSmallChunkSize * 16)]
         public void MemoryStream_ReadByteBufferSpanTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.IO
 
             ms.CopyTo(cms);
             cms.Position = 0;
-            var expected = ms.ToArray();
+            byte[] expected = ms.ToArray();
             Span<byte> buffer = new byte[2];
             for (int i = 0; i < expected.Length; i += 2)
             {
@@ -257,24 +257,24 @@ namespace SixLabors.ImageSharp.Tests.IO
         public void MemoryStream_CopyTo_Invalid()
         {
             ChunkedMemoryStream memoryStream;
-            const string BufferSize = "bufferSize";
+            const string bufferSize = nameof(bufferSize);
             using (memoryStream = new ChunkedMemoryStream(this.allocator))
             {
-                const string Destination = "destination";
-                Assert.Throws<ArgumentNullException>(Destination, () => memoryStream.CopyTo(destination: null));
+                const string destination = nameof(destination);
+                Assert.Throws<ArgumentNullException>(destination, () => memoryStream.CopyTo(destination: null));
 
                 // Validate the destination parameter first.
-                Assert.Throws<ArgumentNullException>(Destination, () => memoryStream.CopyTo(destination: null, bufferSize: 0));
-                Assert.Throws<ArgumentNullException>(Destination, () => memoryStream.CopyTo(destination: null, bufferSize: -1));
+                Assert.Throws<ArgumentNullException>(destination, () => memoryStream.CopyTo(destination: null, bufferSize: 0));
+                Assert.Throws<ArgumentNullException>(destination, () => memoryStream.CopyTo(destination: null, bufferSize: -1));
 
                 // Then bufferSize.
-                Assert.Throws<ArgumentOutOfRangeException>(BufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: 0)); // 0-length buffer doesn't make sense.
-                Assert.Throws<ArgumentOutOfRangeException>(BufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: -1));
+                Assert.Throws<ArgumentOutOfRangeException>(bufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: 0)); // 0-length buffer doesn't make sense.
+                Assert.Throws<ArgumentOutOfRangeException>(bufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: -1));
             }
 
             // After the Stream is disposed, we should fail on all CopyTos.
-            Assert.Throws<ArgumentOutOfRangeException>(BufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: 0)); // Not before bufferSize is validated.
-            Assert.Throws<ArgumentOutOfRangeException>(BufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: -1));
+            Assert.Throws<ArgumentOutOfRangeException>(bufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: 0)); // Not before bufferSize is validated.
+            Assert.Throws<ArgumentOutOfRangeException>(bufferSize, () => memoryStream.CopyTo(Stream.Null, bufferSize: -1));
 
             ChunkedMemoryStream disposedStream = memoryStream;
 
@@ -369,7 +369,7 @@ namespace SixLabors.ImageSharp.Tests.IO
 
         private MemoryStream CreateTestStream(int length)
         {
-            var buffer = new byte[length];
+            byte[] buffer = new byte[length];
             var random = new Random();
             random.NextBytes(buffer);
 

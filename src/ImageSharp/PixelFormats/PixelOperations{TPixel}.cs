@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     public partial class PixelOperations<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private static readonly Lazy<PixelTypeInfo> LazyInfo = new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<TPixel>(), true);
+        private static readonly Lazy<PixelTypeInfo> LazyInfo = new(() => PixelTypeInfo.Create<TPixel>(), true);
 
         /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
@@ -116,29 +116,29 @@ namespace SixLabors.ImageSharp.PixelFormats
             Span<TPixel> destinationPixels)
             where TSourcePixel : unmanaged, IPixel<TSourcePixel>
         {
-            const int SliceLength = 1024;
-            int numberOfSlices = sourcePixels.Length / SliceLength;
+            const int sliceLength = 1024;
+            int numberOfSlices = sourcePixels.Length / sliceLength;
 
-            using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(SliceLength);
+            using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sliceLength);
             Span<Vector4> vectorSpan = tempVectors.GetSpan();
             for (int i = 0; i < numberOfSlices; i++)
             {
-                int start = i * SliceLength;
-                ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(start, SliceLength);
-                Span<TPixel> d = destinationPixels.Slice(start, SliceLength);
-                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan);
-                this.FromVector4Destructive(configuration, vectorSpan, d);
+                int start = i * sliceLength;
+                ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(start, sliceLength);
+                Span<TPixel> d = destinationPixels.Slice(start, sliceLength);
+                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
+                this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
             }
 
-            int endOfCompleteSlices = numberOfSlices * SliceLength;
+            int endOfCompleteSlices = numberOfSlices * sliceLength;
             int remainder = sourcePixels.Length - endOfCompleteSlices;
             if (remainder > 0)
             {
                 ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(endOfCompleteSlices);
                 Span<TPixel> d = destinationPixels.Slice(endOfCompleteSlices);
                 vectorSpan = vectorSpan.Slice(0, remainder);
-                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan);
-                this.FromVector4Destructive(configuration, vectorSpan, d);
+                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
+                this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
             }
         }
 

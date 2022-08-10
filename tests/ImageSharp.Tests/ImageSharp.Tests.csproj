@@ -6,23 +6,18 @@
     <AssemblyName>SixLabors.ImageSharp.Tests</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
-    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net6.0;net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
-      </PropertyGroup>
-    </When>
-    <When Condition="$(Configuration.EndsWith('InnerLoop')) == true">
-      <PropertyGroup>
-        <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+        <TargetFrameworks>net6.0</TargetFrameworks>
       </PropertyGroup>
     </Otherwise>
   </Choose>
@@ -40,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
@@ -47,7 +43,6 @@
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="System.IO.Compression" Condition="'$(TargetFramework)' == 'net472'" />
   </ItemGroup>
 
   <ItemGroup>

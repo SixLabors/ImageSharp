@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 
@@ -97,11 +97,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public void Clear()
         {
-            Array.Clear(this.YDcLevels, 0, this.YDcLevels.Length);
-            Array.Clear(this.YAcLevels, 0, this.YAcLevels.Length);
-            Array.Clear(this.UvLevels, 0, this.UvLevels.Length);
-            Array.Clear(this.ModesI4, 0, this.ModesI4.Length);
-            Array.Clear(this.Derr, 0, this.Derr.Length);
+            Array.Clear(this.YDcLevels);
+            Array.Clear(this.YAcLevels);
+            Array.Clear(this.UvLevels);
+            Array.Clear(this.ModesI4);
+            Array.Clear(this.Derr);
         }
 
         public void InitScore()

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Metadata
         /// </summary>
         public const PixelResolutionUnit DefaultPixelResolutionUnits = PixelResolutionUnit.PixelsPerInch;
 
-        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new Dictionary<IImageFormat, IDeepCloneable>();
+        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new();
         private double horizontalResolution;
         private double verticalResolution;
 
@@ -68,6 +68,7 @@ namespace SixLabors.ImageSharp.Metadata
             this.ExifProfile = other.ExifProfile?.DeepClone();
             this.IccProfile = other.IccProfile?.DeepClone();
             this.IptcProfile = other.IptcProfile?.DeepClone();
+            this.XmpProfile = other.XmpProfile?.DeepClone();
         }
 
         /// <summary>
@@ -175,7 +176,7 @@ namespace SixLabors.ImageSharp.Metadata
         }
 
         /// <inheritdoc/>
-        public ImageMetadata DeepClone() => new ImageMetadata(this);
+        public ImageMetadata DeepClone() => new(this);
 
         /// <summary>
         /// Synchronizes the profiles with the current metadata.

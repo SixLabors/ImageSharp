@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Theory]
         [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // If its not a webp input image, it should default to lossy.
         [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
-        [WithFile(Lossy.Bike, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
+        [WithFile(Lossy.BikeWithExif, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
         public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -268,9 +269,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, true)]
-        public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, bool compressed)
+        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, false, 64020)]
+        [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, true, 16200)]
+        public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, bool compressed, int expectedFileSize)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoder()
@@ -280,7 +281,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             };
 
             using Image<TPixel> image = provider.GetImage();
-            image.VerifyEncoder(provider, "webp", $"with_alpha_compressed_{compressed}", encoder, ImageComparer.Tolerant(0.04f));
+            string encodedFile = image.VerifyEncoder(
+                provider,
+                "webp",
+                $"with_alpha_compressed_{compressed}",
+                encoder,
+                ImageComparer.Tolerant(0.04f),
+                referenceDecoder: new MagickReferenceDecoder());
+
+            int encodedBytes = File.ReadAllBytes(encodedFile).Length;
+            Assert.True(encodedBytes <= expectedFileSize);
         }
 
         [Theory]

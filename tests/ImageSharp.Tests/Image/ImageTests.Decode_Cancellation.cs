@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.continueSemaphore.Release();
             }
 
-            protected override Stream CreateStream() => this.TestFormat.CreateAsyncSamaphoreStream(this.notifyWaitPositionReachedSemaphore, this.continueSemaphore, this.isTestStreamSeekable);
+            protected override Stream CreateStream() => this.TestFormat.CreateAsyncSemaphoreStream(this.notifyWaitPositionReachedSemaphore, this.continueSemaphore, this.isTestStreamSeekable);
         }
     }
 }

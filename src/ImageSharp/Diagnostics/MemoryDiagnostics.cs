@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
+using System;
 using System.Threading;
 
 namespace SixLabors.ImageSharp.Diagnostics
@@ -48,17 +49,33 @@ namespace SixLabors.ImageSharp.Diagnostics
         }
 
         /// <summary>
+        /// Fires when ImageSharp allocates memory from a MemoryAllocator
+        /// </summary>
+        internal static event Action MemoryAllocated;
+
+        /// <summary>
+        /// Fires when ImageSharp releases memory allocated from a MemoryAllocator
+        /// </summary>
+        internal static event Action MemoryReleased;
+
+        /// <summary>
         /// Gets a value indicating the total number of memory resource objects leaked to the finalizer.
         /// </summary>
         public static int TotalUndisposedAllocationCount => totalUndisposedAllocationCount;
 
         internal static bool UndisposedAllocationSubscribed => Volatile.Read(ref undisposedAllocationSubscriptionCounter) > 0;
 
-        internal static void IncrementTotalUndisposedAllocationCount() =>
+        internal static void IncrementTotalUndisposedAllocationCount()
+        {
             Interlocked.Increment(ref totalUndisposedAllocationCount);
+            MemoryAllocated?.Invoke();
+        }
 
-        internal static void DecrementTotalUndisposedAllocationCount() =>
+        internal static void DecrementTotalUndisposedAllocationCount()
+        {
             Interlocked.Decrement(ref totalUndisposedAllocationCount);
+            MemoryReleased?.Invoke();
+        }
 
         internal static void RaiseUndisposedMemoryResource(string allocationStackTrace)
         {

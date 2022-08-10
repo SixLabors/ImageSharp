@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -20,6 +20,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNoData() => throw new InvalidImageContentException("PNG Image does not contain a data chunk");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowMissingPalette() => throw new InvalidImageContentException("PNG Image does not contain a palette chunk");
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowInvalidChunkType() => throw new InvalidImageContentException("Invalid PNG data.");

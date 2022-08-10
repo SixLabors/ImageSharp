@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -13,6 +14,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     [Trait("Format", "Tiff")]
+    [ValidateDisposedMemoryAllocations]
     public class TiffDecoderTests : TiffDecoderBaseTester
     {
         public static readonly string[] MultiframeTestImages = Multiframes;
@@ -77,8 +79,41 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(FlowerRgb888Planar6Strips, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb888Planar15Strips, PixelTypes.Rgba32)]
-        public void TiffDecoder_Planar<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffDecoder_CanDecode_Planar<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba8BitPlanarUnassociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Planar_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba16BitPlanarUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba16BitPlanarUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Planar_64Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba24BitPlanarUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba24BitPlanarUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Planar_96Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(Rgba32BitPlanarUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba32BitPlanarUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Planar_128Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
@@ -123,6 +158,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(Rgba2BitUnassociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_8Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FLowerRgb3Bit, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_9Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
         [WithFile(Flower10BitGray, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_10Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
@@ -139,8 +184,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(Rgba3BitUnassociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_12Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba3BitAssociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_12Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
+                using Image<TPixel> image = provider.GetImage(TiffDecoder);
+                image.DebugSave(provider);
+                return;
+            }
+
+            // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
+            TestTiffDecoder(provider, useExactComparer: false);
+        }
+
+        [Theory]
         [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_14Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FLowerRgb5Bit, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_15Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
@@ -158,6 +230,66 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(Rgba4BitUnassociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_16Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(FLowerRgb6Bit, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_18Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba5BitUnassociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_20Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba5BitAssociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_20Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
+                using Image<TPixel> image = provider.GetImage(TiffDecoder);
+                image.DebugSave(provider);
+                return;
+            }
+
+            // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
+            TestTiffDecoder(provider, useExactComparer: false);
+        }
+
+        [Theory]
+        [WithFile(FlowerRgb888Contiguous, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba6BitUnassociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_24Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba6BitAssociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_24Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
+                using Image<TPixel> image = provider.GetImage(TiffDecoder);
+                image.DebugSave(provider);
+                return;
+            }
+
+            // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
+            TestTiffDecoder(provider, useExactComparer: false);
+        }
+
+        [Theory]
         [WithFile(Flower24BitGray, PixelTypes.Rgba32)]
         [WithFile(Flower24BitGrayLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_24Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
@@ -171,8 +303,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(FlowerYCbCr888Contiguous, PixelTypes.Rgba32)]
         [WithFile(FlowerYCbCr888Planar, PixelTypes.Rgba32)]
-        [WithFile(RgbYCbCr888Contiguoush1v1, PixelTypes.Rgba32)]
-        [WithFile(RgbYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
         [WithFile(RgbYCbCr888Contiguoush2v2, PixelTypes.Rgba32)]
         [WithFile(RgbYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
         [WithFile(FlowerYCbCr888Contiguoush2v1, PixelTypes.Rgba32)]
@@ -182,9 +312,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
-            // converting the pixel data from Magick.Net to our format with YCbCr?
+            // converting the pixel data from Magick.NET to our format with YCbCr?
             using Image<TPixel> image = provider.GetImage();
             image.DebugSave(provider);
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        }
+
+        [Theory]
+        [WithFile(CieLab, PixelTypes.Rgba32)]
+        [WithFile(CieLabPlanar, PixelTypes.Rgba32)]
+        [WithFile(CieLabLzwPredictor, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_CieLab<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
+            // converting the pixel data from Magick.NET to our format with CieLab?
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
         }
 
         [Theory]
@@ -207,6 +352,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(Rgba8BitUnassociatedAlpha, PixelTypes.Rgba32)]
+        [WithFile(Rgba8BitUnassociatedAlphaWithPredictor, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_32Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(Rgba8BitAssociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_32Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
+                using Image<TPixel> image = provider.GetImage(TiffDecoder);
+                image.DebugSave(provider);
+                return;
+            }
+
+            // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
+            TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
+        }
+
+        [Theory]
         [WithFile(Flower32BitGrayPredictorBigEndian, PixelTypes.Rgba32)]
         [WithFile(Flower32BitGrayPredictorLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_32Bit_Gray_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
@@ -221,6 +394,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(FlowerRgb121212Contiguous, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_36Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba10BitUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba10BitUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_40Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba10BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba10BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_40Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
+                using Image<TPixel> image = provider.GetImage(TiffDecoder);
+                image.DebugSave(provider);
+                return;
+            }
+
+            // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
+            TestTiffDecoder(provider, useExactComparer: false);
+        }
 
         [Theory]
         [WithFile(FlowerRgb141414Contiguous, PixelTypes.Rgba32)]
@@ -238,10 +435,58 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(Rgba12BitUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba12BitUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_48Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba12BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba12BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_48Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
+                using Image<TPixel> image = provider.GetImage(TiffDecoder);
+                image.DebugSave(provider);
+                return;
+            }
+
+            // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
+            TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.0002f);
+        }
+
+        [Theory]
         [WithFile(FlowerRgb161616PredictorBigEndian, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb161616PredictorLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_48Bit_WithPredictor<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba14BitUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba14BitUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_56Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba14BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba14BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_56Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
+                using Image<TPixel> image = provider.GetImage(TiffDecoder);
+                image.DebugSave(provider);
+                return;
+            }
+
+            // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
+            TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.0002f);
+        }
 
         [Theory]
         [WithFile(FlowerRgb242424Contiguous, PixelTypes.Rgba32)]
@@ -262,6 +507,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(FlowerRgb323232Planar, PixelTypes.Rgba32)]
         [WithFile(FlowerRgb323232PlanarLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_96Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(Rgba24BitUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba24BitUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_96Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
@@ -297,6 +553,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Flower32BitFloatGrayMinIsWhite, PixelTypes.Rgba32)]
         [WithFile(Flower32BitFloatGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Float_96Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(Rgba16BitUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba16BitUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba16BitUnassociatedAlphaBigEndianWithPredictor, PixelTypes.Rgba32)]
+        [WithFile(Rgba16BitUnassociatedAlphaLittleEndianWithPredictor, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_128Bit_UnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+        [Theory]
+        [WithFile(Rgba32BitUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba32BitUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+        [WithFile(Rgba32BitUnassociatedAlphaBigEndianWithPredictor, PixelTypes.Rgba32)]
+        [WithFile(Rgba32BitUnassociatedAlphaLittleEndianWithPredictor, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_128Bit_WithUnassociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Note: because the MagickReferenceDecoder fails to load the image, we only debug save them.
@@ -348,6 +625,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Fax4Compressed, PixelTypes.Rgba32)]
+        [WithFile(Fax4Compressed2, PixelTypes.Rgba32)]
+        [WithFile(Fax4CompressedMinIsBlack, PixelTypes.Rgba32)]
         [WithFile(Fax4CompressedLowerOrderBitsFirst, PixelTypes.Rgba32)]
         [WithFile(Calliphora_Fax4Compressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Fax4Compressed<TPixel>(TestImageProvider<TPixel> provider)
@@ -366,12 +645,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
+        [WithFile(MultiFrameMipMap, PixelTypes.Rgba32)]
+        public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TiffDecoder() { DecodingMode = FrameDecodingMode.First }))
+            {
+                Assert.Equal(1, image.Frames.Count);
+            }
+        }
+
+        [Theory]
         [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbJpegCompressed2, PixelTypes.Rgba32)]
         [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
         [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(YCbCrJpegCompressed2, PixelTypes.Rgba32)]
         [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
+        [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32)]
+        [WithFile(Issues2123, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
+
+        [Theory]
+        [WithFile(WebpCompressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_WebpCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsWindows)
+            {
+                TestTiffDecoder(provider, useExactComparer: false);
+            }
+        }
 
         // https://github.com/SixLabors/ImageSharp/issues/1891
         [Theory]
@@ -384,6 +689,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                     {
                     }
                 });
+
+        // https://github.com/SixLabors/ImageSharp/issues/2149
+        [Theory]
+        [WithFile(Issues2149, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Fax4CompressedWithStrips<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]

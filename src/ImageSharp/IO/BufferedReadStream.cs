@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -113,6 +113,15 @@ namespace SixLabors.ImageSharp.IO
 
         /// <inheritdoc/>
         public override bool CanWrite { get; } = false;
+
+        /// <summary>
+        /// Gets remaining byte count available to read.
+        /// </summary>
+        public long RemainingBytes
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.Length - this.Position;
+        }
 
         /// <summary>
         /// Gets the underlying stream.

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Collections.Generic;
 using Xunit;
@@ -72,10 +72,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Issues.Fuzz.NullReferenceException823,
             TestImages.Jpeg.Issues.MalformedUnsupportedComponentCount,
 
-            // Arithmetic coding
-            TestImages.Jpeg.Baseline.ArithmeticCoding,
-            TestImages.Jpeg.Baseline.ArithmeticCodingProgressive,
-
             // Lossless jpeg
             TestImages.Jpeg.Baseline.Lossless
         };
@@ -105,6 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693A,
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693B,
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824C,
+            TestImages.Jpeg.Issues.Fuzz.NullReferenceException2085,
         };
 
         private static readonly Dictionary<string, float> CustomToleranceValues = new()

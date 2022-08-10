@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             Assert.Equal(width, resizeProcessor.DestinationWidth);
             Assert.Equal(height, resizeProcessor.DestinationHeight);
-            Assert.Equal(sampler, resizeProcessor.Sampler);
+            Assert.Equal(sampler, resizeProcessor.Options.Sampler);
         }
     }
 }

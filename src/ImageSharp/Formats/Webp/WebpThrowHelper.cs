@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -8,6 +8,13 @@ namespace SixLabors.ImageSharp.Formats.Webp
 {
     internal static class WebpThrowHelper
     {
+        /// <summary>
+        /// Cold path optimization for throwing <see cref="InvalidImageContentException"/>'s.
+        /// </summary>
+        /// <param name="errorMessage">The error message for the exception.</param>
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
+
         /// <summary>
         /// Cold path optimization for throwing <see cref="ImageFormatException"/>-s
         /// </summary>

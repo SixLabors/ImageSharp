@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -20,9 +20,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
     internal static class AverageFilter
     {
         /// <summary>
-        /// Decodes the scanline
+        /// Decodes a scanline, which was filtered with the average filter.
         /// </summary>
-        /// <param name="scanline">The scanline to decode</param>
+        /// <param name="scanline">The scanline to decode.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -30,11 +30,66 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         {
             DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
 
+            // The Avg filter predicts each pixel as the (truncated) average of a and b:
+            // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
+            // With pixels positioned like this:
+            //  prev:  c b
+            //  row:   a d
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported && bytesPerPixel is 4)
+            {
+                DecodeSse2(scanline, previousScanline);
+            }
+            else
+#endif
+            {
+                DecodeScalar(scanline, previousScanline, bytesPerPixel);
+            }
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DecodeSse2(Span<byte> scanline, Span<byte> previousScanline)
+        {
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
-            // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
-            int x = 1;
+            Vector128<byte> d = Vector128<byte>.Zero;
+            var ones = Vector128.Create((byte)1);
+
+            int rb = scanline.Length;
+            nint offset = 1;
+            while (rb >= 4)
+            {
+                ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+                Vector128<byte> a = d;
+                Vector128<byte> b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+                d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+
+                // PNG requires a truncating average, so we can't just use _mm_avg_epu8,
+                // but we can fix it up by subtracting off 1 if it rounded up.
+                Vector128<byte> avg = Sse2.Average(a, b);
+                Vector128<byte> xor = Sse2.Xor(a, b);
+                Vector128<byte> and = Sse2.And(xor, ones);
+                avg = Sse2.Subtract(avg, and);
+                d = Sse2.Add(d, avg);
+
+                // Store the result.
+                Unsafe.As<byte, int>(ref scanRef) = Sse2.ConvertToInt32(d.AsInt32());
+
+                rb -= 4;
+                offset += 4;
+            }
+        }
+#endif
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
+        {
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+            nint x = 1;
             for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x)
             {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
@@ -52,13 +107,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         }
 
         /// <summary>
-        /// Encodes the scanline
+        /// Encodes a scanline with the average filter applied.
         /// </summary>
-        /// <param name="scanline">The scanline to encode</param>
+        /// <param name="scanline">The scanline to encode.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
-        /// <param name="sum">The sum of the total variance of the filtered row</param>
+        /// <param name="sum">The sum of the total variance of the filtered row.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
         {

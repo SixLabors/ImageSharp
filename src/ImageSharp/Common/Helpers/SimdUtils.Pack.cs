@@ -65,6 +65,25 @@ namespace SixLabors.ImageSharp
             PackFromRgbPlanesRemainder(redChannel, greenChannel, blueChannel, destination);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal static void UnpackToRgbPlanes(
+            Span<float> redChannel,
+            Span<float> greenChannel,
+            Span<float> blueChannel,
+            ReadOnlySpan<Rgb24> source)
+        {
+            DebugGuard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(source.Length <= redChannel.Length, nameof(source), "'source' span should not be bigger than the destination channels!");
+
+            if (Avx2.IsSupported)
+            {
+                HwIntrinsics.UnpackToRgbPlanesAvx2Reduce(ref redChannel, ref greenChannel, ref blueChannel, ref source);
+            }
+
+            UnpackToRgbPlanesScalar(redChannel, greenChannel, blueChannel, source);
+        }
+
         private static void PackFromRgbPlanesScalarBatchedReduce(
             ref ReadOnlySpan<byte> redChannel,
             ref ReadOnlySpan<byte> greenChannel,
@@ -198,6 +217,30 @@ namespace SixLabors.ImageSharp
                 d.G = Unsafe.Add(ref g, i);
                 d.B = Unsafe.Add(ref b, i);
                 d.A = 255;
+            }
+        }
+
+        private static void UnpackToRgbPlanesScalar(
+            Span<float> redChannel,
+            Span<float> greenChannel,
+            Span<float> blueChannel,
+            ReadOnlySpan<Rgb24> source)
+        {
+            DebugGuard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(source.Length <= redChannel.Length, nameof(source), "'source' span should not be bigger than the destination channels!");
+
+            ref float r = ref MemoryMarshal.GetReference(redChannel);
+            ref float g = ref MemoryMarshal.GetReference(greenChannel);
+            ref float b = ref MemoryMarshal.GetReference(blueChannel);
+            ref Rgb24 rgb = ref MemoryMarshal.GetReference(source);
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                ref Rgb24 src = ref Unsafe.Add(ref rgb, i);
+                Unsafe.Add(ref r, i) = src.R;
+                Unsafe.Add(ref g, i) = src.G;
+                Unsafe.Add(ref b, i) = src.B;
             }
         }
     }

@@ -32,17 +32,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             => this.Decode<Rgb24>(configuration, stream, cancellationToken);
 
         /// <summary>
-        /// Placeholder summary.
-        /// </summary>
-        /// <param name="configuration">Placeholder2</param>
-        /// <param name="stream">Placeholder3</param>
-        /// <param name="targetSize">Placeholder4</param>
-        /// <param name="cancellationToken">Placeholder5</param>
-        /// <returns>Placeholder6</returns>
-        internal Image DecodeInto(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
-            => this.DecodeInto<Rgb24>(configuration, stream, targetSize, cancellationToken);
-
-        /// <summary>
         /// Decodes and downscales the image from the specified stream if possible.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>

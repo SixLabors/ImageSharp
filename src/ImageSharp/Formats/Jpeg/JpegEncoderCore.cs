@@ -330,9 +330,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Writes the XMP metadata.
         /// </summary>
         /// <param name="xmpProfile">The XMP metadata to write.</param>
-        /// <exception cref="ImageFormatException">
-        /// Thrown if the XMP profile size exceeds the limit of 65533 bytes.
-        /// </exception>
         private void WriteXmpProfile(XmpProfile xmpProfile)
         {
             if (xmpProfile is null)
@@ -352,26 +349,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             int dataLength = data.Length;
-            int offset = 0;
 
-            while (dataLength > 0)
+            // The XMP data cannot be split in multiple segments, therefore cap the data at 65KB.
+            if (dataLength > maxData)
             {
-                int length = dataLength; // Number of bytes to write.
-
-                if (length > maxData)
-                {
-                    length = maxData;
-                }
-
-                dataLength -= length;
-
-                int app1Length = 2 + Components.Decoder.ProfileResolver.XmpMarker.Length + length;
-                this.WriteApp1Header(app1Length);
-                this.outputStream.Write(Components.Decoder.ProfileResolver.XmpMarker);
-                this.outputStream.Write(data, offset, length);
-
-                offset += length;
+                dataLength = maxData;
             }
+
+            int offset = 0;
+            int app1Length = 2 + Components.Decoder.ProfileResolver.XmpMarker.Length + dataLength;
+            this.WriteApp1Header(app1Length);
+            this.outputStream.Write(Components.Decoder.ProfileResolver.XmpMarker);
+            this.outputStream.Write(data, offset, dataLength);
         }
 
         /// <summary>

@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -154,6 +153,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 48, PixelTypes.Rgb24 | PixelTypes.Bgr24)]
         public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.06f));
+
+        // XMP data should be capped at 65K
+        // https://github.com/SixLabors/ImageSharp/pull/2202
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue2022_LargeXmp, PixelTypes.Rgb24)]
+        public void Encode_CapsXmpData<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var options = new JpegEncoder() { Quality = 80 };
+            using Image<TPixel> image = provider.GetImage();
+
+            using (var memStream = new MemoryStream())
+            {
+                image.Save(memStream, options);
+                byte[] imageBytes = memStream.ToArray();
+                Assert.Equal(414148, imageBytes.Length);
+            }
+        }
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]

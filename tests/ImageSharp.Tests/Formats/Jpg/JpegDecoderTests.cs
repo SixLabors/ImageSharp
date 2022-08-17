@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -117,6 +118,118 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             image.CompareToReferenceOutput(
                 ImageComparer.Tolerant(BaselineTolerance),
                 provider,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Resize_Bicubic<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 },
+                Sampler = KnownResamplers.Bicubic
+            };
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Specialized_IDCT_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            JpegDecoderOptions specializedOptions = new()
+            {
+                GeneralOptions = options,
+                ResizeMode = JpegDecoderResizeMode.IdctOnly
+            };
+
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Specialized_Scale_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            JpegDecoderOptions specializedOptions = new()
+            {
+                GeneralOptions = options,
+                ResizeMode = JpegDecoderResizeMode.ScaleOnly
+            };
+
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Specialized_Combined_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            JpegDecoderOptions specializedOptions = new()
+            {
+                GeneralOptions = options,
+                ResizeMode = JpegDecoderResizeMode.Combined
+            };
+
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
                 appendPixelTypeToFileName: false);
         }
 

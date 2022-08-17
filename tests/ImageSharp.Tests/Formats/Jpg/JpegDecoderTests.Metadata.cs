@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;
@@ -104,6 +105,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public async Task Identify_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new JpegDecoder();
+            IImageInfo image = await decoder.IdentifyAsync(DecoderOptions.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+        }
+
+        [Theory]
         [MemberData(nameof(QualityFiles))]
         public void Identify_VerifyQuality(string imagePath, int quality)
         {
@@ -122,6 +137,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
             using Image image = JpegDecoder.Decode(DecoderOptions.Default, stream);
+            JpegMetadata meta = image.Metadata.GetJpegMetadata();
+            Assert.Equal(quality, meta.Quality);
+        }
+
+        [Theory]
+        [MemberData(nameof(QualityFiles))]
+        public async Task Decode_VerifyQualityAsync(string imagePath, int quality)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            using Image image = await JpegDecoder.DecodeAsync(DecoderOptions.Default, stream);
             JpegMetadata meta = image.Metadata.GetJpegMetadata();
             Assert.Equal(quality, meta.Quality);
         }
@@ -164,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var stream = new MemoryStream(testFile.Bytes, false);
             if (useIdentify)
             {
-                IImageInfo imageInfo = ((IImageInfoDetector)decoder).Identify(DecoderOptions.Default, stream, default);
+                IImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream, default);
                 test(imageInfo);
             }
             else

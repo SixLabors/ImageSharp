@@ -198,6 +198,37 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
         }
 
+        /// <summary>
+        /// Bulk operation that unpacks pixels from <paramref name="source"/>
+        /// into 3 seperate RGB channels. The destination must have a padding of 3.
+        /// </summary>
+        /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
+        /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
+        /// <param name="blueChannel">A <see cref="ReadOnlySpan{T}"/> to the blue values.</param>
+        /// <param name="source">A <see cref="Span{T}"/> to the destination pixels.</param>
+        internal virtual void UnpackIntoRgbPlanes(
+            Span<float> redChannel,
+            Span<float> greenChannel,
+            Span<float> blueChannel,
+            ReadOnlySpan<TPixel> source)
+        {
+            int count = redChannel.Length;
+
+            Rgba32 rgba32 = default;
+
+            ref float r = ref MemoryMarshal.GetReference(redChannel);
+            ref float g = ref MemoryMarshal.GetReference(greenChannel);
+            ref float b = ref MemoryMarshal.GetReference(blueChannel);
+            ref TPixel src = ref MemoryMarshal.GetReference(source);
+            for (int i = 0; i < count; i++)
+            {
+                Unsafe.Add(ref src, i).ToRgba32(ref rgba32);
+                Unsafe.Add(ref r, i) = rgba32.R;
+                Unsafe.Add(ref g, i) = rgba32.G;
+                Unsafe.Add(ref b, i) = rgba32.B;
+            }
+        }
+
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void GuardPackFromRgbPlanes(ReadOnlySpan<byte> greenChannel, ReadOnlySpan<byte> blueChannel, Span<TPixel> destination, int count)
         {

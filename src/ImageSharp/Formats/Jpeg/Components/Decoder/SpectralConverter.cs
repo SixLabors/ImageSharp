@@ -1,12 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Converter used to convert jpeg spectral data to color pixels.
+    /// Converter used to convert jpeg spectral data to pixels.
     /// </summary>
     internal abstract class SpectralConverter
     {

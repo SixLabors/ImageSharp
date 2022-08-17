@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     // Due to underlying architecture, baseline interleaved jpegs would inject spectral data during parsing
                     // Progressive and multi-scan images must be loaded manually
-                    if (this.frame.Progressive || this.frame.MultiScan)
+                    if (this.frame.Progressive || !this.frame.Interleaved)
                     {
                         this.PrepareForDecoding();
                         LibJpegTools.ComponentData[] components = this.spectralData.Components;

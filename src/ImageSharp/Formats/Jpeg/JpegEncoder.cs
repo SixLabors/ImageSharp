@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,11 +14,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
     {
-        /// <inheritdoc/>
-        public int? Quality { get; set; }
+        /// <summary>
+        /// Backing field for <see cref="Quality"/>.
+        /// </summary>
+        private int? quality;
 
         /// <inheritdoc/>
-        public JpegColorType? ColorType { get; set; }
+        public int? Quality
+        {
+            get => this.quality;
+            set
+            {
+                if (value is < 1 or > 100)
+                {
+                    throw new ArgumentException("Quality factor must be in [1..100] range.");
+                }
+
+                this.quality = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public bool? Interleaved { get; set; }
+
+        /// <inheritdoc/>
+        public JpegEncodingColor? ColorType { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.

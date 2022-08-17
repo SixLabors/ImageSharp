@@ -153,15 +153,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Floorplan, JpegColorType.Luminance)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegColorType.YCbCrRatio420)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegColorType.YCbCrRatio444)]
-        [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegColorType.Rgb)]
-        [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorType.Cmyk)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegColorType.YCbCrRatio410)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg422, JpegColorType.YCbCrRatio422)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegColorType.YCbCrRatio411)]
-        public void Identify_DetectsCorrectColorType(string imagePath, JpegColorType expectedColorType)
+        [InlineData(TestImages.Jpeg.Baseline.Floorplan, JpegEncodingColor.Luminance)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegEncodingColor.YCbCrRatio420)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegEncodingColor.YCbCrRatio444)]
+        [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegEncodingColor.Rgb)]
+        [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegEncodingColor.Cmyk)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegEncodingColor.YCbCrRatio410)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegEncodingColor.YCbCrRatio411)]
+        public void Identify_DetectsCorrectColorType(string imagePath, JpegEncodingColor expectedColorType)
         {
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
@@ -171,12 +170,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegColorType.Luminance)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgb24, JpegColorType.YCbCrRatio420)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegColorType.YCbCrRatio444)]
-        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgb24, JpegColorType.Rgb)]
-        [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgb24, JpegColorType.Cmyk)]
-        public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegEncodingColor.Luminance)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
+        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgb24, JpegEncodingColor.Rgb)]
+        [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgb24, JpegEncodingColor.Cmyk)]
+        public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor expectedColorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage(JpegDecoder);

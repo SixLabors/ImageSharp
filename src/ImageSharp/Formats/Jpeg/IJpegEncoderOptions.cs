@@ -16,8 +16,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int? Quality { get; set; }
 
         /// <summary>
-        /// Gets the color type, that will be used to encode the image.
+        /// Gets or sets the component encoding mode.
         /// </summary>
-        JpegColorType? ColorType { get; }
+        /// <remarks>
+        /// Interleaved encoding mode encodes all color components in a single scan.
+        /// Non-interleaved encoding mode encodes each color component in a separate scan.
+        /// </remarks>
+        public bool? Interleaved { get; set; }
+
+        /// <summary>
+        /// Gets or sets jpeg color for encoding.
+        /// </summary>
+        public JpegEncodingColor? ColorType { get; set; }
     }
 }

@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
             using JpegDecoderCore decoder = new(new() { GeneralOptions = options });

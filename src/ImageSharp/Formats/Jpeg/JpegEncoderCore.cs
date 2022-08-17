@@ -8,7 +8,6 @@ using System.Linq;
 using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -22,27 +21,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
-    internal sealed unsafe class JpegEncoderCore : IImageEncoderInternals
+    internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     {
         /// <summary>
-        /// The number of quantization tables.
+        /// The available encodable frame configs.
         /// </summary>
-        private const int QuantizationTableCount = 2;
+        private static readonly JpegFrameConfig[] FrameConfigs = CreateFrameConfigs();
 
         /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];
 
-        /// <summary>
-        /// The quality, that will be used to encode the image.
-        /// </summary>
-        private readonly int? quality;
-
-        /// <summary>
-        /// Gets or sets the colorspace to use.
-        /// </summary>
-        private JpegColorType? colorType;
+        private readonly IJpegEncoderOptions options;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -54,14 +45,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="options">The options.</param>
         public JpegEncoderCore(IJpegEncoderOptions options)
-        {
-            this.quality = options.Quality;
+            => this.options = options;
 
-            if (IsSupportedColorType(options.ColorType))
-            {
-                this.colorType = options.ColorType;
-            }
-        }
+        public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
 
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
@@ -84,146 +70,50 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             cancellationToken.ThrowIfCancellationRequested();
 
             this.outputStream = stream;
+
             ImageMetadata metadata = image.Metadata;
             JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
+            JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
-            // If the color type was not specified by the user, preserve the color type of the input image.
-            if (!this.colorType.HasValue)
-            {
-                this.colorType = GetFallbackColorType(image);
-            }
-
-            // Compute number of components based on color type in options.
-            int componentCount = (this.colorType == JpegColorType.Luminance) ? 1 : 3;
-            ReadOnlySpan<byte> componentIds = this.GetComponentIds();
-
-            // TODO: Right now encoder writes both quantization tables for grayscale images - we shouldn't do that
-            // Initialize the quantization tables.
-            this.InitQuantizationTables(componentCount, jpegMetadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable);
+            bool interleaved = this.options.Interleaved ?? jpegMetadata.Interleaved ?? true;
+            using var frame = new JpegFrame(image, frameConfig, interleaved);
 
             // Write the Start Of Image marker.
             this.WriteStartOfImage();
 
-            // Do not write APP0 marker for RGB colorspace.
-            if (this.colorType != JpegColorType.Rgb)
+            // Write APP0 marker
+            if (frameConfig.AdobeColorTransformMarkerFlag is null)
             {
                 this.WriteJfifApplicationHeader(metadata);
+            }
+
+            // Write APP14 marker with adobe color extension
+            else
+            {
+                this.WriteApp14Marker(frameConfig.AdobeColorTransformMarkerFlag.Value);
             }
 
             // Write Exif, XMP, ICC and IPTC profiles
             this.WriteProfiles(metadata);
 
-            if (this.colorType == JpegColorType.Rgb)
-            {
-                // Write App14 marker to indicate RGB color space.
-                this.WriteApp14Marker();
-            }
-
-            // Write the quantization tables.
-            this.WriteDefineQuantizationTables(ref luminanceQuantTable, ref chrominanceQuantTable);
-
             // Write the image dimensions.
-            this.WriteStartOfFrame(image.Width, image.Height, componentCount, componentIds);
+            this.WriteStartOfFrame(image.Width, image.Height, frameConfig);
 
             // Write the Huffman tables.
-            this.WriteDefineHuffmanTables(componentCount);
+            var scanEncoder = new HuffmanScanEncoder(frame.BlocksPerMcu, stream);
+            this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder);
 
-            // Write the scan header.
-            this.WriteStartOfScan(componentCount, componentIds);
+            // Write the quantization tables.
+            this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.options.Quality, jpegMetadata);
 
-            // Write the scan compressed data.
-            switch (this.colorType)
-            {
-                case JpegColorType.YCbCrRatio444:
-                    new HuffmanScanEncoder(3, stream).Encode444(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
-                    break;
-                case JpegColorType.YCbCrRatio420:
-                    new HuffmanScanEncoder(6, stream).Encode420(image, ref luminanceQuantTable, ref chrominanceQuantTable, cancellationToken);
-                    break;
-                case JpegColorType.Luminance:
-                    new HuffmanScanEncoder(1, stream).EncodeGrayscale(image, ref luminanceQuantTable, cancellationToken);
-                    break;
-                case JpegColorType.Rgb:
-                    new HuffmanScanEncoder(3, stream).EncodeRgb(image, ref luminanceQuantTable, cancellationToken);
-                    break;
-                default:
-                    // all other non-supported color types are checked at the start of this method
-                    break;
-            }
+            // Write scans with actual pixel data
+            using var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables);
+            this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, cancellationToken);
 
             // Write the End Of Image marker.
             this.WriteEndOfImageMarker();
 
             stream.Flush();
-        }
-
-        /// <summary>
-        /// If color type was not set, set it based on the given image.
-        /// Note, if there is no metadata and the image has multiple components this method
-        /// returns <see langword="null"/> defering the field assignment
-        /// to <see cref="InitQuantizationTables(int, JpegMetadata, out Block8x8F, out Block8x8F)"/>.
-        /// </summary>
-        private static JpegColorType? GetFallbackColorType<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // First inspect the image metadata.
-            JpegColorType? colorType = null;
-            JpegMetadata metadata = image.Metadata.GetJpegMetadata();
-            if (IsSupportedColorType(metadata.ColorType))
-            {
-                return metadata.ColorType;
-            }
-
-            // Secondly, inspect the pixel type.
-            // TODO: PixelTypeInfo should contain a component count!
-            bool isGrayscale =
-                typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
-                typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
-
-            // We don't set multi-component color types here since we can set it based upon
-            // the quality in InitQuantizationTables.
-            if (isGrayscale)
-            {
-                colorType = JpegColorType.Luminance;
-            }
-
-            return colorType;
-        }
-
-        /// <summary>
-        /// Returns true, if the color type is supported by the encoder.
-        /// </summary>
-        /// <param name="colorType">The color type.</param>
-        /// <returns>true, if color type is supported.</returns>
-        private static bool IsSupportedColorType(JpegColorType? colorType)
-            => colorType == JpegColorType.YCbCrRatio444
-            || colorType == JpegColorType.YCbCrRatio420
-            || colorType == JpegColorType.Luminance
-            || colorType == JpegColorType.Rgb;
-
-        /// <summary>
-        /// Gets the component ids.
-        /// For color space RGB this will be RGB as ASCII, otherwise 1, 2, 3.
-        /// </summary>
-        /// <returns>The component Ids.</returns>
-        private ReadOnlySpan<byte> GetComponentIds() => this.colorType == JpegColorType.Rgb
-                ? new ReadOnlySpan<byte>(new byte[] { 82, 71, 66 })
-                : new ReadOnlySpan<byte>(new byte[] { 1, 2, 3 });
-
-        /// <summary>
-        /// Writes data to "Define Quantization Tables" block for QuantIndex.
-        /// </summary>
-        /// <param name="dqt">The "Define Quantization Tables" block.</param>
-        /// <param name="offset">Offset in "Define Quantization Tables" block.</param>
-        /// <param name="i">The quantization index.</param>
-        /// <param name="quant">The quantization table to copy data from.</param>
-        private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F quant)
-        {
-            dqt[offset++] = (byte)i;
-            for (int j = 0; j < Block8x8F.Size; j++)
-            {
-                dqt[offset++] = (byte)quant[ZigZag.ZigZagOrder[j]];
-            }
         }
 
         /// <summary>
@@ -286,71 +176,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
-        /// <param name="componentCount">The number of components to write.</param>
-        private void WriteDefineHuffmanTables(int componentCount)
+        private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder)
         {
-            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
-            // and doesn't incur any allocation at all.
-            // Table identifiers.
-            ReadOnlySpan<byte> headers = new byte[]
+            if (tableConfigs is null)
             {
-                0x00,
-                0x10,
-                0x01,
-                0x11
-            };
-
-            int markerlen = 2;
-            HuffmanSpec[] specs = HuffmanSpec.TheHuffmanSpecs;
-
-            if (componentCount == 1)
-            {
-                // Drop the Chrominance tables.
-                specs = new[] { HuffmanSpec.TheHuffmanSpecs[0], HuffmanSpec.TheHuffmanSpecs[1] };
+                throw new ArgumentNullException(nameof(tableConfigs));
             }
 
-            for (int i = 0; i < specs.Length; i++)
+            int markerlen = 2;
+
+            for (int i = 0; i < tableConfigs.Length; i++)
             {
-                ref HuffmanSpec s = ref specs[i];
-                markerlen += 1 + 16 + s.Values.Length;
+                markerlen += 1 + 16 + tableConfigs[i].Table.Values.Length;
             }
 
             this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
-            for (int i = 0; i < specs.Length; i++)
+            for (int i = 0; i < tableConfigs.Length; i++)
             {
-                this.outputStream.WriteByte(headers[i]);
-                this.outputStream.Write(specs[i].Count);
-                this.outputStream.Write(specs[i].Values);
+                JpegHuffmanTableConfig tableConfig = tableConfigs[i];
+
+                int header = (tableConfig.Class << 4) | tableConfig.DestinationIndex;
+                this.outputStream.WriteByte((byte)header);
+                this.outputStream.Write(tableConfig.Table.Count);
+                this.outputStream.Write(tableConfig.Table.Values);
+
+                scanEncoder.BuildHuffmanTable(tableConfig);
             }
-        }
-
-        /// <summary>
-        /// Writes the Define Quantization Marker and tables.
-        /// </summary>
-        private void WriteDefineQuantizationTables(ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable)
-        {
-            // Marker + quantization table lengths.
-            int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.Size));
-            this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
-
-            // Loop through and collect the tables as one array.
-            // This allows us to reduce the number of writes to the stream.
-            int dqtCount = (QuantizationTableCount * Block8x8F.Size) + QuantizationTableCount;
-            byte[] dqt = new byte[dqtCount];
-            int offset = 0;
-
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref luminanceQuantTable);
-            WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref chrominanceQuantTable);
-
-            this.outputStream.Write(dqt, 0, dqtCount);
         }
 
         /// <summary>
         /// Writes the APP14 marker to indicate the image is in RGB color space.
         /// </summary>
-        private void WriteApp14Marker()
+        private void WriteApp14Marker(byte colorTransform)
         {
-            this.WriteMarkerHeader(JpegConstants.Markers.APP14, 2 + AdobeMarker.Length);
+            this.WriteMarkerHeader(JpegConstants.Markers.APP14, 2 + Components.Decoder.AdobeMarker.Length);
 
             // Identifier: ASCII "Adobe".
             this.buffer[0] = 0x41;
@@ -368,8 +227,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Flags1
             BinaryPrimitives.WriteInt16BigEndian(this.buffer.AsSpan(9, 2), 0);
 
-            // Transform byte, 0 in combination with three components means the image is in RGB colorspace.
-            this.buffer[11] = 0;
+            // Color transform byte
+            this.buffer[11] = colorTransform;
 
             this.outputStream.Write(this.buffer.AsSpan(0, 12));
         }
@@ -385,8 +244,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            const int MaxBytesApp1 = 65533; // 64k - 2 padding bytes
-            const int MaxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
+            const int maxBytesApp1 = 65533; // 64k - 2 padding bytes
+            const int maxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
 
             byte[] data = exifProfile.ToByteArray();
 
@@ -396,27 +255,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             // We can write up to a maximum of 64 data to the initial marker so calculate boundaries.
-            int exifMarkerLength = ProfileResolver.ExifMarker.Length;
+            int exifMarkerLength = Components.Decoder.ProfileResolver.ExifMarker.Length;
             int remaining = exifMarkerLength + data.Length;
-            int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;
+            int bytesToWrite = remaining > maxBytesApp1 ? maxBytesApp1 : remaining;
             int app1Length = bytesToWrite + 2;
 
             // Write the app marker, EXIF marker, and data
             this.WriteApp1Header(app1Length);
-            this.outputStream.Write(ProfileResolver.ExifMarker);
+            this.outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
             this.outputStream.Write(data, 0, bytesToWrite - exifMarkerLength);
             remaining -= bytesToWrite;
 
             // If the exif data exceeds 64K, write it in multiple APP1 Markers
-            for (int idx = MaxBytesWithExifId; idx < data.Length; idx += MaxBytesWithExifId)
+            for (int idx = maxBytesWithExifId; idx < data.Length; idx += maxBytesWithExifId)
             {
-                bytesToWrite = remaining > MaxBytesWithExifId ? MaxBytesWithExifId : remaining;
+                bytesToWrite = remaining > maxBytesWithExifId ? maxBytesWithExifId : remaining;
                 app1Length = bytesToWrite + 2 + exifMarkerLength;
 
                 this.WriteApp1Header(app1Length);
 
                 // Write Exif00 marker
-                this.outputStream.Write(ProfileResolver.ExifMarker);
+                this.outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
 
                 // Write the exif data
                 this.outputStream.Write(data, idx, bytesToWrite);
@@ -434,7 +293,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteIptcProfile(IptcProfile iptcProfile)
         {
-            const int Max = 65533;
+            const int maxBytes = 65533;
             if (iptcProfile is null || !iptcProfile.Values.Any())
             {
                 return;
@@ -447,19 +306,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            if (data.Length > Max)
+            if (data.Length > maxBytes)
             {
-                throw new ImageFormatException($"Iptc profile size exceeds limit of {Max} bytes");
+                throw new ImageFormatException($"Iptc profile size exceeds limit of {maxBytes} bytes");
             }
 
-            int app13Length = 2 + ProfileResolver.AdobePhotoshopApp13Marker.Length +
-                              ProfileResolver.AdobeImageResourceBlockMarker.Length +
-                              ProfileResolver.AdobeIptcMarker.Length +
+            int app13Length = 2 + Components.Decoder.ProfileResolver.AdobePhotoshopApp13Marker.Length +
+                              Components.Decoder.ProfileResolver.AdobeImageResourceBlockMarker.Length +
+                              Components.Decoder.ProfileResolver.AdobeIptcMarker.Length +
                               2 + 4 + data.Length;
             this.WriteAppHeader(app13Length, JpegConstants.Markers.APP13);
-            this.outputStream.Write(ProfileResolver.AdobePhotoshopApp13Marker);
-            this.outputStream.Write(ProfileResolver.AdobeImageResourceBlockMarker);
-            this.outputStream.Write(ProfileResolver.AdobeIptcMarker);
+            this.outputStream.Write(Components.Decoder.ProfileResolver.AdobePhotoshopApp13Marker);
+            this.outputStream.Write(Components.Decoder.ProfileResolver.AdobeImageResourceBlockMarker);
+            this.outputStream.Write(Components.Decoder.ProfileResolver.AdobeIptcMarker);
             this.outputStream.WriteByte(0); // a empty pascal string (padded to make size even)
             this.outputStream.WriteByte(0);
             BinaryPrimitives.WriteInt32BigEndian(this.buffer, data.Length);
@@ -481,9 +340,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            const int XmpOverheadLength = 29;
-            const int Max = 65533;
-            const int MaxData = Max - XmpOverheadLength;
+            const int xmpOverheadLength = 29;
+            const int maxBytes = 65533;
+            const int maxData = maxBytes - xmpOverheadLength;
 
             byte[] data = xmpProfile.Data;
 
@@ -499,16 +358,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 int length = dataLength; // Number of bytes to write.
 
-                if (length > MaxData)
+                if (length > maxData)
                 {
-                    length = MaxData;
+                    length = maxData;
                 }
 
                 dataLength -= length;
 
-                int app1Length = 2 + ProfileResolver.XmpMarker.Length + length;
+                int app1Length = 2 + Components.Decoder.ProfileResolver.XmpMarker.Length + length;
                 this.WriteApp1Header(app1Length);
-                this.outputStream.Write(ProfileResolver.XmpMarker);
+                this.outputStream.Write(Components.Decoder.ProfileResolver.XmpMarker);
                 this.outputStream.Write(data, offset, length);
 
                 offset += length;
@@ -551,9 +410,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            const int IccOverheadLength = 14;
-            const int Max = 65533;
-            const int MaxData = Max - IccOverheadLength;
+            const int iccOverheadLength = 14;
+            const int maxBytes = 65533;
+            const int maxData = maxBytes - iccOverheadLength;
 
             byte[] data = iccProfile.ToByteArray();
 
@@ -564,9 +423,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Calculate the number of markers we'll need, rounding up of course.
             int dataLength = data.Length;
-            int count = dataLength / MaxData;
+            int count = dataLength / maxData;
 
-            if (count * MaxData != dataLength)
+            if (count * maxData != dataLength)
             {
                 count++;
             }
@@ -579,9 +438,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 int length = dataLength; // Number of bytes to write.
 
-                if (length > MaxData)
+                if (length > maxData)
                 {
-                    length = MaxData;
+                    length = maxData;
                 }
 
                 dataLength -= length;
@@ -609,7 +468,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.buffer[12] = (byte)current; // The position within the collection.
                 this.buffer[13] = (byte)count; // The total number of profiles.
 
-                this.outputStream.Write(this.buffer, 0, IccOverheadLength);
+                this.outputStream.Write(this.buffer, 0, iccOverheadLength);
                 this.outputStream.Write(data, offset, length);
 
                 current++;
@@ -643,124 +502,46 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the Start Of Frame (Baseline) marker.
         /// </summary>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        /// <param name="componentCount">The number of components in a pixel.</param>
-        /// <param name="componentIds">The component Id's.</param>
-        private void WriteStartOfFrame(int width, int height, int componentCount, ReadOnlySpan<byte> componentIds)
+        private void WriteStartOfFrame(int width, int height, JpegFrameConfig frame)
         {
-            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
-            // and doesn't incur any allocation at all.
-            // "default" to 4:2:0
-            ReadOnlySpan<byte> subsamples = new byte[]
-            {
-                0x22,
-                0x11,
-                0x11
-            };
-
-            ReadOnlySpan<byte> chroma = new byte[]
-            {
-                0x00,
-                0x01,
-                0x01
-            };
-
-            if (this.colorType == JpegColorType.Luminance)
-            {
-                subsamples = new byte[]
-                {
-                    0x11,
-                    0x00,
-                    0x00
-                };
-            }
-            else
-            {
-                switch (this.colorType)
-                {
-                    case JpegColorType.YCbCrRatio444:
-                    case JpegColorType.Rgb:
-                        subsamples = new byte[]
-                        {
-                            0x11,
-                            0x11,
-                            0x11
-                        };
-
-                        if (this.colorType == JpegColorType.Rgb)
-                        {
-                            chroma = new byte[]
-                            {
-                                0x00,
-                                0x00,
-                                0x00
-                            };
-                        }
-
-                        break;
-                    case JpegColorType.YCbCrRatio420:
-                        subsamples = new byte[]
-                        {
-                            0x22,
-                            0x11,
-                            0x11
-                        };
-                        break;
-                }
-            }
+            JpegComponentConfig[] components = frame.Components;
 
             // Length (high byte, low byte), 8 + components * 3.
-            int markerlen = 8 + (3 * componentCount);
+            int markerlen = 8 + (3 * components.Length);
             this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen);
             this.buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
             this.buffer[1] = (byte)(height >> 8);
             this.buffer[2] = (byte)(height & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
             this.buffer[3] = (byte)(width >> 8);
             this.buffer[4] = (byte)(width & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
-            this.buffer[5] = (byte)componentCount;
+            this.buffer[5] = (byte)components.Length;
 
-            for (int i = 0; i < componentCount; i++)
+            // Components data
+            for (int i = 0; i < components.Length; i++)
             {
                 int i3 = 3 * i;
-
-                // Component ID.
                 Span<byte> bufferSpan = this.buffer.AsSpan(i3 + 6, 3);
-                bufferSpan[2] = chroma[i];
-                bufferSpan[1] = subsamples[i];
-                bufferSpan[0] = componentIds[i];
+
+                // Quantization table selector
+                bufferSpan[2] = (byte)components[i].QuantizatioTableIndex;
+
+                // Sampling factors
+                // 4 bits
+                int samplingFactors = (components[i].HorizontalSampleFactor << 4) | components[i].VerticalSampleFactor;
+                bufferSpan[1] = (byte)samplingFactors;
+
+                // Id
+                bufferSpan[0] = components[i].Id;
             }
 
-            this.outputStream.Write(this.buffer, 0, (3 * (componentCount - 1)) + 9);
+            this.outputStream.Write(this.buffer, 0, (3 * (components.Length - 1)) + 9);
         }
 
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <param name="componentCount">The number of components in a pixel.</param>
-        /// <param name="componentIds">The componentId's.</param>
-        private void WriteStartOfScan(int componentCount, ReadOnlySpan<byte> componentIds)
+        private void WriteStartOfScan(Span<JpegComponentConfig> components)
         {
-            // This uses a C#'s compiler optimization that refers to the static data segment of the assembly,
-            // and doesn't incur any allocation at all.
-            ReadOnlySpan<byte> huffmanId = new byte[]
-            {
-                0x00,
-                0x11,
-                0x11
-            };
-
-            // Use the same DC/AC tables for all channels for RGB.
-            if (this.colorType == JpegColorType.Rgb)
-            {
-                huffmanId = new byte[]
-                {
-                    0x00,
-                    0x00,
-                    0x00
-                };
-            }
-
             // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
             // - the marker length "\x00\x0c",
             // - the number of components "\x03",
@@ -774,15 +555,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[1] = JpegConstants.Markers.SOS;
 
             // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-            int sosSize = 6 + (2 * componentCount);
+            int sosSize = 6 + (2 * components.Length);
             this.buffer[2] = 0x00;
             this.buffer[3] = (byte)sosSize;
-            this.buffer[4] = (byte)componentCount; // Number of components in a scan
-            for (int i = 0; i < componentCount; i++)
+            this.buffer[4] = (byte)components.Length; // Number of components in a scan
+
+            // Components data
+            for (int i = 0; i < components.Length; i++)
             {
                 int i2 = 2 * i;
-                this.buffer[i2 + 5] = componentIds[i]; // Component Id
-                this.buffer[i2 + 6] = huffmanId[i]; // DC/AC Huffman table
+
+                // Id
+                this.buffer[i2 + 5] = components[i].Id;
+
+                // Table selectors
+                int tableSelectors = (components[i].DcTableSelector << 4) | components[i].AcTableSelector;
+                this.buffer[i2 + 6] = (byte)tableSelectors;
             }
 
             this.buffer[sosSize - 1] = 0x00; // Ss - Start of spectral selection.
@@ -802,6 +590,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Writes scans for given config.
+        /// </summary>
+        private void WriteHuffmanScans<TPixel>(JpegFrame frame, JpegFrameConfig frameConfig, SpectralConverter<TPixel> spectralConverter, HuffmanScanEncoder encoder, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (frame.Components.Length == 1)
+            {
+                frame.AllocateComponents(fullScan: false);
+
+                this.WriteStartOfScan(frameConfig.Components);
+                encoder.EncodeScanBaselineSingleComponent(frame.Components[0], spectralConverter, cancellationToken);
+            }
+            else if (frame.Interleaved)
+            {
+                frame.AllocateComponents(fullScan: false);
+
+                this.WriteStartOfScan(frameConfig.Components);
+                encoder.EncodeScanBaselineInterleaved(frameConfig.EncodingColor, frame, spectralConverter, cancellationToken);
+            }
+            else
+            {
+                frame.AllocateComponents(fullScan: true);
+                spectralConverter.ConvertFull();
+
+                Span<JpegComponentConfig> components = frameConfig.Components;
+                for (int i = 0; i < frame.Components.Length; i++)
+                {
+                    this.WriteStartOfScan(components.Slice(i, 1));
+                    encoder.EncodeScanBaseline(frame.Components[i], cancellationToken);
+                }
+            }
+        }
+
+        /// <summary>
         /// Writes the header for a marker with the given length.
         /// </summary>
         /// <param name="marker">The marker to write.</param>
@@ -817,54 +639,78 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Initializes quantization tables.
+        /// Writes the Define Quantization Marker and prepares tables for encoding.
         /// </summary>
         /// <remarks>
-        /// <para>
-        /// Zig-zag ordering is NOT applied to the resulting tables.
-        /// </para>
-        /// <para>
         /// We take quality values in a hierarchical order:
-        /// 1. Check if encoder has set quality
-        /// 2. Check if metadata has set quality
-        /// 3. Take default quality value - 75
-        /// </para>
+        /// <list type = "number" >
+        ///     <item>Check if encoder has set quality.</item>
+        ///     <item>Check if metadata has set quality.</item>
+        ///     <item>Take default quality value from <see cref="Quantization.DefaultQualityFactor"/></item>
+        /// </list>
         /// </remarks>
-        /// <param name="componentCount">Color components count.</param>
+        /// <param name="configs">Quantization tables configs.</param>
+        /// <param name="optionsQuality">Optional quality value from the options.</param>
         /// <param name="metadata">Jpeg metadata instance.</param>
-        /// <param name="luminanceQuantTable">Output luminance quantization table.</param>
-        /// <param name="chrominanceQuantTable">Output chrominance quantization table.</param>
-        private void InitQuantizationTables(int componentCount, JpegMetadata metadata, out Block8x8F luminanceQuantTable, out Block8x8F chrominanceQuantTable)
+        private void WriteDefineQuantizationTables(JpegQuantizationTableConfig[] configs, int? optionsQuality, JpegMetadata metadata)
         {
-            int lumaQuality;
-            int chromaQuality;
-            if (this.quality.HasValue)
-            {
-                lumaQuality = this.quality.Value;
-                chromaQuality = this.quality.Value;
-            }
-            else
-            {
-                lumaQuality = metadata.LuminanceQuality;
-                chromaQuality = metadata.ChrominanceQuality;
-            }
+            int dataLen = configs.Length * (1 + Block8x8.Size);
 
-            // Luminance
-            lumaQuality = Numerics.Clamp(lumaQuality, 1, 100);
-            luminanceQuantTable = Quantization.ScaleLuminanceTable(lumaQuality);
+            // Marker + quantization table lengths.
+            int markerlen = 2 + dataLen;
+            this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
 
-            // Chrominance
-            chrominanceQuantTable = default;
-            if (componentCount > 1)
+            byte[] buffer = new byte[dataLen];
+            int offset = 0;
+
+            Block8x8F workspaceBlock = default;
+
+            for (int i = 0; i < configs.Length; i++)
             {
-                chromaQuality = Numerics.Clamp(chromaQuality, 1, 100);
-                chrominanceQuantTable = Quantization.ScaleChrominanceTable(chromaQuality);
+                JpegQuantizationTableConfig config = configs[i];
 
-                if (!this.colorType.HasValue)
+                int quality = GetQualityForTable(config.DestinationIndex, optionsQuality, metadata);
+                Block8x8 scaledTable = Quantization.ScaleQuantizationTable(quality, config.Table);
+
+                // write to the output stream
+                buffer[offset++] = (byte)config.DestinationIndex;
+
+                for (int j = 0; j < Block8x8.Size; j++)
                 {
-                    this.colorType = chromaQuality >= 91 ? JpegColorType.YCbCrRatio444 : JpegColorType.YCbCrRatio420;
+                    buffer[offset++] = (byte)(uint)scaledTable[ZigZag.ZigZagOrder[j]];
                 }
+
+                // apply FDCT multipliers and inject to the destination index
+                workspaceBlock.LoadFrom(ref scaledTable);
+                FloatingPointDCT.AdjustToFDCT(ref workspaceBlock);
+
+                this.QuantizationTables[config.DestinationIndex] = workspaceBlock;
             }
+
+            // write filled buffer to the stream
+            this.outputStream.Write(buffer);
+
+            static int GetQualityForTable(int destIndex, int? encoderQuality, JpegMetadata metadata) => destIndex switch
+            {
+                0 => encoderQuality ?? metadata.LuminanceQuality ?? Quantization.DefaultQualityFactor,
+                1 => encoderQuality ?? metadata.ChrominanceQuality ?? Quantization.DefaultQualityFactor,
+                _ => encoderQuality ?? metadata.Quality,
+            };
+        }
+
+        private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
+        {
+            JpegEncodingColor color = this.options.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
+            JpegFrameConfig frameConfig = Array.Find(
+                FrameConfigs,
+                cfg => cfg.EncodingColor == color);
+
+            if (frameConfig == null)
+            {
+                throw new ArgumentException(nameof(color));
+            }
+
+            return frameConfig;
         }
     }
 }

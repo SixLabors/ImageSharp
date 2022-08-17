@@ -127,13 +127,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
-                provider,
-                pngColorType,
-                PngFilterMethod.Adaptive,
-                PngBitDepth.Bit8,
-                interlaceMode,
-                appendPixelType: true,
-                appendPngColorType: true);
+                    provider,
+                    pngColorType,
+                    PngFilterMethod.Adaptive,
+                    PngBitDepth.Bit8,
+                    interlaceMode,
+                    appendPixelType: true,
+                    appendPngColorType: true);
             }
         }
 
@@ -202,14 +202,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 foreach (PngInterlaceMode interlaceMode in InterlaceMode)
                 {
                     TestPngEncoderCore(
-                    provider,
-                    pngColorType,
-                    (PngFilterMethod)filterMethod[0],
-                    pngBitDepth,
-                    interlaceMode,
-                    appendPngColorType: true,
-                    appendPixelType: true,
-                    appendPngBitDepth: true);
+                        provider,
+                        pngColorType,
+                        (PngFilterMethod)filterMethod[0],
+                        pngBitDepth,
+                        interlaceMode,
+                        appendPngColorType: true,
+                        appendPixelType: true,
+                        appendPngBitDepth: true);
                 }
             }
         }
@@ -310,13 +310,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
-                provider,
-                PngColorType.Palette,
-                PngFilterMethod.Adaptive,
-                PngBitDepth.Bit8,
-                interlaceMode,
-                paletteSize: paletteSize,
-                appendPaletteSize: true);
+                    provider,
+                    PngColorType.Palette,
+                    PngFilterMethod.Adaptive,
+                    PngBitDepth.Bit8,
+                    interlaceMode,
+                    paletteSize: paletteSize,
+                    appendPaletteSize: true);
             }
         }
 

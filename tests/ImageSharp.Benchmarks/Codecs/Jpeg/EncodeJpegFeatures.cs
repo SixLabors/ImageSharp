@@ -22,14 +22,19 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         // No metadata
         private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
 
-        public static IEnumerable<JpegColorType> ColorSpaceValues =>
-            new[] { JpegColorType.Luminance, JpegColorType.Rgb, JpegColorType.YCbCrRatio420, JpegColorType.YCbCrRatio444 };
+        public static IEnumerable<JpegEncodingColor> ColorSpaceValues => new[]
+        {
+            JpegEncodingColor.Luminance,
+            JpegEncodingColor.Rgb,
+            JpegEncodingColor.YCbCrRatio420,
+            JpegEncodingColor.YCbCrRatio444,
+        };
 
         [Params(75, 90, 100)]
         public int Quality;
 
         [ParamsSource(nameof(ColorSpaceValues), Priority = -100)]
-        public JpegColorType TargetColorSpace;
+        public JpegEncodingColor TargetColorSpace;
 
         private Image<Rgb24> bmpCore;
         private JpegEncoder encoder;
@@ -41,7 +46,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
             this.bmpCore = Image.Load<Rgb24>(imageBinaryStream);
-            this.encoder = new JpegEncoder { Quality = this.Quality, ColorType = this.TargetColorSpace };
+            this.encoder = new JpegEncoder
+            {
+                Quality = this.Quality,
+                ColorType = this.TargetColorSpace,
+                Interleaved = true,
+            };
             this.destinationStream = new MemoryStream();
         }
 
@@ -67,23 +77,23 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 /*
 BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19044
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
-.NET SDK=6.0.100-preview.3.21202.5
-  [Host]     : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
-  DefaultJob : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
+.NET SDK=6.0.202
+  [Host]     : .NET 6.0.4 (6.0.422.16404), X64 RyuJIT
+  DefaultJob : .NET 6.0.4 (6.0.422.16404), X64 RyuJIT
 
 
 |    Method | TargetColorSpace | Quality |      Mean |     Error |    StdDev |
 |---------- |----------------- |-------- |----------:|----------:|----------:|
-| Benchmark |        Luminance |      75 |  7.055 ms | 0.1411 ms | 0.3297 ms |
-| Benchmark |              Rgb |      75 | 12.139 ms | 0.0645 ms | 0.0538 ms |
-| Benchmark |    YCbCrRatio420 |      75 |  6.463 ms | 0.0282 ms | 0.0235 ms |
-| Benchmark |    YCbCrRatio444 |      75 |  8.616 ms | 0.0422 ms | 0.0374 ms |
-| Benchmark |        Luminance |      90 |  7.011 ms | 0.0361 ms | 0.0301 ms |
-| Benchmark |              Rgb |      90 | 13.119 ms | 0.0947 ms | 0.0886 ms |
-| Benchmark |    YCbCrRatio420 |      90 |  6.786 ms | 0.0328 ms | 0.0274 ms |
-| Benchmark |    YCbCrRatio444 |      90 |  8.672 ms | 0.0772 ms | 0.0722 ms |
-| Benchmark |        Luminance |     100 |  9.554 ms | 0.1211 ms | 0.1012 ms |
-| Benchmark |              Rgb |     100 | 19.475 ms | 0.1080 ms | 0.0958 ms |
-| Benchmark |    YCbCrRatio420 |     100 | 10.146 ms | 0.0585 ms | 0.0519 ms |
-| Benchmark |    YCbCrRatio444 |     100 | 15.317 ms | 0.0709 ms | 0.0592 ms |
+| Benchmark |        Luminance |      75 |  4.618 ms | 0.0263 ms | 0.0233 ms |
+| Benchmark |              Rgb |      75 | 12.543 ms | 0.0650 ms | 0.0608 ms |
+| Benchmark |    YCbCrRatio420 |      75 |  6.639 ms | 0.0778 ms | 0.1256 ms |
+| Benchmark |    YCbCrRatio444 |      75 |  8.590 ms | 0.0570 ms | 0.0505 ms |
+| Benchmark |        Luminance |      90 |  4.902 ms | 0.0307 ms | 0.0288 ms |
+| Benchmark |              Rgb |      90 | 13.447 ms | 0.0468 ms | 0.0415 ms |
+| Benchmark |    YCbCrRatio420 |      90 |  7.218 ms | 0.0586 ms | 0.0548 ms |
+| Benchmark |    YCbCrRatio444 |      90 |  9.150 ms | 0.0779 ms | 0.0729 ms |
+| Benchmark |        Luminance |     100 |  6.731 ms | 0.0325 ms | 0.0304 ms |
+| Benchmark |              Rgb |     100 | 19.831 ms | 0.1009 ms | 0.0788 ms |
+| Benchmark |    YCbCrRatio420 |     100 | 10.541 ms | 0.0423 ms | 0.0396 ms |
+| Benchmark |    YCbCrRatio444 |     100 | 15.345 ms | 0.3276 ms | 0.3065 ms |
 */

@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Linq;
 using System.Threading;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 

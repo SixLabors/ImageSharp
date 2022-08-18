@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given encoded byte array without fully decoding it.
         /// </summary>
         /// <param name="data">The byte array containing encoded image data to read the header from.</param>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp
         public static IImageInfo Identify(byte[] data) => Identify(data, out IImageFormat _);
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given encoded byte array without fully decoding it.
         /// </summary>
         /// <param name="data">The byte array containing encoded image data to read the header from.</param>
         /// <param name="format">The format type of the decoded image.</param>
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp
         public static IImageInfo Identify(byte[] data, out IImageFormat format) => Identify(Configuration.Default, data, out format);
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given encoded byte array without fully decoding it.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="data">The byte array containing encoded image data to read the header from.</param>

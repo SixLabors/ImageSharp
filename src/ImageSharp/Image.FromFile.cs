@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given file without fully decoding it.
         /// </summary>
         /// <param name="filePath">The image file to open and to read the header from.</param>
         /// <returns>
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp
             => Identify(filePath, out IImageFormat _);
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given file without fully decoding it.
         /// </summary>
         /// <param name="filePath">The image file to open and to read the header from.</param>
         /// <param name="format">The format type of the decoded image.</param>
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp
             => Identify(Configuration.Default, filePath, out format);
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given file without fully decoding it.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="filePath">The image file to open and to read the header from.</param>
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given file without fully decoding it.
         /// </summary>
         /// <param name="filePath">The image file to open and to read the header from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp
             => IdentifyAsync(Configuration.Default, filePath, cancellationToken);
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given file without fully decoding it.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="filePath">The image file to open and to read the header from.</param>
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given file without fully decoding it.
         /// </summary>
         /// <param name="filePath">The image file to open and to read the header from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp
             => IdentifyWithFormatAsync(Configuration.Default, filePath, cancellationToken);
 
         /// <summary>
-        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// Reads the raw image information from the given file without fully decoding it.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="filePath">The image file to open and to read the header from.</param>

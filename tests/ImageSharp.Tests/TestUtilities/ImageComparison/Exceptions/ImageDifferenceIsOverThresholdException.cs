@@ -24,8 +24,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             sb.Append(Environment.NewLine);
 
-            // TODO: We should add macOS.
-            sb.AppendFormat("Test Environment OS : {0}", TestEnvironment.IsWindows ? "Windows" : "Linux");
+            sb.AppendFormat("Test Environment OS : {0}", GetEnvironmentName());
             sb.Append(Environment.NewLine);
 
             sb.AppendFormat("Test Environment is CI : {0}", TestEnvironment.RunsOnCI);
@@ -33,17 +32,40 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             sb.AppendFormat("Test Environment is .NET Core : {0}", !TestEnvironment.IsFramework);
             sb.Append(Environment.NewLine);
+            
+            sb.AppendFormat("Test Environment is Mono : {0}", TestEnvironment.IsMono);
+            sb.Append(Environment.NewLine);
 
             int i = 0;
             foreach (ImageSimilarityReport r in reports)
             {
-                sb.Append($"Report ImageFrame {i}: ");
+                sb.Append("Report ImageFrame {i}: ");
                 sb.Append(r);
                 sb.Append(Environment.NewLine);
                 i++;
             }
 
             return sb.ToString();
+        }
+
+        private static string GetEnvironmentName()
+        {
+            if (TestEnvironment.IsMacOS)
+            {
+                return "Mac OS";
+            }
+
+            if (TestEnvironment.IsMacOS)
+            {
+                return "Linux";
+            }
+
+            if (TestEnvironment.IsWindows)
+            {
+                return "Windows";
+            }
+
+            return "Unknown";
         }
     }
 }

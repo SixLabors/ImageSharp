@@ -764,7 +764,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
             image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
             image.CompareToReferenceOutput(
-                ImageComparer.Exact,
+                ImageComparer.TolerantPercentage(0.0001F),
                 provider,
                 testOutputDetails: details,
                 appendPixelTypeToFileName: false);

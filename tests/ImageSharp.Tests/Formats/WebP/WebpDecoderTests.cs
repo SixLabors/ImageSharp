@@ -372,7 +372,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
             image.CompareToReferenceOutput(
-                ImageComparer.Exact,
+                ImageComparer.TolerantPercentage(0.0006F),
                 provider,
                 testOutputDetails: details,
                 appendPixelTypeToFileName: false);

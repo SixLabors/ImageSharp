@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
             image.CompareToReferenceOutput(
-                ImageComparer.Exact,
+                ImageComparer.TolerantPercentage(0.0004F), // Magick decoder shows difference on Mac
                 provider,
                 testOutputDetails: details,
                 appendPixelTypeToFileName: false);

@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             sb.AppendFormat("Test Environment is .NET Core : {0}", !TestEnvironment.IsFramework);
             sb.Append(Environment.NewLine);
-            
+
             sb.AppendFormat("Test Environment is Mono : {0}", TestEnvironment.IsMono);
             sb.Append(Environment.NewLine);
 

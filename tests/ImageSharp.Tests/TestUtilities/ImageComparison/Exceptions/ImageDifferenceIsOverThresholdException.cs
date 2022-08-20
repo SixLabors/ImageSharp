@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         {
             if (TestEnvironment.IsMacOS)
             {
-                return "Mac OS";
+                return "MacOS";
             }
 
             if (TestEnvironment.IsMacOS)

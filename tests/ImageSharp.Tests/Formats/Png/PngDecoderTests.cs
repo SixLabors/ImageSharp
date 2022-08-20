@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.DotNet.RemoteExecutor;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -110,6 +110,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using Image<TPixel> image = provider.GetImage(PngDecoder);
             image.DebugSave(provider);
             image.CompareToOriginal(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
+        public void PngDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<TPixel> image = provider.GetImage(PngDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Exact,
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]

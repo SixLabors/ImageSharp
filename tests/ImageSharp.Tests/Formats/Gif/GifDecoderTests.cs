@@ -7,7 +7,6 @@ using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -38,6 +37,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using Image<TPixel> image = provider.GetImage();
             image.DebugSaveMultiFrame(provider);
             image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        public void GifDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 },
+                MaxFrames = 1
+            };
+
+            using Image<TPixel> image = provider.GetImage(GifDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Exact,
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
 
         [Fact]

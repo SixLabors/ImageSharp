@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -352,6 +354,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             // Just make sure no exception is thrown. The reference decoder fails to load the image.
             using Image<TPixel> image = provider.GetImage(WebpDecoder);
             image.DebugSave(provider);
+        }
+
+        [Theory]
+        [WithFile(Lossless.BikeThreeTransforms, PixelTypes.Rgba32)]
+        public void WebpDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<TPixel> image = provider.GetImage(WebpDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Exact,
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
 
         // https://github.com/SixLabors/ImageSharp/issues/1594

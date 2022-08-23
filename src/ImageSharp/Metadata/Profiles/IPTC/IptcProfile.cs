@@ -21,12 +21,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         private const uint MaxStandardDataTagSize = 0x7FFF;
 
         /// <summary>
-        /// 1:90 Coded Character Set
+        /// 1:90 Coded Character Set.
         /// </summary>
         private const byte IptcEnvelopeCodedCharacterSet = 0x5A;
 
         /// <summary>
-        /// This value marks that UTF-8 encoding is used in application records
+        /// This value marks that UTF-8 encoding is used in application records.
         /// </summary>
         private static readonly byte[] CodedCharacterSetUtf8Value = { 0x1B, 0x25, 0x47 };
 
@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
             if (hasValuesInUtf8)
             {
-                length += 5 + CodedCharacterSetUtf8Value.Length; // additional length for UTF-8 Tag
+                length += 5 + CodedCharacterSetUtf8Value.Length; // Additional length for UTF-8 Tag.
             }
 
             this.Data = new byte[length];
@@ -263,7 +263,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
             if (hasValuesInUtf8)
             {
-                // Standard DataSet Tag
+                // Envelope Record.
                 this.Data[i++] = IptcTagMarkerByte;
                 this.Data[i++] = 1; // Envelope
                 this.Data[i++] = IptcEnvelopeCodedCharacterSet;
@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
             foreach (IptcValue value in this.Values)
             {
-                // Standard DataSet Tag
+                // Application Record.
                 // +-----------+----------------+---------------------------------------------------------------------------------+
                 // | Octet Pos | Name           | Description                                                                     |
                 // +==========-+================+=================================================================================+
@@ -327,6 +327,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 bool isValidRecordNumber = recordNumber is >= 1 and <= 9;
                 var tag = (IptcTag)this.Data[offset++];
                 bool isValidEntry = isValidTagMarker && isValidRecordNumber;
+                bool isApplicationRecord = recordNumber == 0x02;
 
                 uint byteCount = BinaryPrimitives.ReadUInt16BigEndian(this.Data.AsSpan(offset, 2));
                 offset += 2;
@@ -336,7 +337,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                     break;
                 }
 
-                if (isValidEntry && byteCount > 0 && (offset <= this.Data.Length - byteCount))
+                if (isValidEntry && isApplicationRecord && byteCount > 0 && (offset <= this.Data.Length - byteCount))
                 {
                     byte[] iptcData = new byte[byteCount];
                     Buffer.BlockCopy(this.Data, offset, iptcData, 0, (int)byteCount);
@@ -348,9 +349,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         }
 
         /// <summary>
-        /// Gets if any value has UTF-8 encoding
+        /// Gets if any value has UTF-8 encoding.
         /// </summary>
-        /// <returns>true if any value has UTF-8 encoding</returns>
+        /// <returns>true if any value has UTF-8 encoding.</returns>
         private bool HasValuesInUtf8()
         {
             foreach (IptcValue value in this.values)

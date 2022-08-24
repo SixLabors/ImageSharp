@@ -21,6 +21,10 @@ namespace SixLabors.ImageSharp
 
             public static ReadOnlySpan<byte> PermuteMaskSwitchInnerDWords8x32 => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 6, 0, 0, 0, 7, 0, 0, 0 };
 
+            private static ReadOnlySpan<byte> MoveFirst24BytesToSeparateLanes => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
+
+            internal static ReadOnlySpan<byte> ExtractRgb => new byte[] { 0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF };
+
             private static ReadOnlySpan<byte> ShuffleMaskPad4Nx16 => new byte[] { 0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80 };
 
             private static ReadOnlySpan<byte> ShuffleMaskSlice4Nx16 => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80 };
@@ -961,6 +965,49 @@ namespace SixLabors.ImageSharp
                 greenChannel = greenChannel.Slice(slice);
                 blueChannel = blueChannel.Slice(slice);
                 destination = destination.Slice(slice);
+            }
+
+            internal static void UnpackToRgbPlanesAvx2Reduce(
+                ref Span<float> redChannel,
+                ref Span<float> greenChannel,
+                ref Span<float> blueChannel,
+                ref ReadOnlySpan<Rgb24> source)
+            {
+                ref Vector256<byte> rgbByteSpan = ref Unsafe.As<Rgb24, Vector256<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Vector256<float> destRRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(redChannel));
+                ref Vector256<float> destGRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(greenChannel));
+                ref Vector256<float> destBRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(blueChannel));
+
+                Vector256<uint> extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(MoveFirst24BytesToSeparateLanes));
+                Vector256<byte> extractRgbMask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ExtractRgb));
+                Vector256<byte> rgb, rg, bx;
+                Vector256<float> r, g, b;
+
+                const int bytesPerRgbStride = 24;
+                int count = (int)((uint)source.Length / 8);
+                for (int i = 0; i < count; i++)
+                {
+                    rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
+
+                    rgb = Avx2.Shuffle(rgb, extractRgbMask);
+
+                    rg = Avx2.UnpackLow(rgb, Vector256<byte>.Zero);
+                    bx = Avx2.UnpackHigh(rgb, Vector256<byte>.Zero);
+
+                    r = Avx.ConvertToVector256Single(Avx2.UnpackLow(rg, Vector256<byte>.Zero).AsInt32());
+                    g = Avx.ConvertToVector256Single(Avx2.UnpackHigh(rg, Vector256<byte>.Zero).AsInt32());
+                    b = Avx.ConvertToVector256Single(Avx2.UnpackLow(bx, Vector256<byte>.Zero).AsInt32());
+
+                    Unsafe.Add(ref destRRef, i) = r;
+                    Unsafe.Add(ref destGRef, i) = g;
+                    Unsafe.Add(ref destBRef, i) = b;
+                }
+
+                int sliceCount = count * 8;
+                redChannel = redChannel.Slice(sliceCount);
+                greenChannel = greenChannel.Slice(sliceCount);
+                blueChannel = blueChannel.Slice(sliceCount);
+                source = source.Slice(sliceCount);
             }
         }
     }

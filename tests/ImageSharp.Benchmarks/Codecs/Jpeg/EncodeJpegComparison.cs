@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
 
             this.imageImageSharp = Image.Load<Rgba32>(imageBinaryStream);
-            this.encoderImageSharp = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio420 };
+            this.encoderImageSharp = new JpegEncoder { Quality = this.Quality, ColorType = JpegEncodingColor.YCbCrRatio420 };
 
             this.destinationStream = new MemoryStream();
         }

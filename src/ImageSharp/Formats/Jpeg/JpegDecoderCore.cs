@@ -504,6 +504,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 // Read on.
                 fileMarker = FindNextFileMarker(stream);
             }
+
+            this.Metadata.GetJpegMetadata().Interleaved = this.Frame.Interleaved;
         }
 
         /// <inheritdoc/>
@@ -583,57 +585,58 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Returns the jpeg color type based on the colorspace and subsampling used.
         /// </summary>
         /// <returns>Jpeg color type.</returns>
-        private JpegColorType DeduceJpegColorType()
+        private JpegEncodingColor DeduceJpegColorType()
         {
             switch (this.ColorSpace)
             {
                 case JpegColorSpace.Grayscale:
-                    return JpegColorType.Luminance;
+                    return JpegEncodingColor.Luminance;
 
                 case JpegColorSpace.RGB:
-                    return JpegColorType.Rgb;
+                    return JpegEncodingColor.Rgb;
 
                 case JpegColorSpace.YCbCr:
                     if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                         this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                         this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                     {
-                        return JpegColorType.YCbCrRatio444;
+                        return JpegEncodingColor.YCbCrRatio444;
+                    }
+                    else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
+                        this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
+                    {
+                        return JpegEncodingColor.YCbCrRatio422;
                     }
                     else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                         this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                         this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                     {
-                        return JpegColorType.YCbCrRatio420;
-                    }
-                    else if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
-                        this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 2 &&
-                        this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 2)
-                    {
-                        return JpegColorType.YCbCrRatio422;
+                        return JpegEncodingColor.YCbCrRatio420;
                     }
                     else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                              this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                              this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                     {
-                        return JpegColorType.YCbCrRatio411;
+                        return JpegEncodingColor.YCbCrRatio411;
                     }
                     else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                              this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                              this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                     {
-                        return JpegColorType.YCbCrRatio410;
+                        return JpegEncodingColor.YCbCrRatio410;
                     }
                     else
                     {
-                        return JpegColorType.YCbCrRatio420;
+                        return JpegEncodingColor.YCbCrRatio420;
                     }
 
                 case JpegColorSpace.Cmyk:
-                    return JpegColorType.Cmyk;
-
+                    return JpegEncodingColor.Cmyk;
+                case JpegColorSpace.Ycck:
+                    return JpegEncodingColor.Ycck;
                 default:
-                    return JpegColorType.YCbCrRatio420;
+                    return JpegEncodingColor.YCbCrRatio420;
             }
         }
 
@@ -1216,6 +1219,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
+            this.Metadata.GetJpegMetadata().Progressive = this.Frame.Progressive;
 
             remaining -= length;
 
@@ -1426,7 +1430,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // selectorsCount*2 bytes: component index + huffman tables indices
             stream.Read(this.temp, 0, selectorsBytes);
 
-            this.Frame.MultiScan = this.Frame.ComponentCount != selectorsCount;
+            this.Frame.Interleaved = this.Frame.ComponentCount == selectorsCount;
             for (int i = 0; i < selectorsBytes; i += 2)
             {
                 // 1 byte: Component id

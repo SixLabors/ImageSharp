@@ -733,6 +733,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             }
         }
 
+        // Test case for legacy format, when RLE crosses multiple lines:
+        // https://github.com/SixLabors/ImageSharp/pull/2172
+        [Theory]
+        [WithFile(Github_RLE_legacy, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_LegacyFormat<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
         [Theory]
         [WithFile(Bit16BottomLeft, PixelTypes.Rgba32)]
         [WithFile(Bit24BottomLeft, PixelTypes.Rgba32)]

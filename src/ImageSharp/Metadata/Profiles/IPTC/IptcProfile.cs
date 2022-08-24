@@ -27,11 +27,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         private const byte IptcEnvelopeCodedCharacterSet = 0x5A;
 
         /// <summary>
-        /// This value marks that UTF-8 encoding is used in application records.
-        /// </summary>
-        private static readonly byte[] CodedCharacterSetUtf8Value = { 0x1B, 0x25, 0x47 };
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="IptcProfile"/> class.
         /// </summary>
         public IptcProfile()
@@ -74,6 +69,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 other.Data.AsSpan().CopyTo(this.Data);
             }
         }
+
+        /// <summary>
+        /// Gets a byte array marking that UTF-8 encoding is used in application records.
+        /// </summary>
+        private static ReadOnlySpan<byte> CodedCharacterSetUtf8Value => new byte[] { 0x1B, 0x25, 0x47 }; // Uses C#'s optimization to refer to the data segment in the assembly directly, no allocation occurs.
 
         /// <summary>
         /// Gets the byte data of the IPTC profile.
@@ -291,16 +291,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             }
         }
 
-        private int WriteRecord(int offset, byte[] recordData, IptcRecordNumber recordNumber, byte recordBinaryRepresentation)
+        private int WriteRecord(int offset, ReadOnlySpan<byte> recordData, IptcRecordNumber recordNumber, byte recordBinaryRepresentation)
         {
-            this.Data[offset++] = IptcTagMarkerByte;
-            this.Data[offset++] = (byte)recordNumber;
-            this.Data[offset++] = recordBinaryRepresentation;
-            this.Data[offset++] = (byte)(recordData.Length >> 8);
-            this.Data[offset++] = (byte)recordData.Length;
+            Span<byte> data = this.Data.AsSpan(offset, 5);
+            data[0] = IptcTagMarkerByte;
+            data[1] = (byte)recordNumber;
+            data[2] = recordBinaryRepresentation;
+            data[3] = (byte)(recordData.Length >> 8);
+            data[4] = (byte)recordData.Length;
+            offset += 5;
             if (recordData.Length > 0)
             {
-                Buffer.BlockCopy(recordData, 0, this.Data, offset, recordData.Length);
+                recordData.CopyTo(this.Data.AsSpan(offset));
                 offset += recordData.Length;
             }
 

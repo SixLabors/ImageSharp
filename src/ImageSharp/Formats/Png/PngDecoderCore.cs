@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -188,6 +187,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
+                                pngMetadata.HasTransparency = true;
                                 break;
                             case PngChunkType.Text:
                                 this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
@@ -295,6 +295,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
+                                pngMetadata.HasTransparency = true;
 
                                 if (this.colorMetadataOnly)
                                 {
@@ -380,8 +381,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads the least significant bits from the byte pair with the others set to 0.
         /// </summary>
-        /// <param name="buffer">The source buffer</param>
-        /// <param name="offset">THe offset</param>
+        /// <param name="buffer">The source buffer.</param>
+        /// <param name="offset">THe offset.</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte ReadByteLittleEndian(ReadOnlySpan<byte> buffer, int offset)
@@ -392,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// specified number of bits.
         /// </summary>
         /// <param name="source">The bytes to convert from. Cannot be empty.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
         /// <param name="bits">The number of bits per value.</param>
         /// <param name="buffer">The new array.</param>
         /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>

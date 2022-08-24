@@ -256,27 +256,21 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
             if (hasValuesInUtf8)
             {
-                length += 5 + CodedCharacterSetUtf8Value.Length; // Additional length for UTF-8 Tag.
+                // Additional length for UTF-8 Tag.
+                length += 5 + CodedCharacterSetUtf8Value.Length;
             }
 
             this.Data = new byte[length];
-            int i = 0;
-
+            int offset = 0;
             if (hasValuesInUtf8)
             {
-                // Envelope Record.
-                this.Data[i++] = IptcTagMarkerByte;
-                this.Data[i++] = (byte)IptcRecordNumber.Envelope;
-                this.Data[i++] = IptcEnvelopeCodedCharacterSet;
-                this.Data[i++] = (byte)(CodedCharacterSetUtf8Value.Length >> 8);
-                this.Data[i++] = (byte)CodedCharacterSetUtf8Value.Length;
-                Buffer.BlockCopy(CodedCharacterSetUtf8Value, 0, this.Data, i, CodedCharacterSetUtf8Value.Length);
-                i += CodedCharacterSetUtf8Value.Length;
+                // Write Envelope Record.
+                offset = this.WriteRecord(offset, CodedCharacterSetUtf8Value, IptcRecordNumber.Envelope, IptcEnvelopeCodedCharacterSet);
             }
 
             foreach (IptcValue value in this.Values)
             {
-                // Application Record.
+                // Write Application Record.
                 // +-----------+----------------+---------------------------------------------------------------------------------+
                 // | Octet Pos | Name           | Description                                                                     |
                 // +==========-+================+=================================================================================+
@@ -293,17 +287,24 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 // |           | Octet Count    | the following data field(32767 or fewer octets). Note that the value of bit 7 of|
                 // |           |                | octet 4(most significant bit) always will be 0.                                 |
                 // +-----------+----------------+---------------------------------------------------------------------------------+
-                this.Data[i++] = IptcTagMarkerByte;
-                this.Data[i++] = (byte)IptcRecordNumber.Application;
-                this.Data[i++] = (byte)value.Tag;
-                this.Data[i++] = (byte)(value.Length >> 8);
-                this.Data[i++] = (byte)value.Length;
-                if (value.Length > 0)
-                {
-                    Buffer.BlockCopy(value.ToByteArray(), 0, this.Data, i, value.Length);
-                    i += value.Length;
-                }
+                offset = this.WriteRecord(offset, value.ToByteArray(), IptcRecordNumber.Application, (byte)value.Tag);
             }
+        }
+
+        private int WriteRecord(int offset, byte[] recordData, IptcRecordNumber recordNumber, byte recordBinaryRepresentation)
+        {
+            this.Data[offset++] = IptcTagMarkerByte;
+            this.Data[offset++] = (byte)recordNumber;
+            this.Data[offset++] = recordBinaryRepresentation;
+            this.Data[offset++] = (byte)(recordData.Length >> 8);
+            this.Data[offset++] = (byte)recordData.Length;
+            if (recordData.Length > 0)
+            {
+                Buffer.BlockCopy(recordData, 0, this.Data, offset, recordData.Length);
+                offset += recordData.Length;
+            }
+
+            return offset;
         }
 
         private void Initialize()

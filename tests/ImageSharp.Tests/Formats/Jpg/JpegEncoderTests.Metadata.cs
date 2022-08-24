@@ -38,8 +38,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             // arrange
             using var input = new Image<Rgba32>(1, 1);
-            input.Metadata.IptcProfile = new IptcProfile();
-            input.Metadata.IptcProfile.SetValue(IptcTag.Byline, "unit_test");
+            var expectedProfile = new IptcProfile();
+            expectedProfile.SetValue(IptcTag.Country, "ESPAÑA");
+            expectedProfile.SetValue(IptcTag.City, "unit-test-city");
+            input.Metadata.IptcProfile = expectedProfile;
 
             // act
             using var memStream = new MemoryStream();
@@ -50,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var output = Image.Load<Rgba32>(memStream);
             IptcProfile actual = output.Metadata.IptcProfile;
             Assert.NotNull(actual);
-            IEnumerable<IptcValue> values = input.Metadata.IptcProfile.Values;
+            IEnumerable<IptcValue> values = expectedProfile.Values;
             Assert.Equal(values, actual.Values);
         }
 

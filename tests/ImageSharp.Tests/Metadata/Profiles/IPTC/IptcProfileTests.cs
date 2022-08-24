@@ -15,9 +15,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
 {
     public class IptcProfileTests
     {
-        private static JpegDecoder JpegDecoder => new JpegDecoder() { IgnoreMetadata = false };
+        private static JpegDecoder JpegDecoder => new() { IgnoreMetadata = false };
 
-        private static TiffDecoder TiffDecoder => new TiffDecoder() { IgnoreMetadata = false };
+        private static TiffDecoder TiffDecoder => new() { IgnoreMetadata = false };
 
         public static IEnumerable<object[]> AllIptcTags()
         {
@@ -25,6 +25,22 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             {
                 yield return new object[] { tag };
             }
+        }
+
+        [Fact]
+        public void IptcProfile_WithUtf8Data_WritesEnvelopeRecord_Works()
+        {
+            // arrange
+            var profile = new IptcProfile();
+            profile.SetValue(IptcTag.City, "ESPAÑA");
+            profile.UpdateData();
+            byte[] expectedEnvelopeData = { 28, 1, 90, 0, 3, 27, 37, 71 };
+
+            // act
+            byte[] profileBytes = profile.Data;
+
+            // assert
+            Assert.True(profileBytes.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
         }
 
         [Theory]

@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
+using SixLabors.ImageSharp.Metadata.Profiles.IPTC;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 {
@@ -265,7 +266,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             {
                 // Envelope Record.
                 this.Data[i++] = IptcTagMarkerByte;
-                this.Data[i++] = 1; // Envelope
+                this.Data[i++] = (byte)IptcRecordNumber.Envelope;
                 this.Data[i++] = IptcEnvelopeCodedCharacterSet;
                 this.Data[i++] = (byte)(CodedCharacterSetUtf8Value.Length >> 8);
                 this.Data[i++] = (byte)CodedCharacterSetUtf8Value.Length;
@@ -293,7 +294,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 // |           |                | octet 4(most significant bit) always will be 0.                                 |
                 // +-----------+----------------+---------------------------------------------------------------------------------+
                 this.Data[i++] = IptcTagMarkerByte;
-                this.Data[i++] = 2; // Application
+                this.Data[i++] = (byte)IptcRecordNumber.Application;
                 this.Data[i++] = (byte)value.Tag;
                 this.Data[i++] = (byte)(value.Length >> 8);
                 this.Data[i++] = (byte)value.Length;
@@ -327,7 +328,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 bool isValidRecordNumber = recordNumber is >= 1 and <= 9;
                 var tag = (IptcTag)this.Data[offset++];
                 bool isValidEntry = isValidTagMarker && isValidRecordNumber;
-                bool isApplicationRecord = recordNumber == 0x02;
+                bool isApplicationRecord = recordNumber == (byte)IptcRecordNumber.Application;
 
                 uint byteCount = BinaryPrimitives.ReadUInt16BigEndian(this.Data.AsSpan(offset, 2));
                 offset += 2;

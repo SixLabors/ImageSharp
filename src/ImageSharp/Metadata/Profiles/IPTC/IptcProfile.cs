@@ -1,11 +1,12 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
+using SixLabors.ImageSharp.Metadata.Profiles.IPTC;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 {
@@ -19,6 +20,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         private const byte IptcTagMarkerByte = 0x1c;
 
         private const uint MaxStandardDataTagSize = 0x7FFF;
+
+        /// <summary>
+        /// 1:90 Coded Character Set.
+        /// </summary>
+        private const byte IptcEnvelopeCodedCharacterSet = 0x5A;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IptcProfile"/> class.
@@ -63,6 +69,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 other.Data.AsSpan().CopyTo(this.Data);
             }
         }
+
+        /// <summary>
+        /// Gets a byte array marking that UTF-8 encoding is used in application records.
+        /// </summary>
+        private static ReadOnlySpan<byte> CodedCharacterSetUtf8Value => new byte[] { 0x1B, 0x25, 0x47 }; // Uses C#'s optimization to refer to the data segment in the assembly directly, no allocation occurs.
 
         /// <summary>
         /// Gets the byte data of the IPTC profile.
@@ -195,6 +206,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         }
 
         /// <summary>
+        /// Sets the value of the specified tag.
+        /// </summary>
+        /// <param name="tag">The tag of the iptc value.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="strict">
+        /// Indicates if length restrictions from the specification should be followed strictly.
+        /// Defaults to true.
+        /// </param>
+        public void SetValue(IptcTag tag, string value, bool strict = true) => this.SetValue(tag, Encoding.UTF8, value, strict);
+
+        /// <summary>
         /// Makes sure the datetime is formatted according to the iptc specification.
         /// <example>
         /// A date will be formatted as CCYYMMDD, e.g. "19890317" for 17 March 1989.
@@ -220,17 +242,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         }
 
         /// <summary>
-        /// Sets the value of the specified tag.
-        /// </summary>
-        /// <param name="tag">The tag of the iptc value.</param>
-        /// <param name="value">The value.</param>
-        /// <param name="strict">
-        /// Indicates if length restrictions from the specification should be followed strictly.
-        /// Defaults to true.
-        /// </param>
-        public void SetValue(IptcTag tag, string value, bool strict = true) => this.SetValue(tag, Encoding.UTF8, value, strict);
-
-        /// <summary>
         /// Updates the data of the profile.
         /// </summary>
         public void UpdateData()
@@ -241,12 +252,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 length += value.Length + 5;
             }
 
-            this.Data = new byte[length];
+            bool hasValuesInUtf8 = this.HasValuesInUtf8();
 
-            int i = 0;
+            if (hasValuesInUtf8)
+            {
+                // Additional length for UTF-8 Tag.
+                length += 5 + CodedCharacterSetUtf8Value.Length;
+            }
+
+            this.Data = new byte[length];
+            int offset = 0;
+            if (hasValuesInUtf8)
+            {
+                // Write Envelope Record.
+                offset = this.WriteRecord(offset, CodedCharacterSetUtf8Value, IptcRecordNumber.Envelope, IptcEnvelopeCodedCharacterSet);
+            }
+
             foreach (IptcValue value in this.Values)
             {
-                // Standard DataSet Tag
+                // Write Application Record.
                 // +-----------+----------------+---------------------------------------------------------------------------------+
                 // | Octet Pos | Name           | Description                                                                     |
                 // +==========-+================+=================================================================================+
@@ -263,17 +287,26 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 // |           | Octet Count    | the following data field(32767 or fewer octets). Note that the value of bit 7 of|
                 // |           |                | octet 4(most significant bit) always will be 0.                                 |
                 // +-----------+----------------+---------------------------------------------------------------------------------+
-                this.Data[i++] = IptcTagMarkerByte;
-                this.Data[i++] = 2;
-                this.Data[i++] = (byte)value.Tag;
-                this.Data[i++] = (byte)(value.Length >> 8);
-                this.Data[i++] = (byte)value.Length;
-                if (value.Length > 0)
-                {
-                    Buffer.BlockCopy(value.ToByteArray(), 0, this.Data, i, value.Length);
-                    i += value.Length;
-                }
+                offset = this.WriteRecord(offset, value.ToByteArray(), IptcRecordNumber.Application, (byte)value.Tag);
             }
+        }
+
+        private int WriteRecord(int offset, ReadOnlySpan<byte> recordData, IptcRecordNumber recordNumber, byte recordBinaryRepresentation)
+        {
+            Span<byte> data = this.Data.AsSpan(offset, 5);
+            data[0] = IptcTagMarkerByte;
+            data[1] = (byte)recordNumber;
+            data[2] = recordBinaryRepresentation;
+            data[3] = (byte)(recordData.Length >> 8);
+            data[4] = (byte)recordData.Length;
+            offset += 5;
+            if (recordData.Length > 0)
+            {
+                recordData.CopyTo(this.Data.AsSpan(offset));
+                offset += recordData.Length;
+            }
+
+            return offset;
         }
 
         private void Initialize()
@@ -298,6 +331,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 bool isValidRecordNumber = recordNumber is >= 1 and <= 9;
                 var tag = (IptcTag)this.Data[offset++];
                 bool isValidEntry = isValidTagMarker && isValidRecordNumber;
+                bool isApplicationRecord = recordNumber == (byte)IptcRecordNumber.Application;
 
                 uint byteCount = BinaryPrimitives.ReadUInt16BigEndian(this.Data.AsSpan(offset, 2));
                 offset += 2;
@@ -307,15 +341,32 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                     break;
                 }
 
-                if (isValidEntry && byteCount > 0 && (offset <= this.Data.Length - byteCount))
+                if (isValidEntry && isApplicationRecord && byteCount > 0 && (offset <= this.Data.Length - byteCount))
                 {
-                    var iptcData = new byte[byteCount];
+                    byte[] iptcData = new byte[byteCount];
                     Buffer.BlockCopy(this.Data, offset, iptcData, 0, (int)byteCount);
                     this.values.Add(new IptcValue(tag, iptcData, false));
                 }
 
                 offset += (int)byteCount;
             }
+        }
+
+        /// <summary>
+        /// Gets if any value has UTF-8 encoding.
+        /// </summary>
+        /// <returns>true if any value has UTF-8 encoding.</returns>
+        private bool HasValuesInUtf8()
+        {
+            foreach (IptcValue value in this.values)
+            {
+                if (value.Encoding == Encoding.UTF8)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

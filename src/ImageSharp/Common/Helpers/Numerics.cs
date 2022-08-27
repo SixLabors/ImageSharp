@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -74,6 +74,12 @@ namespace SixLabors.ImageSharp
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Modulo8(int x) => x & 7;
+
+        /// <summary>
+        /// Calculates <paramref name="x"/> % 8
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static nint Modulo8(nint x) => x & 7;
 
         /// <summary>
         /// Fast (x mod m) calculator, with the restriction that
@@ -968,7 +974,7 @@ namespace SixLabors.ImageSharp
         /// Tells whether input value is outside of the given range.
         /// </summary>
         /// <param name="value">Value.</param>
-        /// <param name="min">Mininum value, inclusive.</param>
+        /// <param name="min">Minimum value, inclusive.</param>
         /// <param name="max">Maximum value, inclusive.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsOutOfRange(int value, int min, int max)

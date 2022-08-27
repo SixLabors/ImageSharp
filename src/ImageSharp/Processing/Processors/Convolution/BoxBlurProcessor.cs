@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -21,9 +21,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
         /// </param>
-        public BoxBlurProcessor(int radius)
+        /// <param name="borderWrapModeX">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.</param>
+        /// <param name="borderWrapModeY">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.</param>
+        public BoxBlurProcessor(int radius, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
         {
             this.Radius = radius;
+            this.BorderWrapModeX = borderWrapModeX;
+            this.BorderWrapModeY = borderWrapModeY;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BoxBlurProcessor"/> class.
+        /// </summary>
+        /// <param name="radius">
+        /// The 'radius' value representing the size of the area to sample.
+        /// </param>
+        public BoxBlurProcessor(int radius)
+            : this(radius, BorderWrappingMode.Repeat, BorderWrappingMode.Repeat)
+        {
         }
 
         /// <summary>
@@ -39,9 +54,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         public int Radius { get; }
 
+        /// <summary>
+        /// Gets the <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.
+        /// </summary>
+        public BorderWrappingMode BorderWrapModeX { get; }
+
+        /// <summary>
+        /// Gets the <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.
+        /// </summary>
+        public BorderWrappingMode BorderWrapModeY { get; }
+
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : unmanaged, IPixel<TPixel>
-            => new BoxBlurProcessor<TPixel>(configuration, this, source, sourceRectangle);
+            => new BoxBlurProcessor<TPixel>(configuration, this, source, sourceRectangle, this.BorderWrapModeX, this.BorderWrapModeY);
     }
 }

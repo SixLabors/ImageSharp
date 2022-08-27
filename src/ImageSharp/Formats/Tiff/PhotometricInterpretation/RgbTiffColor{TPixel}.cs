@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     float g = bitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                     float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
-                    color.FromVector4(new Vector4(r, g, b, 1.0f));
+                    color.FromScaledVector4(new Vector4(r, g, b, 1.0f));
                     pixelRow[x] = color;
                 }
 

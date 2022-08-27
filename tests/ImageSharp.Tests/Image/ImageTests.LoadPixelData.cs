@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
+            [ValidateDisposedMemoryAllocations]
             public void FromPixels(bool useSpan)
             {
                 Rgba32[] data = { Color.Black, Color.White, Color.White, Color.Black, };

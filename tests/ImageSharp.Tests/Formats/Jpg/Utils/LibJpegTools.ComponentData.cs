@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Linq;
@@ -26,11 +26,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.SpectralBlocks = Configuration.Default.MemoryAllocator.Allocate2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
             }
 
-            public Size Size => new Size(this.WidthInBlocks, this.HeightInBlocks);
+            public byte Id { get; }
+
+            public Size Size => new(this.WidthInBlocks, this.HeightInBlocks);
 
             public int Index { get; }
 
-            public Size SizeInBlocks => new Size(this.WidthInBlocks, this.HeightInBlocks);
+            public Size SizeInBlocks => new(this.WidthInBlocks, this.HeightInBlocks);
 
             public Size SamplingFactors => throw new NotSupportedException();
 
@@ -47,6 +49,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public short MinVal { get; private set; } = short.MaxValue;
 
             public short MaxVal { get; private set; } = short.MinValue;
+
+            public int HorizontalSamplingFactor => throw new NotImplementedException();
+
+            public int VerticalSamplingFactor => throw new NotImplementedException();
+
+            public int DcPredictor { get; set; }
+
+            public int DcTableId { get; set; }
+
+            public int AcTableId { get; set; }
 
             internal void MakeBlock(Block8x8 block, int y, int x)
             {
@@ -77,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 }
             }
 
-            public void LoadSpectral(JpegComponent c)
+            public void LoadSpectral(IJpegComponent c)
             {
                 Buffer2D<Block8x8> data = c.SpectralBlocks;
                 for (int y = 0; y < this.HeightInBlocks; y++)
@@ -201,25 +213,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return this.Equals((ComponentData)obj);
             }
 
-            public override int GetHashCode()
-            {
-                return HashCode.Combine(this.Index, this.HeightInBlocks, this.WidthInBlocks, this.MinVal, this.MaxVal);
-            }
+            public override int GetHashCode() => HashCode.Combine(this.Index, this.HeightInBlocks, this.WidthInBlocks, this.MinVal, this.MaxVal);
 
-            public ref Block8x8 GetBlockReference(int column, int row)
-            {
-                throw new NotImplementedException();
-            }
+            public ref Block8x8 GetBlockReference(int column, int row) => throw new NotImplementedException();
 
-            public static bool operator ==(ComponentData left, ComponentData right)
-            {
-                return object.Equals(left, right);
-            }
+            public void Init(int maxSubFactorH, int maxSubFactorV) => throw new NotImplementedException();
 
-            public static bool operator !=(ComponentData left, ComponentData right)
-            {
-                return !object.Equals(left, right);
-            }
+            public void AllocateSpectral(bool fullScan) => throw new NotImplementedException();
+
+            public void Dispose() => throw new NotImplementedException();
+
+            public static bool operator ==(ComponentData left, ComponentData right) => Equals(left, right);
+
+            public static bool operator !=(ComponentData left, ComponentData right) => !Equals(left, right);
         }
     }
 }

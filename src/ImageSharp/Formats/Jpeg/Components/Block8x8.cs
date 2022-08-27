@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -119,6 +119,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             for (int i = 0; i < Size; i++)
             {
                 destination[i] = this[i];
+            }
+        }
+
+        public static Block8x8 Load(ReadOnlySpan<byte> data)
+        {
+            Unsafe.SkipInit(out Block8x8 result);
+            result.LoadFrom(data);
+            return result;
+        }
+
+        public void LoadFrom(ReadOnlySpan<byte> source)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                this[i] = source[i];
             }
         }
 

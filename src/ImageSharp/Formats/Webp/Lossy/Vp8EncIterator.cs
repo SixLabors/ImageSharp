@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 
@@ -874,7 +874,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.SetCountDown(this.mbw * this.mbh);
             this.InitTop();
 
-            Array.Clear(this.BitCount, 0, this.BitCount.Length);
+            Array.Clear(this.BitCount);
         }
 
         /// <summary>

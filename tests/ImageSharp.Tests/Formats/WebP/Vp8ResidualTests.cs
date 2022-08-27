@@ -1,11 +1,11 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.WebP
+namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     [Trait("Format", "Webp")]
     public class Vp8ResidualTests

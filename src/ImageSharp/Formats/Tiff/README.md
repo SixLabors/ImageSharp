@@ -28,15 +28,6 @@
 - The Decoder currently only supports decoding multiframe images, which have the same dimensions.
 - Some compression formats are not yet supported. See the list below.
 
-### Deviations from the TIFF spec (to be fixed)
-
-- Decoder
-  - A Baseline TIFF reader must skip over extra components (e.g. RGB with 4 samples per pixels)
-    - NB: Need to handle this for both planar and chunky data
-  - If the SampleFormat field is present and not 1 - fail gracefully if you cannot handle this
-  - Compression=None should treat 16/32-BitsPerSample for all samples as SHORT/LONG (for byte order and padding rows)
-  - Check Planar format data - is this encoded as strips in order RGBRGBRGB or RRRGGGBBB?
-
 ### Compression Formats
 
 |                           |Encoder|Decoder|Comments                  |
@@ -46,11 +37,12 @@
 |PackBits                   |   Y   |   Y   |                          |
 |CcittGroup3Fax             |   Y   |   Y   |                          |
 |CcittGroup4Fax             |   Y   |   Y   |                          |
-|Lzw                        |   Y   |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
-|Old Jpeg                   |       |       | We should not even try to support this |
+|Lzw                        |   Y   |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case. |
+|Old Jpeg                   |       |       | We should not even try to support this. |
 |Jpeg (Technote 2)          |   Y   |   Y   |                          |
 |Deflate (Technote 2)       |   Y   |   Y   | Based on PNG Deflate.    |
 |Old Deflate (Technote 2)   |       |   Y   |                          |
+|Webp   					|       |   Y   |                          |
 
 ### Photometric Interpretation Formats
 
@@ -64,7 +56,7 @@
 |TransparencyMask           |       |       |                          |
 |Separated (TIFF Extension) |       |       |                          |
 |YCbCr (TIFF Extension)     |       |   Y   |                          |
-|CieLab (TIFF Extension)    |       |       |                          |
+|CieLab (TIFF Extension)    |       |   Y   |                          |
 |IccLab (TechNote 1)        |       |       |                          |
 
 ### Baseline TIFF Tags
@@ -87,7 +79,7 @@
 |Model                      |   Y   |   Y   |                          |
 |StripOffsets               |   Y   |   Y   |                          |
 |Orientation                |       |   -   | Ignore. Many readers ignore this tag. |
-|SamplesPerPixel            |   Y   |   -   | Currently ignored, as can be inferred from count of BitsPerSample |
+|SamplesPerPixel            |   Y   |   -   | Currently ignored, as can be inferred from count of BitsPerSample. |
 |RowsPerStrip               |   Y   |   Y   |                          |
 |StripByteCounts            |   Y   |   Y   |                          |
 |MinSampleValue             |       |       |                          |
@@ -105,7 +97,7 @@
 |Artist                     |   Y   |   Y   |                          |
 |HostComputer               |   Y   |   Y   |                          |
 |ColorMap                   |   Y   |   Y   |                          |
-|ExtraSamples               |       |  (Y)  | Only UnassociatedAlphaData is supported so far |
+|ExtraSamples               |       |   Y   | Unspecified alpha data is not supported. |
 |Copyright                  |   Y   |   Y   |                          |
 
 ### Extension TIFF Tags

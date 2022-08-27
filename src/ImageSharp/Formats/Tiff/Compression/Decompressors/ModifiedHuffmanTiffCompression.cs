@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -42,11 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
         {
-            using var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount, this.Allocator);
+            var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount);
 
             buffer.Clear();
-            uint bitsWritten = 0;
-            uint pixelsWritten = 0;
+            nint bitsWritten = 0;
+            nuint pixelsWritten = 0;
+            nint rowsWritten = 0;
             while (bitReader.HasMoreData)
             {
                 bitReader.ReadNextRun();
@@ -55,32 +56,39 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                 {
                     if (bitReader.IsWhiteRun)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
+                        BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.whiteValue);
                     }
                     else
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
+                        BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.blackValue);
                     }
 
-                    bitsWritten += bitReader.RunLength;
+                    bitsWritten += (int)bitReader.RunLength;
                     pixelsWritten += bitReader.RunLength;
                 }
 
-                if (pixelsWritten == this.Width)
+                if (pixelsWritten == (ulong)this.Width)
                 {
-                    bitReader.StartNewRow();
+                    rowsWritten++;
                     pixelsWritten = 0;
 
                     // Write padding bits, if necessary.
-                    uint pad = 8 - (bitsWritten % 8);
+                    nint pad = 8 - Numerics.Modulo8(bitsWritten);
                     if (pad != 8)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
+                        BitWriterUtils.WriteBits(buffer, bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
+
+                    if (rowsWritten >= stripHeight)
+                    {
+                        break;
+                    }
+
+                    bitReader.StartNewRow();
                 }
 
-                if (pixelsWritten > this.Width)
+                if (pixelsWritten > (ulong)this.Width)
                 {
                     TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, decoded more pixels then image width");
                 }

@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -27,6 +28,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 GetImageComparer(provider),
                 provider,
                 appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingProgressive01, PixelTypes.Rgb24)]
+        [WithFile(TestImages.Jpeg.Baseline.ArithmeticCodingProgressive02, PixelTypes.Rgb24)]
+        public void DecodeProgressiveJpeg_WithArithmeticCoding<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Tolerant(0.004f), ReferenceDecoder);
         }
 
         [Theory]

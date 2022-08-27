@@ -1,8 +1,7 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
-using System.Linq;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -26,10 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
             };
 
-        public SpectralToPixelConversionTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public SpectralToPixelConversionTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -47,14 +43,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using var converter = new SpectralConverter<TPixel>(Configuration.Default);
             using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, converter, cancellationToken: default);
-            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+            decoder.ParseStream(bufferedStream, converter, cancellationToken: default);
 
             // Test metadata
             provider.Utility.TestGroupName = nameof(JpegDecoderTests);
             provider.Utility.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
             // Comparison
-            using (Image<TPixel> image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(CancellationToken.None), new ImageMetadata()))
+            using (var image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(CancellationToken.None), new ImageMetadata()))
             using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
             {
                 ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);

@@ -1,11 +1,10 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using CommandLine;
@@ -51,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             Console.WriteLine($"\nEnvironment.ProcessorCount={Environment.ProcessorCount}");
             Stopwatch timer;
 
-            if (options == null || !options.ImageSharp)
+            if (options == null || !(options.ImageSharp || options.AsyncImageSharp))
             {
                 RunBenchmarkSwitcher(lrs, out timer);
             }
@@ -68,13 +67,21 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                 lrs.leakFrequency = options.LeakFrequency;
                 lrs.gcFrequency = options.GcFrequency;
 
-
                 timer = Stopwatch.StartNew();
                 try
                 {
                     for (int i = 0; i < options.RepeatCount; i++)
                     {
-                        lrs.ImageSharpBenchmarkParallel();
+                        if (options.AsyncImageSharp)
+                        {
+                            lrs.ImageSharpBenchmarkParallelAsync();
+                        }
+                        else
+                        {
+                            lrs.ImageSharpBenchmarkParallel();
+                        }
+
+                        Console.WriteLine("OK");
                     }
                 }
                 catch (Exception ex)
@@ -221,6 +228,9 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private class CommandLineOptions
         {
+            [Option('a', "async-imagesharp", Required = false, Default = false, HelpText = "Async ImageSharp without benchmark switching")]
+            public bool AsyncImageSharp { get; set; }
+
             [Option('i', "imagesharp", Required = false, Default = false, HelpText = "Test ImageSharp without benchmark switching")]
             public bool ImageSharp { get; set; }
 
@@ -277,7 +287,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             }
 
             public override string ToString() =>
-                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_d({this.KeepDefaultAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.GcFrequency})_e({this.ReleaseRetainedResourcesAtEnd})_l({this.LeakFrequency})";
+                $"p({this.MaxDegreeOfParallelism})_i({this.ImageSharp})_a({this.AsyncImageSharp})_d({this.KeepDefaultAllocator})_m({this.MaxContiguousPoolBufferMegaBytes})_s({this.MaxPoolSizeMegaBytes})_u({this.MaxCapacityOfNonPoolBuffersMegaBytes})_r({this.RepeatCount})_g({this.GcFrequency})_e({this.ReleaseRetainedResourcesAtEnd})_l({this.LeakFrequency})";
 
             public MemoryAllocator CreateMemoryAllocator()
             {
@@ -330,11 +340,17 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
                 }
             });
 
+        private void ImageSharpBenchmarkParallelAsync() =>
+            this.Benchmarks.ForEachImageParallelAsync(f => this.Benchmarks.ImageSharpResizeAsync(f))
+                .GetAwaiter()
+                .GetResult();
+
         private void MagickBenchmarkParallel() => this.ForEachImage(this.Benchmarks.MagickResize);
 
         private void MagicScalerBenchmarkParallel() => this.ForEachImage(this.Benchmarks.MagicScalerResize);
 
         private void SkiaBitmapBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SkiaBitmapResize);
+
         private void SkiaBitmapDecodeToTargetSizeBenchmarkParallel() => this.ForEachImage(this.Benchmarks.SkiaBitmapDecodeToTargetSize);
 
         private void NetVipsBenchmarkParallel() => this.ForEachImage(this.Benchmarks.NetVipsResize);

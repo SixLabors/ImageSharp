@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Text;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expectedSizeInBlocks, decoder.Frame.McuSize);
 
                 var uniform1 = new Size(1, 1);
-                JpegComponent c0 = decoder.Components[0];
+                IJpegComponent c0 = decoder.Components[0];
                 VerifyJpeg.VerifyComponent(c0, expectedSizeInBlocks, uniform1, uniform1);
             }
         }
@@ -70,8 +70,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 sb.AppendLine(imageFile);
                 sb.AppendLine($"Size:{decoder.Frame.PixelSize} MCU:{decoder.Frame.McuSize}");
-                JpegComponent c0 = decoder.Components[0];
-                JpegComponent c1 = decoder.Components[1];
+                IJpegComponent c0 = decoder.Components[0];
+                IJpegComponent c1 = decoder.Components[1];
 
                 sb.AppendLine($"Luma: SAMP: {c0.SamplingFactors} BLOCKS: {c0.SizeInBlocks}");
                 sb.AppendLine($"Chroma: {c1.SamplingFactors} BLOCKS: {c1.SizeInBlocks}");
@@ -80,17 +80,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine(sb.ToString());
         }
 
-        public static readonly TheoryData<string, int, object, object> ComponentVerificationData = new TheoryData<string, int, object, object>
-            {
-                { TestImages.Jpeg.Baseline.Jpeg444, 3, new Size(1, 1), new Size(1, 1) },
-                { TestImages.Jpeg.Baseline.Jpeg420Exif, 3, new Size(2, 2), new Size(1, 1) },
-                { TestImages.Jpeg.Baseline.Jpeg420Small, 3, new Size(2, 2), new Size(1, 1) },
-                { TestImages.Jpeg.Baseline.Testorig420, 3, new Size(2, 2), new Size(1, 1) },
+        public static readonly TheoryData<string, int, object, object> ComponentVerificationData = new()
+        {
+            { TestImages.Jpeg.Baseline.Jpeg444, 3, new Size(1, 1), new Size(1, 1) },
+            { TestImages.Jpeg.Baseline.Jpeg420Exif, 3, new Size(2, 2), new Size(1, 1) },
+            { TestImages.Jpeg.Baseline.Jpeg420Small, 3, new Size(2, 2), new Size(1, 1) },
+            { TestImages.Jpeg.Baseline.Testorig420, 3, new Size(2, 2), new Size(1, 1) },
 
-                // TODO: Find Ycck or Cmyk images with different subsampling
-                { TestImages.Jpeg.Baseline.Ycck, 4, new Size(1, 1), new Size(1, 1) },
-                { TestImages.Jpeg.Baseline.Cmyk, 4, new Size(1, 1), new Size(1, 1) },
-            };
+            // TODO: Find Ycck or Cmyk images with different subsampling
+            { TestImages.Jpeg.Baseline.Ycck, 4, new Size(1, 1), new Size(1, 1) },
+            { TestImages.Jpeg.Baseline.Cmyk, 4, new Size(1, 1), new Size(1, 1) },
+        };
 
         [Theory]
         [MemberData(nameof(ComponentVerificationData))]
@@ -108,9 +108,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(componentCount, decoder.Frame.ComponentCount);
                 Assert.Equal(componentCount, decoder.Components.Length);
 
-                JpegComponent c0 = decoder.Components[0];
-                JpegComponent c1 = decoder.Components[1];
-                JpegComponent c2 = decoder.Components[2];
+                IJpegComponent c0 = decoder.Components[0];
+                IJpegComponent c1 = decoder.Components[1];
+                IJpegComponent c2 = decoder.Components[2];
 
                 var uniform1 = new Size(1, 1);
 
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 if (componentCount == 4)
                 {
-                    JpegComponent c3 = decoder.Components[2];
+                    IJpegComponent c3 = decoder.Components[2];
                     VerifyJpeg.VerifyComponent(c3, expectedLumaSizeInBlocks, fLuma, uniform1);
                 }
             }

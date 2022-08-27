@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -63,12 +63,11 @@ namespace SixLabors.ImageSharp.Tests
                 this.localImageFormatMock = new Mock<IImageFormat>();
 
                 var detector = new Mock<IImageInfoDetector>();
-                detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>())).Returns(this.localImageInfoMock.Object);
-                detector.Setup(x => x.IdentifyAsync(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(this.localImageInfoMock.Object);
+                detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(this.localImageInfoMock.Object);
 
                 this.localDecoder = detector.As<IImageDecoder>();
-                this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
-                    .Callback<Configuration, Stream>((c, s) =>
+                this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                    .Callback<Configuration, Stream, CancellationToken>((c, s, ct) =>
                         {
                             using (var ms = new MemoryStream())
                             {
@@ -78,8 +77,8 @@ namespace SixLabors.ImageSharp.Tests
                         })
                     .Returns(this.localStreamReturnImageRgba32);
 
-                this.localDecoder.Setup(x => x.Decode(It.IsAny<Configuration>(), It.IsAny<Stream>()))
-                    .Callback<Configuration, Stream>((c, s) =>
+                this.localDecoder.Setup(x => x.Decode(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                    .Callback<Configuration, Stream, CancellationToken>((c, s, ct) =>
                         {
                             using (var ms = new MemoryStream())
                             {

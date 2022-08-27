@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
 using Xunit;
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             {
                 Assert.True(RuntimeEnvironment.IsOSPlatform(OSPlatform.Linux));
             }
-            else if (TestEnvironment.IsOSX)
+            else if (TestEnvironment.IsMacOS)
             {
                 Assert.True(RuntimeEnvironment.IsOSPlatform(OSPlatform.OSX));
             }

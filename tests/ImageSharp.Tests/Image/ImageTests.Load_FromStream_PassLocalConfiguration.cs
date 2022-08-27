@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using System.Threading.Tasks;
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, stream));
+                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, stream, default));
             }
 
             [Fact]
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, stream));
+                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, stream, default));
             }
 
             [Fact]

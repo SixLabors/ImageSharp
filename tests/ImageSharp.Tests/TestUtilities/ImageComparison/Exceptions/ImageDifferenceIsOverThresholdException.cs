@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             sb.Append(Environment.NewLine);
 
-            // TODO: We should add OSX.
+            // TODO: We should add macOS.
             sb.AppendFormat("Test Environment OS : {0}", TestEnvironment.IsWindows ? "Windows" : "Linux");
             sb.Append(Environment.NewLine);
 

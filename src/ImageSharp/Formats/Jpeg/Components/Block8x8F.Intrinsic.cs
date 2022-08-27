@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System;
@@ -35,8 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [FieldOffset(224)]
         public Vector256<float> V7;
 
-        private static readonly Vector256<int> MultiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
-
         private static unsafe void MultiplyIntoInt16_Avx2(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
         {
             DebugGuard.IsTrue(Avx2.IsSupported, "Avx2 support is required to run this operation!");
@@ -45,6 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref Vector256<float> bBase = ref b.V0;
 
             ref Vector256<short> destRef = ref dest.V01;
+            Vector256<int> multiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
 
             for (nint i = 0; i < 8; i += 2)
             {
@@ -52,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 Vector256<int> row1 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
 
                 Vector256<short> row = Avx2.PackSignedSaturate(row0, row1);
-                row = Avx2.PermuteVar8x32(row.AsInt32(), MultiplyIntoInt16ShuffleMask).AsInt16();
+                row = Avx2.PermuteVar8x32(row.AsInt32(), multiplyIntoInt16ShuffleMask).AsInt16();
 
                 Unsafe.Add(ref destRef, (IntPtr)((uint)i / 2)) = row;
             }

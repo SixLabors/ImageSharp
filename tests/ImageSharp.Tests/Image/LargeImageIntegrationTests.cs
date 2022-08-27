@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -55,6 +55,8 @@ namespace SixLabors.ImageSharp.Tests
 
             static void RunTest(string formatInner)
             {
+                using IDisposable mem = MemoryAllocatorValidator.MonitorAllocations();
+
                 Configuration configuration = Configuration.Default.Clone();
                 configuration.PreferContiguousImageBuffers = true;
                 IImageEncoder encoder = configuration.ImageFormatsManager.FindEncoder(

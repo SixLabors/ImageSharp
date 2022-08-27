@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         protected void ReadValues64(List<IExifValue> values, ulong offset)
         {
-            DebugGuard.MustBeLessThanOrEqualTo(offset, (ulong)this.data.Length, "By spec UInt64.MaxValue is supported, but .Net Stream.Length can Int64.MaxValue.");
+            DebugGuard.MustBeLessThanOrEqualTo(offset, (ulong)this.data.Length, "By spec UInt64.MaxValue is supported, but .NET Stream.Length can Int64.MaxValue.");
 
             this.Seek(offset);
             ulong count = this.ReadUInt64();

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using SixLabors.ImageSharp.Formats;
@@ -36,6 +36,14 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 SimdUtils.PackFromRgbPlanes(configuration, redChannel, greenChannel, blueChannel, destination);
             }
+
+            /// <inheritdoc />
+            internal override void UnpackIntoRgbPlanes(
+               Span<float> redChannel,
+               Span<float> greenChannel,
+               Span<float> blueChannel,
+               ReadOnlySpan<Rgb24> source)
+               => SimdUtils.UnpackToRgbPlanes(redChannel, greenChannel, blueChannel, source);
         }
     }
 }

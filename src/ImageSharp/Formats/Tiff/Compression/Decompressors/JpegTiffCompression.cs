@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.InteropServices;
@@ -59,29 +59,30 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                     case TiffPhotometricInterpretation.BlackIsZero:
                     case TiffPhotometricInterpretation.WhiteIsZero:
                     {
-                        using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(this.configuration);
+                        using SpectralConverter<L8> spectralConverterGray =
+                            new GrayJpegSpectralConverter<L8>(this.configuration);
                         var scanDecoderGray = new HuffmanScanDecoder(stream, spectralConverterGray, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
-                        jpegDecoder.ParseStream(stream, scanDecoderGray, CancellationToken.None);
+                        jpegDecoder.ParseStream(stream, spectralConverterGray, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        CopyImageBytesToBuffer(buffer, spectralConverterGray.GetPixelBuffer(CancellationToken.None));
+                        using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(CancellationToken.None);
+                        CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }
 
-                    // If the PhotometricInterpretation is YCbCr we explicitly assume the JPEG data is in RGB color space.
-                    // There seems no other way to determine that the JPEG data is RGB colorspace (no APP14 marker, componentId's are not RGB).
                     case TiffPhotometricInterpretation.YCbCr:
                     case TiffPhotometricInterpretation.Rgb:
                     {
-                        using SpectralConverter<Rgb24> spectralConverter = this.photometricInterpretation == TiffPhotometricInterpretation.YCbCr ?
-                            new RgbJpegSpectralConverter<Rgb24>(this.configuration) : new SpectralConverter<Rgb24>(this.configuration);
+                        using SpectralConverter<Rgb24> spectralConverter =
+                            new TiffJpegSpectralConverter<Rgb24>(this.configuration, this.photometricInterpretation);
                         var scanDecoder = new HuffmanScanDecoder(stream, spectralConverter, CancellationToken.None);
                         jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
-                        jpegDecoder.ParseStream(stream, scanDecoder, CancellationToken.None);
+                        jpegDecoder.ParseStream(stream, spectralConverter, CancellationToken.None);
 
                         // TODO: Should we pass through the CancellationToken from the tiff decoder?
-                        CopyImageBytesToBuffer(buffer, spectralConverter.GetPixelBuffer(CancellationToken.None));
+                        using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(CancellationToken.None);
+                        CopyImageBytesToBuffer(buffer, decompressedBuffer);
                         break;
                     }
 

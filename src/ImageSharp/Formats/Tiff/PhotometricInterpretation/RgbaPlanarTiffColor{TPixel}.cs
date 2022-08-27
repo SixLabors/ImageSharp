@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -32,7 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private readonly ushort bitsPerSampleA;
 
-        public RgbaPlanarTiffColor(TiffBitsPerSample bitsPerSample)
+        private readonly TiffExtraSampleType? extraSampleType;
+
+        public RgbaPlanarTiffColor(TiffExtraSampleType? extraSampleType, TiffBitsPerSample bitsPerSample)
         {
             this.bitsPerSampleR = bitsPerSample.Channel0;
             this.bitsPerSampleG = bitsPerSample.Channel1;
@@ -43,6 +45,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             this.gFactor = (1 << this.bitsPerSampleG) - 1.0f;
             this.bFactor = (1 << this.bitsPerSampleB) - 1.0f;
             this.aFactor = (1 << this.bitsPerSampleA) - 1.0f;
+
+            this.extraSampleType = extraSampleType;
         }
 
         /// <summary>
@@ -57,6 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
             var color = default(TPixel);
+            bool hasAssociatedAlpha = this.extraSampleType.HasValue && this.extraSampleType == TiffExtraSampleType.AssociatedAlphaData;
 
             var rBitReader = new BitReader(data[0].GetSpan());
             var gBitReader = new BitReader(data[1].GetSpan());
@@ -73,7 +78,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
                     float a = aBitReader.ReadBits(this.bitsPerSampleA) / this.aFactor;
 
-                    color.FromVector4(new Vector4(r, g, b, a));
+                    var vec = new Vector4(r, g, b, a);
+                    if (hasAssociatedAlpha)
+                    {
+                        color = TiffUtils.UnPremultiply(ref vec, color);
+                    }
+                    else
+                    {
+                        color.FromScaledVector4(vec);
+                    }
+
                     pixelRow[x] = color;
                 }
 

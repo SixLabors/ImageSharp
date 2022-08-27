@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -81,6 +81,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             // arrange
             var tiffEncoder = new TiffEncoder { BitsPerPixel = bitsPerPixel };
+            using Image input = new Image<Rgb24>(10, 10);
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(TiffBitsPerPixel.Bit24, frameMetaData.BitsPerPixel);
+        }
+
+        [Theory]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.Ccitt1D)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.CcittGroup3Fax)]
+        [InlineData(TiffPhotometricInterpretation.Rgb, TiffCompression.CcittGroup4Fax)]
+        public void EncoderOptions_WithInvalidCompressionAndPixelTypeCombination_DefaultsToRgb(TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation, Compression = compression };
             using Image input = new Image<Rgb24>(10, 10);
             using var memStream = new MemoryStream();
 

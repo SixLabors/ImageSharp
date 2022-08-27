@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -26,10 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            // Note: due to an issue with netcore 2.1 and default values and unpredictable behavior with those,
-            // we define our own defaults as a workaround. See: https://github.com/dotnet/runtime/issues/55623
             var color = default(TPixel);
-            color.FromVector4(TiffUtils.Vector4Default);
+            color.FromScaledVector4(Vector4.Zero);
             int offset = 0;
             byte[] buffer = new byte[4];
 
@@ -62,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         offset += 4;
 
                         var colorVector = new Vector4(r, g, b, a);
-                        color.FromVector4(colorVector);
+                        color.FromScaledVector4(colorVector);
                         pixelRow[x] = color;
                     }
                 }
@@ -87,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                         offset += 4;
 
                         var colorVector = new Vector4(r, g, b, a);
-                        color.FromVector4(colorVector);
+                        color.FromScaledVector4(colorVector);
                         pixelRow[x] = color;
                     }
                 }

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -340,6 +340,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Level shift by +maximum/2, clip to [0..maximum], and round all the values in the block.
         /// </summary>
         public void NormalizeColorsAndRoundInPlace(float maximum)
+        {
+            if (SimdUtils.HasVector8)
+            {
+                this.NormalizeColorsAndRoundInPlaceVector8(maximum);
+            }
+            else
+            {
+                this.NormalizeColorsInPlace(maximum);
+                this.RoundInPlace();
+            }
+        }
+
+        public void DE_NormalizeColors(float maximum)
         {
             if (SimdUtils.HasVector8)
             {

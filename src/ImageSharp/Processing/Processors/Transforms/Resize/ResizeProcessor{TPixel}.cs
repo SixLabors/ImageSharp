@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -61,9 +61,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle destinationRectangle = this.destinationRectangle;
             bool compand = this.options.Compand;
             bool premultiplyAlpha = this.options.PremultiplyAlpha;
+            TPixel fillColor = this.options.PadColor.ToPixel<TPixel>();
             bool shouldFill = (this.options.Mode == ResizeMode.BoxPad || this.options.Mode == ResizeMode.Pad)
                               && this.options.PadColor != default;
-            TPixel fillColor = this.options.PadColor.ToPixel<TPixel>();
 
             // Handle resize dimensions identical to the original
             if (source.Width == destination.Width
@@ -209,21 +209,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             // To reintroduce parallel processing, we would launch multiple workers
             // for different row intervals of the image.
-            using (var worker = new ResizeWorker<TPixel>(
+            using var worker = new ResizeWorker<TPixel>(
                 configuration,
                 sourceRegion,
                 conversionModifiers,
                 horizontalKernelMap,
                 verticalKernelMap,
-                destination.Width,
                 interest,
-                destinationRectangle.Location))
-            {
-                worker.Initialize();
+                destinationRectangle.Location);
+            worker.Initialize();
 
-                var workingInterval = new RowInterval(interest.Top, interest.Bottom);
-                worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
-            }
+            var workingInterval = new RowInterval(interest.Top, interest.Bottom);
+            worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
         }
 
         private readonly struct NNRowOperation : IRowOperation

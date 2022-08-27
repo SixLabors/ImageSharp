@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -245,9 +245,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             cleanup.Register(b1);
         }
 
-        public static readonly bool IsNotMacOS = !TestEnvironment.IsOSX;
+        public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
 
-        // TODO: Investigate MacOS failures
+        // TODO: Investigate macOS failures
         [ConditionalTheory(nameof(IsNotMacOS))]
         [InlineData(false)]
         [InlineData(true)]

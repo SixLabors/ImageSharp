@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Metadata
     /// </summary>
     public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     {
-        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new Dictionary<IImageFormat, IDeepCloneable>();
+        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrameMetadata"/> class.
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Metadata
         public IptcProfile IptcProfile { get; set; }
 
         /// <inheritdoc/>
-        public ImageFrameMetadata DeepClone() => new ImageFrameMetadata(this);
+        public ImageFrameMetadata DeepClone() => new(this);
 
         /// <summary>
         /// Gets the metadata value associated with the specified key.

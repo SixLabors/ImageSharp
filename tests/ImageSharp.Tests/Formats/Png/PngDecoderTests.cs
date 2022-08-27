@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -19,6 +19,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     [Trait("Format", "Png")]
+    [ValidateDisposedMemoryAllocations]
     public partial class PngDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;

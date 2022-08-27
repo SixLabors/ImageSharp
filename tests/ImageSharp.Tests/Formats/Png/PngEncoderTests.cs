@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
 using System.IO;
@@ -129,13 +129,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
-                provider,
-                pngColorType,
-                PngFilterMethod.Adaptive,
-                PngBitDepth.Bit8,
-                interlaceMode,
-                appendPixelType: true,
-                appendPngColorType: true);
+                    provider,
+                    pngColorType,
+                    PngFilterMethod.Adaptive,
+                    PngBitDepth.Bit8,
+                    interlaceMode,
+                    appendPixelType: true,
+                    appendPngColorType: true);
             }
         }
 
@@ -204,14 +204,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 foreach (PngInterlaceMode interlaceMode in InterlaceMode)
                 {
                     TestPngEncoderCore(
-                    provider,
-                    pngColorType,
-                    (PngFilterMethod)filterMethod[0],
-                    pngBitDepth,
-                    interlaceMode,
-                    appendPngColorType: true,
-                    appendPixelType: true,
-                    appendPngBitDepth: true);
+                        provider,
+                        pngColorType,
+                        (PngFilterMethod)filterMethod[0],
+                        pngBitDepth,
+                        interlaceMode,
+                        appendPngColorType: true,
+                        appendPixelType: true,
+                        appendPngBitDepth: true);
                 }
             }
         }
@@ -292,7 +292,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 var decoder = new PngDecoder();
 
-                Image image = decoder.Decode(Configuration.Default, stream);
+                Image image = decoder.Decode(Configuration.Default, stream, default);
 
                 PngMetadata metadata = image.Metadata.GetPngMetadata();
                 Assert.Equal(pngColorType, metadata.ColorType);
@@ -314,13 +314,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
-                provider,
-                PngColorType.Palette,
-                PngFilterMethod.Adaptive,
-                PngBitDepth.Bit8,
-                interlaceMode,
-                paletteSize: paletteSize,
-                appendPaletteSize: true);
+                    provider,
+                    PngColorType.Palette,
+                    PngFilterMethod.Adaptive,
+                    PngBitDepth.Bit8,
+                    interlaceMode,
+                    paletteSize: paletteSize,
+                    appendPaletteSize: true);
             }
         }
 
@@ -615,7 +615,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 
-                // Compare to the Magick reference decoder.
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
                 // We compare using both our decoder and the reference decoder as pixel transformation

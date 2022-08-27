@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -16,12 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
     /// </summary>
     internal class Vp8Residual
     {
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector256<byte> Cst2 = Vector256.Create((byte)2);
-
-        private static readonly Vector256<byte> Cst67 = Vector256.Create((byte)67);
-#endif
-
         private readonly byte[] scratch = new byte[32];
 
         private readonly ushort[] scratchUShort = new ushort[16];
@@ -182,8 +176,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector256<short> d0 = Avx2.Subtract(Vector256<short>.Zero, c0);
                 Vector256<short> e0 = Avx2.Max(c0, d0); // abs(v), 16b
                 Vector256<sbyte> f = Avx2.PackSignedSaturate(e0, e0);
-                Vector256<byte> g = Avx2.Min(f.AsByte(), Cst2);
-                Vector256<byte> h = Avx2.Min(f.AsByte(), Cst67); // clampLevel in [0..67]
+                Vector256<byte> g = Avx2.Min(f.AsByte(), Vector256.Create((byte)2));
+                Vector256<byte> h = Avx2.Min(f.AsByte(), Vector256.Create((byte)67)); // clampLevel in [0..67]
 
                 ref byte ctxsRef = ref MemoryMarshal.GetReference(ctxs);
                 ref byte levelsRef = ref MemoryMarshal.GetReference(levels);

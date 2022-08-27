@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 
@@ -7,6 +7,12 @@ namespace SixLabors.ImageSharp.Memory
 {
     internal static class MemoryGroupExtensions
     {
+        /// <summary>
+        /// Fills the elements of this <see cref="IMemoryGroup{T}"/> with the specified value.
+        /// </summary>
+        /// <typeparam name="T">The type of element.</typeparam>
+        /// <param name="group">The group to fill.</param>
+        /// <param name="value">The value to assign to each element of the group.</param>
         internal static void Fill<T>(this IMemoryGroup<T> group, T value)
             where T : struct
         {
@@ -16,6 +22,11 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
+        /// <summary>
+        /// Clears the contents of this <see cref="IMemoryGroup{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of element.</typeparam>
+        /// <param name="group">The group to clear.</param>
         internal static void Clear<T>(this IMemoryGroup<T> group)
             where T : struct
         {

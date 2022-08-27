@@ -1,19 +1,19 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Represent a single jpeg frame
+    /// Represent a single jpeg frame.
     /// </summary>
     internal sealed class JpegFrame : IDisposable
     {
         public JpegFrame(JpegFileMarker sofMarker, byte precision, int width, int height, byte componentCount)
         {
-            this.Extended = sofMarker.Marker == JpegConstants.Markers.SOF1;
-            this.Progressive = sofMarker.Marker == JpegConstants.Markers.SOF2;
+            this.IsExtended = sofMarker.Marker is JpegConstants.Markers.SOF1 or JpegConstants.Markers.SOF9;
+            this.Progressive = sofMarker.Marker is JpegConstants.Markers.SOF2 or JpegConstants.Markers.SOF10;
 
             this.Precision = precision;
             this.MaxColorChannelValue = MathF.Pow(2, precision) - 1;
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets a value indicating whether the frame uses the extended specification.
         /// </summary>
-        public bool Extended { get; private set; }
+        public bool IsExtended { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the frame uses the progressive specification.
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <remarks>
         /// This is true for progressive and baseline non-interleaved images.
         /// </remarks>
-        public bool MultiScan { get; set; }
+        public bool Interleaved { get; set; }
 
         /// <summary>
         /// Gets the precision.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the pixel size of the image.
         /// </summary>
-        public Size PixelSize => new Size(this.PixelWidth, this.PixelHeight);
+        public Size PixelSize => new(this.PixelWidth, this.PixelHeight);
 
         /// <summary>
         /// Gets the number of components within a frame.
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the mcu size of the image.
         /// </summary>
-        public Size McuSize => new Size(this.McusPerLine, this.McusPerColumn);
+        public Size McuSize => new(this.McusPerLine, this.McusPerColumn);
 
         /// <summary>
         /// Gets the color depth, in number of bits per pixel.
@@ -134,16 +134,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                JpegComponent component = this.Components[i];
+                IJpegComponent component = this.Components[i];
                 component.Init(maxSubFactorH, maxSubFactorV);
             }
         }
 
-        public void AllocateComponents(bool fullScan)
+        public void AllocateComponents()
         {
+            bool fullScan = this.Progressive || !this.Interleaved;
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                JpegComponent component = this.Components[i];
+                IJpegComponent component = this.Components[i];
                 component.AllocateSpectral(fullScan);
             }
         }

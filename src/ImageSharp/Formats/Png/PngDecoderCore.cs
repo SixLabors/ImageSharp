@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -19,6 +19,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -206,6 +207,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 }
 
                                 break;
+                            case PngChunkType.EmbeddedColorProfile:
+                                this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
+                                break;
                             case PngChunkType.End:
                                 goto EOF;
                             case PngChunkType.ProprietaryApple:
@@ -227,10 +231,16 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 return image;
             }
+            catch
+            {
+                image?.Dispose();
+                throw;
+            }
             finally
             {
                 this.scanline?.Dispose();
                 this.previousScanline?.Dispose();
+                this.nextChunk?.Data?.Dispose();
             }
         }
 
@@ -472,6 +482,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
+            this.previousScanline?.Dispose();
+            this.scanline?.Dispose();
             this.previousScanline = this.memoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
             this.scanline = this.Configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
         }
@@ -1167,6 +1179,76 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
+        /// Reads the color profile chunk. The data is stored similar to the zTXt chunk.
+        /// </summary>
+        /// <param name="metadata">The metadata.</param>
+        /// <param name="data">The bytes containing the profile.</param>
+        private void ReadColorProfileChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        {
+            int zeroIndex = data.IndexOf((byte)0);
+            if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
+            {
+                return;
+            }
+
+            byte compressionMethod = data[zeroIndex + 1];
+            if (compressionMethod != 0)
+            {
+                // Only compression method 0 is supported (zlib datastream with deflate compression).
+                return;
+            }
+
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
+            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            {
+                return;
+            }
+
+            ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
+
+            if (this.TryUncompressZlibData(compressedData, out byte[] iccpProfileBytes))
+            {
+                metadata.IccProfile = new IccProfile(iccpProfileBytes);
+            }
+        }
+
+        /// <summary>
+        /// Tries to un-compress zlib compressed data.
+        /// </summary>
+        /// <param name="compressedData">The compressed data.</param>
+        /// <param name="uncompressedBytesArray">The uncompressed bytes array.</param>
+        /// <returns>True, if de-compressing was successful.</returns>
+        private unsafe bool TryUncompressZlibData(ReadOnlySpan<byte> compressedData, out byte[] uncompressedBytesArray)
+        {
+            fixed (byte* compressedDataBase = compressedData)
+            {
+                using (IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.Configuration.StreamProcessingBufferSize))
+                using (var memoryStreamOutput = new MemoryStream(compressedData.Length))
+                using (var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
+                using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStreamInput))
+                using (var inflateStream = new ZlibInflateStream(bufferedStream))
+                {
+                    Span<byte> destUncompressedData = destBuffer.GetSpan();
+                    if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+                    {
+                        uncompressedBytesArray = Array.Empty<byte>();
+                        return false;
+                    }
+
+                    int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                    while (bytesRead != 0)
+                    {
+                        memoryStreamOutput.Write(destUncompressedData.Slice(0, bytesRead));
+                        bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                    }
+
+                    uncompressedBytesArray = memoryStreamOutput.ToArray();
+                    return true;
+                }
+            }
+        }
+
+        /// <summary>
         /// Compares two ReadOnlySpan&lt;char&gt;s in a case-insensitive method.
         /// This is only needed because older frameworks are missing the extension method.
         /// </summary>
@@ -1298,7 +1380,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else if (this.IsXmpTextData(keywordBytes))
             {
-                XmpProfile xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
+                var xmpProfile = new XmpProfile(data.Slice(dataStartIdx).ToArray());
                 metadata.XmpProfile = xmpProfile;
             }
             else
@@ -1317,29 +1399,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="bool"/>.</returns>
         private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
-            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
-            using (var inflateStream = new ZlibInflateStream(bufferedStream))
+            if (this.TryUncompressZlibData(compressedData, out byte[] uncompressedData))
             {
-                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
-                {
-                    value = null;
-                    return false;
-                }
-
-                var uncompressedBytes = new List<byte>();
-
-                // Note: this uses a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
-                int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
-                while (bytesRead != 0)
-                {
-                    uncompressedBytes.AddRange(this.buffer.AsSpan(0, bytesRead).ToArray());
-                    bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
-                }
-
-                value = encoding.GetString(uncompressedBytes.ToArray());
+                value = encoding.GetString(uncompressedData);
                 return true;
             }
+
+            value = null;
+            return false;
         }
 
         /// <summary>
@@ -1359,6 +1426,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 if (chunk.Type == PngChunkType.Data)
                 {
+                    chunk.Data?.Dispose();
                     return chunk.Length;
                 }
 
@@ -1453,6 +1521,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 if (validCrc != inputCrc)
                 {
                     string chunkTypeName = Encoding.ASCII.GetString(chunkType);
+
+                    // ensure when throwing we dispose the data back to the memory allocator
+                    chunk.Data?.Dispose();
                     PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
                 }
             }

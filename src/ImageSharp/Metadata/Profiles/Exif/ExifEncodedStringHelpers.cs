@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
@@ -80,7 +80,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         }
 
         public static unsafe int Write(Encoding encoding, string value, Span<byte> destination)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER || NET
+            => encoding.GetBytes(value.AsSpan(), destination);
+#else
         {
+            if (value.Length == 0)
+            {
+                return 0;
+            }
+
             fixed (char* c = value)
             {
                 fixed (byte* b = destination)
@@ -89,6 +97,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 }
             }
         }
+#endif
 
         private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)
         {

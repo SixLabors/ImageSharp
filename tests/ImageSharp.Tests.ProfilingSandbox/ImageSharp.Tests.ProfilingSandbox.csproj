@@ -12,24 +12,19 @@
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
     <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime>
-    <Configurations>Debug;Release;Debug-InnerLoop;Release-InnerLoop</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net6.0;net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
-      </PropertyGroup>
-    </When>
-    <When Condition="$(Configuration.EndsWith('InnerLoop')) == true">
-      <PropertyGroup>
-        <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+        <TargetFrameworks>net6.0</TargetFrameworks>
       </PropertyGroup>
     </Otherwise>
   </Choose>

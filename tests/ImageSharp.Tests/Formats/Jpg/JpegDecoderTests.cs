@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -21,9 +21,12 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
-     [Trait("Format", "Jpg")]
+    [Trait("Format", "Jpg")]
+    [ValidateDisposedMemoryAllocations]
     public partial class JpegDecoderTests
     {
+        private static MagickReferenceDecoder ReferenceDecoder => new();
+
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;
 
         private const float BaselineTolerance = 0.001F / 100;
@@ -65,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
-        private static JpegDecoder JpegDecoder => new JpegDecoder();
+        private static JpegDecoder JpegDecoder => new();
 
         [Fact]
         public void ParseStream_BasicPropertiesAreCorrect()
@@ -139,27 +142,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
-        [Theory]
-        [InlineData(0)]
-        [InlineData(0.5)]
-        [InlineData(0.9)]
-        public async Task DecodeAsync_IsCancellable(int percentageOfStreamReadToCancel)
+        [Fact]
+        public async Task DecodeAsync_IsCancellable()
         {
             var cts = new CancellationTokenSource();
             string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
             pausedStream.OnWaiting(s =>
             {
-                if (s.Position >= s.Length * percentageOfStreamReadToCancel)
-                {
-                    cts.Cancel();
-                    pausedStream.Release();
-                }
-                else
-                {
-                    // allows this/next wait to unblock
-                    pausedStream.Next();
-                }
+                cts.Cancel();
+                pausedStream.Release();
             });
 
             var config = Configuration.CreateDefaultInstance();
@@ -204,6 +196,45 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Issues.WrongColorSpace, PixelTypes.Rgba32)]
         public void Issue1732_DecodesWithRgbColorSpace<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2057
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue2057App1Parsing, PixelTypes.Rgba32)]
+        public void Issue2057_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2133
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue2133_DeduceColorSpace, PixelTypes.Rgba32)]
+        public void Issue2133_DeduceColorSpace<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2133
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue2136_ScanMarkerExtraneousBytes, PixelTypes.Rgba32)]
+        public void Issue2136_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(JpegDecoder))

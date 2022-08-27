@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -26,16 +26,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        /// <param name="borderWrapModeX">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.</param>
+        /// <param name="borderWrapModeY">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.</param>
         public Convolution2PassProcessor(
             Configuration configuration,
             float[] kernel,
             bool preserveAlpha,
             Image<TPixel> source,
-            Rectangle sourceRectangle)
+            Rectangle sourceRectangle,
+            BorderWrappingMode borderWrapModeX,
+            BorderWrappingMode borderWrapModeY)
             : base(configuration, source, sourceRectangle)
         {
             this.Kernel = kernel;
             this.PreserveAlpha = preserveAlpha;
+            this.BorderWrapModeX = borderWrapModeX;
+            this.BorderWrapModeY = borderWrapModeY;
         }
 
         /// <summary>
@@ -47,6 +53,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Gets a value indicating whether the convolution filter is applied to alpha as well as the color channels.
         /// </summary>
         public bool PreserveAlpha { get; }
+
+        /// <summary>
+        /// Gets the <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.
+        /// </summary>
+        public BorderWrappingMode BorderWrapModeX { get; }
+
+        /// <summary>
+        /// Gets the <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.
+        /// </summary>
+        public BorderWrappingMode BorderWrapModeY { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
@@ -63,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.
             using var mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
 
-            mapXY.BuildSamplingOffsetMap(this.Kernel.Length, this.Kernel.Length, interest);
+            mapXY.BuildSamplingOffsetMap(this.Kernel.Length, this.Kernel.Length, interest, this.BorderWrapModeX, this.BorderWrapModeY);
 
             // Horizontal convolution
             var horizontalOperation = new HorizontalConvolutionRowOperation(

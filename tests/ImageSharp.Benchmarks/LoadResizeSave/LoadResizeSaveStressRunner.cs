@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -9,11 +10,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
 using SkiaSharp;
@@ -124,6 +126,32 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             new ParallelOptions { MaxDegreeOfParallelism = this.MaxDegreeOfParallelism },
             action);
 
+        public Task ForEachImageParallelAsync(Func<string, Task> action)
+        {
+            int maxDegreeOfParallelism = this.MaxDegreeOfParallelism > 0
+                ? this.MaxDegreeOfParallelism
+                : Environment.ProcessorCount;
+            int partitionSize = (int)Math.Ceiling((double)this.Images.Length / maxDegreeOfParallelism);
+
+            List<Task> tasks = new();
+            for (int i = 0; i < this.Images.Length; i += partitionSize)
+            {
+                int end = Math.Min(i + partitionSize, this.Images.Length);
+                Task task = RunPartition(i, end);
+                tasks.Add(task);
+            }
+
+            return Task.WhenAll(tasks);
+
+            Task RunPartition(int start, int end) => Task.Run(async () =>
+                {
+                    for (int i = start; i < end; i++)
+                    {
+                        await action(this.Images[i]);
+                    }
+                });
+        }
+
         private void LogImageProcessed(int width, int height)
         {
             this.LastProcessedImageSize = new Size(width, height);
@@ -178,12 +206,41 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
 
         public void ImageSharpResize(string input)
         {
-            using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
+            using FileStream inputStream = File.Open(input, FileMode.Open);
+            using FileStream outputStream = File.Open(this.OutputPath(input), FileMode.Create);
 
             // Resize it to fit a 150x150 square
-            using var image = ImageSharpImage.Load(input);
+            var targetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize);
+            var decoder = new JpegDecoder();
+            using ImageSharpImage image = decoder.DecodeInto<Rgb24>(Configuration.Default, inputStream, targetSize, CancellationToken.None);
             this.LogImageProcessed(image.Width, image.Height);
 
+            image.Mutate(i => i.Resize(new ResizeOptions
+            {
+                Size = targetSize,
+                Mode = ResizeMode.Max,
+                Sampler = KnownResamplers.Box
+            }));
+
+            // Reduce the size of the file
+            image.Metadata.ExifProfile = null;
+            image.Metadata.XmpProfile = null;
+            image.Metadata.IccProfile = null;
+            image.Metadata.IptcProfile = null;
+
+            // Save the results
+            image.Save(outputStream, this.imageSharpJpegEncoder);
+        }
+
+        public async Task ImageSharpResizeAsync(string input)
+        {
+            using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
+
+            // Resize it to fit a 150x150 square.
+            using ImageSharpImage image = await ImageSharpImage.LoadAsync(input);
+            this.LogImageProcessed(image.Width, image.Height);
+
+            // Resize checks whether image size and target sizes are equal
             image.Mutate(i => i.Resize(new ResizeOptions
             {
                 Size = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize),
@@ -194,7 +251,7 @@ namespace SixLabors.ImageSharp.Benchmarks.LoadResizeSave
             image.Metadata.ExifProfile = null;
 
             // Save the results
-            image.Save(output, this.imageSharpJpegEncoder);
+            await image.SaveAsync(output, this.imageSharpJpegEncoder);
         }
 
         public void MagickResize(string input)

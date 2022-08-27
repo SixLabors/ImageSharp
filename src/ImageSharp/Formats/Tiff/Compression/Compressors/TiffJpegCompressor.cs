@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             var image = Image.LoadPixelData<Rgb24>(rows, width, height);
             image.Save(memoryStream, new JpegEncoder()
             {
-                ColorType = JpegColorType.Rgb
+                ColorType = JpegEncodingColor.Rgb
             });
             memoryStream.Position = 0;
             memoryStream.WriteTo(this.Output);

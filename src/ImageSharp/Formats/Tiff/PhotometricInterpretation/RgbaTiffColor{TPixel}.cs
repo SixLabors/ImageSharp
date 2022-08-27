@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -31,7 +31,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private readonly ushort bitsPerSampleA;
 
-        public RgbaTiffColor(TiffBitsPerSample bitsPerSample)
+        private readonly TiffExtraSampleType? extraSamplesType;
+
+        public RgbaTiffColor(TiffExtraSampleType? extraSampleType, TiffBitsPerSample bitsPerSample)
         {
             this.bitsPerSampleR = bitsPerSample.Channel0;
             this.bitsPerSampleG = bitsPerSample.Channel1;
@@ -42,6 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             this.gFactor = (1 << this.bitsPerSampleG) - 1.0f;
             this.bFactor = (1 << this.bitsPerSampleB) - 1.0f;
             this.aFactor = (1 << this.bitsPerSampleA) - 1.0f;
+
+            this.extraSamplesType = extraSampleType;
         }
 
         /// <inheritdoc/>
@@ -50,6 +54,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var color = default(TPixel);
 
             var bitReader = new BitReader(data);
+
+            bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
 
             for (int y = top; y < top + height; y++)
             {
@@ -61,8 +67,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
                     float a = bitReader.ReadBits(this.bitsPerSampleB) / this.aFactor;
 
-                    color.FromVector4(new Vector4(r, g, b, a));
-                    pixelRow[x] = color;
+                    var vec = new Vector4(r, g, b, a);
+                    if (hasAssociatedAlpha)
+                    {
+                        pixelRow[x] = TiffUtils.UnPremultiply(ref vec, color);
+                    }
+                    else
+                    {
+                        color.FromScaledVector4(vec);
+                        pixelRow[x] = color;
+                    }
                 }
 
                 bitReader.NextRow();

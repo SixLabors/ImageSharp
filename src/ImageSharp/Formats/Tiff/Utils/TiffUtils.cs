@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         private const float Scale24Bit = 1.0f / 0xFFFFFF;
 
         private const float Scale32Bit = 1.0f / 0xFFFFFFFF;
-
-        public static Vector4 Vector4Default { get; } = new(0.0f, 0.0f, 0.0f, 0.0f);
 
         public static Rgba64 Rgba64Default { get; } = new(0, 0, 0, 0);
 
@@ -46,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel ColorFromRgba64<TPixel>(Rgba64 rgba, ulong r, ulong g, ulong b, TPixel color)
+        public static TPixel ColorFromRgb64<TPixel>(Rgba64 rgba, ulong r, ulong g, ulong b, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             rgba.PackedValue = r | (g << 16) | (b << 32) | (0xfffful << 48);
@@ -64,11 +62,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorFromRgba64Premultiplied<TPixel>(Rgba64 rgba, ulong r, ulong g, ulong b, ulong a, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            rgba.PackedValue = r | (g << 16) | (b << 32) | (a << 48);
+            var vec = rgba.ToVector4();
+            return UnPremultiply(ref vec, color);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ColorScaleTo24Bit<TPixel>(ulong r, ulong g, ulong b, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(r * Scale24Bit, g * Scale24Bit, b * Scale24Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -76,9 +83,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         public static TPixel ColorScaleTo24Bit<TPixel>(ulong r, ulong g, ulong b, ulong a, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var colorVector = new Vector4(r * Scale24Bit, g * Scale24Bit, b * Scale24Bit, a * Scale24Bit);
-            color.FromVector4(colorVector);
+            Vector4 colorVector = new Vector4(r, g, b, a) * Scale24Bit;
+            color.FromScaledVector4(colorVector);
             return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorScaleTo24BitPremultiplied<TPixel>(ulong r, ulong g, ulong b, ulong a, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Vector4 colorVector = new Vector4(r, g, b, a) * Scale24Bit;
+            return UnPremultiply(ref colorVector, color);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -86,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(r * Scale32Bit, g * Scale32Bit, b * Scale32Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -94,9 +109,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         public static TPixel ColorScaleTo32Bit<TPixel>(ulong r, ulong g, ulong b, ulong a, TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var colorVector = new Vector4(r * Scale32Bit, g * Scale32Bit, b * Scale32Bit, a * Scale32Bit);
-            color.FromVector4(colorVector);
+            Vector4 colorVector = new Vector4(r, g, b, a) * Scale32Bit;
+            color.FromScaledVector4(colorVector);
             return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ColorScaleTo32BitPremultiplied<TPixel>(ulong r, ulong g, ulong b, ulong a, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Vector4 colorVector = new Vector4(r, g, b, a) * Scale32Bit;
+            return UnPremultiply(ref colorVector, color);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -113,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(intensity * Scale24Bit, intensity * Scale24Bit, intensity * Scale24Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
             return color;
         }
 
@@ -122,7 +145,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var colorVector = new Vector4(intensity * Scale32Bit, intensity * Scale32Bit, intensity * Scale32Bit, 1.0f);
-            color.FromVector4(colorVector);
+            color.FromScaledVector4(colorVector);
+            return color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel UnPremultiply<TPixel>(ref Vector4 vector, TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Numerics.UnPremultiply(ref vector);
+            color.FromScaledVector4(vector);
+
             return color;
         }
 
@@ -139,8 +172,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
                 return 0;
             }
 
-            int padding = subSampling - (valueToRoundUp % subSampling);
-            return padding;
+            return subSampling - (valueToRoundUp % subSampling);
         }
     }
 }

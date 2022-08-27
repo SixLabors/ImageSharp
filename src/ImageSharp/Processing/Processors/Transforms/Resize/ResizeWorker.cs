@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -39,8 +39,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeKernelMap verticalKernelMap;
 
-        private readonly int destWidth;
-
         private readonly Rectangle targetWorkingRect;
 
         private readonly Point targetOrigin;
@@ -57,7 +55,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             PixelConversionModifiers conversionModifiers,
             ResizeKernelMap horizontalKernelMap,
             ResizeKernelMap verticalKernelMap,
-            int destWidth,
             Rectangle targetWorkingRect,
             Point targetOrigin)
         {
@@ -67,7 +64,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.conversionModifiers = conversionModifiers;
             this.horizontalKernelMap = horizontalKernelMap;
             this.verticalKernelMap = verticalKernelMap;
-            this.destWidth = destWidth;
             this.targetWorkingRect = targetWorkingRect;
             this.targetOrigin = targetOrigin;
 
@@ -80,19 +76,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
                 this.windowBandHeight,
-                destWidth,
+                targetWorkingRect.Width,
                 workingBufferLimitHintInBytes);
 
             this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 
             this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.workerHeight,
-                destWidth,
+                targetWorkingRect.Width,
                 preferContiguosImageBuffers: true,
                 options: AllocationOptions.Clean);
 
             this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
-            this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(destWidth);
+            this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
 
             this.currentWindow = new RowInterval(0, this.workerHeight);
         }
@@ -118,6 +114,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // When creating transposedFirstPassBuffer, we made sure it's contiguous:
             Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
+            int left = this.targetWorkingRect.Left;
+            int right = this.targetWorkingRect.Right;
+            int width = this.targetWorkingRect.Width;
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
                 // Ensure offsets are normalized for cropping and padding.
@@ -131,9 +130,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
 
                 int top = kernel.StartIndex - this.currentWindow.Min;
+
                 ref Vector4 fpBase = ref transposedFirstPassBufferSpan[top];
 
-                for (int x = 0; x < this.destWidth; x++)
+                for (nint x = 0; x < (right - left); x++)
                 {
                     ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * this.workerHeight);
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
                 }
 
-                Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y);
+                Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempColSpan, targetRowSpan, this.conversionModifiers);
             }
@@ -170,6 +170,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
             Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
+            int left = this.targetWorkingRect.Left;
+            int right = this.targetWorkingRect.Right;
+            int targetOriginX = this.targetOrigin.X;
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {
                 Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
@@ -184,13 +187,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Span<Vector4> firstPassSpan = transposedFirstPassBufferSpan.Slice(y - this.currentWindow.Min);
                 ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - this.currentWindow.Min];
 
-                for (int x = this.targetWorkingRect.Left; x < this.targetWorkingRect.Right; x++)
+                for (nint x = left, z = 0; x < right; x++, z++)
                 {
-                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.targetOrigin.X);
+                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - targetOriginX);
 
                     // optimization for:
                     // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
-                    Unsafe.Add(ref firstPassBaseRef, x * this.workerHeight) = kernel.Convolve(tempRowSpan);
+                    Unsafe.Add(ref firstPassBaseRef, z * this.workerHeight) = kernel.Convolve(tempRowSpan);
                 }
             }
         }

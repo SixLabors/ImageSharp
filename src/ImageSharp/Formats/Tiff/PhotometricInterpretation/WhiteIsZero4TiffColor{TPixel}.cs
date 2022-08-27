@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using SixLabors.ImageSharp.Memory;
@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             var l8 = default(L8);
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
                 for (int x = left; x < left + width - 1;)
                 {
                     byte byteData = data[offset++];
@@ -32,13 +33,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     l8.PackedValue = intensity1;
                     color.FromL8(l8);
 
-                    pixels[x++, y] = color;
+                    pixelRowSpan[x++] = color;
 
                     byte intensity2 = (byte)((15 - (byteData & 0x0F)) * 17);
                     l8.PackedValue = intensity2;
                     color.FromL8(l8);
 
-                    pixels[x++, y] = color;
+                    pixelRowSpan[x++] = color;
                 }
 
                 if (isOddWidth)
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
                     l8.PackedValue = intensity1;
                     color.FromL8(l8);
 
-                    pixels[left + width - 1, y] = color;
+                    pixelRowSpan[left + width - 1] = color;
                 }
             }
         }

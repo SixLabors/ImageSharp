@@ -1,10 +1,9 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata;
@@ -84,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                using (Image image = decoder.Decode(Configuration.Default, stream))
+                using (Image image = decoder.Decode(Configuration.Default, stream, default))
                 {
                     ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -102,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 ImageMetadata meta = image.Metadata;
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);
@@ -118,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new JpegDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
                 JpegMetadata meta = image.Metadata.GetJpegMetadata();
                 Assert.Equal(quality, meta.Quality);
             }
@@ -131,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                using (Image image = JpegDecoder.Decode(Configuration.Default, stream))
+                using (Image image = JpegDecoder.Decode(Configuration.Default, stream, default))
                 {
                     JpegMetadata meta = image.Metadata.GetJpegMetadata();
                     Assert.Equal(quality, meta.Quality);
@@ -140,32 +139,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Floorplan, JpegColorType.Luminance)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegColorType.YCbCrRatio420)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegColorType.YCbCrRatio444)]
-        [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegColorType.Rgb)]
-        [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorType.Cmyk)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegColorType.YCbCrRatio410)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg422, JpegColorType.YCbCrRatio422)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegColorType.YCbCrRatio411)]
-        public void Identify_DetectsCorrectColorType(string imagePath, JpegColorType expectedColorType)
+        [InlineData(TestImages.Jpeg.Baseline.Floorplan, JpegEncodingColor.Luminance)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegEncodingColor.YCbCrRatio420)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegEncodingColor.YCbCrRatio444)]
+        [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegEncodingColor.Rgb)]
+        [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegEncodingColor.Cmyk)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegEncodingColor.YCbCrRatio410)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegEncodingColor.YCbCrRatio411)]
+        public void Identify_DetectsCorrectColorType(string imagePath, JpegEncodingColor expectedColorType)
         {
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream);
+                IImageInfo image = JpegDecoder.Identify(Configuration.Default, stream, default);
                 JpegMetadata meta = image.Metadata.GetJpegMetadata();
                 Assert.Equal(expectedColorType, meta.ColorType);
             }
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegColorType.Luminance)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgb24, JpegColorType.YCbCrRatio420)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegColorType.YCbCrRatio444)]
-        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgb24, JpegColorType.Rgb)]
-        [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgb24, JpegColorType.Cmyk)]
-        public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegEncodingColor.Luminance)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]
+        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
+        [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgb24, JpegEncodingColor.Rgb)]
+        [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgb24, JpegEncodingColor.Cmyk)]
+        public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor expectedColorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(JpegDecoder))
@@ -180,11 +178,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo imageInfo = useIdentify
-                ? ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream)
-                : decoder.Decode<Rgba32>(Configuration.Default, stream);
-
-                test(imageInfo);
+                if (useIdentify)
+                {
+                    IImageInfo imageInfo = ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream, default);
+                    test(imageInfo);
+                }
+                else
+                {
+                    using var img = decoder.Decode<Rgba32>(Configuration.Default, stream, default);
+                    test(img);
+                }
             }
         }
 

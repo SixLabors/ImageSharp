@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -26,6 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowBadMarker(string marker, int length) => throw new InvalidImageContentException($"Marker {marker} has bad length {length}.");
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNotEnoughBytesForMarker(byte marker) => throw new InvalidImageContentException($"Input stream does not have enough bytes to parse declared contents of the {marker:X2} marker.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowBadQuantizationTableIndex(int index) => throw new InvalidImageContentException($"Bad Quantization Table index {index}.");
 
         [MethodImpl(InliningOptions.ColdPath)]
@@ -48,5 +51,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNotSupportedComponentCount(int componentCount) => throw new NotSupportedException($"Images with {componentCount} components are not supported.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNotSupportedColorSpace() => throw new NotSupportedException("Image color space could not be deduced.");
     }
 }

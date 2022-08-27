@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
@@ -18,6 +18,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         private readonly ushort bitsPerSample0;
 
         private readonly TPixel[] palette;
+
+        private const float InvMax = 1.0f / 65535F;
 
         /// <param name="bitsPerSample">The number of bits per sample for each pixel.</param>
         /// <param name="colorMap">The RGB color lookup table to use for decoding the image.</param>
@@ -56,10 +58,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
             for (int i = 0; i < palette.Length; i++)
             {
-                float r = colorMap[rOffset + i] / 65535F;
-                float g = colorMap[gOffset + i] / 65535F;
-                float b = colorMap[bOffset + i] / 65535F;
-                palette[i].FromVector4(new Vector4(r, g, b, 1.0f));
+                float r = colorMap[rOffset + i] * InvMax;
+                float g = colorMap[gOffset + i] * InvMax;
+                float b = colorMap[bOffset + i] * InvMax;
+                palette[i].FromScaledVector4(new Vector4(r, g, b, 1.0f));
             }
 
             return palette;

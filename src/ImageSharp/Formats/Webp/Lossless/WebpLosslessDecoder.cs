@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static ReadOnlySpan<byte> LiteralMap => new byte[] { 0, 1, 1, 1, 0 };
 
         /// <summary>
-        /// Decodes the image from the stream using the bitreader.
+        /// Decodes the lossless webp image from the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel buffer to store the decoded data.</param>

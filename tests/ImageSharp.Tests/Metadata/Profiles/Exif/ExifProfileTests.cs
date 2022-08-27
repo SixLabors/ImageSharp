@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers.Binary;
@@ -354,10 +354,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
 
             TestProfile(profile);
 
-            using Image<Rgba32> thumbnail = profile.CreateThumbnail<Rgba32>();
+            using Image thumbnail = profile.CreateThumbnail();
             Assert.NotNull(thumbnail);
             Assert.Equal(256, thumbnail.Width);
             Assert.Equal(170, thumbnail.Height);
+
+            using Image<Rgba32> genericThumbnail = profile.CreateThumbnail<Rgba32>();
+            Assert.NotNull(genericThumbnail);
+            Assert.Equal(256, genericThumbnail.Width);
+            Assert.Equal(170, genericThumbnail.Height);
         }
 
         [Fact]

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             this.EncodeStream(image);
 
             // Write bytes from the bitwriter buffer to the stream.
-            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, (uint)width, (uint)height, hasAlpha);
+            this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, metadata.IccProfile, (uint)width, (uint)height, hasAlpha);
         }
 
         /// <summary>

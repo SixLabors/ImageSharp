@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
@@ -47,5 +47,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// The image data is compressed as a JPEG stream.
         /// </summary>
         Jpeg = 7,
+
+        /// <summary>
+        /// The image data is compressed as a WEBP stream.
+        /// </summary>
+        Webp = 8,
     }
 }

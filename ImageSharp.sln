@@ -28,9 +28,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1799
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{FBE8C1AD-5AEC-4514-9B64-091D8E145865}"
 	ProjectSection(SolutionItems) = preProject
-		.github\ISSUE_TEMPLATE\commercial-bug-report.md = .github\ISSUE_TEMPLATE\commercial-bug-report.md
+		.github\ISSUE_TEMPLATE\commercial-bug-report.yml = .github\ISSUE_TEMPLATE\commercial-bug-report.yml
 		.github\ISSUE_TEMPLATE\config.yml = .github\ISSUE_TEMPLATE\config.yml
-		.github\ISSUE_TEMPLATE\oss-bug-report.md = .github\ISSUE_TEMPLATE\oss-bug-report.md
+		.github\ISSUE_TEMPLATE\oss-bug-report.yml = .github\ISSUE_TEMPLATE\oss-bug-report.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"
@@ -648,49 +648,27 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{5DFC394F-136
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{2aa31a1f-142c-43f4-8687-09abca4b3a26}*SharedItemsImports = 5
-		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{68a8cc40-6aed-4e96-b524-31b1158fdeea}*SharedItemsImports = 13
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
-		Debug-InnerLoop|Any CPU = Debug-InnerLoop|Any CPU
 		Release|Any CPU = Release|Any CPU
-		Release-InnerLoop|Any CPU = Release-InnerLoop|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Debug-InnerLoop|Any CPU.ActiveCfg = Debug-InnerLoop|Any CPU
-		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Debug-InnerLoop|Any CPU.Build.0 = Debug-InnerLoop|Any CPU
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Release-InnerLoop|Any CPU.ActiveCfg = Release-InnerLoop|Any CPU
-		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Release-InnerLoop|Any CPU.Build.0 = Release-InnerLoop|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug-InnerLoop|Any CPU.ActiveCfg = Debug-InnerLoop|Any CPU
-		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug-InnerLoop|Any CPU.Build.0 = Debug-InnerLoop|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Release-InnerLoop|Any CPU.ActiveCfg = Release-InnerLoop|Any CPU
-		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Release-InnerLoop|Any CPU.Build.0 = Release-InnerLoop|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Debug-InnerLoop|Any CPU.ActiveCfg = Debug-InnerLoop|Any CPU
-		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Debug-InnerLoop|Any CPU.Build.0 = Debug-InnerLoop|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release-InnerLoop|Any CPU.ActiveCfg = Release-InnerLoop|Any CPU
-		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release-InnerLoop|Any CPU.Build.0 = Release-InnerLoop|Any CPU
 		{FC527290-2F22-432C-B77B-6E815726B02C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FC527290-2F22-432C-B77B-6E815726B02C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FC527290-2F22-432C-B77B-6E815726B02C}.Debug-InnerLoop|Any CPU.ActiveCfg = Debug-InnerLoop|Any CPU
-		{FC527290-2F22-432C-B77B-6E815726B02C}.Debug-InnerLoop|Any CPU.Build.0 = Debug-InnerLoop|Any CPU
 		{FC527290-2F22-432C-B77B-6E815726B02C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FC527290-2F22-432C-B77B-6E815726B02C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FC527290-2F22-432C-B77B-6E815726B02C}.Release-InnerLoop|Any CPU.ActiveCfg = Release-InnerLoop|Any CPU
-		{FC527290-2F22-432C-B77B-6E815726B02C}.Release-InnerLoop|Any CPU.Build.0 = Release-InnerLoop|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -724,6 +702,10 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{2aa31a1f-142c-43f4-8687-09abca4b3a26}*SharedItemsImports = 5
+		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{68a8cc40-6aed-4e96-b524-31b1158fdeea}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Pbm;
@@ -11,6 +11,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 {
     [Trait("Format", "Pbm")]
+    [ValidateDisposedMemoryAllocations]
     public class PbmDecoderTests
     {
         [Theory]

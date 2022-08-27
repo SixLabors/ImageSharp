@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Buffers;
@@ -259,9 +259,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(1200)] // Group of two UniformUnmanagedMemoryPool buffers
         public void AllocateMemoryGroup_Finalization_ReturnsToPool(int length)
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
-                // Skip on OSX: https://github.com/SixLabors/ImageSharp/issues/1887
+                // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
                 return;
             }
 
@@ -321,9 +321,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
         [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
         public void AllocateSingleMemoryOwner_Finalization_ReturnsToPool(int length)
         {
-            if (TestEnvironment.IsOSX)
+            if (TestEnvironment.IsMacOS)
             {
-                // Skip on OSX: https://github.com/SixLabors/ImageSharp/issues/1887
+                // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
                 return;
             }
 

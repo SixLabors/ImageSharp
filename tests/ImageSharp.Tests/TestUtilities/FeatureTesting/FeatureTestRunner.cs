@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
@@ -356,10 +356,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
                 var key = (HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic);
                 switch (intrinsic)
                 {
-                    case nameof(HwIntrinsics.DisableSIMD):
-                        features.Add(key, "FeatureSIMD");
-                        break;
-
                     case nameof(HwIntrinsics.AllowAll):
 
                         // Not a COMPlus value. We filter in calling method.
@@ -390,23 +386,22 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
     {
         // Use flags so we can pass multiple values without using params.
         // Don't base on 0 or use inverse for All as that doesn't translate to string values.
-        DisableSIMD = 1 << 0,
-        DisableHWIntrinsic = 1 << 1,
-        DisableSSE = 1 << 2,
-        DisableSSE2 = 1 << 3,
-        DisableAES = 1 << 4,
-        DisablePCLMULQDQ = 1 << 5,
-        DisableSSE3 = 1 << 6,
-        DisableSSSE3 = 1 << 7,
-        DisableSSE41 = 1 << 8,
-        DisableSSE42 = 1 << 9,
-        DisablePOPCNT = 1 << 10,
-        DisableAVX = 1 << 11,
-        DisableFMA = 1 << 12,
-        DisableAVX2 = 1 << 13,
-        DisableBMI1 = 1 << 14,
-        DisableBMI2 = 1 << 15,
-        DisableLZCNT = 1 << 16,
-        AllowAll = 1 << 17
+        DisableHWIntrinsic = 1 << 0,
+        DisableSSE = 1 << 1,
+        DisableSSE2 = 1 << 2,
+        DisableAES = 1 << 3,
+        DisablePCLMULQDQ = 1 << 4,
+        DisableSSE3 = 1 << 5,
+        DisableSSSE3 = 1 << 6,
+        DisableSSE41 = 1 << 7,
+        DisableSSE42 = 1 << 8,
+        DisablePOPCNT = 1 << 9,
+        DisableAVX = 1 << 10,
+        DisableFMA = 1 << 11,
+        DisableAVX2 = 1 << 12,
+        DisableBMI1 = 1 << 13,
+        DisableBMI2 = 1 << 14,
+        DisableLZCNT = 1 << 15,
+        AllowAll = 1 << 16
     }
 }

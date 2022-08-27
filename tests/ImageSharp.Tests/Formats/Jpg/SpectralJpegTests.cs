@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using System.IO;
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
             // This would parse entire image
-            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+            decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
             VerifyJpeg.SaveSpectralImage(provider, debugConverter.SpectralData);
         }
 
@@ -85,10 +85,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // internal scan decoder which we substitute to assert spectral correctness
             var debugConverter = new DebugSpectralConverter<TPixel>();
-            var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
 
             // This would parse entire image
-            decoder.ParseStream(bufferedStream, scanDecoder, cancellationToken: default);
+            decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
 
             // Actual verification
             this.VerifySpectralCorrectnessImpl(libJpegData, debugConverter.SpectralData);
@@ -142,6 +141,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             private JpegFrame frame;
 
+            private IRawJpegData jpegData;
+
             private LibJpegTools.SpectralData spectralData;
 
             private int baselineScanRowCounter;
@@ -152,8 +153,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     // Due to underlying architecture, baseline interleaved jpegs would inject spectral data during parsing
                     // Progressive and multi-scan images must be loaded manually
-                    if (this.frame.Progressive || this.frame.MultiScan)
+                    if (this.frame.Progressive || !this.frame.Interleaved)
                     {
+                        this.PrepareForDecoding();
                         LibJpegTools.ComponentData[] components = this.spectralData.Components;
                         for (int i = 0; i < components.Length; i++)
                         {
@@ -191,11 +193,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
             {
                 this.frame = frame;
+                this.jpegData = jpegData;
+            }
 
-                var spectralComponents = new LibJpegTools.ComponentData[frame.ComponentCount];
+            public override void PrepareForDecoding()
+            {
+                var spectralComponents = new LibJpegTools.ComponentData[this.frame.ComponentCount];
                 for (int i = 0; i < spectralComponents.Length; i++)
                 {
-                    JpegComponent component = frame.Components[i];
+                    JpegComponent component = this.frame.Components[i];
                     spectralComponents[i] = new LibJpegTools.ComponentData(component.WidthInBlocks, component.HeightInBlocks, component.Index);
                 }
 

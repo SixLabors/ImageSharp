@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 // Uncomment this to turn unit tests into benchmarks:
 // #define BENCHMARKING
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Fact]

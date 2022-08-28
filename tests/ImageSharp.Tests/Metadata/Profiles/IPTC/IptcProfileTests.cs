@@ -27,6 +27,22 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             }
         }
 
+        [Fact]
+        public void IptcProfile_WithUtf8Data_WritesEnvelopeRecord_Works()
+        {
+            // arrange
+            var profile = new IptcProfile();
+            profile.SetValue(IptcTag.City, "ESPAÑA");
+            profile.UpdateData();
+            byte[] expectedEnvelopeData = { 28, 1, 90, 0, 3, 27, 37, 71 };
+
+            // act
+            byte[] profileBytes = profile.Data;
+
+            // assert
+            Assert.True(profileBytes.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
+        }
+
         [Theory]
         [MemberData(nameof(AllIptcTags))]
         public void IptcProfile_SetValue_WithStrictEnabled_Works(IptcTag tag)

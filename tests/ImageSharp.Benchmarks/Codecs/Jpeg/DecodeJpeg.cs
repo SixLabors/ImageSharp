@@ -3,6 +3,7 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private void GenericBechmark()
         {
             this.preloadedImageStream.Position = 0;
-            using Image img = this.decoder.Decode(Configuration.Default, this.preloadedImageStream, default);
+            using Image img = this.decoder.Decode(DecoderOptions.Default, this.preloadedImageStream);
         }
 
         [GlobalSetup(Target = nameof(JpegBaselineInterleaved444))]
@@ -63,7 +64,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public void JpegProgressiveNonInterleaved420() => this.GenericBechmark();
     }
 }
-
 
 /*
 BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042.1348 (20H2/October2020Update)

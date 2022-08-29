@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
         private TiffFillOrder FillOrder { get; }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
         {
             var bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount);
 

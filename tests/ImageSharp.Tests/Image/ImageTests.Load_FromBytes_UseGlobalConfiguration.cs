@@ -16,81 +16,38 @@ namespace SixLabors.ImageSharp.Tests
         {
             private static byte[] ByteArray { get; } = TestFile.Create(TestImages.Bmp.Bit8).Bytes;
 
-            private static Span<byte> ByteSpan => new Span<byte>(ByteArray);
+            private static Span<byte> ByteSpan => new(ByteArray);
 
-            private static void VerifyDecodedImage(Image img)
+            private static void VerifyDecodedImage(Image img) => Assert.Equal(new Size(127, 64), img.Size());
+
+            [Fact]
+            public void Bytes_Specific()
             {
-                Assert.Equal(new Size(127, 64), img.Size());
+                using var img = Image.Load<Rgba32>(ByteSpan);
+                VerifyDecodedImage(img);
             }
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Bytes_Specific(bool useSpan)
+            [Fact]
+            public void Bytes_Agnostic()
             {
-                using (var img = useSpan ? Image.Load<Rgba32>(ByteSpan) : Image.Load<Rgba32>(ByteArray))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load(ByteSpan);
+                VerifyDecodedImage(img);
             }
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Bytes_Agnostic(bool useSpan)
+            [Fact]
+            public void Bytes_OutFormat_Specific()
             {
-                using (var img = useSpan ? Image.Load(ByteSpan) : Image.Load(ByteArray))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load<Rgba32>(ByteSpan, out IImageFormat format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Bytes_Decoder_Specific(bool useSpan)
+            [Fact]
+            public void Bytes_OutFormat_Agnostic()
             {
-                using (var img = useSpan ? Image.Load<Rgba32>(ByteSpan, new BmpDecoder()) : Image.Load<Rgba32>(ByteArray, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
-            }
-
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Bytes_Decoder_Agnostic(bool useSpan)
-            {
-                using (var img = useSpan ? Image.Load(ByteSpan, new BmpDecoder()) : Image.Load(ByteArray, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
-            }
-
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Bytes_OutFormat_Specific(bool useSpan)
-            {
-                IImageFormat format;
-                using (var img = useSpan ? Image.Load<Rgba32>(ByteSpan, out format) : Image.Load<Rgba32>(ByteArray, out format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
-            }
-
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Bytes_OutFormat_Agnostic(bool useSpan)
-            {
-                IImageFormat format;
-                using (var img = useSpan ? Image.Load(ByteSpan, out format) : Image.Load(ByteArray, out format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
+                using var img = Image.Load(ByteSpan, out IImageFormat format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
         }
     }

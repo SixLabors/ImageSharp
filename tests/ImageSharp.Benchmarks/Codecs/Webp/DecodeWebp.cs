@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public int WebpLossy()
         {
             using var memoryStream = new MemoryStream(this.webpLossyBytes);
-            using var image = Image.Load<Rgba32>(this.configuration, memoryStream);
+            using var image = Image.Load<Rgba32>(memoryStream);
             return image.Height;
         }
 
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public int WebpLossless()
         {
             using var memoryStream = new MemoryStream(this.webpLosslessBytes);
-            using var image = Image.Load<Rgba32>(this.configuration, memoryStream);
+            using var image = Image.Load<Rgba32>(memoryStream);
             return image.Height;
         }
 

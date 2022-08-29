@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             byte[] buffer = new byte[expectedResult.Length];
 
             using var decompressor = new PackBitsTiffCompression(MemoryAllocator.Create(), default, default);
-            decompressor.Decompress(stream, 0, (uint)inputData.Length, 1, buffer);
+            decompressor.Decompress(stream, 0, (uint)inputData.Length, 1, buffer, default);
 
             Assert.Equal(expectedResult, buffer);
         }

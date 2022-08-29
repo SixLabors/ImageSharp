@@ -383,8 +383,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads the least significant bits from the byte pair with the others set to 0.
         /// </summary>
-        /// <param name="buffer">The source buffer</param>
-        /// <param name="offset">THe offset</param>
+        /// <param name="buffer">The source buffer.</param>
+        /// <param name="offset">THe offset.</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte ReadByteLittleEndian(ReadOnlySpan<byte> buffer, int offset)
@@ -395,7 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// specified number of bits.
         /// </summary>
         /// <param name="source">The bytes to convert from. Cannot be empty.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
         /// <param name="bits">The number of bits per value.</param>
         /// <param name="buffer">The new array.</param>
         /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
@@ -975,6 +975,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     pngMetadata.HasTransparency = true;
                 }
+            }
+            else if (this.pngColorType == PngColorType.Palette && alpha.Length > 0)
+            {
+                pngMetadata.HasTransparency = true;
             }
         }
 

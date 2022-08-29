@@ -492,6 +492,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Assert.Null(ex);
         }
 
+        // https://github.com/SixLabors/ImageSharp/issues/2209
+        [Theory]
+        [WithFile(TestImages.Png.Issue2209IndexedWithTransparency, PixelTypes.Rgba32)]
+        public void Issue2209_Decode_HasTransparencyIsTrue<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            PngMetadata metadata = image.Metadata.GetPngMetadata();
+            Assert.True(metadata.HasTransparency);
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2209
+        [Theory]
+        [InlineData(TestImages.Png.Issue2209IndexedWithTransparency)]
+        public void Issue2209_Identify_HasTransparencyIsTrue(string imagePath)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
+            Assert.True(metadata.HasTransparency);
+        }
+
         // https://github.com/SixLabors/ImageSharp/issues/410
         [Theory]
         [WithFile(TestImages.Png.Bad.Issue410_MalformedApplePng, PixelTypes.Rgba32)]

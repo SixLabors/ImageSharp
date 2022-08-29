@@ -187,7 +187,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
-                                pngMetadata.HasTransparency = true;
                                 break;
                             case PngChunkType.Text:
                                 this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
@@ -295,7 +294,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 chunk.Data.GetSpan().CopyTo(alpha);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
-                                pngMetadata.HasTransparency = true;
 
                                 if (this.colorMetadataOnly)
                                 {
@@ -973,6 +971,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     pngMetadata.HasTransparency = true;
                 }
+            }
+            else if (this.pngColorType == PngColorType.Palette && alpha.Length > 0)
+            {
+                pngMetadata.HasTransparency = true;
             }
         }
 

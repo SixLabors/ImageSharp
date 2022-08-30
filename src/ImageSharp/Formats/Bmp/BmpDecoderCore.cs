@@ -90,33 +90,37 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private BmpInfoHeader infoHeader;
 
         /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// The bitmap decoder options.
+        /// How to deal with skipped pixels,
+        /// which can occur during decoding run length encoded bitmaps.
         /// </summary>
-        private readonly IBmpDecoderOptions options;
+        private readonly RleSkippedPixelHandling rleSkippedPixelHandling;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="options">The options.</param>
-        public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
+        public BmpDecoderCore(BmpDecoderOptions options)
         {
-            this.Configuration = configuration;
-            this.memoryAllocator = configuration.MemoryAllocator;
-            this.options = options;
+            this.Options = options.GeneralOptions;
+            this.rleSkippedPixelHandling = options.RleSkippedPixelHandling;
+            this.configuration = options.GeneralOptions.Configuration;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc />
-        public Configuration Configuration { get; }
+        public DecoderOptions Options { get; }
 
-        /// <summary>
-        /// Gets the dimensions of the image.
-        /// </summary>
+        /// <inheritdoc />
         public Size Dimensions => new(this.infoHeader.Width, this.infoHeader.Height);
 
         /// <inheritdoc />
@@ -128,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+                image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -325,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             byte colorIdx = bufferRow[x];
                             if (undefinedPixelsSpan[rowStartIdx + x])
                             {
-                                switch (this.options.RleSkippedPixelHandling)
+                                switch (this.rleSkippedPixelHandling)
                                 {
                                     case RleSkippedPixelHandling.FirstColorOfPalette:
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
@@ -397,7 +401,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             int idx = rowStartIdx + (x * 3);
                             if (undefinedPixelsSpan[yMulWidth + x])
                             {
-                                switch (this.options.RleSkippedPixelHandling)
+                                switch (this.rleSkippedPixelHandling)
                                 {
                                     case RleSkippedPixelHandling.FirstColorOfPalette:
                                         color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
@@ -943,7 +947,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 int newY = Invert(y, height, inverted);
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-                    this.Configuration,
+                    this.configuration,
                     rowSpan,
                     pixelSpan,
                     width);
@@ -971,7 +975,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 int newY = Invert(y, height, inverted);
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                    this.Configuration,
+                    this.configuration,
                     rowSpan,
                     pixelSpan,
                     width);
@@ -1006,7 +1010,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.stream.Read(rowSpan);
 
                 PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                    this.Configuration,
+                    this.configuration,
                     rowSpan,
                     bgraRowSpan,
                     width);
@@ -1042,7 +1046,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
 
                     PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                        this.Configuration,
+                        this.configuration,
                         rowSpan,
                         pixelSpan,
                         width);
@@ -1056,7 +1060,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.stream.Read(rowSpan);
                 PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                    this.Configuration,
+                    this.configuration,
                     rowSpan,
                     bgraRowSpan,
                     width);

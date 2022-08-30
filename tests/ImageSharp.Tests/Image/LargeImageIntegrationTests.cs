@@ -6,7 +6,6 @@ using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
@@ -62,13 +61,18 @@ namespace SixLabors.ImageSharp.Tests
                 IImageEncoder encoder = configuration.ImageFormatsManager.FindEncoder(
                     configuration.ImageFormatsManager.FindFormatByFileExtension(formatInner));
                 string dir = TestEnvironment.CreateOutputDirectory(".Temp");
-                string path = Path.Combine(dir, $"{Guid.NewGuid().ToString()}.{formatInner}");
+                string path = Path.Combine(dir, $"{Guid.NewGuid()}.{formatInner}");
                 using (Image<Rgba32> temp = new(2048, 2048))
                 {
                     temp.Save(path, encoder);
                 }
 
-                using var image = Image.Load<Rgba32>(configuration, path);
+                DecoderOptions options = new()
+                {
+                    Configuration = configuration
+                };
+
+                using var image = Image.Load<Rgba32>(options, path);
                 File.Delete(path);
                 Assert.Equal(1, image.GetPixelMemoryGroup().Count);
             }

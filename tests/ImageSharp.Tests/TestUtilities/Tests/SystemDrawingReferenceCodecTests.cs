@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -16,24 +18,17 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
     {
         private ITestOutputHelper Output { get; }
 
-        public SystemDrawingReferenceCodecTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public SystemDrawingReferenceCodecTests(ITestOutputHelper output) => this.Output = output;
 
         [Theory]
         [WithTestPatternImages(20, 20, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void To32bppArgbSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image))
-                {
-                    string fileName = provider.Utility.GetTestOutputFileName("png");
-                    sdBitmap.Save(fileName, System.Drawing.Imaging.ImageFormat.Png);
-                }
-            }
+            using Image<TPixel> image = provider.GetImage();
+            using System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image);
+            string fileName = provider.Utility.GetTestOutputFileName("png");
+            sdBitmap.Save(fileName, System.Drawing.Imaging.ImageFormat.Png);
         }
 
         [Theory]
@@ -43,28 +38,22 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         {
             string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
 
-            using (var sdBitmap = new System.Drawing.Bitmap(path))
-            {
-                using (Image<TPixel> image = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap))
-                {
-                    image.DebugSave(dummyProvider);
-                }
-            }
+            using var sdBitmap = new System.Drawing.Bitmap(path);
+            using Image<TPixel> image = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap);
+            image.DebugSave(dummyProvider);
         }
 
         private static string SavePng<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> sourceImage = provider.GetImage())
+            using Image<TPixel> sourceImage = provider.GetImage();
+            if (pngColorType != PngColorType.RgbWithAlpha)
             {
-                if (pngColorType != PngColorType.RgbWithAlpha)
-                {
-                    sourceImage.Mutate(c => c.MakeOpaque());
-                }
-
-                var encoder = new PngEncoder { ColorType = pngColorType };
-                return provider.Utility.SaveTestOutputFile(sourceImage, "png", encoder);
+                sourceImage.Mutate(c => c.MakeOpaque());
             }
+
+            var encoder = new PngEncoder { ColorType = pngColorType };
+            return provider.Utility.SaveTestOutputFile(sourceImage, "png", encoder);
         }
 
         [Theory]
@@ -79,15 +68,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
             string path = SavePng(provider, PngColorType.RgbWithAlpha);
 
-            using (var sdBitmap = new System.Drawing.Bitmap(path))
-            {
-                using (Image<TPixel> original = provider.GetImage())
-                using (Image<TPixel> resaved = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap))
-                {
-                    ImageComparer comparer = ImageComparer.Exact;
-                    comparer.VerifySimilarity(original, resaved);
-                }
-            }
+            using var sdBitmap = new System.Drawing.Bitmap(path);
+            using Image<TPixel> original = provider.GetImage();
+            using Image<TPixel> resaved = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap);
+            ImageComparer comparer = ImageComparer.Exact;
+            comparer.VerifySimilarity(original, resaved);
         }
 
         [Theory]
@@ -97,17 +82,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         {
             string path = SavePng(provider, PngColorType.Rgb);
 
-            using (Image<TPixel> original = provider.GetImage())
-            {
-                using (var sdBitmap = new System.Drawing.Bitmap(path))
-                {
-                    using (Image<TPixel> resaved = SystemDrawingBridge.From24bppRgbSystemDrawingBitmap<TPixel>(sdBitmap))
-                    {
-                        ImageComparer comparer = ImageComparer.Exact;
-                        comparer.VerifySimilarity(original, resaved);
-                    }
-                }
-            }
+            using Image<TPixel> original = provider.GetImage();
+            using var sdBitmap = new System.Drawing.Bitmap(path);
+            using Image<TPixel> resaved = SystemDrawingBridge.From24bppRgbSystemDrawingBitmap<TPixel>(sdBitmap);
+            ImageComparer comparer = ImageComparer.Exact;
+            comparer.VerifySimilarity(original, resaved);
         }
 
         [Theory]
@@ -116,10 +95,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
             where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
-            using (var image = Image.Load<TPixel>(path, SystemDrawingReferenceDecoder.Instance))
-            {
-                image.DebugSave(dummyProvider);
-            }
+            using FileStream stream = File.OpenRead(path);
+            using Image<TPixel> image = SystemDrawingReferenceDecoder.Instance.Decode<TPixel>(DecoderOptions.Default, stream, default);
+            image.DebugSave(dummyProvider);
         }
 
         [Theory]
@@ -127,10 +105,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         public void SaveWithReferenceEncoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                provider.Utility.SaveTestOutputFile(image, "png", SystemDrawingReferenceEncoder.Png);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            provider.Utility.SaveTestOutputFile(image, "png", SystemDrawingReferenceEncoder.Png);
         }
     }
 }

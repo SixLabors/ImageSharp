@@ -44,14 +44,14 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format.
         /// </summary>
+        /// <param name="configuration">The general configuration.</param>
         /// <param name="stream">The image stream to read the header from.</param>
-        /// <param name="config">The configuration.</param>
         /// <returns>The mime type or null if none found.</returns>
-        private static IImageFormat InternalDetectFormat(Stream stream, Configuration config)
+        private static IImageFormat InternalDetectFormat(Configuration configuration, Stream stream)
         {
             // We take a minimum of the stream length vs the max header size and always check below
             // to ensure that only formats that headers fit within the given buffer length are tested.
-            int headerSize = (int)Math.Min(config.MaxHeaderSize, stream.Length);
+            int headerSize = (int)Math.Min(configuration.MaxHeaderSize, stream.Length);
             if (headerSize <= 0)
             {
                 return null;
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
             // and does that data match the format specification?
             // Individual formats should still check since they are public.
             IImageFormat format = null;
-            foreach (IImageFormatDetector formatDetector in config.ImageFormatsManager.FormatDetectors)
+            foreach (IImageFormatDetector formatDetector in configuration.ImageFormatsManager.FormatDetectors)
             {
                 if (formatDetector.HeaderSize <= headerSize)
                 {
@@ -98,73 +98,73 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format.
         /// </summary>
+        /// <param name="options">The general decoder options.</param>
         /// <param name="stream">The image stream to read the header from.</param>
-        /// <param name="config">The configuration.</param>
         /// <param name="format">The IImageFormat.</param>
         /// <returns>The image format or null if none found.</returns>
-        private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out IImageFormat format)
+        private static IImageDecoder DiscoverDecoder(DecoderOptions options, Stream stream, out IImageFormat format)
         {
-            format = InternalDetectFormat(stream, config);
+            format = InternalDetectFormat(options.Configuration, stream);
 
             return format != null
-                ? config.ImageFormatsManager.FindDecoder(format)
+                ? options.Configuration.ImageFormatsManager.FindDecoder(format)
                 : null;
         }
 
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
+        /// <param name="options">The general decoder options.</param>
         /// <param name="stream">The stream.</param>
-        /// <param name="config">the configuration.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(Stream stream, Configuration config, CancellationToken cancellationToken = default)
+        private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
             if (decoder is null)
             {
                 return (null, null);
             }
 
-            Image<TPixel> img = decoder.Decode<TPixel>(config, stream, cancellationToken);
+            Image<TPixel> img = decoder.Decode<TPixel>(options, stream, cancellationToken);
             return (img, format);
         }
 
-        private static (Image Image, IImageFormat Format) Decode(Stream stream, Configuration config, CancellationToken cancellationToken = default)
+        private static (Image Image, IImageFormat Format) Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
             if (decoder is null)
             {
                 return (null, null);
             }
 
-            Image img = decoder.Decode(config, stream, cancellationToken);
+            Image img = decoder.Decode(options, stream, cancellationToken);
             return (img, format);
         }
 
         /// <summary>
         /// Reads the raw image information from the specified stream.
         /// </summary>
+        /// <param name="options">The general decoder options.</param>
         /// <param name="stream">The stream.</param>
-        /// <param name="config">the configuration.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
-        private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(Stream stream, Configuration config, CancellationToken cancellationToken = default)
+        private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
 
             if (decoder is not IImageInfoDetector detector)
             {
                 return (null, null);
             }
 
-            IImageInfo info = detector?.Identify(config, stream, cancellationToken);
+            IImageInfo info = detector?.Identify(options, stream, cancellationToken);
             return (info, format);
         }
     }

@@ -1,8 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using Microsoft.DotNet.RemoteExecutor;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -745,6 +746,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 image.DebugSave(provider);
                 ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
             }
+        }
+
+        [Theory]
+        [WithFile(Bit32RleTopLeft, PixelTypes.Rgba32)]
+        public void TgaDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<TPixel> image = provider.GetImage(TgaDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.TolerantPercentage(0.0001F),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]

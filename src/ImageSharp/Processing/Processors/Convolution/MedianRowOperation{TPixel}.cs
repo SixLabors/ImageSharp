@@ -59,34 +59,58 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var xChannel = channelBuffer.Slice(0, kernelCount);
             var yChannel = channelBuffer.Slice(this.yChannelStart, kernelCount);
             var zChannel = channelBuffer.Slice(this.zChannelStart, kernelCount);
-            var wChannel = channelBuffer.Slice(this.wChannelStart, kernelCount);
 
             var xOffsets = this.map.GetColumnOffsetSpan();
             var yOffsets = this.map.GetRowOffsetSpan();
             var baseXOffsetIndex = 0;
             var baseYOffsetIndex = (y - this.bounds.Top) * this.kernelSize;
 
-            for (var x = boundsLeft; x < boundsRight; x++)
+            if (this.preserveAlpha)
             {
-                var index = 0;
-                for (var w = 0; w < this.kernelSize; w++)
+                for (var x = boundsLeft; x < boundsRight; x++)
                 {
-                    var j = yOffsets[baseYOffsetIndex + w];
-                    var row = this.sourcePixels.DangerousGetRowSpan(j);
-                    for (var z = 0; z < this.kernelSize; z++)
+                    var index = 0;
+                    for (var w = 0; w < this.kernelSize; w++)
                     {
-                        var k = xOffsets[baseXOffsetIndex + z];
-                        var pixel = row[k];
-                        kernelBuffer[index + z] = pixel.ToVector4();
+                        var j = yOffsets[baseYOffsetIndex + w];
+                        var row = this.sourcePixels.DangerousGetRowSpan(j);
+                        for (var z = 0; z < this.kernelSize; z++)
+                        {
+                            var k = xOffsets[baseXOffsetIndex + z];
+                            var pixel = row[k];
+                            kernelBuffer[index + z] = pixel.ToVector4();
+                        }
+
+                        index += this.kernelSize;
                     }
 
-                    index += this.kernelSize;
+                    targetBuffer[x - boundsLeft] = this.FindMedian3(kernelBuffer, xChannel, yChannel, zChannel, kernelCount);
+                    baseXOffsetIndex += this.kernelSize;
                 }
+            }
+            else
+            {
+                var wChannel = channelBuffer.Slice(this.wChannelStart, kernelCount);
+                for (var x = boundsLeft; x < boundsRight; x++)
+                {
+                    var index = 0;
+                    for (var w = 0; w < this.kernelSize; w++)
+                    {
+                        var j = yOffsets[baseYOffsetIndex + w];
+                        var row = this.sourcePixels.DangerousGetRowSpan(j);
+                        for (var z = 0; z < this.kernelSize; z++)
+                        {
+                            var k = xOffsets[baseXOffsetIndex + z];
+                            var pixel = row[k];
+                            kernelBuffer[index + z] = pixel.ToVector4();
+                        }
 
-                targetBuffer[x - boundsLeft] = this.preserveAlpha ?
-                    this.FindMedian3(kernelBuffer, xChannel, yChannel, zChannel, kernelCount) :
-                    this.FindMedian4(kernelBuffer, xChannel, yChannel, zChannel, wChannel, kernelCount);
-                baseXOffsetIndex += this.kernelSize;
+                        index += this.kernelSize;
+                    }
+
+                    targetBuffer[x - boundsLeft] = this.FindMedian4(kernelBuffer, xChannel, yChannel, zChannel, wChannel, kernelCount);
+                    baseXOffsetIndex += this.kernelSize;
+                }
             }
 
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsLeft, boundsWidth);

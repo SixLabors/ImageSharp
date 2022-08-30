@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
             var processor = this.Verify<MedianBlurProcessor>();
 
             Assert.Equal(3, processor.Radius);
-            Assert.Equal(true, processor.PreserveAlpha);
+            Assert.True(processor.PreserveAlpha);
         }
 
         [Fact]
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
             var processor = this.Verify<MedianBlurProcessor>(this.rect);
 
             Assert.Equal(5, processor.Radius);
-            Assert.Equal(false, processor.PreserveAlpha);
+            Assert.False(processor.PreserveAlpha);
         }
     }
 }

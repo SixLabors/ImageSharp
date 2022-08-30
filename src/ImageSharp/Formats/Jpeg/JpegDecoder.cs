@@ -3,66 +3,52 @@
 
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
-    /// Image decoder for generating an image out of a jpg stream.
+    /// Decoder for generating an image out of a jpeg encoded stream.
     /// </summary>
-    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions, IImageInfoDetector
+    public sealed class JpegDecoder : IImageDecoderSpecialized<JpegDecoderOptions>
     {
         /// <inheritdoc/>
-        public bool IgnoreMetadata { get; set; }
-
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgb24>(configuration, stream, cancellationToken);
-
-        /// <summary>
-        /// Decodes and downscales the image from the specified stream if possible.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">Configuration.</param>
-        /// <param name="stream">Stream.</param>
-        /// <param name="targetSize">Target size.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        internal Image<TPixel> DecodeInto<TPixel>(Configuration configuration, Stream stream, Size targetSize, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            using var decoder = new JpegDecoderCore(configuration, this);
-            using var bufferedReadStream = new BufferedReadStream(configuration, stream);
-            try
-            {
-                return decoder.DecodeInto<TPixel>(bufferedReadStream, targetSize, cancellationToken);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                throw new InvalidImageContentException(((IImageDecoderInternals)decoder).Dimensions, ex);
-            }
+            using JpegDecoderCore decoder = new(new() { GeneralOptions = options });
+            return decoder.Identify(options.Configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+             => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+
+        /// <inheritdoc/>
+        Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode(new() { GeneralOptions = options }, stream, cancellationToken);
+
+        /// <inheritdoc/>
+        Image<TPixel> IImageDecoderSpecialized<JpegDecoderOptions>.Decode<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.Identify(configuration, stream, cancellationToken);
+            using JpegDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+
+            if (options.ResizeMode != JpegDecoderResizeMode.IdctOnly)
+            {
+                ImageDecoderUtilities.Resize(options.GeneralOptions, image);
+            }
+
+            return image;
         }
+
+        /// <inheritdoc/>
+        Image IImageDecoderSpecialized<JpegDecoderOptions>.Decode(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode<Rgb24>(options, stream, cancellationToken);
     }
 }

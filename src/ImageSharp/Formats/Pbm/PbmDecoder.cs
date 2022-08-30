@@ -26,29 +26,33 @@ namespace SixLabors.ImageSharp.Formats.Pbm
     /// </list>
     /// The specification of these images is found at <seealso href="http://netpbm.sourceforge.net/doc/pnm.html"/>.
     /// </summary>
-    public sealed class PbmDecoder : IImageDecoder, IImageInfoDetector
+    public sealed class PbmDecoder : IImageDecoder
     {
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new PbmDecoderCore(configuration);
-            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
+            return new PbmDecoderCore(options).Identify(options.Configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgb24>(configuration, stream, cancellationToken);
-
-        /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new PbmDecoderCore(configuration);
-            return decoder.Identify(configuration, stream, cancellationToken);
+            PbmDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+            ImageDecoderUtilities.Resize(options, image);
+
+            return image;
         }
+
+        /// <inheritdoc />
+        Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoder)this).Decode<Rgb24>(options, stream, cancellationToken);
     }
 }

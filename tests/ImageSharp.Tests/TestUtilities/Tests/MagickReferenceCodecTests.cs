@@ -1,17 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
+using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 {
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
-    using Xunit.Abstractions;
-
     public class MagickReferenceCodecTests
     {
         public MagickReferenceCodecTests(ITestOutputHelper output) => this.Output = output;
@@ -39,17 +39,19 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
             ImageComparer comparer = ImageComparer.Exact;
 
-            using (var mImage = Image.Load<TPixel>(path, magickDecoder))
-            using (var sdImage = Image.Load<TPixel>(path, sdDecoder))
+            using FileStream mStream = File.OpenRead(path);
+            using FileStream sdStream = File.OpenRead(path);
+
+            using Image<TPixel> mImage = magickDecoder.Decode<TPixel>(DecoderOptions.Default, mStream, default);
+            using Image<TPixel> sdImage = sdDecoder.Decode<TPixel>(DecoderOptions.Default, sdStream, default);
+
+            ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
+
+            mImage.DebugSave(dummyProvider);
+
+            if (TestEnvironment.IsWindows)
             {
-                ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
-
-                mImage.DebugSave(dummyProvider);
-
-                if (TestEnvironment.IsWindows)
-                {
-                    Assert.True(report.IsEmpty);
-                }
+                Assert.True(report.IsEmpty);
             }
         }
 
@@ -69,18 +71,17 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
             // 1020 == 4 * 255 (Equivalent to manhattan distance of 1+1+1+1=4 in Rgba32 space)
             var comparer = ImageComparer.TolerantPercentage(1, 1020);
+            using FileStream mStream = File.OpenRead(path);
+            using FileStream sdStream = File.OpenRead(path);
+            using Image<TPixel> mImage = magickDecoder.Decode<TPixel>(DecoderOptions.Default, mStream, default);
+            using Image<TPixel> sdImage = sdDecoder.Decode<TPixel>(DecoderOptions.Default, sdStream, default);
+            ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
 
-            using (var mImage = Image.Load<TPixel>(path, magickDecoder))
-            using (var sdImage = Image.Load<TPixel>(path, sdDecoder))
+            mImage.DebugSave(dummyProvider);
+
+            if (TestEnvironment.IsWindows)
             {
-                ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
-
-                mImage.DebugSave(dummyProvider);
-
-                if (TestEnvironment.IsWindows)
-                {
-                    Assert.True(report.IsEmpty);
-                }
+                Assert.True(report.IsEmpty);
             }
         }
     }

@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Advanced
             img.CloneAs<Short2>(default);
             img.CloneAs<Short4>(default);
 
-            ImageFrame.LoadPixelData<TPixel>(default, default(ReadOnlySpan<TPixel>), default, default);
+            ImageFrame.LoadPixelData(default, default(ReadOnlySpan<TPixel>), default, default);
             ImageFrame.LoadPixelData<TPixel>(default, default(ReadOnlySpan<byte>), default, default);
         }
 
@@ -217,14 +217,14 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageDecoderInternals<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            default(WebpDecoderCore).Decode<TPixel>(default, default, default);
-            default(BmpDecoderCore).Decode<TPixel>(default, default, default);
-            default(GifDecoderCore).Decode<TPixel>(default, default, default);
-            default(JpegDecoderCore).Decode<TPixel>(default, default, default);
-            default(PbmDecoderCore).Decode<TPixel>(default, default, default);
-            default(PngDecoderCore).Decode<TPixel>(default, default, default);
-            default(TgaDecoderCore).Decode<TPixel>(default, default, default);
-            default(TiffDecoderCore).Decode<TPixel>(default, default, default);
+            default(WebpDecoderCore).Decode<TPixel>(default, default);
+            default(BmpDecoderCore).Decode<TPixel>(default, default);
+            default(GifDecoderCore).Decode<TPixel>(default, default);
+            default(JpegDecoderCore).Decode<TPixel>(default, default);
+            default(PbmDecoderCore).Decode<TPixel>(default, default);
+            default(PngDecoderCore).Decode<TPixel>(default, default);
+            default(TgaDecoderCore).Decode<TPixel>(default, default);
+            default(TiffDecoderCore).Decode<TPixel>(default, default);
         }
 
         /// <summary>
@@ -286,9 +286,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileImageDecoder<TPixel, TDecoder>()
            where TPixel : unmanaged, IPixel<TPixel>
            where TDecoder : class, IImageDecoder
-        {
-            default(TDecoder).Decode<TPixel>(default, default, default);
-        }
+            => default(TDecoder).Decode<TPixel>(default, default, default);
 
         /// <summary>
         /// This method pre-seeds the all <see cref="IImageProcessor" /> in the AoT compiler.

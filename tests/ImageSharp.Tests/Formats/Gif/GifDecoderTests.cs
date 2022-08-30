@@ -4,10 +4,9 @@
 using System;
 using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -35,11 +34,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        public void GifDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
             {
-                image.DebugSaveMultiFrame(provider);
-                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
-            }
+                TargetSize = new() { Width = 150, Height = 150 },
+                MaxFrames = 1
+            };
+
+            using Image<TPixel> image = provider.GetImage(GifDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.TolerantPercentage(0.0001F),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
 
         [Fact]
@@ -51,13 +71,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             fixed (byte* data = testFile.Bytes.AsSpan(0, length))
             {
-                using (var stream = new UnmanagedMemoryStream(data, length))
-                {
-                    using (Image<Rgba32> image = GifDecoder.Decode<Rgba32>(Configuration.Default, stream, default))
-                    {
-                        Assert.Equal((200, 200), (image.Width, image.Height));
-                    }
-                }
+                using var stream = new UnmanagedMemoryStream(data, length);
+                using Image<Rgba32> image = GifDecoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+                Assert.Equal((200, 200), (image.Width, image.Height));
             }
         }
 
@@ -66,11 +82,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void GifDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.DebugSave(provider);
-                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
         }
 
         [Theory]
@@ -80,12 +94,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_VerifyRootFrameAndFrameCount<TPixel>(TestImageProvider<TPixel> provider, int expectedFrameCount)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                Assert.Equal(expectedFrameCount, image.Frames.Count);
-                image.DebugSave(provider);
-                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            Assert.Equal(expectedFrameCount, image.Frames.Count);
+            image.DebugSave(provider);
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
         }
 
         [Theory]
@@ -93,10 +105,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new GifDecoder { DecodingMode = FrameDecodingMode.First }))
-            {
-                Assert.Equal(1, image.Frames.Count);
-            }
+            DecoderOptions options = new() { MaxFrames = 1 };
+            using Image<TPixel> image = provider.GetImage(new GifDecoder(), options);
+            Assert.Equal(1, image.Frames.Count);
         }
 
         [Theory]
@@ -104,10 +115,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void CanDecodeAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new GifDecoder { DecodingMode = FrameDecodingMode.All }))
-            {
-                Assert.True(image.Frames.Count > 1);
-            }
+            using Image<TPixel> image = provider.GetImage(new GifDecoder());
+            Assert.True(image.Frames.Count > 1);
         }
 
         [Theory]
@@ -118,10 +127,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void DetectPixelSize(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
         }
 
         [Theory]
@@ -146,11 +153,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_WithMaxDimensions_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedWidth, int expectedHeight)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(GifDecoder))
-            {
-                Assert.Equal(expectedWidth, image.Width);
-                Assert.Equal(expectedHeight, image.Height);
-            }
+            using Image<TPixel> image = provider.GetImage(GifDecoder);
+            Assert.Equal(expectedWidth, image.Width);
+            Assert.Equal(expectedHeight, image.Height);
         }
 
         [Fact]
@@ -190,12 +195,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
 
-                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
-            }
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
         }
 
         // https://github.com/SixLabors/ImageSharp/issues/1668
@@ -204,12 +207,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider);
 
-                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
-            }
+            image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
         }
 
         [Theory]

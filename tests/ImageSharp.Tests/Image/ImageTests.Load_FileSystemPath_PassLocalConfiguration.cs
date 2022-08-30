@@ -16,7 +16,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Path_Specific()
             {
-                var img = Image.Load<Rgb24>(this.TopLevelConfiguration, this.MockFilePath);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load<Rgb24>(options, this.MockFilePath);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
@@ -27,7 +32,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Path_Agnostic()
             {
-                var img = Image.Load(this.TopLevelConfiguration, this.MockFilePath);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load(options, this.MockFilePath);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat.SampleAgnostic(), img);
@@ -36,27 +46,14 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void Configuration_Path_Decoder_Specific()
-            {
-                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.MockFilePath, this.localDecoder.Object);
-
-                Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, this.DataStream, default));
-            }
-
-            [Fact]
-            public void Configuration_Path_Decoder_Agnostic()
-            {
-                var img = Image.Load(this.TopLevelConfiguration, this.MockFilePath, this.localDecoder.Object);
-
-                Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, this.DataStream, default));
-            }
-
-            [Fact]
             public void Configuration_Path_OutFormat_Specific()
             {
-                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.MockFilePath, out IImageFormat format);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load<Rgba32>(options, this.MockFilePath, out IImageFormat format);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
@@ -67,7 +64,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Path_OutFormat_Agnostic()
             {
-                var img = Image.Load(this.TopLevelConfiguration, this.MockFilePath, out IImageFormat format);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load(options, this.MockFilePath, out IImageFormat format);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
@@ -77,23 +79,28 @@ namespace SixLabors.ImageSharp.Tests
 
             [Fact]
             public void WhenFileNotFound_Throws()
-            {
-                Assert.Throws<System.IO.FileNotFoundException>(
+                => Assert.Throws<System.IO.FileNotFoundException>(
                     () =>
                     {
-                        Image.Load<Rgba32>(this.TopLevelConfiguration, Guid.NewGuid().ToString());
+                        DecoderOptions options = new()
+                        {
+                            Configuration = this.TopLevelConfiguration
+                        };
+
+                        Image.Load<Rgba32>(options, Guid.NewGuid().ToString());
                     });
-            }
 
             [Fact]
             public void WhenPathIsNull_Throws()
-            {
-                Assert.Throws<ArgumentNullException>(
+                => Assert.Throws<ArgumentNullException>(
                     () =>
                     {
-                        Image.Load<Rgba32>(this.TopLevelConfiguration, (string)null);
+                        DecoderOptions options = new()
+                        {
+                            Configuration = this.TopLevelConfiguration
+                        };
+                        Image.Load<Rgba32>(options, (string)null);
                     });
-            }
         }
     }
 }

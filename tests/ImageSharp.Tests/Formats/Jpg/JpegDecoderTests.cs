@@ -6,10 +6,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -73,10 +75,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void ParseStream_BasicPropertiesAreCorrect()
         {
+            JpegDecoderOptions options = new();
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using var ms = new MemoryStream(bytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var decoder = new JpegDecoderCore(options);
             using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
             // I don't know why these numbers are different. All I know is that the decoder works
@@ -119,6 +122,118 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Resize_Bicubic<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 },
+                Sampler = KnownResamplers.Bicubic
+            };
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Specialized_IDCT_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            JpegDecoderOptions specializedOptions = new()
+            {
+                GeneralOptions = options,
+                ResizeMode = JpegDecoderResizeMode.IdctOnly
+            };
+
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Specialized_Scale_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            JpegDecoderOptions specializedOptions = new()
+            {
+                GeneralOptions = options,
+                ResizeMode = JpegDecoderResizeMode.ScaleOnly
+            };
+
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
+        public void JpegDecoder_Decode_Specialized_Combined_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+            JpegDecoderOptions specializedOptions = new()
+            {
+                GeneralOptions = options,
+                ResizeMode = JpegDecoderResizeMode.Combined
+            };
+
+            using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
         public void Decode_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
@@ -148,17 +263,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var cts = new CancellationTokenSource();
             string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
-            pausedStream.OnWaiting(s =>
+            pausedStream.OnWaiting(_ =>
             {
                 cts.Cancel();
                 pausedStream.Release();
             });
 
-            var config = Configuration.CreateDefaultInstance();
-            config.FileSystem = new SingleStreamFileSystem(pausedStream);
+            var configuration = Configuration.CreateDefaultInstance();
+            configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
+            DecoderOptions options = new()
+            {
+                Configuration = configuration
+            };
+
             await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             {
-                using Image image = await Image.LoadAsync(config, "someFakeFile", cts.Token);
+                using Image image = await Image.LoadAsync(options, "someFakeFile", cts.Token);
             });
         }
 
@@ -169,28 +289,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
             using var pausedStream = new PausedStream(file);
-            pausedStream.OnWaiting(s =>
+            pausedStream.OnWaiting(_ =>
             {
                 cts.Cancel();
                 pausedStream.Release();
             });
 
-            var config = Configuration.CreateDefaultInstance();
-            config.FileSystem = new SingleStreamFileSystem(pausedStream);
+            var configuration = Configuration.CreateDefaultInstance();
+            configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
+            DecoderOptions options = new()
+            {
+                Configuration = configuration
+            };
 
-            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(config, "someFakeFile", cts.Token));
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(options, "someFakeFile", cts.Token));
         }
 
         [Theory]
         [WithFileCollection(nameof(UnsupportedTestJpegs), PixelTypes.Rgba32)]
         public void ThrowsNotSupported_WithUnsupportedJpegs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Assert.Throws<NotSupportedException>(() =>
+            => Assert.Throws<NotSupportedException>(() =>
             {
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
             });
-        }
 
         // https://github.com/SixLabors/ImageSharp/pull/1732
         [Theory]
@@ -198,11 +320,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Issue1732_DecodesWithRgbColorSpace<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         // https://github.com/SixLabors/ImageSharp/issues/2057
@@ -211,11 +331,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Issue2057_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         // https://github.com/SixLabors/ImageSharp/issues/2133
@@ -224,11 +342,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Issue2133_DeduceColorSpace<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
 
         // https://github.com/SixLabors/ImageSharp/issues/2133
@@ -237,44 +353,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void Issue2136_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider);
-            }
-        }
-
-        // DEBUG ONLY!
-        // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
-        // into "\tests\Images\ActualOutput\JpegDecoderTests\"
-        // [Theory]
-        // [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
-        public void ValidateProgressivePdfJsOutput<TPixel>(
-            TestImageProvider<TPixel> provider,
-            string pdfJsOriginalResultImage)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm
-            string pdfJsOriginalResultPath = Path.Combine(
-                provider.Utility.GetTestOutputDir(),
-                pdfJsOriginalResultImage);
-
-            byte[] sourceBytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
-
-            provider.Utility.TestName = nameof(DecodeProgressiveJpegOutputName);
-
-            var comparer = ImageComparer.Tolerant(0, 0);
-
-            using (Image<TPixel> expectedImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-            using (var pdfJsOriginalResult = Image.Load<Rgba32>(pdfJsOriginalResultPath))
-            using (var pdfJsPortResult = Image.Load<Rgba32>(sourceBytes, JpegDecoder))
-            {
-                ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
-                ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);
-
-                this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentageString}");
-                this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
-            }
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider);
         }
     }
 }

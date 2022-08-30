@@ -3,6 +3,7 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 
@@ -31,8 +32,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public IImageInfo Identify()
         {
             using var memoryStream = new MemoryStream(this.jpegBytes);
-            var decoder = new JpegDecoder();
-            return decoder.Identify(Configuration.Default, memoryStream, default);
+            IImageDecoder decoder = new JpegDecoder();
+            return decoder.Identify(DecoderOptions.Default, memoryStream, default);
         }
     }
 }

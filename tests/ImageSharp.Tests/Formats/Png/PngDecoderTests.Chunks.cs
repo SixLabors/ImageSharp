@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -75,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 var decoder = new PngDecoder();
 
                 ImageFormatException exception =
-                    Assert.Throws<InvalidImageContentException>(() => decoder.Decode<Rgb24>(Configuration.Default, memStream, default));
+                    Assert.Throws<InvalidImageContentException>(() => decoder.Decode<Rgb24>(DecoderOptions.Default, memStream));
 
                 Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
             }
@@ -83,18 +84,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         private static string GetChunkTypeName(uint value)
         {
-            var data = new byte[4];
+            byte[] data = new byte[4];
 
             BinaryPrimitives.WriteUInt32BigEndian(data, value);
 
             return Encoding.ASCII.GetString(data);
         }
 
-        private static void WriteHeaderChunk(MemoryStream memStream)
-        {
+        private static void WriteHeaderChunk(MemoryStream memStream) =>
+
             // Writes a 1x1 32bit png header chunk containing a single black pixel.
             memStream.Write(Raw1X1PngIhdrAndpHYs, 0, Raw1X1PngIhdrAndpHYs.Length);
-        }
 
         private static void WriteChunk(MemoryStream memStream, string chunkName)
         {

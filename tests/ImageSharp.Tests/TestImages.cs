@@ -348,7 +348,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rle4Delta320240 = "Bmp/rle4-delta-320x240.bmp";
             public const string Bit1 = "Bmp/pal1.bmp";
             public const string Bit2 = "Bmp/pal2.bmp";
-            public const string Bit2Color = "Bmp/pal2Color.bmp";
+            public const string Bit2Color = "Bmp/pal2color.bmp";
             public const string Bit1Pal1 = "Bmp/pal1p1.bmp";
             public const string Bit4 = "Bmp/pal4.bmp";
             public const string Bit8 = "Bmp/test8.bmp";

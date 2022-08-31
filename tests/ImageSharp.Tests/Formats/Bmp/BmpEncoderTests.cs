@@ -20,6 +20,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
     [Trait("Format", "Bmp")]
     public class BmpEncoderTests
     {
+        private static BmpDecoder BmpDecoder => new();
+
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
         new()
         {
@@ -39,6 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         new()
         {
             { Bit1, BmpBitsPerPixel.Pixel1 },
+            { Bit2, BmpBitsPerPixel.Pixel2 },
             { Bit4, BmpBitsPerPixel.Pixel4 },
             { Bit8, BmpBitsPerPixel.Pixel8 },
             { Rgb16, BmpBitsPerPixel.Pixel16 },
@@ -205,6 +208,50 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
+        [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel2)]
+        public void Encode_2Bit_WithV3Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // arrange
+            var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
+            using var memoryStream = new MemoryStream();
+            using Image<TPixel> input = provider.GetImage(BmpDecoder);
+
+            // act
+            encoder.Encode(input, memoryStream);
+            memoryStream.Position = 0;
+
+            // assert
+            using var actual = Image.Load<TPixel>(memoryStream);
+            ImageSimilarityReport similarityReport = ImageComparer.Exact.CompareImagesOrFrames(input, actual);
+            Assert.True(similarityReport.IsEmpty, "encoded image does not match reference image");
+        }
+
+        [Theory]
+        [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel2)]
+        public void Encode_2Bit_WithV4Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // arrange
+            var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
+            using var memoryStream = new MemoryStream();
+            using Image<TPixel> input = provider.GetImage(BmpDecoder);
+
+            // act
+            encoder.Encode(input, memoryStream);
+            memoryStream.Position = 0;
+
+            // assert
+            using var actual = Image.Load<TPixel>(memoryStream);
+            ImageSimilarityReport similarityReport = ImageComparer.Exact.CompareImagesOrFrames(input, actual);
+            Assert.True(similarityReport.IsEmpty, "encoded image does not match reference image");
+        }
+
+        [Theory]
         [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel1)]
         public void Encode_1Bit_WithV3Header_Works<TPixel>(
             TestImageProvider<TPixel> provider,
@@ -343,7 +390,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             BmpBitsPerPixel bitsPerPixel,
             bool supportTransparency = true, // if set to true, will write a V4 header, otherwise a V3 header.
             IQuantizer quantizer = null,
-            ImageComparer customComparer = null)
+            ImageComparer customComparer = null,
+            IImageDecoder referenceDecoder = null)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -362,7 +410,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 };
 
                 // Does DebugSave & load reference CompareToReferenceInput():
-                image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder, customComparer);
+                image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder, customComparer, referenceDecoder: referenceDecoder);
             }
         }
     }

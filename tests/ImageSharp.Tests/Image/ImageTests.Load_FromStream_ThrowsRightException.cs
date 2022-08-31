@@ -20,30 +20,23 @@ namespace SixLabors.ImageSharp.Tests
 
             [Fact]
             public void Image_Load_Throws_UnknownImageFormatException()
-            {
-                Assert.Throws<UnknownImageFormatException>(() =>
+                => Assert.Throws<UnknownImageFormatException>(() =>
                 {
-                    using (Image.Load(Configuration.Default, this.Stream, out IImageFormat format))
+                    using (Image.Load(DecoderOptions.Default, this.Stream, out IImageFormat format))
                     {
                     }
                 });
-            }
 
             [Fact]
             public void Image_Load_T_Throws_UnknownImageFormatException()
-            {
-                Assert.Throws<UnknownImageFormatException>(() =>
+                => Assert.Throws<UnknownImageFormatException>(() =>
                 {
-                    using (Image.Load<Rgba32>(Configuration.Default, this.Stream, out IImageFormat format))
+                    using (Image.Load<Rgba32>(DecoderOptions.Default, this.Stream, out IImageFormat format))
                     {
                     }
                 });
-            }
 
-            public void Dispose()
-            {
-                this.Stream?.Dispose();
-            }
+            public void Dispose() => this.Stream?.Dispose();
         }
     }
 }

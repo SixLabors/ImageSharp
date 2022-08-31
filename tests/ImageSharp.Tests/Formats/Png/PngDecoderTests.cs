@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.DotNet.RemoteExecutor;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -110,6 +110,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using Image<TPixel> image = provider.GetImage(PngDecoder);
             image.DebugSave(provider);
             image.CompareToOriginal(provider, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
+        public void PngDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<TPixel> image = provider.GetImage(PngDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.TolerantPercentage(0.0003F), // Magick decoder shows difference on Mac
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -468,6 +490,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     image.CompareToOriginal(provider, ImageComparer.Exact);
                 });
             Assert.Null(ex);
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2209
+        [Theory]
+        [WithFile(TestImages.Png.Issue2209IndexedWithTransparency, PixelTypes.Rgba32)]
+        public void Issue2209_Decode_HasTransparencyIsTrue<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            PngMetadata metadata = image.Metadata.GetPngMetadata();
+            Assert.True(metadata.HasTransparency);
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2209
+        [Theory]
+        [InlineData(TestImages.Png.Issue2209IndexedWithTransparency)]
+        public void Issue2209_Identify_HasTransparencyIsTrue(string imagePath)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
+            Assert.True(metadata.HasTransparency);
         }
 
         // https://github.com/SixLabors/ImageSharp/issues/410

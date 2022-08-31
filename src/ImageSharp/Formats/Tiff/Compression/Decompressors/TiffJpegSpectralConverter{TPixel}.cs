@@ -35,10 +35,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             return JpegColorConverterBase.GetConverter(colorSpace, frame.Precision);
         }
 
-        /// <remarks>
+        /// <summary>
         /// This converter must be used only for RGB and YCbCr color spaces for performance reasons.
         /// For grayscale images <see cref="GrayJpegSpectralConverter{TPixel}"/> must be used.
-        /// </remarks>
+        /// </summary>
         private static JpegColorSpace GetJpegColorSpaceFromPhotometricInterpretation(TiffPhotometricInterpretation interpretation)
             => interpretation switch
             {

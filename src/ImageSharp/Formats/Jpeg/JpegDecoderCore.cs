@@ -116,31 +116,42 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private int? resetInterval;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
+        /// The global configuration.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="options">The options.</param>
-        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
+        private readonly Configuration configuration;
+
+        /// <summary>
+        /// Whether to skip metadata during decode.
+        /// </summary>
+        private readonly bool skipMetadata;
+
+        /// <summary>
+        /// The jpeg specific resize options.
+        /// </summary>
+        private readonly JpegDecoderResizeMode resizeMode;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JpegDecoderCore"/> class.
+        /// </summary>
+        /// <param name="options">The decoder options.</param>
+        public JpegDecoderCore(JpegDecoderOptions options)
         {
-            this.Configuration = configuration ?? Configuration.Default;
-            this.IgnoreMetadata = options.IgnoreMetadata;
+            this.Options = options.GeneralOptions;
+            this.resizeMode = options.ResizeMode;
+            this.configuration = options.GeneralOptions.Configuration;
+            this.skipMetadata = options.GeneralOptions.SkipMetadata;
         }
 
         /// <inheritdoc />
-        public Configuration Configuration { get; }
+        public DecoderOptions Options { get; }
+
+        /// <inheritdoc/>
+        public Size Dimensions => this.Frame.PixelSize;
 
         /// <summary>
         /// Gets the frame
         /// </summary>
         public JpegFrame Frame { get; private set; }
-
-        /// <inheritdoc/>
-        Size IImageDecoderInternals.Dimensions => this.Frame.PixelSize;
-
-        /// <summary>
-        /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; }
 
         /// <summary>
         /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
@@ -201,7 +212,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
-            => this.Decode<TPixel>(stream, targetSize: null, cancellationToken);
+        {
+            using var spectralConverter = new SpectralConverter<TPixel>(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
+            this.ParseStream(stream, spectralConverter, cancellationToken);
+            this.InitExifProfile();
+            this.InitIccProfile();
+            this.InitIptcProfile();
+            this.InitXmpProfile();
+            this.InitDerivedMetadataProperties();
+
+            return new Image<TPixel>(
+                this.configuration,
+                spectralConverter.GetPixelBuffer(cancellationToken),
+                this.Metadata);
+        }
 
         /// <inheritdoc/>
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -215,34 +239,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             Size pixelSize = this.Frame.PixelSize;
             return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), pixelSize.Width, pixelSize.Height, this.Metadata);
-        }
-
-        /// <summary>
-        /// Decodes and downscales the image from the specified stream if possible.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">Stream.</param>
-        /// <param name="targetSize">Target size.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        internal Image<TPixel> DecodeInto<TPixel>(BufferedReadStream stream, Size targetSize, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-            => this.Decode<TPixel>(stream, targetSize, cancellationToken);
-
-        private Image<TPixel> Decode<TPixel>(BufferedReadStream stream, Size? targetSize, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var spectralConverter = new SpectralConverter<TPixel>(this.Configuration, targetSize);
-            this.ParseStream(stream, spectralConverter, cancellationToken);
-            this.InitExifProfile();
-            this.InitIccProfile();
-            this.InitIptcProfile();
-            this.InitXmpProfile();
-            this.InitDerivedMetadataProperties();
-
-            return new Image<TPixel>(
-                this.Configuration,
-                spectralConverter.GetPixelBuffer(cancellationToken),
-                this.Metadata);
         }
 
         /// <summary>
@@ -262,7 +258,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             using var ms = new MemoryStream(tableBytes);
-            using var stream = new BufferedReadStream(this.Configuration, ms);
+            using var stream = new BufferedReadStream(this.configuration, ms);
 
             // Check for the Start Of Image marker.
             int bytesRead = stream.Read(this.markerBuffer, 0, 2);
@@ -778,7 +774,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             const int ExifMarkerLength = 6;
             const int XmpMarkerLength = 29;
-            if (remaining < ExifMarkerLength || this.IgnoreMetadata)
+            if (remaining < ExifMarkerLength || this.skipMetadata)
             {
                 // Skip the application header length.
                 stream.Skip(remaining);
@@ -816,7 +812,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker.Slice(0, ExifMarkerLength)))
             {
                 const int remainingXmpMarkerBytes = XmpMarkerLength - ExifMarkerLength;
-                if (remaining < remainingXmpMarkerBytes || this.IgnoreMetadata)
+                if (remaining < remainingXmpMarkerBytes || this.skipMetadata)
                 {
                     // Skip the application header length.
                     stream.Skip(remaining);
@@ -858,7 +854,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
-            if (remaining < Icclength || this.IgnoreMetadata)
+            if (remaining < Icclength || this.skipMetadata)
             {
                 stream.Skip(remaining);
                 return;
@@ -899,7 +895,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp13Marker(BufferedReadStream stream, int remaining)
         {
-            if (remaining < ProfileResolver.AdobePhotoshopApp13Marker.Length || this.IgnoreMetadata)
+            if (remaining < ProfileResolver.AdobePhotoshopApp13Marker.Length || this.skipMetadata)
             {
                 stream.Skip(remaining);
                 return;
@@ -1283,8 +1279,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 IJpegComponent component = decodingComponentType is ComponentType.Huffman ?
-                            new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i) :
-                            new ArithmeticDecodingComponent(this.Configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i);
+                            new JpegComponent(this.configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i) :
+                            new ArithmeticDecodingComponent(this.configuration.MemoryAllocator, this.Frame, componentId, h, v, quantTableIndex, i);
 
                 this.Frame.Components[i] = (JpegComponent)component;
                 this.Frame.ComponentIds[i] = componentId;
@@ -1323,7 +1319,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             int length = remaining;
-            using (IMemoryOwner<byte> buffer = this.Configuration.MemoryAllocator.Allocate<byte>(totalBufferSize))
+            using (IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(totalBufferSize))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
                 Span<byte> huffmanLengthsSpan = bufferSpan.Slice(0, codeLengthsByteSize);

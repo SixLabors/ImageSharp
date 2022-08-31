@@ -23,6 +23,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private readonly byte[] scratchBuffer = new byte[4];
 
         /// <summary>
+        /// General configuration options.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// The metadata.
         /// </summary>
         private ImageMetadata metadata;
@@ -48,11 +53,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private BufferedReadStream currentStream;
 
         /// <summary>
-        /// The bitmap decoder options.
-        /// </summary>
-        private readonly ITgaDecoderOptions options;
-
-        /// <summary>
         /// Indicates whether there is a alpha channel present.
         /// </summary>
         private bool hasAlpha;
@@ -60,21 +60,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Initializes a new instance of the <see cref="TgaDecoderCore"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="options">The options.</param>
-        public TgaDecoderCore(Configuration configuration, ITgaDecoderOptions options)
+        public TgaDecoderCore(DecoderOptions options)
         {
-            this.Configuration = configuration;
-            this.memoryAllocator = configuration.MemoryAllocator;
-            this.options = options;
+            this.Options = options;
+            this.configuration = options.Configuration;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc />
-        public Configuration Configuration { get; }
+        public DecoderOptions Options { get; }
 
-        /// <summary>
-        /// Gets the dimensions of the image.
-        /// </summary>
+        /// <inheritdoc />
         public Size Dimensions => new(this.fileHeader.Width, this.fileHeader.Height);
 
         /// <inheritdoc />
@@ -97,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
 
-                var image = Image.CreateUninitialized<TPixel>(this.Configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                var image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
                 if (this.fileHeader.ColorMapType == 1)
@@ -463,11 +460,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                     if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                     {
-                        PixelOperations<TPixel>.Instance.FromLa16Bytes(this.Configuration, rowSpan, pixelSpan, width);
+                        PixelOperations<TPixel>.Instance.FromLa16Bytes(this.configuration, rowSpan, pixelSpan, width);
                     }
                     else
                     {
-                        PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.Configuration, rowSpan, pixelSpan, width);
+                        PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
                     }
                 }
             }
@@ -672,7 +669,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
 
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromL8Bytes(this.Configuration, row, pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row, pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -709,7 +706,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
 
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.Configuration, row, pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row, pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -738,7 +735,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
 
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.Configuration, row, pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row, pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

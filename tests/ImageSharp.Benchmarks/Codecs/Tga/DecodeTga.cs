@@ -7,7 +7,6 @@ using System.Threading;
 using BenchmarkDotNet.Attributes;
 using ImageMagick;
 using Pfim;
-using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     {
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        private readonly PfimConfig pfimConfig = new PfimConfig(allocator: new PfimAllocator());
+        private readonly PfimConfig pfimConfig = new(allocator: new PfimAllocator());
 
         private byte[] data;
 
@@ -40,7 +39,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Description = "ImageSharp Tga")]
         public int TgaImageSharp()
         {
-            using var image = Image.Load<Bgr24>(this.data, new TgaDecoder());
+            using var image = Image.Load<Bgr24>(this.data);
             return image.Width;
         }
 

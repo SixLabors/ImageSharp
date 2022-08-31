@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -56,11 +57,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decoder_CanReadTextData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                VerifyTextDataIsPresent(meta);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            VerifyTextDataIsPresent(meta);
         }
 
         [Theory]
@@ -69,18 +68,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new PngDecoder();
-            using (Image<TPixel> input = provider.GetImage(decoder))
-            using (var memoryStream = new MemoryStream())
-            {
-                input.Save(memoryStream, new PngEncoder());
+            using Image<TPixel> input = provider.GetImage(decoder);
+            using var memoryStream = new MemoryStream();
+            input.Save(memoryStream, new PngEncoder());
 
-                memoryStream.Position = 0;
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream, default))
-                {
-                    PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                    VerifyTextDataIsPresent(meta);
-                }
-            }
+            memoryStream.Position = 0;
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            VerifyTextDataIsPresent(meta);
         }
 
         [Theory]
@@ -88,16 +83,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decoder_IgnoresInvalidTextData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.DoesNotContain(meta.TextData, m => m.Value is "leading space");
-                Assert.DoesNotContain(meta.TextData, m => m.Value is "trailing space");
-                Assert.DoesNotContain(meta.TextData, m => m.Value is "space");
-                Assert.DoesNotContain(meta.TextData, m => m.Value is "empty");
-                Assert.DoesNotContain(meta.TextData, m => m.Value is "invalid characters");
-                Assert.DoesNotContain(meta.TextData, m => m.Value is "too large");
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.DoesNotContain(meta.TextData, m => m.Value is "leading space");
+            Assert.DoesNotContain(meta.TextData, m => m.Value is "trailing space");
+            Assert.DoesNotContain(meta.TextData, m => m.Value is "space");
+            Assert.DoesNotContain(meta.TextData, m => m.Value is "empty");
+            Assert.DoesNotContain(meta.TextData, m => m.Value is "invalid characters");
+            Assert.DoesNotContain(meta.TextData, m => m.Value is "too large");
         }
 
         [Theory]
@@ -106,30 +99,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new PngDecoder();
-            using (Image<TPixel> input = provider.GetImage(decoder))
-            using (var memoryStream = new MemoryStream())
+            using Image<TPixel> input = provider.GetImage(decoder);
+            using var memoryStream = new MemoryStream();
+
+            // This will be a zTXt chunk.
+            var expectedText = new PngTextData("large-text", new string('c', 100), string.Empty, string.Empty);
+
+            // This will be a iTXt chunk.
+            var expectedTextNoneLatin = new PngTextData("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
+            PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
+            inputMetadata.TextData.Add(expectedText);
+            inputMetadata.TextData.Add(expectedTextNoneLatin);
+            input.Save(memoryStream, new PngEncoder
             {
-                // This will be a zTXt chunk.
-                var expectedText = new PngTextData("large-text", new string('c', 100), string.Empty, string.Empty);
+                TextCompressionThreshold = 50
+            });
 
-                // This will be a iTXt chunk.
-                var expectedTextNoneLatin = new PngTextData("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
-                PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
-                inputMetadata.TextData.Add(expectedText);
-                inputMetadata.TextData.Add(expectedTextNoneLatin);
-                input.Save(memoryStream, new PngEncoder
-                {
-                    TextCompressionThreshold = 50
-                });
-
-                memoryStream.Position = 0;
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream, default))
-                {
-                    PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                    Assert.Contains(meta.TextData, m => m.Equals(expectedText));
-                    Assert.Contains(meta.TextData, m => m.Equals(expectedTextNoneLatin));
-                }
-            }
+            memoryStream.Position = 0;
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.Contains(meta.TextData, m => m.Equals(expectedText));
+            Assert.Contains(meta.TextData, m => m.Equals(expectedTextNoneLatin));
         }
 
         [Theory]
@@ -137,17 +127,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_ReadsExifData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new PngDecoder
+            DecoderOptions options = new()
             {
-                IgnoreMetadata = false
+                SkipMetadata = false
             };
 
-            using (Image<TPixel> image = provider.GetImage(decoder))
-            {
-                Assert.NotNull(image.Metadata.ExifProfile);
-                ExifProfile exif = image.Metadata.ExifProfile;
-                VerifyExifDataIsPresent(exif);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder(), options);
+            Assert.NotNull(image.Metadata.ExifProfile);
+            ExifProfile exif = image.Metadata.ExifProfile;
+            VerifyExifDataIsPresent(exif);
         }
 
         [Theory]
@@ -155,53 +143,49 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_IgnoresExifData_WhenIgnoreMetadataIsTrue<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new PngDecoder
+            DecoderOptions options = new()
             {
-                IgnoreMetadata = true
+                SkipMetadata = true
             };
 
-            using (Image<TPixel> image = provider.GetImage(decoder))
-            {
-                Assert.Null(image.Metadata.ExifProfile);
-            }
+            PngDecoder decoder = new();
+
+            using Image<TPixel> image = provider.GetImage(decoder, options);
+            Assert.Null(image.Metadata.ExifProfile);
         }
 
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunkIsRead()
         {
-            var options = new PngDecoder
+            DecoderOptions options = new()
             {
-                IgnoreMetadata = false
+                SkipMetadata = false
             };
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            using Image<Rgba32> image = testFile.CreateRgba32Image(new PngDecoder(), options);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
 
-                Assert.Equal(1, meta.TextData.Count);
-                Assert.Equal("Software", meta.TextData[0].Keyword);
-                Assert.Equal("paint.net 4.0.6", meta.TextData[0].Value);
-                Assert.Equal(0.4545d, meta.Gamma, precision: 4);
-            }
+            Assert.Equal(1, meta.TextData.Count);
+            Assert.Equal("Software", meta.TextData[0].Keyword);
+            Assert.Equal("paint.net 4.0.6", meta.TextData[0].Value);
+            Assert.Equal(0.4545d, meta.Gamma, precision: 4);
         }
 
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_TextChunksAreIgnored()
         {
-            var options = new PngDecoder
+            DecoderOptions options = new()
             {
-                IgnoreMetadata = true
+                SkipMetadata = true
             };
 
             var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.Equal(0, meta.TextData.Count);
-            }
+            using Image<Rgba32> image = testFile.CreateRgba32Image(new PngDecoder(), options);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.Equal(0, meta.TextData.Count);
         }
 
         [Theory]
@@ -209,17 +193,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new PngDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
-                {
-                    ImageMetadata meta = image.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new PngDecoder();
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -227,26 +207,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> input = provider.GetImage(new PngDecoder()))
-            {
-                ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
-                byte[] expectedProfileBytes = expectedProfile.ToByteArray();
+            using Image<TPixel> input = provider.GetImage(new PngDecoder());
+            ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
+            byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, new PngEncoder());
+            using var memStream = new MemoryStream();
+            input.Save(memStream, new PngEncoder());
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
-                        byte[] actualProfileBytes = actualProfile.ToByteArray();
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
+            byte[] actualProfileBytes = actualProfile.ToByteArray();
 
-                        Assert.NotNull(actualProfile);
-                        Assert.Equal(expectedProfileBytes, actualProfileBytes);
-                    }
-                }
-            }
+            Assert.NotNull(actualProfile);
+            Assert.Equal(expectedProfileBytes, actualProfileBytes);
         }
 
         [Theory]
@@ -254,15 +228,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new PngDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
-                ImageMetadata meta = image.Metadata;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new PngDecoder();
+            IImageInfo image = decoder.Identify(DecoderOptions.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -270,13 +242,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Identify_ReadsTextData(string imagePath)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.NotNull(imageInfo);
-                PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
-                VerifyTextDataIsPresent(meta);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            Assert.NotNull(imageInfo);
+            PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
+            VerifyTextDataIsPresent(meta);
         }
 
         [Theory]
@@ -284,14 +254,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Identify_ReadsExifData(string imagePath)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.NotNull(imageInfo);
-                Assert.NotNull(imageInfo.Metadata.ExifProfile);
-                ExifProfile exif = imageInfo.Metadata.ExifProfile;
-                VerifyExifDataIsPresent(exif);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            Assert.NotNull(imageInfo);
+            Assert.NotNull(imageInfo.Metadata.ExifProfile);
+            ExifProfile exif = imageInfo.Metadata.ExifProfile;
+            VerifyExifDataIsPresent(exif);
         }
 
         private static void VerifyExifDataIsPresent(ExifProfile exif)
@@ -323,28 +291,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Identify_ReadsLegacyExifData(string imagePath)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.NotNull(imageInfo);
-                Assert.NotNull(imageInfo.Metadata.ExifProfile);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            Assert.NotNull(imageInfo);
+            Assert.NotNull(imageInfo.Metadata.ExifProfile);
 
-                PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.DoesNotContain(meta.TextData, t => t.Keyword.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase));
+            PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.DoesNotContain(meta.TextData, t => t.Keyword.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase));
 
-                ExifProfile exif = imageInfo.Metadata.ExifProfile;
-                Assert.Equal(0, exif.InvalidTags.Count);
-                Assert.Equal(3, exif.Values.Count);
+            ExifProfile exif = imageInfo.Metadata.ExifProfile;
+            Assert.Equal(0, exif.InvalidTags.Count);
+            Assert.Equal(3, exif.Values.Count);
 
-                Assert.Equal(
-                    "A colorful tiling of blue, red, yellow, and green 4x4 pixel blocks.",
-                    exif.GetValue(ExifTag.ImageDescription).Value);
-                Assert.Equal(
-                    "Duplicated from basn3p02.png, then image metadata modified with exiv2",
-                    exif.GetValue(ExifTag.ImageHistory).Value);
+            Assert.Equal(
+                "A colorful tiling of blue, red, yellow, and green 4x4 pixel blocks.",
+                exif.GetValue(ExifTag.ImageDescription).Value);
+            Assert.Equal(
+                "Duplicated from basn3p02.png, then image metadata modified with exiv2",
+                exif.GetValue(ExifTag.ImageHistory).Value);
 
-                Assert.Equal(42, (int)exif.GetValue(ExifTag.ImageNumber).Value);
-            }
+            Assert.Equal(42, (int)exif.GetValue(ExifTag.ImageNumber).Value);
         }
     }
 }

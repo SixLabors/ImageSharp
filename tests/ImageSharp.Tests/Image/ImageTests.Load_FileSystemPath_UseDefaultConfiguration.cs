@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -17,10 +18,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             private string Path { get; } = TestFile.GetInputFileFullPath(TestImages.Bmp.Bit8);
 
-            private static void VerifyDecodedImage(Image img)
-            {
-                Assert.Equal(new Size(127, 64), img.Size());
-            }
+            private static void VerifyDecodedImage(Image img) => Assert.Equal(new Size(127, 64), img.Size());
 
             [Fact]
             public void Path_Specific()
@@ -39,49 +37,21 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task Path_Agnostic_Async()
             {
-                using var img = await Image.LoadAsync(this.Path);
+                using Image img = await Image.LoadAsync(this.Path);
                 VerifyDecodedImage(img);
             }
 
             [Fact]
             public async Task Path_Specific_Async()
             {
-                using var img = await Image.LoadAsync<Rgb24>(this.Path);
+                using Image<Rgb24> img = await Image.LoadAsync<Rgb24>(this.Path);
                 VerifyDecodedImage(img);
             }
 
             [Fact]
             public async Task Path_Agnostic_Configuration_Async()
             {
-                using var img = await Image.LoadAsync(this.Path);
-                VerifyDecodedImage(img);
-            }
-
-            [Fact]
-            public void Path_Decoder_Specific()
-            {
-                using var img = Image.Load<Rgba32>(this.Path, new BmpDecoder());
-                VerifyDecodedImage(img);
-            }
-
-            [Fact]
-            public void Path_Decoder_Agnostic()
-            {
-                using var img = Image.Load(this.Path, new BmpDecoder());
-                VerifyDecodedImage(img);
-            }
-
-            [Fact]
-            public async Task Path_Decoder_Agnostic_Async()
-            {
-                using var img = await Image.LoadAsync(this.Path, new BmpDecoder());
-                VerifyDecodedImage(img);
-            }
-
-            [Fact]
-            public async Task Path_Decoder_Specific_Async()
-            {
-                using var img = await Image.LoadAsync<Rgb24>(this.Path, new BmpDecoder());
+                using Image img = await Image.LoadAsync(this.Path);
                 VerifyDecodedImage(img);
             }
 
@@ -103,37 +73,19 @@ namespace SixLabors.ImageSharp.Tests
 
             [Fact]
             public void WhenFileNotFound_Throws()
-            {
-                Assert.Throws<System.IO.FileNotFoundException>(
-                    () =>
-                        {
-                            Image.Load<Rgba32>(Guid.NewGuid().ToString());
-                        });
-            }
+                => Assert.Throws<FileNotFoundException>(() => Image.Load<Rgba32>(Guid.NewGuid().ToString()));
 
             [Fact]
             public void WhenPathIsNull_Throws()
-            {
-                Assert.Throws<ArgumentNullException>(
-                    () =>
-                        {
-                            Image.Load<Rgba32>((string)null);
-                        });
-            }
+                => Assert.Throws<ArgumentNullException>(() => Image.Load<Rgba32>((string)null));
 
             [Fact]
             public Task Async_WhenFileNotFound_Throws()
-            {
-                return Assert.ThrowsAsync<System.IO.FileNotFoundException>(
-                    () => Image.LoadAsync<Rgba32>(Guid.NewGuid().ToString()));
-            }
+                => Assert.ThrowsAsync<FileNotFoundException>(() => Image.LoadAsync<Rgba32>(Guid.NewGuid().ToString()));
 
             [Fact]
             public Task Async_WhenPathIsNull_Throws()
-            {
-                return Assert.ThrowsAsync<ArgumentNullException>(
-                    () => Image.LoadAsync<Rgba32>((string)null));
-            }
+                => Assert.ThrowsAsync<ArgumentNullException>(() => Image.LoadAsync<Rgba32>((string)null));
         }
     }
 }

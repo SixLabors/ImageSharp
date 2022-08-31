@@ -38,8 +38,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             using var memoryStream = new MemoryStream(this.jpegBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
+            var options = new JpegDecoderOptions();
+            options.GeneralOptions.SkipMetadata = true;
 
-            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder { IgnoreMetadata = true });
+            using var decoder = new JpegDecoderCore(options);
             var spectralConverter = new NoopSpectralConverter();
             decoder.ParseStream(bufferedStream, spectralConverter, cancellationToken: default);
         }

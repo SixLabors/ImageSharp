@@ -29,26 +29,23 @@ namespace SixLabors.ImageSharp.Tests
             private static readonly IImageFormat ExpectedGlobalFormat =
                 Configuration.Default.ImageFormatsManager.FindFormatByFileExtension("bmp");
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void FromBytes_GlobalConfiguration(bool useSpan)
+            [Fact]
+            public void FromBytes_GlobalConfiguration()
             {
-                IImageFormat type = useSpan
-                                        ? Image.DetectFormat(this.ActualImageSpan)
-                                        : Image.DetectFormat(this.ActualImageBytes);
+                IImageFormat type = Image.DetectFormat(this.ActualImageSpan);
 
                 Assert.Equal(ExpectedGlobalFormat, type);
             }
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void FromBytes_CustomConfiguration(bool useSpan)
+            [Fact]
+            public void FromBytes_CustomConfiguration()
             {
-                IImageFormat type = useSpan
-                                        ? Image.DetectFormat(this.LocalConfiguration, this.ByteArray.AsSpan())
-                                        : Image.DetectFormat(this.LocalConfiguration, this.ByteArray);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageFormat type = Image.DetectFormat(options, this.ByteArray);
 
                 Assert.Equal(this.LocalImageFormat, type);
             }
@@ -63,7 +60,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromFileSystemPath_CustomConfiguration()
             {
-                IImageFormat type = Image.DetectFormat(this.LocalConfiguration, this.MockFilePath);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageFormat type = Image.DetectFormat(options, this.MockFilePath);
                 Assert.Equal(this.LocalImageFormat, type);
             }
 
@@ -80,14 +82,24 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromStream_CustomConfiguration()
             {
-                IImageFormat type = Image.DetectFormat(this.LocalConfiguration, this.DataStream);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageFormat type = Image.DetectFormat(options, this.DataStream);
                 Assert.Equal(this.LocalImageFormat, type);
             }
 
             [Fact]
             public void WhenNoMatchingFormatFound_ReturnsNull()
             {
-                IImageFormat type = Image.DetectFormat(new Configuration(), this.DataStream);
+                DecoderOptions options = new()
+                {
+                    Configuration = new()
+                };
+
+                IImageFormat type = Image.DetectFormat(options, this.DataStream);
                 Assert.Null(type);
             }
 
@@ -104,14 +116,24 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromStreamAsync_CustomConfiguration()
             {
-                IImageFormat type = await Image.DetectFormatAsync(this.LocalConfiguration, new AsyncStreamWrapper(this.DataStream, () => false));
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageFormat type = await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false));
                 Assert.Equal(this.LocalImageFormat, type);
             }
 
             [Fact]
             public async Task WhenNoMatchingFormatFoundAsync_ReturnsNull()
             {
-                IImageFormat type = await Image.DetectFormatAsync(new Configuration(), new AsyncStreamWrapper(this.DataStream, () => false));
+                DecoderOptions options = new()
+                {
+                    Configuration = new()
+                };
+
+                IImageFormat type = await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false));
                 Assert.Null(type);
             }
         }

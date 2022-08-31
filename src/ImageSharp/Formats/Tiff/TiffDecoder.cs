@@ -3,7 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -11,39 +10,33 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Image decoder for generating an image out of a TIFF stream.
     /// </summary>
-    public class TiffDecoder : IImageDecoder, ITiffDecoderOptions, IImageInfoDetector
+    public class TiffDecoder : IImageDecoder
     {
-        /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; set; }
-
-        /// <summary>
-        /// Gets or sets the decoding mode for multi-frame images.
-        /// </summary>
-        public FrameDecodingMode DecodingMode { get; set; }
-
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new TiffDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
+            return new TiffDecoderCore(options).Identify(options.Configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
-
-        /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new TiffDecoderCore(configuration, this);
-            return decoder.Identify(configuration, stream, cancellationToken);
+            TiffDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+            ImageDecoderUtilities.Resize(options, image);
+
+            return image;
         }
+
+        /// <inheritdoc/>
+        Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoder)this).Decode<Rgba32>(options, stream, cancellationToken);
     }
 }

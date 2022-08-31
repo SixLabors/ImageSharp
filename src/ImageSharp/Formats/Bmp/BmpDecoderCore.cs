@@ -832,7 +832,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             for (int y = 0; y < height; y++)
             {
                 int newY = Invert(y, height, inverted);
-                this.stream.Read(rowSpan);
+                if (this.stream.Read(rowSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
+
                 int offset = 0;
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
@@ -884,7 +888,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             for (int y = 0; y < height; y++)
             {
-                this.stream.Read(bufferSpan);
+                if (this.stream.Read(bufferSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
+
                 int newY = Invert(y, height, inverted);
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
@@ -939,7 +947,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             for (int y = 0; y < height; y++)
             {
-                this.stream.Read(rowSpan);
+                if (this.stream.Read(rowSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
+
                 int newY = Invert(y, height, inverted);
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 PixelOperations<TPixel>.Instance.FromBgr24Bytes(
@@ -967,7 +979,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             for (int y = 0; y < height; y++)
             {
-                this.stream.Read(rowSpan);
+                if (this.stream.Read(rowSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
+
                 int newY = Invert(y, height, inverted);
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 PixelOperations<TPixel>.Instance.FromBgra32Bytes(
@@ -1003,7 +1019,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             // actually a BGRA image, and change tactics accordingly.
             for (int y = 0; y < height; y++)
             {
-                this.stream.Read(rowSpan);
+                if (this.stream.Read(rowSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
 
                 PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
                     this.Configuration,
@@ -1036,7 +1055,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 for (int y = 0; y < height; y++)
                 {
-                    this.stream.Read(rowSpan);
+                    if (this.stream.Read(rowSpan) == 0)
+                    {
+                        BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                    }
 
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
@@ -1054,7 +1076,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             // Slow path. We need to set each alpha component value to fully opaque.
             for (int y = 0; y < height; y++)
             {
-                this.stream.Read(rowSpan);
+                if (this.stream.Read(rowSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
+
                 PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
                     this.Configuration,
                     rowSpan,
@@ -1115,7 +1141,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             for (int y = 0; y < height; y++)
             {
-                this.stream.Read(bufferSpan);
+                if (this.stream.Read(bufferSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
+
                 int newY = Invert(y, height, inverted);
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
@@ -1431,7 +1461,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 palette = new byte[colorMapSizeBytes];
 
-                this.stream.Read(palette, 0, colorMapSizeBytes);
+                if (this.stream.Read(palette, 0, colorMapSizeBytes) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for the palette!");
+                }
             }
 
             this.infoHeader.VerifyDimensions();

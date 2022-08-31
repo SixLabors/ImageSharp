@@ -4,6 +4,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -58,51 +60,39 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
         {
-            var options = new GifDecoder
-            {
-                IgnoreMetadata = false
-            };
-
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                GifMetadata metadata = image.Metadata.GetGifMetadata();
-                Assert.Equal(1, metadata.Comments.Count);
-                Assert.Equal("ImageSharp", metadata.Comments[0]);
-            }
+            using Image<Rgba32> image = testFile.CreateRgba32Image(new GifDecoder());
+            GifMetadata metadata = image.Metadata.GetGifMetadata();
+            Assert.Equal(1, metadata.Comments.Count);
+            Assert.Equal("ImageSharp", metadata.Comments[0]);
         }
 
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
         {
-            var options = new GifDecoder
+            DecoderOptions options = new()
             {
-                IgnoreMetadata = true
+                SkipMetadata = true
             };
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                GifMetadata metadata = image.Metadata.GetGifMetadata();
-                Assert.Equal(0, metadata.Comments.Count);
-            }
+            using Image<Rgba32> image = testFile.CreateRgba32Image(new GifDecoder(), options);
+            GifMetadata metadata = image.Metadata.GetGifMetadata();
+            Assert.Equal(0, metadata.Comments.Count);
         }
 
         [Fact]
         public void Decode_CanDecodeLargeTextComment()
         {
-            var options = new GifDecoder();
             var testFile = TestFile.Create(TestImages.Gif.LargeComment);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                GifMetadata metadata = image.Metadata.GetGifMetadata();
-                Assert.Equal(2, metadata.Comments.Count);
-                Assert.Equal(new string('c', 349), metadata.Comments[0]);
-                Assert.Equal("ImageSharp", metadata.Comments[1]);
-            }
+            using Image<Rgba32> image = testFile.CreateRgba32Image(new GifDecoder());
+            GifMetadata metadata = image.Metadata.GetGifMetadata();
+            Assert.Equal(2, metadata.Comments.Count);
+            Assert.Equal(new string('c', 349), metadata.Comments[0]);
+            Assert.Equal("ImageSharp", metadata.Comments[1]);
         }
 
         [Fact]
@@ -111,20 +101,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             var decoder = new GifDecoder();
             var testFile = TestFile.Create(TestImages.Gif.LargeComment);
 
-            using (Image<Rgba32> input = testFile.CreateRgba32Image(decoder))
-            using (var memoryStream = new MemoryStream())
-            {
-                input.Save(memoryStream, new GifEncoder());
-                memoryStream.Position = 0;
+            using Image<Rgba32> input = testFile.CreateRgba32Image(decoder);
+            using var memoryStream = new MemoryStream();
+            input.Save(memoryStream, new GifEncoder());
+            memoryStream.Position = 0;
 
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream, default))
-                {
-                    GifMetadata metadata = image.Metadata.GetGifMetadata();
-                    Assert.Equal(2, metadata.Comments.Count);
-                    Assert.Equal(new string('c', 349), metadata.Comments[0]);
-                    Assert.Equal("ImageSharp", metadata.Comments[1]);
-                }
-            }
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
+            GifMetadata metadata = image.Metadata.GetGifMetadata();
+            Assert.Equal(2, metadata.Comments.Count);
+            Assert.Equal(new string('c', 349), metadata.Comments[0]);
+            Assert.Equal("ImageSharp", metadata.Comments[1]);
         }
 
         [Theory]
@@ -132,15 +118,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new GifDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
-                ImageMetadata meta = image.Metadata;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new GifDecoder();
+            IImageInfo image = decoder.Identify(DecoderOptions.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public async Task Identify_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new GifDecoder();
+            IImageInfo image = await decoder.IdentifyAsync(DecoderOptions.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -148,17 +146,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new GifDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
-                {
-                    ImageMetadata meta = image.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new GifDecoder();
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public async Task Decode_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new GifDecoder();
+            using Image<Rgba32> image = await decoder.DecodeAsync<Rgba32>(DecoderOptions.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -166,13 +174,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Identify_VerifyRepeatCount(string imagePath, uint repeatCount)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new GifDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream, default);
-                GifMetadata meta = image.Metadata.GetGifMetadata();
-                Assert.Equal(repeatCount, meta.RepeatCount);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new GifDecoder();
+            IImageInfo image = decoder.Identify(DecoderOptions.Default, stream);
+            GifMetadata meta = image.Metadata.GetGifMetadata();
+            Assert.Equal(repeatCount, meta.RepeatCount);
         }
 
         [Theory]
@@ -180,15 +186,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_VerifyRepeatCount(string imagePath, uint repeatCount)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new GifDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream, default))
-                {
-                    GifMetadata meta = image.Metadata.GetGifMetadata();
-                    Assert.Equal(repeatCount, meta.RepeatCount);
-                }
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new GifDecoder();
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+            GifMetadata meta = image.Metadata.GetGifMetadata();
+            Assert.Equal(repeatCount, meta.RepeatCount);
         }
     }
 }

@@ -3,8 +3,7 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Tests;
 using SDImage = System.Drawing.Image;
 using SDSize = System.Drawing.Size;
@@ -47,25 +46,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true)]
         public SDSize SystemDrawing()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                using (var image = SDImage.FromStream(memoryStream))
-                {
-                    return image.Size;
-                }
-            }
+            using var memoryStream = new MemoryStream(this.jpegBytes);
+            using var image = SDImage.FromStream(memoryStream);
+            return image.Size;
         }
 
         [Benchmark]
         public Size ImageSharp()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                using (var image = Image.Load(memoryStream, new JpegDecoder { IgnoreMetadata = true }))
-                {
-                    return new Size(image.Width, image.Height);
-                }
-            }
+            using var memoryStream = new MemoryStream(this.jpegBytes);
+            using var image = Image.Load(new DecoderOptions() { SkipMetadata = true }, memoryStream);
+            return new Size(image.Width, image.Height);
         }
 
         /*

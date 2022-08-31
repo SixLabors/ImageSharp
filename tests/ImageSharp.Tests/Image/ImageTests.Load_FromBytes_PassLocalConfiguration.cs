@@ -15,14 +15,15 @@ namespace SixLabors.ImageSharp.Tests
         {
             private ReadOnlySpan<byte> ByteSpan => this.ByteArray.AsSpan();
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Configuration_Bytes_Specific(bool useSpan)
+            [Fact]
+            public void Configuration_Bytes_Specific()
             {
-                var img = useSpan
-                              ? Image.Load<Rgb24>(this.TopLevelConfiguration, this.ByteSpan)
-                              : Image.Load<Rgb24>(this.TopLevelConfiguration, this.ByteArray);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load<Rgb24>(options, this.ByteSpan);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
@@ -30,14 +31,15 @@ namespace SixLabors.ImageSharp.Tests
                 this.TestFormat.VerifySpecificDecodeCall<Rgb24>(this.Marker, this.TopLevelConfiguration);
             }
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Configuration_Bytes_Agnostic(bool useSpan)
+            [Fact]
+            public void Configuration_Bytes_Agnostic()
             {
-                var img = useSpan
-                              ? Image.Load(this.TopLevelConfiguration, this.ByteSpan)
-                              : Image.Load(this.TopLevelConfiguration, this.ByteArray);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load(options, this.ByteSpan);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat.SampleAgnostic(), img);
@@ -45,45 +47,15 @@ namespace SixLabors.ImageSharp.Tests
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
             }
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Configuration_Bytes_Decoder_Specific(bool useSpan)
+            [Fact]
+            public void Configuration_Bytes_OutFormat_Specific()
             {
-                var localFormat = new TestFormat();
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
 
-                var img = useSpan ?
-                              Image.Load<Rgba32>(this.TopLevelConfiguration, this.ByteSpan, localFormat.Decoder) :
-                              Image.Load<Rgba32>(this.TopLevelConfiguration, this.ByteArray, localFormat.Decoder);
-
-                Assert.NotNull(img);
-                localFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
-            }
-
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Configuration_Bytes_Decoder_Agnostic(bool useSpan)
-            {
-                var localFormat = new TestFormat();
-
-                var img = useSpan ?
-                              Image.Load(this.TopLevelConfiguration, this.ByteSpan, localFormat.Decoder) :
-                              Image.Load(this.TopLevelConfiguration, this.ByteArray, localFormat.Decoder);
-
-                Assert.NotNull(img);
-                localFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
-            }
-
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Configuration_Bytes_OutFormat_Specific(bool useSpan)
-            {
-                IImageFormat format;
-                var img = useSpan ?
-                              Image.Load<Bgr24>(this.TopLevelConfiguration, this.ByteSpan, out format) :
-                              Image.Load<Bgr24>(this.TopLevelConfiguration, this.ByteArray, out format);
+                var img = Image.Load<Bgr24>(options, this.ByteSpan, out IImageFormat format);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
@@ -91,15 +63,15 @@ namespace SixLabors.ImageSharp.Tests
                 this.TestFormat.VerifySpecificDecodeCall<Bgr24>(this.Marker, this.TopLevelConfiguration);
             }
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void Configuration_Bytes_OutFormat_Agnostic(bool useSpan)
+            [Fact]
+            public void Configuration_Bytes_OutFormat_Agnostic()
             {
-                IImageFormat format;
-                var img = useSpan ?
-                              Image.Load(this.TopLevelConfiguration, this.ByteSpan, out format) :
-                              Image.Load(this.TopLevelConfiguration, this.ByteArray, out format);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load(options, this.ByteSpan, out IImageFormat format);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);

@@ -128,6 +128,9 @@ namespace SixLabors.ImageSharp.Tests
             // Issue 2217: https://github.com/SixLabors/ImageSharp/issues/2217
             public const string Issue2217 = "Png/issues/Issue_2217_AdaptiveThresholdProcessor.png";
 
+            // Issue 2209: https://github.com/SixLabors/ImageSharp/issues/2209
+            public const string Issue2209IndexedWithTransparency = "Png/issues/Issue_2209.png";
+
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";

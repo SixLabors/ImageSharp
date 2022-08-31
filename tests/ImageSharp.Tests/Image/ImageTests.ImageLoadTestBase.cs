@@ -63,28 +63,27 @@ namespace SixLabors.ImageSharp.Tests
                 this.localImageFormatMock = new Mock<IImageFormat>();
 
                 var detector = new Mock<IImageInfoDetector>();
-                detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(this.localImageInfoMock.Object);
+                detector.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                    .Returns(this.localImageInfoMock.Object);
 
                 this.localDecoder = detector.As<IImageDecoder>();
-                this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                    .Callback<Configuration, Stream, CancellationToken>((c, s, ct) =>
+                this.localDecoder
+                    .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                    .Callback<DecoderOptions, Stream, CancellationToken>((c, s, ct) =>
                         {
-                            using (var ms = new MemoryStream())
-                            {
-                                s.CopyTo(ms);
-                                this.DecodedData = ms.ToArray();
-                            }
+                            using var ms = new MemoryStream();
+                            s.CopyTo(ms);
+                            this.DecodedData = ms.ToArray();
                         })
                     .Returns(this.localStreamReturnImageRgba32);
 
-                this.localDecoder.Setup(x => x.Decode(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                    .Callback<Configuration, Stream, CancellationToken>((c, s, ct) =>
+                this.localDecoder
+                    .Setup(x => x.Decode(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                    .Callback<DecoderOptions, Stream, CancellationToken>((c, s, ct) =>
                         {
-                            using (var ms = new MemoryStream())
-                            {
-                                s.CopyTo(ms);
-                                this.DecodedData = ms.ToArray();
-                            }
+                            using var ms = new MemoryStream();
+                            s.CopyTo(ms);
+                            this.DecodedData = ms.ToArray();
                         })
                     .Returns(this.localStreamReturnImageAgnostic);
 

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             byte[] buffer = new byte[expectedResult.Length];
 
             using var decompressor = new NoneTiffCompression(default, default, default);
-            decompressor.Decompress(stream, 0, byteCount, 1, buffer);
+            decompressor.Decompress(stream, 0, byteCount, 1, buffer, default);
 
             Assert.Equal(expectedResult, buffer);
         }

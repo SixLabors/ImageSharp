@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -12,7 +11,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General
     {
         private const int Height = 1024;
 
-        [Params(0.5, 2.0, 10.0)] public double SizeMegaBytes { get; set; }
+        [Params(0.5, 2.0, 10.0)]
+        public double SizeMegaBytes { get; set; }
 
         private Buffer2D<Rgba32> buffer;
 

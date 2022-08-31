@@ -1,9 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 
@@ -96,6 +99,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
 
             bool isGrayscale = extension is "pgm" or "pbm";
             image.CompareToReferenceOutput(provider, grayscale: isGrayscale);
+        }
+
+        [Theory]
+        [WithFile(RgbPlain, PixelTypes.Rgb24)]
+        public void PbmDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<TPixel> image = provider.GetImage(new PbmDecoder(), options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Exact,
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
     }
 }

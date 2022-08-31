@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -15,101 +15,138 @@ namespace SixLabors.ImageSharp.Tests
         public class Decode_Cancellation : ImageLoadTestBase
         {
             private bool isTestStreamSeekable;
-            private readonly SemaphoreSlim notifyWaitPositionReachedSemaphore = new SemaphoreSlim(0);
-            private readonly SemaphoreSlim continueSemaphore = new SemaphoreSlim(0);
-            private readonly CancellationTokenSource cts = new CancellationTokenSource();
+            private readonly SemaphoreSlim notifyWaitPositionReachedSemaphore = new(0);
+            private readonly SemaphoreSlim continueSemaphore = new(0);
+            private readonly CancellationTokenSource cts = new();
 
-            public Decode_Cancellation()
+            public Decode_Cancellation() => this.TopLevelConfiguration.StreamProcessingBufferSize = 128;
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public Task LoadAsync_Specific_Stream(bool isInputStreamSeekable)
             {
-                this.TopLevelConfiguration.StreamProcessingBufferSize = 128;
+                this.isTestStreamSeekable = isInputStreamSeekable;
+                _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
+
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync<Rgb24>(options, this.DataStream, this.cts.Token));
             }
 
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
-            public async Task LoadAsync_Specific_Stream(bool isInputStreamSeekable)
+            public Task LoadAsync_Agnostic_Stream(bool isInputStreamSeekable)
             {
                 this.isTestStreamSeekable = isInputStreamSeekable;
                 _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
 
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync<Rgb24>(this.TopLevelConfiguration, this.DataStream, this.cts.Token));
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(options, this.DataStream, this.cts.Token));
+            }
+
+            [Fact]
+            public Task LoadAsync_Agnostic_Path()
+            {
+                this.isTestStreamSeekable = true;
+                _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
+
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(options, this.MockFilePath, this.cts.Token));
+            }
+
+            [Fact]
+            public Task LoadAsync_Specific_Path()
+            {
+                this.isTestStreamSeekable = true;
+                _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
+
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync<Rgb24>(options, this.MockFilePath, this.cts.Token));
             }
 
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
-            public async Task LoadAsync_Agnostic_Stream(bool isInputStreamSeekable)
+            public Task IdentifyAsync_Stream(bool isInputStreamSeekable)
             {
                 this.isTestStreamSeekable = isInputStreamSeekable;
                 _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
 
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(this.TopLevelConfiguration, this.DataStream, this.cts.Token));
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(options, this.DataStream, this.cts.Token));
             }
 
             [Fact]
-            public async Task LoadAsync_Agnostic_Path()
+            public Task IdentifyAsync_CustomConfiguration_Path()
             {
                 this.isTestStreamSeekable = true;
                 _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
 
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(this.TopLevelConfiguration, this.MockFilePath, this.cts.Token));
-            }
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
 
-            [Fact]
-            public async Task LoadAsync_Specific_Path()
-            {
-                this.isTestStreamSeekable = true;
-                _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
-
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync<Rgb24>(this.TopLevelConfiguration, this.MockFilePath, this.cts.Token));
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(options, this.MockFilePath, this.cts.Token));
             }
 
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
-            public async Task IdentifyAsync_Stream(bool isInputStreamSeekable)
+            public Task IdentifyWithFormatAsync_CustomConfiguration_Stream(bool isInputStreamSeekable)
             {
                 this.isTestStreamSeekable = isInputStreamSeekable;
                 _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
 
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(this.TopLevelConfiguration, this.DataStream, this.cts.Token));
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyWithFormatAsync(options, this.DataStream, this.cts.Token));
             }
 
             [Fact]
-            public async Task IdentifyAsync_CustomConfiguration_Path()
+            public Task IdentifyWithFormatAsync_CustomConfiguration_Path()
             {
                 this.isTestStreamSeekable = true;
                 _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
 
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(this.TopLevelConfiguration, this.MockFilePath, this.cts.Token));
-            }
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
 
-            [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public async Task IdentifyWithFormatAsync_CustomConfiguration_Stream(bool isInputStreamSeekable)
-            {
-                this.isTestStreamSeekable = isInputStreamSeekable;
-                _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
-
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyWithFormatAsync(this.TopLevelConfiguration, this.DataStream, this.cts.Token));
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyWithFormatAsync(options, this.MockFilePath, this.cts.Token));
             }
 
             [Fact]
-            public async Task IdentifyWithFormatAsync_CustomConfiguration_Path()
-            {
-                this.isTestStreamSeekable = true;
-                _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
-
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyWithFormatAsync(this.TopLevelConfiguration, this.MockFilePath, this.cts.Token));
-            }
-
-            [Fact]
-            public async Task IdentifyWithFormatAsync_DefaultConfiguration_Stream()
+            public Task IdentifyWithFormatAsync_DefaultConfiguration_Stream()
             {
                 _ = Task.Factory.StartNew(this.DoCancel, TaskCreationOptions.LongRunning);
 
-                await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyWithFormatAsync(this.DataStream, this.cts.Token));
+                return Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyWithFormatAsync(this.DataStream, this.cts.Token));
             }
 
             private async Task DoCancel()

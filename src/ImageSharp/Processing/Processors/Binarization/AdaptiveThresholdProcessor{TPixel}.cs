@@ -133,19 +133,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             {
                 Rgba32 rgb = default;
                 Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
+                int maxX = this.bounds.Width - 1;
+                int maxY = this.bounds.Height - 1;
 
                 for (int x = this.startX; x < this.endX; x++)
                 {
                     TPixel pixel = pixelRow[x];
                     pixel.ToRgba32(ref rgb);
 
-                    var x1 = Math.Max(x - this.startX - this.clusterSize + 1, 0);
-                    var x2 = Math.Min(x - this.startX + this.clusterSize + 1, this.bounds.Width - 1);
-                    var y1 = Math.Max(y - this.startY - this.clusterSize + 1, 0);
-                    var y2 = Math.Min(y - this.startY + this.clusterSize + 1, this.bounds.Height - 1);
+                    int x1 = Math.Min(Math.Max(x - this.startX - this.clusterSize + 1, 0), maxX);
+                    int x2 = Math.Min(x - this.startX + this.clusterSize + 1, maxX);
+                    int y1 = Math.Min(Math.Max(y - this.startY - this.clusterSize + 1, 0), maxY);
+                    int y2 = Math.Min(y - this.startY + this.clusterSize + 1, maxY);
 
-                    var count = (uint)((x2 - x1) * (y2 - y1));
-                    var sum = (long)Math.Min(this.intImage[x2, y2] - this.intImage[x1, y2] - this.intImage[x2, y1] + this.intImage[x1, y1], long.MaxValue);
+                    uint count = (uint)((x2 - x1) * (y2 - y1));
+                    long sum = (long)Math.Min(this.intImage[x2, y2] - this.intImage[x1, y2] - this.intImage[x2, y1] + this.intImage[x1, y1], long.MaxValue);
 
                     if ((rgb.R + rgb.G + rgb.B) * count <= sum * this.thresholdLimit)
                     {

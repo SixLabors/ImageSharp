@@ -132,6 +132,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
+        [WithFile(Bit2, PixelTypes.Rgba32)]
+        [WithFile(Bit2Color, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_2Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(BmpDecoder))
+            {
+                image.DebugSave(provider);
+
+                // Reference decoder cant decode 2-bit, compare to reference output instead.
+                image.CompareToReferenceOutput(provider, extension: "png");
+            }
+        }
+
+        [Theory]
         [WithFile(Bit4, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_4Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

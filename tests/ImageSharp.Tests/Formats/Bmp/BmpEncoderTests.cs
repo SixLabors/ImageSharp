@@ -22,6 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
     {
         private static BmpDecoder BmpDecoder => new();
 
+        private static BmpEncoder BmpEncoder => new();
+
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
         new()
         {
@@ -53,14 +55,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [MemberData(nameof(RatioFiles))]
         public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
-            var options = new BmpEncoder();
-
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, BmpEncoder);
 
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
@@ -78,14 +78,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [MemberData(nameof(BmpBitsPerPixelFiles))]
         public void Encode_PreserveBitsPerPixel(string imagePath, BmpBitsPerPixel bmpBitsPerPixel)
         {
-            var options = new BmpEncoder();
-
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, BmpEncoder);
 
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))

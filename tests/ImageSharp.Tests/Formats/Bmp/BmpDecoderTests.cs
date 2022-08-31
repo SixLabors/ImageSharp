@@ -304,8 +304,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
-                // image.CompareToOriginal(provider);
+                // Neither System.Drawing nor MagickReferenceDecoder decode this file.
+                // Compare to reference output instead.
+                image.CompareToReferenceOutput(provider, extension: "png");
             }
         }
 
@@ -318,8 +319,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
-                // image.CompareToOriginal(provider);
+                // Neither System.Drawing nor MagickReferenceDecoder decode this file.
+                // Compare to reference output instead.
+                image.CompareToReferenceOutput(provider, extension: "png");
             }
         }
 
@@ -592,8 +594,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
-                // image.CompareToOriginal(provider);
+                // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
+                // Compare to reference output instead.
+                image.CompareToReferenceOutput(provider, extension: "png");
             }
         }
 
@@ -606,10 +609,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 image.DebugSave(provider);
 
-                // TODO: System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
-                // but i think incorrectly. I have loaded the image with GIMP and exported as PNG.
-                // The results are the same as the image sharp implementation.
-                // image.CompareToOriginal(provider, new MagickReferenceDecoder());
+                // System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
+                // Compare to reference output instead.
+                image.CompareToReferenceOutput(provider, extension: "png");
             }
         }
 
@@ -630,8 +632,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
-                // image.CompareToOriginal(provider);
+                // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
+                // Compare to reference output instead.
+                image.CompareToReferenceOutput(provider, extension: "png");
             }
         }
     }

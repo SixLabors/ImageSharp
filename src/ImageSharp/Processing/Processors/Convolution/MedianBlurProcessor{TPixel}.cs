@@ -31,13 +31,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             source.CopyTo(targetPixels);
 
-            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             // We use a rectangle with width set to 2 * kernelSize^2 + width, to allocate a buffer big enough
             // for kernel source and target bulk pixel conversion.
-            var operationBounds = new Rectangle(interest.X, interest.Y, (2 * (kernelSize * kernelSize)) + interest.Width, interest.Height);
+            Rectangle operationBounds = new Rectangle(interest.X, interest.Y, (2 * (kernelSize * kernelSize)) + interest.Width, interest.Height);
 
-            using var map = new KernelSamplingMap(this.Configuration.MemoryAllocator);
+            using KernelSamplingMap map = new KernelSamplingMap(this.Configuration.MemoryAllocator);
             map.BuildSamplingOffsetMap(kernelSize, kernelSize, interest, this.definition.BorderWrapModeX, this.definition.BorderWrapModeY);
 
             var operation = new MedianRowOperation<TPixel>(

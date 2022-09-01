@@ -56,28 +56,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Stack 4 channels of floats in the space of Vector4's.
             Span<float> channelBuffer = MemoryMarshal.Cast<Vector4, float>(channelVectorBuffer);
-            var xChannel = channelBuffer.Slice(0, kernelCount);
-            var yChannel = channelBuffer.Slice(this.yChannelStart, kernelCount);
-            var zChannel = channelBuffer.Slice(this.zChannelStart, kernelCount);
+            Span<float> xChannel = channelBuffer.Slice(0, kernelCount);
+            Span<float> yChannel = channelBuffer.Slice(this.yChannelStart, kernelCount);
+            Span<float> zChannel = channelBuffer.Slice(this.zChannelStart, kernelCount);
 
-            var xOffsets = this.map.GetColumnOffsetSpan();
-            var yOffsets = this.map.GetRowOffsetSpan();
-            var baseXOffsetIndex = 0;
-            var baseYOffsetIndex = (y - this.bounds.Top) * this.kernelSize;
+            Span<int> xOffsets = this.map.GetColumnOffsetSpan();
+            Span<int> yOffsets = this.map.GetRowOffsetSpan();
+            int baseXOffsetIndex = 0;
+            int baseYOffsetIndex = (y - this.bounds.Top) * this.kernelSize;
 
             if (this.preserveAlpha)
             {
-                for (var x = boundsLeft; x < boundsRight; x++)
+                for (int x = boundsLeft; x < boundsRight; x++)
                 {
-                    var index = 0;
-                    for (var w = 0; w < this.kernelSize; w++)
+                    int index = 0;
+                    for (int w = 0; w < this.kernelSize; w++)
                     {
-                        var j = yOffsets[baseYOffsetIndex + w];
-                        var row = this.sourcePixels.DangerousGetRowSpan(j);
-                        for (var z = 0; z < this.kernelSize; z++)
+                        int j = yOffsets[baseYOffsetIndex + w];
+                        Span<TPixel> row = this.sourcePixels.DangerousGetRowSpan(j);
+                        for (int z = 0; z < this.kernelSize; z++)
                         {
-                            var k = xOffsets[baseXOffsetIndex + z];
-                            var pixel = row[k];
+                            int k = xOffsets[baseXOffsetIndex + z];
+                            TPixel pixel = row[k];
                             kernelBuffer[index + z] = pixel.ToVector4();
                         }
 
@@ -90,18 +90,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             }
             else
             {
-                var wChannel = channelBuffer.Slice(this.wChannelStart, kernelCount);
-                for (var x = boundsLeft; x < boundsRight; x++)
+                Span<float> wChannel = channelBuffer.Slice(this.wChannelStart, kernelCount);
+                for (int x = boundsLeft; x < boundsRight; x++)
                 {
-                    var index = 0;
-                    for (var w = 0; w < this.kernelSize; w++)
+                    int index = 0;
+                    for (int w = 0; w < this.kernelSize; w++)
                     {
-                        var j = yOffsets[baseYOffsetIndex + w];
-                        var row = this.sourcePixels.DangerousGetRowSpan(j);
-                        for (var z = 0; z < this.kernelSize; z++)
+                        int j = yOffsets[baseYOffsetIndex + w];
+                        Span<TPixel> row = this.sourcePixels.DangerousGetRowSpan(j);
+                        for (int z = 0; z < this.kernelSize; z++)
                         {
-                            var k = xOffsets[baseXOffsetIndex + z];
-                            var pixel = row[k];
+                            int k = xOffsets[baseXOffsetIndex + z];
+                            TPixel pixel = row[k];
                             kernelBuffer[index + z] = pixel.ToVector4();
                         }
 
@@ -135,6 +135,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             yChannel.Sort();
             zChannel.Sort();
 
+            // Taking the W value from the source pixels, where the middle index in the kernelSpan is by definition the resulting pixel.
+            // This will preserve the alpha value.
             return new Vector4(xChannel[halfLength], yChannel[halfLength], zChannel[halfLength], kernelSpan[halfLength].W);
         }
 

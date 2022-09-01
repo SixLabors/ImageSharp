@@ -14,6 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         Pixel1 = 1,
 
         /// <summary>
+        /// 2 bits per pixel.
+        /// </summary>
+        Pixel2 = 2,
+
+        /// <summary>
         /// 4 bits per pixel.
         /// </summary>
         Pixel4 = 4,

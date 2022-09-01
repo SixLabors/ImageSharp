@@ -19,10 +19,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         /// <returns>A ImageComparer instance.</returns>
         public static ImageComparer Tolerant(
             float imageThreshold = TolerantImageComparer.DefaultImageThreshold,
-            int perPixelManhattanThreshold = 0)
-        {
-            return new TolerantImageComparer(imageThreshold, perPixelManhattanThreshold);
-        }
+            int perPixelManhattanThreshold = 0) =>
+            new TolerantImageComparer(imageThreshold, perPixelManhattanThreshold);
 
         /// <summary>
         /// Returns Tolerant(imageThresholdInPercents/100)
@@ -45,10 +43,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             Image<TPixelA> expected,
             Image<TPixelB> actual)
             where TPixelA : unmanaged, IPixel<TPixelA>
-            where TPixelB : unmanaged, IPixel<TPixelB>
-        {
-            return comparer.CompareImagesOrFrames(expected.Frames.RootFrame, actual.Frames.RootFrame);
-        }
+            where TPixelB : unmanaged, IPixel<TPixelB> => comparer.CompareImagesOrFrames(expected.Frames.RootFrame, actual.Frames.RootFrame);
 
         public static IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> CompareImages<TPixelA, TPixelB>(
             this ImageComparer comparer,

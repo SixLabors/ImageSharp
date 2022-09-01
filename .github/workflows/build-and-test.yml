@@ -20,19 +20,19 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
-          # Temp disabled due to runtime preview issues.
-          #- os: macos-latest
-          #  framework: net7.0
-          #  sdk: 7.0.x
-          #  sdk-preview: true
-          #  runtime: -x64
-          #  codecov: false
-          - os: windows-latest
+          - os: macos-latest
             framework: net7.0
             sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
+          # Temp disabled due to runtime preview issues.
+          #- os: windows-latest
+          #  framework: net7.0
+          #  sdk: 7.0.x
+          #  sdk-preview: true
+          #  runtime: -x64
+          #  codecov: false
           - os: ubuntu-latest
             framework: net6.0
             sdk: 6.0.x

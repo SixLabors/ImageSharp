@@ -46,9 +46,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public void Invoke(int y, Span<Vector4> span)
         {
             // Span has kernelSize^2 followed by bound width.
-            int boundsLeft = this.bounds.Left;
+            int boundsX = this.bounds.X;
             int boundsWidth = this.bounds.Width;
-            int boundsRight = this.bounds.Right;
             int kernelCount = this.kernelSize * this.kernelSize;
             Span<Vector4> kernelBuffer = span.Slice(0, kernelCount);
             Span<Vector4> channelVectorBuffer = span.Slice(kernelCount, kernelCount);
@@ -67,53 +66,51 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             if (this.preserveAlpha)
             {
-                for (int x = boundsLeft; x < boundsRight; x++)
+                for (int x = 0; x < boundsWidth; x++)
                 {
                     int index = 0;
-                    for (int w = 0; w < this.kernelSize; w++)
+                    for (int kY = 0; kY < this.kernelSize; kY++)
                     {
-                        int j = yOffsets[baseYOffsetIndex + w];
-                        Span<TPixel> row = this.sourcePixels.DangerousGetRowSpan(j);
-                        for (int z = 0; z < this.kernelSize; z++)
+                        int currentY = yOffsets[baseYOffsetIndex + kY];
+                        Span<TPixel> row = this.sourcePixels.DangerousGetRowSpan(currentY);
+                        for (int kX = 0; kX < this.kernelSize; kX++)
                         {
-                            int k = xOffsets[baseXOffsetIndex + z];
-                            TPixel pixel = row[k];
-                            kernelBuffer[index + z] = pixel.ToVector4();
+                            int currentX = xOffsets[baseXOffsetIndex + kX];
+                            TPixel pixel = row[currentX];
+                            kernelBuffer[index] = pixel.ToVector4();
+                            index++;
                         }
-
-                        index += this.kernelSize;
                     }
 
-                    targetBuffer[x - boundsLeft] = this.FindMedian3(kernelBuffer, xChannel, yChannel, zChannel, kernelCount);
+                    targetBuffer[x] = this.FindMedian3(kernelBuffer, xChannel, yChannel, zChannel, kernelCount);
                     baseXOffsetIndex += this.kernelSize;
                 }
             }
             else
             {
                 Span<float> wChannel = channelBuffer.Slice(this.wChannelStart, kernelCount);
-                for (int x = boundsLeft; x < boundsRight; x++)
+                for (int x = 0; x < boundsWidth; x++)
                 {
                     int index = 0;
-                    for (int w = 0; w < this.kernelSize; w++)
+                    for (int kY = 0; kY < this.kernelSize; kY++)
                     {
-                        int j = yOffsets[baseYOffsetIndex + w];
+                        int j = yOffsets[baseYOffsetIndex + kY];
                         Span<TPixel> row = this.sourcePixels.DangerousGetRowSpan(j);
-                        for (int z = 0; z < this.kernelSize; z++)
+                        for (int kX = 0; kX < this.kernelSize; kX++)
                         {
-                            int k = xOffsets[baseXOffsetIndex + z];
-                            TPixel pixel = row[k];
-                            kernelBuffer[index + z] = pixel.ToVector4();
+                            int currentX = xOffsets[baseXOffsetIndex + kX];
+                            TPixel pixel = row[currentX];
+                            kernelBuffer[index] = pixel.ToVector4();
+                            index++;
                         }
-
-                        index += this.kernelSize;
                     }
 
-                    targetBuffer[x - boundsLeft] = this.FindMedian4(kernelBuffer, xChannel, yChannel, zChannel, wChannel, kernelCount);
+                    targetBuffer[x] = this.FindMedian4(kernelBuffer, xChannel, yChannel, zChannel, wChannel, kernelCount);
                     baseXOffsetIndex += this.kernelSize;
                 }
             }
 
-            Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsLeft, boundsWidth);
+            Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan);
         }
 

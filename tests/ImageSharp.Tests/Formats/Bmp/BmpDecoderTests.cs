@@ -122,6 +122,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
+        [WithFile(Bit2, PixelTypes.Rgba32)]
+        [WithFile(Bit2Color, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_2Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+
+            // Reference decoder cant decode 2-bit, compare to reference output instead.
+            image.CompareToReferenceOutput(provider, extension: "png");
+        }
+
+        [Theory]
         [WithFile(Bit4, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_4Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -266,8 +279,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
             image.DebugSave(provider);
 
-            // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
-            // image.CompareToOriginal(provider);
+            // Neither System.Drawing nor MagickReferenceDecoder decode this file.
+            // Compare to reference output instead.
+            image.CompareToReferenceOutput(provider, extension: "png");
         }
 
         [Theory]
@@ -278,8 +292,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using Image<TPixel> image = provider.GetImage(BmpDecoder);
             image.DebugSave(provider);
 
-            // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
-            // image.CompareToOriginal(provider);
+            // Neither System.Drawing nor MagickReferenceDecoder decode this file.
+            // Compare to reference output instead.
+            image.CompareToReferenceOutput(provider, extension: "png");
         }
 
         [Theory]
@@ -512,8 +527,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using Image<TPixel> image = provider.GetImage(BmpDecoder);
             image.DebugSave(provider);
 
-            // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
-            // image.CompareToOriginal(provider);
+            // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
+            // Compare to reference output instead.
+            image.CompareToReferenceOutput(provider, extension: "png");
         }
 
         [Theory]
@@ -524,10 +540,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using Image<TPixel> image = provider.GetImage(BmpDecoder);
             image.DebugSave(provider);
 
-            // TODO: System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
-            // but i think incorrectly. I have loaded the image with GIMP and exported as PNG.
-            // The results are the same as the image sharp implementation.
-            // image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            // System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
+            // Compare to reference output instead.
+            image.CompareToReferenceOutput(provider, extension: "png");
         }
 
         [Theory]
@@ -546,8 +561,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using Image<TPixel> image = provider.GetImage(BmpDecoder);
             image.DebugSave(provider);
 
-            // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
-            // image.CompareToOriginal(provider);
+            // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
+            // Compare to reference output instead.
+            image.CompareToReferenceOutput(provider, extension: "png");
         }
     }
 }

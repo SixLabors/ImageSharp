@@ -59,31 +59,36 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             Span<float> yChannel = channelBuffer.Slice(this.yChannelStart, kernelCount);
             Span<float> zChannel = channelBuffer.Slice(this.zChannelStart, kernelCount);
 
-            Span<int> xOffsets = this.map.GetColumnOffsetSpan();
-            Span<int> yOffsets = this.map.GetRowOffsetSpan();
-            int baseXOffsetIndex = 0;
-            int baseYOffsetIndex = (y - this.bounds.Top) * this.kernelSize;
+            DenseMatrix<Vector4> kernel = new DenseMatrix<Vector4>(this.kernelSize, this.kernelSize, kernelBuffer);
+
+            int row = y - this.bounds.Y;
+            MedianConvolutionState state = new MedianConvolutionState(in kernel, this.map);
+            ref int sampleRowBase = ref state.GetSampleRow(row);
+            ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
             if (this.preserveAlpha)
             {
                 for (int x = 0; x < boundsWidth; x++)
                 {
                     int index = 0;
-                    for (int kY = 0; kY < this.kernelSize; kY++)
+                    ref int sampleColumnBase = ref state.GetSampleColumn(x);
+                    ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                    for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        int currentY = yOffsets[baseYOffsetIndex + kY];
-                        Span<TPixel> row = this.sourcePixels.DangerousGetRowSpan(currentY);
-                        for (int kX = 0; kX < this.kernelSize; kX++)
+                        int currentYIndex = Unsafe.Add(ref sampleRowBase, kY);
+                        Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(currentYIndex).Slice(boundsX, boundsWidth);
+                        ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
+                        for (int kX = 0; kX < state.Kernel.Columns; kX++)
                         {
-                            int currentX = xOffsets[baseXOffsetIndex + kX];
-                            TPixel pixel = row[currentX];
-                            kernelBuffer[index] = pixel.ToVector4();
+                            int currentXIndex = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
+                            TPixel pixel = Unsafe.Add(ref sourceRowBase, currentXIndex);
+                            state.Kernel.SetValue(index, pixel.ToVector4());
                             index++;
                         }
                     }
 
-                    targetBuffer[x] = this.FindMedian3(kernelBuffer, xChannel, yChannel, zChannel, kernelCount);
-                    baseXOffsetIndex += this.kernelSize;
+                    target = this.FindMedian3(state.Kernel.Span, xChannel, yChannel, zChannel, kernelCount);
+                    state.Kernel.Clear();
                 }
             }
             else
@@ -92,21 +97,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 for (int x = 0; x < boundsWidth; x++)
                 {
                     int index = 0;
-                    for (int kY = 0; kY < this.kernelSize; kY++)
+                    ref int sampleColumnBase = ref state.GetSampleColumn(x);
+                    ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                    for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        int j = yOffsets[baseYOffsetIndex + kY];
-                        Span<TPixel> row = this.sourcePixels.DangerousGetRowSpan(j);
-                        for (int kX = 0; kX < this.kernelSize; kX++)
+                        int currentYIndex = Unsafe.Add(ref sampleRowBase, kY);
+                        Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(currentYIndex).Slice(boundsX, boundsWidth);
+                        ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
+                        for (int kX = 0; kX < state.Kernel.Columns; kX++)
                         {
-                            int currentX = xOffsets[baseXOffsetIndex + kX];
-                            TPixel pixel = row[currentX];
-                            kernelBuffer[index] = pixel.ToVector4();
+                            int currentXIndex = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
+                            TPixel pixel = Unsafe.Add(ref sourceRowBase, currentXIndex);
+                            state.Kernel.SetValue(index, pixel.ToVector4());
                             index++;
                         }
                     }
 
-                    targetBuffer[x] = this.FindMedian4(kernelBuffer, xChannel, yChannel, zChannel, wChannel, kernelCount);
-                    baseXOffsetIndex += this.kernelSize;
+                    target = this.FindMedian4(state.Kernel.Span, xChannel, yChannel, zChannel, wChannel, kernelCount);
+                    state.Kernel.Clear();
                 }
             }
 
@@ -115,7 +123,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector4 FindMedian3(Span<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel, int stride)
+        private Vector4 FindMedian3(ReadOnlySpan<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel, int stride)
         {
             int halfLength = (kernelSpan.Length + 1) >> 1;
 
@@ -138,7 +146,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector4 FindMedian4(Span<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel, Span<float> wChannel, int stride)
+        private Vector4 FindMedian4(ReadOnlySpan<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel, Span<float> wChannel, int stride)
         {
             int halfLength = (kernelSpan.Length + 1) >> 1;
 

@@ -97,6 +97,27 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref=" DenseMatrix{T}"/> struct.
+        /// </summary>
+        /// <param name="columns">The number of columns.</param>
+        /// <param name="rows">The number of rows.</param>
+        /// <param name="data">The array to provide access to.</param>
+        public DenseMatrix(int columns, int rows, Span<T> data)
+        {
+            Guard.MustBeGreaterThan(rows, 0, nameof(this.Rows));
+            Guard.MustBeGreaterThan(columns, 0, nameof(this.Columns));
+            Guard.IsTrue(rows * columns == data.Length, nameof(data), "Length should be equal to ros * columns");
+
+            this.Rows = rows;
+            this.Columns = columns;
+            this.Size = new Size(columns, rows);
+            this.Count = this.Columns * this.Rows;
+            this.Data = new T[this.Columns * this.Rows];
+
+            data.CopyTo(this.Data);
+        }
+
+        /// <summary>
         /// Gets a span wrapping the <see cref="Data"/>.
         /// </summary>
         public Span<T> Span => new Span<T>(this.Data);
